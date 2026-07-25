@@ -7,6 +7,31 @@
 
 ---
 
+## (2026-07-25) — Geometry & type pages rolled onto the doc-26 language (#72, web-only)
+
+**STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`). Brings the five pages that
+predated the shared design language onto it, so the whole dashboard reads as one system.
+
+- **Shell.** Every editor section + specimen now sits in a `.psec` container with a `.psec-t/.psec-d`
+  header (via `palSection`). Retired the three competing header styles — `sectionHead` (`.section-lab`),
+  `subHead`-based `objEditor`, and the `.adv-obj`/`.adv-obj-h` bespoke editors — along with the now-dead
+  `panelOfLevers` / `renderAdvancedPanel` helpers and their CSS.
+- **Grouping.** **Size & radius** regrouped by *concept* — Corner radius (anchor + softness) · Density &
+  size · Spacing grid — instead of the old advanced/not split that scattered radius across two boxes.
+  **Motion** promoted Easing out of "advanced" into its own section beside Tempo. **Layout** split into
+  Breakpoints + Grid & containers. **Typography** kept its (already good) grouping but each section is now
+  a `.psec`.
+- **Token pills.** Every ramp specimen row now shows its real, resolvable path (verified against
+  `buildTree`): `radius.*`, `shadow.*`, `size.*.height`, `type.<group>.<size>.<weight>`,
+  `motion.duration.*` + `motion.easing.*`, `breakpoint.*`, `container.*`. Clears the "ramp-page pills
+  deferred" debt in doc 26.
+- **Preview** was left as-is (its pills + master table already conform); only its token-list header
+  cosmetic remains, noted in doc 26 as ◑.
+- **Verified:** `tsc --noEmit` clean; esbuild OK; Playwright light screenshots of all five pages show the
+  `.psec` shell, concept grouping, and live pills; no console errors. Engine untouched (`out/*` byte-identical).
+
+---
+
 ## (2026-07-25) — Interactive page rebuilt as a per-palette matrix (#69, web-only)
 
 **STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`). Consumes the ENG-1/ENG-2

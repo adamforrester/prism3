@@ -957,14 +957,6 @@ const statusRow = (role: StatusRole): { row: HTMLElement; refresh: () => void } 
 // The Interactive page groups its controls into intent sub-sections. (Gradients — formerly a "Features"
 // group here — now lives on the Surfaces page; page surfaces + text/ink are bespoke editors there.)
 const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h3', 'sub-t', title)); return s; };
-/** A bespoke object-editor section (doc 24 C6) — the `.obj-editor` wrap pre-headed with a `subHead` and,
- *  when given, an `.obj-lede` intro paragraph. Callers append their controls to the returned node. */
-const objEditor = (title: string, lede?: string): HTMLElement => {
-  const wrap = el('div', 'obj-editor');
-  wrap.append(subHead(title));
-  if (lede) wrap.append(el('p', 'obj-lede', lede));
-  return wrap;
-};
 
 /** The last dot-segment of a token path — the palette step key (e.g. `…primary.650` → `650`). Shared by
  *  the interactive matrix + the Surfaces fill editors to label an "Auto · <palette> <step>" source. */
@@ -1480,8 +1472,7 @@ const renderGeneratedNote = (): HTMLElement => {
 /** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
 const renderResponsiveEditor = (): HTMLElement => {
-  const wrap = el('div', 'adv-obj');
-  wrap.append(el('div', 'adv-obj-h', 'Responsive type'));
+  const wrap = palSection('Responsive type', 'Fluid heading sizing between a min and max viewport (clamp), plus the viewport pair that drives it.');
   const cb = el('input') as HTMLInputElement;
   cb.type = 'checkbox'; cb.checked = brandState.typography?.responsive?.fluid ?? theme.typography.fluid;
   cb.onchange = () => { setPath(brandState, 'typography.responsive.fluid', cb.checked); apply(); };
@@ -1499,8 +1490,7 @@ const renderResponsiveEditor = (): HTMLElement => {
 };
 
 const renderBreakpointsEditor = (): HTMLElement => {
-  const wrap = el('div', 'adv-obj');
-  wrap.append(el('div', 'adv-obj-h', 'Breakpoints (min-width px, ascending)'));
+  const wrap = palSection('Breakpoints', 'Min-width floors (px, ascending) — names auto-assign sm / md / lg / xl / 2xl.');
   const listEl = el('div', 'adv-bplist');
   const commit = (arr: number[]): void => {
     const clean = [...new Set(arr.filter((n) => Number.isFinite(n) && n >= 0))].sort((a, b) => a - b);
@@ -1530,8 +1520,7 @@ const renderBreakpointsEditor = (): HTMLElement => {
 };
 
 const renderEasingEditor = (): HTMLElement => {
-  const wrap = el('div', 'adv-obj');
-  wrap.append(el('div', 'adv-obj-h', 'Emphasized easing (cubic-bezier)'));
+  const wrap = palSection('Easing', 'The expressive cubic-bezier curve for the emphasized transition — see the Motion specimen’s emphasized bar.');
   const cur = (brandState.motionPersonality?.easingEmphasized ?? theme.motion.easing.emphasized) as number[];
   const row = el('div', 'adv-bez');
   const inputs: HTMLInputElement[] = [];
@@ -1542,7 +1531,6 @@ const renderEasingEditor = (): HTMLElement => {
     row.append(el('span', 'adv-bez-lab mono', lab), inp);
   });
   wrap.append(row);
-  wrap.append(el('p', 'adv-obj-note', 'The expressive curve for the emphasized transition (see the Motion specimen’s emphasized bar).'));
   return wrap;
 };
 
@@ -1568,18 +1556,6 @@ const renderScreen = (
   paintVolatile = () => { vol.innerHTML = ''; for (const s of specimens()) if (s) vol.append(s); };
   paintVolatile();
 };
-const panelOfLevers = (levers: Lever[]): HTMLElement => { const p = el('div', 'panel'); for (const l of levers) p.append(renderControl(l)); return p; };
-/** A page's manifest-`advanced` scalar levers (+ optional bespoke editors), exposed as a normal
- *  always-visible panel. (Owner decision: no "Advanced" disclosure — all UI is shown uniformly.) */
-const renderAdvancedPanel = (host: HTMLElement, key: PageKey, extras?: (ap: HTMLElement) => void): void => {
-  const adv = leverManifest.filter((l) => l.advanced && (l.control === 'slider' || l.control === 'enum') && !PRIMITIVE_KEYS.has(l.key) && pageOfLever(l) === key);
-  if (!adv.length && !extras) return;
-  const ap = el('div', 'panel adv-panel');
-  for (const l of adv) ap.append(renderControl(l));
-  if (extras) extras(ap);
-  host.append(ap);
-};
-
 // Per-page contrast table (docs/23 §3) — a re-slice of the same authoritative contracts the Preview
 // master table shows, scoped to the components this page governs. "Local proof" without leaving the
 // page; the full system table stays on Preview. Only the two colour pages govern contrast pairs, and
@@ -1622,7 +1598,7 @@ const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'i
 const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'typography', (h) => {
   const scale = leverByKey('typography.typeScale');
   if (scale) {
-    const p = el('div', 'panel');
+    const p = palSection('Type scale', 'Shifts heading sizes (display + title) up or down the ladder; body / label / caption stay put.');
     if (currentMode !== 'light') {                          // D — type scale is shared; read-only outside Light
       const cur = getPath(brandState, scale.key) ?? scale.default;
       p.append(knob(scale.label, el('div', 'te-shared-ro', `${cur} · shared across modes — edit in Light`), scale.description));
@@ -1630,7 +1606,7 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
     h.append(p);
   }
   h.append(renderTypographyEditor());
-  renderAdvancedPanel(h, 'typography', (ap) => ap.append(renderResponsiveEditor()));
+  h.append(renderResponsiveEditor());
 }, () => [renderTypeSpecimen()]);
 
 // Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
@@ -1639,35 +1615,46 @@ const renderElevationPage = (host: HTMLElement): void => renderScreen(host, 'ele
 }, () => [renderShadowSpecimen()]);
 
 // Size & radius — component sizing (density) + corner radius; both go per-mode outside Light.
+// Render one lever's control, honouring the per-mode ramp variants (radius / density / tempo go per-mode
+// outside Light). Shared by the geometry/motion pages so each concept `.psec` composes the same way.
+const leverControl = (key: string, perMode: boolean): HTMLElement | null => {
+  const l = leverByKey(key); if (!l) return null;
+  if (key === 'radiusScale' && perMode) return renderPerModeRadius(l);
+  if (key === 'density' && perMode) return renderPerModeDensity(l);
+  if (key === 'motionPersonality.tempo' && perMode) return renderPerModeTempo(l);
+  return renderControl(l);
+};
+/** A `.psec` concept section built from a set of lever keys (doc 26). Returns null when none of its
+ *  levers resolve, so an empty concept never renders an empty panel. */
+const leverSection = (title: string, sub: string, keys: string[], perMode: boolean): HTMLElement | null => {
+  const sec = palSection(title, sub); let any = false;
+  for (const k of keys) { const c = leverControl(k, perMode); if (c) { sec.append(c); any = true; } }
+  return any ? sec : null;
+};
+
+// Size & radius — grouped by concept (doc 26): corner radius, density/size, spacing grid — not by
+// advanced/not. radius + density go per-mode outside Light.
 const renderSizeRadiusPage = (host: HTMLElement): void => renderScreen(host, 'sizeRadius', (h) => {
   const perMode = currentMode !== 'light';
-  const panel = el('div', 'panel');
-  for (const l of leversFor('sizeRadius')) {
-    if (l.key === 'radiusScale' && perMode) { panel.append(renderPerModeRadius(l)); continue; }
-    if (l.key === 'density' && perMode) { panel.append(renderPerModeDensity(l)); continue; }
-    panel.append(renderControl(l));
-  }
-  h.append(panel);
-  renderAdvancedPanel(h, 'sizeRadius');
+  const add = (n: HTMLElement | null): void => { if (n) h.append(n); };
+  add(leverSection('Corner radius', 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', ['baseMd', 'radiusScale'], perMode));
+  add(leverSection('Density & size', 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', ['density'], perMode));
+  add(leverSection('Spacing grid', 'The spacing rhythm (space.100 = 1×) and the fine dimension-grid base backing radius & borders.', ['spaceBase', 'baseUnit'], perMode));
 }, () => [renderRadiusSpecimen(), renderSizeSpecimen()]);
 
-// Layout — on a dedicated page the breakpoints editor + container/column sliders are primary content.
+// Layout — breakpoints editor + a Grid & containers section.
 const renderLayoutPage = (host: HTMLElement): void => renderScreen(host, 'layout', (h) => {
   h.append(renderBreakpointsEditor());
   const sliders = leverManifest.filter((l) => l.group === 'layout' && l.control === 'slider');
-  if (sliders.length) h.append(panelOfLevers(sliders));
+  if (sliders.length) { const s = palSection('Grid & containers', 'Base column count for the design grid and the content-width caps (layout is fluid below the cap).'); for (const l of sliders) s.append(renderControl(l)); h.append(s); }
 }, () => [renderLayoutSpecimen()]);
 
-// Motion — tempo (per-mode outside Light) + the emphasized easing curve (advanced).
+// Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
 const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion', (h) => {
   const perMode = currentMode !== 'light';
-  const panel = el('div', 'panel');
-  for (const l of leversFor('motion')) {
-    if (l.key === 'motionPersonality.tempo' && perMode) { panel.append(renderPerModeTempo(l)); continue; }
-    panel.append(renderControl(l));
-  }
-  h.append(panel);
-  renderAdvancedPanel(h, 'motion', (ap) => ap.append(renderEasingEditor()));
+  const tempo = leverSection('Tempo', 'The overall motion speed — scales the whole duration ramp (snappy → relaxed). Per-mode outside Light; reduce-motion is derived.', leversFor('motion').map((l) => l.key), perMode);
+  if (tempo) h.append(tempo);
+  h.append(renderEasingEditor());
 }, () => [renderMotionSpecimen()]);
 
 /** The Preview destination (docs/23 §7) — the overall UI preview + contrast contracts, resolved
@@ -1758,8 +1745,7 @@ const renderTypographyEditor = (): HTMLElement => {
   // after apply(), so a font or weight-numeric change refreshes the warnings without a full re-render.
   let refreshWarnings = (): void => {};
   // --- Font pool: the primary face per family role (a single name auto-pads a fallback stack) ---
-  wrap.append(subHead('Font pool'));
-  const pool = el('div', 'panel');
+  const pool = palSection('Font pool', 'The primary face per family role — a single name auto-pads a system fallback stack.');
   for (const [role, label, desc] of FAMILY_ROLES) {
     const globalPrimary = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
     const knob = el('div', 'knob');
@@ -1780,8 +1766,7 @@ const renderTypographyEditor = (): HTMLElement => {
   }
   wrap.append(pool);
   // --- Weight roles → numeric (GLOBAL: one numeric per role, shared across every category) ---
-  wrap.append(subHead('Weight roles → numeric'));
-  const wr = el('div', 'panel');
+  const wr = palSection('Weight roles → numeric', 'One numeric weight per role, shared across every category — a relative-emphasis ladder (subtle → strong).');
   for (const w of ty.weightRoles) {
     const knob = el('div', 'knob te-wrow');
     knob.append(el('label', 'knob-label', w.role));
@@ -1814,8 +1799,7 @@ const renderTypographyEditor = (): HTMLElement => {
     getOv: (k: string) => number | undefined, setOv: (k: string, v: number | undefined) => void,
     fmt: (v: number) => string, min: number, max: number, step: number,
   ): void => {
-    wrap.append(subHead(title));
-    wrap.append(el('p', perMode ? 'te-shared-note' : 'te-shared-ro-note', note));
+    const sec = palSection(title, note);
     const grid = el('div', 'te-ramp');
     for (const s of steps) {
       const cell = el('div', 'te-ramp-cell');
@@ -1830,7 +1814,8 @@ const renderTypographyEditor = (): HTMLElement => {
       } else cell.append(el('div', 'te-ramp-ro mono', fmt(s.val)));
       grid.append(cell);
     }
-    wrap.append(grid);
+    sec.append(grid);
+    wrap.append(sec);
   };
   const lhNote = perMode
     ? `Per-mode leading — blank = Auto (global). Open ${modeLabel} up a touch for legibility, or tighten it.`
@@ -1844,8 +1829,8 @@ const renderTypographyEditor = (): HTMLElement => {
   // Current state is DERIVED from the resolved composites; each control writes the corresponding
   // brandState.typography.* override. Toggles read LIVE checkbox states (never a stale snapshot),
   // so writing the full weights/italics/links list from the DOM stays correct across many edits.
-  wrap.append(subHead('Per-category'));
-  if (perMode) wrap.append(el('p', 'te-shared-note', `Shared across all modes — the family map, which weight roles each category ships, and italic/link are the composite skeleton. Edit them in Light; ${modeLabel} inherits the structure and just overrides the font + weight values above.`));
+  const catSec = palSection('Per-category', 'Per category — its family, which weight roles it ships, and italic / link variants. The composite skeleton.');
+  if (perMode) catSec.append(el('p', 'te-shared-note', `Shared across all modes — the family map, which weight roles each category ships, and italic/link are the composite skeleton. Edit them in Light; ${modeLabel} inherits the structure and just overrides the font + weight values above.`));
   const roleOrder = ty.weightRoles.map((w) => w.role);
   const italicG = new Set<string>(ty.composites.filter((c) => c.italic).map((c) => c.group));
   const linkG = new Set<string>(ty.composites.filter((c) => c.link).map((c) => c.group));
@@ -1890,8 +1875,8 @@ const renderTypographyEditor = (): HTMLElement => {
     const ltd = el('td', 'te-c'); ltd.append(lcb); tr.append(ltd);
     table.append(tr);
   }
-  wrap.append(el('div', 'te-cat-wrap'));
-  (wrap.lastChild as HTMLElement).append(table);
+  const catWrap = el('div', 'te-cat-wrap'); catWrap.append(table); catSec.append(catWrap);
+  wrap.append(catSec);
   // Phase B — mute the weight roles a category's family likely doesn't ship, and flag (⚠) any that are
   // shipped anyway (they fall back to the nearest). Reads the LIVE resolved theme, so a font-name,
   // weight-numeric, or family change refreshes it without a full re-render. Advisory only — never blocks.
@@ -2182,18 +2167,17 @@ const renderForegroundsEditor = (): HTMLElement => {
  *  pure black, higher = a richer brand-hued near-black). Reads the resolved default (`theme.shadow.tint`)
  *  when the brand hasn't set one; the elevation specimen recolors live. */
 const renderShadowEditor = (softness?: Lever): HTMLElement => {
-  const wrap = objEditor('Shadow');
   // D (shadow) — outside the base mode, softness + tint go per-mode (modeLevers[mode].shadow); the
   // slider shows the EFFECTIVE value (override ?? global) and moving it creates an override, with a
   // "↺ Auto" reset that clears it (blank-slider has no natural Auto state, so the reset is explicit).
   const perMode = currentMode !== 'light';
   const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  wrap.append(el('p', 'obj-lede', perMode
+  const wrap = palSection('Shadow', perMode
     ? `Blur softness + tint for ${modeLabel} — “Auto” follows the global shadow; a value overrides just this mode (crisper/softer, warmer/cooler). The light↔dark reduction still applies on top.`
-    : 'Blur softness (crisp/product → soft/marketing) and a hue-shift of the shadow base off pure black. Tint amount 0 = pure black; higher = a richer, brand-hued near-black.'));
+    : 'Blur softness (crisp/product → soft/marketing) and a hue-shift of the shadow base off pure black. Tint amount 0 = pure black; higher = a richer, brand-hued near-black.');
   const gTint = theme.shadow.tint;         // resolved global tint (what a mode inherits under Auto)
   const gSoft = theme.shadow.softness;     // resolved global softness
-  const panel = el('div', 'panel');
+  const panel = wrap;                       // knobs append straight into the .psec (no nested .panel)
   if (perMode) {
     // A per-mode slider: effective = override ?? global; moving it writes modeLevers[mode].shadow.<path>
     // via the shared setModeLever (prunes to byte-identical). Dragging back to EXACTLY the global value
@@ -2245,7 +2229,6 @@ const renderShadowEditor = (softness?: Lever): HTMLElement => {
     mk('hue', 'Tint hue', 0, 360, 1, '°');
     mk('amount', 'Tint amount', 0, 1, 0.05, '');
   }
-  wrap.append(panel);
   return wrap;
 };
 
@@ -2254,8 +2237,7 @@ const renderShadowEditor = (softness?: Lever): HTMLElement => {
  *  to show the scale). Reads the last-good `theme.typography`. */
 const TYPE_GROUP_ORDER = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
 const renderTypeSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'type-spec');
-  wrap.append(sectionHead('Type scale', 'Semantic composites at their resolved sizes — the ladder the components draw from.'));
+  const wrap = palSection('Type scale', 'Semantic composites at their resolved sizes — the ladder the components draw from.');
   const ty = theme.typography;
   const byGroup = new Map<string, typeof ty.composites[number]>();
   for (const c of ty.composites) {
@@ -2284,7 +2266,9 @@ const renderTypeSpecimen = (): HTMLElement => {
     const lhVal = (lhByMode ?? ty.lineHeights).find((x) => x.key === c.lineHeight)?.value ?? 1.4;
     const row = el('div', 'ts-row');
     const name = c.variant ? `${c.group}.${c.variant}` : c.group;   // eyebrow has an empty variant
-    row.append(el('div', 'ts-meta mono', `${name} · ${c.sizePx}px · ${c.weightRole} ${wt}`));
+    const metaRow = el('div', 'spec-metarow');
+    metaRow.append(el('span', 'ts-meta mono', `${name} · ${c.sizePx}px · ${c.weightRole} ${wt}`), tokenPill(`type.${c.path}`));
+    row.append(metaRow);
     const sample = el('div', 'ts-sample', 'The spectrum resolves cleanly');
     sample.style.fontFamily = (c.family === 'mono' || g === 'code') ? 'var(--mono)' : fam;
     sample.style.fontWeight = String(wt);
@@ -2325,8 +2309,7 @@ const renderTypeSpecimen = (): HTMLElement => {
  *  + who uses what, and reacts to the radius lever. Reads `rp.dims` (live per lever); `none` = 0. */
 const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round'];
 const renderRadiusSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'radius-spec');
-  wrap.append(sectionHead('Radius', 'The corner-radius ramp, holistic — each step, its px, and the components that consume it. The radius lever shifts the whole ramp.'));
+  const wrap = palSection('Radius ramp', 'The corner-radius ramp, holistic — each step, its px, and the components that consume it. The radius lever shifts the whole ramp.');
   const consumers: Record<string, Set<string>> = {};
   for (const c of previewSpec.components) for (const v of c.variants) {
     const rref = v.bindings.radius;
@@ -2343,7 +2326,7 @@ const renderRadiusSpecimen = (): HTMLElement => {
     const sw = el('div', 'rad-sw');
     sw.style.borderRadius = `${Math.min(px, 26)}px`;   // cap so `round` reads as a pill without overflowing the swatch
     const cons = [...(consumers[step] ?? [])];
-    cell.append(sw, el('div', 'rad-lab mono', `${step} · ${px}px`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
+    cell.append(sw, el('div', 'rad-lab mono', `${step} · ${px}px`), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
     list.append(cell);
   }
   wrap.append(list);
@@ -2355,8 +2338,7 @@ const renderRadiusSpecimen = (): HTMLElement => {
  *  (the single card in the component preview only shows one step). Reads `rp.shadows`. */
 const SHADOW_STEPS = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
 const renderShadowSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'shadow-spec');
-  wrap.append(sectionHead('Elevation', 'The shadow ramp xs→2xl — the softness + tint levers reshape every step, resolved for the mode in view (see the preview below for the mode-reduced dark shadow).'));
+  const wrap = palSection('Elevation ramp', 'The shadow ramp xs→2xl — the softness + tint levers reshape every step, resolved for the mode in view (see the preview below for the mode-reduced dark shadow).');
   const m: Mode = currentMode;   // #171 — every specimen reflects the mode-context selection
   const list = el('div', 'sh-list');
   for (const step of SHADOW_STEPS) {
@@ -2365,7 +2347,7 @@ const renderShadowSpecimen = (): HTMLElement => {
     const cell = el('div', 'sh-cell');
     const card = el('div', 'sh-card');
     card.style.boxShadow = css;                                   // resolved value inline (specimen reads the model directly)
-    cell.append(card, el('div', 'sh-lab mono', step));
+    cell.append(card, el('div', 'sh-lab mono', step), tokenPill(`shadow.${step}`));
     list.append(cell);
   }
   wrap.append(list);
@@ -2377,17 +2359,16 @@ const renderShadowSpecimen = (): HTMLElement => {
  *  the space scale directly, not `size.*`, so nothing else shows the size tier). Mode-aware (D): reflects
  *  the current mode's per-mode density (`theme.dims.sizesByMode`) when it deviates, else the global tier. */
 const renderSizeSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'size-spec');
   const byMode = theme.dims.sizesByMode?.[currentMode];
   const sizes = byMode ?? theme.dims.sizes;
-  wrap.append(sectionHead('Control size', `The component-size tier — control height + paired padding per step${byMode ? ` (${MODE_LABEL[currentMode] ?? currentMode} density)` : ''}. The density lever reshapes the whole ramp; per-mode density retunes it for the mode in view.`));
+  const wrap = palSection('Control size', `The component-size tier — control height + paired padding per step${byMode ? ` (${MODE_LABEL[currentMode] ?? currentMode} density)` : ''}. The density lever reshapes the whole ramp; per-mode density retunes it for the mode in view.`);
   const list = el('div', 'sz-list');
   for (const z of sizes) {
     const cell = el('div', 'sz-cell');
     const box = el('div', 'sz-box', z.name);
     box.style.height = `${z.height}px`;
     box.style.padding = `0 ${z.padX}px`;
-    cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px · pad ${z.padX}/${z.padY}`));
+    cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px · pad ${z.padX}/${z.padY}`), tokenPill(`size.${z.name}.height`));
     list.append(cell);
   }
   wrap.append(list);
@@ -2399,17 +2380,17 @@ const renderSizeSpecimen = (): HTMLElement => {
  *  levers (breakpoints / columns / containers, all in the Advanced panel) have no other visible payoff.
  *  Reads `theme.layout` (not per-mode — layout composes with colour modes as a separate Figma axis). */
 const renderLayoutSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'layout-spec');
   const ly = theme.layout;
-  wrap.append(sectionHead('Layout grid', 'Breakpoints, the responsive column grid, and container caps — the layout scaffolding (breakpoints / columns / containers live in Advanced above).'));
+  const wrap = palSection('Layout grid', 'Breakpoints, the responsive column grid, and container caps — the layout scaffolding.');
   const table = el('table', 'ly-table');
   const head = el('tr');
-  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Min-width'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'));
+  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Token'), el('th', undefined, 'Min-width'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'));
   table.append(head);
   for (const g of ly.grid) {
     const bp = ly.breakpoints.find((b) => b.name === g.bp);
     const tr = el('tr');
-    tr.append(el('td', 'mono', g.bp), el('td', 'mono', `${bp?.px ?? 0}px`), el('td', 'mono', String(g.columns)), el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`));
+    const pillCell = el('td'); pillCell.append(tokenPill(`breakpoint.${g.bp}`));
+    tr.append(el('td', 'mono', g.bp), pillCell, el('td', 'mono', `${bp?.px ?? 0}px`), el('td', 'mono', String(g.columns)), el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`));
     table.append(tr);
   }
   wrap.append(table);
@@ -2420,11 +2401,12 @@ const renderLayoutSpecimen = (): HTMLElement => {
   wrap.append(el('div', 'ly-cap', 'Container caps (fluid below the cap)'));
   const cont = el('div', 'ly-cont');
   const maxW = Math.max(ly.containerMax, ly.containerNarrow, 1);
-  const bar = (label: string, px: number): HTMLElement => {
+  const bar = (path: string, px: number): HTMLElement => {
     const row = el('div', 'ly-cont-row');
     const b = el('div', 'ly-cont-bar');
     b.style.width = `${Math.max(6, (px / maxW) * 100)}%`;
-    row.append(el('div', 'ly-cont-lab mono', `${label} · ${px}px`), b);
+    const lab = el('div', 'ly-cont-lab'); lab.append(tokenPill(path), el('span', 'mono', `${px}px`));
+    row.append(lab, b);
     return row;
   };
   cont.append(bar('container.max', ly.containerMax), bar('container.narrow', ly.containerNarrow));
@@ -2438,7 +2420,6 @@ const renderLayoutSpecimen = (): HTMLElement => {
  *  moment you change the tempo), plus a Replay. `prefers-reduced-motion` is honoured (bars shown filled,
  *  no animation), nodding to the engine's derived reduced ramp. Kind-B specimen: reads `theme.motion`. */
 const renderMotionSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'motion-spec');
   const mo = theme.motion;
   // D — reflect the current mode's per-mode tempo (modeLevers.tempo) when it deviates, so the ramp
   // re-runs at the mode's speed here rather than only in the export (the #158 lesson). Duration is the
@@ -2446,14 +2427,16 @@ const renderMotionSpecimen = (): HTMLElement => {
   const moByMode = mo.motionByMode?.[currentMode];
   const durOf = (role: string): number => (moByMode?.duration ?? mo.duration)[role] ?? 0;
   const tempoLabel = moByMode?.tempo ?? mo.tempo;
-  wrap.append(sectionHead('Motion', `The semantic transitions at tempo '${tempoLabel}' — each bar fills at its resolved duration + easing curve. Adjust the tempo and they re-run; reduce-motion is honoured (the engine also derives a reduced ramp).`));
+  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each bar fills at its resolved duration + easing curve. Adjust the tempo and they re-run; reduce-motion is honoured (the engine also derives a reduced ramp).`);
   const bez = (b: number[]): string => `cubic-bezier(${b.join(', ')})`;
   const list = el('div', 'mo-list');
   const fills: HTMLElement[] = [];
   for (const t of mo.transitions) {
     const ms = durOf(t.duration);
     const row = el('div', 'mo-row');
-    row.append(el('div', 'mo-meta mono', `${t.name} · ${ms}ms · ${t.easing}`));
+    const metaRow = el('div', 'spec-metarow');
+    metaRow.append(el('span', 'mo-meta mono', `${t.name} · ${ms}ms · ${t.easing}`), tokenPill(`motion.duration.${t.duration}`), tokenPill(`motion.easing.${t.easing}`));
+    row.append(metaRow);
     const track = el('div', 'mo-track');
     const fill = el('div', 'mo-fill');
     fill.style.animationDuration = `${ms}ms`;
@@ -2669,12 +2652,6 @@ const hero = (title: string, lede: string): HTMLElement => {
   if (lede) h.append(el('p', 'lede', lede));
   return h;
 };
-const sectionHead = (title: string, desc: string): HTMLElement => {
-  const s = el('div', 'section-lab');
-  s.append(el('h2', 'section-t', title), el('p', 'section-d', desc));
-  return s;
-};
-
 // ---- shell -----------------------------------------------------------------
 const app = document.getElementById('app')!;
 let workspace: HTMLElement;
@@ -3263,9 +3240,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .range{width:100%;margin-top:10px;accent-color:var(--ink)}
 .np-note{color:var(--faint);font-size:12px;line-height:1.55;margin:16px 0 0}
 
-.section-lab{margin:56px 0 26px;padding-bottom:16px;border-bottom:1px solid var(--line)}
-.section-t{margin:0;font-size:22px;font-weight:640;letter-spacing:-0.025em}
-.section-d{margin:6px 0 0;color:var(--muted);font-size:14.5px}
 
 .band{margin-bottom:16px}
 .band:last-child{margin-bottom:0}
@@ -3315,7 +3289,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
    below carry only width / size / alignment deltas. */
 .num{padding:6px 8px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;background:var(--paper)}
 .te-weight{width:88px;font-variant-numeric:tabular-nums;text-align:right}
-.te-cat-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);margin-top:8px}
+.te-cat-wrap{overflow-x:auto;margin-top:12px}
 .te-cat{border-collapse:collapse;width:100%;font-size:12.5px}
 .te-cat th,.te-cat td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
 .te-cat th{font-size:11px;font-weight:600;color:var(--muted);text-transform:lowercase;letter-spacing:0.02em}
@@ -3346,14 +3320,14 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sh-knob-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .sh-auto{font:inherit;font-size:11px;color:var(--muted);background:none;border:none;padding:0;cursor:default}
 .sh-auto.on{color:var(--ink2);cursor:pointer;text-decoration:underline}
-.obj-editor{margin-bottom:8px}
-.obj-lede{margin:0 0 8px;font-size:12px;color:var(--faint);line-height:1.5}
+/* Specimen meta row — a mono label + its token pill(s) inline (type / motion specimens). */
+.spec-metarow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .obj-row{display:flex;gap:8px;margin-top:8px}
 
 .stage-vol{display:flex;flex-direction:column}
 .pvhost{display:flex;flex-direction:column;gap:16px}
 .type-spec{margin-bottom:8px}
-.ts-list{display:flex;flex-direction:column;gap:22px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
+.ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
 .ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
 .ts-meta{font-size:11.5px;color:var(--faint)}
 .ts-sample{color:var(--ink);letter-spacing:-0.02em;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3362,12 +3336,13 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .ts-var{font-size:14px;color:var(--ink2);line-height:1.2}
 .ts-var-range{font-size:11px;color:var(--faint);align-self:center}
 .shadow-spec{margin-bottom:8px}
-.sh-list{display:flex;flex-wrap:wrap;gap:28px;border:1px solid var(--line);border-radius:var(--r);padding:28px 24px;background:#f4f5f7}
+.sh-list{display:flex;flex-wrap:wrap;gap:28px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
+.sh-cell .tpill{margin-top:2px}
 .sh-cell{display:flex;flex-direction:column;align-items:center;gap:10px}
 .sh-card{width:64px;height:64px;border-radius:10px;background:#fff}
 .sh-lab{font-size:11.5px;color:#5b6472}
 .motion-spec{margin-bottom:8px}
-.mo-list{display:flex;flex-direction:column;gap:16px;border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;background:var(--panel)}
+.mo-list{display:flex;flex-direction:column;gap:16px;padding:14px 0 2px}
 .mo-row{display:flex;flex-direction:column;gap:7px;min-width:0}
 .mo-meta{font-size:11.5px;color:var(--faint)}
 .mo-track{position:relative;height:8px;background:var(--line2);border-radius:999px;overflow:hidden}
@@ -3377,22 +3352,19 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .mo-replay:hover{border-color:var(--ink);color:var(--ink)}
 @media (prefers-reduced-motion:reduce){.mo-fill{animation:none;transform:scaleX(1)}}
 .radius-spec{margin-bottom:8px}
-.rad-list{display:flex;flex-wrap:wrap;gap:24px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
+.rad-list{display:flex;flex-wrap:wrap;gap:24px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .rad-cell{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}
 .rad-sw{width:72px;height:52px;background:var(--ink);opacity:.85}
 .rad-lab{font-size:11.5px;color:var(--muted)}
 .rad-cons{font-size:11px;color:var(--faint);text-align:center;max-width:88px;line-height:1.35}
 /* D (density) — the control-size specimen: mini controls at their resolved height + padding. */
-.sz-list{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
+.sz-list{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .sz-cell{display:flex;flex-direction:column;align-items:center;gap:9px}
 .sz-box{display:flex;align-items:center;justify-content:center;min-width:44px;background:var(--ink);color:var(--panel);border-radius:6px;font-size:12px;font-weight:560}
 .sz-lab{font-size:11px;color:var(--muted);white-space:nowrap}
 /* Manifest-advanced scalar/enum levers — exposed as a normal panel (no disclosure). */
 .adv-panel{margin-top:12px}
 /* Advanced object/list bespoke editors (responsive type, breakpoints, emphasized easing). */
-.adv-obj{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
-.adv-obj-h{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px}
-.adv-obj-note{margin:8px 2px 0;font-size:11px;color:var(--faint);line-height:1.5}
 .adv-row{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink2)}
 .adv-row-lab{min-width:150px}
 .adv-num{width:88px;padding:5px 7px;font-size:12px}
