@@ -160,17 +160,88 @@ tokens per component"** (vs ~25k for agentic extraction).
 authoring surface; ours makes Figma an *output* — the deterministic
 data→plugin materialization (`14` §3) is the direction it doesn't have.
 
+## 4. Southleft — "the site is the pitch" theme console (essay + live site, reviewed 2026-07-25)
+
+**What it is.** A design-systems-and-AI agency (`southleft.com`) whose rebuilt site *is*
+the argument: a header console where you type a vibe ("cathedral at dawn") and the whole
+site re-skins in ~1s. The essay's load-bearing claim — *"AI is only as good as the
+structured context it can reach… the design system is your AI strategy's substrate"* —
+and the mechanism behind the demo:
+
+- **AI returns decisions, not CSS.** A Cloudflare Pages Function calls Claude with a
+  strict JSON schema; the model proposes ~44 parameters (personality, accent hue,
+  canvas chroma, texture, motion feel, light/dark lead, a typeface from a curated
+  catalog or any Google font). *"The JSON schema is the contract. Anything that can
+  emit that shape can be the art director."*
+- **The design system disposes.** A browser OKLCH engine takes the proposed hue/chroma
+  and derives the full palette, **binary-searching lightness until each fg/bg pair
+  clears WCAG AA** — then writes into a 3-tier semantic token layer (primitives →
+  semantic aliases → component) and the alias re-point re-skins everything. *"The model
+  proposes, the solver disposes… it cannot ship an inaccessible theme, by construction."*
+- **A deterministic seed engine underneath** (keyword→hue / mood→chroma) renders an
+  instant theme with zero network, so the AI only *refines* and is never a single point
+  of failure.
+- **No hand-maintained snapshots.** `/tokens.json` (DTCG) is **generated at build by
+  parsing the actual CSS**, with assertions that fail the build if the parse breaks —
+  after the hand-kept version had silently drifted ~40 tokens. *"Make the correct state
+  the only possible state."* Plus `/llms.txt`, shareable `#theme=` URLs, and a typed
+  `@property <color>` layer so themes **crossfade** (~600ms) instead of snapping.
+
+**What we take:**
+
+1. **The prompt → re-theme console (new task).** A natural-language front door to a
+   partial `BrandInput`: type a phrase → map to primary hue + personality levers
+   (density, motion tempo, radius, chroma) → `apply()` live. We already have every
+   piece — `brandState → apply()/renderWorkspace()`, the `standard-design-md` prose→
+   `BrandInput` path, and `theme-schema.json` *as* the JSON contract their schema plays.
+   A local keyword→hue seed map (their fallback) is the graceful-degradation + "small
+   model can drive it" story. This is the console version of the same argument the
+   manual dashboard already makes.
+2. **Kill the last hand-maintained snapshot (new task).** Their drifted-`tokens.json`
+   story maps *directly* onto our one remaining hand-sync: the legacy dual-format
+   `Tokens/` layer (raw-figma + DTCG, *"the same logical tokens twice… edit both,"*
+   CLAUDE.md). The engine already embodies generate-don't-duplicate; decide whether
+   `Tokens/` stays an authored source or becomes a pure engine artifact with a parity
+   assertion (the lever-manifest drift-gate pattern).
+3. **Live crossfade via typed `@property <color>` (cheap delight).** Registering the
+   preview's colour vars as typed custom properties lets the browser interpolate them —
+   the dashboard's `apply()` snap becomes a morph, making "change one input, the system
+   agrees" visceral. The light/dark toggle inherits it for free.
+4. **Shareable theme URL** — encode the `BrandInput` in the hash (we already persist to
+   localStorage; a URL makes a generated theme a sendable artifact, same spirit as the
+   DTCG export).
+
+**Where we're ahead — and the one place they're a genuine peer:**
+
+- **First reviewed system with a real contrast solver.** Every prior entry hand-authored
+  theming; Southleft actually solves fg/bg to WCAG AA. But it solves for the *lead*
+  pairs of a *single* accent, light/dark-lead, ~44 tokens, one brand, client-side around
+  a live model call. Prism3 verifies **248/248 contrast contracts across four modes**,
+  multi-brand, with status/interactive/gradient families, gamut-aware ramps, per-mode
+  overrides, and a byte-regression target — and a **fully deterministic** engine (the AI
+  is entirely upstream producing the `BrandInput`; a *cleaner* proposes/disposes split
+  than their in-browser-around-Claude design). Ours is the enterprise generation system;
+  theirs is the re-theming toy that proves the thesis at marketing-site scale.
+- **The essay is a quotable external anchor** for the KB / `brand-skills` commercial
+  argument: *"the design system is your AI strategy's substrate"* and *"start with the
+  documentation package; everything else is plumbing"* restate the KB POV verbatim, from
+  an agency selling it. Cite it there.
+- **Watch the gravity of the demo.** The delight is the re-skin-from-a-sentence trick;
+  the *value* is that the re-skin stays accessible by construction. Build the prompt
+  console because it makes our per-mode-contract rigor legible — not because it's fun.
+
 ---
 
-## 4. Convergences so far (updated as entries land)
+## 5. Convergences so far (updated as entries land)
 
 | Pattern | Witnesses | Status in Prism3 |
 |---|---|---|
 | Component metadata as structured data, one source → many projections | Astryx (`.doc.mjs` → registry/CLI/docsite), ds-brain (brain → skills/rules/fragments), KB 30 | Planned — component layer (`07` §7); engine already does this at the token tier |
 | Generated per-harness discovery artifacts (agent-file index, Cursor rules, skills) | Astryx `agent-docs`, ds-brain generated outputs | **Gap** — `.ai.json` has no discovery layer; steal when agent surfaces land |
 | Retrieval-first agent access (search → fetch-on-demand, compact tiers) | Astryx CLI; ds-brain "AI index" | **Gap** — candidate `cli.ts query` subcommand; MCP adapter tool schema later |
-| Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash | Engine gates prove the philosophy at the token tier; carry into the component layer |
+| Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash; Southleft (`tokens.json` generated from CSS at build, drift-asserted) | Engine gates prove the philosophy at the token tier; carry into the component layer. **Open task:** the legacy dual-format `Tokens/` layer is the one hand-synced snapshot left |
 | Consumption-side evals (rubric, invented-name rate, isolated trials) | ds-brain | **Gap** — nothing measures agent consumption; build alongside the MCP adapter |
-| Deterministic zero-LLM tooling as the differentiator over agentic equivalents | Specs CLI ("0 AI tokens" extraction), our engine + planned plugin write leg | Core posture — `14` extends it to the component tier (write leg ours, verify leg Specs-CLI-shaped) |
-| Verified *generation* (contrast contracts, regression, modes) | — none reviewed has it | **Prism3's differentiator holds** |
+| Deterministic zero-LLM tooling as the differentiator over agentic equivalents | Specs CLI ("0 AI tokens" extraction), Southleft (local seed engine under the AI), our engine + planned plugin write leg | Core posture — `14` extends it to the component tier (write leg ours, verify leg Specs-CLI-shaped) |
+| AI proposes params → system derives (NL vibe → schema → live re-theme) | Southleft (prompt console; JSON schema = the contract) | **Gap / candidate task** — we have the plumbing (`brandState`→`apply`, `standard-design-md`, `theme-schema.json`); missing the NL front door |
+| Verified *generation* (contrast contracts, regression, modes) | Southleft (WCAG-AA solver — but single accent / lead pairs / one mode-lead); the rest none | **Prism3's differentiator holds** — ours verifies 248/248 contracts across four modes, not one lead pair |
 | Figma as the underserved agent surface | ds-brain (open question), Astryx (absent) | Actively building — `emit-figma` (`10`), MCP materialization route |
