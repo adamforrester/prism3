@@ -2368,9 +2368,9 @@ const renderInverseSpecimen = (): HTMLElement => {
   const roles = resolveAllModes(theme).find((x) => x.mode === m)?.roles ?? {};
   const hx = (k: string): string | undefined => (roles as Record<string, { hex: string } | undefined>)[k]?.hex;
   // Guard on the role the `inverse` toggle actually gates: background.inverse.*/text.on-inverse
-  // are generated UNCONDITIONALLY (modes.ts), only interactive.<color>.on-inverse is behind
+  // are generated UNCONDITIONALLY (modes.ts), only interactive.<color>.on-inverse.* is behind
   // `inverseContext` (modes.ts §inverse) — so this is what's absent when the toggle is off.
-  if (!hx('interactive.primary.on-inverse')) {
+  if (!hx('interactive.primary.on-inverse.text.rest')) {
     wrap.append(sectionHead('Inverse surface', 'Inverse context is off — enable the “Inverse surface-context” toggle to generate the on-inverse interactive text colors.'));
     return wrap;
   }
@@ -2380,7 +2380,7 @@ const renderInverseSpecimen = (): HTMLElement => {
   const h = el('div', 'inv-h', 'Ship your design system with confidence.');
   h.style.color = hx('text.on-inverse')!;
   band.append(h);
-  const ink = hx('interactive.primary.on-inverse')!;   // guaranteed by the guard above
+  const ink = hx('interactive.primary.on-inverse.text.rest')!;   // guaranteed by the guard above
   const cta = el('div', 'inv-cta', 'Get started');
   cta.style.color = ink;
   cta.style.border = `2px solid ${ink}`;
