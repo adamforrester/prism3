@@ -3547,7 +3547,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .amid{min-width:0;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
 .alabel{font-size:14px;font-weight:640;line-height:1.2;color:var(--ink)}
 .amid .sf-ctlblock{width:100%}
-.amid .select{max-width:240px}
+.amid .select{max-width:300px}
 .amid .tpill{display:inline-block;white-space:normal;word-break:break-word;line-height:1.4}
 .adesc{font-size:11.5px;color:var(--faint);line-height:1.45;max-width:340px}
 .aex{width:300px;justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:8px}
@@ -3569,7 +3569,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .astate-h{display:flex;align-items:center;gap:10px}
 .astate-sw{width:30px;height:30px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .astate-n{font-size:12.5px;font-weight:600;color:var(--ink)}
-.astate .select{height:30px;font-size:12px}
+.astate .select{width:100%;font-size:12px;padding:6px 9px;padding-right:26px}
 @media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.aex-two{grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
 .sf-row{display:grid;grid-template-columns:56px 168px 172px 1fr 228px;gap:20px;align-items:start;padding:24px 0}
