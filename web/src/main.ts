@@ -956,11 +956,6 @@ const statusRow = (role: StatusRole): { row: HTMLElement; refresh: () => void } 
 // future addition can't be silently dropped.
 // The Interactive page groups its controls into intent sub-sections. (Gradients — formerly a "Features"
 // group here — now lives on the Surfaces page; page surfaces + text/ink are bespoke editors there.)
-const INTERACTIVE_GROUPS: Array<{ title: string; keys: string[] }> = [
-  { title: 'Interactive color', keys: ['actionPalette', 'outlineInteraction', 'inverse'] },   // neutralEmphasis moved onto the Neutral card
-  { title: 'Accessibility policy', keys: ['iconContrast', 'disabledStrategy', 'disabledMin'] },
-];
-const NESTED_KEYS = new Set(['disabledMin']);
 const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h3', 'sub-t', title)); return s; };
 /** A bespoke object-editor section (doc 24 C6) — the `.obj-editor` wrap pre-headed with a `subHead` and,
  *  when given, an `.obj-lede` intro paragraph. Callers append their controls to the returned node. */
@@ -971,19 +966,13 @@ const objEditor = (title: string, lede?: string): HTMLElement => {
   return wrap;
 };
 
-/** #161 — the interactive-color cards: one card per interactive column (primary + destructive + each
- *  promoted accent), each shown as a big fill swatch + a palette/step picker + its token path + a live
- *  button example + the derived contrast, with hover/pressed as sub-cards. The fill anchors on a palette
- *  STEP (auto by default; the step select writes the column's #163 anchor override); on-fill / hover /
- *  pressed are engine-derived. Reads the resolved roles for the active mode (Kind-B, like the other
- *  semantic specimens). `renderInteractiveCard` is the generic renderer; `renderInteractiveCards` builds
- *  the ordered column list + the add-accent promote row. */
+/** The last dot-segment of a token path — the palette step key (e.g. `…primary.650` → `650`). Shared by
+ *  the interactive matrix + the Surfaces fill editors to label an "Auto · <palette> <step>" source. */
 const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').pop()! : '');
 
-// ---- color card component (audit §8) --------------------------------------
-// The reusable card the interactive columns, the fill (foreground/background) editors, and the neutral
-// card all compose from. Variants differ only in what the caller passes (a picker element, an optional
-// example, an optional badge) + whether the caller appends an interactive-states section afterward.
+// ---- shared colour atoms (audit §8) ---------------------------------------
+// contrastBadge + swatch are the shared atoms every colour editor composes from (the interactive matrix,
+// the Surfaces fill/foreground editors, the preview gallery).
 
 /** "ratio:1 ✓/✗", pass/fail coloured, with an optional leading label. Shared by the cards + the preview
  *  gallery (audit §8 candidate #1). */
@@ -996,106 +985,293 @@ const contrastBadge = (ratio: number, min: number, label?: string): HTMLElement 
 /** A colour swatch element with an inline background (audit §8 candidate #2). */
 const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', cls); s.style.background = hex; return s; };
 
-/** The card shell: header (label + optional remove) · top row (big swatch · mid = title + picker + token
- *  pill · optional example) · description row (+ optional contrast badge). Interactive columns append a
- *  states section to the returned node; stateless fill cards don't. */
-type CardOpts = {
-  label: string; onRemove?: () => void; removeTitle?: string;
-  fillHex: string; midTitle: string; picker: HTMLElement; tokenPath: string;
-  example?: HTMLElement; desc: string; badge?: HTMLElement;
-  compactSwatch?: boolean;   // a smaller swatch for the denser fill-card grid (no example / states)
-};
-const renderCard = (o: CardOpts): HTMLElement => {
-  const wrap = el('div', 'ic-card');
-  const head = el('div', 'ic-head');
-  head.append(el('h4', 'ic-headt', o.label));
-  if (o.onRemove) head.append(removeButton(o.onRemove, o.removeTitle ?? 'Remove'));
-  wrap.append(head);
-  const top = el('div', 'ic-top');
-  top.append(swatch(o.fillHex, o.compactSwatch ? 'ic-big ic-big-sm' : 'ic-big'));
-  const mid = el('div', 'ic-mid');
-  mid.append(el('h4', 'ic-h', o.midTitle), o.picker, tokenPill(o.tokenPath));
-  top.append(mid);
-  if (o.example) { const ex = el('div', 'ic-example'); ex.append(o.example); top.append(ex); }
-  wrap.append(top);
-  const descRow = el('div', 'ic-descrow');
-  descRow.append(el('p', 'ic-desc', o.desc));
-  if (o.badge) descRow.append(o.badge);
-  wrap.append(descRow);
-  return wrap;
-};
+// ============================================================================
+// Interactive & action colors — the per-palette matrix (#69)
+// ============================================================================
+// Each action palette (Primary / Neutral / Destructive / promoted Accents) is a section of full-width
+// SLOT rows: Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill, On-fill ·
+// inverse. A row = a 56×56 swatch · a Source select + token pill + description · a locked-right example
+// with its contrast receipt · (fill / text / overlay) a two-up Hover/Pressed states strip. Every slot
+// binds to a REAL engine role — ENG-1/ENG-2 emit the full per-state, inverse, and overlay surface. The
+// fill · rest Source is the column's fill ANCHOR (re-derives the whole family coherently); every other
+// Source and every state is a surgical per-mode colour OVERRIDE (brandState.overrides[mode][role] =
+// {palette, step}; "Auto" clears it, reverting to the derived value). Cross-cutting behaviours (outline
+// hover, disabled, icon colours) sit at the TOP — they govern every palette. Overrides only live on the
+// customizable modes, so renderScreen renders the generated-note on the derived modes and this editor
+// never runs there.
+type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; alpha?: number };
+type RoleMap = Record<string, RoleRes | undefined>;
+const iRoles = (): RoleMap => (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as RoleMap;
+const stepsOf = (palette: string): string[] => (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
+const capWord = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** A single interactive column to render as a card. `name` is the `interactive.<name>.*` role suffix
- *  (must match the engine's column naming: built-ins primary/destructive, accents `name ?? palette`). */
-type ICol = {
-  name: string;
-  label: string;
-  palette: string;
-  stepValue: number | undefined;              // current anchor override (undefined = Auto)
-  setStep: (v: number | undefined) => void;   // writes the right brandState field + applyFull()
-  onRemove?: () => void;                        // accents only: splice + applyFull()
+/** `#rrggbb`(+alpha) → an `rgba()` string, so a translucent overlay wash paints honestly (a faint swatch). */
+const rgbaOf = (r: RoleRes): string => {
+  const h = (r.hex ?? '#000000').replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
 };
 
-const renderInteractiveCard = (col: ICol): HTMLElement | null => {
-  const m: Mode = currentMode;   // #171 — every specimen reflects the mode-context selection
-  const roles = resolveAllModes(theme).find((x) => x.mode === m)?.roles as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined> | undefined;
-  const R = (k: string) => roles?.[k];
-  const rest = R(`interactive.${col.name}.fill.rest`), hover = R(`interactive.${col.name}.fill.hover`), pressed = R(`interactive.${col.name}.fill.pressed`), onFill = R(`interactive.${col.name}.on-fill`);
-  if (!rest) return null;   // column's fill role doesn't resolve → render nothing for it
-  const palName = col.palette;
-  const palSteps = (theme.palettes.find((p) => p.palette === palName)?.steps ?? []).map((s) => s.key);
+/** A per-mode colour-override Source select for one role. "Auto" clears the override (the role reverts to
+ *  its derived value); a step pins the role to that primitive (the engine re-derives its contrast and
+ *  warns — never blocks — if a hand pick misses the floor). Reuses the generic override writer the
+ *  Surfaces foreground editor uses (`setFillOverride`). */
+const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string): HTMLSelectElement => {
+  const cur = brandState.overrides?.[currentMode]?.[roleKey]?.step;
+  return stepPicker(palette, stepsOf(palette), derivedStep, typeof cur === 'string' ? cur : undefined,
+    (step) => setFillOverride(roleKey, palette, step));
+};
 
-  // Step picker — the shared stepPicker (docs/24 C5). It works in palette-step KEY strings while the
-  // card carries a numeric anchor, so bridge: current = the key whose number matches, and onPick maps
-  // the picked key back to a number for setStep.
-  const sel = stepPicker(palName, palSteps, stepKeyOf(rest.path), palSteps.find((k) => Number(k) === col.stepValue), (step) => col.setStep(step === undefined ? undefined : Number(step)));
-  const btn = el('div', 'ic-btn', 'Button example'); btn.style.background = rest.hex; if (onFill) btn.style.color = onFill.hex;
+// ---- examples (locked right) ----------------------------------------------
+const exBtn = (bg: string, fg: string, dark = false, label = 'Button'): HTMLElement => {
+  const box = el('div', 'exbox' + (dark ? ' dark' : ''));
+  const b = el('span', 'ibtn'); b.style.background = bg; b.style.color = fg;
+  b.append(document.createTextNode(label), iconEl('arrow', fg));
+  box.append(b); return box;
+};
+const exLink = (color: string, dark = false): HTMLElement => {
+  const box = el('div', 'exbox' + (dark ? ' dark' : ''));
+  const a = el('a', 'ilink', 'Text link'); a.style.color = color; box.append(a); return box;
+};
+const exOutline = (edge: string, wash: string, dark = false): HTMLElement => {
+  const box = el('div', 'exbox' + (dark ? ' dark' : ''));
+  const b = el('span', 'ibtn'); b.style.background = wash; b.style.color = edge; b.style.border = `1.5px solid ${edge}`;
+  b.append(document.createTextNode('Outline'), iconEl('arrow', edge));
+  box.append(b); return box;
+};
+const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
+  const box = el('div', 'exbox');
+  const row = el('span', 'inote'); row.style.color = textColor;
+  const ic = el('span', 'inote-ic'); ic.style.color = iconColor; ic.append(iconEl('bell', iconColor));
+  row.append(ic, document.createTextNode('Notifications')); box.append(row); return box;
+};
+/** The example column: an example box + an optional contrast receipt below it. */
+const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
+  const aex = el('div', 'aex'); aex.append(inner); if (badge) aex.append(badge); return aex;
+};
+/** Two labelled specimens side by side in the example column (rest→hover, enabled→disabled, match→distinct). */
+const twoUp = (a: [string, HTMLElement], b: [string, HTMLElement]): HTMLElement => {
+  const aex = el('div', 'aex aex-two');
+  for (const [label, node] of [a, b]) { const s = el('div', 'aex-spec'); s.append(el('span', 'pfk', label), node); aex.append(s); }
+  return aex;
+};
+const iBadge = (r: RoleRes | undefined): HTMLElement | undefined =>
+  r && r.ratio != null && r.min != null && r.min > 0 ? contrastBadge(r.ratio, r.min) : undefined;
 
-  const wrap = renderCard({
-    label: col.label, onRemove: col.onRemove, removeTitle: 'Remove interactive color',
-    fillHex: rest.hex, midTitle: 'Surface — rest', picker: sel, tokenPath: `color.interactive.${col.name}.fill.rest`,
-    example: btn,
-    desc: 'The surface color of your buttons and interactive containers — engine-derived and gated against the page surface; the on-fill text color is auto-picked to stay legible.',
-    badge: rest.ratio != null && rest.min != null ? contrastBadge(rest.ratio, rest.min) : undefined,
+// ---- rows -----------------------------------------------------------------
+/** The two-up Hover/Pressed states strip below a slot row — each state its own swatch + override select.
+ *  States absent in this mode are dropped; an empty strip returns null. */
+const iStates = (roles: RoleMap, palette: string, cells: Array<[string, string]>): HTMLElement | null => {
+  const g = el('div', 'astates-g'); let any = false;
+  for (const [name, roleKey] of cells) {
+    const r = roles[roleKey]; if (!r) continue; any = true;
+    const cell = el('div', 'astate');
+    const head = el('div', 'astate-h'); head.append(swatch(r.hex, 'astate-sw'), el('span', 'astate-n', name));
+    cell.append(head, roleSourceSelect(roleKey, palette, stepKeyOf(r.path)));
+    g.append(cell);
+  }
+  if (!any) return null;
+  const wrap = el('div', 'astates'); wrap.append(el('div', 'astates-h', 'Interactive states'), g); return wrap;
+};
+
+/** One matrix row: 56×56 swatch (omitted on `lead` control rows) · mid (label + Source select + token pill
+ *  + description) · locked-right example · optional states strip. */
+const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?: string; select: HTMLElement; pill?: string; desc?: string; example: HTMLElement; states?: HTMLElement | null }): HTMLElement => {
+  const row = el('div', 'arow' + (o.lead ? ' arow-lead' : ''));
+  const main = el('div', 'arow-main');
+  if (!o.lead) main.append(swatch(o.swatchBg ?? '#000000', 'asw'));
+  const mid = el('div', 'amid');
+  if (o.label) mid.append(el('div', 'alabel', o.label));
+  const ctl = el('div', 'sf-ctlblock'); ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'), o.select); mid.append(ctl);
+  if (o.pill) mid.append(tokenPill(o.pill));
+  if (o.desc) mid.append(el('p', 'adesc', o.desc));
+  main.append(mid, o.example);
+  row.append(main);
+  if (o.states) row.append(o.states);
+  return row;
+};
+
+/** An override-backed slot row (every slot except fill · rest, which anchors). null when it doesn't resolve. */
+const slotRow = (o: { name: string; slot: string; label: string; palette: string; desc: string; example: (roles: RoleMap) => HTMLElement; badgeRole?: string; states?: Array<[string, string]> }): HTMLElement | null => {
+  const roles = iRoles();
+  const roleKey = `interactive.${o.name}.${o.slot}`;
+  const r = roles[roleKey]; if (!r) return null;
+  return iRow({
+    swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, stepKeyOf(r.path)),
+    pill: `color.${roleKey}`, desc: o.desc, example: iExample(o.example(roles), iBadge(roles[o.badgeRole ?? roleKey])),
+    states: o.states ? iStates(roles, o.palette, o.states) : null,
   });
-
-  // Interactive states — hover + pressed as sub-cards (swatch · step · token pill). Interactive-only, so
-  // it's appended by this variant rather than owned by the shared shell.
-  wrap.append(el('h5', 'ic-states-h', 'Interactive states'));
-  const states = el('div', 'ic-states');
-  const sub = (label: string, role: { hex: string; path?: string } | undefined, path: string) => {
-    if (!role) return;
-    const c = el('div', 'ic-sub');
-    const t = el('div', 'ic-subt');
-    t.append(el('div', 'ic-sublab', label), el('div', 'ic-substep mono', `${palName} ${stepKeyOf(role.path)}`), tokenPill(path));
-    c.append(swatch(role.hex, 'ic-subsw'), t); states.append(c);
-  };
-  sub('Hover', hover, `color.interactive.${col.name}.fill.hover`);
-  sub('Active', pressed, `color.interactive.${col.name}.fill.pressed`);
-  wrap.append(states);
-  return wrap;
 };
 
-/** The add-accent promote row — a select of promotable palettes (`primary` + brand colors, minus any
- *  already promoted and minus the action palette, which the primary column already owns) + an add
- *  button. Pushes `{ palette }`; the engine defaults the column name to the palette. */
+/** A single interactive column. `name` is the `interactive.<name>.*` role suffix (built-ins primary /
+ *  neutral / destructive, accents `name ?? palette`). `setStep` present ⇒ the fill · rest Source is the
+ *  column's fill anchor (re-derives the family); absent (neutral) ⇒ a plain fill · rest override. */
+type ICol = { name: string; title: string; desc: string; palette: string; stepValue?: number; setStep?: (v: number | undefined) => void; onRemove?: () => void; lead?: HTMLElement | null };
+
+/** The fill · rest row — its Source is the column's fill ANCHOR (re-derives the family) when the column
+ *  has one (primary / destructive / accents); neutral has no anchor (its emphasis lead drives the fill),
+ *  so it falls back to a plain override select. Hover / pressed are override sub-states. */
+const fillRestRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.fill.rest`]; if (!r) return null;
+  const onFill = roles[`interactive.${col.name}.on-fill`];
+  let select: HTMLElement;
+  if (col.setStep) {
+    const steps = stepsOf(col.palette);
+    select = stepPicker(col.palette, steps, stepKeyOf(r.path), steps.find((k) => Number(k) === col.stepValue),
+      (step) => col.setStep!(step === undefined ? undefined : Number(step)));
+  } else {
+    select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, stepKeyOf(r.path));
+  }
+  return iRow({
+    swatchBg: r.hex, label: 'Fill · rest', select, pill: `color.interactive.${col.name}.fill.rest`,
+    desc: 'The button / container fill. This anchors the family — hover, pressed, text and on-fill derive from it unless you override them below.',
+    example: iExample(exBtn(r.hex, onFill?.hex ?? '#ffffff'), iBadge(onFill)),
+    states: iStates(roles, col.palette, [['Hover', `interactive.${col.name}.fill.hover`], ['Pressed', `interactive.${col.name}.fill.pressed`]]),
+  });
+};
+
+/** The overlay-wash row — the translucent hover/pressed tint for this palette's outline & text actions.
+ *  The wash is a neutral alpha primitive; its swatch + example paint it honestly via rgba. */
+const overlayRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.overlay.hover`]; if (!r) return null;
+  const nPal = theme.roleToPalette.neutral;
+  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  return iRow({
+    swatchBg: rgbaOf(r), label: 'Overlay wash',
+    select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, stepKeyOf(r.path)),
+    pill: `color.interactive.${col.name}.overlay.hover`,
+    desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — it composites over any surface.',
+    example: iExample(exOutline(edge, rgbaOf(r))),
+    states: iStates(roles, nPal, [['Hover', `interactive.${col.name}.overlay.hover`], ['Pressed', `interactive.${col.name}.overlay.pressed`]]),
+  });
+};
+
+/** One action-palette section: header (+ optional remove) · optional lead control · the slot rows. */
+const renderPaletteSection = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  if (!roles[`interactive.${col.name}.fill.rest`]) return null;
+  const sec = el('div', 'psec');
+  const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', col.title));
+  if (col.onRemove) head.append(removeButton(col.onRemove, 'Remove interactive color', 'rmv'));
+  sec.append(head, el('p', 'psec-d', col.desc));
+  if (col.lead) sec.append(col.lead);
+  const P = col.palette, nm = col.name, inv = `${nm}.on-inverse`, nPal = theme.roleToPalette.neutral;
+  const rows: Array<HTMLElement | null> = [
+    fillRestRow(col),
+    slotRow({ name: nm, slot: 'on-inverse.fill.rest', label: 'Fill · inverse', palette: P,
+      desc: 'The button fill on a dark / inverse surface — a light fill. Derived, or pin a step.',
+      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true),
+      badgeRole: `interactive.${inv}.on-fill`,
+      states: [['Hover', `interactive.${inv}.fill.hover`], ['Pressed', `interactive.${inv}.fill.pressed`]] }),
+    slotRow({ name: nm, slot: 'text.rest', label: 'Text · rest', palette: P,
+      desc: 'Text links & text buttons on light surfaces.',
+      example: (rs) => exLink(rs[`interactive.${nm}.text.rest`]?.hex ?? '#000000'),
+      states: [['Hover', `interactive.${nm}.text.hover`], ['Pressed', `interactive.${nm}.text.pressed`]] }),
+    slotRow({ name: nm, slot: 'on-inverse.text.rest', label: 'Text · inverse', palette: P,
+      desc: 'Text links & text buttons on dark / inverse surfaces.',
+      example: (rs) => exLink(rs[`interactive.${inv}.text.rest`]?.hex ?? '#ffffff', true),
+      states: [['Hover', `interactive.${inv}.text.hover`], ['Pressed', `interactive.${inv}.text.pressed`]] }),
+    overlayRow(col),
+    slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
+      desc: 'The ink on the fill — auto-picked to clear contrast on the button surface.',
+      example: (rs) => exBtn(rs[`interactive.${nm}.fill.rest`]?.hex ?? '#000000', rs[`interactive.${nm}.on-fill`]?.hex ?? '#ffffff') }),
+    slotRow({ name: nm, slot: 'on-inverse.on-fill', label: 'On-fill text · inverse', palette: nPal,
+      desc: 'The ink on the inverse (light) fill — button text on a dark surface.',
+      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true) }),
+  ];
+  for (const rw of rows) if (rw) sec.append(rw);
+  return sec;
+};
+
+// ---- lead controls + global behaviours ------------------------------------
+/** An enum lever as a `.cap` select that writes the input + rebuilds (a lever change re-derives roles the
+ *  matrix reads, so applyFull, not apply). */
+const iEnumSelect = (key: string): HTMLSelectElement => {
+  const lever = leverByKey(key)!;
+  const sel = selectEl('cap');
+  const cur = getPath(brandState, key) ?? lever.default;
+  for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
+  sel.onchange = () => { setPath(brandState, key, sel.value); applyFull(); };
+  return sel;
+};
+
+/** The Primary section's lead: the Action-palette choice (which palette drives primary actions). */
+const actionPaletteLead = (): HTMLElement => {
+  const sel = selectEl('cap');
+  const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
+  const cur = String(brandState.actionPalette ?? 'primary');
+  for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
+  sel.onchange = () => { setPath(brandState, 'actionPalette', sel.value); applyFull(); };
+  const roles = iRoles();
+  return iRow({ lead: true, label: 'Action palette', srcLabel: 'Source', select: sel,
+    desc: 'Which palette drives your primary actions — a brand color, or point it at your neutral for a restrained, monochrome look. The contrast floor is accessible either way.',
+    example: iExample(exBtn(roles['interactive.primary.fill.rest']?.hex ?? '#000000', roles['interactive.primary.on-fill']?.hex ?? '#ffffff')) });
+};
+
+/** The Neutral section's lead: the emphasis choice (subtle grey surface vs bold near-black/white fill). */
+const neutralEmphasisLead = (): HTMLElement => {
+  const sel = selectEl('cap');
+  const cur = lastGoodInput.neutralEmphasis ?? 'subtle';
+  for (const [ne, label] of NEUTRAL_EMPHASES) sel.append(optionEl(ne, capWord(label), ne === cur));
+  sel.onchange = () => { setPath(brandState, 'neutralEmphasis', sel.value); applyFull(); };
+  const roles = iRoles();
+  return iRow({ lead: true, label: 'Button emphasis', srcLabel: 'Emphasis', select: sel,
+    desc: 'A neutral / secondary button as a subtle light-grey surface, or a bold near-black/white fill. Shared across modes.',
+    example: iExample(exBtn(roles['interactive.neutral.fill.rest']?.hex ?? '#eeeeee', roles['interactive.neutral.on-fill']?.hex ?? '#111111')) });
+};
+
+/** The cross-cutting behaviours grouped at the top — outline hover, disabled, icon colours — each governs
+ *  every palette below, so it doesn't belong to any one of them. */
+const renderGlobalBehavior = (host: HTMLElement): void => {
+  const cap = el('div', 'gcap'); cap.append(el('p', 'gcap-t', 'Global action behavior'), el('p', 'gcap-d', 'These apply across every action palette below.'));
+  host.append(cap);
+  const roles = iRoles();
+
+  const oh = el('div', 'psec'); oh.append(el('p', 'psec-t', 'Outline button hover'), el('p', 'psec-d', 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.'));
+  const ohEdge = roles['interactive.primary.text.rest']?.hex ?? '#000000';
+  const ohWash = roles['interactive.primary.overlay.hover'];
+  oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
+    example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash ? rgbaOf(ohWash) : 'transparent')]) }));
+  host.append(oh);
+
+  const ds = el('div', 'psec'); ds.append(el('p', 'psec-t', 'Disabled'), el('p', 'psec-d', 'How disabled controls look and whether they stay legible.'));
+  const eBg = roles['interactive.primary.fill.rest']?.hex ?? '#5e4bc3', eFg = roles['interactive.primary.on-fill']?.hex ?? '#ffffff';
+  const dBg = roles['background.tertiary']?.hex ?? '#e7e7ee', dFg = roles['text.tertiary']?.hex ?? '#9a9aa6';
+  ds.append(iRow({ lead: true, srcLabel: 'Strategy', select: iEnumSelect('disabledStrategy'),
+    desc: 'Keep disabled controls legible (clears the floor), or the conventional low-contrast look.',
+    example: twoUp(['Enabled', exBtn(eBg, eFg, false, 'Save')], ['Disabled', exBtn(dBg, dFg, false, 'Save')]) }));
+  if ((getPath(brandState, 'disabledStrategy') ?? 'accessible') === 'accessible') {
+    const min = leverByKey('disabledMin'); if (min) { const c = renderControl(min); c.classList.add('nested'); ds.append(c); }
+  }
+  host.append(ds);
+
+  const ic = el('div', 'psec'); ic.append(el('p', 'psec-t', 'Icon colors'), el('p', 'psec-d', 'Should icons match your text color, or take a distinct (lighter) color? The example shows both.'));
+  const txt = roles['text.primary']?.hex ?? '#191920', lighter = roles['text.tertiary']?.hex ?? '#9a9aa6';
+  ic.append(iRow({ lead: true, label: 'Icon color', srcLabel: 'Icon color', select: iEnumSelect('iconContrast'),
+    desc: 'Match text keeps icons at full text legibility; Distinct lets them sit lighter (WCAG non-text 3:1).',
+    example: twoUp(['Match text', exIconLabel(txt, txt)], ['Distinct', exIconLabel(lighter, txt)]) }));
+  host.append(ic);
+};
+
+/** The add-accent promote row — a select of promotable palettes + an add button (structural, base-mode
+ *  only). Pushes `{ palette }`; the engine defaults the column name to the palette. */
 const renderAddAccentRow = (): HTMLElement => {
   const row = el('div', 'ic-add');
   const brandNames = (brandState.brandColors ?? []).map((b) => b.name);
   const already = new Set((brandState.interactivePalettes ?? []).map((e) => e.palette));
   const actionPal = theme.roleToPalette.action;
-  // Exclude palettes whose auto-name (= the palette name) would collide with a built-in interactive
-  // column — the engine rejects those. (A primary-palette accent when action is elsewhere would need a
-  // custom name so it isn't auto-named 'primary'; deferred.) Also skips a brand color named neutral/destructive.
   const RESERVED_ICOL = new Set(['primary', 'neutral', 'destructive']);
   const promotable = ['primary', ...brandNames].filter((p) => !already.has(p) && p !== actionPal && !RESERVED_ICOL.has(p));
   if (!promotable.length) {
-    row.append(el('span', 'ic-addhint', 'Add a brand color on Primitives to create another interactive column.'));
+    row.append(el('span', 'ic-addhint', 'Add a brand color on Primitives to create another interactive color.'));
     return row;
   }
   const sel = selectEl('cap');
-  for (const p of promotable) sel.append(optionEl(p, p));
-  const btn = addButton('+ Add interactive color', () => {
+  for (const p of promotable) sel.append(optionEl(p, capWord(p)));
+  const btn = addButton('+ Add action palette', () => {
     const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
     arr.push({ palette: sel.value });
     applyFull();
@@ -1104,106 +1280,42 @@ const renderAddAccentRow = (): HTMLElement => {
   return row;
 };
 
-/** Render all interactive-color cards in order — primary, destructive, then each promoted accent —
- *  followed by the add-accent row. Replaces the single primary card (#161 increment 2). */
-/** The neutral / default button as a proper interactive card (docs/23 §2, owner request) — same shell as
- *  the other columns, but its control is the (global) `neutralEmphasis` toggle (subtle grey vs bold fill)
- *  rather than a per-mode anchor step. Replaces the standalone Neutral-emphasis specimen. */
-const renderNeutralCard = (): HTMLElement | null => {
-  const roles = resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined> | undefined;
-  const rest = roles?.['interactive.neutral.fill.rest'], hover = roles?.['interactive.neutral.fill.hover'], pressed = roles?.['interactive.neutral.fill.pressed'], onFill = roles?.['interactive.neutral.on-fill'];
-  if (!rest) return null;
-  const nPal = theme.roleToPalette.neutral;
-  const sel = selectEl('cap');
-  const cur = lastGoodInput.neutralEmphasis ?? 'subtle';
-  for (const [ne, label] of NEUTRAL_EMPHASES) sel.append(optionEl(ne, label, ne === cur));
-  sel.onchange = () => { setPath(brandState, 'neutralEmphasis', sel.value); applyFull(); };
-  const btn = el('div', 'ic-btn', 'Button example'); btn.style.background = rest.hex; if (onFill) btn.style.color = onFill.hex;
-  const wrap = renderCard({
-    label: 'Neutral', fillHex: rest.hex, midTitle: 'Emphasis', picker: sel, tokenPath: 'color.interactive.neutral.fill.rest',
-    example: btn,
-    desc: 'The neutral / default button — a subtle light-grey surface or a bold near-black/white fill. The emphasis choice is shared across modes.',
-    badge: rest.ratio != null && rest.min != null ? contrastBadge(rest.ratio, rest.min) : undefined,
-  });
-  wrap.append(el('h5', 'ic-states-h', 'Interactive states'));
-  const states = el('div', 'ic-states');
-  const sub = (label: string, role: { hex: string; path?: string } | undefined, path: string) => {
-    if (!role) return;
-    const c = el('div', 'ic-sub');
-    const t = el('div', 'ic-subt');
-    t.append(el('div', 'ic-sublab', label), el('div', 'ic-substep mono', `${nPal} ${stepKeyOf(role.path)}`), tokenPill(path));
-    c.append(swatch(role.hex, 'ic-subsw'), t); states.append(c);
-  };
-  sub('Hover', hover, 'color.interactive.neutral.fill.hover');
-  sub('Active', pressed, 'color.interactive.neutral.fill.pressed');
-  wrap.append(states);
-  return wrap;
-};
-
-const renderInteractiveCards = (host: HTMLElement): void => {
-  // A2b — the interactive anchor is per-mode outside the base mode. Light edits the global baseline
-  // (actionAnchorStep etc.); dark/custom edit `modeAnchors[mode][col]` — “Auto” follows the generated
-  // baseline, pick a step to re-anchor just this mode (the whole column re-derives from it, floor-gated).
-  // Structural edits (add / remove an interactive column) stay base-only — they define the brand, not a mode.
+/** The whole interactive editor: global behaviours, then one section per action palette, then the add row.
+ *  The fill anchor is per-mode outside Light (modeAnchors); structural edits (add/remove a column) stay
+ *  base-only. */
+const renderInteractiveMatrix = (host: HTMLElement): void => {
+  renderGlobalBehavior(host);
   const perMode = currentMode !== 'light';
-  const colAnchor = (name: string, get: () => number | undefined, set: (v: number | undefined) => void): Pick<ICol, 'stepValue' | 'setStep'> => {
+  if (perMode) host.append(el('p', 'ic-modenote', `Editing ${MODE_LABEL[currentMode] ?? currentMode}’s interactive colors — “Auto” follows the generated baseline; pick a step to override just this mode.`));
+  const anchor = (name: string, get: () => number | undefined, set: (v: number | undefined) => void): Pick<ICol, 'stepValue' | 'setStep'> => {
     if (!perMode) return { stepValue: get(), setStep: (v) => { set(v); applyFull(); } };
     return {
       stepValue: brandState.modeAnchors?.[currentMode]?.[name],
       setStep: (v) => {
         const ma = brandState.modeAnchors ?? (brandState.modeAnchors = {});
         const forMode = ma[currentMode] ?? (ma[currentMode] = {});
-        if (v === undefined) {                                  // revert to the generated baseline
-          delete forMode[name];
-          if (!Object.keys(forMode).length) delete ma[currentMode];
-          if (!Object.keys(ma).length) brandState.modeAnchors = undefined;
-        } else forMode[name] = v;
+        if (v === undefined) { delete forMode[name]; if (!Object.keys(forMode).length) delete ma[currentMode]; if (!Object.keys(ma).length) brandState.modeAnchors = undefined; }
+        else forMode[name] = v;
         applyFull();
       },
     };
   };
+  const add = (node: HTMLElement | null): void => { if (node) host.append(node); };
 
-  if (perMode)
-    host.append(el('p', 'ic-modenote', `Editing ${MODE_LABEL[currentMode] ?? currentMode}’s interactive colors — “Auto” follows the generated baseline; pick a step to override just this mode.`));
-
-  const cols: ICol[] = [
-    { name: 'primary', label: 'Primary', palette: theme.roleToPalette.action,
-      ...colAnchor('primary', () => brandState.actionAnchorStep, (v) => setPath(brandState, 'actionAnchorStep', v)) },
-    { name: 'destructive', label: 'Destructive', palette: theme.roleToPalette.danger,
-      ...colAnchor('destructive', () => brandState.destructiveAnchorStep, (v) => setPath(brandState, 'destructiveAnchorStep', v)) },
-  ];
+  add(renderPaletteSection({ name: 'primary', title: 'Primary actions', desc: 'The default interactive colors. State colors are calculated from your selections unless you override them.', palette: theme.roleToPalette.action, lead: actionPaletteLead(), ...anchor('primary', () => brandState.actionAnchorStep, (v) => setPath(brandState, 'actionAnchorStep', v)) }));
+  add(renderPaletteSection({ name: 'neutral', title: 'Neutral actions', desc: 'The secondary / low-emphasis action set — for “Cancel”, toolbar buttons, and quiet controls.', palette: theme.roleToPalette.neutral, lead: neutralEmphasisLead() }));
+  add(renderPaletteSection({ name: 'destructive', title: 'Destructive actions', desc: 'Delete / remove and other irreversible actions.', palette: theme.roleToPalette.danger, ...anchor('destructive', () => brandState.destructiveAnchorStep, (v) => setPath(brandState, 'destructiveAnchorStep', v)) }));
   (brandState.interactivePalettes ?? []).forEach((entry, i) => {
     const nm = entry.name ?? entry.palette;
-    cols.push({
-      name: nm, label: nm, palette: entry.palette,
-      ...colAnchor(nm, () => entry.anchorStep, (v) => setPath(brandState, `interactivePalettes.${i}.anchorStep`, v)),
+    add(renderPaletteSection({
+      name: nm, title: `${capWord(nm)} actions`, desc: 'Optional secondary interactive set.', palette: entry.palette,
+      ...anchor(nm, () => entry.anchorStep, (v) => setPath(brandState, `interactivePalettes.${i}.anchorStep`, v)),
       ...(perMode ? {} : { onRemove: () => { brandState.interactivePalettes!.splice(i, 1); if (!brandState.interactivePalettes!.length) brandState.interactivePalettes = undefined; applyFull(); } }),
-    });
+    }));
   });
-  for (const col of cols) { const card = renderInteractiveCard(col); if (card) host.append(card); }
-  const neutral = renderNeutralCard(); if (neutral) host.append(neutral);   // the default button as a card (docs/23 §2)
   if (!perMode) host.append(renderAddAccentRow());
 };
 
-const renderGroupedPanels = (host: HTMLElement, levers: Lever[], groups: Array<{ title: string; keys: string[] }>): void => {
-  const byKey = new Map(levers.map((l) => [l.key, l]));
-  const placed = new Set<string>();
-  const panelOf = (ls: Lever[]) => {
-    const panel = el('div', 'panel');
-    for (const l of ls) { const c = renderControl(l); if (NESTED_KEYS.has(l.key)) c.classList.add('nested'); panel.append(c); placed.add(l.key); }
-    return panel;
-  };
-  for (const g of groups) {
-    const groupLevers = g.keys.map((k) => byKey.get(k)).filter((l): l is Lever => !!l);
-    const isInteractive = g.title === 'Interactive color';
-    if (!groupLevers.length && !isInteractive) continue;
-    host.append(subHead(g.title));
-    if (isInteractive) renderInteractiveCards(host);   // #161 — one card per interactive column + add-accent row
-    if (groupLevers.length) host.append(panelOf(groupLevers));
-  }
-  const rest = levers.filter((l) => !placed.has(l.key));
-  if (rest.length) host.append(subHead('More'), panelOf(rest));
-};
 // === Mode context control (#171) ==========================================================
 // A workspace-level single-select switcher that puts the WHOLE stage into ONE mode at a time —
 // editing one mode at a time (docs/11 Pillar 2 authoring context; view-only until the override
@@ -1499,11 +1611,12 @@ const renderSurfacesPage = (host: HTMLElement): void => renderScreen(host, 'surf
   // read-only specimen was a duplicate of the live editor preview — both retired here.
 }, () => []);
 
-// Interactive — action palette, interactive treatment, and the accessibility policy.
+// Interactive & action colors — the per-palette matrix (#69). Global behaviours at the top, then one
+// section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows binding
+// every fill/text/inverse/overlay/on-fill role. The per-page contrast table stays volatile below.
 const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'interactive', (h) => {
-  // neutralEmphasis is edited on the Neutral card now — keep it out of the panels (incl. the catch-all).
-  renderGroupedPanels(h, leversFor('interactive').filter((l) => l.key !== 'neutralEmphasis'), INTERACTIVE_GROUPS);
-}, () => [renderInverseSpecimen(), renderIconSpecimen(), renderSectionContrast('interactive')]);
+  renderInteractiveMatrix(h);
+}, () => [renderSectionContrast('interactive')]);
 
 // Typography — type scale (shared, read-only outside Light) + the family/weight/leading editor.
 const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'typography', (h) => {
@@ -2359,42 +2472,13 @@ const renderMotionSpecimen = (): HTMLElement => {
   return wrap;
 };
 
-/** The inverse-surface specimen: a dark hero band with on-inverse inks + an outline CTA, so the
- *  `inverse` toggle has a visible payoff (nothing else in the preview shows the on-inverse family).
- *  Resolves roles dashboard-side (it's a dashboard-only specimen, not part of the shared spec). */
-const renderInverseSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'inverse-spec');
-  const m: Mode = currentMode;   // #171 — every specimen reflects the mode-context selection
-  const roles = resolveAllModes(theme).find((x) => x.mode === m)?.roles ?? {};
-  const hx = (k: string): string | undefined => (roles as Record<string, { hex: string } | undefined>)[k]?.hex;
-  // Guard on the role the `inverse` toggle actually gates: background.inverse.*/text.on-inverse
-  // are generated UNCONDITIONALLY (modes.ts), only interactive.<color>.on-inverse.* is behind
-  // `inverseContext` (modes.ts §inverse) — so this is what's absent when the toggle is off.
-  if (!hx('interactive.primary.on-inverse.text.rest')) {
-    wrap.append(sectionHead('Inverse surface', 'Inverse context is off — enable the “Inverse surface-context” toggle to generate the on-inverse interactive text colors.'));
-    return wrap;
-  }
-  wrap.append(sectionHead('Inverse surface', 'Controls on a dark hero / inverse section — the on-inverse text colors (nothing else in the preview shows them).'));
-  const band = el('div', 'inv-band');
-  band.style.background = hx('background.inverse.primary')!;
-  const h = el('div', 'inv-h', 'Ship your design system with confidence.');
-  h.style.color = hx('text.on-inverse')!;
-  band.append(h);
-  const ink = hx('interactive.primary.on-inverse.text.rest')!;   // guaranteed by the guard above
-  const cta = el('div', 'inv-cta', 'Get started');
-  cta.style.color = ink;
-  cta.style.border = `2px solid ${ink}`;
-  band.append(cta);
-  wrap.append(band);
-  return wrap;
-};
+// The inverse-surface + icon specimens were retired here (#69): the on-inverse family is now a first-class
+// row in every interactive matrix section (Fill · inverse / Text · inverse / On-fill · inverse), and the
+// icon-contrast payoff is the "Icon colors" global section's match-vs-distinct example — no separate
+// preview needed.
 
-/** The neutral-emphasis comparison specimen: the neutral (default) button rendered BOTH ways —
- *  `neutralEmphasis: 'subtle'` (a light-grey surface) vs `'strong'` (a bold near-black/white fill).
- *  A single lever picks one; the specimen resolves the theme both ways (dashboard-side, from the
- *  last-good input) so the choice is legible side by side. */
-// The neutral emphasis (subtle grey vs bold fill) now lives on the Neutral interactive card
-// (renderNeutralCard) rather than a standalone specimen — docs/23 §2, owner request.
+/** The neutral-emphasis option labels — subtle (a light-grey surface) vs strong (a bold near-black/white
+ *  fill). Drives the Neutral section's "Button emphasis" lead in the interactive matrix. */
 const NEUTRAL_EMPHASES: Array<['subtle' | 'strong', string]> = [['subtle', 'subtle · light grey'], ['strong', 'strong · bold fill']];
 
 // ---- Gradient editor (docs/23 §2 "Gradients") -----------------------------
@@ -2560,6 +2644,7 @@ const clampUnit = (n: number): number => Math.max(0, Math.min(1, Number.isFinite
 const SVGNS = 'http://www.w3.org/2000/svg';
 const ICON_PATH: Record<string, string> = {
   bell: '<path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/>',
+  arrow: '<path d="M5 12h13M12 6l6 6-6 6"/>',
   search: '<circle cx="11" cy="11" r="7"/><line x1="20.5" y1="20.5" x2="16" y2="16"/>',
   dot: '<circle cx="12" cy="12" r="8"/>',
   star: '<path d="M12 3l2.6 5.6 6 .7-4.4 4.1 1.2 6L12 16.9 6.6 19.4l1.2-6L3.4 9.3l6-.7z"/>',
@@ -2575,45 +2660,6 @@ const iconEl = (name: string, stroke: string): SVGElement => {
   svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
   svg.innerHTML = ICON_PATH[name] ?? ICON_PATH.dot;
   return svg;
-};
-
-/** The icon specimen (#99 last item): icons on a surface AND reversed out on fills, so the icon-contrast
- *  floor (`iconContrast` lever) has a visible payoff — nothing else in the preview shows the icon roles.
- *  Kind-B (reads `resolveAllModes(theme)`, like the inverse/neutral specimens). On-fill pairings use only
- *  roles backed by a real solid fill (brand/destructive action fills + the inverse surface). */
-const ICON_ON_SURFACE: Array<[string, string]> = [
-  ['icon.primary', 'bell'], ['icon.secondary', 'search'], ['icon.tertiary', 'dot'],
-  ['icon.brand', 'star'], ['icon.success', 'check'], ['icon.warning', 'triangle'], ['icon.danger', 'x'], ['icon.info', 'info'],
-];
-const ICON_ON_FILL: Array<[string, string, string]> = [
-  ['icon.on-brand', 'interactive.primary.fill.rest', 'star'],
-  ['icon.on-danger', 'interactive.destructive.fill.rest', 'x'],
-  ['icon.on-inverse', 'background.inverse.primary', 'bell'],
-];
-const renderIconSpecimen = (): HTMLElement => {
-  const wrap = el('div', 'icon-spec');
-  const m: Mode = currentMode;   // #171 — every specimen reflects the mode-context selection
-  const roles = resolveAllModes(theme).find((x) => x.mode === m)?.roles ?? {};
-  const hx = (k: string): string | undefined => (roles as Record<string, { hex: string } | undefined>)[k]?.hex;
-  const floorLabel = theme.iconContrast === 'text' ? '4.5:1 · matches text' : '3:1 · WCAG non-text';
-  wrap.append(sectionHead('Icons', `Icons on a surface and reversed out on fills — each validated to the icon-contrast floor (${floorLabel}). The “Icon contrast floor” lever raises or relaxes it.`));
-  const tile = (icon: string, color: string, bg: string, label: string, bordered: boolean): HTMLElement => {
-    const t = el('div', 'ic-tile');
-    const chip = el('div', 'ic-chip'); chip.style.background = bg; if (bordered) chip.style.border = '1px solid var(--line)';
-    chip.append(iconEl(icon, color));
-    t.append(chip, el('div', 'ic-lab mono', label));
-    return t;
-  };
-  const surfBg = hx('background.primary') ?? '#ffffff';
-  const surf = el('div', 'ic-block'); surf.append(el('div', 'ic-cap mono', 'on surface'));
-  const sTiles = el('div', 'ic-tiles');
-  for (const [role, icon] of ICON_ON_SURFACE) { const c = hx(role); if (c) sTiles.append(tile(icon, c, surfBg, role.replace('icon.', ''), true)); }
-  surf.append(sTiles); wrap.append(surf);
-  const fill = el('div', 'ic-block'); fill.append(el('div', 'ic-cap mono', 'reversed on fill'));
-  const fTiles = el('div', 'ic-tiles');
-  for (const [role, bgRole, icon] of ICON_ON_FILL) { const c = hx(role), bg = hx(bgRole); if (c && bg) fTiles.append(tile(icon, c, bg, role.replace('icon.', ''), false)); }
-  fill.append(fTiles); wrap.append(fill);
-  return wrap;
 };
 
 // ---- shared bits -----------------------------------------------------------
@@ -3372,10 +3418,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .ly-cont-row{display:flex;align-items:center;gap:12px}
 .ly-cont-lab{font-size:11.5px;color:var(--muted);min-width:150px}
 .ly-cont-bar{height:16px;background:var(--ink);opacity:.55;border-radius:3px}
-.inverse-spec{margin-bottom:8px}
-.inv-band{border-radius:var(--r);padding:36px 32px;display:flex;flex-direction:column;align-items:flex-start;gap:20px}
-.inv-h{font-size:24px;font-weight:700;letter-spacing:-0.02em;max-width:26ch}
-.inv-cta{padding:10px 22px;border-radius:var(--r-xs);font-weight:600;font-size:14px}
 .gradient-spec{margin-bottom:8px}
 .gr-list{display:flex;flex-wrap:wrap;gap:22px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
 .gr-cell{display:flex;flex-direction:column;gap:10px}
@@ -3402,13 +3444,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .gr-ed-addstop{margin-top:12px;width:auto;padding:7px 13px;font-size:12px}
 .gr-ed-add{margin-top:14px}
 .gr-ed-nameinput{font:inherit;font-size:15px;font-weight:620;color:var(--ink);background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-xs);padding:6px 10px;width:150px}
-.icon-spec{margin-bottom:8px}
-.ic-block{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:18px 22px;margin-top:10px}
-.ic-cap{font-size:11px;color:var(--faint);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:14px}
-.ic-tiles{display:flex;flex-wrap:wrap;gap:20px}
-.ic-tile{display:flex;flex-direction:column;align-items:center;gap:9px}
-.ic-chip{width:48px;height:48px;display:grid;place-items:center;border-radius:11px}
-.ic-lab{font-size:11px;color:var(--faint)}
 /* Mode-context strip (#171) — one mode at a time; sticky so the context stays reachable while
    scrolling the stage. The whole stage below reflects the selected mode. */
 .modectx{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
@@ -3482,7 +3517,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .pv-paths{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .tpill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--line);color:var(--faint)}
 .tpill.more{color:var(--muted);font-style:italic}
-/* #161 — interactive-color card */
+/* Interactive & action colors — per-mode note + add-accent row (#69). */
 .ic-modenote{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.55;padding:10px 13px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm)}
 /* A2c — per-mode foreground/text override rows. */
 .fg-row{display:flex;align-items:center;gap:12px;margin-top:10px}
@@ -3490,31 +3525,52 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .fg-badge{margin-left:auto;font-size:12.5px;font-weight:560;padding:5px 10px;border-radius:var(--r-sm)}
 .fg-badge.ok{background:#eaf7f0;color:#1f7a4d}
 .fg-badge.no{background:#fdecec;color:#a12}
-.ic-card{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:22px;margin-bottom:14px}
-.ic-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
-.ic-headt{margin:0;flex:1;font-size:15px;font-weight:620;color:var(--ink)}
-.ic-add{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ic-add{display:flex;align-items:center;gap:12px;margin-top:14px}
 .ic-addbtn{width:auto;margin-top:0;flex:none}
 .ic-addhint{font-size:13px;color:var(--muted)}
-.ic-top{display:flex;gap:22px;align-items:flex-start}
-.ic-big{width:150px;height:150px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line)}
-.ic-big-sm{width:72px;height:72px}
-.fill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:4px}
-.fill-grid .ic-card{margin-bottom:0}
-.fill-grid .ic-top{gap:14px}
 /* Backgrounds card — the contrast-floor sub-control appended below the card body. */
 /* Backgrounds Inverse card — the derived, read-only surface (docs/24 #61). */
 .bg-derived{font-size:12.5px;color:var(--faint);font-style:italic}
 .bg-floor{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .bg-floor-lab{font-size:12.5px;font-weight:560;color:var(--muted)}
 .bg-floor .select{margin-left:auto}
-.ic-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
-.ic-h{margin:0;font-size:15px;font-weight:620;color:var(--ink)}
-.ic-example{flex:none;width:270px;align-self:stretch;display:grid;place-items:center;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm)}
-.ic-btn{padding:14px 28px;border-radius:var(--r-sm);font-weight:600;font-size:15px}
-.ic-descrow{display:flex;align-items:center;gap:16px;margin-top:18px}
-.ic-desc{margin:0;flex:1;font-size:13px;line-height:1.5;color:var(--muted)}
-.ic-descrow .cbadge{flex:none;font-size:12.5px;padding:5px 11px}
+/* Interactive matrix (#69) — global-behaviour caption, per-palette section header, slot rows, states. */
+.gcap{margin:8px 0 2px;padding:0 2px}
+.gcap-t{margin:0;font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.gcap-d{margin:4px 0 0;color:var(--faint);font-size:12.5px;line-height:1.5;max-width:660px}
+.psec-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.arow{padding:26px 2px}
+.arow+.arow{border-top:1px solid var(--line)}
+.arow-main{display:grid;grid-template-columns:56px minmax(0,1fr) 300px;gap:20px;align-items:start}
+.arow-lead .arow-main{grid-template-columns:minmax(0,1fr) 300px}
+.asw{width:56px;height:56px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line2)}
+.amid{min-width:0;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.alabel{font-size:14px;font-weight:640;line-height:1.2;color:var(--ink)}
+.amid .sf-ctlblock{width:100%}
+.amid .select{max-width:300px}
+.amid .tpill{display:inline-block;white-space:normal;word-break:break-word;line-height:1.4}
+.adesc{font-size:11.5px;color:var(--faint);line-height:1.45;max-width:340px}
+.aex{width:300px;justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.aex .cbadge{align-self:flex-end}
+.aex-two{flex-direction:row;gap:14px}
+.aex-spec{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;align-items:center}
+.exbox{width:100%;min-height:72px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:14px 16px;overflow:hidden}
+.exbox.dark{background:#0d0d10;border-color:transparent}
+.ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.ibtn svg{width:16px;height:16px}
+.ilink{font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.inote{display:inline-flex;align-items:center;gap:7px;font-size:14px}
+.inote-ic{display:inline-flex}
+.inote-ic svg{width:17px;height:17px}
+.astates{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line2);margin-left:76px}
+.astates-h{font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.astates-g{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.astate{border:1px solid var(--line);border-radius:var(--r-xs);background:var(--paper);padding:11px 12px;display:flex;flex-direction:column;gap:9px}
+.astate-h{display:flex;align-items:center;gap:10px}
+.astate-sw{width:30px;height:30px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.astate-n{font-size:12.5px;font-weight:600;color:var(--ink)}
+.astate .select{width:100%;font-size:12px;padding:6px 9px;padding-right:26px}
+@media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.aex-two{grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
 .sf-row{display:grid;grid-template-columns:56px 168px 172px 1fr 228px;gap:20px;align-items:start;padding:24px 0}
 .sf-row+.sf-row{border-top:1px solid var(--line)}
@@ -3535,13 +3591,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sf-ex-text{font-size:14.5px}
 .sf-railnote{font-size:10.5px;color:var(--faint)}
 @media(max-width:900px){.sf-row{grid-template-columns:56px 1fr;gap:14px}.sf-row .sf-ctl,.sf-right{grid-column:1/-1;align-items:flex-start}.sf-ex{width:100%}}
-.ic-states-h{margin:22px 0 12px;font-size:14px;font-weight:620;color:var(--ink)}
-.ic-states{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.ic-sub{display:flex;gap:14px;align-items:center;border:1px solid var(--line);border-radius:var(--r-sm);padding:16px;background:var(--paper)}
-.ic-subsw{width:64px;height:64px;flex:none;border-radius:var(--r-xs);border:1px solid var(--line)}
-.ic-subt{min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-.ic-sublab{font-weight:620;font-size:14px;color:var(--ink)}
-.ic-substep{font-size:13px;color:var(--muted)}
 .chip{padding:8px 14px;border-radius:8px;font-weight:600;font-size:13px}
 .contracts{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:18px 20px}
 .contracts-sum{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px}

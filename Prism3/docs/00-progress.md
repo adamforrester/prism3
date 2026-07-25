@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-07-25) — Interactive page rebuilt as a per-palette matrix (#69, web-only)
+
+**STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`). Consumes the ENG-1/ENG-2
+roles landed in #240 to rebuild the Interactive page to the owner-approved Prism2-model layout.
+
+- **Structure.** Cross-cutting behaviours grouped at the top — **Outline button hover** (`outlineInteraction`),
+  **Disabled** (`disabledStrategy` + nested `disabledMin`), **Icon colors** (`iconContrast`) — each a `.psec`
+  with a lead select + a hand-built rest→hover / enabled→disabled / match→distinct example. Then **one section
+  per action palette** (Primary / Neutral / Destructive / promoted accents + an add row), each a stack of
+  full-width **slot rows**: Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill,
+  On-fill · inverse.
+- **Row anatomy (reuses the Surfaces atoms).** 56×56 swatch · mid (label + Source select + `color.interactive.*`
+  token pill + description) · a 300px example locked right with its contrast receipt · (fill/text/overlay) a
+  two-up Hover/Pressed states strip, indented to align with the title column, stretched to the right edge.
+  Buttons carry a trailing arrow; the overlay wash paints honestly via rgba.
+- **Binding (every control is real).** `fill.rest`'s Source is the column **fill anchor** (re-derives the
+  family; per-mode via `modeAnchors` outside Light); **every other slot + every state** is a surgical **A1
+  per-mode override** (`overrides[mode][role] = {palette, step}`, reusing `setFillOverride`) — "Auto" clears
+  it back to the derived value. Primary leads with the **Action palette** choice; Neutral leads with the
+  **Button emphasis** (subtle/strong `neutralEmphasis`).
+- **Retired.** The standalone `renderInverseSpecimen` + `renderIconSpecimen` (and the old `renderCard` shell /
+  `renderInteractiveCard` / `renderGroupedPanels` path) — the on-inverse family is now first-class rows and
+  the icon payoff is the Icon-colors example; dead CSS removed with them.
+- **Verified:** `tsc --noEmit` clean; esbuild bundle OK; Playwright screenshot (light) shows every slot
+  resolving with live contrast receipts (fill 6.42:1, inverse 14.09:1, …); engine tests 925/925 (unchanged).
+
+---
+
 ## (2026-07-25) — Interactive token family expanded: per-state text + full inverse column (PR #240, ENG-1/ENG-2)
 
 **STATUS: engine change** (behavioral generation change to the `interactive.*` family), backing the
