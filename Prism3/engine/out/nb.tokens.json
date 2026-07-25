@@ -3502,45 +3502,135 @@
             }
           },
           "text": {
-            "$type": "color",
-            "$value": "{nbds.palette.red.550}",
-            "$description": "Primary interactive ink (outline / text appearance)",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "nbds.palette.red.550",
-                "contrast": 5.62,
-                "against": "background.primary",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{nbds.palette.red.450}",
-                    "contrast": 5.05,
-                    "against": "background.primary",
-                    "min": 4.5
+            "rest": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.550}",
+              "$description": "primary interactive ink — rest (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.550",
+                  "contrast": 5.62,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.450}",
+                      "contrast": 5.05,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.650}",
+                      "contrast": 8.29,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.350}",
+                      "contrast": 7.52,
+                      "against": "background.primary",
+                      "min": 7
+                    }
                   },
-                  "hc-light": {
-                    "$value": "{nbds.palette.red.650}",
-                    "contrast": 8.29,
-                    "against": "background.primary",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{nbds.palette.red.350}",
-                    "contrast": 7.52,
-                    "against": "background.primary",
-                    "min": 7
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.600}",
+              "$description": "primary interactive ink — hover (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.600",
+                  "contrast": 6.85,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.400}",
+                      "contrast": 5.98,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.700}",
+                      "contrast": 10.03,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.300}",
+                      "contrast": 8.77,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.650}",
+              "$description": "primary interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.650",
+                  "contrast": 8.29,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.350}",
+                      "contrast": 6.97,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.750}",
+                      "contrast": 12.08,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.250}",
+                      "contrast": 10.17,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }
@@ -4036,45 +4126,135 @@
             }
           },
           "text": {
-            "$type": "color",
-            "$value": "{nbds.palette.red.550}",
-            "$description": "Destructive interactive ink (outline / text appearance)",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "nbds.palette.red.550",
-                "contrast": 5.62,
-                "against": "background.primary",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{nbds.palette.red.450}",
-                    "contrast": 5.05,
-                    "against": "background.primary",
-                    "min": 4.5
+            "rest": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.550}",
+              "$description": "destructive interactive ink — rest (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.550",
+                  "contrast": 5.62,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.450}",
+                      "contrast": 5.05,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.650}",
+                      "contrast": 8.29,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.350}",
+                      "contrast": 7.52,
+                      "against": "background.primary",
+                      "min": 7
+                    }
                   },
-                  "hc-light": {
-                    "$value": "{nbds.palette.red.650}",
-                    "contrast": 8.29,
-                    "against": "background.primary",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{nbds.palette.red.350}",
-                    "contrast": 7.52,
-                    "against": "background.primary",
-                    "min": 7
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.600}",
+              "$description": "destructive interactive ink — hover (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.600",
+                  "contrast": 6.85,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.400}",
+                      "contrast": 5.98,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.700}",
+                      "contrast": 10.03,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.300}",
+                      "contrast": 8.77,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.650}",
+              "$description": "destructive interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.650",
+                  "contrast": 8.29,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.350}",
+                      "contrast": 6.97,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.750}",
+                      "contrast": 12.08,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.250}",
+                      "contrast": 10.17,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }
@@ -4550,45 +4730,135 @@
             }
           },
           "text": {
-            "$type": "color",
-            "$value": "{nbds.palette.neutral.950}",
-            "$description": "Neutral interactive ink (outline / text appearance) — strongest neutral",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.950",
-                "contrast": 19.44,
-                "against": "background.primary",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{nbds.palette.neutral.025}",
-                    "contrast": 18.11,
-                    "against": "background.primary",
-                    "min": 4.5
+            "rest": {
+              "$type": "color",
+              "$value": "{nbds.palette.neutral.950}",
+              "$description": "neutral interactive ink — rest (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.neutral.950",
+                  "contrast": 19.44,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.neutral.025}",
+                      "contrast": 18.11,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.black}",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.white}",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    }
                   },
-                  "hc-light": {
-                    "$value": "{nbds.palette.black}",
-                    "contrast": 21,
-                    "against": "background.primary",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{nbds.palette.white}",
-                    "contrast": 21,
-                    "against": "background.primary",
-                    "min": 7
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{nbds.palette.neutral.950}",
+              "$description": "neutral interactive ink — hover (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.neutral.950",
+                  "contrast": 19.44,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.neutral.025}",
+                      "contrast": 18.11,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.black}",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.white}",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.palette.neutral.950}",
+              "$description": "neutral interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.neutral.950",
+                  "contrast": 19.44,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.neutral.025}",
+                      "contrast": 18.11,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.black}",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.white}",
+                      "contrast": 21,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }

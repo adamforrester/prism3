@@ -563,7 +563,7 @@
         }
       ]
     },
-    "interactive.primary.text": {
+    "interactive.primary.text.rest": {
       "$description": "Primary interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
@@ -582,6 +582,50 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 5.62
+        }
+      ]
+    },
+    "interactive.primary.text.hover": {
+      "$description": "Primary interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled primary control (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{nbds.palette.red.600}",
+        "dark": "{nbds.palette.red.400}",
+        "hc-light": "{nbds.palette.red.700}",
+        "hc-dark": "{nbds.palette.red.300}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 6.85
+        }
+      ]
+    },
+    "interactive.primary.text.pressed": {
+      "$description": "Primary interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled primary control (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{nbds.palette.red.650}",
+        "dark": "{nbds.palette.red.350}",
+        "hc-light": "{nbds.palette.red.750}",
+        "hc-dark": "{nbds.palette.red.250}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 8.29
         }
       ]
     },
@@ -739,7 +783,7 @@
         }
       ]
     },
-    "interactive.destructive.text": {
+    "interactive.destructive.text.rest": {
       "$description": "Destructive interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
@@ -758,6 +802,50 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 5.62
+        }
+      ]
+    },
+    "interactive.destructive.text.hover": {
+      "$description": "Destructive interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{nbds.palette.red.600}",
+        "dark": "{nbds.palette.red.400}",
+        "hc-light": "{nbds.palette.red.700}",
+        "hc-dark": "{nbds.palette.red.300}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 6.85
+        }
+      ]
+    },
+    "interactive.destructive.text.pressed": {
+      "$description": "Destructive interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{nbds.palette.red.650}",
+        "dark": "{nbds.palette.red.350}",
+        "hc-light": "{nbds.palette.red.750}",
+        "hc-dark": "{nbds.palette.red.250}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 8.29
         }
       ]
     },
@@ -880,7 +968,51 @@
         }
       ]
     },
-    "interactive.neutral.text": {
+    "interactive.neutral.text.rest": {
+      "$description": "Neutral interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled neutral control (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{nbds.palette.neutral.950}",
+        "dark": "{nbds.palette.neutral.025}",
+        "hc-light": "{nbds.palette.black}",
+        "hc-dark": "{nbds.palette.white}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 19.44
+        }
+      ]
+    },
+    "interactive.neutral.text.hover": {
+      "$description": "Neutral interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled neutral control (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{nbds.palette.neutral.950}",
+        "dark": "{nbds.palette.neutral.025}",
+        "hc-light": "{nbds.palette.black}",
+        "hc-dark": "{nbds.palette.white}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 19.44
+        }
+      ]
+    },
+    "interactive.neutral.text.pressed": {
       "$description": "Neutral interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
@@ -3032,7 +3164,9 @@
         "color.interactive.destructive.on-fill",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
         "color.text.on-brand",
         "color.text.on-danger",
@@ -3073,7 +3207,9 @@
         "color.interactive.destructive.on-fill",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
         "color.text.on-brand",
         "color.text.on-danger",
@@ -3127,8 +3263,10 @@
         "color.icon.link.hover",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.text.pressed",
         "color.text.link.hover"
       ]
     },
@@ -3147,7 +3285,9 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.text.hover",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.text.hover",
         "color.text.brand",
         "color.text.danger",
         "color.text.link.default",
@@ -3167,11 +3307,13 @@
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text",
+        "color.interactive.destructive.text.pressed",
+        "color.interactive.destructive.text.rest",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text",
+        "color.interactive.primary.text.pressed",
+        "color.interactive.primary.text.rest",
         "color.text.brand-subtle",
         "color.text.danger-subtle",
         "color.text.link.visited"
@@ -3187,8 +3329,10 @@
         "color.icon.link.hover",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.text.hover",
         "color.text.link.hover"
       ]
     },
@@ -3210,10 +3354,10 @@
         "color.icon.link.focused",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text",
+        "color.interactive.destructive.text.rest",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text",
+        "color.interactive.primary.text.rest",
         "color.text.brand",
         "color.text.brand-subtle",
         "color.text.danger",
@@ -3251,10 +3395,10 @@
         "color.icon.link.focused",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text",
+        "color.interactive.destructive.text.rest",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text",
+        "color.interactive.primary.text.rest",
         "color.text.brand",
         "color.text.danger",
         "color.text.link.default",
@@ -3271,8 +3415,10 @@
         "color.icon.link.hover",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.text.hover",
         "color.text.link.hover"
       ]
     },
@@ -3287,11 +3433,13 @@
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text",
+        "color.interactive.destructive.text.pressed",
+        "color.interactive.destructive.text.rest",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text",
+        "color.interactive.primary.text.pressed",
+        "color.interactive.primary.text.rest",
         "color.text.link.visited"
       ]
     },
@@ -3310,7 +3458,9 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.text.hover",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.text.hover",
         "color.text.brand",
         "color.text.danger",
         "color.text.link.default",
@@ -3327,8 +3477,10 @@
         "color.icon.link.hover",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.text.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.text.pressed",
         "color.text.link.hover"
       ]
     },
@@ -3984,7 +4136,9 @@
         "color.interactive.destructive.on-fill",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
         "color.text.on-brand",
         "color.text.on-danger",
@@ -4007,7 +4161,9 @@
         "color.icon.primary",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
         "color.text.on-inverse",
         "color.text.primary"
       ]

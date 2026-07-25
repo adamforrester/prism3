@@ -381,10 +381,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const s = steps.reduce((a, b) => (Math.abs(b.num - num) < Math.abs(a.num - num) ? b : a));
     return { path: `${ns}.${r2p.neutral}.${s.key}`, rgb: s.rgb, num: s.num, ratio: contrast(s.rgb, floorRgb) };
   };
+  // The outline / text ink, per interactive state (docs/20 §2) — `text.{rest,hover,pressed}`. rest is
+  // the gated pick; hover/pressed walk the palette toward MORE contrast (like the fill states), so an
+  // outline/text control "comes forward" as the user engages. `walkable` is false for neutral, whose ink
+  // is already the strongest neutral (no palette position to step) — its states collapse onto rest.
+  const iText = (name: string, restCand: Cand, palette: string, walkable: boolean): void => {
+    const restNum = (restCand as RatedNum).num;
+    for (const st of ['default', 'hover', 'pressed'] as const) {
+      const stKey = st === 'default' ? 'rest' : st;
+      const c: Cand = (st === 'default' || !walkable) ? restCand : walk(palette, restNum, st === 'hover' ? 1 : 2);
+      put(`interactive.${name}.text.${stKey}`, rated(c, baseRgb),
+        `${name} interactive ink — ${stKey} (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
+    }
+  };
 
   // primary — the action palette, contrast-verified.
   iFill('primary', actionRest, r2p.action, cfg.actionMin);
-  put('interactive.primary.text', paletteRole('action', baseRgb, cfg.secondaryMin), 'Primary interactive ink (outline / text appearance)', 'background.primary', cfg.secondaryMin);
+  iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true);
   put('interactive.primary.border', rated(chromatic(r2p.action, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Primary interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
   // destructive — the danger palette (its own interactive column, no scavenging).
@@ -394,7 +407,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     ? chromatic(r2p.danger, daAnchor, floorRgb, cfg.actionMin)
     : paletteRole('danger', floorRgb, cfg.actionMin);
   iFill('destructive', iDestructiveRest, r2p.danger, cfg.actionMin);
-  put('interactive.destructive.text', paletteRole('danger', baseRgb, cfg.secondaryMin), 'Destructive interactive ink (outline / text appearance)', 'background.primary', cfg.secondaryMin);
+  iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true);
   put('interactive.destructive.border', rated(chromatic(r2p.danger, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Destructive interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
   // neutral — the achromatic column that was the historical miss (docs/20 §12). The
@@ -405,7 +418,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const neutralStrong = theme.neutralEmphasis === 'strong';
   const neutralAnchor = neutralStrong ? (cfg.family === 'light' ? 800 : 150) : (cfg.family === 'light' ? 150 : 850);
   iFill('neutral', neutralStepR(neutralAnchor), r2p.neutral, neutralStrong ? cfg.nonTextMin : 0);
-  put('interactive.neutral.text', pickMostExtreme(textCands, baseRgb), 'Neutral interactive ink (outline / text appearance) — strongest neutral', 'background.primary', cfg.secondaryMin);
+  iText('neutral', pickMostExtreme(textCands, baseRgb), r2p.neutral, false);   // strongest neutral — states collapse onto rest
   put('interactive.neutral.border', pickMinPass(ramp, baseRgb, cfg.nonTextMin), 'Neutral interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
   // extensible interactive columns (docs/20 §3) — N opt-in `interactive.<name>.*` families, each
@@ -417,7 +430,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
     const rest = chromatic(entry.palette, anchor, floorRgb, cfg.actionMin);
     iFill(entry.name, rest, entry.palette, cfg.actionMin);
-    put(`interactive.${entry.name}.text`, rated(chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), baseRgb), `${entry.name} interactive ink (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
+    iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true);
     put(`interactive.${entry.name}.border`, rated(chromatic(entry.palette, 500, baseRgb, cfg.nonTextMin), baseRgb), `${entry.name} interactive border (outline)`, 'background.primary', cfg.nonTextMin);
   }
 

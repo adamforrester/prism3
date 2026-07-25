@@ -571,12 +571,12 @@
       }
     },
     {
-      "name": "color/interactive/primary/text",
+      "name": "color/interactive/primary/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Primary interactive ink (outline / text appearance)",
+      "description": "primary interactive ink — rest (outline / text appearance)",
       "value": {
         "r": 0,
         "g": 0.5333333611488342,
@@ -586,6 +586,42 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/accent/450"
+      }
+    },
+    {
+      "name": "color/interactive/primary/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "primary interactive ink — hover (outline / text appearance)",
+      "value": {
+        "r": 0.2078431397676468,
+        "g": 0.5843137502670288,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/400"
+      }
+    },
+    {
+      "name": "color/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "primary interactive ink — pressed (outline / text appearance)",
+      "value": {
+        "r": 0.33725491166114807,
+        "g": 0.6313725709915161,
+        "b": 0.7960784435272217,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/350"
       }
     },
     {
@@ -798,12 +834,12 @@
       }
     },
     {
-      "name": "color/interactive/destructive/text",
+      "name": "color/interactive/destructive/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Destructive interactive ink (outline / text appearance)",
+      "description": "destructive interactive ink — rest (outline / text appearance)",
       "value": {
         "r": 0.8509804010391235,
         "g": 0.3333333432674408,
@@ -813,6 +849,42 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/danger/450"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "destructive interactive ink — hover (outline / text appearance)",
+      "value": {
+        "r": 0.8784313797950745,
+        "g": 0.4117647111415863,
+        "b": 0.3686274588108063,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/400"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "destructive interactive ink — pressed (outline / text appearance)",
+      "value": {
+        "r": 0.8901960849761963,
+        "g": 0.4901960790157318,
+        "b": 0.4470588266849518,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/350"
       }
     },
     {
@@ -1025,12 +1097,48 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text",
+      "name": "color/interactive/neutral/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Neutral interactive ink (outline / text appearance) — strongest neutral",
+      "description": "neutral interactive ink — rest (outline / text appearance)",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/025"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "neutral interactive ink — hover (outline / text appearance)",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/025"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "neutral interactive ink — pressed (outline / text appearance)",
       "value": {
         "r": 0.9686274528503418,
         "g": 0.9686274528503418,

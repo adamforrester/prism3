@@ -54,16 +54,16 @@ export const previewSpec: PreviewSpec = {
       variants: [
         {
           name: 'rest',
-          bindings: { bg: 'color.background.primary', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' },
-          contracts: [{ fg: 'color.interactive.primary.text', bg: 'color.background.primary', min: TEXT, label: 'label on page' }, { fg: 'color.interactive.primary.border', bg: 'color.background.primary', min: UI, label: 'border on page' }],
+          bindings: { bg: 'color.background.primary', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text.rest', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' },
+          contracts: [{ fg: 'color.interactive.primary.text.rest', bg: 'color.background.primary', min: TEXT, label: 'label on page' }, { fg: 'color.interactive.primary.border', bg: 'color.background.primary', min: UI, label: 'border on page' }],
         },
         // hover/pressed add the translucent overlay wash over the page. The wash's contrast is
         // gated at the CORE on the composited result (docs/20 §10) — which the preview can't
         // recompute from role hexes — so these states are VISUAL (no contract pair); the ink +
         // border (which carry the contract) don't change from rest. Matches the Button def's
         // `primary.outline.overlay.{hover,pressed}` slots (components/button.ts).
-        { name: 'hover', bindings: { bg: 'color.interactive.primary.overlay.hover', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' } },
-        { name: 'pressed', bindings: { bg: 'color.interactive.primary.overlay.pressed', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' } },
+        { name: 'hover', bindings: { bg: 'color.interactive.primary.overlay.hover', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text.rest', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' } },
+        { name: 'pressed', bindings: { bg: 'color.interactive.primary.overlay.pressed', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text.rest', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' } },
       ],
     },
     {

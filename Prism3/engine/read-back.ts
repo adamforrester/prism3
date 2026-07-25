@@ -106,7 +106,7 @@ export type ReadbackVerdict = {
 // Expected slot scopes (docs/10 §3 / docs/20) — the same contract the emit-figma scope maps produce.
 // Sorted, comma-joined, to compare order-independently against the read-back scopes.
 const EXPECTED_SLOT_SCOPES: Record<string, string[]> = {
-  'color/interactive/primary/text': ['TEXT_FILL'],
+  'color/interactive/primary/text/rest': ['TEXT_FILL'],
   'color/interactive/primary/border': ['STROKE_COLOR'],
   'color/disabled/fill': ['FRAME_FILL', 'SHAPE_FILL'],
   'color/disabled/on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],

@@ -571,12 +571,12 @@
       }
     },
     {
-      "name": "color/interactive/primary/text",
+      "name": "color/interactive/primary/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Primary interactive ink (outline / text appearance)",
+      "description": "primary interactive ink — rest (outline / text appearance)",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -586,6 +586,42 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/primary/600"
+      }
+    },
+    {
+      "name": "color/interactive/primary/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "primary interactive ink — hover (outline / text appearance)",
+      "value": {
+        "r": 0.5529412031173706,
+        "g": 0,
+        "b": 0.10588235408067703,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/650"
+      }
+    },
+    {
+      "name": "color/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "primary interactive ink — pressed (outline / text appearance)",
+      "value": {
+        "r": 0.47843137383461,
+        "g": 0,
+        "b": 0.08627451211214066,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/700"
       }
     },
     {
@@ -798,12 +834,12 @@
       }
     },
     {
-      "name": "color/interactive/destructive/text",
+      "name": "color/interactive/destructive/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Destructive interactive ink (outline / text appearance)",
+      "description": "destructive interactive ink — rest (outline / text appearance)",
       "value": {
         "r": 0.5607843399047852,
         "g": 0.16862745583057404,
@@ -813,6 +849,42 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/danger/650"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "destructive interactive ink — hover (outline / text appearance)",
+      "value": {
+        "r": 0.48627451062202454,
+        "g": 0.12941177189350128,
+        "b": 0.14901961386203766,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/700"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "destructive interactive ink — pressed (outline / text appearance)",
+      "value": {
+        "r": 0.4156862795352936,
+        "g": 0.09019608050584793,
+        "b": 0.11372549086809158,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/750"
       }
     },
     {
@@ -1025,12 +1097,48 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text",
+      "name": "color/interactive/neutral/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Neutral interactive ink (outline / text appearance) — strongest neutral",
+      "description": "neutral interactive ink — rest (outline / text appearance)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/black"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "neutral interactive ink — hover (outline / text appearance)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/black"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "neutral interactive ink — pressed (outline / text appearance)",
       "value": {
         "r": 0,
         "g": 0,
