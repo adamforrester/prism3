@@ -95,7 +95,7 @@
           "bindings": {
             "bg": "color.background.primary",
             "border": "color.interactive.primary.border",
-            "text": "color.interactive.primary.text",
+            "text": "color.interactive.primary.text.rest",
             "radius": "radius.md",
             "padX": "space.300",
             "padY": "space.150",
@@ -103,7 +103,7 @@
           },
           "contracts": [
             {
-              "fg": "color.interactive.primary.text",
+              "fg": "color.interactive.primary.text.rest",
               "bg": "color.background.primary",
               "min": 4.5,
               "label": "label on page"
@@ -121,7 +121,7 @@
           "bindings": {
             "bg": "color.interactive.primary.overlay.hover",
             "border": "color.interactive.primary.border",
-            "text": "color.interactive.primary.text",
+            "text": "color.interactive.primary.text.rest",
             "radius": "radius.md",
             "padX": "space.300",
             "padY": "space.150",
@@ -133,7 +133,7 @@
           "bindings": {
             "bg": "color.interactive.primary.overlay.pressed",
             "border": "color.interactive.primary.border",
-            "text": "color.interactive.primary.text",
+            "text": "color.interactive.primary.text.rest",
             "radius": "radius.md",
             "padX": "space.300",
             "padY": "space.150",

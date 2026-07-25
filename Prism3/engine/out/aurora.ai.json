@@ -563,7 +563,7 @@
         }
       ]
     },
-    "interactive.primary.text": {
+    "interactive.primary.text.rest": {
       "$description": "Primary interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
@@ -582,6 +582,50 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 4.69
+        }
+      ]
+    },
+    "interactive.primary.text.hover": {
+      "$description": "Primary interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled primary control (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.600}",
+        "dark": "{prism.palette.accent.400}",
+        "hc-light": "{prism.palette.accent.700}",
+        "hc-dark": "{prism.palette.accent.300}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 5.65
+        }
+      ]
+    },
+    "interactive.primary.text.pressed": {
+      "$description": "Primary interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled primary control (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.650}",
+        "dark": "{prism.palette.accent.350}",
+        "hc-light": "{prism.palette.accent.750}",
+        "hc-dark": "{prism.palette.accent.250}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 6.84
         }
       ]
     },
@@ -739,7 +783,7 @@
         }
       ]
     },
-    "interactive.destructive.text": {
+    "interactive.destructive.text.rest": {
       "$description": "Destructive interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
@@ -758,6 +802,50 @@
           "token": "background.primary",
           "min": "4.5:1",
           "ratio": 4.58
+        }
+      ]
+    },
+    "interactive.destructive.text.hover": {
+      "$description": "Destructive interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.600}",
+        "dark": "{prism.palette.danger.400}",
+        "hc-light": "{prism.palette.danger.700}",
+        "hc-dark": "{prism.palette.danger.300}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 5.57
+        }
+      ]
+    },
+    "interactive.destructive.text.pressed": {
+      "$description": "Destructive interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.650}",
+        "dark": "{prism.palette.danger.350}",
+        "hc-light": "{prism.palette.danger.750}",
+        "hc-dark": "{prism.palette.danger.250}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 6.77
         }
       ]
     },
@@ -880,7 +968,51 @@
         }
       ]
     },
-    "interactive.neutral.text": {
+    "interactive.neutral.text.rest": {
+      "$description": "Neutral interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled neutral control (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
+        "hc-light": "{prism.palette.black}",
+        "hc-dark": "{prism.palette.white}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 16.01
+        }
+      ]
+    },
+    "interactive.neutral.text.hover": {
+      "$description": "Neutral interactive ink (outline / text appearance).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
+      "avoid_when": "Do not use on a filled neutral control (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
+        "hc-light": "{prism.palette.black}",
+        "hc-dark": "{prism.palette.white}"
+      },
+      "paired_with": [
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "4.5:1",
+          "ratio": 16.01
+        }
+      ]
+    },
+    "interactive.neutral.text.pressed": {
       "$description": "Neutral interactive ink (outline / text appearance).",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
@@ -924,7 +1056,7 @@
         }
       ]
     },
-    "interactive.primary.on-inverse": {
+    "interactive.primary.on-inverse.text.rest": {
       "$description": "Primary interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
@@ -946,7 +1078,139 @@
         }
       ]
     },
-    "interactive.destructive.on-inverse": {
+    "interactive.primary.on-inverse.text.hover": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.400}",
+        "dark": "{prism.palette.accent.600}",
+        "hc-light": "{prism.palette.accent.300}",
+        "hc-dark": "{prism.palette.accent.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "4.5:1",
+          "ratio": 5.8
+        }
+      ]
+    },
+    "interactive.primary.on-inverse.text.pressed": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.350}",
+        "dark": "{prism.palette.accent.650}",
+        "hc-light": "{prism.palette.accent.250}",
+        "hc-dark": "{prism.palette.accent.750}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "4.5:1",
+          "ratio": 6.8
+        }
+      ]
+    },
+    "interactive.primary.on-inverse.fill.rest": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.100}",
+        "dark": "{prism.palette.accent.900}",
+        "hc-light": "{prism.palette.accent.100}",
+        "hc-dark": "{prism.palette.accent.900}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 14.05
+        }
+      ]
+    },
+    "interactive.primary.on-inverse.fill.hover": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.050}",
+        "dark": "{prism.palette.accent.950}",
+        "hc-light": "{prism.palette.accent.050}",
+        "hc-dark": "{prism.palette.accent.950}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 16.02
+        }
+      ]
+    },
+    "interactive.primary.on-inverse.fill.pressed": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.200}",
+        "dark": "{prism.palette.accent.800}",
+        "hc-light": "{prism.palette.accent.200}",
+        "hc-dark": "{prism.palette.accent.800}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 10.65
+        }
+      ]
+    },
+    "interactive.primary.on-inverse.on-fill": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
+        "hc-light": "{prism.palette.black}",
+        "hc-dark": "{prism.palette.white}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.primary.on-inverse.fill.rest",
+          "min": "4.5:1",
+          "ratio": 14.05
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.text.rest": {
       "$description": "Destructive interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
@@ -968,7 +1232,139 @@
         }
       ]
     },
-    "interactive.neutral.on-inverse": {
+    "interactive.destructive.on-inverse.text.hover": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.400}",
+        "dark": "{prism.palette.danger.600}",
+        "hc-light": "{prism.palette.danger.300}",
+        "hc-dark": "{prism.palette.danger.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "4.5:1",
+          "ratio": 5.88
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.text.pressed": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.350}",
+        "dark": "{prism.palette.danger.650}",
+        "hc-light": "{prism.palette.danger.250}",
+        "hc-dark": "{prism.palette.danger.750}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "4.5:1",
+          "ratio": 6.88
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.fill.rest": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.100}",
+        "dark": "{prism.palette.danger.900}",
+        "hc-light": "{prism.palette.danger.100}",
+        "hc-dark": "{prism.palette.danger.900}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 14.08
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.fill.hover": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.050}",
+        "dark": "{prism.palette.danger.950}",
+        "hc-light": "{prism.palette.danger.050}",
+        "hc-dark": "{prism.palette.danger.950}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 16.05
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.fill.pressed": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.200}",
+        "dark": "{prism.palette.danger.800}",
+        "hc-light": "{prism.palette.danger.200}",
+        "hc-dark": "{prism.palette.danger.800}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 10.81
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.on-fill": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
+        "hc-light": "{prism.palette.black}",
+        "hc-dark": "{prism.palette.white}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.destructive.on-inverse.fill.rest",
+          "min": "4.5:1",
+          "ratio": 14.08
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.text.rest": {
       "$description": "Neutral interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
@@ -987,6 +1383,138 @@
           "token": "background.inverse.primary",
           "min": "4.5:1",
           "ratio": 18.13
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.text.hover": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.025}",
+        "dark": "{prism.palette.neutral.950}",
+        "hc-light": "{prism.palette.white}",
+        "hc-dark": "{prism.palette.black}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "4.5:1",
+          "ratio": 18.13
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.text.pressed": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.025}",
+        "dark": "{prism.palette.neutral.950}",
+        "hc-light": "{prism.palette.white}",
+        "hc-dark": "{prism.palette.black}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "4.5:1",
+          "ratio": 18.13
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.fill.rest": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.050}",
+        "dark": "{prism.palette.neutral.850}",
+        "hc-light": "{prism.palette.neutral.050}",
+        "hc-dark": "{prism.palette.neutral.850}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 16.01
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.fill.hover": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.100}",
+        "dark": "{prism.palette.neutral.900}",
+        "hc-light": "{prism.palette.neutral.100}",
+        "hc-dark": "{prism.palette.neutral.900}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 14.05
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.fill.pressed": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.150}",
+        "dark": "{prism.palette.neutral.950}",
+        "hc-light": "{prism.palette.neutral.150}",
+        "hc-dark": "{prism.palette.neutral.950}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 12.36
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.on-fill": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
+        "hc-light": "{prism.palette.black}",
+        "hc-dark": "{prism.palette.white}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "interactive.neutral.on-inverse.fill.rest",
+          "min": "4.5:1",
+          "ratio": 16.01
         }
       ]
     },
@@ -3054,10 +3582,17 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
+        "color.interactive.destructive.on-inverse.on-fill",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.on-inverse.on-fill",
+        "color.interactive.neutral.on-inverse.text.hover",
+        "color.interactive.neutral.on-inverse.text.pressed",
+        "color.interactive.neutral.on-inverse.text.rest",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
+        "color.interactive.primary.on-inverse.on-fill",
         "color.text.on-brand",
         "color.text.on-danger",
         "color.text.on-info",
@@ -3095,10 +3630,17 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
+        "color.interactive.destructive.on-inverse.on-fill",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.on-inverse.on-fill",
+        "color.interactive.neutral.on-inverse.text.hover",
+        "color.interactive.neutral.on-inverse.text.pressed",
+        "color.interactive.neutral.on-inverse.text.rest",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
+        "color.interactive.primary.on-inverse.on-fill",
         "color.text.on-brand",
         "color.text.on-danger",
         "color.text.on-info",
@@ -3296,7 +3838,8 @@
         "color.background.secondary",
         "color.field.fill",
         "color.foreground.inverse.secondary",
-        "color.foreground.primary"
+        "color.foreground.primary",
+        "color.interactive.neutral.on-inverse.fill.hover"
       ]
     },
     "palette.neutral.150": {
@@ -3309,7 +3852,8 @@
         "color.background.tertiary",
         "color.foreground.inverse.tertiary",
         "color.foreground.secondary",
-        "color.interactive.neutral.fill.rest"
+        "color.interactive.neutral.fill.rest",
+        "color.interactive.neutral.on-inverse.fill.pressed"
       ]
     },
     "palette.neutral.200": {
@@ -3505,7 +4049,8 @@
         "color.background.tertiary",
         "color.foreground.inverse.secondary",
         "color.foreground.secondary",
-        "color.interactive.neutral.fill.rest"
+        "color.interactive.neutral.fill.rest",
+        "color.interactive.neutral.on-inverse.fill.rest"
       ]
     },
     "palette.neutral.900": {
@@ -3519,7 +4064,8 @@
         "color.background.secondary",
         "color.field.fill",
         "color.foreground.inverse.primary",
-        "color.foreground.primary"
+        "color.foreground.primary",
+        "color.interactive.neutral.on-inverse.fill.hover"
       ]
     },
     "palette.neutral.950": {
@@ -3539,10 +4085,18 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
+        "color.interactive.destructive.on-inverse.on-fill",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.on-inverse.fill.pressed",
+        "color.interactive.neutral.on-inverse.on-fill",
+        "color.interactive.neutral.on-inverse.text.hover",
+        "color.interactive.neutral.on-inverse.text.pressed",
+        "color.interactive.neutral.on-inverse.text.rest",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
+        "color.interactive.primary.on-inverse.on-fill",
         "color.text.on-brand",
         "color.text.on-danger",
         "color.text.on-info",
@@ -3562,9 +4116,16 @@
         "color.background.inverse.primary",
         "color.icon.on-inverse",
         "color.icon.primary",
+        "color.interactive.destructive.on-inverse.on-fill",
         "color.interactive.neutral.on-fill",
-        "color.interactive.neutral.on-inverse",
-        "color.interactive.neutral.text",
+        "color.interactive.neutral.on-inverse.on-fill",
+        "color.interactive.neutral.on-inverse.text.hover",
+        "color.interactive.neutral.on-inverse.text.pressed",
+        "color.interactive.neutral.on-inverse.text.rest",
+        "color.interactive.neutral.text.hover",
+        "color.interactive.neutral.text.pressed",
+        "color.interactive.neutral.text.rest",
+        "color.interactive.primary.on-inverse.on-fill",
         "color.text.on-inverse",
         "color.text.primary"
       ]
@@ -3578,7 +4139,8 @@
       "aliased_by": [
         "color.background.inverse.secondary",
         "color.background.primary",
-        "color.foreground.inverse.primary"
+        "color.foreground.inverse.primary",
+        "color.interactive.neutral.on-inverse.fill.rest"
       ]
     },
     "palette.accent.100": {
@@ -3586,7 +4148,10 @@
       "meaning": "accent ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.interactive.primary.on-inverse.fill.rest"
+      ]
     },
     "palette.accent.150": {
       "$description": "Brand accent 150 — Quarter-Tone band",
@@ -3605,6 +4170,7 @@
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-inverse.fill.pressed",
         "color.text.link.visited"
       ]
     },
@@ -3618,6 +4184,8 @@
         "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.on-inverse.text.pressed",
+        "color.interactive.primary.text.pressed",
         "color.text.link.hover"
       ]
     },
@@ -3635,6 +4203,8 @@
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-inverse.text.hover",
+        "color.interactive.primary.text.hover",
         "color.text.link.default",
         "color.text.link.focused",
         "color.text.link.visited"
@@ -3650,8 +4220,10 @@
         "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
-        "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text",
+        "color.interactive.primary.on-inverse.text.pressed",
+        "color.interactive.primary.on-inverse.text.rest",
+        "color.interactive.primary.text.pressed",
+        "color.interactive.primary.text.rest",
         "color.text.link.hover"
       ]
     },
@@ -3666,6 +4238,8 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.on-inverse.text.hover",
+        "color.interactive.primary.text.hover",
         "color.text.link.default",
         "color.text.link.focused",
         "gradient.glow"
@@ -3678,8 +4252,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text"
+        "color.interactive.primary.on-inverse.text.rest",
+        "color.interactive.primary.text.rest"
       ]
     },
     "palette.accent.500": {
@@ -3700,8 +4274,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text"
+        "color.interactive.primary.on-inverse.text.rest",
+        "color.interactive.primary.text.rest"
       ]
     },
     "palette.accent.600": {
@@ -3715,6 +4289,8 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.on-inverse.text.hover",
+        "color.interactive.primary.text.hover",
         "color.text.link.default",
         "color.text.link.focused"
       ]
@@ -3729,8 +4305,10 @@
         "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
-        "color.interactive.primary.on-inverse",
-        "color.interactive.primary.text",
+        "color.interactive.primary.on-inverse.text.pressed",
+        "color.interactive.primary.on-inverse.text.rest",
+        "color.interactive.primary.text.pressed",
+        "color.interactive.primary.text.rest",
         "color.text.link.hover"
       ]
     },
@@ -3748,6 +4326,8 @@
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-inverse.text.hover",
+        "color.interactive.primary.text.hover",
         "color.text.link.default",
         "color.text.link.focused",
         "color.text.link.visited",
@@ -3764,6 +4344,8 @@
         "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.on-inverse.text.pressed",
+        "color.interactive.primary.text.pressed",
         "color.text.link.hover"
       ]
     },
@@ -3777,6 +4359,7 @@
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-inverse.fill.pressed",
         "color.text.link.visited"
       ]
     },
@@ -3792,14 +4375,20 @@
       "meaning": "accent ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.interactive.primary.on-inverse.fill.rest"
+      ]
     },
     "palette.accent.950": {
       "$description": "Brand accent 950 — Shadow band",
       "meaning": "accent ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.interactive.primary.on-inverse.fill.hover"
+      ]
     },
     "palette.accent.025": {
       "$description": "Brand accent 025 — Highlight band",
@@ -3813,7 +4402,10 @@
       "meaning": "accent ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.interactive.primary.on-inverse.fill.hover"
+      ]
     },
     "palette.success.100": {
       "$description": "success status 100 — Quarter-Tone band",
@@ -4344,7 +4936,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.danger-subtle"
+        "color.foreground.danger-subtle",
+        "color.interactive.destructive.on-inverse.fill.rest"
       ]
     },
     "palette.danger.150": {
@@ -4362,7 +4955,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected"
+        "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.on-inverse.fill.pressed"
       ]
     },
     "palette.danger.250": {
@@ -4373,7 +4967,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover"
+        "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.on-inverse.text.pressed",
+        "color.interactive.destructive.text.pressed"
       ]
     },
     "palette.danger.300": {
@@ -4385,6 +4981,8 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.on-inverse.text.hover",
+        "color.interactive.destructive.text.hover",
         "color.text.danger"
       ]
     },
@@ -4398,8 +4996,10 @@
         "color.icon.danger-subtle",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
-        "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text",
+        "color.interactive.destructive.on-inverse.text.pressed",
+        "color.interactive.destructive.on-inverse.text.rest",
+        "color.interactive.destructive.text.pressed",
+        "color.interactive.destructive.text.rest",
         "color.text.danger-subtle"
       ]
     },
@@ -4411,7 +5011,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover"
+        "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.on-inverse.text.hover",
+        "color.interactive.destructive.text.hover"
       ]
     },
     "palette.danger.450": {
@@ -4425,8 +5027,8 @@
         "color.icon.danger",
         "color.icon.danger-subtle",
         "color.interactive.destructive.fill.rest",
-        "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text",
+        "color.interactive.destructive.on-inverse.text.rest",
+        "color.interactive.destructive.text.rest",
         "color.text.danger",
         "color.text.danger-subtle"
       ]
@@ -4450,8 +5052,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text"
+        "color.interactive.destructive.on-inverse.text.rest",
+        "color.interactive.destructive.text.rest"
       ]
     },
     "palette.danger.600": {
@@ -4464,6 +5066,8 @@
         "color.foreground.danger",
         "color.icon.danger",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.on-inverse.text.hover",
+        "color.interactive.destructive.text.hover",
         "color.text.danger"
       ]
     },
@@ -4476,8 +5080,10 @@
       "aliased_by": [
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
-        "color.interactive.destructive.on-inverse",
-        "color.interactive.destructive.text"
+        "color.interactive.destructive.on-inverse.text.pressed",
+        "color.interactive.destructive.on-inverse.text.rest",
+        "color.interactive.destructive.text.pressed",
+        "color.interactive.destructive.text.rest"
       ]
     },
     "palette.danger.700": {
@@ -4491,6 +5097,8 @@
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.on-inverse.text.hover",
+        "color.interactive.destructive.text.hover",
         "color.text.danger"
       ]
     },
@@ -4502,7 +5110,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover"
+        "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.on-inverse.text.pressed",
+        "color.interactive.destructive.text.pressed"
       ]
     },
     "palette.danger.800": {
@@ -4513,7 +5123,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected"
+        "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.on-inverse.fill.pressed"
       ]
     },
     "palette.danger.850": {
@@ -4530,7 +5141,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.danger-subtle"
+        "color.foreground.danger-subtle",
+        "color.interactive.destructive.on-inverse.fill.rest"
       ]
     },
     "palette.danger.950": {
@@ -4538,7 +5150,10 @@
       "meaning": "danger ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.interactive.destructive.on-inverse.fill.hover"
+      ]
     },
     "palette.danger.025": {
       "$description": "danger status (engine-carved red — primary is not red) 025 — Highlight band",
@@ -4552,7 +5167,10 @@
       "meaning": "danger ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.interactive.destructive.on-inverse.fill.hover"
+      ]
     },
     "palette.black-alpha.5": {
       "$description": "Black alpha 5% — alpha, composites over any surface",

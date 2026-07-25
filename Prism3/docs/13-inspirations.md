@@ -160,17 +160,161 @@ tokens per component"** (vs ~25k for agentic extraction).
 authoring surface; ours makes Figma an *output* — the deterministic
 data→plugin materialization (`14` §3) is the direction it doesn't have.
 
+## 4. Southleft — "the site is the pitch" theme console (essay + live site, reviewed 2026-07-25)
+
+**What it is.** A design-systems-and-AI agency (`southleft.com`) whose rebuilt site *is*
+the argument: a header console where you type a vibe ("cathedral at dawn") and the whole
+site re-skins in ~1s. The essay's load-bearing claim — *"AI is only as good as the
+structured context it can reach… the design system is your AI strategy's substrate"* —
+and the mechanism behind the demo:
+
+- **AI returns decisions, not CSS.** A Cloudflare Pages Function calls Claude with a
+  strict JSON schema; the model proposes ~44 parameters (personality, accent hue,
+  canvas chroma, texture, motion feel, light/dark lead, a typeface from a curated
+  catalog or any Google font). *"The JSON schema is the contract. Anything that can
+  emit that shape can be the art director."*
+- **The design system disposes.** A browser OKLCH engine takes the proposed hue/chroma
+  and derives the full palette, **binary-searching lightness until each fg/bg pair
+  clears WCAG AA** — then writes into a 3-tier semantic token layer (primitives →
+  semantic aliases → component) and the alias re-point re-skins everything. *"The model
+  proposes, the solver disposes… it cannot ship an inaccessible theme, by construction."*
+- **A deterministic seed engine underneath** (keyword→hue / mood→chroma) renders an
+  instant theme with zero network, so the AI only *refines* and is never a single point
+  of failure.
+- **No hand-maintained snapshots.** `/tokens.json` (DTCG) is **generated at build by
+  parsing the actual CSS**, with assertions that fail the build if the parse breaks —
+  after the hand-kept version had silently drifted ~40 tokens. *"Make the correct state
+  the only possible state."* Plus `/llms.txt`, shareable `#theme=` URLs, and a typed
+  `@property <color>` layer so themes **crossfade** (~600ms) instead of snapping.
+
+**What we take:**
+
+1. **The prompt → re-theme console (new task).** A natural-language front door to a
+   partial `BrandInput`: type a phrase → map to primary hue + personality levers
+   (density, motion tempo, radius, chroma) → `apply()` live. We already have every
+   piece — `brandState → apply()/renderWorkspace()`, the `standard-design-md` prose→
+   `BrandInput` path, and `theme-schema.json` *as* the JSON contract their schema plays.
+   A local keyword→hue seed map (their fallback) is the graceful-degradation + "small
+   model can drive it" story. This is the console version of the same argument the
+   manual dashboard already makes.
+2. **Kill the last hand-maintained snapshot (new task).** Their drifted-`tokens.json`
+   story maps *directly* onto our one remaining hand-sync: the legacy dual-format
+   `Tokens/` layer (raw-figma + DTCG, *"the same logical tokens twice… edit both,"*
+   CLAUDE.md). The engine already embodies generate-don't-duplicate; decide whether
+   `Tokens/` stays an authored source or becomes a pure engine artifact with a parity
+   assertion (the lever-manifest drift-gate pattern).
+3. **Live crossfade via typed `@property <color>` (cheap delight).** Registering the
+   preview's colour vars as typed custom properties lets the browser interpolate them —
+   the dashboard's `apply()` snap becomes a morph, making "change one input, the system
+   agrees" visceral. The light/dark toggle inherits it for free.
+4. **Shareable theme URL** — encode the `BrandInput` in the hash (we already persist to
+   localStorage; a URL makes a generated theme a sendable artifact, same spirit as the
+   DTCG export).
+
+**Where we're ahead — and the one place they're a genuine peer:**
+
+- **First reviewed system with a real contrast solver.** Every prior entry hand-authored
+  theming; Southleft actually solves fg/bg to WCAG AA. But it solves for the *lead*
+  pairs of a *single* accent, light/dark-lead, ~44 tokens, one brand, client-side around
+  a live model call. Prism3 verifies **248/248 contrast contracts across four modes**,
+  multi-brand, with status/interactive/gradient families, gamut-aware ramps, per-mode
+  overrides, and a byte-regression target — and a **fully deterministic** engine (the AI
+  is entirely upstream producing the `BrandInput`; a *cleaner* proposes/disposes split
+  than their in-browser-around-Claude design). Ours is the enterprise generation system;
+  theirs is the re-theming toy that proves the thesis at marketing-site scale.
+- **The essay is a quotable external anchor** for the KB / `brand-skills` commercial
+  argument: *"the design system is your AI strategy's substrate"* and *"start with the
+  documentation package; everything else is plumbing"* restate the KB POV verbatim, from
+  an agency selling it. Cite it there.
+- **Watch the gravity of the demo.** The delight is the re-skin-from-a-sentence trick;
+  the *value* is that the re-skin stays accessible by construction. Build the prompt
+  console because it makes our per-mode-contract rigor legible — not because it's fun.
+
+## 5. Zinnia — Zapier's "AI-first design system" (practitioner essay, reviewed 2026-07-25)
+
+**What it is.** A DS lead's year-one retrospective on making Zapier's system (Zinnia)
+"AI-first." Same thesis as Southleft but from the **consumption / org** side, not the
+generation side: *"Design systems do not just ship components anymore. They ship
+context… a design system is one of the richest, most structured sources of context an
+organization has."* The concrete moves:
+
+- **Docs authored machine-first.** Markdown + front matter, structured for agent
+  consumption, in a git repo (Zinnia Docs); they *dropped* their docs-portal tool when
+  they caught themselves round-tripping human-docs ↔ markdown, then **AI-generated the
+  human website *from* the repo** — author for agents, export for humans.
+- **A Zinnia MCP over those docs won a stack argument.** Leadership asked "switch to
+  Tailwind/ShadCN since that's what agents default to?" — answer: *"not a stack problem,
+  a context problem."* They built the MCP, showed agent output measurably improved with
+  real context, and kept their stack.
+- **Context needs layers:** universal (Gestalt) → org/platform → surface/product. A good
+  designer holds all at once, so bending a rule is intentional. Layers extend past the
+  company wall (vet outside sources into the KB — this review is that habit).
+- **Principles carried the most weight** — in their "Polish" skill, principles ("one
+  platform, one language") explained *why* a fix mattered, more than components/patterns,
+  especially to non-designers.
+- **"Polish" skill** = a pre-verification step that checks a proposed change against DS
+  context + principles + patterns *before* acting, and dedups against existing Jira/MR.
+- **Greenhouse**, a code-based prototyping sandbox that leans on the DS ("how do I make
+  it look like Zapier?" is always the second prompt); designers now start in *interaction*
+  design (a prompt to a coding agent), not Figma/visual.
+- **Shipped a breaking major package *with* a migration skill** → 66% of critical surfaces
+  migrated in 4 weeks (vs. months).
+- **"Three audiences": human / agent / mix** — ask who consumes each artifact.
+- Closing frame: *"design systems are becoming the laws of physics of your world"* — define
+  the rules, humans and agents build inside them (programmatic design).
+
+**What we take (mostly validation + framings — the concrete steals are already in flight):**
+
+1. **"Context needs layers" is a clean vocabulary to adopt** for our agent context —
+   universal / org / surface maps onto `brand-skills`' `.brand/` tiers and `ai-metadata`'s
+   per-role intent, and it explains *why* intent-rich metadata (`avoid_when`/`when_to_use`)
+   beats a props table. Third witness (after KB 29/30 and Astryx) that the **principle/
+   intent layer is the highest-value authored one** — Zinnia's "principles weigh most" is
+   the sharpest statement of it.
+2. **Author-machine-first, export-human-second.** This is already our output posture
+   (`25` / `style-guide-generator` generate the human artifact from the single source).
+   The sharper move Zinnia adds: apply it to the *docs* too — worth an audit of whether
+   `Prism3/docs` + the KB are authored agents-first or humans-first.
+3. **The MCP-proves-the-stack demo is ROI evidence.** Second witness (after ds-brain)
+   that a docs/context MCP measurably lifts agent output *and that you should measure it*.
+   Our `prism3-consume` skill + cold-agent differential (`#1–#6`, **done**) already run
+   that eval; the MCP adapter is planned (`07`/`09`). Zinnia strengthens the case to
+   prioritize it.
+4. **"Three audiences" (human / agent / mix)** as a standing design-target question for
+   every Prism3 surface — dashboard = human, `.ai.json`/DTCG/MCP = agent, docs = mix.
+5. *(Candidate, not yet actionable)* **Ship a migration/adoption skill alongside breaking
+   token changes** (their 66%-in-4-weeks). Folds into the `prism3-consume` skill family;
+   promote when `prism3-tokens` has real external consumers.
+
+**Where we already are / ahead:**
+
+- Like ds-brain, Zinnia **documents an existing DS — no generation engine.** Prism3 sits
+  upstream: we generate the system Zinnia's docs would describe. Their "laws of physics /
+  define the rules, agents build inside them" *is* the `BrandInput`→engine thesis, reached
+  from the consumption side. Convergent, not competitive.
+- **Second docs-first source-of-truth witness** (after ds-brain), with the same unanswered
+  drift question — what keeps the docs true to the shipped system? Zinnia's answer is
+  proximity ("author in the repo agents read"), not verification; ours stays generation +
+  gates. Our data/generation-first position holds.
+- **Net for us:** high validation, few *new* tasks — most of what Zinnia recommends
+  (consume skill + eval, intent-rich metadata, machine-first output, MCP) we've built or
+  planned. Its gift is framings (context-layers, three-audiences, principles-weigh-most)
+  and evidence the direction pays off, not a new feature.
+
 ---
 
-## 4. Convergences so far (updated as entries land)
+## 6. Convergences so far (updated as entries land)
 
 | Pattern | Witnesses | Status in Prism3 |
 |---|---|---|
-| Component metadata as structured data, one source → many projections | Astryx (`.doc.mjs` → registry/CLI/docsite), ds-brain (brain → skills/rules/fragments), KB 30 | Planned — component layer (`07` §7); engine already does this at the token tier |
-| Generated per-harness discovery artifacts (agent-file index, Cursor rules, skills) | Astryx `agent-docs`, ds-brain generated outputs | **Gap** — `.ai.json` has no discovery layer; steal when agent surfaces land |
+| Component metadata as structured data, one source → many projections | Astryx (`.doc.mjs` → registry/CLI/docsite), ds-brain (brain → skills/rules/fragments), Zinnia (Zinnia Docs repo → MCP + generated human site), KB 30 | Planned — component layer (`07` §7); engine already does this at the token tier |
+| Generated per-harness discovery artifacts (agent-file index, Cursor rules, skills) | Astryx `agent-docs`, ds-brain generated outputs, Zinnia (Polish + migration skills) | **Gap** — `.ai.json` has no discovery layer; steal when agent surfaces land |
+| Context authored machine-first, human artifact generated from it | Zinnia (docs repo → AI-exported website), our `25` / style-guide-generator | Output side done; **open audit** — are `Prism3/docs` + KB agents-first? |
+| Context has explicit tiers (universal / org / surface); intent/principles weigh most | Zinnia ("context needs layers", "principles carried the most weight"), KB 29/30, Astryx (intent-poor, a gap) | Adopt the vocabulary for `ai-metadata` + `brand-skills` tiers |
 | Retrieval-first agent access (search → fetch-on-demand, compact tiers) | Astryx CLI; ds-brain "AI index" | **Gap** — candidate `cli.ts query` subcommand; MCP adapter tool schema later |
-| Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash | Engine gates prove the philosophy at the token tier; carry into the component layer |
-| Consumption-side evals (rubric, invented-name rate, isolated trials) | ds-brain | **Gap** — nothing measures agent consumption; build alongside the MCP adapter |
-| Deterministic zero-LLM tooling as the differentiator over agentic equivalents | Specs CLI ("0 AI tokens" extraction), our engine + planned plugin write leg | Core posture — `14` extends it to the component tier (write leg ours, verify leg Specs-CLI-shaped) |
-| Verified *generation* (contrast contracts, regression, modes) | — none reviewed has it | **Prism3's differentiator holds** |
+| Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash; Southleft (`tokens.json` generated from CSS at build, drift-asserted) | Engine gates prove the philosophy at the token tier; carry into the component layer. **Open task:** the legacy dual-format `Tokens/` layer is the one hand-synced snapshot left |
+| Consumption-side evals (rubric, invented-name rate, isolated trials) | ds-brain, Zinnia (MCP-lifts-output demo + package-adoption dashboard) | **Partially closed** — `prism3-consume` cold-agent differential (`#1–#6`) runs it; extend when the MCP adapter lands |
+| Deterministic zero-LLM tooling as the differentiator over agentic equivalents | Specs CLI ("0 AI tokens" extraction), Southleft (local seed engine under the AI), our engine + planned plugin write leg | Core posture — `14` extends it to the component tier (write leg ours, verify leg Specs-CLI-shaped) |
+| AI proposes params → system derives (NL vibe → schema → live re-theme) | Southleft (prompt console; JSON schema = the contract) | **Gap / candidate task** — we have the plumbing (`brandState`→`apply`, `standard-design-md`, `theme-schema.json`); missing the NL front door |
+| Verified *generation* (contrast contracts, regression, modes) | Southleft (WCAG-AA solver — but single accent / lead pairs / one mode-lead); the rest none | **Prism3's differentiator holds** — ours verifies 248/248 contracts across four modes, not one lead pair |
 | Figma as the underserved agent surface | ds-brain (open question), Astryx (absent) | Actively building — `emit-figma` (`10`), MCP materialization route |

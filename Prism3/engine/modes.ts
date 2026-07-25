@@ -254,7 +254,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // would overshoot and collapse the states onto one step — `walk` reflects inward there (L-01),
   // i.e. an action colour pinned at the far end steps the OTHER way rather than saturating.
   const dir = cfg.family === 'light' ? +1 : -1;
-  const walk = (palette: string, fromNum: number, steps: number): Cand => {
+  // `d` overrides the walk direction — the page dir by default; the inverse-context text walks the OTHER
+  // way (toward MORE contrast with the dark band, i.e. lighter in a light mode) so its ink comes forward.
+  const walk = (palette: string, fromNum: number, steps: number, d: number = dir): Cand => {
     const pal = palOf(palette);
     const ramp = ramps.get(pal)!;
     const near = (n: number) => ramp.reduce((a, b) => (Math.abs(b.num - n) < Math.abs(a.num - n) ? b : a));
@@ -268,8 +270,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // overshoot, reflect and walk inward the other way, preserving the step-count
     // separation. Inward is toward mid-ramp, so it stays within the gamut the
     // ramp already vetted; the contract gate still guards each state's contrast.
-    const fwd = fromNum + dir * 50 * steps;
-    const target = fwd < lo || fwd > hi ? fromNum - dir * 50 * steps : fwd;
+    const fwd = fromNum + d * 50 * steps;
+    const target = fwd < lo || fwd > hi ? fromNum - d * 50 * steps : fwd;
     const s = near(target);
     return cand(`${ns}.${pal}.${s.key}`, s.rgb);
   };
@@ -381,10 +383,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const s = steps.reduce((a, b) => (Math.abs(b.num - num) < Math.abs(a.num - num) ? b : a));
     return { path: `${ns}.${r2p.neutral}.${s.key}`, rgb: s.rgb, num: s.num, ratio: contrast(s.rgb, floorRgb) };
   };
+  // The outline / text ink, per interactive state (docs/20 §2) — `text.{rest,hover,pressed}`. rest is
+  // the gated pick; hover/pressed walk the palette toward MORE contrast (like the fill states), so an
+  // outline/text control "comes forward" as the user engages. `walkable` is false for neutral, whose ink
+  // is already the strongest neutral (no palette position to step) — its states collapse onto rest.
+  const iText = (name: string, restCand: Cand, palette: string, walkable: boolean): void => {
+    const restNum = (restCand as RatedNum).num;
+    for (const st of ['default', 'hover', 'pressed'] as const) {
+      const stKey = st === 'default' ? 'rest' : st;
+      const c: Cand = (st === 'default' || !walkable) ? restCand : walk(palette, restNum, st === 'hover' ? 1 : 2);
+      put(`interactive.${name}.text.${stKey}`, rated(c, baseRgb),
+        `${name} interactive ink — ${stKey} (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
+    }
+  };
 
   // primary — the action palette, contrast-verified.
   iFill('primary', actionRest, r2p.action, cfg.actionMin);
-  put('interactive.primary.text', paletteRole('action', baseRgb, cfg.secondaryMin), 'Primary interactive ink (outline / text appearance)', 'background.primary', cfg.secondaryMin);
+  iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true);
   put('interactive.primary.border', rated(chromatic(r2p.action, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Primary interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
   // destructive — the danger palette (its own interactive column, no scavenging).
@@ -394,7 +409,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     ? chromatic(r2p.danger, daAnchor, floorRgb, cfg.actionMin)
     : paletteRole('danger', floorRgb, cfg.actionMin);
   iFill('destructive', iDestructiveRest, r2p.danger, cfg.actionMin);
-  put('interactive.destructive.text', paletteRole('danger', baseRgb, cfg.secondaryMin), 'Destructive interactive ink (outline / text appearance)', 'background.primary', cfg.secondaryMin);
+  iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true);
   put('interactive.destructive.border', rated(chromatic(r2p.danger, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Destructive interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
   // neutral — the achromatic column that was the historical miss (docs/20 §12). The
@@ -405,7 +420,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const neutralStrong = theme.neutralEmphasis === 'strong';
   const neutralAnchor = neutralStrong ? (cfg.family === 'light' ? 800 : 150) : (cfg.family === 'light' ? 150 : 850);
   iFill('neutral', neutralStepR(neutralAnchor), r2p.neutral, neutralStrong ? cfg.nonTextMin : 0);
-  put('interactive.neutral.text', pickMostExtreme(textCands, baseRgb), 'Neutral interactive ink (outline / text appearance) — strongest neutral', 'background.primary', cfg.secondaryMin);
+  iText('neutral', pickMostExtreme(textCands, baseRgb), r2p.neutral, false);   // strongest neutral — states collapse onto rest
   put('interactive.neutral.border', pickMinPass(ramp, baseRgb, cfg.nonTextMin), 'Neutral interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
   // extensible interactive columns (docs/20 §3) — N opt-in `interactive.<name>.*` families, each
@@ -417,7 +432,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
     const rest = chromatic(entry.palette, anchor, floorRgb, cfg.actionMin);
     iFill(entry.name, rest, entry.palette, cfg.actionMin);
-    put(`interactive.${entry.name}.text`, rated(chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), baseRgb), `${entry.name} interactive ink (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
+    iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true);
     put(`interactive.${entry.name}.border`, rated(chromatic(entry.palette, 500, baseRgb, cfg.nonTextMin), baseRgb), `${entry.name} interactive border (outline)`, 'background.primary', cfg.nonTextMin);
   }
 
@@ -426,15 +441,37 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // against the inverse surface (not a hand-mirrored -inverse twin). Independent of light/dark
   // theme; a light-only brand still needs it. The `inverse` lever gates it.
   if (theme.inverseContext) {
-    const invInk = (name: string, palette: string | null, anchor: number) =>
-      put(`interactive.${name}.on-inverse`,
-        palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb),
-        `${name} interactive ink on an inverse / dark surface (outline / text on a dark hero)`,
-        'background.inverse.primary', cfg.secondaryMin);
-    invInk('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
-    invInk('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);
-    invInk('neutral', null, 0);
-    for (const entry of theme.interactivePalettes) invInk(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
+    // The full inverse column (docs/20 §9) — a filled CTA + outline/text control placed on a dark hero /
+    // inverse band, generated + contrast-verified against `background.inverse.primary` (not a hand-mirrored
+    // twin). `on-inverse.text.{rest,hover,pressed}` = the light outline/text ink (states walk toward MORE
+    // contrast on the dark band); `on-inverse.fill.{rest,hover,pressed}` = a light filled CTA on the dark
+    // band (states walk toward the palette like the page fill); `on-inverse.on-fill` = the dark ink on it.
+    const invColumn = (name: string, palette: string | null, anchor: number): void => {
+      const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
+      const textNum = (textRest as RatedNum).num;
+      for (const st of ['default', 'hover', 'pressed'] as const) {
+        const stKey = st === 'default' ? 'rest' : st;
+        const c: Cand = (st === 'default' || !palette) ? textRest : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir);
+        put(`interactive.${name}.on-inverse.text.${stKey}`, rated(c, invRgb),
+          `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
+      }
+      // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
+      // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
+      // fill makes onColor fall back to pure black). States walk toward MORE contrast on the inverse band.
+      const fillRest: RatedNum = palette ? chromatic(palette, cfg.family === 'light' ? 100 : 900, invRgb, cfg.nonTextMin) : neutralStepR(cfg.family === 'light' ? 50 : 850);
+      for (const st of ['default', 'hover', 'pressed'] as const) {
+        const stKey = st === 'default' ? 'rest' : st;
+        const c: Cand = st === 'default' ? fillRest : walk(palette ?? r2p.neutral, fillRest.num, st === 'hover' ? 1 : 2, -dir);
+        put(`interactive.${name}.on-inverse.fill.${stKey}`, rated(c, invRgb),
+          `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
+      }
+      put(`interactive.${name}.on-inverse.on-fill`, onColor(fillRest.rgb),
+        `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.on-inverse.fill.rest`, onMin);
+    };
+    invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
+    invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);
+    invColumn('neutral', null, 0);
+    for (const entry of theme.interactivePalettes) invColumn(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
   }
 
   // interactive overlays (docs/20 §6) — translucent hover/pressed/selected washes that

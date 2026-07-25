@@ -7,6 +7,69 @@
 
 ---
 
+## (2026-07-25) — Interactive page rebuilt as a per-palette matrix (#69, web-only)
+
+**STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`). Consumes the ENG-1/ENG-2
+roles landed in #240 to rebuild the Interactive page to the owner-approved Prism2-model layout.
+
+- **Structure.** Cross-cutting behaviours grouped at the top — **Outline button hover** (`outlineInteraction`),
+  **Disabled** (`disabledStrategy` + nested `disabledMin`), **Icon colors** (`iconContrast`) — each a `.psec`
+  with a lead select + a hand-built rest→hover / enabled→disabled / match→distinct example. Then **one section
+  per action palette** (Primary / Neutral / Destructive / promoted accents + an add row), each a stack of
+  full-width **slot rows**: Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill,
+  On-fill · inverse.
+- **Row anatomy (reuses the Surfaces atoms).** 56×56 swatch · mid (label + Source select + `color.interactive.*`
+  token pill + description) · a 300px example locked right with its contrast receipt · (fill/text/overlay) a
+  two-up Hover/Pressed states strip, indented to align with the title column, stretched to the right edge.
+  Buttons carry a trailing arrow; the overlay wash paints honestly via rgba.
+- **Binding (every control is real).** `fill.rest`'s Source is the column **fill anchor** (re-derives the
+  family; per-mode via `modeAnchors` outside Light); **every other slot + every state** is a surgical **A1
+  per-mode override** (`overrides[mode][role] = {palette, step}`, reusing `setFillOverride`) — "Auto" clears
+  it back to the derived value. Primary leads with the **Action palette** choice; Neutral leads with the
+  **Button emphasis** (subtle/strong `neutralEmphasis`).
+- **Retired.** The standalone `renderInverseSpecimen` + `renderIconSpecimen` (and the old `renderCard` shell /
+  `renderInteractiveCard` / `renderGroupedPanels` path) — the on-inverse family is now first-class rows and
+  the icon payoff is the Icon-colors example; dead CSS removed with them.
+- **Verified:** `tsc --noEmit` clean; esbuild bundle OK; Playwright screenshot (light) shows every slot
+  resolving with live contrast receipts (fill 6.42:1, inverse 14.09:1, …); engine tests 925/925 (unchanged).
+
+---
+
+## (2026-07-25) — Interactive token family expanded: per-state text + full inverse column (PR #240, ENG-1/ENG-2)
+
+**STATUS: engine change** (behavioral generation change to the `interactive.*` family), backing the
+Interactive-page dashboard rebuild (#69, follow-up). Two gated increments:
+
+- **ENG-1 — per-state text.** `interactive.<color>.text` (single ink) → `interactive.<color>.text.{rest,hover,pressed}`.
+  rest is the gated pick; hover/pressed **walk the palette toward more contrast** (mirroring the fill states,
+  so an outline/text control "comes forward" on engage). Neutral has no palette position to step, so its
+  states collapse onto rest. Downstream rebindings: `button.ts`/`icon-button.ts` maps, `preview.ts` spec,
+  `read-back.ts` slot-scope contract. The emit-figma scope map already keys on the slot segment, so
+  `text.{state}` inherits `TEXT_FILL` unchanged.
+- **ENG-2 — full inverse column.** `interactive.<color>.on-inverse` (single ink) →
+  `on-inverse.{fill.{rest,hover,pressed}, text.{rest,hover,pressed}, on-fill}`, each generated + contrast-
+  verified against `background.inverse.primary`. The inverse **fill** is anchored at the light/dark extreme
+  (reads as an inverted CTA; keeps its `on-fill` ink clean, not a pure-black fallback); inverse states walk
+  toward **more** contrast on the dark band — `walk` gained an optional direction override (`-dir`) for this.
+  `emit-figma-color.ts` `colorScopes` reads `seg[4]` when `seg[3]` is `on-inverse` (text→`TEXT_FILL`,
+  fill/on-fill→paint). `button.ts` on-inverse label → `on-inverse.text.rest`; `main.ts renderInverseSpecimen`
+  re-pointed to the new ink leaf (PR-review catch — the old single leaf is gone).
+
+- **Decisions of record:** (1) the inverse column is *generated + gated*, not a hand-mirrored twin
+  (consistent with the existing on-inverse stance); (2) the *derived* inverse fill is a gated light/dark
+  palette step (not forced white) — the dashboard's per-slot source select lets a practitioner override to
+  white/any step; (3) `border` was **not** expanded to per-state (the approved layout has no border row).
+- **Blast radius:** additive under `interactive.*` only — palette/background/foreground/text/gradient leaves
+  are byte-unchanged; per brand +30/−6 leaves (3 colours × [3 text states + 7 inverse-column slots]); the
+  336→432 contract bump is all-passing. NB regression unaffected.
+- **Verified:** engine tests 925/925; nb-regression exit 0; emit-dtcg 432/432 mode contracts pass, aliases
+  resolve per brand; regenerated `out/*.tokens.json`, `out/*.ai.json`, `out/figma/*`, `modes-report.md`,
+  `schema/preview-spec.json`. (PR #240 also bundles the Surfaces & fills row-layout overhaul (#68), the
+  neutral palette-row alignment fix (#67), and the doc-13 Southleft/Zinnia inspiration reviews — web/docs
+  only, no `out/*` impact.)
+
+---
+
 ## (2026-07-23) — Status snapshot: plugin write scope + typography now unblocked
 
 **STATUS: orientation note (no code change).** Consolidating where the Figma-plugin write scope stands
