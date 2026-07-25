@@ -208,10 +208,10 @@ for (const b of brands) {
   for (const c of ['primary', 'neutral', 'destructive']) {
     for (const st of ['rest', 'hover', 'pressed', 'focused', 'selected'])
       if (!(`interactive.${c}.fill.${st}` in light)) shapeMissing.push(`interactive.${c}.fill.${st}`);
-    for (const slot of ['on-fill', 'text', 'border'])
+    for (const slot of ['on-fill', 'text.rest', 'text.hover', 'text.pressed', 'border'])
       if (!(`interactive.${c}.${slot}` in light)) shapeMissing.push(`interactive.${c}.${slot}`);
   }
-  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text/border' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
+  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text.{rest,hover,pressed}/border' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
   // (b2) per-colour disabled fill is retired — no interactive.<color>.fill.disabled.
   const perColourDisabled = ['primary', 'neutral', 'destructive'].map((c) => `interactive.${c}.fill.disabled`).filter((k) => k in light);
   ok(perColourDisabled.length === 0, 'interactive: per-colour fill.disabled retired (cross-cutting disabled.* instead)' + (perColourDisabled.length ? ` — STILL PRESENT ${perColourDisabled.join(',')}` : ''));
@@ -236,7 +236,7 @@ for (const b of brands) {
   const byName = new Map<string, any>(color.find((c) => c.$mode === 'light')!.variables.map((v: any) => [v.name, v]));
   const scopeOf = (n: string) => JSON.stringify(byName.get(n)?.scopes ?? null);
   const scopeBad: string[] = [];
-  if (scopeOf('color/interactive/primary/text') !== JSON.stringify(['TEXT_FILL'])) scopeBad.push('primary/text');
+  if (scopeOf('color/interactive/primary/text/rest') !== JSON.stringify(['TEXT_FILL'])) scopeBad.push('primary/text/rest');
   if (scopeOf('color/interactive/primary/border') !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push('primary/border');
   if (scopeOf('color/interactive/primary/fill/rest') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push('primary/fill/rest');
   ok(scopeBad.length === 0, 'interactive: Figma slots carry slot-aware scopes' + (scopeBad.length ? ` — ${scopeBad.join(',')}` : ''));
@@ -542,14 +542,14 @@ for (const b of brands) {
   const invFails: string[] = [];
   for (const m of modes)
     for (const c of ['primary', 'neutral', 'destructive']) {
-      const r = m.roles[`interactive.${c}.on-inverse`];
+      const r = m.roles[`interactive.${c}.on-inverse.text.rest`];
       if (!r) { invFails.push(`${m.mode}:${c}:absent`); continue; }
       if (r.against !== 'background.inverse.primary') invFails.push(`${m.mode}:${c}:against=${r.against}`);
       if (r.min > 0 && r.ratio < r.min) invFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
     }
-  ok(invFails.length === 0, 'inverse: interactive.<color>.on-inverse gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
+  ok(invFails.length === 0, 'inverse: interactive.<color>.on-inverse.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
   const noInv = resolveAllModes({ ...nbTheme(), inverseContext: false })
-    .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.endsWith('.on-inverse'));
+    .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.on-inverse'));
   ok(noInv.length === 0, 'inverse: inverse=false emits no on-inverse inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
 
   // (b) neutralEmphasis 'strong' → a bold neutral fill that clears the non-text floor, on-fill still gated.
@@ -568,7 +568,7 @@ for (const b of brands) {
   ok(noAccent.length === 0, 'accent: no extra column with an empty interactivePalettes (never falls back to primary)' + (noAccent.length ? ` — ${noAccent.slice(0, 2).join(',')}` : ''));
   const acc = resolveAllModes({ ...nbTheme(), interactivePalettes: [{ name: 'accent', palette: 'green', anchorStep: 500 }] });
   const accLight = acc.find((m) => m.mode === 'light')!.roles;
-  const accMissing = ['fill.rest', 'on-fill', 'text', 'border', 'on-inverse', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
+  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border', 'on-inverse.text.rest', 'on-inverse.fill.rest', 'on-inverse.on-fill', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
   const accFails = acc.flatMap((m) => Object.entries(m.roles).filter(([k, r]) => k.startsWith('interactive.accent') && r.min > 0 && r.ratio < r.min).map(([k]) => `${m.mode}.${k}`));
   ok(accMissing.length === 0 && accFails.length === 0, 'accent: opt-in emits a full gated interactive.accent.* column' + (accMissing.length ? ` — MISSING ${accMissing.join(',')}` : '') + (accFails.length ? ` — FAILS ${accFails.slice(0, 2).join(',')}` : ''));
 
@@ -589,7 +589,7 @@ for (const b of brands) {
   // (a) one entry promotes a defined palette to a full interactive.accent.* column.
   const oneT = brandTheme({ ...base, interactivePalettes: [{ palette: 'accent' }] } as unknown as BrandInput);
   const one = rolesOf(oneT);
-  const oneMissing = ['fill.rest', 'on-fill', 'text', 'border'].filter((s) => !(`interactive.accent.${s}` in one));
+  const oneMissing = ['fill.rest', 'on-fill', 'text.rest', 'border'].filter((s) => !(`interactive.accent.${s}` in one));
   ok(oneMissing.length === 0, 'interactivePalettes: [{palette:accent}] emits a full interactive.accent.* column' + (oneMissing.length ? ` — MISSING ${oneMissing.join(',')}` : ''));
 
   // (b) a second entry with a distinct name emits a second column alongside the first.
