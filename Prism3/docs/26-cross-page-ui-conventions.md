@@ -95,7 +95,7 @@ where a value is authored/derived), and **Not-universal** (Palettes-specific —
 |---|---|---|---|---|
 | Palettes | ✅ | ✅ | ✅ `palette.*` | #230–#232 — the reference implementation |
 | Surfaces & fills | ✅ | ✅ | ✅ `color.*` | #68 — full-width rows (Layout A): controls left, example (228px) right, contrast pill below; per-section contrast tables (Fills + Text; Backgrounds are grounds); adjustable Inverse (A1 override); gradient names + inline Add-stop vs full-width Add-gradient; text-on-surface previews (folds #64) |
-| Interactive | — | — | ✅ `color.interactive.*` (#232) | pills swept; layout pass TBD |
+| Interactive | ✅ | ✅ | ✅ `color.interactive.*` (#232) | #69 — per-palette matrix: global behaviours (outline hover / disabled / icon colours) at top, then one section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows — Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill (+ inverse). Every slot/state binds to a real engine role: fill · rest is the family anchor, everything else is an A1 per-mode override; example (300px) + contrast pill locked right, Hover/Pressed states two-up below |
 | Typography | — | — | — | TBD |
 | Elevation | — | — | — | TBD |
 | Size & radius | — | — | — | ramp-page pills deferred |
