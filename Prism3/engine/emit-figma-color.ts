@@ -128,7 +128,8 @@ const FIELD_SLOT_SCOPES: Record<string, string[]> = {
 // `disabled` / `field` to their slot (segment[2]).
 const colorScopes = (dotted: string): string[] => {
   const seg = stripNs(dotted).split('.'); // ['color', family, …]
-  if (seg[1] === 'interactive') return INTERACTIVE_SLOT_SCOPES[seg[3]] ?? INTERACTIVE_SLOT_SCOPES.fill;
+  // interactive slot = seg[3], except the inverse column nests a slot one deeper (on-inverse.<slot>.<state>).
+  if (seg[1] === 'interactive') { const slot = seg[3] === 'on-inverse' ? seg[4] : seg[3]; return INTERACTIVE_SLOT_SCOPES[slot] ?? INTERACTIVE_SLOT_SCOPES.fill; }
   if (seg[1] === 'disabled') return DISABLED_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
   if (seg[1] === 'field') return FIELD_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
   return COLOR_SCOPES[seg[1]] ?? ['FRAME_FILL', 'SHAPE_FILL'];

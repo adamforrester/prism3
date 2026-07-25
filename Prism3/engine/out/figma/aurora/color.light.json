@@ -643,13 +643,12 @@
       }
     },
     {
-      "name": "color/interactive/primary/on-inverse",
+      "name": "color/interactive/primary/on-inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
+        "TEXT_FILL"
       ],
-      "description": "primary interactive ink on an inverse / dark surface (outline / text on a dark hero)",
+      "description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
       "value": {
         "r": 0,
         "g": 0.5333333611488342,
@@ -659,6 +658,119 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/accent/450"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "value": {
+        "r": 0.2078431397676468,
+        "g": 0.5843137502670288,
+        "b": 0.7764706015586853,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/400"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "value": {
+        "r": 0.33725491166114807,
+        "g": 0.6313725709915161,
+        "b": 0.7960784435272217,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/350"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.800000011920929,
+        "g": 0.8705882430076599,
+        "b": 0.9137254953384399,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/100"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.8784313797950745,
+        "g": 0.9215686321258545,
+        "b": 0.9450980424880981,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/050"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.6274510025978088,
+        "g": 0.772549033164978,
+        "b": 0.8627451062202454,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/200"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Ink on the primary inverse fill (a dark label on the light on-dark CTA)",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/950"
       }
     },
     {
@@ -906,13 +1018,12 @@
       }
     },
     {
-      "name": "color/interactive/destructive/on-inverse",
+      "name": "color/interactive/destructive/on-inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
+        "TEXT_FILL"
       ],
-      "description": "destructive interactive ink on an inverse / dark surface (outline / text on a dark hero)",
+      "description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
       "value": {
         "r": 0.8509804010391235,
         "g": 0.3333333432674408,
@@ -922,6 +1033,119 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/danger/450"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "value": {
+        "r": 0.8784313797950745,
+        "g": 0.4117647111415863,
+        "b": 0.3686274588108063,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/400"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "value": {
+        "r": 0.8901960849761963,
+        "g": 0.4901960790157318,
+        "b": 0.4470588266849518,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/350"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/100"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9019607901573181,
+        "b": 0.8901960849761963,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/050"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.9254902005195618,
+        "g": 0.7058823704719543,
+        "b": 0.6745098233222961,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/200"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Ink on the destructive inverse fill (a dark label on the light on-dark CTA)",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/950"
       }
     },
     {
@@ -1169,13 +1393,12 @@
       }
     },
     {
-      "name": "color/interactive/neutral/on-inverse",
+      "name": "color/interactive/neutral/on-inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
+        "TEXT_FILL"
       ],
-      "description": "neutral interactive ink on an inverse / dark surface (outline / text on a dark hero)",
+      "description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
       "value": {
         "r": 0.9686274528503418,
         "g": 0.9686274528503418,
@@ -1185,6 +1408,119 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/neutral/025"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/025"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/025"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.9137254953384399,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/050"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.8588235378265381,
+        "g": 0.8588235378265381,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/100"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.8078431487083435,
+        "g": 0.8078431487083435,
+        "b": 0.8156862854957581,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/150"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Ink on the neutral inverse fill (a dark label on the light on-dark CTA)",
+      "value": {
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/950"
       }
     },
     {

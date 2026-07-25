@@ -542,14 +542,14 @@ for (const b of brands) {
   const invFails: string[] = [];
   for (const m of modes)
     for (const c of ['primary', 'neutral', 'destructive']) {
-      const r = m.roles[`interactive.${c}.on-inverse`];
+      const r = m.roles[`interactive.${c}.on-inverse.text.rest`];
       if (!r) { invFails.push(`${m.mode}:${c}:absent`); continue; }
       if (r.against !== 'background.inverse.primary') invFails.push(`${m.mode}:${c}:against=${r.against}`);
       if (r.min > 0 && r.ratio < r.min) invFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
     }
-  ok(invFails.length === 0, 'inverse: interactive.<color>.on-inverse gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
+  ok(invFails.length === 0, 'inverse: interactive.<color>.on-inverse.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
   const noInv = resolveAllModes({ ...nbTheme(), inverseContext: false })
-    .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.endsWith('.on-inverse'));
+    .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.on-inverse'));
   ok(noInv.length === 0, 'inverse: inverse=false emits no on-inverse inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
 
   // (b) neutralEmphasis 'strong' → a bold neutral fill that clears the non-text floor, on-fill still gated.
@@ -568,7 +568,7 @@ for (const b of brands) {
   ok(noAccent.length === 0, 'accent: no extra column with an empty interactivePalettes (never falls back to primary)' + (noAccent.length ? ` — ${noAccent.slice(0, 2).join(',')}` : ''));
   const acc = resolveAllModes({ ...nbTheme(), interactivePalettes: [{ name: 'accent', palette: 'green', anchorStep: 500 }] });
   const accLight = acc.find((m) => m.mode === 'light')!.roles;
-  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border', 'on-inverse', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
+  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border', 'on-inverse.text.rest', 'on-inverse.fill.rest', 'on-inverse.on-fill', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
   const accFails = acc.flatMap((m) => Object.entries(m.roles).filter(([k, r]) => k.startsWith('interactive.accent') && r.min > 0 && r.ratio < r.min).map(([k]) => `${m.mode}.${k}`));
   ok(accMissing.length === 0 && accFails.length === 0, 'accent: opt-in emits a full gated interactive.accent.* column' + (accMissing.length ? ` — MISSING ${accMissing.join(',')}` : '') + (accFails.length ? ` — FAILS ${accFails.slice(0, 2).join(',')}` : ''));
 

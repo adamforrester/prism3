@@ -254,7 +254,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // would overshoot and collapse the states onto one step — `walk` reflects inward there (L-01),
   // i.e. an action colour pinned at the far end steps the OTHER way rather than saturating.
   const dir = cfg.family === 'light' ? +1 : -1;
-  const walk = (palette: string, fromNum: number, steps: number): Cand => {
+  // `d` overrides the walk direction — the page dir by default; the inverse-context text walks the OTHER
+  // way (toward MORE contrast with the dark band, i.e. lighter in a light mode) so its ink comes forward.
+  const walk = (palette: string, fromNum: number, steps: number, d: number = dir): Cand => {
     const pal = palOf(palette);
     const ramp = ramps.get(pal)!;
     const near = (n: number) => ramp.reduce((a, b) => (Math.abs(b.num - n) < Math.abs(a.num - n) ? b : a));
@@ -268,8 +270,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // overshoot, reflect and walk inward the other way, preserving the step-count
     // separation. Inward is toward mid-ramp, so it stays within the gamut the
     // ramp already vetted; the contract gate still guards each state's contrast.
-    const fwd = fromNum + dir * 50 * steps;
-    const target = fwd < lo || fwd > hi ? fromNum - dir * 50 * steps : fwd;
+    const fwd = fromNum + d * 50 * steps;
+    const target = fwd < lo || fwd > hi ? fromNum - d * 50 * steps : fwd;
     const s = near(target);
     return cand(`${ns}.${pal}.${s.key}`, s.rgb);
   };
@@ -439,15 +441,37 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // against the inverse surface (not a hand-mirrored -inverse twin). Independent of light/dark
   // theme; a light-only brand still needs it. The `inverse` lever gates it.
   if (theme.inverseContext) {
-    const invInk = (name: string, palette: string | null, anchor: number) =>
-      put(`interactive.${name}.on-inverse`,
-        palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb),
-        `${name} interactive ink on an inverse / dark surface (outline / text on a dark hero)`,
-        'background.inverse.primary', cfg.secondaryMin);
-    invInk('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
-    invInk('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);
-    invInk('neutral', null, 0);
-    for (const entry of theme.interactivePalettes) invInk(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
+    // The full inverse column (docs/20 §9) — a filled CTA + outline/text control placed on a dark hero /
+    // inverse band, generated + contrast-verified against `background.inverse.primary` (not a hand-mirrored
+    // twin). `on-inverse.text.{rest,hover,pressed}` = the light outline/text ink (states walk toward MORE
+    // contrast on the dark band); `on-inverse.fill.{rest,hover,pressed}` = a light filled CTA on the dark
+    // band (states walk toward the palette like the page fill); `on-inverse.on-fill` = the dark ink on it.
+    const invColumn = (name: string, palette: string | null, anchor: number): void => {
+      const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
+      const textNum = (textRest as RatedNum).num;
+      for (const st of ['default', 'hover', 'pressed'] as const) {
+        const stKey = st === 'default' ? 'rest' : st;
+        const c: Cand = (st === 'default' || !palette) ? textRest : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir);
+        put(`interactive.${name}.on-inverse.text.${stKey}`, rated(c, invRgb),
+          `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
+      }
+      // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
+      // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
+      // fill makes onColor fall back to pure black). States walk toward MORE contrast on the inverse band.
+      const fillRest: RatedNum = palette ? chromatic(palette, cfg.family === 'light' ? 100 : 900, invRgb, cfg.nonTextMin) : neutralStepR(cfg.family === 'light' ? 50 : 850);
+      for (const st of ['default', 'hover', 'pressed'] as const) {
+        const stKey = st === 'default' ? 'rest' : st;
+        const c: Cand = st === 'default' ? fillRest : walk(palette ?? r2p.neutral, fillRest.num, st === 'hover' ? 1 : 2, -dir);
+        put(`interactive.${name}.on-inverse.fill.${stKey}`, rated(c, invRgb),
+          `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
+      }
+      put(`interactive.${name}.on-inverse.on-fill`, onColor(fillRest.rgb),
+        `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.on-inverse.fill.rest`, onMin);
+    };
+    invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
+    invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);
+    invColumn('neutral', null, 0);
+    for (const entry of theme.interactivePalettes) invColumn(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
   }
 
   // interactive overlays (docs/20 §6) — translucent hover/pressed/selected washes that

@@ -103,7 +103,7 @@ export const button: ComponentDef = {
     'primary.text.label': 'color.interactive.primary.text.rest',
     'primary.text.icon': 'color.interactive.primary.text.rest',
     'primary.text.overlay.hover': 'color.interactive.primary.overlay.hover',
-    'primary.on-inverse.label': 'color.interactive.primary.on-inverse',
+    'primary.on-inverse.label': 'color.interactive.primary.on-inverse.text.rest',
 
     // neutral — the workhorse default; now carries hover/pressed like every colour (v1 gap CLOSED)
     'neutral.filled.fill': 'color.interactive.neutral.fill.rest',
@@ -119,7 +119,7 @@ export const button: ComponentDef = {
     'neutral.text.label': 'color.interactive.neutral.text.rest',
     'neutral.text.icon': 'color.interactive.neutral.text.rest',
     'neutral.text.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'neutral.on-inverse.label': 'color.interactive.neutral.on-inverse',
+    'neutral.on-inverse.label': 'color.interactive.neutral.on-inverse.text.rest',
 
     // destructive — interactive.destructive.* (full states)
     'destructive.filled.fill': 'color.interactive.destructive.fill.rest',
@@ -135,7 +135,7 @@ export const button: ComponentDef = {
     'destructive.text.label': 'color.interactive.destructive.text.rest',
     'destructive.text.icon': 'color.interactive.destructive.text.rest',
     'destructive.text.overlay.hover': 'color.interactive.destructive.overlay.hover',
-    'destructive.on-inverse.label': 'color.interactive.destructive.on-inverse',
+    'destructive.on-inverse.label': 'color.interactive.destructive.on-inverse.text.rest',
 
     // cross-cutting disabled (docs/20 §7) — ONE treatment, any intent/appearance
     'disabled.fill': 'color.disabled.fill',

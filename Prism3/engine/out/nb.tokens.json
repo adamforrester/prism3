@@ -3680,45 +3680,315 @@
             }
           },
           "on-inverse": {
-            "$type": "color",
-            "$value": "{nbds.palette.red.450}",
-            "$description": "primary interactive ink on an inverse / dark surface (outline / text on a dark hero)",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "nbds.palette.red.450",
-                "contrast": 5.05,
-                "against": "background.inverse.primary",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{nbds.palette.red.550}",
-                    "contrast": 5.24,
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.450}",
+                "$description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.450",
+                    "contrast": 5.05,
                     "against": "background.inverse.primary",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{nbds.palette.red.350}",
-                    "contrast": 7.52,
-                    "against": "background.inverse.primary",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{nbds.palette.red.650}",
-                    "contrast": 8.29,
-                    "against": "background.inverse.primary",
-                    "min": 7
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.550}",
+                        "contrast": 5.24,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.350}",
+                        "contrast": 7.52,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.650}",
+                        "contrast": 8.29,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
                   }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.400}",
+                "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.400",
+                    "contrast": 5.98,
+                    "against": "background.inverse.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.600}",
+                        "contrast": 6.39,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.300}",
+                        "contrast": 8.77,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.700}",
+                        "contrast": 10.03,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.350}",
+                "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.350",
+                    "contrast": 6.97,
+                    "against": "background.inverse.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.650}",
+                        "contrast": 7.72,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.250}",
+                        "contrast": 10.17,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.750}",
+                        "contrast": 12.08,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.100}",
+                "$description": "primary interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.100",
+                    "contrast": 14.1,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.900}",
+                        "contrast": 16.97,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.100}",
+                        "contrast": 15.23,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.900}",
+                        "contrast": 18.21,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.050}",
+                "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.050",
+                    "contrast": 16,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.950}",
+                        "contrast": 18.25,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.050}",
+                        "contrast": 17.28,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.950}",
+                        "contrast": 19.58,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.200}",
+                "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.200",
+                    "contrast": 10.83,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.800}",
+                        "contrast": 13.2,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.200}",
+                        "contrast": 11.7,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.800}",
+                        "contrast": 14.17,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{nbds.palette.neutral.950}",
+              "$description": "Ink on the primary inverse fill (a dark label on the light on-dark CTA)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.neutral.950",
+                  "contrast": 14.1,
+                  "against": "interactive.primary.on-inverse.fill.rest",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.neutral.025}",
+                      "contrast": 16.97,
+                      "against": "interactive.primary.on-inverse.fill.rest",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.black}",
+                      "contrast": 15.23,
+                      "against": "interactive.primary.on-inverse.fill.rest",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.white}",
+                      "contrast": 18.21,
+                      "against": "interactive.primary.on-inverse.fill.rest",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }
@@ -4304,45 +4574,315 @@
             }
           },
           "on-inverse": {
-            "$type": "color",
-            "$value": "{nbds.palette.red.450}",
-            "$description": "destructive interactive ink on an inverse / dark surface (outline / text on a dark hero)",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "nbds.palette.red.450",
-                "contrast": 5.05,
-                "against": "background.inverse.primary",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{nbds.palette.red.550}",
-                    "contrast": 5.24,
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.450}",
+                "$description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.450",
+                    "contrast": 5.05,
                     "against": "background.inverse.primary",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{nbds.palette.red.350}",
-                    "contrast": 7.52,
-                    "against": "background.inverse.primary",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{nbds.palette.red.650}",
-                    "contrast": 8.29,
-                    "against": "background.inverse.primary",
-                    "min": 7
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.550}",
+                        "contrast": 5.24,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.350}",
+                        "contrast": 7.52,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.650}",
+                        "contrast": 8.29,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
                   }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.400}",
+                "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.400",
+                    "contrast": 5.98,
+                    "against": "background.inverse.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.600}",
+                        "contrast": 6.39,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.300}",
+                        "contrast": 8.77,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.700}",
+                        "contrast": 10.03,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.350}",
+                "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.350",
+                    "contrast": 6.97,
+                    "against": "background.inverse.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.650}",
+                        "contrast": 7.72,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.250}",
+                        "contrast": 10.17,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.750}",
+                        "contrast": 12.08,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.100}",
+                "$description": "destructive interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.100",
+                    "contrast": 14.1,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.900}",
+                        "contrast": 16.97,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.100}",
+                        "contrast": 15.23,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.900}",
+                        "contrast": 18.21,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.050}",
+                "$description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.050",
+                    "contrast": 16,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.950}",
+                        "contrast": 18.25,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.050}",
+                        "contrast": 17.28,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.950}",
+                        "contrast": 19.58,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.palette.red.200}",
+                "$description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.red.200",
+                    "contrast": 10.83,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.red.800}",
+                        "contrast": 13.2,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.red.200}",
+                        "contrast": 11.7,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.red.800}",
+                        "contrast": 14.17,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{nbds.palette.neutral.950}",
+              "$description": "Ink on the destructive inverse fill (a dark label on the light on-dark CTA)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.neutral.950",
+                  "contrast": 14.1,
+                  "against": "interactive.destructive.on-inverse.fill.rest",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.neutral.025}",
+                      "contrast": 16.97,
+                      "against": "interactive.destructive.on-inverse.fill.rest",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.black}",
+                      "contrast": 15.23,
+                      "against": "interactive.destructive.on-inverse.fill.rest",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.white}",
+                      "contrast": 18.21,
+                      "against": "interactive.destructive.on-inverse.fill.rest",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }
@@ -4908,45 +5448,315 @@
             }
           },
           "on-inverse": {
-            "$type": "color",
-            "$value": "{nbds.palette.neutral.025}",
-            "$description": "neutral interactive ink on an inverse / dark surface (outline / text on a dark hero)",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.025",
-                "contrast": 18.11,
-                "against": "background.inverse.primary",
-                "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{nbds.palette.neutral.950}",
+            "text": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.palette.neutral.025}",
+                "$description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.neutral.025",
                     "contrast": 18.11,
                     "against": "background.inverse.primary",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{nbds.palette.white}",
-                    "contrast": 21,
-                    "against": "background.inverse.primary",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{nbds.palette.black}",
-                    "contrast": 21,
-                    "against": "background.inverse.primary",
-                    "min": 7
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.neutral.950}",
+                        "contrast": 18.11,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.white}",
+                        "contrast": 21,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.black}",
+                        "contrast": 21,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
                   }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.palette.neutral.025}",
+                "$description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.neutral.025",
+                    "contrast": 18.11,
+                    "against": "background.inverse.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.neutral.950}",
+                        "contrast": 18.11,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.white}",
+                        "contrast": 21,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.black}",
+                        "contrast": 21,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.palette.neutral.025}",
+                "$description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.neutral.025",
+                    "contrast": 18.11,
+                    "against": "background.inverse.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.neutral.950}",
+                        "contrast": 18.11,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.white}",
+                        "contrast": 21,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.black}",
+                        "contrast": 21,
+                        "against": "background.inverse.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
+            "fill": {
+              "rest": {
+                "$type": "color",
+                "$value": "{nbds.palette.neutral.050}",
+                "$description": "neutral interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.neutral.050",
+                    "contrast": 15.99,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.neutral.850}",
+                        "contrast": 14.91,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.neutral.050}",
+                        "contrast": 17.27,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.neutral.850}",
+                        "contrast": 16,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "hover": {
+                "$type": "color",
+                "$value": "{nbds.palette.neutral.100}",
+                "$description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.neutral.100",
+                    "contrast": 14.13,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.neutral.900}",
+                        "contrast": 16.74,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.neutral.100}",
+                        "contrast": 15.26,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.neutral.900}",
+                        "contrast": 17.97,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.palette.neutral.150}",
+                "$description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.palette.neutral.150",
+                    "contrast": 12.33,
+                    "against": "background.inverse.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.palette.neutral.950}",
+                        "contrast": 18.11,
+                        "against": "background.inverse.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.palette.neutral.150}",
+                        "contrast": 13.32,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.palette.neutral.950}",
+                        "contrast": 19.44,
+                        "against": "background.inverse.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              }
+            },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{nbds.palette.neutral.950}",
+              "$description": "Ink on the neutral inverse fill (a dark label on the light on-dark CTA)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.neutral.950",
+                  "contrast": 15.99,
+                  "against": "interactive.neutral.on-inverse.fill.rest",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.neutral.025}",
+                      "contrast": 14.91,
+                      "against": "interactive.neutral.on-inverse.fill.rest",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.black}",
+                      "contrast": 17.27,
+                      "against": "interactive.neutral.on-inverse.fill.rest",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.white}",
+                      "contrast": 16,
+                      "against": "interactive.neutral.on-inverse.fill.rest",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }
