@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-07-26) — Preview cleanup: thorough UI gallery, grouped token list, richer motion/breakpoint previews (web-only)
+
+**STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`). A cleanup pass over the
+Preview destination + two specimens, per owner request ("make the previews the best they can be; the big
+UI preview thorough + elegant; a token name next to everything").
+
+- **UI gallery rebuilt (`renderPreviewGallery`).** Each component is a titled group; **each variant is now
+  its own card** — the live-rendered component on a mini page-surface, the variant name, the **full token
+  breakdown** (every binding → a labelled pill: surface / text / border / radius / padding / type / shadow
+  / icon …, so nothing on screen is untraceable), and that variant's own contrast receipts. Replaces the
+  old chips row + aggregate 6-pill footer.
+- **Token list grouped (`renderPreviewTokens`).** Within each category `.psec`, rows are sub-grouped by
+  top-level path segment (Color → background / border / text / interactive / icon / foreground / disabled /
+  field / …; Dimension → radius / space) with a labelled mini-table each, so the long Color list is
+  scannable instead of one flat alphabetical run.
+- **Motion specimen.** Each transition row now plots its **easing curve** (an SVG cubic-bezier, 0→1) beside
+  the timing bar — the bar shows speed, the curve shows the shape of the acceleration.
+- **Breakpoint specimen.** Added a proportional **min-width ruler** — the breakpoints on a shared axis, so
+  the responsive steps read spatially (how far apart the jumps are), above the existing grid table.
+- Dead gallery CSS removed (`.chips`, `.pv-paths`, `.pv-contrasts`, `.tpill.more`).
+- **Verified:** `tsc --noEmit` clean; esbuild OK; Playwright light screenshots of the gallery, token list,
+  Motion, and Layout show the new structure; no console errors. `out/*` byte-identical.
+- **Open question logged:** whether/when to drive the dashboard *chrome* from engine-generated tokens
+  (dogfood) + enable a dark tool-theme — recommended as its own arc; reverses doc-26's "chrome stays light"
+  note, so needs an explicit decision.
+
+---
+
 ## (2026-07-25) — Geometry & type pages rolled onto the doc-26 language (#72, web-only)
 
 **STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`). Brings the five pages that

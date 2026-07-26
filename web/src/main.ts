@@ -755,38 +755,56 @@ const contractTableEl = (contracts: typeof rp.contracts, paths = false): HTMLEle
 // global header for their per-mode columns/rendering.
 
 /** UI preview — the component gallery for the active mode, with inline per-component contrast badges. */
+// Which slot a binding key paints, as a short human label for the per-variant token breakdown.
+const SLOT_LABEL: Record<string, string> = {
+  bg: 'surface', border: 'border', text: 'text', title: 'title', titleText: 'title', body: 'body', bodyText: 'body',
+  placeholder: 'placeholder', icon: 'icon', indicator: 'indicator', type: 'type', radius: 'radius',
+  pad: 'padding', padX: 'padding-x', padY: 'padding-y', shadow: 'shadow',
+};
+const SLOT_ORDER = ['bg', 'border', 'text', 'title', 'titleText', 'body', 'bodyText', 'placeholder', 'icon', 'indicator', 'type', 'radius', 'pad', 'padX', 'padY', 'shadow'];
+
 const renderPreviewGallery = (host: HTMLElement): void => {
   if (lastError) host.append(el('div', 'errbar', `This combination doesn't resolve: ${lastError} — showing the last valid theme.`));
   // Project the resolved model for the active mode onto a fresh surface (so a mode switch can't leak
-  // stale vars). Chips inherit the properties and reference them via `var(--…)`.
+  // stale vars). Chips inherit the CSS custom properties and reference them via `var(--…)`.
   const surface = el('div', 'preview');
   writeHost = makeWriteHost(surface);
   writeHost.apply(rp, currentMode);
-  surface.style.background = pageBg(currentMode);
+  const bg = pageBg(currentMode);
+  surface.style.background = bg;
   for (const c of previewSpec.components) {
     const block = el('section', 'pvcomp');
-    block.append(el('h4', undefined, c.label));
-    const row = el('div', 'chips');
-    for (const v of c.variants) row.append(renderChip(`${c.id} · ${v.name}`, v.bindings, currentMode));
-    block.append(row);
-    const cts = rp.contracts.filter((ct) => ct.component === c.id && ct.byMode[currentMode]);
-    if (cts.length) {
-      const badges = el('div', 'pv-contrasts');
-      for (const ct of cts) {
-        const r = ct.byMode[currentMode]!;
-        const b = el('span', `cbadge ${r.pass ? 'ok' : 'no'}`);
-        b.append(el('span', 'cb-lab', ct.label ?? `min ${ct.min}:1`), el('span', 'cb-ratio', `${r.ratio.toFixed(2)}:1`), el('span', 'cb-mark', r.pass ? '✓' : '✗'));
-        badges.append(b);
+    block.append(el('h4', 'pvcomp-t', c.label));
+    // One card per variant: the live-rendered component on a mini page-surface, its variant name, the
+    // FULL token breakdown (every binding → a labelled pill, so nothing on screen is untraceable), and
+    // the variant's own contrast receipts.
+    const grid = el('div', 'pvvars');
+    for (const v of c.variants) {
+      const cell = el('div', 'pvvar');
+      const stage = el('div', 'pvvar-stage'); stage.style.background = bg;
+      stage.append(renderChip(v.name, v.bindings, currentMode));
+      cell.append(stage);
+      const meta = el('div', 'pvvar-meta');
+      meta.append(el('div', 'pvvar-name mono', v.name));
+      const pills = el('div', 'pvvar-pills');
+      const b = v.bindings as Record<string, string>;
+      for (const slot of SLOT_ORDER) {
+        const path = b[slot]; if (!path) continue;
+        const row = el('div', 'pvvar-pill');
+        row.append(el('span', 'pvfk', SLOT_LABEL[slot] ?? slot), tokenPill(path));
+        pills.append(row);
       }
-      block.append(badges);
+      meta.append(pills);
+      const cts = rp.contracts.filter((ct) => ct.component === c.id && ct.variant === v.name && ct.byMode[currentMode]);
+      if (cts.length) {
+        const badges = el('div', 'pvvar-cts');
+        for (const ct of cts) { const r = ct.byMode[currentMode]!; badges.append(contrastBadge(r.ratio, ct.min, ct.label)); }
+        meta.append(badges);
+      }
+      cell.append(meta);
+      grid.append(cell);
     }
-    const roles = [...new Set(c.variants.flatMap((v) => Object.values(v.bindings).filter((t) => t.startsWith('color.'))))];
-    if (roles.length) {
-      const pills = el('div', 'pv-paths');
-      for (const rref of roles.slice(0, 6)) pills.append(tokenPill(rref));
-      if (roles.length > 6) pills.append(el('span', 'tpill more', `+${roles.length - 6}`));
-      block.append(pills);
-    }
+    block.append(grid);
     surface.append(block);
   }
   host.append(surface);
@@ -822,32 +840,42 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   const modeLabels = modes.map((m) => MODE_LABEL[m] ?? m);
   const rolesByMode = new Map(resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, { hex: string } | undefined>]));
 
-  // Each category is a doc-26 `.psec`; the wide per-mode tables scroll inside their own container.
-  const tokenSection = (title: string, sub: string, table: HTMLElement): void => {
+  // Each category is a doc-26 `.psec`; within it the rows are sub-grouped by their top-level path
+  // segment (background / text / interactive / …; radius / space / size / …) — a labelled mini-table per
+  // group so the long Color list is scannable rather than one flat alphabetical run. Each table scrolls
+  // inside its own `overflow-x` container.
+  type TokRow = { name: string; cells: Array<HTMLElement | string> };
+  const tokenSection = (title: string, sub: string, rows: TokRow[], cols: string[]): void => {
     const sec = palSection(title, sub);
-    const scroll = el('div', 'pv-tscroll'); scroll.append(table); sec.append(scroll);
+    const groups = new Map<string, TokRow[]>();
+    for (const r of rows) { const g = r.name.split('.')[0]; (groups.get(g) ?? groups.set(g, []).get(g)!).push(r); }
+    const grouped = groups.size > 1;
+    for (const [g, grows] of groups) {
+      if (grouped) sec.append(el('div', 'tok-grouplab mono', g));
+      const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(grows, cols)); sec.append(scroll);
+    }
     host.append(sec);
   };
 
   // Color — every resolved semantic role, hex per mode. (Ramp primitives live on Palettes.)
   const roleNames = [...new Set(modes.flatMap((m) => Object.keys(rolesByMode.get(m) ?? {})))].sort();
-  tokenSection('Color', 'The resolved semantic color roles, per mode. Brand / neutral / status ramp primitives live on the Palettes page.',
-    tokenTableEl(roleNames.map((role) => ({ name: role, cells: modes.map((m) => swatchCell(rolesByMode.get(m)?.[role]?.hex)) })), modeLabels));
+  tokenSection('Color', 'The resolved semantic color roles, per mode — grouped by role family. Brand / neutral / status ramp primitives live on the Palettes page.',
+    roleNames.map((role) => ({ name: role, cells: modes.map((m) => swatchCell(rolesByMode.get(m)?.[role]?.hex)) })), modeLabels);
 
   // Dimension — the px scale (space / size / radius); baseline + per-mode overrides where they differ.
   const dimRefs = Object.keys(rp.dims).sort();
   tokenSection('Dimension', 'The px scale — space / size / radius; baseline + per-mode overrides where they differ.',
-    tokenTableEl(dimRefs.map((ref) => ({ name: ref, cells: modes.map((m) => `${rp.dimOverrides[ref]?.[m] ?? rp.dims[ref]}px`) })), modeLabels));
+    dimRefs.map((ref) => ({ name: ref, cells: modes.map((m) => `${rp.dimOverrides[ref]?.[m] ?? rp.dims[ref]}px`) })), modeLabels);
 
   // Typography — resolved composites (mode-invariant): family · weight · size.
   const typeRefs = Object.keys(rp.type).sort();
   tokenSection('Typography', 'Resolved composites (mode-invariant) — family · weight · size.',
-    tokenTableEl(typeRefs.map((ref) => { const t = rp.type[ref]; return { name: ref, cells: [`${t.fontFamily} · ${t.fontWeight} · ${Math.round(t.fontSizePx)}px`] }; }), ['Resolved · shared across modes']));
+    typeRefs.map((ref) => { const t = rp.type[ref]; return { name: ref, cells: [`${t.fontFamily} · ${t.fontWeight} · ${Math.round(t.fontSizePx)}px`] }; }), ['Resolved · shared across modes']);
 
   // Shadow — the elevation ramp, CSS box-shadow per mode (dark = the reduced set).
   const shRefs = Object.keys(rp.shadows).sort();
   tokenSection('Shadow', 'The elevation ramp — CSS box-shadow per mode (dark = the reduced set).',
-    tokenTableEl(shRefs.map((ref) => ({ name: ref, cells: modes.map((m) => { const s = rp.shadows[ref]?.[m]; if (!s) return '—'; const sp = el('span', 'tok-shadow mono', s); sp.title = s; return sp; }) })), modeLabels));
+    shRefs.map((ref) => ({ name: ref, cells: modes.map((m) => { const s = rp.shadows[ref]?.[m]; if (!s) return '—'; const sp = el('span', 'tok-shadow mono', s); sp.title = s; return sp; }) })), modeLabels);
 };
 
 const PAGE_COPY: Record<PageKey, [string, string]> = {
@@ -2388,6 +2416,17 @@ const renderSizeSpecimen = (): HTMLElement => {
 const renderLayoutSpecimen = (): HTMLElement => {
   const ly = theme.layout;
   const wrap = palSection('Layout grid', 'Breakpoints, the responsive column grid, and container caps — the layout scaffolding.');
+  // A proportional min-width ruler — the breakpoints placed on a shared axis, so the responsive steps read
+  // spatially (how far apart the jumps are), not just as a column of numbers.
+  wrap.append(el('div', 'ly-cap', 'Breakpoints — min-width on a shared scale'));
+  const ruler = el('div', 'ly-ruler');
+  const rulerMax = Math.max(...ly.breakpoints.map((b) => b.px), 1) * 1.06;
+  for (const b of ly.breakpoints) {
+    const tick = el('div', 'ly-tick'); tick.style.left = `${(b.px / rulerMax) * 100}%`;
+    tick.append(el('span', 'ly-tick-name', b.name), el('span', 'ly-tick-px mono', `${b.px}px`));
+    ruler.append(tick);
+  }
+  wrap.append(ruler);
   const table = el('table', 'ly-table');
   const head = el('tr');
   head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Token'), el('th', undefined, 'Min-width'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'));
@@ -2425,6 +2464,24 @@ const renderLayoutSpecimen = (): HTMLElement => {
  *  preview, so the tempo lever had no payoff; here it does — the bars re-run on every re-render (i.e. the
  *  moment you change the tempo), plus a Replay. `prefers-reduced-motion` is honoured (bars shown filled,
  *  no animation), nodding to the engine's derived reduced ramp. Kind-B specimen: reads `theme.motion`. */
+/** A small cubic-bezier easing curve plotted 0→1 (SVG). Makes the easing choice legible — the timing bar
+ *  shows speed, this shows the *shape* of the acceleration. Y is flipped (SVG y grows down). */
+const easingCurveSvg = (bez: number[]): SVGElement => {
+  const W = 44, H = 44, P = 5;
+  const x = (t: number): number => P + t * (W - 2 * P);
+  const y = (v: number): number => H - P - v * (H - 2 * P);
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'mo-curve');
+  const axis = document.createElementNS(SVGNS, 'path');
+  axis.setAttribute('d', `M${x(0)},${y(1)} L${x(0)},${y(0)} L${x(1)},${y(0)}`);
+  axis.setAttribute('class', 'mo-curve-axis'); axis.setAttribute('fill', 'none');
+  const [x1, y1, x2, y2] = bez.length === 4 ? bez : [0.4, 0, 0.2, 1];
+  const line = document.createElementNS(SVGNS, 'path');
+  line.setAttribute('d', `M${x(0)},${y(0)} C${x(x1)},${y(y1)} ${x(x2)},${y(y2)} ${x(1)},${y(1)}`);
+  line.setAttribute('class', 'mo-curve-line'); line.setAttribute('fill', 'none');
+  svg.append(axis, line);
+  return svg;
+};
 const renderMotionSpecimen = (): HTMLElement => {
   const mo = theme.motion;
   // D — reflect the current mode's per-mode tempo (modeLevers.tempo) when it deviates, so the ramp
@@ -2440,16 +2497,20 @@ const renderMotionSpecimen = (): HTMLElement => {
   for (const t of mo.transitions) {
     const ms = durOf(t.duration);
     const row = el('div', 'mo-row');
+    const curveBez = mo.easing[t.easing] ?? mo.easing.standard;
+    row.append(easingCurveSvg(curveBez));                          // the easing curve, plotted — makes the abstract timing concrete
+    const body = el('div', 'mo-body');
     const metaRow = el('div', 'spec-metarow');
     metaRow.append(el('span', 'mo-meta mono', `${t.name} · ${ms}ms · ${t.easing}`), tokenPill(`motion.duration.${t.duration}`), tokenPill(`motion.easing.${t.easing}`));
-    row.append(metaRow);
+    body.append(metaRow);
     const track = el('div', 'mo-track');
     const fill = el('div', 'mo-fill');
     fill.style.animationDuration = `${ms}ms`;
-    fill.style.animationTimingFunction = bez(mo.easing[t.easing] ?? mo.easing.standard);
+    fill.style.animationTimingFunction = bez(curveBez);
     track.append(fill);
     fills.push(fill);
-    row.append(track);
+    body.append(track);
+    row.append(body);
     list.append(row);
   }
   wrap.append(list);
@@ -3332,7 +3393,9 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 
 .stage-vol{display:flex;flex-direction:column}
 .pvhost{display:flex;flex-direction:column;gap:16px}
-.pv-tscroll{overflow-x:auto;margin-top:12px}
+.pv-tscroll{overflow-x:auto;margin-top:8px}
+.tok-grouplab{font-size:11px;font-weight:680;letter-spacing:.04em;color:var(--ink2);margin:18px 0 2px}
+.tok-grouplab:first-of-type{margin-top:12px}
 .type-spec{margin-bottom:8px}
 .ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
 .ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -3349,8 +3412,12 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sh-card{width:64px;height:64px;border-radius:10px;background:#fff}
 .sh-lab{font-size:11.5px;color:#5b6472}
 .motion-spec{margin-bottom:8px}
-.mo-list{display:flex;flex-direction:column;gap:16px;padding:14px 0 2px}
-.mo-row{display:flex;flex-direction:column;gap:7px;min-width:0}
+.mo-list{display:flex;flex-direction:column;gap:18px;padding:14px 0 2px}
+.mo-row{display:flex;align-items:center;gap:16px;min-width:0}
+.mo-curve{width:44px;height:44px;flex:none;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-xs)}
+.mo-curve-axis{stroke:var(--line2);stroke-width:1}
+.mo-curve-line{stroke:var(--ink);stroke-width:1.5;stroke-linecap:round}
+.mo-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
 .mo-meta{font-size:11.5px;color:var(--faint)}
 .mo-track{position:relative;height:8px;background:var(--line2);border-radius:999px;overflow:hidden}
 .mo-fill{height:100%;width:100%;background:var(--ink);border-radius:999px;transform-origin:left;animation-name:mo-fill;animation-iteration-count:1;animation-fill-mode:both}
@@ -3391,6 +3458,11 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .ly-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:lowercase;letter-spacing:.02em;background:var(--panel)}
 .ly-table tr:last-child td{border-bottom:none}
 .ly-cap{font-size:11.5px;color:var(--muted);margin:0 2px 8px}
+.ly-ruler{position:relative;height:44px;margin:2px 2px 22px;border-bottom:2px solid var(--line2)}
+.ly-tick{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding-left:5px}
+.ly-tick::before{content:'';position:absolute;left:0;bottom:0;width:2px;height:11px;background:var(--ink2)}
+.ly-tick-name{font-size:10.5px;font-weight:640;color:var(--ink2);line-height:1}
+.ly-tick-px{font-size:9.5px;color:var(--faint);line-height:1}
 .ly-cols{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;height:44px;margin-bottom:18px}
 .ly-col{background:var(--ink);opacity:.14;border-radius:3px}
 .ly-cont{display:flex;flex-direction:column;gap:8px}
@@ -3481,21 +3553,29 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .genview-chip.no{background:#fdecec;color:#a12;border:1px solid #f2c6c6}
 .gv-mark{font-weight:700}
 .genview-hint{margin:14px 0 0;color:var(--faint);font-size:12.5px;line-height:1.55}
-.preview{border:1px solid var(--line);border-radius:var(--r);padding:20px;background:#fff}
-.pvcomp{margin-bottom:18px}
+.preview{border:1px solid var(--line);border-radius:var(--r);padding:24px;background:#fff}
+.pvcomp{margin-bottom:30px}
 .pvcomp:last-child{margin-bottom:0}
-.pvcomp h4{margin:0 0 8px;font-size:13px}
-.chips{display:flex;flex-wrap:wrap;gap:10px}
-.pv-contrasts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pvcomp-t{margin:0 0 14px;font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+/* Thorough UI gallery (#Preview): one card per variant — live render · variant name · every binding as a
+   labelled token pill · the variant's contrast receipts. */
+.pvvars{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px}
+.pvvar{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
+.pvvar-stage{min-height:88px;display:flex;align-items:center;justify-content:center;padding:22px 18px;border-bottom:1px solid var(--line)}
+.pvvar-meta{display:flex;flex-direction:column;gap:9px;padding:12px 14px 14px}
+.pvvar-name{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.pvvar-pills{display:flex;flex-direction:column;gap:5px}
+.pvvar-pill{display:flex;align-items:baseline;gap:8px;min-width:0}
+.pvfk{font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);flex:none;width:62px;text-align:right}
+.pvvar-pill .tpill{white-space:normal;word-break:break-word;line-height:1.4}
+.pvvar-cts{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .cbadge{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line2)}
 .cbadge.ok{background:rgba(26,156,82,.09);border-color:rgba(26,156,82,.35)}
 .cbadge.no{background:rgba(221,51,51,.09);border-color:rgba(221,51,51,.4)}
 .cb-lab{color:var(--muted)}
 .cb-ratio{font-variant-numeric:tabular-nums;font-weight:600}
 .cbadge.ok .cb-mark{color:#1a9c52}.cbadge.no .cb-mark{color:#d23}
-.pv-paths{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .tpill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--line);color:var(--faint)}
-.tpill.more{color:var(--muted);font-style:italic}
 /* Interactive & action colors — per-mode note + add-accent row (#69). */
 .ic-modenote{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.55;padding:10px 13px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm)}
 /* A2c — per-mode foreground/text override rows. */
