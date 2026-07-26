@@ -96,11 +96,11 @@ where a value is authored/derived), and **Not-universal** (Palettes-specific —
 | Palettes | ✅ | ✅ | ✅ `palette.*` | #230–#232 — the reference implementation |
 | Surfaces & fills | ✅ | ✅ | ✅ `color.*` | #68 — full-width rows (Layout A): controls left, example (228px) right, contrast pill below; per-section contrast tables (Fills + Text; Backgrounds are grounds); adjustable Inverse (A1 override); gradient names + inline Add-stop vs full-width Add-gradient; text-on-surface previews (folds #64) |
 | Interactive | ✅ | ✅ | ✅ `color.interactive.*` (#232) | #69 — per-palette matrix: global behaviours (outline hover / disabled / icon colours) at top, then one section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows — Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill (+ inverse). Every slot/state binds to a real engine role: fill · rest is the family anchor, everything else is an A1 per-mode override; example (300px) + contrast pill locked right, Hover/Pressed states two-up below |
-| Typography | — | — | — | TBD |
-| Elevation | — | — | — | TBD |
-| Size & radius | — | — | — | ramp-page pills deferred |
-| Layout | — | — | — | TBD |
-| Motion | — | — | — | ramp-page pills deferred |
-| Preview | — | — | ✅ full `color.*` (#232) | tables; layout pass TBD |
+| Typography | ✅ | ✅ | ✅ `type.*` / `font.*` | #72 — every section a `.psec` (Type scale · Font pool · Weight roles · Line height · Letter spacing · Per-category · Responsive type); the type-scale specimen ladder carries `type.<group>.<size>.<weight>` pills. Retired the three competing header styles (sectionHead / subHead / .adv-obj) |
+| Elevation | ✅ | ✅ | ✅ `shadow.*` | #72 — Shadow editor + Elevation-ramp specimen as `.psec`; `shadow.xs…2xl` pills |
+| Size & radius | ✅ | ✅ | ✅ `radius.*` / `size.*` | #72 — regrouped by **concept** (Corner radius · Density & size · Spacing grid), not advanced/not; Radius-ramp + Control-size specimens carry `radius.*` / `size.*.height` pills |
+| Layout | ✅ | ✅ | ✅ `breakpoint.*` / `container.*` | #72 — Breakpoints + Grid & containers as `.psec`; the Layout-grid specimen table adds a `breakpoint.*` token column and the container bars carry `container.max` / `container.narrow` pills |
+| Motion | ✅ | ✅ | ✅ `motion.*` | #72 — Tempo + Easing as `.psec` (easing promoted out of "advanced"); the Motion specimen rows carry `motion.duration.*` + `motion.easing.*` pills |
+| Preview | ◑ | — | ✅ full `color.*` (#232) | pills + master table conform; the token-list `subHead` section labels are a light header cosmetic still to align |
 
 Update this table as each page lands.
