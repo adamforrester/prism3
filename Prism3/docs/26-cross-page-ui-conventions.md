@@ -101,6 +101,6 @@ where a value is authored/derived), and **Not-universal** (Palettes-specific —
 | Size & radius | ✅ | ✅ | ✅ `radius.*` / `size.*` | #72 — regrouped by **concept** (Corner radius · Density & size · Spacing grid), not advanced/not; Radius-ramp + Control-size specimens carry `radius.*` / `size.*.height` pills |
 | Layout | ✅ | ✅ | ✅ `breakpoint.*` / `container.*` | #72 — Breakpoints + Grid & containers as `.psec`; the Layout-grid specimen table adds a `breakpoint.*` token column and the container bars carry `container.max` / `container.narrow` pills |
 | Motion | ✅ | ✅ | ✅ `motion.*` | #72 — Tempo + Easing as `.psec` (easing promoted out of "advanced"); the Motion specimen rows carry `motion.duration.*` + `motion.easing.*` pills |
-| Preview | ◑ | — | ✅ full `color.*` (#232) | pills + master table conform; the token-list `subHead` section labels are a light header cosmetic still to align |
+| Preview | ✅ | ✅ | ✅ full `color.*` (#232) | token-list categories (Color / Dimension / Typography / Shadow) now `.psec` sections with tables scrolling in an `overflow-x` container; pills + master table already conformed. **Whole dashboard now on the doc-26 language.** |
 
 Update this table as each page lands.

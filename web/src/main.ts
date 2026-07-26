@@ -822,26 +822,32 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   const modeLabels = modes.map((m) => MODE_LABEL[m] ?? m);
   const rolesByMode = new Map(resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, { hex: string } | undefined>]));
 
+  // Each category is a doc-26 `.psec`; the wide per-mode tables scroll inside their own container.
+  const tokenSection = (title: string, sub: string, table: HTMLElement): void => {
+    const sec = palSection(title, sub);
+    const scroll = el('div', 'pv-tscroll'); scroll.append(table); sec.append(scroll);
+    host.append(sec);
+  };
+
   // Color — every resolved semantic role, hex per mode. (Ramp primitives live on Palettes.)
-  host.append(subHead('Color'));
-  host.append(el('p', 'np-note', 'The resolved semantic color roles, per mode. Brand / neutral / status ramp primitives live on the Palettes page.'));
   const roleNames = [...new Set(modes.flatMap((m) => Object.keys(rolesByMode.get(m) ?? {})))].sort();
-  host.append(tokenTableEl(roleNames.map((role) => ({ name: role, cells: modes.map((m) => swatchCell(rolesByMode.get(m)?.[role]?.hex)) })), modeLabels));
+  tokenSection('Color', 'The resolved semantic color roles, per mode. Brand / neutral / status ramp primitives live on the Palettes page.',
+    tokenTableEl(roleNames.map((role) => ({ name: role, cells: modes.map((m) => swatchCell(rolesByMode.get(m)?.[role]?.hex)) })), modeLabels));
 
   // Dimension — the px scale (space / size / radius); baseline + per-mode overrides where they differ.
-  host.append(subHead('Dimension'));
   const dimRefs = Object.keys(rp.dims).sort();
-  host.append(tokenTableEl(dimRefs.map((ref) => ({ name: ref, cells: modes.map((m) => `${rp.dimOverrides[ref]?.[m] ?? rp.dims[ref]}px`) })), modeLabels));
+  tokenSection('Dimension', 'The px scale — space / size / radius; baseline + per-mode overrides where they differ.',
+    tokenTableEl(dimRefs.map((ref) => ({ name: ref, cells: modes.map((m) => `${rp.dimOverrides[ref]?.[m] ?? rp.dims[ref]}px`) })), modeLabels));
 
   // Typography — resolved composites (mode-invariant): family · weight · size.
-  host.append(subHead('Typography'));
   const typeRefs = Object.keys(rp.type).sort();
-  host.append(tokenTableEl(typeRefs.map((ref) => { const t = rp.type[ref]; return { name: ref, cells: [`${t.fontFamily} · ${t.fontWeight} · ${Math.round(t.fontSizePx)}px`] }; }), ['Resolved · shared across modes']));
+  tokenSection('Typography', 'Resolved composites (mode-invariant) — family · weight · size.',
+    tokenTableEl(typeRefs.map((ref) => { const t = rp.type[ref]; return { name: ref, cells: [`${t.fontFamily} · ${t.fontWeight} · ${Math.round(t.fontSizePx)}px`] }; }), ['Resolved · shared across modes']));
 
   // Shadow — the elevation ramp, CSS box-shadow per mode (dark = the reduced set).
-  host.append(subHead('Shadow'));
   const shRefs = Object.keys(rp.shadows).sort();
-  host.append(tokenTableEl(shRefs.map((ref) => ({ name: ref, cells: modes.map((m) => { const s = rp.shadows[ref]?.[m]; if (!s) return '—'; const sp = el('span', 'tok-shadow mono', s); sp.title = s; return sp; }) })), modeLabels));
+  tokenSection('Shadow', 'The elevation ramp — CSS box-shadow per mode (dark = the reduced set).',
+    tokenTableEl(shRefs.map((ref) => ({ name: ref, cells: modes.map((m) => { const s = rp.shadows[ref]?.[m]; if (!s) return '—'; const sp = el('span', 'tok-shadow mono', s); sp.title = s; return sp; }) })), modeLabels));
 };
 
 const PAGE_COPY: Record<PageKey, [string, string]> = {
@@ -3326,6 +3332,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 
 .stage-vol{display:flex;flex-direction:column}
 .pvhost{display:flex;flex-direction:column;gap:16px}
+.pv-tscroll{overflow-x:auto;margin-top:12px}
 .type-spec{margin-bottom:8px}
 .ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
 .ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
