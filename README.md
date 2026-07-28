@@ -5,8 +5,8 @@ dependency-free **TypeScript generation engine** that reproduces it and generali
 brands. The engine is the active surface; the hand-built layer is its regression target.
 
 > This is a signpost. The durable state — status, decisions, architecture — lives in the
-> docs linked below; this file points, it doesn't restate. For agent/contributor conventions
-> read [`CLAUDE.md`](CLAUDE.md).
+> docs linked below; this file points, it doesn't restate. For agent conventions read
+> [`CLAUDE.md`](CLAUDE.md); to pick up work, start with [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Layout
 
@@ -42,6 +42,7 @@ merge. A PR states their results (see the [PR template](.github/pull_request_tem
 
 ## Where to go next
 
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — the workflow, the gates in full, how to brief an agent on this repo, and where each kind of durable state lives.
 - [`Prism3/docs/00-progress.md`](Prism3/docs/00-progress.md) — status, the decisions log, and prioritized next steps (read this for handoff).
 - [`Prism3/docs/07-e2e-journey.md`](Prism3/docs/07-e2e-journey.md) — the designer ↔ developer ↔ agent pipeline and the portable-core architecture.
 - [`Prism3/docs/10-figma-materialization.md`](Prism3/docs/10-figma-materialization.md) — the `emit-figma` contract (the Figma-target shape).
