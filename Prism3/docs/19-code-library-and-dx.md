@@ -138,11 +138,22 @@ re-author; (b) **commit to markdown/MDX as the source of truth** so we never get
    Still an open decision — but revisit it as its own `[decision]` issue against this section, not
    as a by-product of backlog logistics.
 2. **WC-first vs. React-first**, and **author-headless vs. wrap** (React-Aria / Radix / Ark / Zag).
+   Filed as **#252** — split into the two decisions this bullet bundles: §3's WC-primary/
+   React-wrapper ordering already has a stated lean (just needs confirming); author-vs-wrap is the
+   one genuinely open fork, no lean recorded anywhere.
 3. **Definition format** — largely settled in `14` (`component.yaml`, mapped to
-   `@directededges/specs-schema`); confirm when the layer activates.
+   `@directededges/specs-schema`); confirm when the layer activates. **Not filed** — not
+   fork-shaped, just a confirmation checkpoint for when this lane starts.
 4. **Brand-token flow into the library** — a per-brand token package vs. a runtime token loader.
+   Filed as **#253**. Grounding here is thin (this bullet was the whole spec) — the issue is mostly
+   reasoning laid out for a call, not doc-sourced analysis; flags that the two options optimize for
+   different things this repo already committed to (§2's ejectability vs. docs/11's runtime
+   brand-switch vision).
 5. **Docs surface** — Storybook autodocs vs. a static-site generator (Astro/Starlight, Nextra) for the
-   client design docs; markdown-as-truth either way.
+   client design docs; markdown-as-truth either way. Filed as **#254** — grounded in §6's constraints
+   (markdown as source, generated/authored merge, themed automatically) and names a third option §6
+   implies but never states: split by audience, since §6 already treats client design docs and
+   Prism3 product docs as structurally different.
 
 ## 8. First slice (endorsed, from `14 §6`)
 
