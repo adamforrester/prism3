@@ -2,7 +2,7 @@
 name: Decision needed
 about: A fork in the road that needs a call before work can proceed.
 title: "[decision] "
-labels: decision-needed
+labels: type:decision
 ---
 
 <!--
@@ -12,7 +12,10 @@ labels: decision-needed
   close this with the decision written in a comment.
 -->
 
-**Lane:** <!-- engine / web / plugin / mcp --> · **Type:** decision · **Source:** <!-- review / doc NN / owner --> · **Blocks:** <!-- issue numbers, or "nothing yet" -->
+**Lane:** <!-- engine / web / plugin / figma / code-library / mcp --> · **Type:** decision · **Source:** <!-- review / doc NN / owner -->
+
+<!-- What this blocks: set native issue DEPENDENCIES rather than listing them here. -->
+
 
 ## The question
 

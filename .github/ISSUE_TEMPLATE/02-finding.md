@@ -2,7 +2,7 @@
 name: Finding / bug
 about: Something is wrong — found in review, in a live drive, or in use.
 title: "[lane] "
-labels: finding
+labels: type:finding
 ---
 
 <!--
@@ -10,7 +10,7 @@ labels: finding
   a decision (use the decision template) or a research question.
 -->
 
-**Lane:** <!-- engine / web / plugin / mcp --> · **Type:** bug · **Source:** <!-- owner review / live drive / PR review / eval -->
+**Lane:** <!-- engine / web / plugin / figma / code-library / mcp --> · **Type:** finding · **Source:** <!-- owner review / live drive / PR review / eval -->
 
 ## What's wrong
 

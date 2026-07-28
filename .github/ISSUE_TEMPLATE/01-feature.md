@@ -2,17 +2,18 @@
 name: Feature / build work
 about: A change someone (or an agent) can pick up and build.
 title: "[lane] "
-labels: task
+labels: type:task
 ---
 
 <!--
   Write this as a brief an agent could execute without you in the room.
-  Title prefix: the lane in brackets — [engine] [web] [plugin] [figma] [components]
-  [mcp] [docs] [research]. Add the matching lane:* label after opening, and set any
-  native dependency rather than writing "blocked by" in the body.
+  Title prefix: the lane in brackets — [engine] [web] [plugin] [figma] [code-library]
+  [mcp] [docs]; add a sub-area with a slash when useful ([code-library/storybook]).
+  Add the matching lane:* label after opening, and set any native dependency rather
+  than writing "blocked by" in the body.
 -->
 
-**Lane:** <!-- engine / web / plugin / figma / components / mcp / docs --> · **Type:** feature · **Source:** <!-- owner direction / review / a PR follow-up / live drive -->
+**Lane:** <!-- engine / web / plugin / figma / code-library / mcp / docs --> · **Type:** task · **Source:** <!-- owner direction / review / a PR follow-up / live drive -->
 
 ## What
 

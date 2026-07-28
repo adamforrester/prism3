@@ -2,15 +2,19 @@
 name: Research / spike
 about: A question to investigate, or a pipeline to prove out, before committing to a build.
 title: "[research] "
+labels: type:research
 ---
 
 <!--
   Research issues capture options; they don't commit to one. The output is knowledge
   (usually a doc section or a decision issue), not shipped code. If a spike does
   produce throwaway code, say so — it shouldn't quietly become the implementation.
+
+  Research is a TYPE, not a lane — a question often spans several. Add the lane:*
+  label of whichever lane it most affects, or leave it off if it genuinely spans all.
 -->
 
-**Lane:** research · **Type:** research / spike · **Source:** <!-- where the question came from -->
+**Lane:** <!-- the lane it most affects, or "spans lanes" --> · **Type:** research · **Source:** <!-- where the question came from -->
 
 ## The question
 
