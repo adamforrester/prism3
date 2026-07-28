@@ -218,14 +218,22 @@ Nothing here to run — this note exists so an old issue's label history reads s
 Three GitHub features replace conventions we currently maintain by hand. Prefer them —
 prose relationships don't survive contact with a second contributor.
 
-**Dependencies over "Blocked by:" prose.** Several issues state blocking in the body
-(`**Blocked by:** #115`). Set the native dependency instead. It makes the backlog
-*queryable* for what's actually ready to pick up, which is the thing a new contributor
-most needs and can least work out for themselves.
+**Dependencies over "Blocked by:" prose, where you can set them.** GitHub's native
+issue-to-issue "blocked by"/"blocking" is a UI feature (Issues → Development sidebar) and
+a GraphQL mutation; the GitHub MCP tooling used in agent sessions here **cannot write it**
+— only read it (`issue_dependencies_summary`) — so an agent can't set this for you. If a
+dependency matters, set it yourself in the UI, or ask an agent to hand you a `gh api
+graphql` command. Otherwise state it in the body as `**Depends on:** #NNN` and accept that
+it's prose until someone sets the real one. (Audited 2026-07-28: of the 12 open issues at
+the time, only #112 had a stated blocker, and it referenced #115 — already closed. So
+there was nothing live to convert; the note was corrected instead. See #112's comments.)
 
-**Sub-issues over checklists in epics.** A phased epic (#176 is the model — six phases as
-markdown checkboxes) should carry its phases as sub-issues, so someone can take phase A1
-without owning the whole arc.
+**Sub-issues over checklists in epics.** A phased epic (#176 is the model) should carry
+its phases as sub-issues (`sub_issue_write` in the GitHub MCP *can* do this), so someone
+can take one phase without owning the whole arc. Done for #176: A1/A2/B/C1/C2/D are now
+issues #246–#251, nested under #176 in that order. Their sequencing (A2 needs A1, C1 needs
+A1+B, C2 needs C1, D needs A1+C1) is stated as `**Depends on:**` prose in each body for the
+same reason — no write access to native dependencies from here.
 
 **Projects for prioritisation.** Labels answer *what kind*; a project board answers
 *what's next*. Keep sequencing there rather than in doc prose, which goes stale (the
