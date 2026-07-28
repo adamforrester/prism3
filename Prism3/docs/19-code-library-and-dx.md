@@ -127,7 +127,16 @@ re-author; (b) **commit to markdown/MDX as the source of truth** so we never get
 ## 7. Open decisions (pin over time, not now)
 
 1. **Repo boundary** — monorepo-package (decided lean) vs. separate repo. *Leaning monorepo-package
-   with ejectability discipline.*
+   with ejectability discipline.* **Re-affirmed 2026-07-28 (owner)** when a separate code repo was
+   considered, so the reasoning is on record: the trigger was wanting somewhere to file
+   component-library work *now*, while the upstream lanes continue — and that need is met by a
+   `lane:components` label in this tracker, without settling the architecture as a side effect. Two
+   costs weighed against the split: GitHub's **sub-issues and dependencies are same-repo**, so a
+   second tracker turns this layer's dense cross-lane relationships (token contract ↔ definitions ↔
+   code) back into prose; and the client-delivery case that usually motivates a split is already
+   served by §2's ejectability discipline (*the eject is a packaging operation, not a repo split*).
+   Still an open decision — but revisit it as its own `[decision]` issue against this section, not
+   as a by-product of backlog logistics.
 2. **WC-first vs. React-first**, and **author-headless vs. wrap** (React-Aria / Radix / Ark / Zag).
 3. **Definition format** — largely settled in `14` (`component.yaml`, mapped to
    `@directededges/specs-schema`); confirm when the layer activates.

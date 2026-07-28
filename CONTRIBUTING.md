@@ -144,34 +144,72 @@ what makes an issue readable as a brief, and it carries more than a label can.
 Mark anything self-contained `good first issue` as you file it — much harder to spot
 retroactively than at the moment of writing.
 
-### The lane labels are stale — reconcile before leaning on them
+### The lane set
 
-`lane:generator` / `lane:emitter` / `lane:token-press` date from the two-thread era
-(a *generator* thread and an *emitter* thread working in parallel). The work has since
-restructured into **engine / web / plugin / mcp / docs / research** — which is what every
-issue body's `**Lane:**` line now says. The labels never followed, and no open issue
-carries one, so the taxonomy is currently vocabulary-in-prose only.
+**Lanes split by verification model** — what gates the work, and therefore who (or which
+agent) can pick it up. That's the useful axis for routing; it's why `emit-figma` sits with
+the engine rather than with the other Figma-adjacent work.
 
-Recommended reconciliation (renaming preserves the label on existing issues, so the
-history stays intact):
+| Lane | Covers | Gated by |
+|---|---|---|
+| `lane:engine` | The pure core **and `emit-figma`** | Engine tests, NB regression, byte-repro fixture, `out/*` discipline |
+| `lane:web` | The dashboard / theme studio | `tsc` + build, headless drive |
+| `lane:plugin` | The Figma plugin workspace | Two-context typecheck, shim tests, 0 `node:` builtins, live drive |
+| `lane:figma` | **Canvas craft** — building components, canvas docs, library structure, Code Connect authoring | Design review; no code gates |
+| `lane:components` | The code component library (`docs/19`) | TBD when the lane activates — Storybook, a11y, visual regression |
+| `lane:mcp` | MCP surface + agent-facing tooling | Eval harness |
+| `lane:docs` | Docs, specs, durable state | Review |
+| `lane:research` | Open questions and spikes | A named verdict |
+| `lane:token-press` | Cross-repo: Token Press ingestion / round-trip | Coordination, not code |
+
+`emit-figma`, the plugin, and canvas work share only the word *Figma* — they have three
+different verification models, so they're three lanes. Put `[emit-figma]` in the title
+when you need that specificity within `lane:engine`.
+
+### Reconciling the existing labels
+
+The current labels (`lane:generator`, `lane:emitter`, `lane:token-press`) date from the
+two-thread era — a *generator* thread and an *emitter* thread working in parallel. They
+were never documented and haven't been applied since early July, so the taxonomy is
+vocabulary-in-prose today. Renaming preserves the label on existing issues:
 
 ```bash
-# rename the two that have direct successors
-gh label edit lane:generator --name lane:engine --color 0E8A16 --description "The pure token generation engine"
-gh label edit lane:emitter   --name lane:figma  --color 5319E7 --description "emit-figma + Figma materialisation"
+# rename — lane:generator is today's lane:engine
+gh label edit lane:generator --name lane:engine --color 0E8A16 --description "Pure core + emit-figma"
 
-# lane:token-press stays — still a real cross-repo lane
+# lane:emitter folds INTO lane:engine — relabel its issues (#66 and friends), then delete
+gh label delete lane:emitter
+
+# keep — still a real cross-repo lane
 gh label edit lane:token-press --color D4C5F9 --description "Cross-repo: Token Press ingestion/round-trip"
 
 # create the lanes that never had labels
-gh label create lane:web      --color 1D76DB --description "The web dashboard / theme studio"
-gh label create lane:plugin   --color 5319E7 --description "The Figma plugin (both contexts)"
-gh label create lane:mcp      --color B60205 --description "MCP surface + agent-facing tooling"
-gh label create lane:docs     --color 0052CC --description "Docs, specs, and durable state"
-gh label create lane:research --color FBCA04 --description "Open questions and spikes"
+gh label create lane:web        --color 1D76DB --description "The web dashboard / theme studio"
+gh label create lane:plugin     --color 5319E7 --description "The Figma plugin (both contexts)"
+gh label create lane:figma      --color F9D0C4 --description "Canvas craft — components, canvas docs, Code Connect"
+gh label create lane:components --color 006B75 --description "The code component library (docs/19)"
+gh label create lane:mcp        --color B60205 --description "MCP surface + agent-facing tooling"
+gh label create lane:docs       --color 0052CC --description "Docs, specs, and durable state"
+gh label create lane:research   --color FBCA04 --description "Open questions and spikes"
 ```
 
-`lane:emitter → lane:figma` is a judgement call worth a moment's thought: the emitter is
-part of the engine, so it could equally fold into `lane:engine`. It's kept separate here
-because `emit-figma` has its own contract doc (`Prism3/docs/10`), its own byte-repro
-fixture, and its own recurring class of issue.
+## 7. Use the tracker's structure, not prose
+
+Three GitHub features replace conventions we currently maintain by hand. Prefer them —
+prose relationships don't survive contact with a second contributor.
+
+**Dependencies over "Blocked by:" prose.** Several issues state blocking in the body
+(`**Blocked by:** #115`). Set the native dependency instead. It makes the backlog
+*queryable* for what's actually ready to pick up, which is the thing a new contributor
+most needs and can least work out for themselves.
+
+**Sub-issues over checklists in epics.** A phased epic (#176 is the model — six phases as
+markdown checkboxes) should carry its phases as sub-issues, so someone can take phase A1
+without owning the whole arc.
+
+**Projects for prioritisation.** Labels answer *what kind*; a project board answers
+*what's next*. Keep sequencing there rather than in doc prose, which goes stale (the
+07-18 progress entry still lists three issues as open that have since been closed).
+
+Note: GitHub **issue types** are an organisation-level feature and aren't available on
+this account — labels remain the type mechanism.

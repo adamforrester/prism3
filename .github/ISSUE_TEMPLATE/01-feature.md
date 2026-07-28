@@ -7,11 +7,12 @@ labels: task
 
 <!--
   Write this as a brief an agent could execute without you in the room.
-  Title prefix: the lane in brackets — [engine] [web] [plugin] [mcp] [docs] [research].
-  Add the matching lane:* label after opening.
+  Title prefix: the lane in brackets — [engine] [web] [plugin] [figma] [components]
+  [mcp] [docs] [research]. Add the matching lane:* label after opening, and set any
+  native dependency rather than writing "blocked by" in the body.
 -->
 
-**Lane:** <!-- engine / web / plugin / mcp / docs --> · **Type:** feature · **Source:** <!-- owner direction / review / a PR follow-up / live drive -->
+**Lane:** <!-- engine / web / plugin / figma / components / mcp / docs --> · **Type:** feature · **Source:** <!-- owner direction / review / a PR follow-up / live drive -->
 
 ## What
 
