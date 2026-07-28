@@ -159,8 +159,16 @@ natively — they sort together in the picker, and they keep the axes from readi
 | `type:decision` | A fork that needs a call before work proceeds. |
 | `type:research` | A question to investigate. Deliberately a type, not a lane: research often spans lanes (#113 covers web, Figma **and** MCP). |
 
-Plus one flag: **`good first issue`**. Mark it as you file — much harder to spot
-retroactively than at the moment of writing.
+Plus two routing flags, both optional: **`good first issue`** (self-contained enough for
+someone new to the repo) and **`help wanted`** (needs attention beyond the usual). Mark
+`good first issue` as you file — much harder to spot retroactively than at the moment of
+writing.
+
+These 14 are the whole set. GitHub's stock labels were removed deliberately: `bug`,
+`documentation`, and `question` collided with `type:finding` / `lane:docs` /
+`type:research`, and `duplicate` / `invalid` / `wontfix` are better served by the native
+`state_reason` on close. If you find yourself wanting a new label, check it isn't a
+sub-area that belongs in the title first (see below).
 
 ### Three boundaries that get misread
 
@@ -194,39 +202,16 @@ The one genuine future split is a **platform consumption target** — AEM (`docs
 is a different skill set and a downstream consumer, so it earns `lane:aem` when it starts.
 Create it then.
 
-### Reconciling the existing labels
+### History (why some old issues look different)
 
-`lane:generator` / `lane:emitter` / `lane:token-press` date from the two-thread era — a
-*generator* thread and an *emitter* thread working in parallel. They were never documented
-and haven't been applied since early July. Renaming preserves the label on existing issues.
+The taxonomy above went live 2026-07-28. Before it, labels were `lane:generator` /
+`lane:emitter` / `lane:token-press` plus bare `task` / `finding` / `decision-needed` —
+vocabulary from the two-thread era, when a *generator* thread and an *emitter* thread ran
+in parallel. Those were renamed in place (so closed issues kept their labels),
+`lane:emitter` folded into `lane:engine`, and the colliding GitHub stock labels were
+removed.
 
-```bash
-# rename — lane:generator is today's lane:engine
-gh label edit lane:generator --name lane:engine --color 0E8A16 --description "Pure core + emit-figma"
-
-# lane:emitter folds INTO lane:engine — relabel its issues (#66) first, then delete
-gh label delete lane:emitter
-
-# keep — still a real cross-repo lane
-gh label edit lane:token-press --color D4C5F9 --description "Cross-repo: Token Press ingestion/round-trip"
-
-# the lanes that never had labels
-gh label create lane:web          --color 1D76DB --description "The web dashboard / theme studio"
-gh label create lane:plugin       --color 5319E7 --description "The Figma plugin (both contexts)"
-gh label create lane:figma        --color F9D0C4 --description "Canvas craft — components in Figma, canvas docs, Code Connect"
-gh label create lane:code-library --color 006B75 --description "The code component library — headless core + its projections (docs/19)"
-gh label create lane:mcp          --color B60205 --description "MCP surface + agent-facing tooling"
-gh label create lane:docs         --color 0052CC --description "This repo's own specs and durable state"
-
-# the type axis — rename the three bare labels, add research
-gh label edit task            --name type:task     --color C2E0C6 --description "Scoped build work"
-gh label edit finding         --name type:finding  --color D93F0B --description "A defect with evidence"
-gh label edit decision-needed --name type:decision --color FBCA04 --description "A fork that needs a call before work proceeds"
-gh label create type:research --color FEF2C0 --description "A question to investigate — often spans lanes"
-
-# optional: 'enhancement' (a GitHub default) now collides with type:task
-gh label delete enhancement
-```
+Nothing here to run — this note exists so an old issue's label history reads sensibly.
 
 ## 7. Use the tracker's structure, not prose
 
