@@ -164,7 +164,18 @@ someone new to the repo) and **`help wanted`** (needs attention beyond the usual
 `good first issue` as you file — much harder to spot retroactively than at the moment of
 writing.
 
-These 14 are the whole set. GitHub's stock labels were removed deliberately: `bug`,
+**`priority:now`** — the one label that answers "what's helpful to pick up first," which
+`lane:`/`type:` deliberately don't (they answer *what kind*, not *what order*). Applied to
+issues with **no stated blocker** — read literally: no `**Depends on:**` line in the body,
+and (for a `type:decision`) nothing waiting on an owner call first. It is *not* a ranking
+within that set — just the readiness filter. Computed once (2026-07-28) from the
+`Depends on:` chains written into issue bodies across the custom-mode-arc and
+code-library backlog passes; nobody's maintaining it as issues open and close, so treat it
+as a snapshot to re-derive, not a live feed. Only `priority:now` exists — no
+`priority:next`/`priority:later`; an unused tier is worse than no tier (see `lane:emitter`'s
+fate, above). Add those only once there's something real to put in them.
+
+These 15 are the whole set. GitHub's stock labels were removed deliberately: `bug`,
 `documentation`, and `question` collided with `type:finding` / `lane:docs` /
 `type:research`, and `duplicate` / `invalid` / `wontfix` are better served by the native
 `state_reason` on close. If you find yourself wanting a new label, check it isn't a
@@ -235,9 +246,13 @@ issues #246–#251, nested under #176 in that order. Their sequencing (A2 needs 
 A1+B, C2 needs C1, D needs A1+C1) is stated as `**Depends on:**` prose in each body for the
 same reason — no write access to native dependencies from here.
 
-**Projects for prioritisation.** Labels answer *what kind*; a project board answers
-*what's next*. Keep sequencing there rather than in doc prose, which goes stale (the
-07-18 progress entry still lists three issues as open that have since been closed).
+**Projects for prioritisation — still the right long-term tool, not yet built.** Labels
+answer *what kind*; a project board answers *what's next*, with visual ordering and status
+a label can't carry. `priority:now` (§6) is the interim, lower-cost stand-in — computed
+once, not a live view — because this GitHub MCP setup has no Projects-write access, only
+`gh`/the web UI does. Build the board there if the curation overhead is worth it for the
+team; keep sequencing off doc prose either way, which goes stale (the 07-18 progress entry
+still lists three issues as open that have since been closed).
 
 Note: GitHub **issue types** are an organisation-level feature and aren't available on
 this account — labels remain the type mechanism.
