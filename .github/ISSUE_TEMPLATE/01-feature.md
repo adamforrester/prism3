@@ -2,7 +2,7 @@
 name: Feature / build work
 about: A change someone (or an agent) can pick up and build.
 title: "[lane] "
-labels: enhancement
+labels: task
 ---
 
 <!--
