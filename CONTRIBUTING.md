@@ -155,8 +155,8 @@ the engine rather than with the other Figma-adjacent work.
 | `lane:engine` | The pure core **and `emit-figma`** | Engine tests, NB regression, byte-repro fixture, `out/*` discipline |
 | `lane:web` | The dashboard / theme studio | `tsc` + build, headless drive |
 | `lane:plugin` | The Figma plugin workspace | Two-context typecheck, shim tests, 0 `node:` builtins, live drive |
-| `lane:figma` | **Canvas craft** — building components, canvas docs, library structure, Code Connect authoring | Design review; no code gates |
-| `lane:components` | The code component library (`docs/19`) | TBD when the lane activates — Storybook, a11y, visual regression |
+| `lane:figma` | **Canvas craft** — building components *in Figma*, canvas docs, library structure, Code Connect authoring | Design review; no code gates |
+| `lane:code-library` | The **code** component library — WC/React, Storybook, `.ai.json` (`docs/19`) | TBD when the lane activates — Storybook, a11y, visual regression |
 | `lane:mcp` | MCP surface + agent-facing tooling | Eval harness |
 | `lane:docs` | Docs, specs, durable state | Review |
 | `lane:research` | Open questions and spikes | A named verdict |
@@ -165,6 +165,12 @@ the engine rather than with the other Figma-adjacent work.
 `emit-figma`, the plugin, and canvas work share only the word *Figma* — they have three
 different verification models, so they're three lanes. Put `[emit-figma]` in the title
 when you need that specificity within `lane:engine`.
+
+The **component** pair is the one most easily misread, so the labels say which side they
+mean: `lane:figma` is building a component **on the Figma canvas** (design work);
+`lane:code-library` is building the same component **in code** (dev work). A component
+that needs both gets one issue per lane, not one issue with two labels — they have
+different gates and usually different owners.
 
 ### Reconciling the existing labels
 
@@ -186,8 +192,8 @@ gh label edit lane:token-press --color D4C5F9 --description "Cross-repo: Token P
 # create the lanes that never had labels
 gh label create lane:web        --color 1D76DB --description "The web dashboard / theme studio"
 gh label create lane:plugin     --color 5319E7 --description "The Figma plugin (both contexts)"
-gh label create lane:figma      --color F9D0C4 --description "Canvas craft — components, canvas docs, Code Connect"
-gh label create lane:components --color 006B75 --description "The code component library (docs/19)"
+gh label create lane:figma        --color F9D0C4 --description "Canvas craft — components in Figma, canvas docs, Code Connect"
+gh label create lane:code-library --color 006B75 --description "The code component library — WC/React, Storybook (docs/19)"
 gh label create lane:mcp        --color B60205 --description "MCP surface + agent-facing tooling"
 gh label create lane:docs       --color 0052CC --description "Docs, specs, and durable state"
 gh label create lane:research   --color FBCA04 --description "Open questions and spikes"

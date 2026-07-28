@@ -142,3 +142,44 @@ skill the eval harness gates next (precedent: a skill's value is measurable — 
 that bar).
 
 ---
+
+## Idea 4 — Repo rename: `prism3-tokens` → `prism3`
+
+**Raised 2026-07-28 · status: agreed in principle, not yet done.** The name reflects the
+repo's origin (a place to build a new token set); it has since become the monorepo for
+the engine, both surfaces, and — per `19 §2` — the code component library. The name
+should describe what it is now.
+
+**Recommended name: `prism3`.** The strongest evidence is that the repo already calls
+itself that internally: the root `package.json` is `"name": "prism3"`, and the workspaces
+are `@prism3/web` / `@prism3/plugin` with `@prism3/components` planned. The repo name
+should match the npm scope already in use. (`prism3-platform` was considered and rejected
+in `09 §1` — though as the name for a *fresh* repo, a different question. The extra word
+disambiguates nothing when there's only one.)
+
+**Timing — it blocks nothing.** Labels and issues live on the repo object and survive a
+rename; GitHub redirects both web and git URLs indefinitely (until something claims the
+old name), so existing clones keep working. So filing issues need not wait. The argument
+for doing it *soon* is only that references accumulate — and that work is currently
+paused, which is the cheapest window there will be.
+
+**Sequencing caution:** don't rename while an agent session is mid-flight — a Claude Code
+remote session's repo scope and git proxy are pinned to the repo slug at session start.
+Merge what's in flight, rename, then start a fresh session.
+
+**Checklist (11 references outside the history log):**
+
+| File | What |
+|---|---|
+| `README.md` | H1 |
+| `CONTRIBUTING.md` | H1 |
+| `.github/ISSUE_TEMPLATE/config.yml` | 3 absolute `github.com/...` URLs (redirects would cover them, but fix) |
+| `.claude/commands/review-pr.md` | the `adamforrester/prism3-tokens` slug |
+| `docs/09-architecture-and-repos.md` | §3 layout diagram; §1.2's "grown from `prism3-tokens`" is a historical decision statement — keep, it's true of the past |
+| `docs/08-theming-interfaces.md` | one reference |
+| `docs/07-e2e-journey.md` | §11.6 "Built **here** (prism3-tokens)" — historical, safe to leave |
+| `docs/25-output-style-guide.md` | one reference |
+| `docs/00-progress.md` | 7 references — **leave alone**, it's an append-only history log and those statements were true when written |
+
+Also update after renaming: the local remote (`git remote set-url`), and any bookmark or
+integration configured by URL.
