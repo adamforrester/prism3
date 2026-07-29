@@ -76,3 +76,38 @@ touch `node:` and would not bundle for the browser.
   validation currently leans on `brandTheme` throwing, since the full validator is node-bound
   in `emit-dtcg`). *Type specimen:* the visual sample size is capped at 60px for layout — the
   real px is shown in each row's label.
+
+## Deploy
+
+The dashboard is a **static site** — the engine runs client-side, there is no backend, and
+`main.ts` makes no network calls at runtime. It deploys to Vercel from this monorepo.
+
+The deploy contract lives in the repo-root **`vercel.json`** (two keys: `buildCommand` +
+`outputDirectory`), so it is reviewable in git rather than hidden in dashboard settings.
+
+```bash
+npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/
+```
+
+`build:site` (`build-site.mjs`) bundles with the same flags as `build`, then assembles
+`web/public/` containing exactly `index.html` + `dist/main.js` + `.map` — and **fails
+non-zero if the output is anything else**, so an emitted-but-unreferenced asset can't ship a
+broken site on a green build. `dev` and `build` are unchanged and remain the local workflow;
+`web/public/` is gitignored.
+
+**Vercel's Root Directory must stay the repo root — not `web/`.** `src/main.ts` imports
+`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped
+build cannot resolve.
+
+Only `web/src` and `Prism3/{engine,schema}` are **read by the build**; `plugin/`, `Tokens/`,
+and `Prism3/engine/out/` are neither read nor served. Install is a different matter — it runs
+at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
+`@figma/plugin-typings`. Two consequences: the build needs devDependencies, so
+`NODE_ENV=production` must not be set at install time; and a dependency bump in
+`plugin/package.json` without a regenerated root `package-lock.json` can fail this deploy's
+install step (`npm ci` rejects a lockfile mismatch) before the build command ever runs.
+
+**New Vercel projects enable Deployment Protection by default** — Settings → Deployment Protection →
+disable Vercel Authentication, or the prod and preview URLs will be behind a login wall.
+
+Pushes to `main` redeploy production; every PR gets its own preview URL.

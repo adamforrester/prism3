@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "esbuild src/main.ts --bundle --format=esm --outdir=dist --define:PRISM3_HOST=\"'web'\" --servedir=. --serve=127.0.0.1:5173",
     "build": "esbuild src/main.ts --bundle --format=esm --outdir=dist --define:PRISM3_HOST=\"'web'\" --sourcemap",
+    "build:site": "node build-site.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
