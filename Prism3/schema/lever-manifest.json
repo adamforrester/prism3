@@ -471,7 +471,7 @@
         },
         {
           "value": "none",
-          "label": "No hover expression"
+          "label": "No hover fill"
         }
       ],
       "description": "How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = opaque foreground.<color>-subtle; none = omit."
