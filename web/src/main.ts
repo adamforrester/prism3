@@ -31,7 +31,7 @@ import type { ResolvedPreview } from '../../Prism3/engine/resolve-preview';
 import { resolveAllModes } from '../../Prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '../../Prism3/engine/design-md';
 import { buildTree } from '../../Prism3/engine/tree';
-import { makeWriteHost, hostCommit, cssVarName, typeVar } from './write-adapter';
+import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
 import exampleBrands from '../../Prism3/schema/example-brands.json';
 
@@ -248,21 +248,6 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
   wrap.append(el('p', 'knob-desc', desc));
   return wrap;
 };
-// Resolved-value lookups are for PRESENCE checks only (does this role resolve in this
-// mode? — decides whether a chip paints a border, etc.). The VALUE a chip renders never
-// comes from here: it's a `var(--…)` reference the active write host (write-adapter.ts,
-// #106) fills in — so the UI stops writing resolved token values directly.
-const hexOf = (binding: string | undefined, mode: Mode): string | undefined =>
-  binding && binding.startsWith('color.') ? rp.colors[binding]?.[mode] : undefined;
-/** The `var(--…)` a chip assigns for a color binding, with the resolved hex as fallback
- *  (so it's correct even before/without a host apply). */
-const colorVar = (binding: string, mode: Mode): string => `var(${cssVarName(binding)}, ${hexOf(binding, mode) ?? 'transparent'})`;
-const pageBg = (mode: Mode): string => `var(${cssVarName('color.background.primary')}, ${rp.colors['color.background.primary']?.[mode] ?? '#ffffff'})`;
-
-// The active write host — projects the resolved model onto whatever backend this host
-// owns (CSS vars on web; figma.variables in the plugin). Re-scoped per preview paint.
-let writeHost = makeWriteHost(document.documentElement);
-
 // The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
@@ -680,39 +665,6 @@ const renderPerModeTempo = (lever: Lever): HTMLElement =>
 const renderPerModeDensity = (lever: Lever): HTMLElement =>
   renderPerModeSelect(lever, 'density', DENSITY_OPTS, () => String(brandState.density ?? (lever.default as string) ?? 'comfortable'), (s) => s, 'density');
 
-const renderChip = (label: string, bind: Record<string, string>, mode: Mode): HTMLElement => {
-  // PRESENCE (resolved model) decides WHICH styles a chip paints; the VALUES are all
-  // `var(--…)` refs the active write host fills in (#106). The resolved hex/px still ride
-  // along as the `var()` fallback, so a chip is correct even if no host has applied yet.
-  const fgBind = bind.text ?? bind.titleText ?? bind.bodyText;
-  const chip = el('div', 'chip', label);
-  if (hexOf(bind.bg, mode)) chip.style.background = colorVar(bind.bg, mode);
-  if (fgBind && hexOf(fgBind, mode)) chip.style.color = colorVar(fgBind, mode);
-  const border = bind.border && hexOf(bind.border, mode);
-  chip.style.border = `2px solid ${border ? colorVar(bind.border, mode) : 'transparent'}`;
-  // Geometry is per-mode now (wireframe zeroes radius): the host projects the effective
-  // per-mode value onto the same var name, so the chip just references it.
-  const dimPx = (ref: string): number => rp.dimOverrides[ref]?.[mode] ?? rp.dims[ref];
-  if (bind.radius && rp.dims[bind.radius] != null) chip.style.borderRadius = `var(${cssVarName(bind.radius)}, ${dimPx(bind.radius)}px)`;
-  const padVar = (ref: string): string => `var(${cssVarName(ref)}, ${dimPx(ref)}px)`;
-  const pad = bind.pad ? padVar(bind.pad) : bind.padX && bind.padY ? `${padVar(bind.padY)} ${padVar(bind.padX)}` : '';
-  if (pad) chip.style.padding = pad;
-  const t = bind.type ? rp.type[bind.type] : undefined;
-  if (t) {
-    chip.style.fontFamily = typeVar(bind.type, 'family');
-    chip.style.fontWeight = typeVar(bind.type, 'weight');
-    // Visual cap stays inline (min(20px, …)) — the host var carries the true px, which the
-    // label already reports; capping the var itself would misreport the resolved size.
-    chip.style.fontSize = `min(20px, ${typeVar(bind.type, 'size')})`;
-  }
-  // Elevation: the resolved per-mode box-shadow, via the host var (dark = reduced). The
-  // resolved string rides along as the var() fallback, so the shadow is correct even before
-  // a host has applied — and the shadow-softness lever now shows up here live.
-  const sh = bind.shadow ? rp.shadows[bind.shadow]?.[mode] : undefined;
-  if (sh) chip.style.boxShadow = `var(${cssVarName(bind.shadow)}, ${sh})`;
-  return chip;
-};
-
 /** The all-modes contrast table (Pair · a mode column each · dot + ratio). Shared by the Preview master
  *  table and the per-page section tables (docs/23 §3) — one authoritative renderer, re-sliced by the
  *  caller's contract list. `paths` shows the raw `fg on bg` token paths (the section tables, which sit
@@ -750,65 +702,9 @@ const contractTableEl = (contracts: typeof rp.contracts, paths = false): HTMLEle
 };
 
 // ---- Preview segments (docs/23 §7) ----------------------------------------
-// The Preview destination has three views behind a segmented switcher: the component gallery, the
-// all-modes contract master table, and a category-grouped token list. All read the mode picked in the
-// global header for their per-mode columns/rendering.
-
-/** UI preview — the component gallery for the active mode, with inline per-component contrast badges. */
-// Which slot a binding key paints, as a short human label for the per-variant token breakdown.
-const SLOT_LABEL: Record<string, string> = {
-  bg: 'surface', border: 'border', text: 'text', title: 'title', titleText: 'title', body: 'body', bodyText: 'body',
-  placeholder: 'placeholder', icon: 'icon', indicator: 'indicator', type: 'type', radius: 'radius',
-  pad: 'padding', padX: 'padding-x', padY: 'padding-y', shadow: 'shadow',
-};
-const SLOT_ORDER = ['bg', 'border', 'text', 'title', 'titleText', 'body', 'bodyText', 'placeholder', 'icon', 'indicator', 'type', 'radius', 'pad', 'padX', 'padY', 'shadow'];
-
-const renderPreviewGallery = (host: HTMLElement): void => {
-  if (lastError) host.append(el('div', 'errbar', `This combination doesn't resolve: ${lastError} — showing the last valid theme.`));
-  // Project the resolved model for the active mode onto a fresh surface (so a mode switch can't leak
-  // stale vars). Chips inherit the CSS custom properties and reference them via `var(--…)`.
-  const surface = el('div', 'preview');
-  writeHost = makeWriteHost(surface);
-  writeHost.apply(rp, currentMode);
-  const bg = pageBg(currentMode);
-  surface.style.background = bg;
-  for (const c of previewSpec.components) {
-    const block = el('section', 'pvcomp');
-    block.append(el('h4', 'pvcomp-t', c.label));
-    // One card per variant: the live-rendered component on a mini page-surface, its variant name, the
-    // FULL token breakdown (every binding → a labelled pill, so nothing on screen is untraceable), and
-    // the variant's own contrast receipts.
-    const grid = el('div', 'pvvars');
-    for (const v of c.variants) {
-      const cell = el('div', 'pvvar');
-      const stage = el('div', 'pvvar-stage'); stage.style.background = bg;
-      stage.append(renderChip(v.name, v.bindings, currentMode));
-      cell.append(stage);
-      const meta = el('div', 'pvvar-meta');
-      meta.append(el('div', 'pvvar-name mono', v.name));
-      const pills = el('div', 'pvvar-pills');
-      const b = v.bindings as Record<string, string>;
-      for (const slot of SLOT_ORDER) {
-        const path = b[slot]; if (!path) continue;
-        const row = el('div', 'pvvar-pill');
-        row.append(el('span', 'pvfk', SLOT_LABEL[slot] ?? slot), tokenPill(path));
-        pills.append(row);
-      }
-      meta.append(pills);
-      const cts = rp.contracts.filter((ct) => ct.component === c.id && ct.variant === v.name && ct.byMode[currentMode]);
-      if (cts.length) {
-        const badges = el('div', 'pvvar-cts');
-        for (const ct of cts) { const r = ct.byMode[currentMode]!; badges.append(contrastBadge(r.ratio, ct.min, ct.label)); }
-        meta.append(badges);
-      }
-      cell.append(meta);
-      grid.append(cell);
-    }
-    block.append(grid);
-    surface.append(block);
-  }
-  host.append(surface);
-};
+// The Preview destination has three views behind a segmented switcher: the style guide (roles composed
+// in-context), the all-modes contract master table, and a category-grouped token list. All read the
+// mode picked in the global header for their per-mode columns/rendering.
 
 /** Contrast contracts — the full all-modes master table (verification of record). */
 const renderPreviewContracts = (host: HTMLElement): void => {
@@ -818,7 +714,9 @@ const renderPreviewContracts = (host: HTMLElement): void => {
 
 // Token list — the resolved token set, grouped by category, value(s) per mode where they vary.
 const tokenTableEl = (rows: Array<{ name: string; cells: Array<HTMLElement | string> }>, cols: string[]): HTMLElement => {
-  const table = el('table', 'ctable');
+  // `toktable` left-aligns the value columns (a swatch+hex / px value reads best flush-left) — the
+  // shared `.ctable .mcol` centring is right for the contrast table's dot+ratio, wrong here.
+  const table = el('table', 'ctable toktable');
   const thead = el('tr'); thead.append(el('th', undefined, 'Token'));
   for (const c of cols) thead.append(el('th', 'mcol', c));
   table.append(thead);
@@ -851,7 +749,9 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     for (const r of rows) { const g = r.name.split('.')[0]; (groups.get(g) ?? groups.set(g, []).get(g)!).push(r); }
     const grouped = groups.size > 1;
     for (const [g, grows] of groups) {
-      if (grouped) sec.append(el('div', 'tok-grouplab mono', g));
+      // Use the shared doc-26 section head (uppercase `.sub-t`), same as the Style guide's group
+      // labels — not a bespoke lowercase-mono label — so the token list reads in the same language.
+      if (grouped) sec.append(subHead(g));
       const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(grows, cols)); sec.append(scroll);
     }
     host.append(sec);
@@ -867,10 +767,17 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   tokenSection('Dimension', 'The px scale — space / size / radius; baseline + per-mode overrides where they differ.',
     dimRefs.map((ref) => ({ name: ref, cells: modes.map((m) => `${rp.dimOverrides[ref]?.[m] ?? rp.dims[ref]}px`) })), modeLabels);
 
-  // Typography — resolved composites (mode-invariant): family · weight · size.
+  // Typography — resolved composites (mode-invariant). Show the FULL composite (family · weight · size ·
+  // line-height · tracking); the primary family only (no fallback stack — that clutters and belongs to CSS).
   const typeRefs = Object.keys(rp.type).sort();
-  tokenSection('Typography', 'Resolved composites (mode-invariant) — family · weight · size.',
-    typeRefs.map((ref) => { const t = rp.type[ref]; return { name: ref, cells: [`${t.fontFamily} · ${t.fontWeight} · ${Math.round(t.fontSizePx)}px`] }; }), ['Resolved · shared across modes']);
+  tokenSection('Typography', 'Resolved composites (mode-invariant) — family · weight · size · line-height · tracking.',
+    typeRefs.map((ref) => {
+      const t = rp.type[ref];
+      const parts = [t.fontFamily, String(t.fontWeight), `${Math.round(t.fontSizePx)}px`];
+      if (t.lineHeight != null) parts.push(`${t.lineHeight} lh`);
+      if (t.letterSpacingEm != null) parts.push(`${t.letterSpacingEm}em`);
+      return { name: ref, cells: [parts.join(' · ')] };
+    }), ['Resolved · shared across modes']);
 
   // Shadow — the elevation ramp, CSS box-shadow per mode (dark = the reduced set).
   const shRefs = Object.keys(rp.shadows).sort();
@@ -1057,7 +964,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   sizeRadius: ['Size & radius.', 'Component sizing (control height + paired padding, driven by density) and corner radius. Both go per-mode outside Light.'],
   layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
   motion: ['Motion.', 'Tempo (the duration ramp) and the emphasized easing curve. Reduce-motion is derived.'],
-  preview: ['Preview your system.', 'Every sample component and the full contrast-contract table, resolved through each mode. Switch modes above to preview them — this is the one place the whole system renders together.'],
+  preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
 };
 
 // Validation-color control (docs/21 + status.*). Lives INLINE on each status ramp (primitives
@@ -1435,12 +1342,28 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
 
   const ds = el('div', 'psec'); ds.append(el('p', 'psec-t', 'Disabled'), el('p', 'psec-d', 'How disabled controls look and whether they stay legible.'));
   const eBg = roles['interactive.primary.fill.rest']?.hex ?? '#5e4bc3', eFg = roles['interactive.primary.on-fill']?.hex ?? '#ffffff';
-  const dBg = roles['background.tertiary']?.hex ?? '#e7e7ee', dFg = roles['text.tertiary']?.hex ?? '#9a9aa6';
+  // Read the RESOLVED disabled roles (not the invariant tertiary surface) so the example tracks the
+  // strategy + contrast-floor controls live — accessible vs. conventional lands on different steps.
+  const dBg = roles['disabled.fill']?.hex ?? '#e7e7ee', dFg = roles['disabled.on-fill']?.hex ?? '#9a9aa6';
   ds.append(iRow({ lead: true, srcLabel: 'Strategy', select: iEnumSelect('disabledStrategy'),
     desc: 'Keep disabled controls legible (clears the floor), or the conventional low-contrast look.',
     example: twoUp(['Enabled', exBtn(eBg, eFg, false, 'Save')], ['Disabled', exBtn(dBg, dFg, false, 'Save')]) }));
   if ((getPath(brandState, 'disabledStrategy') ?? 'accessible') === 'accessible') {
-    const min = leverByKey('disabledMin'); if (min) { const c = renderControl(min); c.classList.add('nested'); ds.append(c); }
+    const min = leverByKey('disabledMin');
+    if (min) {
+      const c = renderControl(min);
+      // The example above lives in this non-volatile section (not the .stage-vol region), so the
+      // generic slider oninput's apply() (volatile-only) wouldn't refresh it. Commit on RELEASE with
+      // applyFull (a select-like re-render) so the disabled specimen tracks the floor — using onchange,
+      // not oninput, because applyFull rebuilds the workspace and would destroy the slider mid-drag.
+      const slider = c.querySelector('input[type="range"]') as HTMLInputElement | null;
+      const label = c.querySelector('.knob-val') as HTMLElement | null;
+      if (slider) {
+        slider.oninput = () => { if (label) label.textContent = `${slider.value}${min.unit ?? ''}`; };
+        slider.onchange = () => { setPath(brandState, min.key, Number(slider.value)); applyFull(); };
+      }
+      ds.append(c);
+    }
   }
   host.append(ds);
 
@@ -1861,13 +1784,14 @@ const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion
   h.append(renderEasingEditor());
 }, () => [renderMotionSpecimen()]);
 
-/** The Preview destination (docs/23 §7) — the overall UI preview + contrast contracts, resolved
- *  through the mode picked in the global header. Owns the component gallery that used to be duplicated
- *  on every editing stage. (Segmented UI / contrast / token-list sub-views + a per-section contrast
- *  table land in a follow-up; this is the extraction.) */
-type PreviewView = 'ui' | 'contrast' | 'styleguide' | 'tokens';
-let previewView: PreviewView = 'ui';
-const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['ui', 'UI preview'], ['contrast', 'Contrast contracts'], ['styleguide', 'Style guide'], ['tokens', 'Token list']];
+/** The Preview destination (docs/23 §7) — the resolved system for the mode picked in the global header,
+ *  across three segmented views: the style guide (the roles composed in-context), the all-modes contrast
+ *  contract table, and the category-grouped token list. (The former "UI preview" component gallery was
+ *  dropped — button padding / badges / nav aren't defined at this stage, so those specimens were
+ *  placeholder; the style guide now carries the real value.) */
+type PreviewView = 'styleguide' | 'contrast' | 'tokens';
+let previewView: PreviewView = 'styleguide';
+const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['styleguide', 'Style guide'], ['contrast', 'Contrast contracts'], ['tokens', 'Token list']];
 const renderPreviewPage = (host: HTMLElement): void => {
   const [title, lede] = PAGE_COPY.preview;
   host.append(hero(title, lede));
@@ -1885,9 +1809,8 @@ const renderPreviewPage = (host: HTMLElement): void => {
     vol.innerHTML = '';
     const pv = el('div', 'pvhost');
     vol.append(pv);
-    if (previewView === 'ui') renderPreviewGallery(pv);
+    if (previewView === 'styleguide') renderPreviewStyleGuide(pv);
     else if (previewView === 'contrast') renderPreviewContracts(pv);
-    else if (previewView === 'styleguide') renderPreviewStyleGuide(pv);
     else renderPreviewTokens(pv);
   };
   paintVolatile();
@@ -3505,7 +3428,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sub-t{font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:0}
 .knob{padding:14px 0;border-bottom:1px solid var(--line)}
 .knob:last-child{border-bottom:0}
-.knob.nested{margin-left:16px;padding-left:16px;border-left:2px solid var(--line)}
 .knob-label{display:block;font-weight:600;font-size:13.5px}
 .knob-body{display:flex;align-items:center;gap:10px;margin-top:8px}
 .knob input[type=range]{flex:1;accent-color:var(--ink)}
@@ -3565,8 +3487,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .stage-vol{display:flex;flex-direction:column}
 .pvhost{display:flex;flex-direction:column;gap:16px}
 .pv-tscroll{overflow-x:auto;margin-top:8px}
-.tok-grouplab{font-size:11px;font-weight:680;letter-spacing:.04em;color:var(--ink2);margin:18px 0 2px}
-.tok-grouplab:first-of-type{margin-top:12px}
 .type-spec{margin-bottom:8px}
 .ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
 .ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -3724,22 +3644,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .genview-chip.no{background:#fdecec;color:#a12;border:1px solid #f2c6c6}
 .gv-mark{font-weight:700}
 .genview-hint{margin:14px 0 0;color:var(--faint);font-size:12.5px;line-height:1.55}
-.preview{border:1px solid var(--line);border-radius:var(--r);padding:24px;background:#fff}
-.pvcomp{margin-bottom:30px}
-.pvcomp:last-child{margin-bottom:0}
-.pvcomp-t{margin:0 0 14px;font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-/* Thorough UI gallery (#Preview): one card per variant — live render · variant name · every binding as a
-   labelled token pill · the variant's contrast receipts. */
-.pvvars{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px}
-.pvvar{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel);display:flex;flex-direction:column;overflow:hidden}
-.pvvar-stage{min-height:88px;display:flex;align-items:center;justify-content:center;padding:22px 18px;border-bottom:1px solid var(--line)}
-.pvvar-meta{display:flex;flex-direction:column;gap:9px;padding:12px 14px 14px}
-.pvvar-name{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
-.pvvar-pills{display:flex;flex-direction:column;gap:5px}
-.pvvar-pill{display:flex;align-items:baseline;gap:8px;min-width:0}
-.pvfk{font-size:9px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);flex:none;width:62px;text-align:right}
-.pvvar-pill .tpill{white-space:normal;word-break:break-word;line-height:1.4}
-.pvvar-cts{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
 .cbadge{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line2)}
 .cbadge.ok{background:rgba(26,156,82,.09);border-color:rgba(26,156,82,.35)}
 .cbadge.no{background:rgba(221,51,51,.09);border-color:rgba(221,51,51,.4)}
@@ -3821,7 +3725,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sf-ex-text{font-size:14.5px}
 .sf-railnote{font-size:10.5px;color:var(--faint)}
 @media(max-width:900px){.sf-row{grid-template-columns:56px 1fr;gap:14px}.sf-row .sf-ctl,.sf-right{grid-column:1/-1;align-items:flex-start}.sf-ex{width:100%}}
-.chip{padding:8px 14px;border-radius:8px;font-weight:600;font-size:13px}
 .contracts{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:18px 20px}
 .contracts-sum{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px}
 .contracts-sum::-webkit-details-marker{display:none}
@@ -3833,6 +3736,8 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .ctable{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
 .ctable th,.ctable td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
 .ctable .mcol{text-align:center}
+/* Token list: value columns read best flush-left (swatch+hex / px), overriding the shared centring. */
+.toktable .mcol{text-align:left}
 .pair{color:var(--ink2)}
 .pair-path{display:block;color:var(--ink2)}
 .pair-sub{display:block;font-size:11px;color:var(--faint);margin-top:1px}

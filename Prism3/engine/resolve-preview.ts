@@ -21,14 +21,19 @@ import { contrast, hexToRgb } from './color';
 import { Theme } from './theme';
 import { resolveAllModes, ModeName } from './modes';
 import { previewSpec, PreviewSpec } from './preview';
-import { buildTree, at, subNode, pxOf, numOf, remPxOf, familyOf } from './tree';
+import { buildTree, at, subNode, pxOf, numOf, remPxOf, familyOf, deref } from './tree';
 
 export type PreviewContractResult = {
   component: string; variant: string; fg: string; bg: string; min: number; label?: string;
   byMode: Partial<Record<ModeName, { ratio: number; pass: boolean }>>;
 };
-/** A resolved typography composite (mode-invariant) — the atoms a chip / Text Style needs. */
-export type ResolvedType = { fontFamily: string; fontWeight: number; fontSizePx: number };
+/** A resolved typography composite (mode-invariant) — the atoms a chip / Text Style needs.
+ *  `fontFamilyStack` carries the full family + fallbacks (for CSS); `fontFamily` is the primary face
+ *  alone (for display). `lineHeight` (unitless multiplier) + `letterSpacingEm` complete the composite. */
+export type ResolvedType = {
+  fontFamily: string; fontFamilyStack: string; fontWeight: number; fontSizePx: number;
+  lineHeight?: number; letterSpacingEm?: number;
+};
 export type ResolvedPreview = {
   modes: ModeName[];
   /** colour role (spec path, e.g. `color.interactive.primary.fill.rest`) → per-mode hex. Sparse:
@@ -134,10 +139,16 @@ export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): R
     const node = at(data, ref);
     const val = node?.$value ?? {};
     const sizePx = node?.$extensions?.prism3?.sizePx ?? remPxOf(tree, subNode(tree, val.fontSize));
+    const stack = familyOf(tree, subNode(tree, val.fontFamily));   // primary + fallbacks (CSS)
+    const lhNode = val.lineHeight ? deref(tree, subNode(tree, val.lineHeight)) : undefined;
+    const lsNode = val.letterSpacing ? deref(tree, subNode(tree, val.letterSpacing)) : undefined;
     type[ref] = {
-      fontFamily: familyOf(tree, subNode(tree, val.fontFamily)),
+      fontFamily: stack.split(',')[0].trim(),   // primary face alone (display)
+      fontFamilyStack: stack,
       fontWeight: numOf(tree, subNode(tree, val.fontWeight)),
       fontSizePx: sizePx,
+      ...(lhNode?.$value != null ? { lineHeight: numOf(tree, lhNode) } : {}),
+      ...(lsNode?.$extensions?.prism3?.em != null ? { letterSpacingEm: lsNode.$extensions.prism3.em as number } : {}),
     };
   }
 
