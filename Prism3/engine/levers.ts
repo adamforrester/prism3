@@ -136,8 +136,8 @@ export const leverManifest: Lever[] = [
     description: 'Base column count for the design grid (16/24 for dense-data brands).' },
   { key: 'layout.containerMax', group: 'layout', label: 'Container max', control: 'slider', advanced: true, default: 1440, min: 960, max: 1920, step: 40, unit: 'px',
     description: 'Content max-width cap; layout is fluid below it.' },
-  { key: 'layout.containerNarrow', group: 'layout', label: 'Narrow container', control: 'slider', advanced: true, default: 720, min: 480, max: 960, step: 20, unit: 'px',
-    description: 'Reading-measure container (~65–75ch).' },
+  { key: 'layout.containerNarrow', group: 'layout', label: 'Content container', control: 'slider', advanced: true, default: 720, min: 480, max: 960, step: 20, unit: 'px',
+    description: 'The reading-measure content column (~65–75ch) — narrower than the full container.' },
 
   // ---- ADVANCED (accessibility + opt-in) ----
   { key: 'iconContrast', group: 'advanced', label: 'Icon contrast floor', control: 'enum', default: 'text',
