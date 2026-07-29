@@ -2052,25 +2052,84 @@ const FAMILY_ROLES: Array<['display' | 'text' | 'mono', string, string]> = [
 
 // ---- FOUNDATIONS (primitives) ----------------------------------------------
 
-/** Typefaces — the faces this brand uses, with live availability + preview. Categories are
- *  deliberately absent: which category draws on which face is a SEMANTIC decision and lives
- *  on the Styles tab. (Until #269 lands, a face and its family role are the same object, so
- *  each card edits one role's face.) */
+/** Typefaces — the two tiers #269 split apart, made operable.
+ *
+ *  TIER 1, the library: `font.typeface.<slug>` — one primitive per distinct face, named after the
+ *  face itself, carrying its fallback stack. Until now this tier was invisible in the dashboard even
+ *  though the engine emits it. It is DERIVED, not authored: `deriveTypefaces` unions the faces the
+ *  role bindings (and any per-mode overrides) actually name, so a face exists exactly as long as
+ *  something binds it. That is also why removal needs no cascade — unbind it and it stops emitting.
+ *
+ *  TIER 2, the bindings: `font.family.<role>` — display / text / mono, the brand-invariant handles a
+ *  shared codebase references. Each aliases one library face. The role set is fixed by design (#269
+ *  rejected extensible roles): the typeface library is shared ACROSS brands and each brand binds its
+ *  own members, so N faces exist system-wide while any one brand binds at most three.
+ *
+ *  Categories stay absent here — which category draws on which face is semantic, and lives on Styles. */
 const renderTypefaces = (): HTMLElement => {
   const ty = theme.typography;
   const perMode = currentMode !== 'light';
   const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  const sec = palSection('Typefaces', 'The faces this brand uses. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim.');
+  const sec = palSection('Typefaces', 'Two tiers: the faces themselves, and which face does each job. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim.');
+
+  // Effective face per role, honouring a per-mode override.
+  const boundFace = (role: 'display' | 'text' | 'mono'): string => {
+    const base = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
+    if (!perMode) return base;
+    const ov = getModeLever(currentMode, `families.${role}`);
+    const ovName = Array.isArray(ov) ? ov[0] : (ov as string | undefined);
+    return ovName ?? base;
+  };
+
+  // ---- TIER 1 — the library (read-out; the bindings below are what author it) ----
+  sec.append(subHead('The library — one primitive per face'));
+  const lib = el('div', 'tf-lib');
+  for (const tf of ty.typefaces) {
+    const usedBy = FAMILY_ROLES.filter(([role]) => boundFace(role) === tf.name).map(([, label]) => label);
+    const row = el('div', 'tf-libro');
+    const idcol = el('div', 'tf-libid');
+    idcol.append(el('div', 'tf-libname', tf.name), tokenPill(`font.typeface.${tf.slug}`));
+    const ok = fontAvailable(tf.name);
+    const meta = el('div', 'tf-libmeta');
+    const stat = el('span', 'tf-stat ' + (ok ? 'ok' : 'no'), ok ? '✓ Installed here' : '⚠ Not installed — preview falls back');
+    meta.append(stat);
+    if (tf.variable) meta.append(el('span', 'tf-vf', 'Variable'));
+    meta.append(el('span', 'tf-usedby', usedBy.length ? `Bound to ${usedBy.join(' + ')}` : 'Bound by a mode override only'));
+    const fallback = el('div', 'tf-fall', tf.stack.length > 1 ? `Falls back to ${tf.stack.slice(1).join(', ')}` : 'No fallback stack');
+    const prev = el('div', 'tf-prev', 'Ag 123');
+    prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
+    row.append(idcol, meta, fallback, prev);
+    lib.append(row);
+  }
+  sec.append(lib);
+  sec.append(el('p', 'tf-derivenote', 'This list is derived, not authored — a face exists here exactly as long as a role below binds it. Bind a new name and its primitive appears; re-point the last role that used it and it disappears. Slugs come from the face name, so there is no rename to cascade.'));
+
+  // ---- TIER 2 — the bindings ----
+  sec.append(subHead('The bindings — which face does each job'));
   const grid = el('div', 'tf-grid');
   for (const [role, label, desc] of FAMILY_ROLES) {
     const globalPrimary = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
     const ov = perMode ? (Array.isArray(getModeLever(currentMode, `families.${role}`)) ? (getModeLever(currentMode, `families.${role}`) as string[])[0] : getModeLever(currentMode, `families.${role}`) as string | undefined) : undefined;
     const shown = perMode ? (ov ?? globalPrimary) : globalPrimary;
+    // mono alone is nullable — `families.mono: null` opts out, and `code` is the only category that
+    // binds mono, so the category goes with it (#269).
+    const unbound = role === 'mono' && !perMode && getPath(brandState, 'typography.families.mono') === null;
     const card = el('div', 'tf-card');
     card.append(el('div', 'tf-role', label), el('div', 'tf-desc', desc));
+
+    // Pick from the library, author a new face, or (mono) bind nothing at all.
+    // Sentinels rather than plain words: the value is compared against real face names, so it
+    // must be something no font family can be called.
+    const CUSTOM = '__custom__';
+    const NONE = '__none__';
+    const opts: Array<[string, string]> = ty.typefaces.map((t) => [t.name, t.name] as [string, string]);
+    if (!opts.some(([v]) => v === shown) && shown) opts.push([shown, shown]);
+    opts.push([CUSTOM, 'Custom face…']);
+    if (role === 'mono' && !perMode) opts.push([NONE, 'None — no mono face']);
+
     const input = el('input', 'tf-in') as HTMLInputElement;
     input.type = 'text'; input.spellcheck = false;
-    input.value = perMode ? (ov ?? '') : globalPrimary;
+    input.value = perMode ? (ov ?? '') : (unbound ? '' : globalPrimary);
     input.placeholder = perMode ? `Auto — ${globalPrimary}` : 'Font family name';
     const stat = el('div', 'tf-stat');
     const prev = el('div', 'tf-prev', 'Ag 123');
@@ -2080,23 +2139,50 @@ const renderTypefaces = (): HTMLElement => {
       stat.textContent = ok ? '✓ Rendering on this device' : (face ? '⚠ Not installed — preview falls back' : '⚠ Using the default face');
       prev.style.fontFamily = face ? `"${face}", ${role === 'mono' ? 'monospace' : 'sans-serif'}` : 'inherit';
     };
-    paint(shown);
-    input.oninput = () => paint(input.value.trim() || globalPrimary);
-    input.onchange = () => {
-      const v = input.value.trim() || undefined;
-      if (perMode) { setModeLever(currentMode, `families.${role}`, v); applyFull(); }
-      else { setPath(brandState, `typography.families.${role}`, v); apply(); }
+
+    const commit = (v: string | null | undefined): void => {
+      if (perMode) { setModeLever(currentMode, `families.${role}`, v ?? undefined); applyFull(); }
+      else { setPath(brandState, `typography.families.${role}`, v); applyFull(); }
     };
-    card.append(input, stat, prev, tokenPill(`font.family.${role}`));
+
+    const cur = unbound ? NONE : (shown || CUSTOM);
+    const sel = selectEl('sm fill');
+    for (const [v, label] of opts) sel.append(optionEl(v, label, v === cur));
+    sel.onchange = () => {
+      if (sel.value === CUSTOM) { input.hidden = false; syncStat(); input.value = ''; paint(''); input.focus(); return; }
+      if (sel.value === NONE) { commit(null); return; }
+      commit(sel.value);
+    };
+    // The free-text field is the authoring path for a face not yet in the library; picking an
+    // existing one hides it, so there are never two live inputs for the same value (doc 26).
+    input.hidden = !(unbound ? false : (!shown || !ty.typefaces.some((t) => t.name === shown)));
+    if (unbound) input.hidden = true;
+    input.oninput = () => paint(input.value.trim() || globalPrimary);
+    input.onchange = () => commit(input.value.trim() || (perMode ? undefined : null));
+
+    paint(unbound ? '' : shown);
+    // Availability is a property of the FACE, and the library above already reports it per face.
+    // Repeating it on every binding just triples the same warning — so it shows here only while the
+    // custom field is live, which is the one moment you are naming a face and need the answer now.
+    stat.hidden = input.hidden;
+    const syncStat = (): void => { stat.hidden = input.hidden; };
+    card.append(sel, input, stat);
+    if (unbound) {
+      card.append(el('div', 'tf-unbound', 'No mono face — the code category is not generated.'));
+    } else {
+      card.append(prev);
+    }
+    card.append(tokenPill(`font.family.${role}`));
     grid.append(card);
   }
   sec.append(grid);
+
   const spell = el('p', 'tf-note');
   spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalisation → Fonts, or the foundry / Google Fonts specimen page.';
   const local = el('p', 'tf-note warn');
   local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback — the ⚠ above tells you when that is happening. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(spell, local);
-  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s faces — blank follows the global baseline.`));
+  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s bindings — blank follows the global baseline. The library above shows every face any mode names.`));
   return sec;
 };
 
@@ -4159,6 +4245,21 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .tf-note b{color:var(--ink2)}
 .tf-note.warn{background:#fff8ed;border-color:#f0d9b5;color:#7a5320}
 .tf-note.warn b{color:#5c3d16}
+/* Typeface library (#269) — the primitive tier as full-width rows: identity left, the
+   derived facts in the middle, specimen right. Full-width rather than cards because the
+   list grows with the brand and the fallback stack needs the horizontal room. */
+.tf-lib{display:flex;flex-direction:column;gap:10px}
+.tf-libro{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr) 190px;gap:16px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.tf-libid{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
+.tf-libname{font-size:14.5px;font-weight:650;color:var(--ink)}
+.tf-libmeta{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tf-vf{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tf-usedby{font-size:11.5px;color:var(--faint)}
+.tf-fall{font-size:11.5px;color:var(--faint);line-height:1.45;min-width:0;overflow-wrap:anywhere}
+.tf-libro .tf-prev{border-top:0;padding-top:0;font-size:24px;text-align:right}
+.tf-derivenote{font-size:12px;color:var(--faint);line-height:1.55;margin:11px 0 0}
+.tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
+@media(max-width:900px){.tf-libro{grid-template-columns:1fr 1fr}.tf-libro .tf-prev{text-align:left}}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
 /* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
    it — without it the open-on-first-in-use-rung scroll overshoots to the bottom. */

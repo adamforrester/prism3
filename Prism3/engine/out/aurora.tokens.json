@@ -9939,11 +9939,11 @@
       }
     },
     "font": {
-      "family": {
-        "display": {
+      "typeface": {
+        "clash-display": {
           "$type": "fontFamily",
           "$value": "Clash Display",
-          "$description": "font family — display (Clash Display) [variable font]",
+          "$description": "typeface — Clash Display [variable font]",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9965,10 +9965,10 @@
             }
           }
         },
-        "text": {
+        "inter": {
           "$type": "fontFamily",
           "$value": "Inter",
-          "$description": "font family — text (Inter) [variable font]",
+          "$description": "typeface — Inter [variable font]",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9990,10 +9990,10 @@
             }
           }
         },
-        "mono": {
+        "jetbrains-mono": {
           "$type": "fontFamily",
           "$value": "JetBrains Mono",
-          "$description": "font family — mono (JetBrains Mono)",
+          "$description": "typeface — JetBrains Mono",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10006,6 +10006,62 @@
                 "Liberation Mono",
                 "monospace"
               ],
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        }
+      },
+      "family": {
+        "display": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.clash-display}",
+          "$description": "font family role — display → Clash Display",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.clash-display",
+              "face": "Clash Display",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "text": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.inter}",
+          "$description": "font family role — text → Inter",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.inter",
+              "face": "Inter",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "mono": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.jetbrains-mono}",
+          "$description": "font family role — mono → JetBrains Mono",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.jetbrains-mono",
+              "face": "JetBrains Mono",
               "figma": {
                 "kind": "style-part",
                 "field": "fontFamily",

@@ -8,7 +8,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: wendysFresh, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — display (wendysFresh)",
+      "description": "stack: wendysFresh, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family role — display → wendysFresh",
       "value": "wendysFresh",
       "alias": null,
       "hiddenFromPublishing": true
@@ -19,7 +19,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Roboto, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — text (Roboto)",
+      "description": "stack: Roboto, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family role — text → Roboto",
       "value": "Roboto",
       "alias": null,
       "hiddenFromPublishing": true
@@ -30,7 +30,7 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace — font family — mono (JetBrains Mono)",
+      "description": "stack: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace — font family role — mono → JetBrains Mono",
       "value": "JetBrains Mono",
       "alias": null,
       "hiddenFromPublishing": true

@@ -46,6 +46,116 @@ review needed a running process, there was no link to send anyone, and PRs had n
 
 ---
 
+## (2026-07-29) — Typefaces UI: the two tiers made operable (#269, web half)
+
+**STATUS: dashboard.** No engine change, no artifact change — this wires the tier split #269 landed
+in the engine to the Typography → Foundations page, which until now could not reach it.
+
+- **The gap it closes.** The engine emitted `font.typeface.*` primitives, supported N faces, and made
+  mono optional — but `renderTypefaces` still looped the fixed three roles and edited
+  `families[role].stack[0]` in place. The primitive tier was invisible and the new capability
+  unreachable from the UI.
+- **Tier 1 — the library.** One full-width row per distinct face: name, `font.typeface.<slug>` pill,
+  fallback stack, install status, which roles bind it, specimen. Rows rather than cards because the
+  list grows with the brand and the fallback stack needs the horizontal room.
+- **Tier 2 — the bindings.** Display / Text / Mono, each a select over the library plus *Custom face…*
+  (the authoring path for a face not yet in it); mono also offers *None*, which drops the `code`
+  category with it.
+- **Authoring through the bindings, not the library.** The library is DERIVED — a face exists exactly
+  as long as a role names it. So "add" is binding a new name and "remove" is re-pointing the last role
+  that used it; there is no delete button and no cascade, which is the same conclusion the engine
+  reached structurally. The section says this in as many words rather than leaving it to be inferred.
+- **Availability is scoped to the authoring moment.** Install status is a property of the face, and
+  the library already reports it per face — showing it on all three bindings as well repeated the same
+  warning three times. It now appears on a binding only while its custom field is live.
+- **Verified in a browser, not just by types.** Binding a fourth face grows the library and correctly
+  re-computes the shared-face dedupe (Inter drops from "Display + Text" to "Text"); unbinding mono
+  removes `typeface.jetbrains-mono` AND takes `type.code.*` from 1 composite to 0; rebinding restores
+  it. Zero console errors across Light/Dark and every page.
+- **Not a bug, recorded so it is not re-investigated:** on the HC modes the editor pages render an
+  intentional "auto-derived — read-only" panel instead of their `.psec` sections. A `.psec` count
+  reads as zero there; the page is correct.
+
+---
+
+## (2026-07-29) — One regen entry point + a drift gate over every committed artifact (#281)
+
+**STATUS: engine tooling.** New `Prism3/engine/regen.ts`; no engine behaviour change, no artifact
+change. Closes #281.
+
+- **The hole.** `out/*` is committed so results are reviewable without running the engine — but
+  nothing verified it still matched what the engine emits. Every existing gate (`test.ts`,
+  `nb-regression.ts`, alias resolution, contrast contracts) runs the engine **live and compares it
+  against itself**; none of them ever reads the committed file. So a stale artifact passes everything.
+- **What had rotted.** Regenerating on pristine `main` (`b5627f2`) with zero source edits produced
+  6,410 changed lines: `tokens.html` and all three wendys artifacts. Not formatting — the committed
+  wendys fixture was many merged PRs behind (aliases 627→856, contracts 248→432, missing the `max`
+  weight role, interactive overlays, neutral emphasis, inverse surface-context, `background.inverse.*`).
+- **Root cause: regen was four commands and only one was habitual.** `emit-dtcg.ts` covers
+  nb/aurora/harbor, so those stayed current; wendys goes through `cli.ts` (it is a *standard*-dialect
+  brief) and `tokens.html` through `visualize.ts`, so both rotted unseen.
+- **`regen.ts`** runs all seven emitters in dependency order (`visualize` last — it reads the
+  `*.tokens.json` the others write). `--check` snapshots, regenerates, byte-compares, then **restores
+  the snapshot**, so the gate never leaves the tree dirty whatever the answer — safe to run mid-edit.
+- **Scope widened past the issue, deliberately:** the three emitted `schema/` contracts
+  (`lever-manifest.json`, `preview-spec.json`, `example-brands.json`) are the same class of risk —
+  committed, generated, unverified. They happen to be in sync today; nothing was keeping them so.
+  `schema/` is compared file-by-file against a named list because it also holds hand-authored contracts.
+- **Verified both directions:** green on this branch (83 artifacts byte-match) and on pristine `main`
+  it names exactly the four drifted files and nothing else; tampering with an emitted value in either
+  `out/` or `schema/` is caught and the tree is left clean afterwards.
+- **Wired into the contract** — `CLAUDE.md` working principle 4 and the engine README now lead with
+  `regen.ts`, and say plainly that `--check` is the only gate that reads the committed artifacts.
+
+---
+
+## (2026-07-29) — Font families become two-tier: typeface primitives + family-role semantics (#269)
+
+**STATUS: engine.** `out/*` **regenerated** (shape change, see below). Closes #269.
+
+Font families were a closed union of exactly three, each named after its *job* — so
+`families.display` (a primitive) collided with the type category `display` (a semantic), and family
+assignment read as though it happened in the primitive tier.
+
+- **Two tiers, mirroring colour.** `font.typeface.<slug>` is the primitive, named after the face and
+  carrying its fallback stack (`inter`, `clash-display`); `font.family.<role>` is the semantic,
+  aliasing one. The role stays the **brand-invariant handle** a shared codebase binds to — swapping the
+  face behind it leaves every consumer reference intact, which a direct `font.typeface.*` reference
+  would not.
+- **Multi-brand needs no more than the fixed three roles.** The typeface library is shared *across*
+  brands and each brand binds its own members (`Brand A: display→poppins`, `Brand B: display→inter`),
+  so N faces exist across the system while any one brand binds ≤3. A fourth *role* is only needed if a
+  single brand wants four faces at once — deferred until a real brand does.
+- **Slugs are derived** from the face name (`"Clash Display"` → `clash-display`), never user-chosen, so
+  there is no arbitrary-rename churn: you either have that face or you don't.
+- **Roles sharing a face share one primitive** — NB binds display *and* text to Inter and emits a single
+  `typeface.inter`, with `variable` OR-ing across the roles.
+- **Per-mode family override now RE-POINTS the alias** instead of re-valuing the primitive — the shape
+  #176's decision 2 asks for, and directly relevant to #251's embedded lever-vs-token decision. Faces
+  used only by a mode are unioned into the typeface set so every alias lands on a real leaf (the same
+  contract `weightsRef` has for per-mode weight numerics).
+- **Mono is optional.** `families.mono: null` opts out; `code` is the only category binding mono, so it
+  disappears with it (36 → 35 composites on a default brand). Omitted still keeps the default face, so
+  existing brands are untouched.
+- **Figma emit is behaviourally unchanged by design** — the family variable still *binds* the primary face
+  with the full stack in its description; the emit just resolves the alias first. The only diff in
+  `out/figma/*/core-font.json` is the description wording (`font family — display (Inter)` →
+  `font family role — display → Inter`); every `value`, `alias`, and `scopes` field byte-reproduces, so
+  no Figma import changes.
+- **The hand-rolled schema validator learned `type: "null"`.** Its CR-04 guard threw loudly on the
+  unknown type rather than silently vouching for it — the guard working as intended.
+- **Verified:** 953/953 engine tests (new coverage for both tiers, shared-face dedupe, alias resolution
+  through `familyOf`, per-mode re-pointing, and the whole optional-mono path); nb-regression exits 0;
+  every alias resolves + every mode contract passes for all three brands; web `tsc` + build clean.
+
+**`out/*` regenerated — what changed:** each brand gains `font.typeface.*` leaves, and every
+`font.family.<role>` `$value` moves from a literal face string to an alias into one. **Resolved values
+are identical** — `familyOf` derefs the alias and reassembles the same stack. Consumers reading
+`font.family.<role>` still resolve to the same face; consumers that read the raw `$value` expecting a
+literal string now get an alias and must deref (the same contract every other semantic already has).
+
+---
+
 ## (2026-07-29) — Fix #274: space.* dangling aliases at non-default spaceBase (engine)
 
 **STATUS: engine fix** (`theme.ts` + a `test.ts` regression; `out/*` byte-identical). Upgrades what #274

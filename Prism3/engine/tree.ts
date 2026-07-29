@@ -14,7 +14,7 @@
  */
 import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
-import { Theme, ShadowStep, ShadowLayer, ResolvedGradient } from './theme';
+import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug } from './theme';
 import { SizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
 
@@ -194,6 +194,14 @@ const dimAlias = (path: string, description: string, extra: Record<string, unkno
 const fontFamilyLeaf = (stack: string[], variable: boolean, description: string): Token => ({
   $type: 'fontFamily', $value: stack[0], $description: description,
   $extensions: { prism3: { generated: true, variable, fallbackStack: stack.slice(1), figma: { kind: 'style-part', field: 'fontFamily', scope: 'FONT_FAMILY' } } },
+});
+// A family ROLE is a semantic alias onto a typeface primitive — the same shape as
+// `weight-role.<role> → {font.weight.N}`. The role is the brand-invariant handle a shared
+// codebase binds to: swapping the face behind it leaves every consumer reference intact,
+// which a direct `font.typeface.*` reference would not.
+const familyRoleAlias = (ref: string, face: string, description: string): Token => ({
+  $type: 'fontFamily', $value: `{${ref}}`, $description: description,
+  $extensions: { prism3: { generated: true, role: 'semantic', aliasOf: ref, face, figma: { kind: 'style-part', field: 'fontFamily', scope: 'FONT_FAMILY' } } },
 });
 // Font size: $value in rem (accessibility — scales with the user base size, KB 23);
 // px carried for the Figma exporter (Figma binds FONT_SIZE as a px FLOAT variable).
@@ -493,14 +501,24 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const familiesByMode = ty.familiesByMode ?? {};
   const weightRolesByMode = ty.weightRolesByMode ?? {};
   const stackKey = (s: string[]): string => s.join(' ');
+  // Tier 1 - the typeface PRIMITIVES, named after the face itself. Two roles bound to one
+  // face share a single primitive (NB binds display and text to Inter).
+  const typeface: Record<string, Token> = {};
+  for (const tf of ty.typefaces)
+    typeface[tf.slug] = fontFamilyLeaf(tf.stack, tf.variable, `typeface \u2014 ${tf.name}${tf.variable ? ' [variable font]' : ''}`);
+  // Tier 2 - the family ROLES, each aliasing a typeface. A per-mode override RE-POINTS the
+  // alias rather than re-valuing the primitive, so a mode swaps which face the role uses
+  // while every composite keeps its `family.<role>` reference.
   const family: Record<string, Token> = {};
   for (const f of ty.families) {
-    const leaf = fontFamilyLeaf(f.stack, f.variable, `font family — ${f.role} (${f.stack[0]})${f.variable ? ' [variable font]' : ''}`);
+    const slug = typefaceSlug(f.stack[0]);
+    const leaf = familyRoleAlias(`${root}.font.typeface.${slug}`, f.stack[0], `font family role \u2014 ${f.role} \u2192 ${f.stack[0]}`);
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, fams] of Object.entries(familiesByMode)) {
       const mf = fams.find((x) => x.role === f.role);
-      if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack → no diff → no override
-      modeOverrides[mode] = { $value: mf.stack[0], fallbackStack: mf.stack.slice(1), note: `font family lever override — ${mode} (${mf.stack[0]})` };
+      if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack -> no diff -> no override
+      const mslug = typefaceSlug(mf.stack[0]);
+      modeOverrides[mode] = { $value: `{${root}.font.typeface.${mslug}}`, aliasOf: `${root}.font.typeface.${mslug}`, face: mf.stack[0], note: `font family role override \u2014 ${mode} (\u2192 ${mf.stack[0]})` };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     family[f.role] = leaf;
@@ -553,7 +571,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     letterSpacing[ls.key] = leaf;
   }
-  const font = { family, size: fsize, weight: fweight, 'weight-role': weightRole, 'line-height': lineHeight, 'letter-spacing': letterSpacing };
+  const font = { typeface, family, size: fsize, weight: fweight, 'weight-role': weightRole, 'line-height': lineHeight, 'letter-spacing': letterSpacing };
 
   // ---- typography semantic composites (Phase 2) ----
   // Consumer-facing type styles under `type.*`. Two composites may share a size

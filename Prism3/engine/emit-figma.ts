@@ -161,21 +161,28 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
     // fallback stack lives in the description (fix #4). A per-mode family override supplies its
     // own $value (primary) + fallbackStack; else the canonical (light) leaf. hiddenFromPublishing
     // hides them from library consumers.
+    // A family role is now an ALIAS onto a typeface primitive (#269), so the face comes from
+    // the role's `face` extension and the fallback tail from the typeface it points at. The
+    // EMITTED Figma variable is unchanged — value = primary face, description = full stack —
+    // so the Figma-side contract and the fixtures are untouched by the retiering.
+    const typefaceLeaf = (aliasPath: string): any => (font as any).typeface?.[String(aliasPath).split('.').pop() ?? ''];
+    const faceStack = (src: any): string[] => {
+      const face = src?.face ?? src?.$extensions?.prism3?.face;
+      const aliasOf = src?.aliasOf ?? src?.$extensions?.prism3?.aliasOf;
+      if (face && aliasOf) return [String(face), ...(((typefaceLeaf(aliasOf)?.$extensions?.prism3?.fallbackStack as string[]) ?? []))];
+      // legacy literal forms: a baked array, or a primary + fallbackStack on the leaf itself.
+      if (Array.isArray(src?.$value)) return src.$value.map(String);
+      return [String(src?.$value), ...(((src?.$extensions?.prism3?.fallbackStack as string[] | undefined) ?? (src?.fallbackStack as string[] | undefined) ?? []))];
+    };
     for (const familyRole of Object.keys(font.family)) {
       const leaf = font.family[familyRole];
       const ov = mode === 'Default' ? undefined : (leaf.$extensions?.prism3?.modes as any)?.[mode];
-      const primary = ov ? String(ov.$value)
-        : Array.isArray(leaf.$value) ? String(leaf.$value[0]) : String(leaf.$value);
-      const fallback: string[] = ov
-        ? ((ov.fallbackStack as string[] | undefined) ?? [])
-        : Array.isArray(leaf.$value) ? leaf.$value.slice(1).map(String)
-          : ((leaf.$extensions?.prism3?.fallbackStack as string[] | undefined) ?? []);
-      const stack: string[] = [primary, ...fallback];
+      const stack: string[] = faceStack(ov ?? leaf);
       variables.push({
         name: `font/family/${familyRole}`,
         resolvedType: 'STRING',
         scopes: ['FONT_FAMILY'],
-        description: [stackDescription(stack), desc(leaf)].filter(Boolean).join(' — '),
+        description: [stackDescription(stack), desc(leaf)].filter(Boolean).join(' \u2014 '),
         value: stack[0],
         alias: null,
         hiddenFromPublishing: true,
