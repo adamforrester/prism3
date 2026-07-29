@@ -397,7 +397,7 @@
     {
       "key": "layout.containerNarrow",
       "group": "layout",
-      "label": "Narrow container",
+      "label": "Content container",
       "control": "slider",
       "advanced": true,
       "default": 720,
@@ -405,7 +405,7 @@
       "max": 960,
       "step": 20,
       "unit": "px",
-      "description": "Reading-measure container (~65–75ch)."
+      "description": "The reading-measure content column (~65–75ch) — narrower than the full container."
     },
     {
       "key": "iconContrast",

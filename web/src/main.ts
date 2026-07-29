@@ -1616,14 +1616,14 @@ const renderResponsiveEditor = (): HTMLElement => {
   return wrap;
 };
 
-const renderBreakpointsEditor = (): HTMLElement => {
-  const wrap = palSection('Breakpoints', 'Min-width floors (px, ascending) — names auto-assign sm / md / lg / xl / 2xl.');
+/** The breakpoints controls (the editable px list + add/remove) — just the control node now, so the
+ *  layout page can pair it with the ruler/table preview beside it (#264). `commit` redraws its own list
+ *  locally (count/order may change) then `apply()` — which rebuilds the theme + repaints the layout
+ *  previews via the page's refreshers — but never `applyFull`, which would lose focus/scroll mid-edit. */
+const renderBreakpointsControls = (): HTMLElement => {
   const listEl = el('div', 'adv-bplist');
   const commit = (arr: number[]): void => {
     const clean = [...new Set(arr.filter((n) => Number.isFinite(n) && n >= 0))].sort((a, b) => a - b);
-    // Refresh THIS editor's list (count/order may change) + repaint the layout specimen — but NOT a full
-    // workspace re-render (applyFull), which would rebuild this editor mid-edit and lose focus/scroll.
-    // draw() re-renders the list locally; apply() rebuilds the theme + the volatile specimens.
     setPath(brandState, 'layout.breakpoints', clean); draw(); apply();
   };
   const draw = (): void => {
@@ -1642,8 +1642,7 @@ const renderBreakpointsEditor = (): HTMLElement => {
     listEl.append(add);
   };
   draw();
-  wrap.append(listEl);
-  return wrap;
+  return listEl;
 };
 
 const renderEasingEditor = (): HTMLElement => {
@@ -1769,12 +1768,65 @@ const renderSizeRadiusPage = (host: HTMLElement): void => renderScreen(host, 'si
   add(leverSection('Spacing grid', 'The spacing rhythm (space.100 = 1×) and the fine dimension-grid base backing radius & borders.', ['spaceBase', 'baseUnit'], perMode));
 }, () => [renderRadiusSpecimen(), renderSizeSpecimen()]);
 
-// Layout — breakpoints editor + a Grid & containers section.
-const renderLayoutPage = (host: HTMLElement): void => renderScreen(host, 'layout', (h) => {
-  h.append(renderBreakpointsEditor());
-  const sliders = leverManifest.filter((l) => l.group === 'layout' && l.control === 'slider');
-  if (sliders.length) { const s = palSection('Grid & containers', 'Base column count for the design grid and the content-width caps (layout is fluid below the cap).'); for (const l of sliders) s.append(renderControl(l)); h.append(s); }
-}, () => [renderLayoutSpecimen()]);
+// Layout — each control sits BESIDE its own live preview (docs #264), so a change is visible without
+// scrolling to a specimen block far below. Built like the Palettes page: controls are stable and only the
+// preview sub-nodes repaint (via `refreshers` → paintVolatile), so a slider is never rebuilt mid-drag.
+const LAYOUT_COLUMN_CHOICES = [4, 6, 8, 12, 16, 24];   // curated grid systems — no odd/awkward counts (#264)
+/** A compact labelled slider for the layout page — value read-out updates live on drag; the theme commits
+ *  on release (`change` → apply()), which repaints the previews via the registered refreshers. Not the
+ *  full-width `.knob` slider (overkill here, per #264). */
+const layoutSlider = (key: string, label: string, min: number, max: number, step: number, unit: string, get: () => number): HTMLElement => {
+  const f = el('div', 'ly-ctl');
+  const top = el('div', 'ly-ctl-top');
+  const val = el('span', 'ly-ctl-val mono', `${get()}${unit}`);
+  top.append(el('span', 'ly-ctl-lab', label), val);
+  const input = rangeInput({ className: 'ly-range', min, max, step, value: get() });
+  input.oninput = () => { val.textContent = `${input.value}${unit}`; };
+  input.onchange = () => { setPath(brandState, key, Number(input.value)); apply(); };
+  f.append(top, input);
+  return f;
+};
+const renderLayoutPage = (host: HTMLElement): void => {
+  const [title, lede] = PAGE_COPY.layout;
+  host.append(hero(title, lede));
+  if (DERIVED_MODES.has(currentMode)) { host.append(renderGeneratedNote()); return; }
+  const refreshers: Array<() => void> = [];
+  const block = (title: string, sub: string, controls: HTMLElement, paint: (into: HTMLElement) => void): void => {
+    const sec = palSection(title, sub);
+    const split = el('div', 'ly-split');
+    const ctlCol = el('div', 'ly-ctl-col'); ctlCol.append(controls);
+    const preview = el('div', 'ly-preview');
+    split.append(ctlCol, preview);
+    sec.append(split);
+    host.append(sec);
+    refreshers.push(() => paint(preview));
+  };
+
+  // Breakpoints — the editor's own controls (add/edit/remove), the ruler + grid table beside them.
+  block('Breakpoints', 'Min-width floors (px, ascending) — names auto-assign sm / md / lg / xl / 2xl.',
+    renderBreakpointsControls(), paintBreakpointsPreview);
+
+  // Grid columns — a curated step-picker (4/6/8/12/16/24, no awkward counts) beside the column strip.
+  const colSel = selectEl('cap');
+  const curCols = (brandState.layout?.columns ?? theme.layout.baseColumns) as number;
+  for (const c of LAYOUT_COLUMN_CHOICES) colSel.append(optionEl(String(c), `${c} columns`, c === curCols));
+  colSel.onchange = () => { setPath(brandState, 'layout.columns', Number(colSel.value)); apply(); };
+  const colsCtl = el('div', 'ly-ctl'); colsCtl.append(el('span', 'ly-ctl-lab', 'Grid columns'), colSel);
+  block('Grid columns', 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.',
+    colsCtl, paintColumnsPreview);
+
+  // Container caps — the two width sliders beside the proportional bars.
+  const caps = el('div', 'ly-ctl-stack');
+  caps.append(
+    layoutSlider('layout.containerMax', 'Container max', 960, 1920, 40, 'px', () => (brandState.layout?.containerMax ?? theme.layout.containerMax) as number),
+    layoutSlider('layout.containerNarrow', 'Content container', 480, 960, 20, 'px', () => (brandState.layout?.containerNarrow ?? theme.layout.containerNarrow) as number),
+  );
+  block('Container caps', 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).',
+    caps, paintContainersPreview);
+
+  paintVolatile = () => { refreshers.forEach((r) => r()); };
+  paintVolatile();
+};
 
 // Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
 const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion', (h) => {
@@ -2507,12 +2559,13 @@ const renderSizeSpecimen = (): HTMLElement => {
  *  margin grid, a base-column preview strip, and the container caps as proportional bars. The layout
  *  levers (breakpoints / columns / containers, all in the Advanced panel) have no other visible payoff.
  *  Reads `theme.layout` (not per-mode — layout composes with colour modes as a separate Figma axis). */
-const renderLayoutSpecimen = (): HTMLElement => {
+// Layout previews, split so each can sit beside its own control (docs #264): the breakpoints ruler+table,
+// the base-column strip, and the container-cap bars. Each fills a caller-owned node so `apply()` repaints
+// it in place (the control next to it stays put — never rebuilt mid-drag).
+const paintBreakpointsPreview = (into: HTMLElement): void => {
   const ly = theme.layout;
-  const wrap = palSection('Layout grid', 'Breakpoints, the responsive column grid, and container caps — the layout scaffolding.');
-  // A proportional min-width ruler — the breakpoints placed on a shared axis, so the responsive steps read
-  // spatially (how far apart the jumps are), not just as a column of numbers.
-  wrap.append(el('div', 'ly-cap', 'Breakpoints — min-width on a shared scale'));
+  into.innerHTML = '';
+  // A proportional min-width ruler — the breakpoints on a shared axis, so the steps read spatially.
   const ruler = el('div', 'ly-ruler');
   const rulerMax = Math.max(...ly.breakpoints.map((b) => b.px), 1) * 1.06;
   for (const b of ly.breakpoints) {
@@ -2520,7 +2573,7 @@ const renderLayoutSpecimen = (): HTMLElement => {
     tick.append(el('span', 'ly-tick-name', b.name), el('span', 'ly-tick-px mono', `${b.px}px`));
     ruler.append(tick);
   }
-  wrap.append(ruler);
+  into.append(ruler);
   const table = el('table', 'ly-table');
   const head = el('tr');
   head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Token'), el('th', undefined, 'Min-width'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'));
@@ -2532,12 +2585,19 @@ const renderLayoutSpecimen = (): HTMLElement => {
     tr.append(el('td', 'mono', g.bp), pillCell, el('td', 'mono', `${bp?.px ?? 0}px`), el('td', 'mono', String(g.columns)), el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`));
     table.append(tr);
   }
-  wrap.append(table);
-  wrap.append(el('div', 'ly-cap', `${ly.baseColumns}-column base grid`));
+  into.append(table);
+};
+const paintColumnsPreview = (into: HTMLElement): void => {
+  const ly = theme.layout;
+  into.innerHTML = '';
+  into.append(el('div', 'ly-cap', `${ly.baseColumns}-column base grid`));
   const cols = el('div', 'ly-cols');
   for (let i = 0; i < ly.baseColumns; i++) cols.append(el('div', 'ly-col'));
-  wrap.append(cols);
-  wrap.append(el('div', 'ly-cap', 'Container caps (fluid below the cap)'));
+  into.append(cols);
+};
+const paintContainersPreview = (into: HTMLElement): void => {
+  const ly = theme.layout;
+  into.innerHTML = '';
   const cont = el('div', 'ly-cont');
   const maxW = Math.max(ly.containerMax, ly.containerNarrow, 1);
   const bar = (path: string, px: number): HTMLElement => {
@@ -2549,8 +2609,7 @@ const renderLayoutSpecimen = (): HTMLElement => {
     return row;
   };
   cont.append(bar('container.max', ly.containerMax), bar('container.narrow', ly.containerNarrow));
-  wrap.append(cont);
-  return wrap;
+  into.append(cont);
 };
 
 /** The motion specimen (#114): the resolved semantic transitions (default/enter/exit/emphasized), each a
@@ -3560,6 +3619,19 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .ly-cont-row{display:flex;align-items:center;gap:12px}
 .ly-cont-lab{font-size:11.5px;color:var(--muted);min-width:150px}
 .ly-cont-bar{height:16px;background:var(--ink);opacity:.55;border-radius:3px}
+/* Layout page (#264): controls beside their live preview, so a change is visible without scrolling.
+   The control column is fixed-narrow (no full-width sliders); the preview takes the rest and wraps under
+   the controls on a narrow viewport. */
+.ly-split{display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:28px;align-items:start}
+@media(max-width:820px){.ly-split{grid-template-columns:1fr;gap:18px}}
+.ly-ctl-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ly-preview{min-width:0}
+.ly-ctl-stack{display:flex;flex-direction:column;gap:18px}
+.ly-ctl{display:flex;flex-direction:column;gap:8px}
+.ly-ctl-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.ly-ctl-lab{font-weight:600;font-size:13px;color:var(--ink)}
+.ly-ctl-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.ly-range{width:100%;accent-color:var(--ink)}
 .gradient-spec{margin-bottom:8px}
 .gr-list{display:flex;flex-wrap:wrap;gap:22px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
 .gr-cell{display:flex;flex-direction:column;gap:10px}

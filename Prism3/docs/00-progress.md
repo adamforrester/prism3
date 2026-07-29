@@ -7,6 +7,36 @@
 
 ---
 
+## (2026-07-29) — Layout page: controls-beside-previews + curated columns + rename (#264)
+
+**STATUS: dashboard change** (`web/src/main.ts` + a label-only lever change in `Prism3/engine/levers.ts` +
+its regenerated `schema/lever-manifest.json`; `out/*` byte-identical). First of the three PR #262 follow-up
+issues (#264/#265/#263).
+
+- **Controls now sit BESIDE their live preview.** The Layout page dropped the generic `renderScreen`
+  scaffold (all controls stacked above, one specimen block far below in `.stage-vol`) for a bespoke page
+  built like Palettes: a `refreshers[]` array + a page-local `paintVolatile` repaints only the preview
+  sub-nodes on `apply()`, so controls stay stable (never rebuilt mid-drag) and a change is visible without
+  scrolling. Three `.ly-split` blocks (control column + preview): **Breakpoints** (px editor + ruler/table),
+  **Grid columns** (picker + column strip), **Container caps** (two sliders + bars). `renderLayoutSpecimen`
+  split into `paintBreakpointsPreview` / `paintColumnsPreview` / `paintContainersPreview`;
+  `renderBreakpointsEditor` → `renderBreakpointsControls` (returns just the control node).
+- **Grid columns is a curated step-picker** (`4/6/8/12/16/24`) — no odd/awkward counts. **UI-only curation**
+  (owner call): the engine/schema stay permissive (any int 4–24 still validates), so a hand-authored
+  `design.md` with `columns:10` isn't rejected — the dashboard just guides the common choice. No enum/schema
+  change, so no manifest enum-drift.
+- **"Narrow container" → "Content container"** (lever label in `levers.ts`, manifest regenerated via
+  `emit-levers.ts`). The container sliders are compact, not full-width (owner: full-width was overkill).
+- **Verified:** engine 925/925 (incl. the lever-manifest drift test — regenerated manifest matches); `tsc`
+  clean; build clean; 0 `node:` builtins; `out/*` byte-identical. Playwright drove the page: 3 co-located
+  blocks, columns picker offers only 4/6/8/12/16/24 and repaints the strip in place (12→24), the container
+  sliders commit on release and repaint the bars in place (content container 720→480 shrank its bar), the
+  co-located split survives each change, and "Content container" reads correctly.
+- **Still open** (same review batch): #265 Size & radius controls-near-previews (reuses this pattern), #263
+  token list from `buildTree()`.
+
+---
+
 ## (2026-07-29) — Preview restructure + Disabled fixes + token-list display (review batch)
 
 **STATUS: dashboard change** (`web/src/main.ts` + `web/src/write-adapter.ts` + one additive read-model field
