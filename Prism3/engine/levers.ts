@@ -149,7 +149,7 @@ export const leverManifest: Lever[] = [
   { key: 'disabledMin', group: 'advanced', label: 'Disabled contrast floor', control: 'slider', default: 3, min: 2, max: 4.5, step: 0.5,
     description: 'Contrast floor for the accessible disabled strategy (escalates to 4.5:1 in high-contrast).' },
   { key: 'outlineInteraction', group: 'advanced', label: 'Outline hover', control: 'enum', default: 'overlay-neutral',
-    options: enumOpts(['overlay-neutral', 'Neutral overlay wash'], ['solid-tint', 'Opaque subtle tint'], ['none', 'No hover expression']),
+    options: enumOpts(['overlay-neutral', 'Neutral overlay wash'], ['solid-tint', 'Opaque subtle tint'], ['none', 'No hover fill']),
     description: 'How outline/text controls express hover/pressed/selected. Overlay = translucent neutral wash (composites over any surface); solid-tint = opaque foreground.<color>-subtle; none = omit.' },
   { key: 'neutralEmphasis', group: 'advanced', label: 'Neutral emphasis', control: 'enum', default: 'subtle',
     options: enumOpts(['subtle', 'Subtle (light grey)'], ['strong', 'Strong (bold near-black/white)']),

@@ -1242,7 +1242,7 @@ const iStates = (roles: RoleMap, palette: string, cells: Array<[string, string]>
 
 /** One matrix row: 56×56 swatch (omitted on `lead` control rows) · mid (label + Source select + token pill
  *  + description) · locked-right example · optional states strip. */
-const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?: string; select: HTMLElement; pill?: string; desc?: string; example: HTMLElement; states?: HTMLElement | null }): HTMLElement => {
+const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?: string; select: HTMLElement; pill?: string; desc?: string; warn?: string; example: HTMLElement; states?: HTMLElement | null }): HTMLElement => {
   const row = el('div', 'arow' + (o.lead ? ' arow-lead' : ''));
   const main = el('div', 'arow-main');
   if (!o.lead) main.append(swatch(o.swatchBg ?? '#000000', 'asw'));
@@ -1251,6 +1251,7 @@ const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?:
   const ctl = el('div', 'sf-ctlblock'); ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'), o.select); mid.append(ctl);
   if (o.pill) mid.append(tokenPill(o.pill));
   if (o.desc) mid.append(el('p', 'adesc', o.desc));
+  if (o.warn) mid.append(el('p', 'fz-warn', o.warn));
   main.append(mid, o.example);
   row.append(main);
   if (o.states) row.append(o.states);
@@ -1282,16 +1283,26 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
   const r = roles[`interactive.${col.name}.fill.rest`]; if (!r) return null;
   const onFill = roles[`interactive.${col.name}.on-fill`];
   let select: HTMLElement;
+  let warn: string | undefined;
   if (col.setStep) {
     const steps = stepsOf(col.palette);
     select = stepPicker(col.palette, steps, stepKeyOf(r.path), steps.find((k) => Number(k) === col.stepValue),
       (step) => col.setStep!(step === undefined ? undefined : Number(step)));
+    // The anchor is contrast-gated (never blocked) — a pin that misses the floor gets bumped to the
+    // nearest passing step. Silently: the Source select still shows the REQUESTED step, so without
+    // this note two different pins that both clamp to the same effective step look like "nothing
+    // happened" (hover/pressed derive from the effective step, not the request, so they don't move
+    // either) — previously indistinguishable from a stale/unresponsive control.
+    const effective = Number(stepKeyOf(r.path));
+    if (col.stepValue !== undefined && effective !== col.stepValue)
+      warn = `${col.stepValue} doesn't clear the contrast floor here — the engine used ${effective} instead (hover/pressed derive from the effective step).`;
   } else {
     select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, stepKeyOf(r.path));
   }
   return iRow({
     swatchBg: r.hex, label: 'Fill · rest', select, pill: `color.interactive.${col.name}.fill.rest`,
     desc: 'The button / container fill. This anchors the family — hover, pressed, text and on-fill derive from it unless you override them below.',
+    warn,
     example: iExample(exBtn(r.hex, onFill?.hex ?? '#ffffff'), iBadge(onFill)),
     states: iStates(roles, col.palette, [['Hover', `interactive.${col.name}.fill.hover`], ['Pressed', `interactive.${col.name}.fill.pressed`]]),
   });
@@ -1397,9 +1408,19 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
 
   const oh = el('div', 'psec'); oh.append(el('p', 'psec-t', 'Outline button hover'), el('p', 'psec-d', 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.'));
   const ohEdge = roles['interactive.primary.text.rest']?.hex ?? '#000000';
-  const ohWash = roles['interactive.primary.overlay.hover'];
+  // Only `overlay-neutral` actually emits a token here (`interactive.<name>.overlay.hover`).
+  // `solid-tint`'s doc comment (modes.ts) says it reuses an opaque `foreground.<color>-subtle` —
+  // but that role only exists for the 5 fixed SEMANTICS names (brand/success/warning/danger/info),
+  // never for an interactive COLUMN name (primary/neutral/destructive/accent), so there is no real
+  // token to read for ANY brand today; `none` has no fill by design. Previously this always read
+  // the overlay-hover role regardless of method, which looked identically empty for solid-tint and
+  // made it indistinguishable from a bug — showing the gap explicitly (rather than a wrong color)
+  // avoids implying a fix that isn't there. Tracked as a real engine gap, not a UI bug: #288.
+  const ohWash = theme.outlineInteraction === 'overlay-neutral' && roles['interactive.primary.overlay.hover']
+    ? rgbaOf(roles['interactive.primary.overlay.hover']) : 'transparent';
   oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
-    example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash ? rgbaOf(ohWash) : 'transparent')]) }));
+    warn: theme.outlineInteraction === 'solid-tint' ? 'Opaque subtle tint has no token yet — this hover currently renders the same as “No hover fill” (tracked in #288).' : undefined,
+    example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
   host.append(oh);
 
   const ds = el('div', 'psec'); ds.append(el('p', 'psec-t', 'Disabled'), el('p', 'psec-d', 'How disabled controls look and whether they stay legible.'));
@@ -2465,8 +2486,13 @@ const sfRow = (o: SfRowOpts): HTMLElement => {
 const sfCtl = (...blocks: HTMLElement[]): HTMLElement => { const c = el('div', 'sf-ctl'); c.append(...blocks); return c; };
 const sfCtlBlock = (label: string, control: HTMLElement): HTMLElement => { const b = el('div', 'sf-ctlblock'); b.append(el('span', 'pfk', label), control); return b; };
 const sfDot = (hex: string): HTMLElement => { const d = el('span', 'sf-ex-dot'); d.style.background = hex; return d; };
-const sfExSurface = (bg: string, dotHex: string, label: string, invert = false): HTMLElement => {
-  const ex = el('div', 'sf-ex sf-ex-surface'); ex.style.background = bg; ex.style.color = invert ? '#f2f2f6' : '#191920';
+// The text color is the resolved role for THIS surface, not a hardcoded invert flag — a custom
+// mode's Primary can be either light or dark, and a hardcoded dark ink went invisible on a dark
+// custom-mode surface (near-black on near-black). `textHex` is `text.primary` (against
+// background.primary) or `text.on-inverse` (against background.inverse.primary) — whichever the
+// caller's surface actually is.
+const sfExSurface = (bg: string, dotHex: string, label: string, textHex: string): HTMLElement => {
+  const ex = el('div', 'sf-ex sf-ex-surface'); ex.style.background = bg; ex.style.color = textHex;
   ex.append(sfDot(dotHex), el('span', undefined, label)); return ex;
 };
 const sfExFill = (bg: string, label: string, fg?: string): HTMLElement => {
@@ -2523,6 +2549,10 @@ const renderSurfacesEditor = (): HTMLElement => {
   const roles = (resolveAllModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, { hex: string } | undefined>;
   const primHex = roles['background.primary']?.hex ?? (mode === 'dark' ? '#000000' : '#ffffff');
   const brandDot = roles['foreground.brand']?.hex ?? '#5e4bc3';
+  // The resolved ink for THIS surface — `text.primary` is measured against `background.primary`
+  // exactly, so it's always legible here regardless of whether the mode's Primary is light or
+  // dark. Previously a hardcoded near-black went invisible on a dark custom mode.
+  const primText = roles['text.primary']?.hex ?? (mode === 'dark' ? '#f2f2f6' : '#191920');
   // Primary — the base surface is only configurable for light/dark (`SurfacesConfig`); custom modes seed
   // their surface from a base mode, so their Primary is shown read-only. (Inline check so TS narrows `mode`.)
   if (mode === 'light' || mode === 'dark') {
@@ -2545,14 +2575,14 @@ const renderSurfacesEditor = (): HTMLElement => {
       swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
       desc: `The surface ${label} paints on — white, black, or a tinted neutral step.`,
       controls: sfCtl(sfCtlBlock('Base surface', base), floorBlock),
-      example: sfExSurface(primHex, brandDot, 'Card on this surface'),
+      example: sfExSurface(primHex, brandDot, 'Card on this surface', primText),
     }));
   } else {
     sec.append(sfRow({
       swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
       desc: `The surface ${label} paints on — seeded from this custom mode’s base.`,
       controls: sfCtl(sfCtlBlock('Base surface', el('span', 'sf-derived', 'Seeds from its base mode'))),
-      example: sfExSurface(primHex, brandDot, 'Card on this surface'),
+      example: sfExSurface(primHex, brandDot, 'Card on this surface', primText),
     }));
   }
 
@@ -2580,11 +2610,14 @@ const renderSurfacesEditor = (): HTMLElement => {
       applyFull();
     };
     const onInv = roles['foreground.inverse.primary']?.hex ?? '#9481ee';
+    // `text.on-inverse` is measured against `background.inverse.primary` exactly — the correct ink
+    // for this band regardless of which mode's inverse this is.
+    const invText = roles['text.on-inverse']?.hex ?? '#f2f2f6';
     sec.append(sfRow({
       swatchHex: invHex, name: 'Inverse', tokenPath: 'color.background.inverse.primary',
       desc: 'The contrasting band for dark heroes / inverse sections — Auto follows the generated pairing; pick a neutral step to set it for this mode.',
       controls: sfCtl(sfCtlBlock('Base surface', invSel)),
-      example: sfExSurface(invHex, onInv, 'Inverse band', true),
+      example: sfExSurface(invHex, onInv, 'Inverse band', invText),
     }));
   }
   return sec;

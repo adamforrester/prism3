@@ -7,6 +7,64 @@
 
 ---
 
+## (2026-07-29) — Bug triage: Surfaces dark-mode text, outline-hover method, anchor clamp feedback
+
+**STATUS: dashboard fixes + one real engine gap surfaced.** Owner dropped six UI reports; three were
+real bugs (fixed here), one report resolved into an actual engine gap (filed, not silently patched
+around), one was verified NOT a bug, and two are genuine design/layout decisions (filed for the
+owner, not guessed at).
+
+- **Fixed: Surfaces "Card on this surface" text invisible in dark / dark custom modes.**
+  `sfExSurface` hardcoded ink to `invert ? '#f2f2f6' : '#191920'`, and both call sites for the
+  Primary row always passed no fourth arg (`invert` defaulting `false`) — so on a dark surface the
+  example rendered near-black text on near-black. Now reads the resolved `text.primary` /
+  `text.on-inverse` role (each is measured against the exact surface it sits on), so it's always
+  legible regardless of which mode's Primary is light or dark.
+- **Fixed: "Opaque subtle tint" outline-hover method showed an empty/transparent swatch.** The
+  preview always read `interactive.primary.overlay.hover` regardless of the selected
+  `outlineInteraction` method — that role only exists for `overlay-neutral`. Tracing the *correct*
+  fix surfaced a real engine gap: `solid-tint`'s own doc comment claims it reuses
+  `foreground.<color>-subtle`, but that role only exists for the five fixed `SEMANTICS` names
+  (brand/success/warning/danger/info), never for an interactive COLUMN name (primary/neutral/
+  destructive/accent) — so `solid-tint` has never changed anything in the emitted tree, for any
+  brand. Filed as #288 rather than faked with a wrong role read; the dashboard now shows an honest
+  inline note instead of a color that doesn't mean anything.
+- **Fixed: copy** — the `none` option read "No hover expression" (implies nothing changes at all);
+  renamed "No hover fill" per owner ask, since text/border still exist, only the fill wash is absent.
+- **Fixed: missing feedback when a fill-anchor pin gets contrast-floor clamped.** Reported as
+  "the interactive states didn't update after I changed the base color" — verified via a standalone
+  engine probe (`brandTheme` swept across anchor values) that this was **never a staleness bug**:
+  the engine correctly re-derives hover/pressed from the EFFECTIVE anchor every time; the reported
+  case (300 → still showing 550's hover) was two different requested anchors both getting
+  floor-clamped to the *same* effective step, so nothing about the resolved theme actually changed.
+  The real bug: the Source select shows the raw requested step with no indication a clamp happened,
+  making a legitimate floor-gate read as unresponsive UI. `iRow` gained an optional `warn` slot
+  (reused `.fz-warn` styling); `fillRestRow` now compares the requested pin against
+  `stepKeyOf(r.path)` (the effective step) and surfaces the mismatch inline when they differ.
+- **Verified NOT a bug: shadow tint hue/amount "not visibly changing the example."** A live probe
+  (drag both sliders to their extremes, read `getComputedStyle(...).boxShadow`) confirmed the RGB
+  genuinely shifts — `rgb(6,7,10)` → `rgb(1,6,27)` (amount→max) → `rgb(21,0,7)` (hue→0). The values
+  are correct; the effect is real but subtle by nature (a few RGB units at 6–12% alpha on a soft
+  shadow). No code change; flagged to the owner as a perceptibility question, not a wiring bug.
+- **Filed, not built — genuine decisions/backlog, per owner's own uncertainty or explicit "can be a
+  backlog item":**
+  - #289 — token pills wrap awkwardly in narrow columns (Surfaces cards, Style guide); four layout
+    options sketched, none chosen.
+  - #290 — the disabled contrast-floor slider is attached to "Accessible," letting a pick dial below
+    what "Accessible" implies; owner's alternate framing (attach it to "Conventional" instead, as
+    "how far below AA") is at least as coherent — needs a call, not a guess.
+  - #291 — interactive examples should show real hover/pressed on actual mouse interaction, across
+    every slot row; real cross-cutting feature, not a one-line fix.
+  - #292 — Motion specimen: a more expressive example than a dashing line (a dot on a curve or
+    similar) — no direction chosen yet.
+- **Verified:** engine 962/962; nb-regression exits 0; `regen.ts --check` in sync (83 artifacts,
+  including the relabeled lever-manifest); web `tsc` + build clean; plugin build clean; Playwright
+  swept all nine pages × light/dark with zero console errors; each of the four code fixes verified
+  live (not just read) — dark-mode text contrast, all three `outlineInteraction` methods, the clamp
+  warning appearing/disappearing correctly.
+
+---
+
 ## (2026-07-29) — Web dashboard deploys as a static site on Vercel (#104)
 
 **STATUS: deploy setup** (`web/build-site.mjs` + root `vercel.json` + docs; no engine change, `out/*`
