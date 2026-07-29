@@ -10,6 +10,9 @@ labels: type:decision
   A decision issue is where a fork gets stated, evidenced, and resolved — not where
   it gets implemented. When it's called, record it in Prism3/docs/00-progress.md and
   close this with the decision written in a comment.
+
+  Optional, same line: **Extends:** #NNN / **Related:** #NNN — e.g. a decision that
+  splits out of a broader one, or sits next to a build issue on the same UI surface.
 -->
 
 **Lane:** <!-- engine / web / plugin / figma / code-library / mcp --> · **Type:** decision · **Source:** <!-- review / doc NN / owner -->

@@ -131,6 +131,15 @@ prefix is the lane in brackets — `[engine]`, `[web]`, `[plugin]`, `[figma]`,
 Every issue body opens with a `**Lane:** · **Type:** · **Source:**` line. Keep it: it's
 what makes an issue readable as a brief, and it carries more than a label can.
 
+**Optional, on the same line when they apply: `**Extends:**` and `**Related:**`** —
+formalized 2026-07-29 after #269 used them well (a font-family model issue that names
+what it builds on and what it's adjacent to, distinct from *where it came from*). `Source:`
+answers provenance (owner direction / a review / a PR follow-up); `Extends:`/`Related:`
+answer connection (what this issue builds on top of, what it sits next to) — a different
+axis `Source:` was never meant to carry. Use `Extends: #NNN (one-clause why)` when this
+issue is a direct continuation of another; `Related: #NNN, #MMM` for adjacency worth a
+reader's attention. Optional — most issues don't need either.
+
 ### Two axes, one label from each
 
 Labels answer two different questions, so they're two prefixed sets. **One `lane:` and one

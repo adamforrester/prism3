@@ -8,6 +8,8 @@ labels: type:finding
 <!--
   A finding is a defect with evidence. If you're not sure it's wrong, it's probably
   a decision (use the decision template) or a research question.
+
+  Optional, same line: **Extends:** #NNN / **Related:** #NNN — most findings need neither.
 -->
 
 **Lane:** <!-- engine / web / plugin / figma / code-library / mcp --> · **Type:** finding · **Source:** <!-- owner review / live drive / PR review / eval -->

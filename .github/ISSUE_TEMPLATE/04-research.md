@@ -12,6 +12,9 @@ labels: type:research
 
   Research is a TYPE, not a lane — a question often spans several. Add the lane:*
   label of whichever lane it most affects, or leave it off if it genuinely spans all.
+
+  Optional, same line: **Extends:** #NNN / **Related:** #NNN — most research issues
+  need neither.
 -->
 
 **Lane:** <!-- the lane it most affects, or "spans lanes" --> · **Type:** research · **Source:** <!-- where the question came from -->
