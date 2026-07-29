@@ -1661,9 +1661,15 @@ const renderGeneratedNote = (): HTMLElement => {
 /** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
 const renderResponsiveEditor = (): HTMLElement => {
-  const wrap = palSection('Responsive type', 'Fluid heading sizing between a min and max viewport (clamp), plus the viewport pair that drives it.');
+  const ty = theme.typography;
+  const wrap = palSection('Responsive sizing', 'Headings interpolate between a mobile floor and a desktop ceiling across the viewport range; body, label, caption, eyebrow and code stay fixed by design.');
+  // #271 — there is no per-mode responsive lever, so these ALWAYS write global state. Say so
+  // before the controls: every other section on this page is mode-scoped, and silently
+  // changing all modes from inside a mode is the one thing this page used not to disclose.
+  if (currentMode !== 'light')
+    wrap.append(el('p', 'te-shared-note', 'Shared across all modes — unlike the faces and weights above, responsive sizing has no per-mode override, so editing here changes every mode.'));
   const cb = el('input') as HTMLInputElement;
-  cb.type = 'checkbox'; cb.checked = brandState.typography?.responsive?.fluid ?? theme.typography.fluid;
+  cb.type = 'checkbox'; cb.checked = brandState.typography?.responsive?.fluid ?? ty.fluid;
   cb.onchange = () => { setPath(brandState, 'typography.responsive.fluid', cb.checked); apply(); };
   const fl = el('label', 'adv-row'); fl.append(cb, el('span', 'adv-row-lab', 'Fluid heading sizing (clamp between viewports)'));
   wrap.append(fl);
@@ -1673,8 +1679,49 @@ const renderResponsiveEditor = (): HTMLElement => {
     const row = el('div', 'adv-row'); row.append(el('span', 'adv-row-lab', label), inp, el('span', 'adv-unit', 'px'));
     wrap.append(row);
   };
-  mk('minViewport', 'Min viewport', theme.typography.minViewport);
-  mk('maxViewport', 'Max viewport', theme.typography.maxViewport);
+  mk('minViewport', 'Min viewport', ty.minViewport);
+  mk('maxViewport', 'Max viewport', ty.maxViewport);
+
+  // What fluid actually DOES — previously invisible: neither the mobile floor nor the
+  // generated clamp() was shown anywhere, so the toggle and the viewport pair changed
+  // nothing a designer could see.
+  const seen = new Set<string>();
+  const uniq = ty.composites.filter((c) => c.sizeMinPx !== c.sizePx)
+    .filter((c) => { const k = `${c.group}.${c.variant}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  if (uniq.length) {
+    wrap.append(subHead(`What fluid does — ${uniq.length} scaling styles`));
+    const maxPx = Math.max(...uniq.map((c) => c.sizePx));
+    const list = el('div', 'fz-list');
+    for (const c of uniq) {
+      const row = el('div', 'fz-row');
+      row.append(el('span', 'fz-name mono', `${c.group}.${c.variant}`), el('span', 'fz-pair mono', `${c.sizeMinPx} → ${c.sizePx}px`));
+      const right = el('div', 'fz-right');
+      const bar = el('div', 'fz-bar');
+      const fill = el('div', 'fz-fill');
+      fill.style.left = `${(c.sizeMinPx / maxPx) * 100}%`;
+      fill.style.width = `${((c.sizePx - c.sizeMinPx) / maxPx) * 100}%`;
+      bar.append(fill);
+      const slope = (c.sizePx - c.sizeMinPx) / (ty.maxViewport - ty.minViewport);
+      const intercept = (c.sizeMinPx - slope * ty.minViewport) / 16;
+      const clamp = `clamp(${+(c.sizeMinPx / 16).toFixed(4)}rem, ${+intercept.toFixed(4)}rem + ${+(slope * 100).toFixed(4)}vw, ${+(c.sizePx / 16).toFixed(4)}rem)`;
+      const cl = el('div', 'fz-clamp mono', clamp); cl.title = clamp;
+      right.append(bar, cl);
+      row.append(right);
+      list.append(row);
+    }
+    wrap.append(list);
+    wrap.append(el('p', 'sl-note', 'The mobile floor is derived, not chosen: you set whether headings scale and the viewport range, but the floor comes from a fixed curve — titles drop about one rung, display converges hard so hero type stays usable on a phone.'));
+    // The convergence is deliberate but invisible: several desktop sizes can share one floor.
+    const byFloor = new Map<number, string[]>();
+    for (const c of uniq) { const k = c.sizeMinPx; byFloor.set(k, [...(byFloor.get(k) ?? []), `${c.group}.${c.variant}`]); }
+    const merged = [...byFloor.entries()].filter(([, v]) => v.length > 1);
+    if (merged.length) {
+      const w = el('p', 'fz-warn');
+      w.append(el('b', undefined, 'Sizes that merge on mobile. '));
+      w.append(document.createTextNode(`${merged.map(([px, v]) => `${v.join(' + ')} all land on ${px}px`).join('; ')} — distinct on desktop, identical on a phone. Fine if deliberate; a sign of more display steps than the mobile curve can express if not.`));
+      wrap.append(w);
+    }
+  }
   return wrap;
 };
 
@@ -1783,19 +1830,27 @@ const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'i
 }, () => [renderSectionContrast('interactive')]);
 
 // Typography — type scale (shared, read-only outside Light) + the family/weight/leading editor.
+/** Typography splits along the tier line (docs/26): FOUNDATIONS is the primitive raw material
+ *  — the faces, the size ladder, the weight numerics, the leading/tracking rungs — and STYLES is
+ *  the semantic layer built from it: which numeric each weight role means, what each category is
+ *  made of, and the full generated ramp. Categories never appear on Foundations. */
+type TypeTab = 'foundations' | 'styles';
+let typeTab: TypeTab = 'foundations';
+const TYPE_TABS: Array<[TypeTab, string]> = [['foundations', 'Foundations'], ['styles', 'Styles']];
 const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'typography', (h) => {
-  const scale = leverByKey('typography.typeScale');
-  if (scale) {
-    const p = palSection('Type scale', 'Shifts heading sizes (display + title) up or down the ladder; body / label / caption stay put.');
-    if (currentMode !== 'light') {                          // D — type scale is shared; read-only outside Light
-      const cur = getPath(brandState, scale.key) ?? scale.default;
-      p.append(knob(scale.label, el('div', 'te-shared-ro', `${cur} · shared across modes — edit in Light`), scale.description));
-    } else p.append(renderControl(scale));
-    h.append(p);
+  const seg = el('div', 'pvseg');
+  for (const [k, label] of TYPE_TABS) {
+    const b = el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement;
+    b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); } };
+    seg.append(b);
   }
-  h.append(renderTypographyEditor());
-  h.append(renderResponsiveEditor());
-}, () => [renderTypeSpecimen()]);
+  h.append(seg);
+  h.append(el('p', 'tabnote', typeTab === 'foundations'
+    ? 'Primitives — the raw material every style is built from.'
+    : 'Semantics — the named styles your product actually uses.'));
+  if (typeTab === 'foundations') h.append(renderTypefaces(), renderSizeLadder(), renderWeightScale(), renderLeadingTracking());
+  else h.append(renderWeightRoles(), renderCategorySetup(), renderResponsiveEditor());
+}, () => (typeTab === 'styles' ? [renderTypeRamp()] : []));
 
 // Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
 const renderElevationPage = (host: HTMLElement): void => renderScreen(host, 'elevation', (h) => {
@@ -1970,198 +2025,328 @@ const KNOWN_WEIGHTS_LC: Record<string, number[]> = Object.fromEntries(Object.ent
 /** The known weight list for a family primary name, or null when the family is unknown (→ no warning). */
 const knownWeightsOf = (fontName: string | undefined): number[] | null => (fontName ? KNOWN_WEIGHTS_LC[fontName.trim().toLowerCase()] ?? null : null);
 
-/** The typography editor — #103 Phase A1: the FONT POOL (the three family roles, finally editable)
- *  + the global weight-role→numeric map. Phase A2: the per-category assignment table (family · weights ·
- *  italic · link). Phase B: advisory weight-availability — a category shipping a weight its family lacks
- *  is muted + flagged (soft, never blocked). Reads the resolved `theme.typography`, writes overrides to
- *  `brandState.typography.*`, re-resolves on change. */
+/** Offline font-availability detection. A family that fails to resolve falls through to the
+ *  fallback stack, so its measured width matches the bare fallback's. Canvas metrics only —
+ *  no network — so this works identically in the plugin iframe (`networkAccess: none`).
+ *  Three baselines guard against a false negative when the face happens to match one of them. */
+const _fontProbe = document.createElement('canvas').getContext('2d');
+const fontAvailable = (name: string | undefined): boolean => {
+  if (!name || !_fontProbe) return false;
+  const probe = 'mmmmmmmmmmlliWWWWWWjgq';
+  return ['monospace', 'sans-serif', 'serif'].some((base) => {
+    _fontProbe.font = `72px ${base}`;
+    const w0 = _fontProbe.measureText(probe).width;
+    _fontProbe.font = `72px "${name}", ${base}`;
+    return Math.abs(_fontProbe.measureText(probe).width - w0) > 0.5;
+  });
+};
+const WEIGHT_NAME: Record<number, string> = {
+  100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium',
+  600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
+};
 const FAMILY_ROLES: Array<['display' | 'text' | 'mono', string, string]> = [
-  ['display', 'Display', 'Headings & hero type (display/title/label/eyebrow default here).'],
-  ['text', 'Text', 'Reading & UI copy (body/caption default here).'],
+  ['display', 'Display', 'Headings & hero type.'],
+  ['text', 'Text', 'Reading & UI copy.'],
   ['mono', 'Mono', 'Code & column-aligned figures.'],
 ];
-const renderTypographyEditor = (): HTMLElement => {
-  const wrap = el('div', 'type-editor');
+
+// ---- FOUNDATIONS (primitives) ----------------------------------------------
+
+/** Typefaces — the faces this brand uses, with live availability + preview. Categories are
+ *  deliberately absent: which category draws on which face is a SEMANTIC decision and lives
+ *  on the Styles tab. (Until #269 lands, a face and its family role are the same object, so
+ *  each card edits one role's face.) */
+const renderTypefaces = (): HTMLElement => {
   const ty = theme.typography;
-  // D (typography) — outside the base mode, font FAMILY + WEIGHT go per-mode (modeLevers[mode]);
-  // the shared skeleton (type scale, categories, which weights each category ships) is authored in
-  // Light and shown read-only here. "Auto" = follow the global baseline.
   const perMode = currentMode !== 'light';
   const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  // Per-mode family / weight / leading / tracking all read+write modeLevers[mode] via the shared
-  // getModeLever/setModeLever (which own the prune-to-byte-identical invariant). A blank/undefined value
-  // clears the override. Font family may be stored as a string or a stack array — famGet returns the primary.
-  const famGet = (role: string): string | undefined => { const f = getModeLever(currentMode, `families.${role}`); return Array.isArray(f) ? f[0] : (f as string | undefined); };
-  const wGet = (role: string): number | undefined => getModeLever(currentMode, `weights.${role}`) as number | undefined;
-  const lhGet = (key: string): number | undefined => getModeLever(currentMode, `lineHeights.${key}`) as number | undefined;
-  const lsGet = (key: string): number | undefined => getModeLever(currentMode, `letterSpacings.${key}`) as number | undefined;
-  const famSet = (role: string, v: string | undefined): void => { setModeLever(currentMode, `families.${role}`, v); applyFull(); };
-  const wSet = (role: string, v: number | undefined): void => { setModeLever(currentMode, `weights.${role}`, v); applyFull(); };
-  const lhSet = (key: string, v: number | undefined): void => { setModeLever(currentMode, `lineHeights.${key}`, v); applyFull(); };
-  const lsSet = (key: string, v: number | undefined): void => { setModeLever(currentMode, `letterSpacings.${key}`, v); applyFull(); };
-  if (perMode) wrap.append(el('p', 'te-modenote', `Editing ${modeLabel}’s font family + weight — “Auto” follows the global baseline. Type scale, categories, and which weights each category ships are shared across modes (edit them in Light).`));
-  // Phase B: recomputes the per-category weight-availability markers from the LIVE resolved theme.
-  // Assigned once the table exists; A1 (font/weight edits) and A2 (family/weight-role edits) call it
-  // after apply(), so a font or weight-numeric change refreshes the warnings without a full re-render.
-  let refreshWarnings = (): void => {};
-  // --- Font pool: the primary face per family role (a single name auto-pads a fallback stack) ---
-  const pool = palSection('Font pool', 'The primary face per family role — a single name auto-pads a system fallback stack.');
+  const sec = palSection('Typefaces', 'The faces this brand uses. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim.');
+  const grid = el('div', 'tf-grid');
   for (const [role, label, desc] of FAMILY_ROLES) {
     const globalPrimary = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
-    const knob = el('div', 'knob');
-    knob.append(el('label', 'knob-label', label));
-    const input = el('input') as HTMLInputElement;
-    input.type = 'text'; input.className = 'te-font';
-    if (perMode) {
-      const ov = famGet(role);
-      input.value = ov ?? '';
-      input.placeholder = `Auto — ${globalPrimary}`;
-      input.onchange = () => famSet(role, input.value.trim() || undefined);
-    } else {
-      input.value = globalPrimary; input.placeholder = 'Font family name';
-      input.onchange = () => { setPath(brandState, `typography.families.${role}`, input.value.trim() || undefined); apply(); refreshWarnings(); };
-    }
-    knob.append(input, el('p', 'knob-desc', perMode ? `${desc} — per ${modeLabel}; blank = Auto (global).` : desc));
-    pool.append(knob);
+    const ov = perMode ? (Array.isArray(getModeLever(currentMode, `families.${role}`)) ? (getModeLever(currentMode, `families.${role}`) as string[])[0] : getModeLever(currentMode, `families.${role}`) as string | undefined) : undefined;
+    const shown = perMode ? (ov ?? globalPrimary) : globalPrimary;
+    const card = el('div', 'tf-card');
+    card.append(el('div', 'tf-role', label), el('div', 'tf-desc', desc));
+    const input = el('input', 'tf-in') as HTMLInputElement;
+    input.type = 'text'; input.spellcheck = false;
+    input.value = perMode ? (ov ?? '') : globalPrimary;
+    input.placeholder = perMode ? `Auto — ${globalPrimary}` : 'Font family name';
+    const stat = el('div', 'tf-stat');
+    const prev = el('div', 'tf-prev', 'Ag 123');
+    const paint = (face: string): void => {
+      const ok = fontAvailable(face);
+      stat.className = 'tf-stat ' + (ok ? 'ok' : 'no');
+      stat.textContent = ok ? '✓ Rendering on this device' : (face ? '⚠ Not installed — preview falls back' : '⚠ Using the default face');
+      prev.style.fontFamily = face ? `"${face}", ${role === 'mono' ? 'monospace' : 'sans-serif'}` : 'inherit';
+    };
+    paint(shown);
+    input.oninput = () => paint(input.value.trim() || globalPrimary);
+    input.onchange = () => {
+      const v = input.value.trim() || undefined;
+      if (perMode) { setModeLever(currentMode, `families.${role}`, v); applyFull(); }
+      else { setPath(brandState, `typography.families.${role}`, v); apply(); }
+    };
+    card.append(input, stat, prev, tokenPill(`font.family.${role}`));
+    grid.append(card);
   }
-  wrap.append(pool);
-  // --- Weight roles → numeric (GLOBAL: one numeric per role, shared across every category) ---
-  const wr = palSection('Weight roles → numeric', 'One numeric weight per role, shared across every category — a relative-emphasis ladder (subtle → strong).');
-  for (const w of ty.weightRoles) {
-    const knob = el('div', 'knob te-wrow');
-    knob.append(el('label', 'knob-label', w.role));
-    const input = numberField({ className: 'te-weight', min: 100, max: 900, step: 100, value: '' });
+  sec.append(grid);
+  const spell = el('p', 'tf-note');
+  spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalisation → Fonts, or the foundry / Google Fonts specimen page.';
+  const local = el('p', 'tf-note warn');
+  local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback — the ⚠ above tells you when that is happening. Your emitted tokens are unaffected; they carry the name you typed.';
+  sec.append(spell, local);
+  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s faces — blank follows the global baseline.`));
+  return sec;
+};
+
+/** The size ladder + the three levers that reshape it. The ladder itself was previously
+ *  rendered nowhere, and displayCeiling / titleFloor were unreachable from the dashboard. */
+const renderSizeLadder = (): HTMLElement => {
+  const ty = theme.typography;
+  const perMode = currentMode !== 'light';
+  const sec = palSection('Type scale', 'The size ladder is fixed and brand-invariant — 22 rem steps. These three levers decide which rungs the heading categories land on; body, label, caption, eyebrow and code never move.');
+  for (const key of ['typography.typeScale', 'typography.displayCeiling', 'typography.titleFloor']) {
+    const lever = leverByKey(key); if (!lever) continue;
     if (perMode) {
-      const ov = wGet(w.role);
-      input.value = ov !== undefined ? String(ov) : '';
-      input.placeholder = `Auto ${w.value}`;
-      input.onchange = () => { const raw = input.value.trim(); if (raw === '') { wSet(w.role, undefined); return; } const n = Number(raw); if (n >= 100 && n <= 900) wSet(w.role, n); };
-    } else {
-      input.value = String(w.value);
-      input.onchange = () => { const n = Number(input.value); if (n >= 100 && n <= 900) { setPath(brandState, `typography.weightRoles.${w.role}`, n); apply(); refreshWarnings(); } };
-    }
-    knob.append(input);
-    wr.append(knob);
+      const cur = getPath(brandState, lever.key) ?? lever.default;
+      sec.append(knob(lever.label, el('div', 'te-shared-ro', `${cur} · shared across modes — edit in Light`), lever.description));
+    } else sec.append(renderControl(lever));
   }
-  wrap.append(wr);
-  // Ordering nudge (D) — the weight roles are a relative-emphasis ladder (subtle ≤ … ≤ strong); a mode
-  // shifts the whole scale but shouldn't INVERT a role. Warn (never block) if the effective values dip.
-  const effWeights = ty.weightRoles.map((w) => (perMode ? (wGet(w.role) ?? w.value) : w.value));
-  const inverted = effWeights.some((v, i) => i > 0 && v < effWeights[i - 1]);
-  if (inverted) wrap.append(el('p', 'te-order-warn', '⚠ A heavier role now resolves lighter than a lower one — the weight names read as relative emphasis (subtle → strong), so keeping them in order stays honest. This is a warning, not a block.'));
-  // --- Line height + letter spacing (D): the leading/tracking ramps, adjustable PER MODE only. ---
-  // The named steps (tight/snug/… · tighter/tight/…) are shared across modes; a mode re-anchors a step's
-  // VALUE (blank = Auto/global). Composites reference a step by key, so a bump reflows every composite
-  // that uses it. In Light the ramps are read-only reference (there's no global lever — per-mode is the
-  // control); in a mode they become editable. Rendered compactly to keep the stage tight.
-  const rampSection = (
-    title: string, note: string, steps: { key: string; val: number }[],
-    getOv: (k: string) => number | undefined, setOv: (k: string, v: number | undefined) => void,
-    fmt: (v: number) => string, min: number, max: number, step: number,
-  ): void => {
-    const sec = palSection(title, note);
-    const grid = el('div', 'te-ramp');
+  // requested-vs-effective: the scale shift can land the top display size off the exact rung.
+  const disp = ty.composites.filter((c) => c.group === 'display').map((c) => c.sizePx);
+  const req = (getPath(brandState, 'typography.displayCeiling') as number | undefined) ?? 160;
+  if (disp.length && Math.max(...disp) !== req)
+    sec.append(el('p', 'sl-note', `Requested ceiling ${req}px; effective top display is ${Math.max(...disp)}px — the scale shift lands between rungs.`));
+
+  sec.append(subHead('The ladder — largest first'));
+  const headRungs = new Set(ty.composites.filter((c) => c.group === 'display' || c.group === 'title').map((c) => c.sizePx));
+  const used = new Set(ty.composites.map((c) => c.sizePx));
+  const minUsed = new Set(ty.composites.map((c) => c.sizeMinPx));
+  const displayStack = ty.families.find((f) => f.role === 'display')?.stack.join(', ') ?? 'inherit';
+  const ladder = el('div', 'sl-ladder');
+  // Largest-first: every lever acts on the heading end, so the rungs that change must be
+  // the ones in view. The scroll then opens on the first rung actually in use.
+  for (const px of [...ty.sizesPx].reverse()) {
+    const inUse = used.has(px);
+    const row = el('div', 'sl-row' + (inUse ? '' : ' unused') + (headRungs.has(px) ? ' head' : ''));
+    const meta = el('div', 'sl-meta');
+    meta.append(el('span', 'sl-dot'), el('span', 'sl-px mono', `${px}px`), el('span', 'sl-rem mono', `${+(px / 16).toFixed(4)}rem`));
+    const right = el('div', 'sl-right');
+    const samp = el('div', 'sl-samp', 'Ag');
+    samp.style.fontSize = `${px}px`; samp.style.fontFamily = displayStack;
+    const who = [...new Set(ty.composites.filter((c) => c.sizePx === px).map((c) => c.group))];
+    right.append(samp, el('div', 'sl-who mono', inUse ? who.join(' · ') : (minUsed.has(px) ? 'fluid floor only' : '—')));
+    row.append(meta, right);
+    ladder.append(row);
+  }
+  sec.append(ladder);
+  requestAnimationFrame(() => {
+    const first = ladder.querySelector('.sl-row:not(.unused)') as HTMLElement | null;
+    if (first) ladder.scrollTop = Math.max(0, first.offsetTop - 4);
+  });
+  const key = el('div', 'sl-key');
+  const kdot = (cls: string, text: string): HTMLElement => { const s = el('span', 'sl-keyi'); s.append(el('i', cls), document.createTextNode(text)); return s; };
+  key.append(kdot('k-head', 'moves with these levers (display + title)'), kdot('k-fix', 'fixed — body, label, caption, code'), kdot('k-off', 'rung unused by any category'));
+  sec.append(key);
+  return sec;
+};
+
+/** The nine weight numerics, with per-face availability. This is the right home for the
+ *  KNOWN_WEIGHTS advisory — it is a fact about the FONT, not about a category. */
+const renderWeightScale = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Weight scale', 'The nine CSS weight numerics. Whether a face actually ships a weight is advisory — an unknown or custom family is never flagged, and nothing here is ever blocked.');
+  const table = el('table', 'ws-table');
+  const head = el('tr');
+  head.append(el('th', undefined, 'Weight'));
+  for (const [role] of FAMILY_ROLES) head.append(el('th', 'ws-c', ty.families.find((f) => f.role === role)?.stack[0] ?? role));
+  table.append(head);
+  for (const n of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
+    const tr = el('tr');
+    const nameTd = el('td');
+    nameTd.append(el('span', 'ws-num mono', String(n)), el('span', 'ws-name', WEIGHT_NAME[n]));
+    tr.append(nameTd);
+    for (const [role] of FAMILY_ROLES) {
+      const known = knownWeightsOf(ty.families.find((f) => f.role === role)?.stack[0]);
+      const td = el('td', 'ws-c');
+      td.append(el('span', 'ws-mark ' + (!known ? 'unknown' : known.includes(n) ? 'yes' : 'no'), !known ? '?' : known.includes(n) ? '●' : '○'));
+      td.title = !known ? 'Unknown family — availability cannot be asserted' : known.includes(n) ? 'Ships this weight' : 'May not ship this weight — falls back to the nearest';
+      tr.append(td);
+    }
+    table.append(tr);
+  }
+  sec.append(table);
+  sec.append(el('p', 'sl-note', '● ships it · ○ may not (falls back to the nearest) · ? unknown family, not flagged. Which numeric each named role maps to is a semantic decision — see Weight roles on the Styles tab.'));
+  return sec;
+};
+
+/** Leading + tracking rungs. As of the brand-editable rung values these are real inputs in
+ *  Light (they were read-only, with no global lever behind them at all). */
+const renderLeadingTracking = (): HTMLElement => {
+  const ty = theme.typography;
+  const perMode = currentMode !== 'light';
+  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
+  const sec = palSection('Leading & tracking', 'Two fixed sets of named rungs, sitting alongside the size ladder. Re-anchor what a rung is worth here; which rung a category lands on is chosen for you from its size and role, and nudged per category on the Styles tab.');
+  const ramp = (title: string, steps: { key: string; val: number }[], fmt: (v: number) => string,
+    globalKey: string, modeField: string, min: number, max: number, step: number,
+    preview: (host: HTMLElement, v: number) => void): void => {
+    sec.append(subHead(title));
+    const grid = el('div', 'lt-grid');
     for (const s of steps) {
-      const cell = el('div', 'te-ramp-cell');
-      cell.append(el('label', 'te-ramp-key mono', s.key));
+      const cell = el('div', 'lt-cell');
+      const top = el('div', 'lt-top');
+      top.append(el('span', 'lt-key mono', s.key));
+      const inp = numberField({ className: 'lt-in', min, max, step, value: perMode ? '' : s.val });
       if (perMode) {
-        const input = numberField({ className: 'te-ramp-in', min, max, step, value: '' });
-        const ov = getOv(s.key);
-        input.value = ov !== undefined ? String(ov) : '';
-        input.placeholder = `Auto ${fmt(s.val)}`;
-        input.onchange = () => { const raw = input.value.trim(); if (raw === '') { setOv(s.key, undefined); return; } const n = Number(raw); if (n >= min && n <= max) setOv(s.key, n); else input.value = ov !== undefined ? String(ov) : ''; };
-        cell.append(input);
-      } else cell.append(el('div', 'te-ramp-ro mono', fmt(s.val)));
+        const ov = getModeLever(currentMode, `${modeField}.${s.key}`) as number | undefined;
+        inp.value = ov !== undefined ? String(ov) : '';
+        inp.placeholder = `Auto ${fmt(s.val)}`;
+        inp.onchange = () => {
+          const raw = inp.value.trim();
+          if (raw === '') { setModeLever(currentMode, `${modeField}.${s.key}`, undefined); applyFull(); return; }
+          const n = Number(raw);
+          if (n >= min && n <= max) { setModeLever(currentMode, `${modeField}.${s.key}`, n); applyFull(); } else inp.value = ov !== undefined ? String(ov) : '';
+        };
+      } else {
+        inp.onchange = () => {
+          const n = Number(inp.value);
+          if (n >= min && n <= max) { setPath(brandState, `${globalKey}.${s.key}`, n); apply(); } else inp.value = String(s.val);
+        };
+      }
+      top.append(inp);
+      cell.append(top);
+      const who = [...new Set(ty.composites.filter((c) => (modeField === 'lineHeights' ? c.lineHeight : c.tracking) === s.key).map((c) => c.group))];
+      cell.append(el('div', 'lt-who', who.length ? who.join(', ') : 'not currently used'));
+      const pv = el('div', 'lt-prev');
+      preview(pv, s.val);
+      cell.append(pv);
       grid.append(cell);
     }
     sec.append(grid);
-    wrap.append(sec);
   };
-  const lhNote = perMode
-    ? `Per-mode leading — blank = Auto (global). Open ${modeLabel} up a touch for legibility, or tighten it.`
-    : 'The leading ramp — unitless multipliers. Per-mode adjustable: switch to a mode to retune leading there.';
-  const lsNote = perMode
-    ? `Per-mode tracking (em) — blank = Auto (global). Loosen ${modeLabel} for small text on dark, or tighten it.`
-    : 'The tracking ramp — em-relative. Per-mode adjustable: switch to a mode to retune tracking there.';
-  rampSection('Line height', lhNote, ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), lhGet, lhSet, (v) => `${v}×`, 0.8, 3, 0.05);
-  rampSection('Letter spacing', lsNote, ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), lsGet, lsSet, (v) => `${v}em`, -0.5, 0.5, 0.005);
-  // --- Per-category assignment (A2): family role · which weight-roles ship · italic · link ---
-  // Current state is DERIVED from the resolved composites; each control writes the corresponding
-  // brandState.typography.* override. Toggles read LIVE checkbox states (never a stale snapshot),
-  // so writing the full weights/italics/links list from the DOM stays correct across many edits.
-  const catSec = palSection('Per-category', 'Per category — its family, which weight roles it ships, and italic / link variants. The composite skeleton.');
-  if (perMode) catSec.append(el('p', 'te-shared-note', `Shared across all modes — the family map, which weight roles each category ships, and italic/link are the composite skeleton. Edit them in Light; ${modeLabel} inherits the structure and just overrides the font + weight values above.`));
-  const roleOrder = ty.weightRoles.map((w) => w.role);
-  const italicG = new Set<string>(ty.composites.filter((c) => c.italic).map((c) => c.group));
-  const linkG = new Set<string>(ty.composites.filter((c) => c.link).map((c) => c.group));
-  const catFamily: Record<string, string> = {};
-  const catWeights: Record<string, Set<string>> = {};
-  for (const g of TYPE_GROUP_ORDER) {
-    const comps = ty.composites.filter((c) => c.group === g);
-    catFamily[g] = comps[0]?.family ?? 'text';
-    catWeights[g] = new Set(comps.map((c) => c.weightRole));
-  }
-  const weightCb: Record<string, Record<string, HTMLInputElement>> = {};
-  const weightTd: Record<string, Record<string, HTMLElement>> = {};   // Phase B: the cell carrying the availability marker
-  const italicCb: Record<string, HTMLInputElement> = {};
-  const linkCb: Record<string, HTMLInputElement> = {};
-  const cbEl = (checked: boolean): HTMLInputElement => { const c = el('input') as HTMLInputElement; c.type = 'checkbox'; c.checked = checked; c.disabled = perMode; return c; };
-  const table = el('table', 'te-cat');
-  const head = el('tr');
-  head.append(el('th', undefined, 'Category'), el('th', undefined, 'Family'));
-  for (const r of roleOrder) head.append(el('th', 'te-c', r));
-  head.append(el('th', 'te-c', 'italic'), el('th', 'te-c', 'link'));
-  table.append(head);
-  for (const g of TYPE_GROUP_ORDER) {
-    const tr = el('tr');
-    tr.append(el('td', 'te-cat-name mono', g));
-    const fsel = selectEl('sm');
-    for (const fr of ['display', 'text', 'mono']) fsel.append(optionEl(fr, fr, fr === catFamily[g]));
-    fsel.onchange = () => { setPath(brandState, `typography.familyMap.${g}`, fsel.value); apply(); refreshWarnings(); };
-    fsel.disabled = perMode;   // shared skeleton — edit in Light
-    const ftd = el('td'); ftd.append(fsel); tr.append(ftd);
-    weightCb[g] = {}; weightTd[g] = {};
-    for (const r of roleOrder) {
-      const cb = cbEl(catWeights[g].has(r)); weightCb[g][r] = cb;
-      cb.onchange = () => { setPath(brandState, `typography.weights.${g}`, roleOrder.filter((x) => weightCb[g][x].checked)); apply(); refreshWarnings(); };
-      const cbw = el('span', 'te-cbwrap'); cbw.append(cb, el('span', 'te-warn', '⚠'));
-      const td = el('td', 'te-c'); td.append(cbw); tr.append(td); weightTd[g][r] = td;
-    }
-    const icb = cbEl(italicG.has(g)); italicCb[g] = icb;
-    icb.onchange = () => { setPath(brandState, 'typography.italics', TYPE_GROUP_ORDER.filter((x) => italicCb[x].checked)); apply(); };
-    const itd = el('td', 'te-c'); itd.append(icb); tr.append(itd);
-    const lcb = cbEl(linkG.has(g)); linkCb[g] = lcb;
-    lcb.onchange = () => { setPath(brandState, 'typography.links', TYPE_GROUP_ORDER.filter((x) => linkCb[x].checked)); apply(); };
-    const ltd = el('td', 'te-c'); ltd.append(lcb); tr.append(ltd);
-    table.append(tr);
-  }
-  const catWrap = el('div', 'te-cat-wrap'); catWrap.append(table); catSec.append(catWrap);
-  wrap.append(catSec);
-  // Phase B — mute the weight roles a category's family likely doesn't ship, and flag (⚠) any that are
-  // shipped anyway (they fall back to the nearest). Reads the LIVE resolved theme, so a font-name,
-  // weight-numeric, or family change refreshes it without a full re-render. Advisory only — never blocks.
-  refreshWarnings = () => {
-    const t = theme.typography;
-    const numOf = (role: string): number | undefined => t.weightRoles.find((w) => w.role === role)?.value;
-    const famRoleOf = (g: string): string => t.composites.find((c) => c.group === g)?.family ?? 'text';
-    const fontOf = (famRole: string): string | undefined => t.families.find((f) => f.role === famRole)?.stack[0];
-    for (const g of TYPE_GROUP_ORDER) {
-      const known = knownWeightsOf(fontOf(famRoleOf(g)));
-      for (const r of roleOrder) {
-        const td = weightTd[g]?.[r]; const cb = weightCb[g]?.[r]; if (!td || !cb) continue;
-        const num = numOf(r);
-        const unavail = !!known && num !== undefined && !known.includes(num);
-        td.classList.toggle('unavail', unavail);
-        (td.querySelector('.te-warn') as HTMLElement).style.display = unavail && cb.checked ? 'inline-block' : 'none';
-        td.title = unavail ? `This family may not ship weight ${num} — it falls back to the nearest available weight.` : '';
-      }
-    }
-  };
-  refreshWarnings();
-  wrap.append(el('p', 'te-cat-note', '⚠ = a shipped weight the category’s family may not provide (it falls back to the nearest). Muted cells are weights the family likely lacks — advisory only, never blocked; unknown/custom fonts aren’t flagged.'));
-  return wrap;
+  ramp('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`,
+    'typography.lineHeights', 'lineHeights', 0.8, 3, 0.05,
+    (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
+  ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`,
+    'typography.letterSpacings', 'letterSpacings', -0.5, 0.5, 0.005,
+    (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
+  if (perMode) sec.append(el('p', 'te-modenote', `Values shown are ${modeLabel}’s — blank follows the global ramp.`));
+  return sec;
 };
 
+// ---- STYLES (semantics) ----------------------------------------------------
+
+/** Weight roles → numeric. A named role aliasing a primitive: semantic, and global —
+ *  `emphasis` is the same numeric in every category (#112). */
+const renderWeightRoles = (): HTMLElement => {
+  const ty = theme.typography;
+  const perMode = currentMode !== 'light';
+  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
+  const textStack = ty.families.find((f) => f.role === 'text')?.stack.join(', ') ?? 'inherit';
+  const sec = palSection('Weight roles', 'Each role maps to one CSS numeric, shared by every category — a relative-emphasis ladder from subtle to max. Per category you choose which roles ship, not what they weigh.');
+  for (const w of ty.weightRoles) {
+    const row = el('div', 'wr-row');
+    row.append(el('div', 'wr-name', w.role));
+    const sel = selectEl('sm');
+    if (perMode) {
+      const ov = getModeLever(currentMode, `weights.${w.role}`) as number | undefined;
+      sel.append(optionEl('', `Auto — ${w.value} ${WEIGHT_NAME[w.value] ?? ''}`.trim(), ov === undefined));
+      for (const n of [100, 200, 300, 400, 500, 600, 700, 800, 900]) sel.append(optionEl(String(n), `${n} — ${WEIGHT_NAME[n]}`, ov === n));
+      sel.onchange = () => { setModeLever(currentMode, `weights.${w.role}`, sel.value ? Number(sel.value) : undefined); applyFull(); };
+    } else {
+      for (const n of [100, 200, 300, 400, 500, 600, 700, 800, 900]) sel.append(optionEl(String(n), `${n} — ${WEIGHT_NAME[n]}`, n === w.value));
+      sel.onchange = () => { setPath(brandState, `typography.weightRoles.${w.role}`, Number(sel.value)); apply(); };
+    }
+    row.append(sel);
+    const samp = el('div', 'wr-samp', 'The quick brown fox');
+    samp.style.fontWeight = String(w.value); samp.style.fontFamily = textStack;
+    row.append(samp, tokenPill(`font.weight-role.${w.role}`));
+    sec.append(row);
+  }
+  const eff = ty.weightRoles.map((w) => w.value);
+  if (eff.some((v, i) => i > 0 && v < eff[i - 1]))
+    sec.append(el('p', 'te-order-warn', '⚠ A heavier role now resolves lighter than one below it — the names read as relative emphasis (subtle → strong), so keeping them in order stays honest. A warning, not a block.'));
+  if (perMode) sec.append(el('p', 'te-modenote', `Numerics shown are ${modeLabel}’s — “Auto” follows the global baseline.`));
+  return sec;
+};
+
+/** Category setup — the composite skeleton. Each ticked weight multiplies out into real
+ *  styles in the ramp; the leading/tracking nudges shift the engine's size-sensitive curve
+ *  for that category rather than flattening it to one value. */
+const renderCategorySetup = (): HTMLElement => {
+  const ty = theme.typography;
+  const perMode = currentMode !== 'light';
+  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
+  const roleOrder = ty.weightRoles.map((w) => w.role);
+  const sec = palSection('What each category is made of', 'Give every category the face it draws from and the weight roles it ships, nudge its leading and tracking, and choose whether it gets italic and underlined-link variants. Each ticked weight multiplies out into a real style at every size in that category.');
+  if (perMode) sec.append(el('p', 'te-shared-note', `Shared across all modes — the composite skeleton is authored in Light; ${modeLabel} only overrides the face and weight VALUES.`));
+  const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
+  const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
+  const wrap = el('div', 'cs-wrap');
+  const table = el('table', 'cs-table');
+  const head = el('tr');
+  head.append(el('th', undefined, 'Category'), el('th', undefined, 'Face'));
+  for (const r of roleOrder) head.append(el('th', 'cs-c', r));
+  head.append(el('th', 'cs-c', 'leading'), el('th', 'cs-c', 'tracking'), el('th', 'cs-c', 'italic'), el('th', 'cs-c', 'link'));
+  table.append(head);
+  const cb = (checked: boolean, onChange: (v: boolean) => void): HTMLInputElement => {
+    const c = el('input') as HTMLInputElement;
+    c.type = 'checkbox'; c.checked = checked; c.disabled = perMode;
+    c.onchange = () => onChange(c.checked);
+    return c;
+  };
+  const nudge = (group: string, field: 'leadingShift' | 'trackingShift'): HTMLSelectElement => {
+    const cur = (getPath(brandState, `typography.${field}.${group}`) as number | undefined) ?? 0;
+    const sel = selectEl('sm cs-nudge');
+    for (const [v, lab] of [[-1, field === 'leadingShift' ? 'tighter' : 'tighter'], [0, 'default'], [1, field === 'leadingShift' ? 'looser' : 'wider']] as Array<[number, string]>)
+      sel.append(optionEl(String(v), lab, v === cur));
+    sel.disabled = perMode;
+    sel.onchange = () => { const n = Number(sel.value); setPath(brandState, `typography.${field}.${group}`, n === 0 ? undefined : n); apply(); };
+    return sel;
+  };
+  for (const g of TYPE_GROUP_ORDER) {
+    const comps = ty.composites.filter((c) => c.group === g);
+    const tr = el('tr');
+    const nameTd = el('td');
+    nameTd.append(el('div', 'cs-name mono', g), el('div', 'cs-count', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`));
+    tr.append(nameTd);
+    const fsel = selectEl('sm');
+    const curFam = comps[0]?.family ?? 'text';
+    for (const [role] of FAMILY_ROLES) fsel.append(optionEl(role, ty.families.find((f) => f.role === role)?.stack[0] ?? role, role === curFam));
+    fsel.disabled = perMode;
+    fsel.onchange = () => { setPath(brandState, `typography.familyMap.${g}`, fsel.value); apply(); };
+    const ftd = el('td'); ftd.append(fsel); tr.append(ftd);
+    const has = new Set(comps.map((c) => c.weightRole));
+    for (const r of roleOrder) {
+      const td = el('td', 'cs-c');
+      td.append(cb(has.has(r), () => {
+        const next = roleOrder.filter((x) => (x === r ? !has.has(r) : has.has(x)));
+        setPath(brandState, `typography.weights.${g}`, next.length ? next : undefined); apply();
+      }));
+      tr.append(td);
+    }
+    const ltd = el('td', 'cs-c'); ltd.append(nudge(g, 'leadingShift')); tr.append(ltd);
+    const ttd = el('td', 'cs-c'); ttd.append(nudge(g, 'trackingShift')); tr.append(ttd);
+    const itd = el('td', 'cs-c');
+    itd.append(cb(italicG.has(g), (v) => {
+      const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : italicG.has(x)));
+      setPath(brandState, 'typography.italics', next); apply();
+    }));
+    tr.append(itd);
+    const ktd = el('td', 'cs-c');
+    ktd.append(cb(linkG.has(g), (v) => {
+      const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : linkG.has(x)));
+      setPath(brandState, 'typography.links', next); apply();
+    }));
+    tr.append(ktd);
+    table.append(tr);
+  }
+  wrap.append(table);
+  sec.append(wrap);
+  sec.append(el('p', 'sl-note', 'The leading and tracking nudges shift that category’s whole curve by one rung — bigger headings keep tightening, they just start from a different place.'));
+  return sec;
+};
 // ---- object-value editors (#97) --------------------------------------------
 // Two BrandInput levers are objects (`surfaces`, `shadow.tint`) that renderControl can only
 // show read-only as "configured". These bespoke sub-forms make them editable — reading the
@@ -2492,75 +2677,64 @@ const renderShadowEditor = (softness?: Lever): HTMLElement => {
   return wrap;
 };
 
-/** A compact type-scale specimen: one representative composite per group at its resolved
- *  size, so a typeScale/family/weight change is visible (the component chips are too small
- *  to show the scale). Reads the last-good `theme.typography`. */
-const TYPE_GROUP_ORDER = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'];
-const renderTypeSpecimen = (): HTMLElement => {
-  const wrap = palSection('Type scale', 'Semantic composites at their resolved sizes — the ladder the components draw from.');
+// `as const` keeps the literal union so these stay assignable to the engine's TypeGroup
+// (the italic/link sets are keyed by it).
+const TYPE_GROUP_ORDER = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'] as const;
+const TYPE_GROUP_BLURB: Record<string, string> = {
+  display: 'Hero and marketing-scale statements.', title: 'Section and page headings.',
+  body: 'Running copy and UI text.', label: 'Form labels, buttons, dense UI.',
+  caption: 'Secondary and supporting text.', eyebrow: 'Small uppercase kickers above headings.',
+  code: 'Inline code and tabular figures.',
+};
+// Long strings stop fitting once the size climbs, so the sample shortens rather than
+// the size being capped — the ramp's whole job is showing true scale.
+const rampSample = (group: string, px: number): string =>
+  group === 'code' ? 'const token = 16;' : px >= 80 ? 'Type' : px >= 40 ? 'Typography' : 'The quick brown fox';
+
+/** The full semantic ramp — every generated style at true size, grouped by category.
+ *  Resolves through the active mode's family / weight / leading / tracking. */
+const renderTypeRamp = (): HTMLElement => {
   const ty = theme.typography;
-  const byGroup = new Map<string, typeof ty.composites[number]>();
-  for (const c of ty.composites) {
-    if (c.link) continue;                               // skip link variants
-    const cur = byGroup.get(c.group);
-    if (!cur || c.sizePx > cur.sizePx) byGroup.set(c.group, c);   // largest variant per group
-  }
-  // D — reflect the current mode's per-mode font family + weight (modeLevers.families/weights) when
-  // they deviate, so the swap is visible here rather than only in the export (the #158 lesson). Falls
-  // back to the global families/weightRoles.
-  const famsByMode = ty.familiesByMode?.[currentMode];
-  const wrByMode = ty.weightRolesByMode?.[currentMode];
-  const lhByMode = ty.lineHeightsByMode?.[currentMode];
-  const lsByMode = ty.letterSpacingsByMode?.[currentMode];
-  const list = el('div', 'ts-list');
+  const fams = ty.familiesByMode?.[currentMode] ?? ty.families;
+  const wrs = ty.weightRolesByMode?.[currentMode] ?? ty.weightRoles;
+  const lhs = ty.lineHeightsByMode?.[currentMode] ?? ty.lineHeights;
+  const lss = ty.letterSpacingsByMode?.[currentMode] ?? ty.letterSpacings;
+  const stackOf = (r: string): string => fams.find((f) => f.role === r)?.stack.join(', ') ?? 'inherit';
+  const wOf = (r: string): number => wrs.find((w) => w.role === r)?.value ?? 400;
+  const lhOf = (k: string): number => lhs.find((l) => l.key === k)?.value ?? 1.5;
+  const lsOf = (k: string): number => lss.find((l) => l.key === k)?.em ?? 0;
+
+  const sec = palSection('The full type ramp', `Every style the system generates — ${ty.composites.length} in total, grouped by category. This is what ships as tokens.`);
   for (const g of TYPE_GROUP_ORDER) {
-    const c = byGroup.get(g);
-    if (!c) continue;
-    const famList = famsByMode ?? ty.families;
-    const wrList = wrByMode ?? ty.weightRoles;
-    const fam = famList.find((f) => f.role === c.family)?.stack.join(', ') ?? 'inherit';
-    const wt = wrList.find((w) => w.role === c.weightRole)?.value ?? 400;
-    // Per-mode leading + tracking resolve through the composite's line-height/tracking key (the seam);
-    // tracking is visible even on one line, so the per-mode swap shows here (the #158 lesson).
-    const lsVal = (lsByMode ?? ty.letterSpacings).find((x) => x.key === c.tracking)?.em ?? 0;
-    const lhVal = (lhByMode ?? ty.lineHeights).find((x) => x.key === c.lineHeight)?.value ?? 1.4;
-    const row = el('div', 'ts-row');
-    const name = c.variant ? `${c.group}.${c.variant}` : c.group;   // eyebrow has an empty variant
-    const metaRow = el('div', 'spec-metarow');
-    metaRow.append(el('span', 'ts-meta mono', `${name} · ${c.sizePx}px · ${c.weightRole} ${wt}`), tokenPill(`type.${c.path}`));
-    row.append(metaRow);
-    const sample = el('div', 'ts-sample', 'The spectrum resolves cleanly');
-    sample.style.fontFamily = (c.family === 'mono' || g === 'code') ? 'var(--mono)' : fam;
-    sample.style.fontWeight = String(wt);
-    sample.style.fontSize = `${Math.min(c.sizePx, 60)}px`;   // cap the visual; real px is in the label
-    sample.style.lineHeight = String(lhVal);
-    sample.style.letterSpacing = `${lsVal}em`;
-    if (c.textCase === 'uppercase' || g === 'eyebrow') { sample.style.textTransform = 'uppercase'; sample.style.letterSpacing = '0.08em'; }
-    row.append(sample);
-    // Variants strip — surfaces the type sub-levers that otherwise have no visible payoff: the WEIGHTS
-    // each group ships (rendered at their weight), plus ITALIC / LINK samples when the group ships them,
-    // and the group's size RANGE (so lowering titleFloor / adding title.2xs is visible). All read the
-    // resolved composites, so a `weights`/`italics`/`links`/`titleFloor` edit shows here live.
-    const groupComps = ty.composites.filter((cc) => cc.group === g);
-    const chipFam = (c.family === 'mono' || g === 'code') ? 'var(--mono)' : fam;
-    const weightsShipped = [...new Set(groupComps.map((cc) => cc.weightRole))]
-      .sort((a, b) => wrList.findIndex((w) => w.role === a) - wrList.findIndex((w) => w.role === b));
-    const strip = el('div', 'ts-variants');
-    for (const role of weightsShipped) {
-      const w = wrList.find((x) => x.role === role)?.value ?? 400;
-      const chip = el('div', 'ts-var', `${role} ${w}`);
-      chip.style.fontFamily = chipFam; chip.style.fontWeight = String(w);
-      strip.append(chip);
+    const comps = ty.composites.filter((c) => c.group === g);
+    if (!comps.length) continue;
+    const block = el('div', 'tr-block');
+    const band = el('div', 'tr-band');
+    band.append(el('span', 'tr-band-n', g), el('span', 'tr-band-c mono', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`),
+      el('span', 'tr-band-d', TYPE_GROUP_BLURB[g] ?? ''));
+    block.append(band);
+    for (const c of comps) {
+      const row = el('div', 'tr-row');
+      const meta = el('div', 'tr-meta');
+      meta.append(tokenPill(`type.${c.path}`));
+      const fluidTag = c.sizeMinPx !== c.sizePx ? ` · fluid ${c.sizeMinPx}→${c.sizePx}` : '';
+      meta.append(el('span', 'tr-attr mono', `${c.sizePx}px · ${c.weightRole} ${wOf(c.weightRole)} · ${c.lineHeight} ${lhOf(c.lineHeight)}× · ${c.tracking} ${lsOf(c.tracking)}em · ${c.family}${fluidTag}`));
+      row.append(meta);
+      const samp = el('div', 'tr-samp', rampSample(c.group, c.sizePx));
+      samp.style.fontFamily = stackOf(c.family);
+      samp.style.fontSize = `${c.sizePx}px`;
+      samp.style.fontWeight = String(wOf(c.weightRole));
+      samp.style.lineHeight = String(lhOf(c.lineHeight));
+      samp.style.letterSpacing = `${lsOf(c.tracking)}em`;
+      if (c.link) samp.style.textDecoration = 'underline';
+      if (c.italic) samp.style.fontStyle = 'italic';
+      if (c.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
+      row.append(samp);
+      block.append(row);
     }
-    if (groupComps.some((cc) => cc.italic)) { const ic = el('div', 'ts-var', 'italic'); ic.style.fontFamily = chipFam; ic.style.fontStyle = 'italic'; ic.style.fontWeight = String(wt); strip.append(ic); }
-    if (groupComps.some((cc) => cc.link)) { const lc = el('div', 'ts-var', 'link'); lc.style.fontFamily = chipFam; lc.style.fontWeight = String(wt); lc.style.textDecoration = 'underline'; strip.append(lc); }
-    const sizes = [...new Set(groupComps.map((cc) => cc.sizePx))].sort((a, b) => a - b);
-    if (sizes.length > 1) strip.append(el('div', 'ts-var ts-var-range mono', `${sizes[0]}–${sizes[sizes.length - 1]}px`));
-    row.append(strip);
-    list.append(row);
+    sec.append(block);
   }
-  wrap.append(list);
-  return wrap;
+  return sec;
 };
 
 /** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
@@ -3970,6 +4144,94 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .tpill[data-sgtip]:hover::after{content:attr(data-sgtip);position:absolute;z-index:40;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);background:#111417;color:#f2f4f5;font-family:var(--mono);font-size:11px;font-weight:500;white-space:nowrap;padding:6px 9px;border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.28);pointer-events:none}
 .tpill[data-sgtip]:hover::before{content:"";position:absolute;z-index:40;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#111417;pointer-events:none}
 @media(max-width:760px){.sg-g3,.sg-g5{grid-template-columns:repeat(2,1fr)}}
+/* Typography — Foundations / Styles tabs (#272) */
+.tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
+.tf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tf-card{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:9px;min-width:0}
+.tf-role{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2)}
+.tf-desc{font-size:11.5px;color:var(--faint);line-height:1.45;min-height:32px}
+.tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
+.tf-stat{font-size:11px;font-weight:600}
+.tf-stat.ok{color:#1a7f4b}.tf-stat.no{color:#b06a12}
+/* line-height must exceed the font's em box (~1.2) or descenders clip */
+.tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
+.tf-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
+.tf-note b{color:var(--ink2)}
+.tf-note.warn{background:#fff8ed;border-color:#f0d9b5;color:#7a5320}
+.tf-note.warn b{color:#5c3d16}
+.sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
+/* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
+   it — without it the open-on-first-in-use-rung scroll overshoots to the bottom. */
+.sl-ladder{position:relative;max-height:460px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--r);margin-top:4px}
+.sl-row{display:grid;grid-template-columns:118px 1fr;gap:14px;align-items:center;padding:7px 13px;border-top:1px solid var(--line)}
+.sl-row:first-child{border-top:0}
+.sl-row.unused{opacity:.42}
+.sl-meta{display:flex;align-items:center;gap:7px}
+.sl-dot{width:5px;height:5px;border-radius:50%;background:var(--ink);flex:none}
+.sl-row.head .sl-dot{background:#3f6ae0}
+.sl-row.unused .sl-dot{background:var(--line2)}
+.sl-px{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sl-rem{font-size:11px;color:var(--faint)}
+.sl-samp{line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl-who{font-size:10.5px;color:var(--faint);margin-top:3px}
+.sl-key{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--faint);margin-top:10px}
+.sl-keyi{display:inline-flex;align-items:center;gap:5px}
+.sl-keyi i{width:6px;height:6px;border-radius:50%;display:inline-block}
+.sl-keyi i.k-head{background:#3f6ae0}.sl-keyi i.k-fix{background:var(--ink)}.sl-keyi i.k-off{background:var(--line2)}
+.ws-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.ws-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:0 9px 10px;white-space:nowrap}
+.ws-table td{padding:8px 9px;border-top:1px solid var(--line)}
+.ws-table th.ws-c,.ws-table td.ws-c{text-align:center}
+.ws-num{font-size:12px;font-weight:640;margin-right:8px}
+.ws-name{color:var(--muted)}
+.ws-mark{font-size:12px}
+.ws-mark.yes{color:var(--ink)}.ws-mark.no{color:var(--faint)}.ws-mark.unknown{color:var(--line2)}
+.lt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lt-cell{border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 12px;min-width:0}
+.lt-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lt-key{font-size:12px;font-weight:640;color:var(--ink2)}
+.lt-in{width:88px;text-align:right}
+.lt-who{font-size:10.5px;color:var(--faint);margin-top:4px}
+.lt-prev{margin-top:9px;font-size:13px;color:var(--ink2);max-width:52ch}
+.wr-row{display:grid;grid-template-columns:96px 168px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.wr-row:first-of-type{border-top:0}
+.wr-name{font-size:13px;font-weight:640}
+.wr-samp{font-size:20px;line-height:1.4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cs-wrap{overflow-x:auto}
+.cs-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.cs-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:0 9px 10px;white-space:nowrap}
+.cs-table th.cs-c,.cs-table td.cs-c{text-align:center}
+.cs-table td{padding:9px;border-top:1px solid var(--line);vertical-align:middle}
+.cs-name{font-size:12px;font-weight:640}
+.cs-count{font-size:10.5px;color:var(--faint)}
+.cs-table input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink);cursor:pointer;margin:0}
+/* 11 columns in an 850px content column — keep the selects tight so the table fits without
+   relying on the horizontal scroll, which hides the italic/link toggles at the right edge. */
+.cs-table td{padding:9px 6px}
+.cs-table th{padding:0 6px 10px}
+.cs-table .select{max-width:100px}
+.cs-table .select.cs-nudge{max-width:84px}
+.fz-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:4px}
+.fz-row{display:grid;grid-template-columns:150px 96px 1fr;gap:12px;padding:9px 13px;border-top:1px solid var(--line);align-items:center;font-size:12px}
+.fz-row:first-child{border-top:0}
+.fz-name{font-size:11px}
+.fz-pair{font-size:11px;color:var(--muted)}
+.fz-bar{position:relative;height:7px;background:var(--paper);border-radius:4px;border:1px solid var(--line)}
+.fz-fill{position:absolute;top:0;bottom:0;background:var(--ink2);border-radius:4px;opacity:.75}
+.fz-clamp{font-size:10px;color:var(--faint);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fz-warn{font-size:12.5px;background:#fff8ed;border:1px solid #f0d9b5;color:#7a5320;border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:10px 0 0}
+.tr-block{margin-top:34px}.tr-block:first-of-type{margin-top:4px}
+.tr-band{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 13px;margin-bottom:6px}
+.tr-band-n{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
+.tr-band-c{font-size:10.5px;color:var(--muted)}
+.tr-band-d{font-size:11.5px;color:var(--faint)}
+.tr-row{display:grid;gap:6px;padding:14px 0;border-top:1px solid var(--line)}
+.tr-row:first-of-type{border-top:0}
+.tr-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tr-attr{font-size:10.5px;color:var(--faint)}
+/* true size; padding keeps descenders inside the clip box even at tight leading */
+.tr-samp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:.24em;margin-top:2px}
+@media(max-width:760px){.tf-grid{grid-template-columns:1fr}.lt-grid{grid-template-columns:1fr}}
 @media(max-width:900px){.shell{grid-template-columns:1fr;gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
 `;
 const styleEl = document.createElement('style');
