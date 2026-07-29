@@ -141,3 +141,18 @@ The UI iframe is a single self-contained HTML file (the bundled shared UI is inl
 the iframe has no server to fetch from and ships with no network access. Tune the brand with the knobs,
 then open the brand menu → **↳ Apply to Figma variables** to materialise `core-palette` + `color` into
 the current file; the panel reports any existing Prism3 theme found on boot.
+
+## ⚠️ The plugin does NOT auto-update when the web UI changes
+
+The iframe UI is **built, not referenced** — `build.mjs` bundles + inlines `web/src/main.ts` into
+`dist/ui.html` at build time (it must: the iframe has no server and ships zero network access). So
+`dist/` is a **gitignored build artifact** that only reflects `web/src` as of the last build. **Editing
+`web/src` — or pulling web-lane changes on `main` — does nothing to the plugin until you rebuild.** This
+is the #1 way the plugin drifts stale (it silently shows a week-old UI).
+
+**Keep it in sync, pick one:**
+- **During a plugin session:** run `npm run watch -w @prism3/plugin` — esbuild auto-rebuilds `dist/` on
+  every `web/src` *and* `plugin/src` change. (Reload the plugin in Figma to see the rebuilt UI; Figma
+  re-reads `dist/ui.html` on each launch — no re-import needed.)
+- **One-shot before testing:** `npm run fresh -w @prism3/plugin` — a clean rebuild that reminds you to
+  reload in Figma. Use this after pulling `main` if you're not running `watch`.
