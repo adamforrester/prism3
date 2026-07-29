@@ -24,11 +24,18 @@ Verified against the working tree at `083ac21`:
   therefore a directory *containing* `dist/`, not `dist/` itself.
 - **No client-side routing, no runtime network** — `main.ts` contains zero occurrences of
   `fetch(`, `XMLHttpRequest`, or `pushState`. The site is a single self-contained document.
-- **The dependency surface is tiny** — the root lockfile is 15KB; both workspaces share
-  only `esbuild ^0.24.0` + `typescript ^5.6.3`.
+- **The dependency surface is tiny, but shared** — the root lockfile is 15KB; both workspaces
+  share `esbuild ^0.24.0` + `typescript ^5.6.3`, and a root install also resolves the plugin's
+  `@figma/plugin-typings`. So `plugin/` is coupled to this deploy through *install*, though
+  nothing of it is read by the build or served.
 - **Current state is green** — `npm run build --workspace @prism3/web` produces a 356KB
   bundle in ~150ms; `typecheck` exits 0.
-- Local Node is v22.18.0, matching Vercel's current default. No `.nvmrc`, no `engines`.
+- Local Node is v22.18.0, matching Vercel's current default. No `.nvmrc`, no `engines` — and
+  **deliberately left unpinned**: the build uses only stable Node APIs (`fs/promises`, `path`,
+  `url`) plus esbuild, so there is no version-sensitive surface to protect, and the repo has no
+  Node pin anywhere else. Pinning here alone would be the first and only such constraint, and it
+  would drift out of date faster than it would ever prevent a failure. If a future Vercel default
+  ever breaks the build, the log names the version and the fix is a one-line `.nvmrc` then.
 - The repo is public. There is no secret in the bundle: the engine is open source and all
   brand data is example fixtures.
 
@@ -59,6 +66,11 @@ web/public/index.html          ← copied verbatim from web/index.html
 web/public/dist/main.js
 web/public/dist/main.js.map
 ```
+
+3. Asserts that manifest — anything unexpected or missing exits non-zero. `index.html` is
+   copied verbatim and references only `/dist/main.js`, so a new emitted asset (add a CSS
+   import and esbuild writes `dist/main.css`) would otherwise deploy a broken site on a green
+   build.
 
 Exposed as `"build:site"` in `web/package.json`. The existing `dev` and `build` scripts are
 **untouched**, so local development on :5273 is unaffected.
@@ -123,13 +135,15 @@ After that: push to `main` → production redeploy; every PR → its own preview
 Before pushing:
 
 1. Run the literal `buildCommand` on a clean tree; assert `web/public/` contains exactly
-   the three expected files and no others.
+   the three expected files and no others. Then prove the assertion bites: add a real CSS
+   import to `src/main.ts`, confirm the build exits non-zero naming `dist/main.css`, and
+   restore.
 2. Serve `web/public/` on a throwaway port and verify **live, headless** (Playwright): the
    app boots, a lever edit repaints the preview, and the console is clean.
 3. `npm run typecheck --workspace @prism3/web` exits 0.
 4. `git status Prism3/engine/out/` reports no change — this PR touches no engine source,
    but confirm rather than assume.
-5. `npx tsx Prism3/engine/test.ts` green (currently 934), per the standard pre-push gate.
+5. `npx tsx Prism3/engine/test.ts` green (950 at branch base `083ac21`), per the standard pre-push gate.
 
 After the project exists: pull the Vercel build log and runtime errors over MCP, and load
 the production URL headless.

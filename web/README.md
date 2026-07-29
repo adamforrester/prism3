@@ -90,15 +90,22 @@ npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/
 ```
 
 `build:site` (`build-site.mjs`) bundles with the same flags as `build`, then assembles
-`web/public/` containing exactly `index.html` + `dist/main.js` + `.map`. `dev` and `build`
-are unchanged and remain the local workflow; `web/public/` is gitignored.
+`web/public/` containing exactly `index.html` + `dist/main.js` + `.map` — and **fails
+non-zero if the output is anything else**, so an emitted-but-unreferenced asset can't ship a
+broken site on a green build. `dev` and `build` are unchanged and remain the local workflow;
+`web/public/` is gitignored.
 
 **Vercel's Root Directory must stay the repo root — not `web/`.** `src/main.ts` imports
-`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped build
-cannot resolve. Nothing else in the monorepo participates: the build needs devDependencies
-(`NODE_ENV=production` must not be set at install time), but install pulls only esbuild +
-typescript, and `plugin/`, `Tokens/`, and `Prism3/engine/out/` are never read by the build
-or served.
+`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped
+build cannot resolve.
+
+Only `web/src` and `Prism3/{engine,schema}` are **read by the build**; `plugin/`, `Tokens/`,
+and `Prism3/engine/out/` are neither read nor served. Install is a different matter — it runs
+at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
+`@figma/plugin-typings`. Two consequences: the build needs devDependencies, so
+`NODE_ENV=production` must not be set at install time; and a dependency bump in
+`plugin/package.json` without a regenerated root `package-lock.json` can fail this deploy's
+install step (`npm ci` rejects a lockfile mismatch) before the build command ever runs.
 
 **New Vercel projects enable Deployment Protection by default** — Settings → Deployment Protection →
 disable Vercel Authentication, or the prod and preview URLs will be behind a login wall.

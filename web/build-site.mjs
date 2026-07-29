@@ -14,8 +14,8 @@
  * (or `npm run build:site`).
  */
 import { build } from 'esbuild';
-import { cp, mkdir, rm } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { cp, mkdir, readdir, rm } from 'node:fs/promises';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -39,4 +39,22 @@ await build({
 // Verbatim copy — see the header comment on why the path must not be rewritten.
 await cp(resolve(root, 'index.html'), resolve(pub, 'index.html'));
 
-console.log('site build complete → web/public/ (index.html + dist/main.js + .map)');
+// Enforce the manifest rather than assume it. index.html is copied verbatim and references
+// only /dist/main.js, so an emitted-but-unreferenced asset (add a CSS import to src/main.ts
+// and esbuild writes dist/main.css) would deploy a broken site on a green build.
+const EXPECTED = ['dist/main.js', 'dist/main.js.map', 'index.html'];
+const found = (await readdir(pub, { recursive: true, withFileTypes: true }))
+  .filter((e) => e.isFile())
+  .map((e) => relative(pub, resolve(e.parentPath, e.name)).split('\\').join('/'))
+  .sort();
+const unexpected = found.filter((f) => !EXPECTED.includes(f));
+const missing = EXPECTED.filter((f) => !found.includes(f));
+if (unexpected.length || missing.length) {
+  console.error('site build FAILED — web/public/ does not match the publishable manifest.');
+  if (missing.length) console.error(`  missing:    ${missing.join(', ')}`);
+  if (unexpected.length) console.error(`  unexpected: ${unexpected.join(', ')}`);
+  console.error('  If this is an intended new asset, reference it from index.html and add it here.');
+  process.exit(1);
+}
+
+console.log(`site build complete → web/public/ (${found.join(', ')})`);

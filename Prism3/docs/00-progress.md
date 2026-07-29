@@ -17,18 +17,26 @@ review needed a running process, there was no link to send anyone, and PRs had n
   `pushState` — so no backend, no rewrites, no runtime data loading. Just files.
 - **Root Directory is the REPO ROOT, not `web/`** — the load-bearing constraint. `web/src/main.ts` imports
   `../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`; a `web/`-scoped build can't resolve them.
-  Nothing else in the monorepo participates: install pulls only esbuild + typescript, and `plugin/`,
-  `Tokens/`, `Prism3/engine/out/` are neither read by the build nor served.
+  Only `web/src` + `Prism3/{engine,schema}` are READ BY THE BUILD; `plugin/`, `Tokens/`, `Prism3/engine/out/`
+  are neither read nor served. **Install is a different matter** — it runs at the repo root and resolves both
+  workspaces, so `node_modules` also holds the plugin's `@figma/plugin-typings`. Hence: the build needs
+  devDependencies (`NODE_ENV=production` at install omits esbuild → `ERR_MODULE_NOT_FOUND`), and a
+  `plugin/package.json` bump without a regenerated root lockfile can fail THIS deploy's install (`npm ci`
+  rejects the mismatch) before the build command runs. The plugin surface is coupled through install, not
+  through the bundle.
 - **`build:site` → `web/public/`:** the deployable root must *contain* `dist/` (index.html loads
   `/dist/main.js` absolutely), and publishing `web/` as-is would expose `DESIGN-REVIEW.md`
   at the site root (the sourcemap ships source deliberately). `build-site.mjs` cleans, bundles with the same
   flags as `build`, and copies `index.html` **verbatim** — its absolute path resolves identically under the
-  local dev server and the deploy root, so there's no host-conditional path logic. `dev`/`build` untouched;
-  `web/public/` gitignored.
+  local dev server and the deploy root, so there's no host-conditional path logic. The script then **asserts
+  the manifest** — unexpected or missing output exits non-zero, so adding e.g. a CSS import (esbuild emits
+  `dist/main.css`, which the verbatim `index.html` never references) fails the build instead of deploying an
+  unstyled site. `dev`/`build` untouched; `web/public/` gitignored.
 - **Contract in git:** root `vercel.json` is two keys (`buildCommand`, `outputDirectory`). No
   `installCommand`/`rewrites`/`framework` — each would be a redundant override that can drift.
 - **Verified:** the literal `vercel.json` `buildCommand` emits exactly 3 files; stale-file wipe confirmed;
-  served headless on a throwaway port with a clean console + a live lever edit repainting.
+  manifest guard proven by adding a real CSS import (exits 1, names `dist/main.css`); served headless on a
+  throwaway port with a clean console + a live lever edit repainting.
 - **Two manual steps (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3`
   (Root Directory = repo root, then Deploy), then disable Deployment Protection in Settings — new projects
   default to `ssoProtection` enabled, which puts prod + preview URLs behind a login wall. Can't be granted by

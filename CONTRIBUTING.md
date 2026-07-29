@@ -119,6 +119,7 @@ Keeping these separate is what stops the backlog from drifting out of sync with 
 | **Actionable backlog** | **GitHub issues.** Anything someone could pick up belongs here, not in doc prose. |
 | **Ideas not yet scoped** | `Prism3/docs/27-future-ideas.md` — discovery-level, deliberately not issues yet. An idea graduates to an issue when it's actionable. |
 | **Architecture, models, specs** | The numbered docs in `Prism3/docs/`. Add a new numbered file only for a genuinely new topic area; append, don't renumber. |
+| **Agent-generated design specs + implementation plans** | `docs/superpowers/specs/` and `docs/superpowers/plans/`, one dated file per piece of work (`YYYY-MM-DD-<topic>.md`). These are the *working record of a single change* — the design dialogue that preceded it and the task-by-task plan it was built from — so they ride in the feature PR and are not edited afterwards. Durable conclusions still land in `00-progress.md` and the numbered docs; this directory is not a second home for them. |
 
 ---
 

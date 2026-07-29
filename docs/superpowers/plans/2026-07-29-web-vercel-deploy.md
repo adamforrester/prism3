@@ -86,8 +86,8 @@ Create the file with exactly this content:
  * (or `npm run build:site`).
  */
 import { build } from 'esbuild';
-import { cp, mkdir, rm } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { cp, mkdir, readdir, rm } from 'node:fs/promises';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -111,10 +111,27 @@ await build({
 // Verbatim copy — see the header comment on why the path must not be rewritten.
 await cp(resolve(root, 'index.html'), resolve(pub, 'index.html'));
 
-console.log('site build complete → web/public/ (index.html + dist/main.js + .map)');
-```
+// Enforce the manifest rather than assume it. index.html is copied verbatim and references
+// only /dist/main.js, so an emitted-but-unreferenced asset (add a CSS import to src/main.ts
+// and esbuild writes dist/main.css) would deploy a broken site on a green build.
+const EXPECTED = ['dist/main.js', 'dist/main.js.map', 'index.html'];
+const found = (await readdir(pub, { recursive: true, withFileTypes: true }))
+  .filter((e) => e.isFile())
+  .map((e) => relative(pub, resolve(e.parentPath, e.name)).split('\\').join('/'))
+  .sort();
+const unexpected = found.filter((f) => !EXPECTED.includes(f));
+const missing = EXPECTED.filter((f) => !found.includes(f));
+if (unexpected.length || missing.length) {
+  console.error('site build FAILED — web/public/ does not match the publishable manifest.');
+  if (missing.length) console.error(`  missing:    ${missing.join(', ')}`);
+  if (unexpected.length) console.error(`  unexpected: ${unexpected.join(', ')}`);
+  console.error('  If this is an intended new asset, reference it from index.html and add it here.');
+  process.exit(1);
+}
 
-Order matters: `rm` must precede `build`, or the bundle is deleted after being written. The finished file contains exactly one `rm`, one `mkdir`, one `build`, one `cp`.
+console.log(`site build complete → web/public/ (${found.join(', ')})`);
+```
+Order matters: `rm` must precede `build`, or the bundle is deleted after being written. The finished file contains exactly one `rm`, one `mkdir`, one `build`, one `cp`, then the manifest assertion — which exists because `index.html` is copied verbatim and references only `/dist/main.js`, so an emitted-but-unreferenced asset would otherwise deploy a broken site on a green build.
 
 - [ ] **Step 4: Add the npm script**
 
@@ -219,7 +236,7 @@ cd /Users/aforrester/Documents/Prism3
 npx tsx Prism3/engine/test.ts 2>&1 | tail -5
 ```
 
-Expected: all green (934 at time of writing; the count may be higher if other lanes landed tests — what matters is zero failures).
+Expected: all green (950 at time of writing; the count may be higher if other lanes landed tests — what matters is zero failures).
 
 - [ ] **Step 11: Commit**
 
@@ -285,7 +302,7 @@ Expected: `web/public EXISTS`.
 
 Append at the end of the file, after the existing "Scope (what's here vs. next)" section:
 
-```markdown
+````markdown
 ## Deploy
 
 The dashboard is a **static site** — the engine runs client-side, there is no backend, and
@@ -299,17 +316,28 @@ npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/
 ```
 
 `build:site` (`build-site.mjs`) bundles with the same flags as `build`, then assembles
-`web/public/` containing exactly `index.html` + `dist/main.js` + `.map`. `dev` and `build`
-are unchanged and remain the local workflow; `web/public/` is gitignored.
+`web/public/` containing exactly `index.html` + `dist/main.js` + `.map` — and **fails
+non-zero if the output is anything else**, so an emitted-but-unreferenced asset can't ship a
+broken site on a green build. `dev` and `build` are unchanged and remain the local workflow;
+`web/public/` is gitignored.
 
 **Vercel's Root Directory must stay the repo root — not `web/`.** `src/main.ts` imports
-`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped build
-cannot resolve. Nothing else in the monorepo participates: install pulls only esbuild +
-typescript, and `plugin/`, `Tokens/`, and `Prism3/engine/out/` are never read by the build
-or served.
+`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped
+build cannot resolve.
+
+Only `web/src` and `Prism3/{engine,schema}` are **read by the build**; `plugin/`, `Tokens/`,
+and `Prism3/engine/out/` are neither read nor served. Install is a different matter — it runs
+at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
+`@figma/plugin-typings`. Two consequences: the build needs devDependencies, so
+`NODE_ENV=production` must not be set at install time; and a dependency bump in
+`plugin/package.json` without a regenerated root `package-lock.json` can fail this deploy's
+install step (`npm ci` rejects a lockfile mismatch) before the build command ever runs.
+
+**New Vercel projects enable Deployment Protection by default** — Settings → Deployment Protection →
+disable Vercel Authentication, or the prod and preview URLs will be behind a login wall.
 
 Pushes to `main` redeploy production; every PR gets its own preview URL.
-```
+````
 
 - [ ] **Step 4: Add the progress entry**
 
@@ -326,20 +354,30 @@ review needed a running process, there was no link to send anyone, and PRs had n
   `pushState` — so no backend, no rewrites, no runtime data loading. Just files.
 - **Root Directory is the REPO ROOT, not `web/`** — the load-bearing constraint. `web/src/main.ts` imports
   `../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`; a `web/`-scoped build can't resolve them.
-  Nothing else in the monorepo participates: install pulls only esbuild + typescript, and `plugin/`,
-  `Tokens/`, `Prism3/engine/out/` are neither read by the build nor served.
+  Only `web/src` + `Prism3/{engine,schema}` are READ BY THE BUILD; `plugin/`, `Tokens/`, `Prism3/engine/out/`
+  are neither read nor served. **Install is a different matter** — it runs at the repo root and resolves both
+  workspaces, so `node_modules` also holds the plugin's `@figma/plugin-typings`. Hence: the build needs
+  devDependencies (`NODE_ENV=production` at install omits esbuild → `ERR_MODULE_NOT_FOUND`), and a
+  `plugin/package.json` bump without a regenerated root lockfile can fail THIS deploy's install (`npm ci`
+  rejects the mismatch) before the build command runs. The plugin surface is coupled through install, not
+  through the bundle.
 - **`build:site` → `web/public/`:** the deployable root must *contain* `dist/` (index.html loads
-  `/dist/main.js` absolutely), and publishing `web/` as-is would expose `src/main.ts` + `DESIGN-REVIEW.md`
-  at the site root. `build-site.mjs` cleans, bundles with the same flags as `build`, and copies
-  `index.html` **verbatim** — its absolute path resolves identically under the local dev server and the
-  deploy root, so there's no host-conditional path logic. `dev`/`build` untouched; `web/public/` gitignored.
+  `/dist/main.js` absolutely), and publishing `web/` as-is would expose `DESIGN-REVIEW.md`
+  at the site root (the sourcemap ships source deliberately). `build-site.mjs` cleans, bundles with the same
+  flags as `build`, and copies `index.html` **verbatim** — its absolute path resolves identically under the
+  local dev server and the deploy root, so there's no host-conditional path logic. The script then **asserts
+  the manifest** — unexpected or missing output exits non-zero, so adding e.g. a CSS import (esbuild emits
+  `dist/main.css`, which the verbatim `index.html` never references) fails the build instead of deploying an
+  unstyled site. `dev`/`build` untouched; `web/public/` gitignored.
 - **Contract in git:** root `vercel.json` is two keys (`buildCommand`, `outputDirectory`). No
   `installCommand`/`rewrites`/`framework` — each would be a redundant override that can drift.
 - **Verified:** the literal `vercel.json` `buildCommand` emits exactly 3 files; stale-file wipe confirmed;
-  served headless on a throwaway port with a clean console + a live lever edit repainting.
-- **One manual step (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3`
-  (Root Directory = repo root, then Deploy). Can't be granted by an agent. Prod URL to be added to
-  `web/README.md` once it exists.
+  manifest guard proven by adding a real CSS import (exits 1, names `dist/main.css`); served headless on a
+  throwaway port with a clean console + a live lever edit repainting.
+- **Two manual steps (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3`
+  (Root Directory = repo root, then Deploy), then disable Deployment Protection in Settings — new projects
+  default to `ssoProtection` enabled, which puts prod + preview URLs behind a login wall. Can't be granted by
+  an agent. Prod URL to be added to `web/README.md` once it exists.
 - **Spec/plan:** `docs/superpowers/specs/2026-07-29-web-vercel-deploy-design.md`,
   `docs/superpowers/plans/2026-07-29-web-vercel-deploy.md`.
 
@@ -373,7 +411,7 @@ cd /Users/aforrester/Documents/Prism3
 git push -u origin feat/web-vercel-deploy
 ```
 
-Then open the PR with `gh pr create --body-file` (not a heredoc — apostrophes break the shell here). The body must state: what it does, the Root-Directory constraint and why, that `out/*` is byte-identical, the verification performed, and the **one manual owner step** (authorise the Vercel GitHub app, import the repo with Root Directory = repo root). Reference `Closes #104`.
+Then open the PR with `gh pr create --body-file` (not a heredoc — apostrophes break the shell here). The body must state: what it does, the Root-Directory constraint and why, that `out/*` is byte-identical, the verification performed, and the **two manual owner steps** (authorise the Vercel GitHub app and import the repo with Root Directory = repo root; then disable Deployment Protection in Settings). Reference `Closes #104`.
 
 ---
 
