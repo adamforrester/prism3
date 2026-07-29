@@ -30,7 +30,7 @@ import { resolvePreview } from '../../Prism3/engine/resolve-preview';
 import type { ResolvedPreview } from '../../Prism3/engine/resolve-preview';
 import { resolveAllModes } from '../../Prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '../../Prism3/engine/design-md';
-import { buildTree } from '../../Prism3/engine/tree';
+import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../Prism3/engine/tree';
 import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
 import exampleBrands from '../../Prism3/schema/example-brands.json';
@@ -733,56 +733,118 @@ const swatchCell = (hex: string | undefined): HTMLElement => {
   else wrap.append(document.createTextNode('—'));
   return wrap;
 };
+// The token list walks the SAME DTCG tree `exportTokens` downloads (`buildTree(theme).tree`), so what you
+// see IS what you'd export — and a full tree walk shows EVERY token, not the preview-bound subset (#263).
+// Each top-level category under the brand root becomes a `.psec`; leaves render by `$type`.
+type TokLeaf = { path: string; node: TreeNode };
+/** Collect every leaf under `node` (a leaf has `$type`; groups are plain objects; `$`-keys are metadata),
+ *  as dotted paths RELATIVE to the category root. Mirrors the generator's own walker (tree.ts). */
+const collectLeaves = (node: TreeNode, prefix: string, out: TokLeaf[]): void => {
+  if (!node || typeof node !== 'object') return;
+  if (node.$type !== undefined) { out.push({ path: prefix, node }); return; }
+  for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) collectLeaves(v, prefix ? `${prefix}.${k}` : k, out);
+};
+/** A color leaf's hex for a mode: the base `$value` (base mode) or the `modes.<m>.$value` override,
+ *  dereferenced to its palette primitive (whose `$extensions.prism3.hex` is colour-format-independent). */
+const hexOfNode = (tree: TreeNode, node: TreeNode): string | undefined => {
+  // A leaf's hex: its own `$extensions.prism3.hex` if present (primitives carry it, format-independent);
+  // else if its `$value` is an `{alias}`, follow it to the primitive that does. `#…` / `rgb(…)` fall back.
+  const own = node?.$extensions?.prism3?.hex;
+  if (own) return own;
+  const v = node?.$value;
+  if (typeof v === 'string' && /^\{.+\}$/.test(v)) return hexOfNode(tree, deref(tree, subNode(tree, v)));
+  if (typeof v === 'string' && (v.startsWith('#') || v.startsWith('rgb'))) return v;
+  return undefined;
+};
+const colorHexAt = (tree: TreeNode, node: TreeNode, mode: Mode, baseMode: Mode): string | undefined => {
+  const ov = node.$extensions?.prism3?.modes?.[mode];
+  // A primitive (raw hex, no per-mode overrides) reads the same across every column; a role uses its base
+  // `$value` for the base mode and the `modes.<m>.$value` alias otherwise.
+  if (mode === baseMode || !node.$extensions?.prism3?.modes) return hexOfNode(tree, node);
+  return ov?.$value ? hexOfNode(tree, deref(tree, subNode(tree, ov.$value))) : hexOfNode(tree, node);
+};
+/** A typography composite → family · weight · size · line-height · tracking (primary face only). */
+const typeComposite = (tree: TreeNode, node: TreeNode): string => {
+  const v = node.$value ?? {};
+  const parts: string[] = [];
+  if (v.fontFamily) parts.push(familyOf(tree, subNode(tree, v.fontFamily)).split(',')[0].trim());
+  if (v.fontWeight) parts.push(String(numOf(tree, subNode(tree, v.fontWeight))));
+  if (v.fontSize) parts.push(`${Math.round(remPxOf(tree, subNode(tree, v.fontSize)))}px`);
+  if (v.lineHeight) parts.push(`${numOf(tree, subNode(tree, v.lineHeight))} lh`);
+  if (v.letterSpacing) { const ls = deref(tree, subNode(tree, v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em`); }
+  return parts.join(' · ');
+};
+/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
+const shadowCss = (layers: unknown): string => Array.isArray(layers)
+  ? layers.map((l: any) => `${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
+  : '';
 const renderPreviewTokens = (host: HTMLElement): void => {
+  const tree = buildTree(theme).tree;
+  const root = (tree.$extensions?.prism3?.root as string) ?? Object.keys(tree).find((k) => !k.startsWith('$'))!;
+  const brand = tree[root] as TreeNode;
   const modes = rp.modes;
+  const baseMode = modes[0];   // the base `$value` is the first/canonical mode (light); the rest are overrides
   const modeLabels = modes.map((m) => MODE_LABEL[m] ?? m);
-  const rolesByMode = new Map(resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, { hex: string } | undefined>]));
 
-  // Each category is a doc-26 `.psec`; within it the rows are sub-grouped by their top-level path
-  // segment (background / text / interactive / …; radius / space / size / …) — a labelled mini-table per
-  // group so the long Color list is scannable rather than one flat alphabetical run. Each table scrolls
-  // inside its own `overflow-x` container.
   type TokRow = { name: string; cells: Array<HTMLElement | string> };
+  // A category `.psec`: sub-group leaves by their top-level segment (a `subHead` per group when >1), each
+  // group's table in its own overflow-x scroller — same doc-26 presentation as before (#262).
   const tokenSection = (title: string, sub: string, rows: TokRow[], cols: string[]): void => {
+    if (!rows.length) return;
     const sec = palSection(title, sub);
+    // Sub-group by first path segment ONLY when the leaves actually nest (some name has a dot) — else a
+    // flat category (opacity.0, shadow.md, …) would emit a `subHead` per single-segment leaf. One flat
+    // table in that case; a `subHead`-per-group mini-table (doc-26, #262) when there's real nesting.
+    const nested = rows.some((r) => r.name.includes('.'));
+    if (!nested) {
+      const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(rows, cols)); sec.append(scroll);
+      host.append(sec); return;
+    }
     const groups = new Map<string, TokRow[]>();
     for (const r of rows) { const g = r.name.split('.')[0]; (groups.get(g) ?? groups.set(g, []).get(g)!).push(r); }
-    const grouped = groups.size > 1;
     for (const [g, grows] of groups) {
-      // Use the shared doc-26 section head (uppercase `.sub-t`), same as the Style guide's group
-      // labels — not a bespoke lowercase-mono label — so the token list reads in the same language.
-      if (grouped) sec.append(subHead(g));
+      sec.append(subHead(g));
       const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(grows, cols)); sec.append(scroll);
     }
     host.append(sec);
   };
 
-  // Color — every resolved semantic role, hex per mode. (Ramp primitives live on Palettes.)
-  const roleNames = [...new Set(modes.flatMap((m) => Object.keys(rolesByMode.get(m) ?? {})))].sort();
-  tokenSection('Color', 'The resolved semantic color roles, per mode — grouped by role family. Brand / neutral / status ramp primitives live on the Palettes page.',
-    roleNames.map((role) => ({ name: role, cells: modes.map((m) => swatchCell(rolesByMode.get(m)?.[role]?.hex)) })), modeLabels);
+  // One category per top-level group under the brand root (insertion order — the generator's own order).
+  for (const category of Object.keys(brand).filter((k) => !k.startsWith('$'))) {
+    const leaves: TokLeaf[] = [];
+    collectLeaves(brand[category], '', leaves);
+    if (!leaves.length) continue;
+    const kind = leaves[0].node.$type as string;   // a category is homogeneous by $type
+    const catLabel = category.charAt(0).toUpperCase() + category.slice(1);
 
-  // Dimension — the px scale (space / size / radius); baseline + per-mode overrides where they differ.
-  const dimRefs = Object.keys(rp.dims).sort();
-  tokenSection('Dimension', 'The px scale — space / size / radius; baseline + per-mode overrides where they differ.',
-    dimRefs.map((ref) => ({ name: ref, cells: modes.map((m) => `${rp.dimOverrides[ref]?.[m] ?? rp.dims[ref]}px`) })), modeLabels);
-
-  // Typography — resolved composites (mode-invariant). Show the FULL composite (family · weight · size ·
-  // line-height · tracking); the primary family only (no fallback stack — that clutters and belongs to CSS).
-  const typeRefs = Object.keys(rp.type).sort();
-  tokenSection('Typography', 'Resolved composites (mode-invariant) — family · weight · size · line-height · tracking.',
-    typeRefs.map((ref) => {
-      const t = rp.type[ref];
-      const parts = [t.fontFamily, String(t.fontWeight), `${Math.round(t.fontSizePx)}px`];
-      if (t.lineHeight != null) parts.push(`${t.lineHeight} lh`);
-      if (t.letterSpacingEm != null) parts.push(`${t.letterSpacingEm}em`);
-      return { name: ref, cells: [parts.join(' · ')] };
-    }), ['Resolved · shared across modes']);
-
-  // Shadow — the elevation ramp, CSS box-shadow per mode (dark = the reduced set).
-  const shRefs = Object.keys(rp.shadows).sort();
-  tokenSection('Shadow', 'The elevation ramp — CSS box-shadow per mode (dark = the reduced set).',
-    shRefs.map((ref) => ({ name: ref, cells: modes.map((m) => { const s = rp.shadows[ref]?.[m]; if (!s) return '—'; const sp = el('span', 'tok-shadow mono', s); sp.title = s; return sp; }) })), modeLabels);
+    if (kind === 'color') {
+      tokenSection(catLabel, `${leaves.length} ${category} tokens — resolved hex per mode, from the exported tree (1:1 with a downloaded tokens.json).`,
+        leaves.map((l) => ({ name: l.path, cells: modes.map((m) => swatchCell(colorHexAt(tree, l.node, m, baseMode))) })), modeLabels);
+    } else if (kind === 'typography') {
+      tokenSection(catLabel, `${leaves.length} composites — family, weight, size, line-height, tracking (primary face; mode-invariant).`,
+        leaves.map((l) => ({ name: l.path, cells: [typeComposite(tree, l.node)] })), ['Resolved']);
+    } else if (kind === 'shadow') {
+      tokenSection(catLabel, `${leaves.length} elevation steps — CSS box-shadow per mode (dark = the reduced set).`,
+        leaves.map((l) => ({ name: l.path, cells: modes.map((m) => {
+          const arr = m === baseMode ? l.node.$value : (l.node.$extensions?.prism3?.modes?.[m] ?? l.node.$value);
+          const css = shadowCss(arr); if (!css) return '—';
+          const sp = el('span', 'tok-shadow mono', css); sp.title = css; return sp;
+        }) })), modeLabels);
+    } else {
+      const hasModes = leaves.some((l) => l.node.$extensions?.prism3?.modes);
+      const cols = hasModes ? modeLabels : ['Resolved'];
+      const valAt = (l: TokLeaf, m: Mode): string => {
+        const ov = l.node.$extensions?.prism3?.modes?.[m];
+        const n = (m !== baseMode && ov) ? deref(tree, subNode(tree, ov.$value)) : deref(tree, l.node);
+        const px = n?.$extensions?.prism3?.px;
+        if (px != null) return `${px}px`;
+        const val = n?.$value;
+        return typeof val === 'number' ? String(val) : String(val ?? '—');
+      };
+      tokenSection(catLabel, `${leaves.length} ${category} tokens — resolved from the exported tree.`,
+        leaves.map((l) => ({ name: l.path, cells: (hasModes ? modes : [baseMode]).map((m) => valAt(l, m)) })), cols);
+    }
+  }
 };
 
 /** Style guide (Preview → Style guide) — the resolved system composed in situ: every color role in
