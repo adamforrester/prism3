@@ -32,6 +32,40 @@ in the EXPORTED DTCG.
 
 ---
 
+## (2026-07-29) — Token list rendered from buildTree() — 1:1 with export, all tokens (#263)
+
+**STATUS: dashboard change** (`web/src/main.ts` only; `out/*` byte-identical, no engine change). Last of the
+PR #262 review follow-ups.
+
+- **The token list now walks the SAME DTCG tree the export downloads** (`buildTree(theme).tree`), replacing
+  the separate resolved-model rendering (`resolveAllModes` / `rp.dims` / `rp.type` / `rp.shadows`). So "what
+  you see" IS "what you'd export" — there's no second code path to drift. A recursive leaf-walk
+  (`collectLeaves`: a leaf has `$type`; groups are plain objects; `$`-keys are metadata — mirrors the
+  generator's own walker) naturally shows **every** token, fixing the old subset gaps (typography + others).
+- **All 16 categories now render** (was 4): Palette, Color, Opacity, Motion, Font, Type, Shadow, Breakpoint,
+  Grid, Container, Dimension, Space, Radius, Border-width, Focus, Size — 526 tokens for a default brand.
+  One `.psec` per top-level group under the brand root (generator order).
+- **Per-`$type` value rendering** (the tree's asymmetries handled): color → swatch+hex per mode via a new
+  `hexOfNode` (reads `$extensions.prism3.hex` on primitives; follows `{alias}` refs on roles; the base
+  `$value` is the base/light mode, `$extensions.prism3.modes.<m>.$value` the overrides) — this correctly
+  resolves BOTH raw-hex primitives and aliased roles (the first cut showed `—` for primitives because their
+  `$value` is `rgb(...)`, not an alias; `hexOfNode` fixes it); typography → the full composite via the tree
+  helpers (`familyOf`/`numOf`/`remPxOf`, primary face only); shadow → CSS box-shadow per mode (its per-mode
+  override is a layer ARRAY, not a `{$value}`); dimension/number → resolved px/value, per-mode column only
+  when a leaf carries overrides.
+- **Presentation preserved (#262):** `subHead` (uppercase `.sub-t`) group heads, `.toktable` left-aligned
+  value columns, `swatchCell`. Fixed a grouping edge: single-segment categories (opacity/shadow/breakpoint/…)
+  render one flat table instead of a `subHead`-per-leaf.
+- **Verified:** engine 925/925; `tsc` clean; build clean; 0 `node:` builtins; `out/*` byte-identical.
+  Playwright: 16 categories / 526 rows; palette primitives + color roles resolve hex (with swatches);
+  per-mode columns correct (added Dark → `text.primary` light `#0e0d0d` / dark `#f7f7f7`); type composites +
+  dimensions render; flat categories no longer emit phantom per-value subheads. 1:1 with export is
+  structural — the list literally iterates the export tree.
+- **Batch complete:** #262 (Preview/Disabled/token-list display), #264 (Layout), #265 (Size & radius), #263
+  (this) all landed/open. Remaining from the batch's spillover: #274 (`[engine]` resolve-preview space quirk).
+
+---
+
 ## (2026-07-29) — Size & radius: controls-beside-previews + shared split scaffold (#265)
 
 **STATUS: dashboard change** (`web/src/main.ts` only; `out/*` byte-identical, no engine change). Second of
