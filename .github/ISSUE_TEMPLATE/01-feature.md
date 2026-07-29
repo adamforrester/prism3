@@ -11,6 +11,10 @@ labels: type:task
   [mcp] [docs]; add a sub-area with a slash when useful ([code-library/storybook]).
   Add the matching lane:* label after opening, and set any native dependency rather
   than writing "blocked by" in the body.
+
+  Optional, same line: **Extends:** #NNN (this issue is a direct continuation of NNN)
+  and/or **Related:** #NNN, #MMM (worth a reader's attention, not a continuation).
+  Most issues need neither — add only when it's genuinely useful.
 -->
 
 **Lane:** <!-- engine / web / plugin / figma / code-library / mcp / docs --> · **Type:** task · **Source:** <!-- owner direction / review / a PR follow-up / live drive -->
