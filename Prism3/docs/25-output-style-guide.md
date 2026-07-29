@@ -135,4 +135,4 @@ takes the *design* not the code, is cleaner).
   build" above: engine `StyleGuidePlan` first (pure + tested), then the `write-style-guide` executor,
   then the channel-gated message.
 - The `assess/token-press-external` branch (`_external/style-guide-generator/`) is transient; delete
-  after this capture. The plugin's home is its own future repo, not `prism3-tokens/main`.
+  after this capture. The plugin's home is its own future repo, not `prism3/main`.

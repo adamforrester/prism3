@@ -284,7 +284,7 @@ organization has."* The concrete moves:
    every Prism3 surface — dashboard = human, `.ai.json`/DTCG/MCP = agent, docs = mix.
 5. *(Candidate, not yet actionable)* **Ship a migration/adoption skill alongside breaking
    token changes** (their 66%-in-4-weeks). Folds into the `prism3-consume` skill family;
-   promote when `prism3-tokens` has real external consumers.
+   promote when `prism3` has real external consumers.
 
 **Where we already are / ahead:**
 

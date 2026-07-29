@@ -145,7 +145,7 @@ that bar).
 
 ## Idea 4 — Repo rename: `prism3-tokens` → `prism3`
 
-**Raised 2026-07-28 · status: agreed in principle, not yet done.** The name reflects the
+**Raised 2026-07-28 · status: done (2026-07-29).** The name reflects the
 repo's origin (a place to build a new token set); it has since become the monorepo for
 the engine, both surfaces, and — per `19 §2` — the code component library. The name
 should describe what it is now.

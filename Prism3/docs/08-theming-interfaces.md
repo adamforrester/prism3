@@ -177,7 +177,7 @@ honoured from the start rather than retrofitted:
    round-trip, error paths) + live stdio smoke-test. Run `npx tsx Prism3/engine/mcp.ts`.
 
 **Packaging:** the engine, web dashboard, and Figma plugin are one monorepo grown from
-`prism3-tokens`; the core stays buildless (tsx), the adapters get a bundler. Full repo
+`prism3`; the core stays buildless (tsx), the adapters get a bundler. Full repo
 strategy + the plugin absorb/downstream/leave map is in `09-architecture-and-repos`.
 
 **Parallel validation tracks (no dependency on the above):**

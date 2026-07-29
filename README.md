@@ -1,4 +1,4 @@
-# prism3-tokens
+# prism3
 
 A design-tokens repository with two layers: a **legacy hand-built token set** and a
 dependency-free **TypeScript generation engine** that reproduces it and generalizes to new
