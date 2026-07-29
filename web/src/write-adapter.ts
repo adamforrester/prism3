@@ -61,7 +61,7 @@ export const cssVarAdapter = (scope: HTMLElement): WriteAdapter => ({
     }
     // Typography — mode-invariant; three atoms per composite.
     for (const [ref, t] of Object.entries(model.type)) {
-      s.setProperty(typeAtomName(ref, 'family'), t.fontFamily);
+      s.setProperty(typeAtomName(ref, 'family'), t.fontFamilyStack);
       s.setProperty(typeAtomName(ref, 'weight'), String(t.fontWeight));
       s.setProperty(typeAtomName(ref, 'size'), `${t.fontSizePx}px`);
     }

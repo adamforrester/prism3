@@ -7,6 +7,40 @@
 
 ---
 
+## (2026-07-29) — Preview restructure + Disabled fixes + token-list display (review batch)
+
+**STATUS: dashboard change** (`web/src/main.ts` + `web/src/write-adapter.ts` + one additive read-model field
+in `Prism3/engine/resolve-preview.ts`; `out/*` byte-identical). A batch of owner review fixes; the bigger
+reworks were split into GH issues (see below).
+
+- **Preview → Style guide is now the first + default sub-view; the "UI preview" component gallery is
+  removed entirely.** Owner call: button padding / badges / tags / nav aren't defined at this stage, so those
+  specimens were placeholder — the style guide carries the real value. Dropped `renderPreviewGallery`,
+  `renderChip`, `SLOT_ORDER`/`SLOT_LABEL`, the now-dead `colorVar`/`pageBg`/`hexOf`/`writeHost` +
+  `makeWriteHost`/`typeVar`/`cssVarName` imports, and the `.preview`/`.pvcomp`/`.pvvar*`/`.chip` CSS. Tabs are
+  now Style guide · Contrast contracts · Token list. Hero copy updated.
+- **Disabled example now updates live (was a two-cause bug).** (1) The example read `background.tertiary` /
+  `text.tertiary` (invariant to both controls) instead of the resolved `disabled.fill` / `disabled.on-fill`;
+  (2) the floor slider's generic `apply()` repaints only `.stage-vol`, but the example lives in the
+  non-volatile section — so it never refreshed. Fixed the data source + re-pointed the floor slider to commit
+  on `change` (release) with `applyFull()` (not `oninput`, which would destroy the slider mid-drag). Also
+  removed the orphan `.nested` left-indent on "Disabled contrast floor" (+ dead `.knob.nested` CSS).
+- **Token list display fixes.** Group headers now use the shared doc-26 `subHead` (uppercase `.sub-t`), not
+  the bespoke lowercase-mono `.tok-grouplab` (removed); value columns left-align via a `toktable` modifier
+  (the shared `.ctable .mcol` centring stays for the contrast table); typography composites drop the font
+  fallback stack (show the primary face only) and show the FULL composite — family · weight · size ·
+  line-height · tracking. `ResolvedType` gained `fontFamilyStack` (CSS keeps the full stack via write-adapter)
+  + optional `lineHeight`/`letterSpacingEm` (additive; no emit change).
+- **Deferred to GH issues** (owner uses Issues for the backlog now): token list rendered *from `buildTree()`*
+  for 1:1 export alignment + show-all-tokens; Layout controls-near-previews restructure (+ grid columns →
+  curated `4/6/8/12/16/24`, "Narrow container" → "Content container"); Size & radius controls-near-previews.
+- **Verified:** engine 925/925; `tsc` clean; build clean; `out/*` byte-identical; Playwright drove Preview
+  (SG first + default, no UI tab), the token list (uppercase heads, left-aligned values, `Inter · 400 · 16px
+  · 1.5 lh · 0em` composite), and the Disabled example updating live on both the strategy select and the floor
+  slider (+ floor de-indented, hidden when conventional).
+
+---
+
 ## (2026-07-29) — Preview: Style guide sub-view (web-only)
 
 **STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`; byte-identical). Adds a fourth
