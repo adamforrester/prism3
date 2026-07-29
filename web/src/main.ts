@@ -1820,75 +1820,93 @@ const leverSection = (title: string, sub: string, keys: string[], perMode: boole
   return any ? sec : null;
 };
 
-// Size & radius — grouped by concept (doc 26): corner radius, density/size, spacing grid — not by
-// advanced/not. radius + density go per-mode outside Light.
-const renderSizeRadiusPage = (host: HTMLElement): void => renderScreen(host, 'sizeRadius', (h) => {
+// Size & radius — grouped by concept (doc 26): corner radius, density/size, spacing grid. Each control
+// block sits beside its live preview (#265, shared scaffold with Layout). radius + density stay per-mode
+// outside Light — the controls reuse `leverControl(key, perMode)`, so that semantics is unchanged.
+const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
+  const stack = el('div', 'cs-ctl-stack');
+  for (const k of keys) { const c = leverControl(k, perMode); if (c) stack.append(c); }
+  return stack;
+};
+const renderSizeRadiusPage = (host: HTMLElement): void => controlSplitPage(host, 'sizeRadius', () => {
   const perMode = currentMode !== 'light';
-  const add = (n: HTMLElement | null): void => { if (n) h.append(n); };
-  add(leverSection('Corner radius', 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', ['baseMd', 'radiusScale'], perMode));
-  add(leverSection('Density & size', 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', ['density'], perMode));
-  add(leverSection('Spacing grid', 'The spacing rhythm (space.100 = 1×) and the fine dimension-grid base backing radius & borders.', ['spaceBase', 'baseUnit'], perMode));
-}, () => [renderRadiusSpecimen(), renderSizeSpecimen()]);
+  return [
+    { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', controls: csLeverStack(['baseMd', 'radiusScale'], perMode), paint: paintRadiusPreview },
+    { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
+    { title: 'Spacing grid', sub: 'The spacing rhythm (space.100 = 1×) and the fine dimension-grid base backing radius & borders.', controls: csLeverStack(['spaceBase', 'baseUnit'], perMode), paint: paintSpacingPreview },
+  ];
+});
 
-// Layout — each control sits BESIDE its own live preview (docs #264), so a change is visible without
+// ---- controls-beside-previews pages (docs #264 / #265) --------------------
+// Layout and Size & radius put each control NEXT TO its own live preview, so a change is visible without
 // scrolling to a specimen block far below. Built like the Palettes page: controls are stable and only the
-// preview sub-nodes repaint (via `refreshers` → paintVolatile), so a slider is never rebuilt mid-drag.
-const LAYOUT_COLUMN_CHOICES = [4, 6, 8, 12, 16, 24];   // curated grid systems — no odd/awkward counts (#264)
-/** A compact labelled slider for the layout page — value read-out updates live on drag; the theme commits
+// preview sub-nodes repaint (via `refreshers` → paintVolatile), so a slider/select is never rebuilt
+// mid-interaction. `controlSplitPage` is the shared scaffold both pages compose from.
+type SplitBlock = { title: string; sub: string; controls: HTMLElement; paint: (into: HTMLElement) => void };
+/** The shared scaffold: hero → (derived-mode note, or) one `.cs-split` section per block (controls beside a
+ *  preview node) → a page-local `paintVolatile` that repaints only the preview nodes on every `apply()`. */
+const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => SplitBlock[]): void => {
+  const [title, lede] = PAGE_COPY[pageKey];
+  host.append(hero(title, lede));
+  if (DERIVED_MODES.has(currentMode)) { host.append(renderGeneratedNote()); return; }
+  const refreshers: Array<() => void> = [];
+  for (const b of blocks()) {
+    const sec = palSection(b.title, b.sub);
+    const split = el('div', 'cs-split');
+    const ctlCol = el('div', 'cs-ctl-col'); ctlCol.append(b.controls);
+    const preview = el('div', 'cs-preview');
+    split.append(ctlCol, preview);
+    sec.append(split);
+    host.append(sec);
+    refreshers.push(() => b.paint(preview));
+  }
+  paintVolatile = () => { refreshers.forEach((r) => r()); };
+  paintVolatile();
+};
+/** A compact labelled slider for the split pages — value read-out updates live on drag; the theme commits
  *  on release (`change` → apply()), which repaints the previews via the registered refreshers. Not the
- *  full-width `.knob` slider (overkill here, per #264). */
-const layoutSlider = (key: string, label: string, min: number, max: number, step: number, unit: string, get: () => number): HTMLElement => {
-  const f = el('div', 'ly-ctl');
-  const top = el('div', 'ly-ctl-top');
-  const val = el('span', 'ly-ctl-val mono', `${get()}${unit}`);
-  top.append(el('span', 'ly-ctl-lab', label), val);
-  const input = rangeInput({ className: 'ly-range', min, max, step, value: get() });
+ *  full-width `.knob` slider (overkill here, per #264/#265). */
+const csSlider = (key: string, label: string, min: number, max: number, step: number, unit: string, get: () => number): HTMLElement => {
+  const f = el('div', 'cs-ctl');
+  const top = el('div', 'cs-ctl-top');
+  const val = el('span', 'cs-ctl-val mono', `${get()}${unit}`);
+  top.append(el('span', 'cs-ctl-lab', label), val);
+  const input = rangeInput({ className: 'cs-range', min, max, step, value: get() });
   input.oninput = () => { val.textContent = `${input.value}${unit}`; };
   input.onchange = () => { setPath(brandState, key, Number(input.value)); apply(); };
   f.append(top, input);
   return f;
 };
-const renderLayoutPage = (host: HTMLElement): void => {
-  const [title, lede] = PAGE_COPY.layout;
-  host.append(hero(title, lede));
-  if (DERIVED_MODES.has(currentMode)) { host.append(renderGeneratedNote()); return; }
-  const refreshers: Array<() => void> = [];
-  const block = (title: string, sub: string, controls: HTMLElement, paint: (into: HTMLElement) => void): void => {
-    const sec = palSection(title, sub);
-    const split = el('div', 'ly-split');
-    const ctlCol = el('div', 'ly-ctl-col'); ctlCol.append(controls);
-    const preview = el('div', 'ly-preview');
-    split.append(ctlCol, preview);
-    sec.append(split);
-    host.append(sec);
-    refreshers.push(() => paint(preview));
-  };
+/** A compact labelled enum picker for the split pages (curated choices → a select). Commits on change. */
+const csPicker = (key: string, label: string, choices: Array<[string, string]>, cur: string, onCommit?: () => void): HTMLElement => {
+  const sel = selectEl('cap');
+  for (const [value, text] of choices) sel.append(optionEl(value, text, value === cur));
+  sel.onchange = () => { setPath(brandState, key, sel.value); if (onCommit) onCommit(); else apply(); };
+  const f = el('div', 'cs-ctl'); f.append(el('span', 'cs-ctl-lab', label), sel);
+  return f;
+};
 
-  // Breakpoints — the editor's own controls (add/edit/remove), the ruler + grid table beside them.
-  block('Breakpoints', 'Min-width floors (px, ascending) — names auto-assign sm / md / lg / xl / 2xl.',
-    renderBreakpointsControls(), paintBreakpointsPreview);
-
-  // Grid columns — a curated step-picker (4/6/8/12/16/24, no awkward counts) beside the column strip.
+// Layout — breakpoints, grid columns, container caps (docs #264).
+const LAYOUT_COLUMN_CHOICES = [4, 6, 8, 12, 16, 24];   // curated grid systems — no odd/awkward counts (#264)
+const renderLayoutPage = (host: HTMLElement): void => controlSplitPage(host, 'layout', () => {
+  // Grid columns — a curated step-picker (4/6/8/12/16/24, no awkward counts). Numeric key → coerce on commit.
   const colSel = selectEl('cap');
   const curCols = (brandState.layout?.columns ?? theme.layout.baseColumns) as number;
   for (const c of LAYOUT_COLUMN_CHOICES) colSel.append(optionEl(String(c), `${c} columns`, c === curCols));
   colSel.onchange = () => { setPath(brandState, 'layout.columns', Number(colSel.value)); apply(); };
-  const colsCtl = el('div', 'ly-ctl'); colsCtl.append(el('span', 'ly-ctl-lab', 'Grid columns'), colSel);
-  block('Grid columns', 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.',
-    colsCtl, paintColumnsPreview);
+  const colsCtl = el('div', 'cs-ctl'); colsCtl.append(el('span', 'cs-ctl-lab', 'Grid columns'), colSel);
 
-  // Container caps — the two width sliders beside the proportional bars.
-  const caps = el('div', 'ly-ctl-stack');
+  const caps = el('div', 'cs-ctl-stack');
   caps.append(
-    layoutSlider('layout.containerMax', 'Container max', 960, 1920, 40, 'px', () => (brandState.layout?.containerMax ?? theme.layout.containerMax) as number),
-    layoutSlider('layout.containerNarrow', 'Content container', 480, 960, 20, 'px', () => (brandState.layout?.containerNarrow ?? theme.layout.containerNarrow) as number),
+    csSlider('layout.containerMax', 'Container max', 960, 1920, 40, 'px', () => (brandState.layout?.containerMax ?? theme.layout.containerMax) as number),
+    csSlider('layout.containerNarrow', 'Content container', 480, 960, 20, 'px', () => (brandState.layout?.containerNarrow ?? theme.layout.containerNarrow) as number),
   );
-  block('Container caps', 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).',
-    caps, paintContainersPreview);
-
-  paintVolatile = () => { refreshers.forEach((r) => r()); };
-  paintVolatile();
-};
+  return [
+    { title: 'Breakpoints', sub: 'Min-width floors (px, ascending) — names auto-assign sm / md / lg / xl / 2xl.', controls: renderBreakpointsControls(), paint: paintBreakpointsPreview },
+    { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
+    { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, paint: paintContainersPreview },
+  ];
+});
 
 // Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
 const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion', (h) => {
@@ -2545,13 +2563,13 @@ const renderTypeSpecimen = (): HTMLElement => {
   return wrap;
 };
 
-/** The radius specimen: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the
- *  actual corner) labelled with its px and the component(s) that consume it (button→md, input→sm,
- *  card→lg, badge→round). The single component preview shows one radius each; this shows the ladder
- *  + who uses what, and reacts to the radius lever. Reads `rp.dims` (live per lever); `none` = 0. */
+/** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
+ *  labelled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
+ *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads `rp.dims`
+ *  (live per lever); `none` = 0. */
 const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round'];
-const renderRadiusSpecimen = (): HTMLElement => {
-  const wrap = palSection('Radius ramp', 'The corner-radius ramp, holistic — each step, its px, and the components that consume it. The radius lever shifts the whole ramp.');
+const paintRadiusPreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
   const consumers: Record<string, Set<string>> = {};
   for (const c of previewSpec.components) for (const v of c.variants) {
     const rref = v.bindings.radius;
@@ -2571,8 +2589,7 @@ const renderRadiusSpecimen = (): HTMLElement => {
     cell.append(sw, el('div', 'rad-lab mono', `${step} · ${px}px`), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
     list.append(cell);
   }
-  wrap.append(list);
-  return wrap;
+  into.append(list);
 };
 
 /** The elevation ramp specimen: one card per shadow step (xs→2xl) on a light surface, so
@@ -2596,14 +2613,15 @@ const renderShadowSpecimen = (): HTMLElement => {
   return wrap;
 };
 
-/** The control-size specimen: the component-size tier (sm→xl) as mini control boxes at their resolved
+/** The control-size preview: the component-size tier (sm→xl) as mini control boxes at their resolved
  *  height + horizontal padding, so the DENSITY lever has a visible payoff (the preview components bind
  *  the space scale directly, not `size.*`, so nothing else shows the size tier). Mode-aware (D): reflects
- *  the current mode's per-mode density (`theme.dims.sizesByMode`) when it deviates, else the global tier. */
-const renderSizeSpecimen = (): HTMLElement => {
+ *  the current mode's per-mode density (`theme.dims.sizesByMode`) when it deviates, else the global tier.
+ *  Fills a caller-owned node so it repaints beside the density control (#265). */
+const paintSizePreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
   const byMode = theme.dims.sizesByMode?.[currentMode];
   const sizes = byMode ?? theme.dims.sizes;
-  const wrap = palSection('Control size', `The component-size tier — control height + paired padding per step${byMode ? ` (${MODE_LABEL[currentMode] ?? currentMode} density)` : ''}. The density lever reshapes the whole ramp; per-mode density retunes it for the mode in view.`);
   const list = el('div', 'sz-list');
   for (const z of sizes) {
     const cell = el('div', 'sz-cell');
@@ -2613,8 +2631,29 @@ const renderSizeSpecimen = (): HTMLElement => {
     cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px · pad ${z.padX}/${z.padY}`), tokenPill(`size.${z.name}.height`));
     list.append(cell);
   }
-  wrap.append(list);
-  return wrap;
+  into.append(list);
+};
+
+/** The spacing preview (#265): the resolved space.* ramp as proportional bars — the spacing rhythm has no
+ *  other visible payoff (preview components bind space refs but don't show the ladder). Read-only from
+ *  `rp.dims` (no engine change). Derives its steps from the ACTUAL resolved keys (sorted by scale), not a
+ *  hardcoded list — the resolved model only carries the steps the preview binds, so a fixed list would
+ *  show phantom 0px rows. `space.100` (= 1×) is the rhythm anchor. */
+const paintSpacingPreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const steps = Object.keys(rp.dims)
+    .filter((k) => k.startsWith('space.'))
+    .sort((a, b) => Number(a.slice(6)) - Number(b.slice(6)));
+  const maxPx = Math.max(...steps.map((k) => rp.dims[k] ?? 0), 1);
+  const list = el('div', 'sp-list');
+  for (const k of steps) {
+    const px = rp.dims[k] ?? 0;
+    const cell = el('div', 'sp-cell');
+    const bar = el('div', 'sp-bar'); bar.style.width = `${Math.max(2, (px / maxPx) * 100)}%`;
+    cell.append(el('div', 'sp-lab mono', `${k} · ${px}px`), bar);
+    list.append(cell);
+  }
+  into.append(list);
 };
 
 /** The layout specimen: the responsive-grid axis — breakpoints (min-widths) with their column/gutter/
@@ -3648,6 +3687,11 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sz-cell{display:flex;flex-direction:column;align-items:center;gap:9px}
 .sz-box{display:flex;align-items:center;justify-content:center;min-width:44px;background:var(--ink);color:var(--panel);border-radius:6px;font-size:12px;font-weight:560}
 .sz-lab{font-size:11px;color:var(--muted);white-space:nowrap}
+/* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
+.sp-list{display:flex;flex-direction:column;gap:10px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
+.sp-cell{display:flex;flex-direction:column;gap:5px}
+.sp-lab{font-size:11px;color:var(--muted)}
+.sp-bar{height:12px;background:var(--ink);opacity:.55;border-radius:3px;min-width:2px}
 /* Manifest-advanced scalar/enum levers — exposed as a normal panel (no disclosure). */
 .adv-panel{margin-top:12px}
 /* Advanced object/list bespoke editors (responsive type, breakpoints, emphasized easing). */
@@ -3681,19 +3725,19 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .ly-cont-row{display:flex;align-items:center;gap:12px}
 .ly-cont-lab{font-size:11.5px;color:var(--muted);min-width:150px}
 .ly-cont-bar{height:16px;background:var(--ink);opacity:.55;border-radius:3px}
-/* Layout page (#264): controls beside their live preview, so a change is visible without scrolling.
-   The control column is fixed-narrow (no full-width sliders); the preview takes the rest and wraps under
-   the controls on a narrow viewport. */
-.ly-split{display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:28px;align-items:start}
-@media(max-width:820px){.ly-split{grid-template-columns:1fr;gap:18px}}
-.ly-ctl-col{display:flex;flex-direction:column;gap:16px;min-width:0}
-.ly-preview{min-width:0}
-.ly-ctl-stack{display:flex;flex-direction:column;gap:18px}
-.ly-ctl{display:flex;flex-direction:column;gap:8px}
-.ly-ctl-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.ly-ctl-lab{font-weight:600;font-size:13px;color:var(--ink)}
-.ly-ctl-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
-.ly-range{width:100%;accent-color:var(--ink)}
+/* Controls-beside-previews pages (#264 Layout, #265 Size & radius): each control sits next to its live
+   preview, so a change is visible without scrolling. The control column is fixed-narrow (no full-width
+   sliders); the preview takes the rest and wraps under the controls on a narrow viewport. */
+.cs-split{display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:28px;align-items:start}
+@media(max-width:820px){.cs-split{grid-template-columns:1fr;gap:18px}}
+.cs-ctl-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.cs-preview{min-width:0}
+.cs-ctl-stack{display:flex;flex-direction:column;gap:18px}
+.cs-ctl{display:flex;flex-direction:column;gap:8px}
+.cs-ctl-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.cs-ctl-lab{font-weight:600;font-size:13px;color:var(--ink)}
+.cs-ctl-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.cs-range{width:100%;accent-color:var(--ink)}
 .gradient-spec{margin-bottom:8px}
 .gr-list{display:flex;flex-wrap:wrap;gap:22px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
 .gr-cell{display:flex;flex-direction:column;gap:10px}

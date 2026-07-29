@@ -41,6 +41,40 @@ PR #262 review follow-ups.
 
 ---
 
+## (2026-07-29) — Size & radius: controls-beside-previews + shared split scaffold (#265)
+
+**STATUS: dashboard change** (`web/src/main.ts` only; `out/*` byte-identical, no engine change). Second of
+the PR #262 follow-ups; reuses (and generalizes) the #264 Layout pattern.
+
+- **Shared `controlSplitPage` scaffold.** Extracted the #264 controls-beside-previews mechanism into a
+  reusable scaffold both Layout and Size & radius compose from: hero → derived-mode note (or) one `.cs-split`
+  section per block (control column beside a preview node) → a page-local `paintVolatile` that repaints only
+  the preview nodes on `apply()`. The `ly-*` control classes were generalized to a neutral `.cs-*` family;
+  Layout was migrated onto the shared scaffold (mechanical — same structure, shared classes). Compact
+  `csSlider`/`csPicker` helpers live here too.
+- **Size & radius restructured** into three co-located blocks (was: three stacked control sections above,
+  two specimens far below in `.stage-vol`): **Corner radius** (baseMd + radiusScale → radius ramp),
+  **Density & size** (density → control-size ramp), **Spacing grid** (spaceBase + baseUnit → a NEW spacing
+  ramp preview). `renderRadiusSpecimen`/`renderSizeSpecimen` → `paintRadiusPreview`/`paintSizePreview`
+  (fill-a-node form). radius + density keep per-mode behavior — the controls reuse `leverControl(key,
+  perMode)`, so lever semantics are unchanged.
+- **New spacing preview** (`paintSpacingPreview`): the space.* ramp as proportional bars. Derives its steps
+  from the ACTUAL resolved `rp.dims` keys (sorted by scale), NOT a hardcoded list — the resolved model only
+  carries the steps the preview binds (same subset behavior as type/#263), so a fixed list showed phantom
+  0px rows (caught in the live drive). Read-only from `rp.dims`, no engine change.
+- **Verified:** engine 925/925; `tsc` clean; build clean; 0 `node:` builtins; `out/*` byte-identical.
+  Playwright: 3 co-located blocks each with controls beside their preview; radius softness 1→2 doubled the
+  ramp in place; density comfortable→compact shrank the size ramp; spacing bars proportional + live on
+  spaceBase; the `.cs-split` survives each change.
+- **Surfaced (out of scope, logged separately):** at `spaceBase=12`, `space.150` shows `0px` in the preview.
+  Probed: the emitted DTCG is CORRECT (`space.150 → {prism.dimension.18}`); the gap is in the resolve-preview
+  read-model (`resolve-preview.ts`) — it can't resolve the `dimension.18` primitive at that base (the fine
+  grid doesn't mint an `18` step), so the alias dangles to 0 in the resolved view only. The new spacing
+  preview honestly reflects `rp.dims`; filed as an `[engine]` finding on resolve-preview. Out of scope here.
+- **Still open:** #263 token list from `buildTree()`.
+
+---
+
 ## (2026-07-29) — Layout page: controls-beside-previews + curated columns + rename (#264)
 
 **STATUS: dashboard change** (`web/src/main.ts` + a label-only lever change in `Prism3/engine/levers.ts` +
