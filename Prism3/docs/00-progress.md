@@ -136,6 +136,45 @@ reworks were split into GH issues (see below).
   (SG first + default, no UI tab), the token list (uppercase heads, left-aligned values, `Inter · 400 · 16px
   · 1.5 lh · 0em` composite), and the Disabled example updating live on both the strategy select and the floor
   slider (+ floor de-indented, hidden when conventional).
+## (2026-07-29) — Typography: tier split + two new type levers (engine + web)
+
+**STATUS: engine + dashboard.** Owner review of the Typography page turned into an architectural
+pass. Two engine levers landed first (both no-ops at their defaults ⇒ `out/*` byte-identical), then the
+page was rebuilt on the primitive/semantic tier line. Issues: #270, #271, #272 closed; #267/#268/#269
+opened for the parts that are genuinely separate.
+
+- **Brand-editable leading/tracking rungs (#270).** `TypographyInput` gains `lineHeights` /
+  `letterSpacings`, re-anchoring what a named rung is WORTH without changing the rung set. Previously
+  the twelve rungs were hardcoded constants no brand could touch, and the only way to move them was a
+  per-mode raw-value override — the one shape #176's decision 2 rules out, and one that never reaches
+  Figma (text styles bake leading/tracking). The per-mode merge now rebases on the brand's ramp rather
+  than the const, so a brand re-anchor survives a mode that overrides a different rung.
+- **Per-group leading/tracking nudge.** `leadingShift` / `trackingShift`, in rungs. The engine derives a
+  size-sensitive rung per composite (`title` runs compact→snug→tight as it grows); the nudge SHIFTS
+  that curve rather than replacing it, so the craft survives. This is the semantic re-point the page
+  needed, and it stays inside "everything aliases a primitive".
+- **The page (#272)** splits into **Foundations** (typefaces · size ladder · weight scale · leading &
+  tracking) and **Styles** (weight roles · category setup · responsive · full ramp). Things that did not
+  previously exist anywhere in the dashboard: the **22-rung size ladder** (rendered nowhere), the
+  **displayCeiling / titleFloor** levers (advanced, no panel rendered them), the **generated `clamp()`
+  and mobile floor**, and **font-availability detection**.
+- **Font availability** is canvas text-metric based — no network — so it works identically in the plugin
+  iframe under `networkAccess: none`. It closes a real trap: the dashboard loads no webfonts, so a
+  correctly-spelled family the viewer lacks previewed silently as the fallback. (This is the pragmatic
+  half of #113; enumeration/upload stay parked.)
+- **#271 fixed** — Responsive sizing wrote global state from inside a mode with no signal at all.
+- **Copy** — dropped "switch to a mode to retune leading/tracking there": true but misleading, since no
+  global lever existed behind those ramps, "a mode" excluded Light *and* every derived mode, and
+  per-mode leading never reaches Figma.
+- **Surfaced, not hidden:** requested-vs-effective display ceiling (aurora asks 128px, gets 112px), and
+  the fixed mobile curve MERGING sizes (aurora's `display.sm + display.md + title.2xl` all land on 40px —
+  identical on a phone).
+- **Verified:** 941/941 engine tests (15 new); nb-regression exits 0; every alias resolves + every mode
+  contract passes for all three brands; `out/*` byte-identical; `tsc --noEmit` + esbuild clean; Playwright
+  walk of both tabs in light and dark with no console errors.
+- **Open, tracked:** the two-tier font-family model — typeface primitives + fixed family-role semantics,
+  mono optional (#269); the mode-switcher scope question this exposed (#268); and the primitive/semantic
+  audit across the remaining pages (#267), for which this page is the first worked example.
 
 ---
 
