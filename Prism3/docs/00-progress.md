@@ -7,6 +7,29 @@
 
 ---
 
+## (2026-07-29) — Preview: Style guide sub-view (web-only)
+
+**STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`; byte-identical). Adds a fourth
+Preview segment beside UI preview / Contrast contracts / Token list, per owner request for a view that reads
+like real UI and shows every color role *in situ* — the evocative counterpart to the exhaustive Token list.
+
+- **`renderPreviewStyleGuide`.** Seven `.psec` sections (via `palSection`/`subHead`): Background, Foreground
+  (neutral / bold / subtle), Text color (a **Light | Inverse** side-by-side list keyed to the current +
+  opposite mode; headers name the actual modes so they stay correct in dark/HC), Border, Icon, Disabled, and
+  Interactive (each palette's filled/outline/inverse treatments walked across rest/hover/pressed as **button
+  sets in rows**, sized to the Interactive page's `.chip`). Specimen layout is namespaced `sg-*`.
+- **Reads live** from `resolveAllModes(theme)`, driven by the global mode picker (no local mode state) — it
+  re-resolves on every edit and mode switch. Contract misses surface a small inline mark.
+- **Pills carry the resolvable path** (doc-26 contract): the visible label is the semantic role in the real
+  `color.*` namespace (`sgPill` prefixes it); the resolved primitive + hex + contrast reveal on hover. Short
+  contextual leaf labels (`fill.rest`, `on-fill`) stay bare under a namespaced block header.
+- **Verified:** `tsc --noEmit` clean; esbuild OK; Playwright drove Preview → Style guide (harbor) in light +
+  dark — 7 sections, no console errors, inverse column flips polarity; all 71 `color.*` pills navigate
+  `buildTree(harbor)`. `out/*` byte-identical. (First landed with bare pills; corrected to `color.*` per PR
+  #261 review.)
+
+---
+
 ## (2026-07-26) — Preview cleanup: thorough UI gallery, grouped token list, richer motion/breakpoint previews (web-only)
 
 **STATUS: dashboard change** (`web/src/main.ts` only — no engine, no `out/*`). A cleanup pass over the
