@@ -1178,6 +1178,27 @@ for (const b of brands) {
     'D-density(i): a modeLevers entry with no density lever produces byte-identical output');
 }
 
+// #274 — space.* aliases must resolve at ANY spaceBase. Space is `mult × spaceBase`; the dimension grid is
+// `baseUnit`-stepped, so a non-default spaceBase pushes the half-steps (1.5×/0.25×/0.75×) OFF the grid
+// (spaceBase 12 → space.150 = 18px, not a baseUnit-4 multiple) and the `space.<k> → {dimension.<px>}` alias
+// would dangle. buildDims feeds every space px into the grid as extras, so they resolve by construction.
+{
+  const root = 'prism';
+  const mk = (spaceBase: number) => buildTree(brandTheme({ id: 'sb', primary: { l: 0.5, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.008 }, spaceBase } as unknown as BrandInput));
+  // Off-grid bases (whose half-steps miss the baseUnit-4 grid) + the default: all must be dangle-free.
+  for (const sb of [8, 12, 5, 10]) {
+    const built = mk(sb);
+    ok(built.stats.broken.length === 0, `#274: spaceBase ${sb} — 0 dangling aliases` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 4).map((b: any) => b.ref).join(',')}` : ''));
+    const data = built.tree[root];
+    const s150 = at(data, 'space.150');
+    const target = String(s150.$value).replace(/^\{|\}$/g, '');
+    ok(at(built.tree, target) !== undefined, `#274: spaceBase ${sb} — space.150 (${Math.round(1.5 * sb)}px) target ${target} exists`);
+  }
+  // Guard the byte-identity claim explicitly: at the default spaceBase 8, space px already land on the grid,
+  // so feeding them as extras changes nothing — a default brand's tree is unaffected by the fix.
+  ok(mk(8).stats.broken.length === 0, '#274: default spaceBase 8 stays dangle-free (committed fixtures unaffected)');
+}
+
 // PHASE D — ENGINE REVIEW FIXES. Correctness + consistency findings from the engine code review.
 {
   const root = 'prism';
