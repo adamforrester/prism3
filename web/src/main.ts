@@ -897,9 +897,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const stepOf = (r: SGRole): string => (r.path.startsWith(ns) ? r.path.slice(ns.length) : r.path);
   const fails = (m: string, k: string): boolean => { const r = role(m, k); return !!(r && r.min > 0 && r.ratio < r.min); };
   const tipOf = (m: string, k: string): string => { const r = role(m, k); if (!r) return `${k} — unset`; const c = r.min > 0 ? ` · ${r.ratio.toFixed(2)}:1 (min ${r.min})` : ''; return `${stepOf(r)} · ${r.hex}${c}`; };
-  // token pill with hover-reveal of the resolved primitive (semantic lead, primitive on hover)
+  // token pill with hover-reveal of the resolved primitive (semantic lead, primitive on hover). The
+  // visible label is the real, resolvable path — semantic roles emit under `color.*` (doc-26 contract),
+  // so a bare role key is prefixed; a short contextual label (e.g. `fill.rest`) is shown verbatim.
   const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
-    const p = tokenPill(label ?? k);
+    const p = tokenPill(label ?? `color.${k}`);
     const t = tipOf(m, k); p.setAttribute('data-sgtip', t); p.title = t;
     if (fails(m, k)) { p.classList.add('sg-failpill'); p.append(el('b', 'sg-fx', '!')); }
     return p;
@@ -1024,7 +1026,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   };
   const paletteBlock = (nm: string, c: string): HTMLElement => {
     const block = el('div', 'sg-pblock');
-    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `interactive.${c}`)); block.append(hd);
+    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
     const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`));
     const bgFor: Record<string, string> = { rest: 'transparent', hover: paint(cur, `interactive.${c}.overlay.hover`), pressed: paint(cur, `interactive.${c}.overlay.pressed`) };
     const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, `interactive.${c}.text.${s}`), paint(cur, `interactive.${c}.border`), s, `interactive.${c}.text.${s}`, `text.${s}`));
@@ -1037,7 +1039,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
   {
     const block = el('div', 'sg-pblock');
-    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'disabled.*')); block.append(hd);
+    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'color.disabled')); block.append(hd);
     block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], false));
     block.append(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false));
     block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], true));

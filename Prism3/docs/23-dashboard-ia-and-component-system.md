@@ -68,6 +68,7 @@ Motion
 Preview
   ├ UI preview            (comprehensive component gallery)
   ├ Contrast contracts    (all-modes master table)
+  ├ Style guide           (the resolved system in situ — composed spec sheet)
   └ Token table / list
 Output (Figma)            ⊕ new surface — grouped, deferred to its own discovery
   ├ Style guides
@@ -235,7 +236,7 @@ to this.
 **Rail vs header — the rule.** *Canvas destination → rail* (authoring pages, **Preview**,
 future **Output**). *Quick action / menu that doesn't need the canvas → header* (brand
 switch, mode, **Export**). So **Preview is a rail leaf** (after a divider) with
-**segmented sub-views inside one screen** — UI preview / Contrast contracts / Token list
+**segmented sub-views inside one screen** — UI preview / Contrast contracts / Style guide / Token list
 — not three rail rows.
 
 **Numbering + completeness.** **No numbers** on rail items; top-to-bottom order carries
