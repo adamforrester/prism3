@@ -56,7 +56,7 @@ export const emitTheme = (theme: Theme, outDir: string): { tree: any; modes: Mod
 // schema author reached for a construct the validator can't enforce — fail LOUD rather than
 // silently vouch for it (CR-04's root cause: a `{"type":"boolean"}` with no boolean branch
 // fell through and "matched" anything, incl. inside oneOf → `gradients: "banana"` passed).
-const KNOWN_TYPES = new Set(['object', 'array', 'number', 'integer', 'string', 'boolean']);
+const KNOWN_TYPES = new Set(['object', 'array', 'number', 'integer', 'string', 'boolean', 'null']);
 const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
   if (schema.$ref) return validate(data, defs[schema.$ref.split('/').pop()!], defs, path);
   if (schema.oneOf) return schema.oneOf.some((s: any) => validate(data, s, defs, path).length === 0) ? [] : [`${path || '(root)'}: matches none of oneOf`];
@@ -94,6 +94,10 @@ const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
     else if (schema.pattern && !new RegExp(schema.pattern).test(data)) e.push(`${at}: '${data}' does not match /${schema.pattern}/`);
   } else if (t === 'boolean') {
     if (typeof data !== 'boolean') e.push(`${at}: expected boolean`);
+  } else if (t === 'null') {
+    // Used as an explicit OPT-OUT branch inside a oneOf (e.g. `families.mono: null` = no mono
+    // face). Distinct from an omitted key, which keeps the default.
+    if (data !== null) e.push(`${at}: expected null`);
   }
   return e;
 };

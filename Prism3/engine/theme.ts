@@ -482,6 +482,19 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
 // set is data-driven (WEIGHT_ROLE_ORDER) so it extends without renames.
 export type FontFamilyRole = { role: 'display' | 'text' | 'mono'; stack: string[]; variable: boolean };
 export type FamilyRoleName = 'display' | 'text' | 'mono';
+// A TYPEFACE is the primitive — the actual face, named after itself (`inter`,
+// `clash-display`), carrying its fallback stack. A family ROLE is the semantic that
+// binds to one (`display → clash-display`). Two tiers, mirroring colour: a palette is
+// named after the thing (`strawberry`), a role after the job (`color.text.danger`).
+// The role is the brand-INVARIANT handle a shared codebase binds to — it survives a
+// face swap, which a direct `font.family.clash-display` reference would not. A brand
+// binds ≤3 roles; the typeface library is shared ACROSS brands, each binding its own.
+export type Typeface = { slug: string; name: string; stack: string[]; variable: boolean };
+/** Slugify a face name for its token path: `"Clash Display"` → `clash-display`. Derived,
+ *  never user-chosen, so there is no arbitrary-rename churn — you either have that face
+ *  or you don't. */
+export const typefaceSlug = (name: string): string =>
+  name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'unnamed';
 // The canonical weight-role ladder, lightest→heaviest. DATA-DRIVEN: this ordered
 // array is the single source — `WeightRoleName` derives from it, the defaults map
 // keys off it, and the build emits one `font.weight-role.*` primitive per entry.
@@ -512,6 +525,10 @@ export type TypeComposite = {
 };
 export type Typography = {
   families: FontFamilyRole[];
+  /** The typeface PRIMITIVES the roles bind to — de-duplicated by slug, and unioned across
+   *  every per-mode family override so a mode's alias always lands on a real leaf (the same
+   *  contract `weightsRef` has for per-mode weight numerics). */
+  typefaces: Typeface[];
   sizesPx: number[];                                  // curated ladder (px; rem = px/16)
   weightsRef: number[];                               // 100..900 numeric reference tier
   weightRoles: WeightRole[];                          // function-named roles → numeric
@@ -575,7 +592,10 @@ const asStack = (fam: string | string[] | undefined, fallbackFace: string, fallb
 };
 
 export type TypographyInput = {
-  families?: { display?: string | string[]; text?: string | string[]; mono?: string | string[]; variable?: boolean | Partial<Record<FamilyRoleName, boolean>> };
+  /** The face bound to each family role. `mono: null` OPTS OUT — most brands have no mono
+   *  face, and a brand without one ships no `code` category either. Omitted (undefined)
+   *  keeps the default mono, so existing brands are unaffected. */
+  families?: { display?: string | string[]; text?: string | string[]; mono?: string | string[] | null; variable?: boolean | Partial<Record<FamilyRoleName, boolean>> };
   weightRoles?: Partial<Record<WeightRoleName, number>>;
   typeScale?: 'compact' | 'default' | 'expressive';
   /** Which family role each semantic group consumes. Defaults: display/title/
@@ -712,8 +732,11 @@ const shiftRung = (keys: readonly string[], key: string, by: number): string => 
   return i < 0 ? key : keys[Math.max(0, Math.min(keys.length - 1, i + by))];
 };
 
-const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean): TypeComposite[] => {
+const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, families: FontFamilyRole[]): TypeComposite[] => {
   const familyMap = { ...TYPE_FAMILY_DEFAULT, ...(t.familyMap ?? {}) };
+  // A group whose family role isn't bound can't be built — with `mono: null` that drops
+  // `code`, which is the only group binding mono.
+  const boundRoles = new Set(families.map((f) => f.role));
   const leadShift = t.leadingShift ?? {};
   const trackShift = t.trackingShift ?? {};
   const shift = TYPE_SCALE_SHIFT[t.typeScale ?? 'default'];
@@ -765,6 +788,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean): 
     }
   };
   for (const group of Object.keys(TYPE_VARIANTS) as TypeGroup[]) {
+    if (!boundRoles.has(familyMap[group])) continue;   // unbound family role ⇒ no composites
     const isHeading = group === 'display' || group === 'title';
     let prev = -Infinity;
     // title floor: a fixed 16px brand-font heading, PINNED (exempt from the
@@ -794,11 +818,31 @@ const deriveFamilies = (fam: TypographyInput['families'] = {}): FontFamilyRole[]
   // reads it per family to decide weight emission (KB 23 §Variable fonts).
   const isVar = (role: FamilyRoleName): boolean =>
     typeof fam.variable === 'object' ? fam.variable[role] ?? false : fam.variable ?? false;
-  return [
+  const out: FontFamilyRole[] = [
     { role: 'display', stack: asStack(fam.display ?? textFace, 'Inter', SANS_FALLBACK), variable: isVar('display') },
     { role: 'text', stack: asStack(fam.text, 'Inter', SANS_FALLBACK), variable: isVar('text') },
-    { role: 'mono', stack: asStack(fam.mono, 'JetBrains Mono', MONO_FALLBACK), variable: isVar('mono') },
   ];
+  // `mono: null` is the explicit opt-out; undefined keeps the default face (existing brands
+  // are untouched). No mono role ⇒ no `code` category, since code is the only thing that binds it.
+  if (fam.mono !== null) out.push({ role: 'mono', stack: asStack(fam.mono, 'JetBrains Mono', MONO_FALLBACK), variable: isVar('mono') });
+  return out;
+};
+
+/** Collapse a set of family roles into the distinct TYPEFACE primitives they bind. Two roles on
+ *  the same face share one primitive (NB binds display and text to Inter); `variable` ORs, since
+ *  it is a property of the face rather than of the role. */
+const deriveTypefaces = (...roleSets: FontFamilyRole[][]): Typeface[] => {
+  const out: Typeface[] = [];
+  for (const roles of roleSets) {
+    for (const f of roles) {
+      const name = f.stack[0];
+      const slug = typefaceSlug(name);
+      const hit = out.find((t) => t.slug === slug);
+      if (hit) { hit.variable = hit.variable || f.variable; continue; }
+      out.push({ slug, name, stack: f.stack, variable: f.variable });
+    }
+  }
+  return out;
 };
 
 // The brand's leading/tracking ramps: the curated rungs, with any brand
@@ -828,13 +872,14 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
   const fluid = t.responsive?.fluid ?? true;
   return {
     families,
+    typefaces: deriveTypefaces(families),
     sizesPx: fontSizeLadder(),
     weightsRef: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     weightRoles: WEIGHT_ROLE_ORDER.map((role) => ({ role, value: wr[role] })),
     lineHeights: brandLineHeights(t),
     letterSpacings: brandLetterSpacings(t),
     typeScale: t.typeScale ?? 'default',
-    composites: buildComposites(fontSizeLadder(), t, fluid),
+    composites: buildComposites(fontSizeLadder(), t, fluid, families),
     fluid,
     minViewport: t.responsive?.minViewport ?? 375,
     maxViewport: t.responsive?.maxViewport ?? 1280,
@@ -1526,6 +1571,11 @@ export const brandTheme = (input: BrandInput): Theme => {
   if (extraWeights.size)
     typography.weightsRef = [...new Set([...typography.weightsRef, ...extraWeights])].sort((a, b) => a - b);
   if (Object.keys(familiesByMode).length) typography.familiesByMode = familiesByMode;
+  // A per-mode face may not be one the light build binds. Emit the UNION so every per-mode
+  // family alias lands on a real `font.typeface.<slug>` leaf — the same contract weightsRef
+  // has for per-mode weight numerics. No per-mode families ⇒ unchanged.
+  if (Object.keys(familiesByMode).length)
+    typography.typefaces = deriveTypefaces(typography.families, ...Object.values(familiesByMode));
   if (Object.keys(weightRolesByMode).length) typography.weightRolesByMode = weightRolesByMode;
   // Per-mode LINE HEIGHT / LETTER SPACING (Phase D): a mode may re-anchor any named leading/tracking
   // step. Merge the mode's per-step overrides over the base ramp and emit the FULL ramp for that mode

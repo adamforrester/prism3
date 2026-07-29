@@ -5573,12 +5573,13 @@
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
     },
-    "font.family.display": {
-      "$description": "font family — display (Clash Display) [variable font]",
-      "meaning": "Font family stack — display role",
+    "font.typeface.clash-display": {
+      "$description": "typeface — Clash Display [variable font]",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.display",
         "type.display.lg.strong",
         "type.display.md.strong",
         "type.display.sm.strong",
@@ -5593,12 +5594,13 @@
         "type.title.xs.strong"
       ]
     },
-    "font.family.text": {
-      "$description": "font family — text (Inter) [variable font]",
-      "meaning": "Font family stack — text role",
+    "font.typeface.inter": {
+      "$description": "typeface — Inter [variable font]",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.text",
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
@@ -5623,12 +5625,13 @@
         "type.label.sm.emphasis"
       ]
     },
-    "font.family.mono": {
-      "$description": "font family — mono (JetBrains Mono)",
-      "meaning": "Font family stack — mono role",
+    "font.typeface.jetbrains-mono": {
+      "$description": "typeface — JetBrains Mono",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.mono",
         "type.code.inline.default"
       ]
     },

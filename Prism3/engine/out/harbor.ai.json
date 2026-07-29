@@ -5376,34 +5376,14 @@
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
     },
-    "font.family.display": {
-      "$description": "font family — display (Inter)",
-      "meaning": "Font family stack — display role",
+    "font.typeface.inter": {
+      "$description": "typeface — Inter",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
-        "type.display.2xl.strong",
-        "type.display.3xl.strong",
-        "type.display.lg.strong",
-        "type.display.md.strong",
-        "type.display.sm.strong",
-        "type.display.xl.strong",
-        "type.eyebrow.emphasis",
-        "type.label.md.emphasis",
-        "type.label.sm.emphasis",
-        "type.title.2xl.strong",
-        "type.title.lg.strong",
-        "type.title.md.strong",
-        "type.title.xl.strong",
-        "type.title.xs.strong"
-      ]
-    },
-    "font.family.text": {
-      "$description": "font family — text (Inter)",
-      "meaning": "Font family stack — text role",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
-      "aliased_by": [
+        "font.family.display",
+        "font.family.text",
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
@@ -5423,15 +5403,30 @@
         "type.caption.md.default",
         "type.caption.md.default-link",
         "type.caption.md.strong",
-        "type.caption.md.strong-link"
+        "type.caption.md.strong-link",
+        "type.display.2xl.strong",
+        "type.display.3xl.strong",
+        "type.display.lg.strong",
+        "type.display.md.strong",
+        "type.display.sm.strong",
+        "type.display.xl.strong",
+        "type.eyebrow.emphasis",
+        "type.label.md.emphasis",
+        "type.label.sm.emphasis",
+        "type.title.2xl.strong",
+        "type.title.lg.strong",
+        "type.title.md.strong",
+        "type.title.xl.strong",
+        "type.title.xs.strong"
       ]
     },
-    "font.family.mono": {
-      "$description": "font family — mono (JetBrains Mono)",
-      "meaning": "Font family stack — mono role",
+    "font.typeface.jetbrains-mono": {
+      "$description": "typeface — JetBrains Mono",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.mono",
         "type.code.inline.default"
       ]
     },

@@ -859,11 +859,13 @@ for (const b of brands) {
   const built = buildTree(brandTheme(perMode));
   const pmTree = built.tree[root];
 
-  // (a) family.display carries a modes.dark override with the new stack (Georgia + fallback);
-  //     light's canonical $value is untouched, and an un-overridden family (text) carries no override.
+  // (a) family.display carries a modes.dark override that RE-POINTS the role to a different
+  //     typeface primitive (#269) rather than re-valuing it — the alias-preserving shape. The
+  //     overridden face is unioned into the typeface set, so the alias always lands on a real leaf.
   const famDark = pmTree.font.family.display.$extensions.prism3.modes?.dark;
-  ok(!!famDark && famDark.$value === 'Georgia' && Array.isArray(famDark.fallbackStack) && famDark.fallbackStack.length > 0,
-    `D-typo(a): dark family override → family.display modes.dark $value 'Georgia' + fallbackStack (got ${famDark?.$value})`);
+  ok(!!famDark && famDark.$value === `{${root}.font.typeface.georgia}` && famDark.face === 'Georgia',
+    `D-typo(a): dark family override RE-POINTS family.display to the georgia typeface (got ${famDark?.$value})`);
+  ok(!!pmTree.font.typeface.georgia, 'D-typo(a): a per-mode-only face is unioned into the typeface primitives so its alias resolves');
   ok(pmTree.font.family.display.$value === baseTree.font.family.display.$value,
     `D-typo(a): light canonical family.display $value is unchanged by the dark lever (${pmTree.font.family.display.$value})`);
   ok(pmTree.font.family.text.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden family (text) carries no modes override');
@@ -1552,28 +1554,61 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(fontStyleName('text', 700, true) === 'Bold Italic' && fontStyleName('text', 400, true) === 'Italic', 'Figma style name: 700→Bold Italic, 400→Italic (not Regular Italic)');
 }
 
-// ---- family primitive: single-family $value + fallbackStack extension (105.3) ----
+// ---- font families: typeface PRIMITIVES + family-ROLE semantics (#269) ----
+// Two tiers, mirroring colour: the primitive is named after the face (`typeface.inter`)
+// and carries the fallback stack; the role is named after the job (`family.text`) and
+// aliases it. The role is the brand-invariant handle a consumer binds to.
 {
   const t = tBrand('fam', { families: { display: 'Poppins', text: 'Inter', mono: 'Fira Code' } });
   const { tree } = buildTree(t);
   const root = Object.keys(tree)[0];
   const fam = (tree[root] as any).font.family;
-  // $value is the SINGLE primary family (a string), NOT the baked array — the
-  // round-trippable form TP/Figma consume.
-  ok(fam.display.$value === 'Poppins' && typeof fam.display.$value === 'string', 'family $value is the single primary family (string), not an array');
-  ok(!Array.isArray(fam.text.$value) && !Array.isArray(fam.mono.$value), 'no family $value is an array');
-  // the curated fallback stack moved to the extension (the tail after the primary).
-  const fb = fam.text.$extensions.prism3.fallbackStack;
-  ok(Array.isArray(fb) && fb.length > 0 && !fb.includes('Inter'), 'fallbackStack holds the fallback tail (extension), primary excluded');
-  // engine-side reassembly (the SD-transform equivalent) rebuilds the full stack —
-  // so the resolved preview fontFamily is unchanged.
+  const tf = (tree[root] as any).font.typeface;
+
+  // tier 1 — a primitive per distinct face, slugged from its own name.
+  ok(!!tf.poppins && !!tf.inter && !!tf['fira-code'], 'a typeface primitive is emitted per face, slugged from the face name');
+  ok(tf.inter.$value === 'Inter' && typeof tf.inter.$value === 'string', 'typeface $value is the single primary face (string), not an array');
+  const fb = tf.inter.$extensions.prism3.fallbackStack;
+  ok(Array.isArray(fb) && fb.length > 0 && !fb.includes('Inter'), 'the fallback tail lives on the TYPEFACE, primary excluded');
+
+  // tier 2 — roles alias the primitives; no role carries a literal face any more.
+  ok(fam.text.$value === `{${root}.font.typeface.inter}`, 'family role aliases its typeface primitive');
+  ok(fam.display.$value === `{${root}.font.typeface.poppins}`, 'each role aliases the face it binds');
+  ok(fam.text.$extensions.prism3.aliasOf === `${root}.font.typeface.inter`, 'the role records aliasOf, like every other semantic');
+
+  // the invariant that matters downstream: resolution is unchanged.
   const full = familyOf(tree, fam.text);
-  ok(full.startsWith('Inter, ') && full === ['Inter', ...fb].join(', '), 'familyOf reassembles [primary, ...fallbackStack] — preview stack intact');
+  ok(full.startsWith('Inter, ') && full === ['Inter', ...fb].join(', '), 'familyOf follows the alias and reassembles [primary, ...fallbackStack]');
+
+  // two roles on ONE face share a single primitive (variable ORs across them).
+  const shared = buildTree(tBrand('shared', { families: { display: 'Inter', text: 'Inter' } })).tree;
+  const sroot = Object.keys(shared)[0];
+  const stf = (shared[sroot] as any).font.typeface;
+  ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).font.family.display.$value === (shared[sroot] as any).font.family.text.$value,
+    'two roles bound to the same face share one typeface primitive');
+
   // Figma family variable: value = primary, description still leads with the FULL stack.
   const figFam = buildFigmaFont(t)[0].variables.filter((v) => v.name.startsWith('font/family/'));
   const textVar = figFam.find((v) => v.name === 'font/family/text')!;
   ok(textVar.value === 'Inter', 'Figma family variable binds the primary face as value');
   ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
+}
+
+// ---- mono is optional (#269) ----
+// Most brands have no mono face. `mono: null` opts out, and `code` is the only category
+// binding mono, so it disappears with it.
+{
+  const withMono = tBrand('mono-on', { families: { text: 'Inter' } });
+  const noMono = tBrand('mono-off', { families: { text: 'Inter', mono: null } });
+  ok(withMono.typography.families.some((f: any) => f.role === 'mono'), 'omitted mono keeps the default face (existing brands unaffected)');
+  ok(!noMono.typography.families.some((f: any) => f.role === 'mono'), 'mono: null drops the mono family role');
+  ok(withMono.typography.composites.some((c: any) => c.group === 'code'), 'a brand with mono ships the code category');
+  ok(!noMono.typography.composites.some((c: any) => c.group === 'code'), 'a brand without mono ships NO code category');
+  ok(!noMono.typography.typefaces.some((t: any) => t.slug === 'jetbrains-mono'), 'no mono role ⇒ no orphan mono typeface primitive');
+  const noMonoTree = buildTree(noMono).tree;
+  const nmRoot = Object.keys(noMonoTree)[0];
+  ok(!(noMonoTree[nmRoot] as any).font.family.mono, 'no mono role emits no font.family.mono leaf');
+  ok(!(noMonoTree[nmRoot] as any).type?.code, 'no mono role emits no type.code composites');
 }
 
 // ------------------------------------------------- shadow / elevation invariants
