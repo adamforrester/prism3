@@ -10341,11 +10341,11 @@
       }
     },
     "font": {
-      "family": {
-        "display": {
+      "typeface": {
+        "wendysfresh": {
           "$type": "fontFamily",
           "$value": "wendysFresh",
-          "$description": "font family — display (wendysFresh)",
+          "$description": "typeface — wendysFresh",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10367,10 +10367,10 @@
             }
           }
         },
-        "text": {
+        "roboto": {
           "$type": "fontFamily",
           "$value": "Roboto",
-          "$description": "font family — text (Roboto)",
+          "$description": "typeface — Roboto",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10392,10 +10392,10 @@
             }
           }
         },
-        "mono": {
+        "jetbrains-mono": {
           "$type": "fontFamily",
           "$value": "JetBrains Mono",
-          "$description": "font family — mono (JetBrains Mono)",
+          "$description": "typeface — JetBrains Mono",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10408,6 +10408,62 @@
                 "Liberation Mono",
                 "monospace"
               ],
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        }
+      },
+      "family": {
+        "display": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.wendysfresh}",
+          "$description": "font family role — display → wendysFresh",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.wendysfresh",
+              "face": "wendysFresh",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "text": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.roboto}",
+          "$description": "font family role — text → Roboto",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.roboto",
+              "face": "Roboto",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "mono": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.jetbrains-mono}",
+          "$description": "font family role — mono → JetBrains Mono",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.jetbrains-mono",
+              "face": "JetBrains Mono",
               "figma": {
                 "kind": "style-part",
                 "field": "fontFamily",

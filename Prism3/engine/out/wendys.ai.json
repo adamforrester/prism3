@@ -5667,12 +5667,13 @@
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
     },
-    "font.family.display": {
-      "$description": "font family — display (wendysFresh)",
-      "meaning": "Font family stack — display role",
+    "font.typeface.wendysfresh": {
+      "$description": "typeface — wendysFresh",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.display",
         "type.display.2xl.strong",
         "type.display.3xl.strong",
         "type.display.lg.strong",
@@ -5690,12 +5691,13 @@
         "type.title.xs.strong"
       ]
     },
-    "font.family.text": {
-      "$description": "font family — text (Roboto)",
-      "meaning": "Font family stack — text role",
+    "font.typeface.roboto": {
+      "$description": "typeface — Roboto",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.text",
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
@@ -5718,12 +5720,13 @@
         "type.caption.md.strong-link"
       ]
     },
-    "font.family.mono": {
-      "$description": "font family — mono (JetBrains Mono)",
-      "meaning": "Font family stack — mono role",
+    "font.typeface.jetbrains-mono": {
+      "$description": "typeface — JetBrains Mono",
+      "meaning": "Typography primitive",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.mono",
         "type.code.inline.default"
       ]
     },

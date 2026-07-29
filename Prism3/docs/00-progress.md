@@ -35,8 +35,11 @@ assignment read as though it happened in the primitive tier.
 - **Mono is optional.** `families.mono: null` opts out; `code` is the only category binding mono, so it
   disappears with it (36 → 35 composites on a default brand). Omitted still keeps the default face, so
   existing brands are untouched.
-- **Figma emit is unchanged by design** — the family variable still binds the primary face with the full
-  stack in its description; the emit just resolves the alias first. Fixtures byte-reproduce.
+- **Figma emit is behaviourally unchanged by design** — the family variable still *binds* the primary face
+  with the full stack in its description; the emit just resolves the alias first. The only diff in
+  `out/figma/*/core-font.json` is the description wording (`font family — display (Inter)` →
+  `font family role — display → Inter`); every `value`, `alias`, and `scopes` field byte-reproduces, so
+  no Figma import changes.
 - **The hand-rolled schema validator learned `type: "null"`.** Its CR-04 guard threw loudly on the
   unknown type rather than silently vouching for it — the guard working as intended.
 - **Verified:** 953/953 engine tests (new coverage for both tiers, shared-face dedupe, alias resolution
