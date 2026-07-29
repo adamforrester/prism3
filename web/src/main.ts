@@ -878,6 +878,174 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     shRefs.map((ref) => ({ name: ref, cells: modes.map((m) => { const s = rp.shadows[ref]?.[m]; if (!s) return '—'; const sp = el('span', 'tok-shadow mono', s); sp.title = s; return sp; }) })), modeLabels);
 };
 
+/** Style guide (Preview → Style guide) — the resolved system composed in situ: every color role in
+ *  context, on light and inverse surfaces, driven by the global mode picker. The semantic token path is
+ *  the label (a `.tpill`); the resolved primitive + hex + contrast reveal on hover. Reuses the doc-26
+ *  shell (`palSection`/`subHead`/`tokenPill`); only the specimen layout is new (`sg-*`). */
+const SG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 9l7 .5-5.3 4.6L18.2 21 12 17l-6.2 4 1.5-6.9L2 9.5 9 9z"/></svg>';
+const renderPreviewStyleGuide = (host: HTMLElement): void => {
+  type SGRole = { path: string; hex: string; ratio: number; min: number; alpha?: number };
+  const rolesByMode = new Map<string, Record<string, SGRole | undefined>>(
+    resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, SGRole | undefined>]));
+  const cur: string = currentMode;
+  const OPP: Record<string, string> = { light: 'dark', dark: 'light', 'hc-light': 'hc-dark', 'hc-dark': 'hc-light' };
+  const opp: string = OPP[cur] && rolesByMode.has(OPP[cur]) ? OPP[cur] : (rp.modes.find((m) => m !== cur) ?? cur);
+  const ns = theme.namespace + '.';
+  const role = (m: string, k: string): SGRole | undefined => rolesByMode.get(m)?.[k];
+  const rgba = (hx: string, a: number): string => { const n = parseInt(hx.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+  const paint = (m: string, k: string): string => { const r = role(m, k); return r ? (r.alpha != null ? rgba(r.hex, r.alpha) : r.hex) : 'transparent'; };
+  const stepOf = (r: SGRole): string => (r.path.startsWith(ns) ? r.path.slice(ns.length) : r.path);
+  const fails = (m: string, k: string): boolean => { const r = role(m, k); return !!(r && r.min > 0 && r.ratio < r.min); };
+  const tipOf = (m: string, k: string): string => { const r = role(m, k); if (!r) return `${k} — unset`; const c = r.min > 0 ? ` · ${r.ratio.toFixed(2)}:1 (min ${r.min})` : ''; return `${stepOf(r)} · ${r.hex}${c}`; };
+  // token pill with hover-reveal of the resolved primitive (semantic lead, primitive on hover)
+  const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
+    const p = tokenPill(label ?? k);
+    const t = tipOf(m, k); p.setAttribute('data-sgtip', t); p.title = t;
+    if (fails(m, k)) { p.classList.add('sg-failpill'); p.append(el('b', 'sg-fx', '!')); }
+    return p;
+  };
+  const pills = (...nodes: HTMLElement[]): HTMLElement => { const w = el('div', 'sg-pills'); nodes.forEach((n) => w.append(n)); return w; };
+  const grid = (cols: number, cards: HTMLElement[]): HTMLElement => { const g = el('div', `sg-grid sg-g${cols}`); cards.forEach((c) => g.append(c)); return g; };
+
+  // color plane + optional in-card label(s) + token pill(s) underneath
+  const surfaceCard = (k: string, label: string, inkRole: string, sub?: string, extra: HTMLElement[] = []): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card'); card.style.background = paint(cur, k);
+    if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
+    const lab = el('div', 'sg-lab', label); lab.style.color = paint(cur, inkRole); card.append(lab);
+    if (sub) { const sb = el('div', 'sg-sub', sub); sb.style.color = paint(cur, inkRole); card.append(sb); }
+    cw.append(card, pills(sgPill(k), ...extra));
+    return cw;
+  };
+  const borderCard = (k: string): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card sg-bcard'); card.style.border = `2px solid ${paint(cur, k)}`;
+    if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
+    cw.append(card, pills(sgPill(k)));
+    return cw;
+  };
+  const iconCard = (k: string, bgRole?: string): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card sg-icard');
+    if (bgRole) { card.style.background = paint(cur, bgRole); card.style.border = 'none'; }
+    const ico = el('span', 'sg-ico'); ico.style.color = paint(cur, k); ico.innerHTML = SG_ICON; card.append(ico);
+    cw.append(card, pills(sgPill(k)));
+    return cw;
+  };
+
+  host.append(el('p', 'np-note', 'Hover any token pill for its resolved primitive, hex, and contrast. Modes switch from the picker above.'));
+
+  const SEM: Array<[string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
+
+  // Background
+  const secBg = palSection('Background', 'The base page planes and their inverse counterparts.');
+  secBg.append(subHead('Base'), grid(3, ([['Primary', 'background.primary'], ['Secondary', 'background.secondary'], ['Tertiary', 'background.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
+  secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'background.inverse.primary'], ['Secondary', 'background.inverse.secondary'], ['Tertiary', 'background.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse'))));
+  host.append(secBg);
+
+  // Foreground
+  const secFg = palSection('Foreground', 'Content surfaces — the neutral ladder, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
+  secFg.append(subHead('Neutral'), grid(3, ([['Primary', 'foreground.primary'], ['Secondary', 'foreground.secondary'], ['Tertiary', 'foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
+  secFg.append(subHead('Bold'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}`, n, `text.on-${s}`, 'On-color text', [sgPill(`text.on-${s}`)]))));
+  secFg.append(subHead('Subtle'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}-subtle`, n, `text.${s}`, 'On-color text', [sgPill(`text.${s}`)]))));
+  host.append(secFg);
+
+  // Text color — Light | Inverse | Token
+  const secText = palSection('Text color', 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.');
+  const curLabel = MODE_LABEL[cur] ?? cur, oppLabel = MODE_LABEL[opp] ?? opp;
+  const lbg = paint(cur, 'background.primary'), dbg = paint(opp, 'background.primary');
+  const tcHead = (txt: string, cls: string, color: string): HTMLElement => { const d = el('div', `sg-tc ${cls} sg-tchd`, txt); d.style.color = color; return d; };
+  const tcCell = (nm: string, k: string, m: string, cls: string, ul: boolean): HTMLElement => {
+    const d = el('div', `sg-tc ${cls} sg-tcrow`); d.style.color = paint(m, k);
+    const sp = el('span', 'sg-samp', nm); if (ul) sp.style.textDecoration = 'underline'; d.append(sp);
+    if (fails(m, k)) d.append(el('b', 'sg-fx', '!'));
+    return d;
+  };
+  const tcGroups: Array<[string, Array<[string, string]>, boolean]> = [
+    ['Neutral', [['Primary', 'text.primary'], ['Secondary', 'text.secondary'], ['Tertiary', 'text.tertiary']], false],
+    ['Semantic', SEM.map(([n, s]) => [n, `text.${s}`] as [string, string]), false],
+    ['Semantic — subtle', SEM.map(([n, s]) => [n, `text.${s}-subtle`] as [string, string]), false],
+    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Visited', 'text.link.visited']], true],
+  ];
+  for (const [glab, items, ul] of tcGroups) {
+    secText.append(subHead(glab));
+    const g = el('div', 'sg-tcg'); g.style.setProperty('--lbg', lbg); g.style.setProperty('--dbg', dbg);
+    g.append(tcHead(`On ${curLabel} surface`, 'sg-l', paint(cur, 'text.tertiary')), tcHead(`On ${oppLabel} surface`, 'sg-r', paint(opp, 'text.tertiary')), tcHead('Token', 'sg-t', 'var(--faint)'));
+    for (const [nm, k] of items) {
+      g.append(tcCell(nm, k, cur, 'sg-l', ul), tcCell(nm, k, opp, 'sg-r', ul));
+      const tc = el('div', 'sg-tc sg-t sg-tcrow'); tc.append(sgPill(k)); g.append(tc);
+    }
+    secText.append(g);
+  }
+  const callout = el('div', 'sg-callout');
+  callout.append(document.createTextNode('Links draw only from the action ramp — the engine defines '));
+  callout.append(el('span', 'mono', 'text.link.default / hover / visited'));
+  callout.append(document.createTextNode(' and no neutral or accent link roles.'));
+  secText.append(callout);
+  host.append(secText);
+
+  // Border
+  const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
+  secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.inverse'].map((k) => borderCard(k))));
+  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
+  host.append(secBorder);
+
+  // Icon
+  const secIcon = palSection('Icon', 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.');
+  secIcon.append(subHead('Neutral'), grid(3, ['icon.primary', 'icon.secondary', 'icon.tertiary'].map((k) => iconCard(k))));
+  secIcon.append(subHead('Semantic'), grid(5, ['icon.brand', 'icon.danger', 'icon.success', 'icon.warning', 'icon.info'].map((k) => iconCard(k))));
+  secIcon.append(subHead('On color'), grid(5, SEM.map(([, s]) => iconCard(`icon.on-${s}`, `foreground.${s}`))));
+  host.append(secIcon);
+
+  // Disabled
+  const secDis = palSection('Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.');
+  const disCards: HTMLElement[] = [];
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card'); c.style.background = paint(cur, 'disabled.fill'); cw.append(c, pills(sgPill('disabled.fill'))); disCards.push(cw); }
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = paint(cur, 'disabled.fill'); const l = el('div', 'sg-lab', 'Disabled'); l.style.color = paint(cur, 'disabled.on-fill'); c.append(l); cw.append(c, pills(sgPill('disabled.on-fill'))); disCards.push(cw); }
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = 'var(--panel)'; const l = el('div', 'sg-lab', 'Disabled'); l.style.color = paint(cur, 'disabled.text'); c.append(l); cw.append(c, pills(sgPill('disabled.text'))); disCards.push(cw); }
+  disCards.push(borderCard('disabled.border'), iconCard('disabled.icon'));
+  secDis.append(grid(5, disCards));
+  host.append(secDis);
+
+  // Interactive — button sets in rows
+  const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. Accent palettes are opt-in and would add blocks.');
+  const STATES = ['rest', 'hover', 'pressed'];
+  const btn = (bg: string, fg: string, bd: string | null): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; b.style.color = fg; if (bd) b.style.borderColor = bd; return b; };
+  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string): HTMLElement => { const c = el('div', 'sg-bcol'); c.append(btn(bg, fg, bd), el('span', 'sg-st', st), sgPill(fullkey, subpath)); return c; };
+  const footLine = (lbl: string, p: HTMLElement): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), p); return s; };
+  const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {
+    const row = el('div', 'sg-trow');
+    const lab = el('div', 'sg-tlab', label);
+    if (foot.length) { const f = el('div', 'sg-tlfoot'); foot.forEach((n) => f.append(n)); lab.append(f); }
+    const bs = el('div', 'sg-btns' + (inv ? ' sg-inv' : '')); if (inv) bs.style.setProperty('--sg-invp', paint(cur, 'background.inverse.primary'));
+    cols.forEach((c) => bs.append(c));
+    row.append(lab, bs);
+    return row;
+  };
+  const paletteBlock = (nm: string, c: string): HTMLElement => {
+    const block = el('div', 'sg-pblock');
+    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `interactive.${c}`)); block.append(hd);
+    const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`));
+    const bgFor: Record<string, string> = { rest: 'transparent', hover: paint(cur, `interactive.${c}.overlay.hover`), pressed: paint(cur, `interactive.${c}.overlay.pressed`) };
+    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, `interactive.${c}.text.${s}`), paint(cur, `interactive.${c}.border`), s, `interactive.${c}.text.${s}`, `text.${s}`));
+    const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.on-inverse.fill.${s}`), paint(cur, `interactive.${c}.on-inverse.on-fill`), null, s, `interactive.${c}.on-inverse.fill.${s}`, `fill.${s}`));
+    block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
+    block.append(trow('Outline', [footLine('border', sgPill(`interactive.${c}.border`, 'border'))], outline, false));
+    block.append(trow('Inverse', [footLine('text', sgPill(`interactive.${c}.on-inverse.on-fill`, 'on-fill'))], inv, true));
+    return block;
+  };
+  secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
+  {
+    const block = el('div', 'sg-pblock');
+    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'disabled.*')); block.append(hd);
+    block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], false));
+    block.append(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false));
+    block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], true));
+    secInt.append(block);
+  }
+  host.append(secInt);
+};
+
 const PAGE_COPY: Record<PageKey, [string, string]> = {
   palettes: ['', ''],   // Palettes has its own hero in renderPrimitives
   surfaces: ['Surfaces & fills.', 'The page backgrounds every role sits on, the text colors derived to stay readable on them, and an optional brand gradient. Text is contrast-placed — override to a specific neutral step and the badge tells you whether it still clears. (Status hues are edited per-ramp on Palettes.)'],
@@ -1695,9 +1863,9 @@ const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion
  *  through the mode picked in the global header. Owns the component gallery that used to be duplicated
  *  on every editing stage. (Segmented UI / contrast / token-list sub-views + a per-section contrast
  *  table land in a follow-up; this is the extraction.) */
-type PreviewView = 'ui' | 'contrast' | 'tokens';
+type PreviewView = 'ui' | 'contrast' | 'styleguide' | 'tokens';
 let previewView: PreviewView = 'ui';
-const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['ui', 'UI preview'], ['contrast', 'Contrast contracts'], ['tokens', 'Token list']];
+const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['ui', 'UI preview'], ['contrast', 'Contrast contracts'], ['styleguide', 'Style guide'], ['tokens', 'Token list']];
 const renderPreviewPage = (host: HTMLElement): void => {
   const [title, lede] = PAGE_COPY.preview;
   host.append(hero(title, lede));
@@ -1717,6 +1885,7 @@ const renderPreviewPage = (host: HTMLElement): void => {
     vol.append(pv);
     if (previewView === 'ui') renderPreviewGallery(pv);
     else if (previewView === 'contrast') renderPreviewContracts(pv);
+    else if (previewView === 'styleguide') renderPreviewStyleGuide(pv);
     else renderPreviewTokens(pv);
   };
   paintVolatile();
@@ -3677,6 +3846,45 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .ratio{font-variant-numeric:tabular-nums;color:var(--muted)}
 .errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 
+/* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
+.sg-grid{display:grid;gap:14px;margin-top:2px}
+.sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
+.sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sg-pills{display:flex;gap:6px;flex-wrap:wrap}
+.sg-card{position:relative;min-height:118px;border-radius:var(--r);border:1px solid var(--line);padding:14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.sg-bcard{background:transparent!important}
+.sg-mid{justify-content:center}
+.sg-icard{min-height:104px;align-items:center;justify-content:center;background:var(--paper)}
+.sg-ico svg{width:26px;height:26px;display:block}
+.sg-lab{font-weight:640;font-size:14px;line-height:1.2}
+.sg-sub{font-size:12px;opacity:.9}
+.sg-failmk{position:absolute;top:8px;right:8px;width:15px;height:15px;border-radius:50%;background:#d21b1b;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sg-failpill{border-color:#e6a2a2!important;color:#b42318!important}
+.sg-fx{color:#d23;font-weight:800;margin-left:3px}
+.sg-tcg{display:grid;grid-template-columns:1fr 1fr minmax(150px,190px);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:2px}
+.sg-tc{padding:10px 15px;display:flex;align-items:center;min-height:44px}
+.sg-tc.sg-l{background:var(--lbg)}.sg-tc.sg-r{background:var(--dbg)}.sg-tc.sg-t{background:var(--panel);border-left:1px solid var(--line)}
+.sg-tchd{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;min-height:0;padding-top:8px;padding-bottom:8px}
+.sg-samp{font-size:15px;font-weight:600}
+.sg-tcrow{box-shadow:inset 0 1px 0 rgba(128,128,128,.14)}
+.sg-pblock{margin-top:30px}.sg-pblock:first-of-type{margin-top:6px}
+.sg-phd{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.sg-rn{font-weight:660;font-size:14.5px}
+.sg-trow{display:grid;grid-template-columns:120px 1fr;gap:22px;align-items:start;padding:20px 0;border-top:1px solid var(--line)}
+.sg-tlab{font-size:12.5px;font-weight:640}
+.sg-tlfoot{margin-top:8px;display:flex;flex-direction:column;gap:5px;align-items:flex-start;font-size:10.5px;color:var(--muted)}
+.sg-foothint{display:inline-flex;align-items:center;gap:6px}
+.sg-btns{display:flex;gap:24px;flex-wrap:wrap}
+.sg-btns.sg-inv{background:var(--sg-invp);border-radius:9px;padding:16px 18px;margin:-9px 0}
+.sg-bcol{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.sg-st{font-size:10.5px;color:var(--muted);text-transform:capitalize;font-weight:600}
+.sg-btns.sg-inv .sg-st{color:#c9ccce}
+.sg-btn{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:8px 14px;border:1.5px solid transparent;min-width:96px;text-align:center;cursor:default;white-space:nowrap}
+.sg-callout{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;margin-top:16px;line-height:1.5}
+.tpill[data-sgtip]{position:relative}
+.tpill[data-sgtip]:hover::after{content:attr(data-sgtip);position:absolute;z-index:40;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);background:#111417;color:#f2f4f5;font-family:var(--mono);font-size:11px;font-weight:500;white-space:nowrap;padding:6px 9px;border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.28);pointer-events:none}
+.tpill[data-sgtip]:hover::before{content:"";position:absolute;z-index:40;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#111417;pointer-events:none}
+@media(max-width:760px){.sg-g3,.sg-g5{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){.shell{grid-template-columns:1fr;gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
 `;
 const styleEl = document.createElement('style');
