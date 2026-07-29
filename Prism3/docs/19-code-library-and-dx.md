@@ -127,19 +127,51 @@ re-author; (b) **commit to markdown/MDX as the source of truth** so we never get
 ## 7. Open decisions (pin over time, not now)
 
 1. **Repo boundary** — monorepo-package (decided lean) vs. separate repo. *Leaning monorepo-package
-   with ejectability discipline.*
+   with ejectability discipline.* **Re-affirmed 2026-07-28 (owner)** when a separate code repo was
+   considered, so the reasoning is on record: the trigger was wanting somewhere to file
+   component-library work *now*, while the upstream lanes continue — and that need is met by a
+   `lane:code-library` label in this tracker, without settling the architecture as a side effect. Two
+   costs weighed against the split: GitHub's **sub-issues and dependencies are same-repo**, so a
+   second tracker turns this layer's dense cross-lane relationships (token contract ↔ definitions ↔
+   code) back into prose; and the client-delivery case that usually motivates a split is already
+   served by §2's ejectability discipline (*the eject is a packaging operation, not a repo split*).
+   Still an open decision — but revisit it as its own `[decision]` issue against this section, not
+   as a by-product of backlog logistics.
 2. **WC-first vs. React-first**, and **author-headless vs. wrap** (React-Aria / Radix / Ark / Zag).
-3. **Definition format** — largely settled in `14` (`component.yaml`, mapped to
-   `@directededges/specs-schema`); confirm when the layer activates.
+   Filed as **#252** — split into the two decisions this bullet bundles: §3's WC-primary/
+   React-wrapper ordering already has a stated lean (just needs confirming); author-vs-wrap is the
+   one genuinely open fork, no lean recorded anywhere.
+3. **Definition format** — ~~largely settled in `14`... confirm when the layer activates~~
+   **RESOLVED BY ACTIVATION (found 2026-07-28).** The layer is live: `Prism3/engine/component-schema.ts`
+   is the real, current contract (DRAFT v0 — TS objects, one file per component under `components/`,
+   not the `component.yaml`/`@directededges/specs-schema`-mapped form this bullet described), and five
+   `ComponentDef`s already exist against it (`button.ts`, the Text Field family, `icon-button.ts`). This
+   bullet was stale prose describing a decision the code had already made silently — corrected here
+   rather than filed as an issue, since there's nothing left to decide.
 4. **Brand-token flow into the library** — a per-brand token package vs. a runtime token loader.
+   Filed as **#253**. Grounding here is thin (this bullet was the whole spec) — the issue is mostly
+   reasoning laid out for a call, not doc-sourced analysis; flags that the two options optimize for
+   different things this repo already committed to (§2's ejectability vs. docs/11's runtime
+   brand-switch vision).
 5. **Docs surface** — Storybook autodocs vs. a static-site generator (Astro/Starlight, Nextra) for the
-   client design docs; markdown-as-truth either way.
+   client design docs; markdown-as-truth either way. Filed as **#254** — grounded in §6's constraints
+   (markdown as source, generated/authored merge, themed automatically) and names a third option §6
+   implies but never states: split by audience, since §6 already treats client design docs and
+   Prism3 product docs as structurally different.
 
 ## 8. First slice (endorsed, from `14 §6`)
 
 Definition schema + **three components** (Button, Text Field, Card — already the preview-spec core) →
 generate Figma + WC + one Storybook + `.ai.json` for those three → prove the whole projection chain
 end-to-end before scaling to the ~40. Same "small first increment" discipline every engine axis used.
+
+**Status (2026-07-28):** the schema is live (§7 item 3) and 2 of the 3 definitions exist (Button,
+Text Field family) — Card is filed as **#255**. The projection chain is split into its Figma leg
+(**#111**, MCP-driven, filed earlier) and its code leg — WC + Storybook + `.ai.json` — filed as
+**#256**, plus the two things that fall out once both legs exist: a `component-consume` skill
+(**#257**, explicitly not ready to start yet) and generated Code Connect (**#258**, depends on both
+legs). The canvas-side sibling from docs/09 §4 (a style-guide generator absorbed into the plugin,
+not part of this slice but adjacent) is **#259**.
 
 ---
 

@@ -87,7 +87,7 @@ they split by role:
 |---|---|---|---|
 | **Theming plugin** (Figma) | themes a duplicated file's variables | **Absorb** into the new Prism3 plugin (B2) | when B2 reaches variable-theming parity |
 | **Text-style plugin** (Figma) | binds variables into text styles | **Absorb** into B2 | when B2 binds text styles |
-| **Style-guide generator** (Figma) | lays out **all tokens as frames on the Figma canvas** — canvas documentation, *not* HTML | **Absorb as a B2 feature** (a distinct canvas-render capability; the `visualize.ts` HTML preview does **not** cover it) | when B2 can render token frames to canvas |
+| **Style-guide generator** (Figma) | lays out **all tokens as frames on the Figma canvas** — canvas documentation, *not* HTML | **Absorb as a B2 feature** (a distinct canvas-render capability; the `visualize.ts` HTML preview does **not** cover it) — filed as **#259** (`lane:plugin` — the "absorb" language here means plugin code, not manual canvas craft) | when B2 can render token frames to canvas — **unblocked**, B2's write-executor machinery already ships |
 | **Token Press** (Figma; private, **different org**) | Figma → Style Dictionary / DTCG export | **Downstream, contract-connected** — consumes engine DTCG output; never shared code | after materialization works (Figma-MCP import unblocks testing it) |
 | **CLI templating system** | dupes component library, drops tokens/fonts → SD → Storybook | **Downstream consumer** via DTCG/SD | Layer-D component-library stage |
 
