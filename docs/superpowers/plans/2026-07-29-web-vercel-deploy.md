@@ -337,7 +337,7 @@ review needed a running process, there was no link to send anyone, and PRs had n
   `installCommand`/`rewrites`/`framework` — each would be a redundant override that can drift.
 - **Verified:** the literal `vercel.json` `buildCommand` emits exactly 3 files; stale-file wipe confirmed;
   served headless on a throwaway port with a clean console + a live lever edit repainting.
-- **One manual step (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3-tokens`
+- **One manual step (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3`
   (Root Directory = repo root, then Deploy). Can't be granted by an agent. Prod URL to be added to
   `web/README.md` once it exists.
 - **Spec/plan:** `docs/superpowers/specs/2026-07-29-web-vercel-deploy-design.md`,
@@ -381,7 +381,7 @@ Then open the PR with `gh pr create --body-file` (not a heredoc — apostrophes 
 
 Not plan steps — they need the owner's hands and cannot be done by an agent:
 
-1. **Owner:** Vercel → Add New Project → import `adamforrester/prism3-tokens` → leave Root Directory at the repo root → Deploy. Then Settings → Deployment Protection → disable Vercel Authentication (new projects default to `ssoProtection` enabled, which puts prod + preview URLs behind a login wall). Team `adamforrester-vmlcoms-projects` (`team_rlZMCreyz4A8WlKTOISB5c1K`) is already connected over MCP.
+1. **Owner:** Vercel → Add New Project → import `adamforrester/prism3` → leave Root Directory at the repo root → Deploy. Then Settings → Deployment Protection → disable Vercel Authentication (new projects default to `ssoProtection` enabled, which puts prod + preview URLs behind a login wall). Team `adamforrester-vmlcoms-projects` (`team_rlZMCreyz4A8WlKTOISB5c1K`) is already connected over MCP.
 2. **Agent, once it exists:** `list_projects` to get the project id, `get_deployment_build_logs` to confirm a clean build, `get_runtime_errors` for the served site, then load the production URL headless (console clean, shell rendered, one lever edit repaints).
 3. **Agent:** a one-line follow-up PR adding the production URL to the `web/README.md` Deploy section.
 

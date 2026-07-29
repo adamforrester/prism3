@@ -29,7 +29,7 @@ review needed a running process, there was no link to send anyone, and PRs had n
   `installCommand`/`rewrites`/`framework` — each would be a redundant override that can drift.
 - **Verified:** the literal `vercel.json` `buildCommand` emits exactly 3 files; stale-file wipe confirmed;
   served headless on a throwaway port with a clean console + a live lever edit repainting.
-- **Two manual steps (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3-tokens`
+- **Two manual steps (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3`
   (Root Directory = repo root, then Deploy), then disable Deployment Protection in Settings — new projects
   default to `ssoProtection` enabled, which puts prod + preview URLs behind a login wall. Can't be granted by
   an agent. Prod URL to be added to `web/README.md` once it exists.

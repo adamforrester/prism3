@@ -1,6 +1,6 @@
 # Deploy the web dashboard as a static site on Vercel
 
-**Date:** 2026-07-29 · **Issue:** [#104](https://github.com/adamforrester/prism3-tokens/issues/104) · **Lane:** web
+**Date:** 2026-07-29 · **Issue:** [#104](https://github.com/adamforrester/prism3/issues/104) · **Lane:** web
 
 ## Problem
 
@@ -108,7 +108,7 @@ Add `web/public/` beside the existing `web/dist/` entry, under the same
 `.gitignore`, `web/README.md` deploy section, `00-progress.md` entry.
 
 **Manual, once, by the owner (~2 min):** Vercel → Add New Project → import
-`adamforrester/prism3-tokens` → leave Root Directory at the repo root → Deploy. It reads
+`adamforrester/prism3` → leave Root Directory at the repo root → Deploy. It reads
 `vercel.json` and needs no further input. **Also disable Deployment Protection** in Settings —
 Vercel enables `ssoProtection` by default on new projects, which puts prod and preview URLs behind
 a login wall, defeating the shareable-demo and per-PR-review purposes. The Vercel GitHub app
