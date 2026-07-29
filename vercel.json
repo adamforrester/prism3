@@ -1,0 +1,4 @@
+{
+  "buildCommand": "npm run build:site --workspace @prism3/web",
+  "outputDirectory": "web/public"
+}

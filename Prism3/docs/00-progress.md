@@ -7,6 +7,35 @@
 
 ---
 
+## (2026-07-29) — Web dashboard deploys as a static site on Vercel (#104)
+
+**STATUS: deploy setup** (`web/build-site.mjs` + root `vercel.json` + docs; no engine change, `out/*`
+byte-identical). Closes #104 — the dashboard was reachable only from a local esbuild dev server, so UI
+review needed a running process, there was no link to send anyone, and PRs had no live surface.
+
+- **Static by construction:** the engine runs client-side and `main.ts` has zero `fetch`/`XMLHttpRequest`/
+  `pushState` — so no backend, no rewrites, no runtime data loading. Just files.
+- **Root Directory is the REPO ROOT, not `web/`** — the load-bearing constraint. `web/src/main.ts` imports
+  `../../Prism3/engine/*` and `../../schema/example-brands.json`; a `web/`-scoped build can't resolve them.
+  Nothing else in the monorepo participates: install pulls only esbuild + typescript, and `plugin/`,
+  `Tokens/`, `Prism3/engine/out/` are neither read by the build nor served.
+- **`build:site` → `web/public/`:** the deployable root must *contain* `dist/` (index.html loads
+  `/dist/main.js` absolutely), and publishing `web/` as-is would expose `src/main.ts` + `DESIGN-REVIEW.md`
+  at the site root. `build-site.mjs` cleans, bundles with the same flags as `build`, and copies
+  `index.html` **verbatim** — its absolute path resolves identically under the local dev server and the
+  deploy root, so there's no host-conditional path logic. `dev`/`build` untouched; `web/public/` gitignored.
+- **Contract in git:** root `vercel.json` is two keys (`buildCommand`, `outputDirectory`). No
+  `installCommand`/`rewrites`/`framework` — each would be a redundant override that can drift.
+- **Verified:** the literal `vercel.json` `buildCommand` emits exactly 3 files; stale-file wipe confirmed;
+  served headless on a throwaway port with a clean console + a live lever edit repainting.
+- **One manual step (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3-tokens`
+  (Root Directory = repo root, then Deploy). Can't be granted by an agent. Prod URL to be added to
+  `web/README.md` once it exists.
+- **Spec/plan:** `docs/superpowers/specs/2026-07-29-web-vercel-deploy-design.md`,
+  `docs/superpowers/plans/2026-07-29-web-vercel-deploy.md`.
+
+---
+
 ## (2026-07-29) — Fix #274: space.* dangling aliases at non-default spaceBase (engine)
 
 **STATUS: engine fix** (`theme.ts` + a `test.ts` regression; `out/*` byte-identical). Upgrades what #274

@@ -76,3 +76,27 @@ touch `node:` and would not bundle for the browser.
   validation currently leans on `brandTheme` throwing, since the full validator is node-bound
   in `emit-dtcg`). *Type specimen:* the visual sample size is capped at 60px for layout — the
   real px is shown in each row's label.
+
+## Deploy
+
+The dashboard is a **static site** — the engine runs client-side, there is no backend, and
+`main.ts` makes no network calls at runtime. It deploys to Vercel from this monorepo.
+
+The deploy contract lives in the repo-root **`vercel.json`** (two keys: `buildCommand` +
+`outputDirectory`), so it is reviewable in git rather than hidden in dashboard settings.
+
+```bash
+npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/
+```
+
+`build:site` (`build-site.mjs`) bundles with the same flags as `build`, then assembles
+`web/public/` containing exactly `index.html` + `dist/main.js` + `.map`. `dev` and `build`
+are unchanged and remain the local workflow; `web/public/` is gitignored.
+
+**Vercel's Root Directory must stay the repo root — not `web/`.** `src/main.ts` imports
+`../../Prism3/engine/*` and `../../schema/example-brands.json`, which a `web/`-scoped build
+cannot resolve. Nothing else in the monorepo participates: install pulls only esbuild +
+typescript, and `plugin/`, `Tokens/`, and `Prism3/engine/out/` are never read by the build
+or served.
+
+Pushes to `main` redeploy production; every PR gets its own preview URL.
