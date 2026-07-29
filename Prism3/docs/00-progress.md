@@ -7,6 +7,31 @@
 
 ---
 
+## (2026-07-29) — Fix #274: space.* dangling aliases at non-default spaceBase (engine)
+
+**STATUS: engine fix** (`theme.ts` + a `test.ts` regression; `out/*` byte-identical). Upgrades what #274
+(filed off the #265 spacing preview) turned out to be: **not** a read-model quirk but a real dangling alias
+in the EXPORTED DTCG.
+
+- **Root cause:** two uncoupled scales — the dimension grid is `baseUnit`-stepped (default 4), the space
+  scale is `mult × spaceBase`. At a non-default `spaceBase` the half-steps (1.5×/0.25×/0.75×) land OFF the
+  grid (spaceBase 12 → `space.150` = 18px, absent from a baseUnit-4 grid), and space is the ONE dimension
+  family that emits its alias UNCONDITIONALLY (radius/size/border-width all guard `gridSet.has(px) ? alias :
+  literal`). So `space.150 → {prism.dimension.18}` dangled — flagged by `buildTree` `stats.broken` (6 broken
+  at spaceBase 12; 0 at the default 8, which is why every committed fixture and the earlier #265 check looked
+  clean). `pxOf` then returned 0 for the dead target, which is what the preview surfaced.
+- **Fix (`theme.ts` `buildDims`):** feed every space px into the dimension grid as `extras`, so each space
+  alias resolves by construction. One place; repairs both the exported DTCG and the read-model.
+- **Blast radius:** committed `out/*` **byte-identical** — all four fixtures use the default `spaceBase 8`,
+  where space px already land on the baseUnit-4 grid, so the extras add nothing. Verified: regen → no diff.
+- **Regression test:** new `#274` block asserts `stats.broken === 0` and `space.150`'s target exists across
+  spaceBase 8/12/5/10, plus the default-8 byte-identity guard. Engine 934/934 (was 925 + 9).
+- **Live:** at spaceBase 12 the spacing preview now shows `space.150 · 18px` (was `0px`).
+- **Note:** the original #274 write-up said "emitted DTCG is correct" — that was wrong (only checked
+  spaceBase 8). Corrected here; #274 to be closed by this.
+
+---
+
 ## (2026-07-29) — Token list rendered from buildTree() — 1:1 with export, all tokens (#263)
 
 **STATUS: dashboard change** (`web/src/main.ts` only; `out/*` byte-identical, no engine change). Last of the

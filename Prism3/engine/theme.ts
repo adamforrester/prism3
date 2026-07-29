@@ -381,15 +381,23 @@ export type BrandInput = {
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
 };
 
-const buildDims = (baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => ({
-  grid: dimensionGrid(baseUnit, 128, extras),
-  space: spaceScale(spaceBase),
-  radius: radiusScale(rScale, baseMd, 128),
-  sizes: componentSizes(density, spaceBase),
-  density,
-  radiusScaleValue: rScale,
-  spaceBase,
-});
+const buildDims = (baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
+  // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
+  // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
+  // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
+  // grid as extras, so each space alias resolves by construction. At the default spaceBase 8 these already
+  // land on the grid, so committed out/* is byte-identical.
+  const space = spaceScale(spaceBase);
+  return {
+    grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px)]),
+    space,
+    radius: radiusScale(rScale, baseMd, 128),
+    sizes: componentSizes(density, spaceBase),
+    density,
+    radiusScaleValue: rScale,
+    spaceBase,
+  };
+};
 
 // ---------------------------------------------------------------------------
 // Motion axis — generated from a single personality lever (`tempo`), the motion
