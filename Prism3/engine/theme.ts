@@ -607,6 +607,22 @@ export type TypographyInput = {
    *  Reading/UI text stays static. `minViewport`/`maxViewport` (px, default
    *  375/1280) bound the clamp interpolation. */
   responsive?: { fluid?: boolean; minViewport?: number; maxViewport?: number };
+  /** Re-anchor a named LEADING rung for the whole brand (unitless multiplier,
+   *  [0.8, 3]). The rung SET is fixed (tight…loose) — this changes what a rung is
+   *  worth, not which rung a composite lands on, so every composite aliasing it
+   *  reflows. Omitted rungs keep the curated default. */
+  lineHeights?: Partial<Record<LineHeightKey, number>>;
+  /** Re-anchor a named TRACKING rung for the whole brand (em, [-0.5, 0.5]). Same
+   *  contract as `lineHeights`. */
+  letterSpacings?: Partial<Record<LetterSpacingKey, number>>;
+  /** Per-group LEADING nudge, in rungs (typically -1 / 0 / +1). The engine derives
+   *  a size-sensitive rung per composite (`lineHeightFor` — bigger headings get
+   *  tighter leading); this shifts that whole curve without flattening it, so the
+   *  size-sensitivity survives. Positive = more open. Default 0. */
+  leadingShift?: Partial<Record<TypeGroup, number>>;
+  /** Per-group TRACKING nudge, in rungs. Same contract as `leadingShift`;
+   *  positive = wider. Default 0. */
+  trackingShift?: Partial<Record<TypeGroup, number>>;
 };
 
 // Semantic catalogue defaults (the 'default' typeScale, before levers). Family/
@@ -678,8 +694,20 @@ const lineHeightFor = (group: TypeGroup, px: number): string => {
   return 'normal';                                       // body, caption, code
 };
 
+// Shift a named rung along its ordered key list, clamped at both ends. Both ramps
+// are ordered so that a POSITIVE shift is the more open direction (leading
+// tight→loose, tracking tighter→wider), which keeps `leadingShift`/`trackingShift`
+// reading the same way.
+const shiftRung = (keys: readonly string[], key: string, by: number): string => {
+  if (!by) return key;
+  const i = keys.indexOf(key);
+  return i < 0 ? key : keys[Math.max(0, Math.min(keys.length - 1, i + by))];
+};
+
 const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean): TypeComposite[] => {
   const familyMap = { ...TYPE_FAMILY_DEFAULT, ...(t.familyMap ?? {}) };
+  const leadShift = t.leadingShift ?? {};
+  const trackShift = t.trackingShift ?? {};
   const shift = TYPE_SCALE_SHIFT[t.typeScale ?? 'default'];
   const ceiling = t.displayCeiling ?? 160;
   const titleFloor = t.titleFloor ?? 18;
@@ -709,8 +737,12 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean): 
       const segs = [group, variant, weightSeg].filter(Boolean);
       out.push({
         group, variant, weightRole, link, italic, path: segs.join('.'), sizePx, sizeMinPx,
-        family: familyMap[group], lineHeight: lineHeightFor(group, sizePx),
-        tracking: trackingFor(group, sizePx), textCase: group === 'eyebrow' ? 'uppercase' : 'none',
+        family: familyMap[group],
+        // The derived rung is size-sensitive; the per-group nudge shifts that curve
+        // rather than replacing it, so `title` keeps tightening as it grows.
+        lineHeight: shiftRung(LINE_HEIGHT_KEYS, lineHeightFor(group, sizePx), leadShift[group] ?? 0),
+        tracking: shiftRung(LETTER_SPACING_KEYS, trackingFor(group, sizePx), trackShift[group] ?? 0),
+        textCase: group === 'eyebrow' ? 'uppercase' : 'none',
       });
     };
     // italic × link are orthogonal: a role that ships both gets the full cross
@@ -761,7 +793,28 @@ const deriveFamilies = (fam: TypographyInput['families'] = {}): FontFamilyRole[]
   ];
 };
 
+// The brand's leading/tracking ramps: the curated rungs, with any brand
+// re-anchoring applied. Single source for the light build AND the per-mode
+// re-derivation below, so a per-mode override layers on the BRAND's ramp rather
+// than silently reverting to the curated default.
+export const brandLineHeights = (t: TypographyInput = {}): { key: string; value: number }[] =>
+  LINE_HEIGHTS.map((l) => ({ key: l.key, value: t.lineHeights?.[l.key] ?? l.value }));
+export const brandLetterSpacings = (t: TypographyInput = {}): { key: string; em: number }[] =>
+  LETTER_SPACINGS.map((l) => ({ key: l.key, em: t.letterSpacings?.[l.key] ?? l.em }));
+
 const buildTypography = (t: TypographyInput = {}): Typography => {
+  // Same bounds as the per-mode levers — guard typos, not taste.
+  for (const [k, v] of Object.entries(t.lineHeights ?? {}))
+    if (v !== undefined && (!Number.isFinite(v) || v < 0.8 || v > 3))
+      throw new Error(`typography.lineHeights '${k}' ${v} is out of range — must be a finite multiplier in [0.8, 3]`);
+  for (const [k, v] of Object.entries(t.letterSpacings ?? {}))
+    if (v !== undefined && (!Number.isFinite(v) || v < -0.5 || v > 0.5))
+      throw new Error(`typography.letterSpacings '${k}' ${v} is out of range — must be a finite em in [-0.5, 0.5]`);
+  // A nudge beyond ±5 rungs is meaningless (both ramps are 6 long) — almost certainly a typo.
+  for (const [field, map] of [['leadingShift', t.leadingShift], ['trackingShift', t.trackingShift]] as const)
+    for (const [g, n] of Object.entries(map ?? {}))
+      if (n !== undefined && (!Number.isInteger(n) || n < -5 || n > 5))
+        throw new Error(`typography.${field} '${g}' ${n} is invalid — must be an integer number of rungs in [-5, 5]`);
   const families = deriveFamilies(t.families);
   const wr = { ...WEIGHT_ROLE_DEFAULT, ...(t.weightRoles ?? {}) };
   const fluid = t.responsive?.fluid ?? true;
@@ -770,8 +823,8 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
     sizesPx: fontSizeLadder(),
     weightsRef: [100, 200, 300, 400, 500, 600, 700, 800, 900],
     weightRoles: WEIGHT_ROLE_ORDER.map((role) => ({ role, value: wr[role] })),
-    lineHeights: LINE_HEIGHTS,
-    letterSpacings: LETTER_SPACINGS,
+    lineHeights: brandLineHeights(t),
+    letterSpacings: brandLetterSpacings(t),
     typeScale: t.typeScale ?? 'default',
     composites: buildComposites(fontSizeLadder(), t, fluid),
     fluid,
@@ -1473,11 +1526,15 @@ export const brandTheme = (input: BrandInput): Theme => {
   const lineHeightsByMode: Record<string, { key: string; value: number }[]> = {};
   const letterSpacingsByMode: Record<string, { key: string; em: number }[]> = {};
   // No-diff suppression (mirrors radius/family/weight): a mode re-declaring the global ramp gets no entry.
-  const baseLhJson = JSON.stringify(LINE_HEIGHTS.map((l) => ({ key: l.key, value: l.value })));
-  const baseLsJson = JSON.stringify(LETTER_SPACINGS.map((l) => ({ key: l.key, em: l.em })));
+  // Base is the BRAND's ramp (which may itself re-anchor rungs), not the curated const — otherwise a
+  // brand-level re-anchor would be silently dropped for any mode that overrides a different rung.
+  const baseLh = brandLineHeights(input.typography);
+  const baseLs = brandLetterSpacings(input.typography);
+  const baseLhJson = JSON.stringify(baseLh);
+  const baseLsJson = JSON.stringify(baseLs);
   for (const [m, lev] of Object.entries(modeLevers)) {
-    if (lev?.lineHeights) diffAssign(lineHeightsByMode, m, LINE_HEIGHTS.map((l) => ({ key: l.key, value: lev.lineHeights![l.key] ?? l.value })), baseLhJson);
-    if (lev?.letterSpacings) diffAssign(letterSpacingsByMode, m, LETTER_SPACINGS.map((l) => ({ key: l.key, em: lev.letterSpacings![l.key] ?? l.em })), baseLsJson);
+    if (lev?.lineHeights) diffAssign(lineHeightsByMode, m, baseLh.map((l) => ({ key: l.key, value: lev.lineHeights![l.key as LineHeightKey] ?? l.value })), baseLhJson);
+    if (lev?.letterSpacings) diffAssign(letterSpacingsByMode, m, baseLs.map((l) => ({ key: l.key, em: lev.letterSpacings![l.key as LetterSpacingKey] ?? l.em })), baseLsJson);
   }
   if (Object.keys(lineHeightsByMode).length) typography.lineHeightsByMode = lineHeightsByMode;
   if (Object.keys(letterSpacingsByMode).length) typography.letterSpacingsByMode = letterSpacingsByMode;

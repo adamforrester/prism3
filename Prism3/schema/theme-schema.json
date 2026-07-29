@@ -360,6 +360,30 @@
           "type": "array",
           "items": { "type": "string", "enum": ["display", "title", "body", "label", "caption", "eyebrow", "code"] },
           "description": "Which roles ship an `.<weight>-italic` variant for every size×weight (and, for link roles, an italic-link too — italic and link are orthogonal). Italic is a weight-PAIRED modifier emitting `fontStyle: 'italic'` on the composite $value. Default [] — italics are opt-in per role (e.g. ['body','caption'])."
+        },
+        "lineHeights": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "tight": { "type": "number", "minimum": 0.8, "maximum": 3 }, "snug": { "type": "number", "minimum": 0.8, "maximum": 3 }, "compact": { "type": "number", "minimum": 0.8, "maximum": 3 }, "normal": { "type": "number", "minimum": 0.8, "maximum": 3 }, "relaxed": { "type": "number", "minimum": 0.8, "maximum": 3 }, "loose": { "type": "number", "minimum": 0.8, "maximum": 3 } },
+          "description": "Re-anchor a named LEADING rung for the whole brand (unitless multiplier). The rung SET is fixed (tight…loose) — this changes what a rung is worth, not which rung a composite lands on, so every composite aliasing it reflows. Omitted rungs keep the curated default."
+        },
+        "letterSpacings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "tighter": { "type": "number", "minimum": -0.5, "maximum": 0.5 }, "tight": { "type": "number", "minimum": -0.5, "maximum": 0.5 }, "snug": { "type": "number", "minimum": -0.5, "maximum": 0.5 }, "normal": { "type": "number", "minimum": -0.5, "maximum": 0.5 }, "wide": { "type": "number", "minimum": -0.5, "maximum": 0.5 }, "wider": { "type": "number", "minimum": -0.5, "maximum": 0.5 } },
+          "description": "Re-anchor a named TRACKING rung for the whole brand (em). Same contract as `lineHeights`."
+        },
+        "leadingShift": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "display": { "type": "integer", "minimum": -5, "maximum": 5 }, "title": { "type": "integer", "minimum": -5, "maximum": 5 }, "body": { "type": "integer", "minimum": -5, "maximum": 5 }, "label": { "type": "integer", "minimum": -5, "maximum": 5 }, "caption": { "type": "integer", "minimum": -5, "maximum": 5 }, "eyebrow": { "type": "integer", "minimum": -5, "maximum": 5 }, "code": { "type": "integer", "minimum": -5, "maximum": 5 } },
+          "description": "Per-group LEADING nudge, in rungs (typically -1/0/+1). The engine derives a size-sensitive rung per composite (bigger headings get tighter leading); this shifts that whole curve without flattening it. Positive = more open. Default 0."
+        },
+        "trackingShift": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "display": { "type": "integer", "minimum": -5, "maximum": 5 }, "title": { "type": "integer", "minimum": -5, "maximum": 5 }, "body": { "type": "integer", "minimum": -5, "maximum": 5 }, "label": { "type": "integer", "minimum": -5, "maximum": 5 }, "caption": { "type": "integer", "minimum": -5, "maximum": 5 }, "eyebrow": { "type": "integer", "minimum": -5, "maximum": 5 }, "code": { "type": "integer", "minimum": -5, "maximum": 5 } },
+          "description": "Per-group TRACKING nudge, in rungs. Same contract as `leadingShift`; positive = wider. Default 0."
         }
       }
     },

@@ -1213,6 +1213,67 @@ for (const b of brands) {
   ok(!!diffLh.typography.lineHeightsByMode?.dark, 'D-rev(d): a divergent per-mode line-height still populates lineHeightsByMode');
 }
 
+// Brand-level leading/tracking rung values (#270) + per-group leading/tracking nudge.
+// The rung SET stays fixed; a brand re-anchors what a rung is WORTH, and nudges which
+// rung a group lands on — without flattening the engine's size-sensitive curve.
+{
+  const threw = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
+  const mk = (typography: any) => brandTheme({ id: 'lhls', primary: { l: 0.5, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, typography } as unknown as BrandInput);
+  const lhOf = (t: any, k: string) => t.typography.lineHeights.find((x: any) => x.key === k).value;
+  const lsOf = (t: any, k: string) => t.typography.letterSpacings.find((x: any) => x.key === k).em;
+  const titleRungs = (t: any) => t.typography.composites.filter((c: any) => c.group === 'title').map((c: any) => c.lineHeight);
+
+  // (a) defaults are untouched — the curated ramp is the baseline, so no-input is byte-identical.
+  ok(lhOf(mk({}), 'normal') === 1.5 && lsOf(mk({}), 'wider') === 0.05, 'type-ramp(a): omitted rungs keep the curated defaults');
+
+  // (b) a brand re-anchors a rung VALUE; the composite keeps its KEY and inherits the new value.
+  const re = mk({ lineHeights: { normal: 1.4 }, letterSpacings: { wider: 0.08 } });
+  ok(lhOf(re, 'normal') === 1.4 && lsOf(re, 'wider') === 0.08, 'type-ramp(b): brand re-anchors a named rung value');
+  ok(re.typography.composites.find((c: any) => c.group === 'body').lineHeight === 'normal',
+    'type-ramp(b): a re-anchored rung does not change which key a composite references');
+  ok(re.typography.lineHeights.length === 6 && re.typography.letterSpacings.length === 6,
+    'type-ramp(b): re-anchoring never adds or drops a rung — the set is fixed');
+
+  // (c) the per-group nudge SHIFTS the derived curve; it must stay size-sensitive, not flatten.
+  const base0 = titleRungs(mk({}));
+  const up1 = titleRungs(mk({ leadingShift: { title: 1 } }));
+  ok(new Set(base0).size > 1, 'type-ramp(c): title leading is size-sensitive by default (precondition)');
+  ok(up1.every((k: string, i: number) => k !== base0[i]), 'type-ramp(c): +1 leading nudge moves every title rung');
+  ok(new Set(up1).size > 1, 'type-ramp(c): the nudged title curve is STILL size-sensitive (shifted, not flattened)');
+  ok(mk({ trackingShift: { eyebrow: -1 } }).typography.composites.find((c: any) => c.group === 'eyebrow').tracking === 'wide',
+    'type-ramp(c): a -1 tracking nudge moves eyebrow wider→wide');
+
+  // (d) a nudge past the end of the ramp clamps rather than wrapping or going out of bounds.
+  ok(mk({ leadingShift: { display: -5 } }).typography.composites.find((c: any) => c.group === 'display').lineHeight === 'tight',
+    'type-ramp(d): an over-large negative nudge clamps at the tightest rung');
+  ok(mk({ leadingShift: { body: 5 } }).typography.composites.find((c: any) => c.group === 'body').lineHeight === 'loose',
+    'type-ramp(d): an over-large positive nudge clamps at the loosest rung');
+
+  // (e) bounds guard typos, not taste — same ranges as the per-mode levers.
+  ok(threw(() => mk({ lineHeights: { normal: 99 } })), 'type-ramp(e): a line-height of 99 (>3) throws');
+  ok(threw(() => mk({ letterSpacings: { normal: 2 } })), 'type-ramp(e): a letter-spacing of 2em (>0.5) throws');
+  ok(threw(() => mk({ leadingShift: { title: 1.5 } })), 'type-ramp(e): a fractional rung nudge throws');
+
+  // (f) a per-mode override layers on the BRAND's ramp, not the curated const — so a brand
+  //     re-anchor survives in a mode that only touches a different rung.
+  const both = brandTheme({ id: 'lhls2', primary: { l: 0.5, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+    modes: ['light', 'dark'], typography: { lineHeights: { normal: 1.4 } },
+    modeLevers: { dark: { lineHeights: { tight: 1.1 } } } } as unknown as BrandInput);
+  const darkRamp = both.typography.lineHeightsByMode?.dark ?? [];
+  ok(darkRamp.find((l: any) => l.key === 'normal')?.value === 1.4,
+    'type-ramp(f): a per-mode ramp inherits the BRAND re-anchor for rungs the mode did not override');
+  ok(darkRamp.find((l: any) => l.key === 'tight')?.value === 1.1,
+    'type-ramp(f): the mode override still wins on the rung it does set');
+
+  // (g) the new levers must survive the design.md round-trip, or a brand authored in the
+  //     dashboard would silently lose them on export→import.
+  const rt = { id: 'rt', primary: { l: 0.5, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+    typography: { lineHeights: { normal: 1.4 }, letterSpacings: { wider: 0.08 },
+      leadingShift: { title: 1 }, trackingShift: { eyebrow: -1 } } } as unknown as BrandInput;
+  ok(JSON.stringify(parseDesignMd(toDesignMd(rt)).input) === JSON.stringify(rt),
+    'type-ramp(g): parseDesignMd(toDesignMd(x)) preserves lineHeights/letterSpacings/leadingShift/trackingShift');
+}
+
 // roleColors — general semantic-role rebasing (docs/21): re-base any role on a declared palette,
 // with the contrast guarantee preserved and a hue-mismatch note (not a block).
 {
