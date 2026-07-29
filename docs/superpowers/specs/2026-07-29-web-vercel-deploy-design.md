@@ -19,7 +19,7 @@ production URL, a shareable demo link, and a per-PR preview URL for review batch
 Verified against the working tree at `083ac21`:
 
 - **`web/src/main.ts` imports outside `web/`** — `../../Prism3/engine/{color,design-md,levers,modes,persist-input,preview,ramp,resolve-preview,theme,tree}`
-  and `../../schema/example-brands.json`. A build scoped to `web/` cannot resolve these.
+  and `../../Prism3/schema/example-brands.json`. A build scoped to `web/` cannot resolve these.
 - **`web/index.html` loads `/dist/main.js`** by absolute path. The deployable root is
   therefore a directory *containing* `dist/`, not `dist/` itself.
 - **No client-side routing, no runtime network** — `main.ts` contains zero occurrences of
@@ -37,7 +37,7 @@ Verified against the working tree at `083ac21`:
 | Decision | Choice | Why |
 |---|---|---|
 | Vercel Root Directory | **repo root**, not `web/` | The out-of-workspace engine imports must be resolvable. |
-| Publishable root | new **`web/public/`**, gitignored | Publishing `web/` as-is would expose `src/main.ts` (275KB of source) and `DESIGN-REVIEW.md` at the site root. |
+| Publishable root | new **`web/public/`**, gitignored | Publishing `web/` as-is would expose `DESIGN-REVIEW.md` at the site root. (The sourcemap ships `src/main.ts` deliberately.) |
 | Deploy mechanism | **GitHub integration** | The only option that yields per-PR preview URLs, which is one of the three stated purposes. |
 | Access | **fully public**, prod and previews | Consistent with the public repo; no secrets; frictionless stakeholder links. |
 | Config location | committed **`vercel.json`** | The deploy contract stays reviewable in git and survives the project being recreated, rather than hiding in dashboard settings. |
@@ -109,8 +109,10 @@ Add `web/public/` beside the existing `web/dist/` entry, under the same
 
 **Manual, once, by the owner (~2 min):** Vercel → Add New Project → import
 `adamforrester/prism3-tokens` → leave Root Directory at the repo root → Deploy. It reads
-`vercel.json` and needs no further input. The Vercel GitHub app authorisation cannot be
-granted by the agent. Team `adamforrester-vmlcoms-projects`
+`vercel.json` and needs no further input. **Also disable Deployment Protection** in Settings —
+Vercel enables `ssoProtection` by default on new projects, which puts prod and preview URLs behind
+a login wall, defeating the shareable-demo and per-PR-review purposes. The Vercel GitHub app
+authorisation cannot be granted by the agent. Team `adamforrester-vmlcoms-projects`
 (`team_rlZMCreyz4A8WlKTOISB5c1K`) is already connected over MCP, so once the project
 exists the agent can read build logs and runtime errors to verify.
 

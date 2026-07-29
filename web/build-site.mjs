@@ -3,8 +3,8 @@
  *
  * `npm run build` emits web/dist/ for local use, but the deployable root is a directory
  * *containing* dist/ — index.html loads `/dist/main.js` by absolute path. Publishing web/
- * itself would expose src/main.ts and DESIGN-REVIEW.md at the site root, so this assembles a
- * clean web/public/ holding only the three files the site actually needs.
+ * itself would expose DESIGN-REVIEW.md at the site root (the sourcemap ships source deliberately),
+ * so this assembles a clean web/public/ holding only the three files the site actually needs.
  *
  * index.html is copied VERBATIM: its absolute `/dist/main.js` resolves identically under
  * esbuild's `--servedir=.` locally and under Vercel's output root. One file, two hosts, no

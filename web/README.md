@@ -94,9 +94,13 @@ npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/
 are unchanged and remain the local workflow; `web/public/` is gitignored.
 
 **Vercel's Root Directory must stay the repo root — not `web/`.** `src/main.ts` imports
-`../../Prism3/engine/*` and `../../schema/example-brands.json`, which a `web/`-scoped build
-cannot resolve. Nothing else in the monorepo participates: install pulls only esbuild +
+`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped build
+cannot resolve. Nothing else in the monorepo participates: the build needs devDependencies
+(`NODE_ENV=production` must not be set at install time), but install pulls only esbuild +
 typescript, and `plugin/`, `Tokens/`, and `Prism3/engine/out/` are never read by the build
 or served.
+
+**New Vercel projects enable Deployment Protection by default** — Settings → Deployment Protection →
+disable Vercel Authentication, or the prod and preview URLs will be behind a login wall.
 
 Pushes to `main` redeploy production; every PR gets its own preview URL.

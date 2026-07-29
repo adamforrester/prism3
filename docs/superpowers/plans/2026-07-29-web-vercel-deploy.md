@@ -4,7 +4,7 @@
 
 **Goal:** Ship `web/` (the Prism3 web dashboard) as a public static site on Vercel, deployed from the monorepo via a committed config, with per-PR preview URLs.
 
-**Architecture:** A new `web/build-site.mjs` runs the existing esbuild bundle and then assembles a clean publishable directory `web/public/` containing exactly `index.html` + `dist/main.js` + `dist/main.js.map`. A two-key root `vercel.json` points Vercel at that directory with an explicit build command. Vercel's Root Directory stays the **repo root** — non-negotiable, because `web/src/main.ts` imports `../../Prism3/engine/*` and `../../schema/example-brands.json`, which a `web/`-scoped build cannot resolve.
+**Architecture:** A new `web/build-site.mjs` runs the existing esbuild bundle and then assembles a clean publishable directory `web/public/` containing exactly `index.html` + `dist/main.js` + `dist/main.js.map`. A two-key root `vercel.json` points Vercel at that directory with an explicit build command. Vercel's Root Directory stays the **repo root** — non-negotiable, because `web/src/main.ts` imports `../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped build cannot resolve.
 
 **Tech Stack:** Node 22, npm workspaces, esbuild 0.24 (already a `web` devDependency), Vercel static hosting. No new dependencies.
 
@@ -75,8 +75,8 @@ Create the file with exactly this content:
  *
  * `npm run build` emits web/dist/ for local use, but the deployable root is a directory
  * *containing* dist/ — index.html loads `/dist/main.js` by absolute path. Publishing web/
- * itself would expose src/main.ts and DESIGN-REVIEW.md at the site root, so this assembles a
- * clean web/public/ holding only the three files the site actually needs.
+ * itself would expose DESIGN-REVIEW.md at the site root (the sourcemap ships source deliberately),
+ * so this assembles a clean web/public/ holding only the three files the site actually needs.
  *
  * index.html is copied VERBATIM: its absolute `/dist/main.js` resolves identically under
  * esbuild's `--servedir=.` locally and under Vercel's output root. One file, two hosts, no
@@ -303,7 +303,7 @@ npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/
 are unchanged and remain the local workflow; `web/public/` is gitignored.
 
 **Vercel's Root Directory must stay the repo root — not `web/`.** `src/main.ts` imports
-`../../Prism3/engine/*` and `../../schema/example-brands.json`, which a `web/`-scoped build
+`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped build
 cannot resolve. Nothing else in the monorepo participates: install pulls only esbuild +
 typescript, and `plugin/`, `Tokens/`, and `Prism3/engine/out/` are never read by the build
 or served.
@@ -325,7 +325,7 @@ review needed a running process, there was no link to send anyone, and PRs had n
 - **Static by construction:** the engine runs client-side and `main.ts` has zero `fetch`/`XMLHttpRequest`/
   `pushState` — so no backend, no rewrites, no runtime data loading. Just files.
 - **Root Directory is the REPO ROOT, not `web/`** — the load-bearing constraint. `web/src/main.ts` imports
-  `../../Prism3/engine/*` and `../../schema/example-brands.json`; a `web/`-scoped build can't resolve them.
+  `../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`; a `web/`-scoped build can't resolve them.
   Nothing else in the monorepo participates: install pulls only esbuild + typescript, and `plugin/`,
   `Tokens/`, `Prism3/engine/out/` are neither read by the build nor served.
 - **`build:site` → `web/public/`:** the deployable root must *contain* `dist/` (index.html loads
@@ -381,7 +381,7 @@ Then open the PR with `gh pr create --body-file` (not a heredoc — apostrophes 
 
 Not plan steps — they need the owner's hands and cannot be done by an agent:
 
-1. **Owner:** Vercel → Add New Project → import `adamforrester/prism3-tokens` → leave Root Directory at the repo root → Deploy. Team `adamforrester-vmlcoms-projects` (`team_rlZMCreyz4A8WlKTOISB5c1K`) is already connected over MCP.
+1. **Owner:** Vercel → Add New Project → import `adamforrester/prism3-tokens` → leave Root Directory at the repo root → Deploy. Then Settings → Deployment Protection → disable Vercel Authentication (new projects default to `ssoProtection` enabled, which puts prod + preview URLs behind a login wall). Team `adamforrester-vmlcoms-projects` (`team_rlZMCreyz4A8WlKTOISB5c1K`) is already connected over MCP.
 2. **Agent, once it exists:** `list_projects` to get the project id, `get_deployment_build_logs` to confirm a clean build, `get_runtime_errors` for the served site, then load the production URL headless (console clean, shell rendered, one lever edit repaints).
 3. **Agent:** a one-line follow-up PR adding the production URL to the `web/README.md` Deploy section.
 
