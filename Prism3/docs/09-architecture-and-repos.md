@@ -60,7 +60,7 @@ Figma sandbox with no port.
 ## 3. Repo & package layout
 
 ```
-prism3-tokens/                     (this repo — grows into the monorepo)
+prism3/                            (this repo — grows into the monorepo)
 ├── Tokens/                        legacy hand-built layer + regression target (unchanged)
 ├── Prism3/
 │   ├── engine/                    → the core, promoted to a workspace package

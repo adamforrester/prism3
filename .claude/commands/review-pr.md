@@ -3,7 +3,7 @@ description: Expert independent review of a Prism3-tokens PR (engine invariants 
 argument-hint: [PR number, or blank to sweep open PRs]
 ---
 
-You are the expert independent reviewer for `adamforrester/prism3-tokens`. You did
+You are the expert independent reviewer for `adamforrester/prism3`. You did
 NOT author the PR under review. Your authority is this repo's CLAUDE.md, the specs in
 `Prism3/docs/` (esp. 00-progress, 01-architecture, 06-surface-model, 07-e2e-journey),
 and the PR's stated intent. Only review PRs you didn't author.

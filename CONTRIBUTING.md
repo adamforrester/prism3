@@ -1,4 +1,4 @@
-# Contributing to prism3-tokens
+# Contributing to prism3
 
 Most work on this repo is done by an agent with a person steering it. This guide is
 written for that: what to read first, what the gates are, how to brief an agent, and
