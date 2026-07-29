@@ -7,6 +7,37 @@
 
 ---
 
+## (2026-07-29) — One regen entry point + a drift gate over every committed artifact (#281)
+
+**STATUS: engine tooling.** New `Prism3/engine/regen.ts`; no engine behaviour change, no artifact
+change. Closes #281.
+
+- **The hole.** `out/*` is committed so results are reviewable without running the engine — but
+  nothing verified it still matched what the engine emits. Every existing gate (`test.ts`,
+  `nb-regression.ts`, alias resolution, contrast contracts) runs the engine **live and compares it
+  against itself**; none of them ever reads the committed file. So a stale artifact passes everything.
+- **What had rotted.** Regenerating on pristine `main` (`b5627f2`) with zero source edits produced
+  6,410 changed lines: `tokens.html` and all three wendys artifacts. Not formatting — the committed
+  wendys fixture was many merged PRs behind (aliases 627→856, contracts 248→432, missing the `max`
+  weight role, interactive overlays, neutral emphasis, inverse surface-context, `background.inverse.*`).
+- **Root cause: regen was four commands and only one was habitual.** `emit-dtcg.ts` covers
+  nb/aurora/harbor, so those stayed current; wendys goes through `cli.ts` (it is a *standard*-dialect
+  brief) and `tokens.html` through `visualize.ts`, so both rotted unseen.
+- **`regen.ts`** runs all seven emitters in dependency order (`visualize` last — it reads the
+  `*.tokens.json` the others write). `--check` snapshots, regenerates, byte-compares, then **restores
+  the snapshot**, so the gate never leaves the tree dirty whatever the answer — safe to run mid-edit.
+- **Scope widened past the issue, deliberately:** the three emitted `schema/` contracts
+  (`lever-manifest.json`, `preview-spec.json`, `example-brands.json`) are the same class of risk —
+  committed, generated, unverified. They happen to be in sync today; nothing was keeping them so.
+  `schema/` is compared file-by-file against a named list because it also holds hand-authored contracts.
+- **Verified both directions:** green on this branch (83 artifacts byte-match) and on pristine `main`
+  it names exactly the four drifted files and nothing else; tampering with an emitted value in either
+  `out/` or `schema/` is caught and the tree is left clean afterwards.
+- **Wired into the contract** — `CLAUDE.md` working principle 4 and the engine README now lead with
+  `regen.ts`, and say plainly that `--check` is the only gate that reads the committed artifacts.
+
+---
+
 ## (2026-07-29) — Font families become two-tier: typeface primitives + family-role semantics (#269)
 
 **STATUS: engine.** `out/*` **regenerated** (shape change, see below). Closes #269.

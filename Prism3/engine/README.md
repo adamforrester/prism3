@@ -26,6 +26,8 @@ rest is derived.
 ## Run
 
 ```bash
+npx tsx Prism3/engine/regen.ts           # regenerate EVERY committed artifact (out/ + the three emitted schema/ files)
+npx tsx Prism3/engine/regen.ts --check   # gate: fail if any committed artifact has drifted from what the engine emits
 npx tsx Prism3/engine/nb-regression.ts   # regression: generated vs real NB
 npx tsx Prism3/engine/emit-dtcg.ts       # emit a DTCG token tree + validate aliases + schema (NB + aurora + harbor)
 npx tsx Prism3/engine/test.ts            # unit tests: colour math + extreme-brand contracts + design.md/CLI
@@ -41,6 +43,13 @@ npx tsx Prism3/engine/emit-preview.ts    # (re)emit schema/preview-spec.json —
 npx tsx Prism3/engine/emit-brandinput.ts # (re)emit schema/example-brands.json — validated boot brands for the browser hosts
 npx tsx Prism3/engine/emit-figma.ts      # (re)emit out/figma/<id>/ — the Figma import artifact (colour axis; see docs/10 §7 for the emitter remit)
 ```
+
+The individual emitters above still work and are useful when iterating on one axis. But **prefer
+`regen.ts` before pushing** — it runs all seven in dependency order, which is what keeps the committed
+artifacts honest. Every *other* gate (`test.ts`, `nb-regression.ts`, alias + contract validation) runs
+the engine live and compares it against itself, so a stale committed artifact passes all of them; only
+`regen.ts --check` reads the committed file. That gap is how `tokens.html` and the wendys artifacts
+drifted across many merged PRs undetected (#281).
 
 Note: `buildTree` (the DTCG generator) lives in the **pure** `tree.ts` (no `node:*`), re-exported by
 `emit-dtcg.ts`; the browser hosts and `emit-figma.ts` import it directly. See `docs/09`/`docs/10`.
@@ -70,7 +79,8 @@ Node ≥ 20. No `npm install` needed — the color math is self-contained
 - `visualize.ts` — renders `out/tokens.html`, a single self-contained visual style guide read back from the emitted DTCG (every axis: colour, semantic roles, dimension, typography rendered live, shadow, motion with animated easing curves, layout, opt-in gradients, opacity, border-width). No deps; also prints a plain-text taxonomy.
 - `test.ts` — colour-math invariants + extreme-brand contract smoke tests + typography/shadow/layout/gradient/surface-model + harshness + typography-weights/links + design.md-parser/CLI (aurora faithfulness byte-diff + harbor coverage) + standard-dialect/classifier/x-prism3 (Wendy's) invariants (202 checks).
 - `../examples/*.design.md` — authored brand briefs (the front door): `aurora.design.md` (engine-native faithfulness — compiles to the aurora golden byte-for-byte), `harbor.design.md` (engine-native net-new coverage), and `wendys.design.md` (a real **standard** brand-skills extraction — the dual-dialect + classifier + fidelity example).
-- generated outputs (committed so results are reviewable without running): `nb-regression-report.md`, `modes-report.md`, `out/{nb,aurora,harbor,wendys}.tokens.json`, `out/{nb,aurora,harbor,wendys}.ai.json`, `out/wendys-fidelity-report.md`, `out/tokens.html`.
+- `regen.ts` — the single entry point that regenerates every committed artifact (all seven emitters, in dependency order), plus `--check`, the drift gate that snapshots, regenerates, byte-compares, and restores. See #281 for why it exists.
+- generated outputs (committed so results are reviewable without running): `nb-regression-report.md`, `modes-report.md`, `out/{nb,aurora,harbor,wendys}.tokens.json`, `out/{nb,aurora,harbor,wendys}.ai.json`, `out/wendys-fidelity-report.md`, `out/tokens.html`, `out/figma/<id>/*`, and the three emitted contracts in `../schema/`: `lever-manifest.json`, `preview-spec.json`, `example-brands.json`. **`regen.ts --check` is what keeps this list true** — it is the only gate that reads the committed files.
 
 ## Modes (`modes-report.md`)
 
