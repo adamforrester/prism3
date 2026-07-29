@@ -280,7 +280,7 @@
           "properties": {
             "display": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Display/hero face (defaults to the text face if omitted)." },
             "text": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Body/UI workhorse face." },
-            "mono": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Monospace/code face." },
+            "mono": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }, { "type": "null" }], "description": "Monospace/code face. `null` OPTS OUT \u2014 a brand with no mono face ships no `code` category either. Omitted keeps the default mono, so existing brands are unaffected." },
             "variable": { "oneOf": [{ "type": "boolean" }, { "type": "object", "additionalProperties": false, "properties": { "display": { "type": "boolean" }, "text": { "type": "boolean" }, "mono": { "type": "boolean" } } }], "default": false, "description": "Variable-font usage. A single boolean applies to all faces; a per-face object (e.g. { display: true, text: true }) flags each of display/text/mono independently (engine BrandInput: boolean | Partial<Record<'display'|'text'|'mono', boolean>>)." }
           }
         },

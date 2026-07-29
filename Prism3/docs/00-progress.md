@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-07-29) — Font families become two-tier: typeface primitives + family-role semantics (#269)
+
+**STATUS: engine.** `out/*` **regenerated** (shape change, see below). Closes #269.
+
+Font families were a closed union of exactly three, each named after its *job* — so
+`families.display` (a primitive) collided with the type category `display` (a semantic), and family
+assignment read as though it happened in the primitive tier.
+
+- **Two tiers, mirroring colour.** `font.typeface.<slug>` is the primitive, named after the face and
+  carrying its fallback stack (`inter`, `clash-display`); `font.family.<role>` is the semantic,
+  aliasing one. The role stays the **brand-invariant handle** a shared codebase binds to — swapping the
+  face behind it leaves every consumer reference intact, which a direct `font.typeface.*` reference
+  would not.
+- **Multi-brand needs no more than the fixed three roles.** The typeface library is shared *across*
+  brands and each brand binds its own members (`Brand A: display→poppins`, `Brand B: display→inter`),
+  so N faces exist across the system while any one brand binds ≤3. A fourth *role* is only needed if a
+  single brand wants four faces at once — deferred until a real brand does.
+- **Slugs are derived** from the face name (`"Clash Display"` → `clash-display`), never user-chosen, so
+  there is no arbitrary-rename churn: you either have that face or you don't.
+- **Roles sharing a face share one primitive** — NB binds display *and* text to Inter and emits a single
+  `typeface.inter`, with `variable` OR-ing across the roles.
+- **Per-mode family override now RE-POINTS the alias** instead of re-valuing the primitive — the shape
+  #176's decision 2 asks for, and directly relevant to #251's embedded lever-vs-token decision. Faces
+  used only by a mode are unioned into the typeface set so every alias lands on a real leaf (the same
+  contract `weightsRef` has for per-mode weight numerics).
+- **Mono is optional.** `families.mono: null` opts out; `code` is the only category binding mono, so it
+  disappears with it (36 → 35 composites on a default brand). Omitted still keeps the default face, so
+  existing brands are untouched.
+- **Figma emit is behaviourally unchanged by design** — the family variable still *binds* the primary face
+  with the full stack in its description; the emit just resolves the alias first. The only diff in
+  `out/figma/*/core-font.json` is the description wording (`font family — display (Inter)` →
+  `font family role — display → Inter`); every `value`, `alias`, and `scopes` field byte-reproduces, so
+  no Figma import changes.
+- **The hand-rolled schema validator learned `type: "null"`.** Its CR-04 guard threw loudly on the
+  unknown type rather than silently vouching for it — the guard working as intended.
+- **Verified:** 953/953 engine tests (new coverage for both tiers, shared-face dedupe, alias resolution
+  through `familyOf`, per-mode re-pointing, and the whole optional-mono path); nb-regression exits 0;
+  every alias resolves + every mode contract passes for all three brands; web `tsc` + build clean.
+
+**`out/*` regenerated — what changed:** each brand gains `font.typeface.*` leaves, and every
+`font.family.<role>` `$value` moves from a literal face string to an alias into one. **Resolved values
+are identical** — `familyOf` derefs the alias and reassembles the same stack. Consumers reading
+`font.family.<role>` still resolve to the same face; consumers that read the raw `$value` expecting a
+literal string now get an alias and must deref (the same contract every other semantic already has).
+
+---
+
 ## (2026-07-29) — Fix #274: space.* dangling aliases at non-default spaceBase (engine)
 
 **STATUS: engine fix** (`theme.ts` + a `test.ts` regression; `out/*` byte-identical). Upgrades what #274

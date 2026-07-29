@@ -8,7 +8,7 @@
 ## Headline
 
 - **Anchor reproduction** — provided `primary` `#C8102E` vs generated `primary.500` `#c8102e`: **ΔE00 0.00** (≈0 confirms exact-anchor preservation).
-- **Aliases**: 627/627 resolve · **mode contrast contracts**: 248/248 hold.
+- **Aliases**: 859/859 resolve · **mode contrast contracts**: 432/432 hold.
 - **`primary` on white**: the engine measures **5.88:1** (clears small-text AA). The engine measures every contract, so if the brief's prose states a different figure, the *measured* value governs — a stale contrast claim in the source can't propagate.
 - Palettes generated: primary, neutral, secondary, tertiary, success, warning, info, danger · danger draws from `danger`.
 - x-prism3 levers: none (plain spec → engine defaults).
@@ -189,8 +189,8 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 - primary anchor (h22.32) pinned exactly at step 500
 - brand colour 'secondary' (h233.18) added
 - brand colour 'tertiary' (h18.01) added
-- success: brand-supplied hue 142.51
-- warning: brand-supplied hue 48.48
+- success: brand-supplied hue 142.51 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
+- warning: brand-supplied hue 48.48 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
 - info: engine default hue 245
 - action colour defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive colour for this brand
 - danger: brand-supplied hue 21.95
@@ -199,8 +199,10 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 - shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 249.14, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
 - gradient: none (opt-in axis; brand declared no gradients — the field-common default).
 - layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with colour light/dark.
-- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong → 300/400/600/700; families display=wendysFresh, text=Roboto, mono=JetBrains Mono; typeScale 'default'. 36 semantic composites (title/display sizes shifted by typeScale; display capped at 160px; title floor 18px). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
+- typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, text=Roboto, mono=JetBrains Mono; typeScale 'default'. 36 semantic composites (title/display sizes shifted by typeScale; display capped at 160px; title floor 18px). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
 - disabled: 'accessible' — disabled text/icon/border clears 3:1 on the floor (legible, contrast-preserving; the field-rare default). Set disabledStrategy:'conventional' for the sub-AA exempt look.
+- interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.
+- neutral interactive emphasis: 'subtle' (light-grey, default); inverse surface-context: on (interactive.<color>.on-inverse generated)
 
 ### Interchange notes
 
