@@ -46,6 +46,58 @@ worth noting the finding came from *using* the thing, not from the audit that pa
 
 ---
 
+## (2026-07-30) — Narrow viewports: the collapse rule never clamped (#144)
+
+**STATUS: web + plugin.** Engine untouched, `out/*` unchanged. Closes #144; landed as PR #315.
+
+- **The bug was the collapse rule, not the gutters** — which is why bumping the plugin window (#143)
+  only masked it. `.shell` uses `minmax(0,1fr)` for its second column at desktop, but the `≤900px`
+  override dropped to a bare `1fr`, and **a grid item's automatic minimum is min-content**, so the
+  track never clamped. Measured at a 480px viewport: `.shell` itself was correctly 400px while *both*
+  its children were 626px. Restoring the idiom fixes the bulk of the overflow at every width below 900.
+- **Baseline was measured on `origin/main` before anything was touched** (the #307 discipline): 186px
+  overflow / 285 clipped elements at 480px, 26px / 19 at 640px. The owner's independent re-measurement
+  landed on 186/283 and 26/19 — close enough to treat the harness as trustworthy.
+- **A trap for anyone re-verifying this later, found by the owner:** reverting *only* the
+  `.shell{grid-template-columns}` line while keeping the rest of the narrow tier **does not reproduce
+  the overflow** — the gutter/hero/table fixes independently keep content narrow enough. The bug only
+  reproduces against the genuine pre-PR baseline. A partial revert will read as "there was never a bug
+  here," which is exactly the wrong conclusion.
+- **Sweeping every page mattered, and nearly didn't happen.** After the first fix the landing page
+  measured clean at all four widths while **Interactive and Layout were still failing** — a single-page
+  check would have shipped the regression. The audit covers 9 rail pages × 480/640/900/1280 plus dark.
+- **Two things genuinely do not fit 456px and are handled rather than shrunk.** Ramp hex read-outs need
+  ~45px × 10 steps against ~406px available, so below 480 the hex is dropped and the step number kept —
+  labels stay 1:1 under their swatches, because a ramp is a continuous scale and wrapping or scrolling
+  the row destroys the alignment that makes it readable. **This is an information tradeoff, flagged as
+  vetoable at review and not vetoed.** The contrast + breakpoint tables become their own scroll boxes;
+  `.ctable` was the worse of the two because it was *silently clipped by an ancestor* rather than
+  pushing the page, so its cells were unreachable rather than merely off-screen — an overflow that no
+  page-level scrollWidth check would ever have caught.
+- **Plugin half:** a corner grip posting a new `resize-ui` over the existing typed bridge. `commit`
+  splits the drag from the write — every pointer-move resizes so the window tracks the pointer, only
+  pointer-up persists, so a drag is one `clientStorage` write rather than a hundred. **The clamp lives
+  on the main thread, not the UI** (the UI does not get to decide the minimum usable size; 380×420).
+  Boot restore reopens at the last size; `clientStorage` is async and `showUI` is not, so the window
+  opens at the default and resizes a tick later — awaiting storage first would trade a visible resize
+  for a visible delay.
+- **A runtime host check does not tree-shake.** The grip was first gated on `commit.isFigma` with a
+  comment asserting esbuild would drop it from the web bundle. It did not — esbuild cannot see through
+  the call. Re-gated on the `PRISM3_HOST` define (which `write-adapter.ts` already calls *"the single
+  BUILD-TIME swap point"*) and **verified by grepping both bundles**: `setPointerCapture` 0× in
+  `web/dist/main.js`, 1× in `plugin/dist/ui.html`. The lesson generalises past this PR — `isFigma` is
+  for *behaviour*, `PRISM3_HOST` is for *what ships*.
+- **Not verified, stated rather than papered over:** the main-thread half (`figma.ui.resize`, the
+  `clientStorage` round-trip) is typechecked but never live-driven — that needs the Desktop Bridge,
+  down per #237. The UI half was driven for real: 10 live drag messages, exactly one commit, and no
+  resize on hover after release.
+- **Verified:** responsive sweep 38/38 clean with 0 console errors, re-run on the post-merge head after
+  #314 landed in the same file (its new shadow-tint UI measures clean at narrow widths unaided);
+  `test.ts` 1006/1006; `regen.ts --check` 85/85; nb-regression PASS, ΔE00 1.95 unchanged; both surfaces
+  typecheck + build clean; `plugin/dist/main.js` still 0 `node:` builtins.
+
+---
+
 ## (2026-07-30) — Shadow tint becomes perceptible (#305)
 
 **STATUS: engine + web.** `out/*` **regenerated** — aurora/harbor/wendys shadow values change; **NB is
@@ -138,9 +190,13 @@ written into `CLAUDE.md` so it stops being re-derived from this log.
   Code comments and identifiers remain exempt, as every pass since #162 has held.
 - **Verified:** 1000/1000 engine tests; `regen.ts --check` 85/85 byte-match; nb-regression PASS, aggregate
   ΔE00 **1.95 unchanged**; 432/432 mode contracts across all three brands; web + plugin `tsc` and builds
-  clean; and on merged `main` the shipped bundle contains **zero** UK spellings in string content — the
-  split that motivated this (`subtle · light gray` in one control, `Subtle (light grey)` in another) is
-  closed at both ends.
+  clean; and on merged `main` the shipped bundle contains zero UK spellings in **UI-facing** string
+  content — the split that motivated this (`subtle · light gray` in one control, `Subtle (light grey)`
+  in another) is closed at both ends. *(Corrected at review: an earlier wording here said "zero UK
+  spellings in string content" flatly, which is not literally true — thrown `Error(...)` templates such
+  as `theme.ts:1339` and `color.ts:151` do ship in the bundle. They sit inside the carve-out this whole
+  series made deliberately, so it was loose wording rather than a missed gap — but this entry is about
+  a completion claim that outran its evidence, so it does not get to make one of its own.)*
 
 ---
 

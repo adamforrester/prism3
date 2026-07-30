@@ -26,6 +26,8 @@ The engine core is buildless (run via `tsx`), but the repo also has two npm-work
 
 Workflow: one PR per feature branch off `main` → squash-merge → delete branch → sync `main`.
 
+**Carry the `Prism3/docs/00-progress.md` entry in the feature PR itself**, not as a follow-up. Three PRs in a row (#306, #312, #315) merged without one and needed a separate docs PR to catch up, and the entry is worth most for exactly the things a diff cannot show: the diagnosis that made the fix small, the tradeoff that was deliberate, the approach tried and discarded, and any trap waiting for whoever re-verifies this later. Write it as part of the work, while that reasoning is still in hand.
+
 ## Two parallel token formats
 
 Each brand contains the **same logical tokens twice**, in two formats. Edits usually need to land in both — they describe the same data for different consumers.
