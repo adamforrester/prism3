@@ -3470,6 +3470,7 @@ function renderWorkspace(): void {
 let barHost: HTMLElement;
 let brandMenuOpen = false;
 let exportMenuOpen = false;
+let navMenuOpen = false;
 let importOpen = false;
 let importErr: string | null = null;
 let importText = '';            // M-17: survives re-renders so a failed paste isn't wiped
@@ -3717,6 +3718,29 @@ function renderBar(): void {
   if (exportMenuOpen) eWrap.append(renderExportMenu());
   actions.append(eWrap);
 
+  // Pages — the rail as a menu. Below 900 the rail stops being a sidebar (see the stylesheet); left
+  // as a static stack it is ~690px of destinations sitting above every page's content, so on a phone
+  // you scroll past the whole nav before reaching anything. Same dropdown pattern as the two controls
+  // beside it rather than a drawer — one overlay behaviour in this bar, not two. Hidden above 900,
+  // where the real sidebar is back.
+  const nWrap = el('div', 'barmenu-wrap');
+  const nav = el('button', 'barbtn navbtn' + (navMenuOpen ? ' open' : '')) as HTMLButtonElement;
+  const curPage = NAV.find((s) => s.key === page);
+  // Same nested-span shape as Export: the space lives INSIDE the label span, so hiding the label
+  // leaves a bare glyph with no orphaned whitespace and no extra flex gap.
+  const navText = el('span');
+  navText.append(document.createTextNode('☰'), el('span', 'navbtn-lab', ' ' + (curPage?.label ?? 'Pages')));
+  nav.append(navText, el('span', 'caret', '▾'));
+  nav.setAttribute('aria-label', 'Pages');
+  nav.onclick = (e) => {
+    e.stopPropagation();
+    navMenuOpen = !navMenuOpen; brandMenuOpen = false; exportMenuOpen = false; importOpen = false;
+    renderBar();
+  };
+  nWrap.append(nav);
+  if (navMenuOpen) nWrap.append(renderNavMenu());
+  actions.append(nWrap);
+
   // Apply to Figma — plugin-only, the primary CTA (the plugin's terminal action). Absent + DCE'd
   // on web (`commit.isFigma` false). The #109 read-back seed status rides alongside as a pill.
   if (commit.isFigma) {
@@ -3730,13 +3754,38 @@ function renderBar(): void {
 
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
-      if ((brandMenuOpen || exportMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
-        brandMenuOpen = false; exportMenuOpen = false; importOpen = false; renderBar();
+      if ((brandMenuOpen || exportMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
+        brandMenuOpen = false; exportMenuOpen = false; navMenuOpen = false; importOpen = false; renderBar();
       }
     });
     outsideBound = true;
   }
 }
+
+/** The rail's destinations as a dropdown, for the widths where the rail is not a sidebar. Renders
+ *  from the same `NAV` data and reuses the rail's own `.stage-t` title+subtitle block, so the
+ *  subtitles survive the move — they are doing real work ("Surfaces & fills / Backgrounds, text,
+ *  gradients" teaches what the page is) and a bare label list would drop them. The divider before
+ *  the `view` destination and the ordering note both come across too, so nothing the sidebar shows
+ *  is silently lost on the way into the menu. */
+const renderNavMenu = (): HTMLElement => {
+  const menu = el('div', 'brandmenu navmenu');
+  menu.append(el('div', 'bm-cap', 'Pages'));
+  NAV.forEach((s) => {
+    if ('view' in s && s.view) menu.append(el('div', 'bm-div'));
+    const it = el('button', 'nav-item' + (s.key === page ? ' cur' : '')) as HTMLButtonElement;
+    const t = el('span', 'stage-t');
+    t.append(el('b', undefined, s.label), el('small', undefined, s.sub));
+    it.append(t);
+    it.onclick = () => {
+      navMenuOpen = false;
+      if (page !== s.key) { page = s.key; build(); } else renderBar();
+    };
+    menu.append(it);
+  });
+  menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
+  return menu;
+};
 
 /** Seed a fresh brand from a single hex color: the engine grows a full system from one primary, so
  *  the color's OKLCH becomes the primary anchor and the neutral leans to its hue (a subtle brand tint). */
@@ -3918,6 +3967,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .brandsel .caret,.barbtn .caret{color:var(--faint);margin-left:2px}
 .barbtn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .barbtn.primary:hover{background:var(--ink2);border-color:var(--ink2)}
+/* Off by default; the max-width:900 rule below turns it on where the rail turns off. This base
+   declaration must come BEFORE that rule — a media query adds no specificity, so a later
+   .navbtn{display:none} would simply win at every width and the control would never appear. */
+.navbtn{display:none}
 .bar-seed{font-size:11.5px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-seed.bad{color:#a12}
 .brandmenu{position:absolute;top:calc(100% + 8px);right:0;width:288px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px;z-index:20;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12)}
@@ -4583,7 +4636,11 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 /* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
    1fr track never clamps and the widest child drags the whole column past the viewport.
    The desktop rule above already uses the idiom; the collapse override had lost it (#144). */
-@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
+/* Below 900 the rail is not a sidebar. It used to become a static stack, which measured ~690px tall
+   and pushed every page's content below the fold; it is now hidden and its destinations move into
+   the Pages menu in the bar, which costs 0px of vertical space. The two must switch together —
+   whichever way this breakpoint moves, exactly one of rail/navbtn is visible at any width. */
+@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{display:none}.navbtn{display:flex}.phead{gap:16px}.pfield.r{margin-left:0}}
 /* Narrow viewports (#144). The plugin iframe runs this same UI, so its window lands here:
    gutters, hero and chrome all shrink, and nothing is allowed to overflow horizontally. */
 /* The bar's dropdowns are anchored right:0 to their wrapper, which is only safe while the wrapper
@@ -4602,6 +4659,19 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
    descriptor and the Export word (the ↓ and caret stay, and aria-label keeps the accessible name)
    takes the row to ~278px, which is a single line down to ~312px of viewport. */
 @media(max-width:560px){.studio{display:none}.barbtn-lab{display:none}}
+/* The Pages control. Hidden by default — the 900 rule above turns it on exactly where the rail
+   turns off. It keeps the current page name while there is room for it (159–173px of bar slack at
+   480–900), which is the orientation a bare glyph cannot give; below 480 it degrades to the glyph.
+   Below 380 the wordmark goes too: a third control needs ~54px and the bar has only 53px of slack
+   at 360 and 13px at 320, so without this the row wraps back to two lines on small phones. */
+@media(max-width:480px){.navbtn-lab{display:none}}
+@media(max-width:380px){.wordmark{display:none}}
+.navmenu{width:300px;max-height:calc(100vh - 130px);overflow-y:auto}
+.nav-item{display:flex;width:100%;text-align:left;border:0;background:none;font:inherit;padding:9px 8px;border-radius:var(--r-xs);cursor:pointer;color:var(--ink2)}
+.nav-item:hover{background:var(--paper)}
+.nav-item.cur{background:var(--paper)}
+.nav-item.cur .stage-t b{color:var(--ink)}
+.navmenu .rail-note{margin:14px 8px 2px;padding-top:12px}
 /* Below ~480 the 10 hex read-outs under a ramp cannot fit (each needs ~45px, the row has ~406):
    drop the hex and keep the step number, so labels stay 1:1 under their swatches. Wrapping or
    scrolling the row would break that alignment, which is the whole point of a ramp. */
