@@ -255,6 +255,74 @@ worth noting the finding came from *using* the thing, not from the audit that pa
 
 ---
 
+## (2026-07-30) — The component layer's structural schema, and three token axes we don't emit (docs/28)
+
+**STATUS: docs only.** No engine change, no `out/*` regeneration. New `28-component-anatomy-schema.md`
++ a KB refinement to `components/button.md` §2 (separate repo, separate branch).
+
+**The diagnosis that made this small.** `14` locked the component layer's architecture and its
+*semantic* schema, and `components/*.ts` already binds ~60 token slots on Button. It looked like the
+gap was "specs for 40 components." It isn't. Three layers exist and only one is missing:
+**semantic contract** (`ComponentDef` — built), **values** (tokens, bound — built), **structure**
+(node tree, layout model, slot→property mapping — *nowhere*). A materializer can't run on
+`padding-x → size.md.padding-x` because nothing says what that padding is applied *to*. So the
+missing artifact is one schema block, not a corpus of specs.
+
+**The approach discarded.** The first instinct was to survey button anatomy across open-source
+systems. That would have largely re-derived the vault — `knowledge-base/components/button.md` §2 is
+already a cited, adjudicated cross-system anatomy (container/target, touch-target expansion, focus
+ring as its own concern, layout container, leading/trailing visual slots, label span, pending slot),
+and it even rules on contested points ("Material's state layer is a Material-ism, not a required
+part"). The survey was re-aimed at the sharper question — **what is the schema for expressing
+parts** — which the vault does *not* answer.
+
+**Surveyed** (primary sources, read directly, not docs pages): Shoelace `::part()`/slot contract,
+Primer slot model, Material Web `_md-comp-filled-button.scss`, Spectrum CSS `button/index.css`,
+Carbon `_button.scss`.
+
+**The finding that costs us something.** Horizontal padding is **slot-aware and asymmetric** — the
+visual side takes less than the label side, because an icon's bounding box contributes apparent
+space. Three independent witnesses: Material 24px vs 16px, Spectrum `edge-to-text` vs
+`edge-to-visual` as separate scales, Carbon −1px on the icon side of ghost variants. Our
+`size.*.padding-x` is a single value applied both sides — the simplification systems ship first and
+then outgrow.
+
+**Three token axes the engine does not emit** (the survey's second, unplanned deliverable):
+`size.*.gap` (label↔visual), an `icon.size.*` scale (**there is no `icon` category in the tree at
+all** — verified against the emitted category list), and the `padding-x` split. Gap and icon-size are
+*shared system scales* in every system that ships them, which is what puts them in the token tier
+rather than in a component definition.
+
+**Decisions taken (all five, recorded in `28` §5 as resolved, not left open):** gap goes in
+`size.*.gap` (that tier is already component-scoped, so it is dedicated by construction);
+`align` stays a **constant** — Primer's CTA-vs-selection-toggle rule is real but does not justify
+the first *layout* prop in `ComponentDef`, a precedent that would propagate across ~40 components;
+`trailingVisual` is **not** split (the counter-plus-caret case it would unlock is niche);
+the `padding-x` split is **additive, not a rename** (a rename churns every committed artifact and
+trips the drift gate); `anatomy` **nests inside** `ComponentDef` (the materializer and the code
+outputs both read it).
+
+**Traps for whoever picks this up.**
+1. **Don't read "no caret slot" as a defect.** The first draft of `28` called out a missing
+   `trailingAction`; checking `components/button.ts` showed line 52 already folds it in
+   ("Icon / caret / indicator"). It is a deliberate consolidation. The doc was corrected before merge —
+   the field's argument for splitting is *positional* (Primer's trailingAction is fixed at the end,
+   so counter + caret can coexist), not "we forgot a part."
+2. **The `trailingVisual` decision was conditional and the condition was verified.** Not splitting is
+   only safe because the pending/loading state is already carried: `states` includes `pending`,
+   `isPending` preserves width and announces busy, `leadingVisual` holds a spinner, and the
+   don't-list prescribes swapping the leading visual rather than replacing the label. If that
+   changes, revisit #3.
+3. **`icon.size.*` is a prerequisite, not a nice-to-have.** A materialized button's leading visual
+   has *nothing to bind for size* today. The Figma spike can't complete without it.
+4. **`padding-x` split touches `preview.ts`** and every existing binding — that is why it is additive.
+
+**Next:** formalize Button's §2 prose into the `28` §4 shape bound to the tokens already in
+`components/button.ts`, then the Figma Console MCP spike on that one component — build one in
+Figma, not forty; the spike's output is the validated schema, not the Figma asset.
+
+---
+
 ## (2026-07-30) — Shadow tint becomes perceptible (#305)
 
 **STATUS: engine + web.** `out/*` **regenerated** — aurora/harbor/wendys shadow values change; **NB is
