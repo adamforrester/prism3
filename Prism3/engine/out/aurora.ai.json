@@ -5419,87 +5419,94 @@
       "tier": "primitive",
       "consume": "Consumable — reference directly for custom alpha (or use the scrim / disabled tokens)."
     },
-    "motion.duration.instant": {
-      "$description": "motion duration instant — 40ms (tempo: snappy)",
-      "meaning": "Motion duration primitive",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.duration.fast": {
-      "$description": "motion duration fast — 80ms (tempo: snappy)",
+    "motion.duration-ms.0": {
+      "$description": "duration primitive — 0ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
+        "motion.duration-reduced.moderate",
+        "motion.duration-reduced.slow",
+        "motion.duration-reduced.slower"
+      ]
+    },
+    "motion.duration-ms.30": {
+      "$description": "duration primitive — 30ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.stagger"
+      ]
+    },
+    "motion.duration-ms.40": {
+      "$description": "duration primitive — 40ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration-reduced.instant",
+        "motion.duration.instant"
+      ]
+    },
+    "motion.duration-ms.50": {
+      "$description": "duration primitive — 50ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration-reduced.normal"
+      ]
+    },
+    "motion.duration-ms.80": {
+      "$description": "duration primitive — 80ms (literal; the semantic tier names the use)",
+      "meaning": "Motion duration primitive",
+      "tier": "primitive",
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration-reduced.fast",
+        "motion.duration.fast",
         "motion.transition.exit"
       ]
     },
-    "motion.duration.normal": {
-      "$description": "motion duration normal — 160ms (tempo: snappy)",
+    "motion.duration-ms.160": {
+      "$description": "duration primitive — 160ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
+        "motion.duration.normal",
         "motion.transition.default",
         "motion.transition.enter"
       ]
     },
-    "motion.duration.moderate": {
-      "$description": "motion duration moderate — 240ms (tempo: snappy)",
+    "motion.duration-ms.240": {
+      "$description": "duration primitive — 240ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
+        "motion.duration.moderate",
         "motion.transition.emphasized"
       ]
     },
-    "motion.duration.slow": {
-      "$description": "motion duration slow — 400ms (tempo: snappy)",
+    "motion.duration-ms.400": {
+      "$description": "duration primitive — 400ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration.slow"
+      ]
     },
-    "motion.duration.slower": {
-      "$description": "motion duration slower — 640ms (tempo: snappy)",
+    "motion.duration-ms.640": {
+      "$description": "duration primitive — 640ms (literal; the semantic tier names the use)",
       "meaning": "Motion duration primitive",
       "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.duration-reduced.instant": {
-      "$description": "reduce-motion instant — 40ms",
-      "meaning": "Motion duration primitive",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.duration-reduced.fast": {
-      "$description": "reduce-motion fast — 80ms",
-      "meaning": "Motion duration primitive",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.duration-reduced.normal": {
-      "$description": "reduce-motion normal — 50ms",
-      "meaning": "Motion duration primitive",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.duration-reduced.moderate": {
-      "$description": "reduce-motion moderate — 0ms (eliminated — substitute a cross-fade)",
-      "meaning": "Motion duration primitive",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.duration-reduced.slow": {
-      "$description": "reduce-motion slow — 0ms (eliminated — substitute a cross-fade)",
-      "meaning": "Motion duration primitive",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.duration-reduced.slower": {
-      "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)",
-      "meaning": "Motion duration primitive",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
+      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
+      "aliased_by": [
+        "motion.duration.slower"
+      ]
     },
     "motion.easing.linear": {
       "$description": "easing linear",
@@ -5564,12 +5571,6 @@
     "motion.spring.bouncy": {
       "$description": "spring bouncy — damping 0.6, stiffness 800",
       "meaning": "Spring primitive (damping / stiffness)",
-      "tier": "primitive",
-      "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
-    },
-    "motion.stagger": {
-      "$description": "stagger standard — 30ms between siblings",
-      "meaning": "Stagger delay primitive",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them."
     },

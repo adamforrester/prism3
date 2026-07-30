@@ -9593,11 +9593,33 @@
       }
     },
     "motion": {
-      "duration": {
-        "instant": {
+      "duration-ms": {
+        "0": {
+          "$type": "duration",
+          "$value": "0ms",
+          "$description": "duration primitive — 0ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 0
+            }
+          }
+        },
+        "30": {
+          "$type": "duration",
+          "$value": "30ms",
+          "$description": "duration primitive — 30ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 30
+            }
+          }
+        },
+        "40": {
           "$type": "duration",
           "$value": "40ms",
-          "$description": "motion duration instant — 40ms (tempo: snappy)",
+          "$description": "duration primitive — 40ms (literal; the semantic tier names the use)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9605,10 +9627,21 @@
             }
           }
         },
-        "fast": {
+        "50": {
+          "$type": "duration",
+          "$value": "50ms",
+          "$description": "duration primitive — 50ms (literal; the semantic tier names the use)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "ms": 50
+            }
+          }
+        },
+        "80": {
           "$type": "duration",
           "$value": "80ms",
-          "$description": "motion duration fast — 80ms (tempo: snappy)",
+          "$description": "duration primitive — 80ms (literal; the semantic tier names the use)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9616,10 +9649,10 @@
             }
           }
         },
-        "normal": {
+        "160": {
           "$type": "duration",
           "$value": "160ms",
-          "$description": "motion duration normal — 160ms (tempo: snappy)",
+          "$description": "duration primitive — 160ms (literal; the semantic tier names the use)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9627,10 +9660,10 @@
             }
           }
         },
-        "moderate": {
+        "240": {
           "$type": "duration",
           "$value": "240ms",
-          "$description": "motion duration moderate — 240ms (tempo: snappy)",
+          "$description": "duration primitive — 240ms (literal; the semantic tier names the use)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9638,10 +9671,10 @@
             }
           }
         },
-        "slow": {
+        "400": {
           "$type": "duration",
           "$value": "400ms",
-          "$description": "motion duration slow — 400ms (tempo: snappy)",
+          "$description": "duration primitive — 400ms (literal; the semantic tier names the use)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9649,10 +9682,10 @@
             }
           }
         },
-        "slower": {
+        "640": {
           "$type": "duration",
           "$value": "640ms",
-          "$description": "motion duration slower — 640ms (tempo: snappy)",
+          "$description": "duration primitive — 640ms (literal; the semantic tier names the use)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9661,69 +9694,149 @@
           }
         }
       },
-      "duration-reduced": {
+      "duration": {
         "instant": {
           "$type": "duration",
-          "$value": "40ms",
-          "$description": "reduce-motion instant — 40ms",
+          "$value": "{prism.motion.duration-ms.40}",
+          "$description": "motion duration instant — 40ms (tempo: snappy)",
           "$extensions": {
             "prism3": {
-              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.40",
               "ms": 40
             }
           }
         },
         "fast": {
           "$type": "duration",
-          "$value": "80ms",
-          "$description": "reduce-motion fast — 80ms",
+          "$value": "{prism.motion.duration-ms.80}",
+          "$description": "motion duration fast — 80ms (tempo: snappy)",
           "$extensions": {
             "prism3": {
-              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.80",
               "ms": 80
             }
           }
         },
         "normal": {
           "$type": "duration",
-          "$value": "50ms",
+          "$value": "{prism.motion.duration-ms.160}",
+          "$description": "motion duration normal — 160ms (tempo: snappy)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.160",
+              "ms": 160
+            }
+          }
+        },
+        "moderate": {
+          "$type": "duration",
+          "$value": "{prism.motion.duration-ms.240}",
+          "$description": "motion duration moderate — 240ms (tempo: snappy)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.240",
+              "ms": 240
+            }
+          }
+        },
+        "slow": {
+          "$type": "duration",
+          "$value": "{prism.motion.duration-ms.400}",
+          "$description": "motion duration slow — 400ms (tempo: snappy)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.400",
+              "ms": 400
+            }
+          }
+        },
+        "slower": {
+          "$type": "duration",
+          "$value": "{prism.motion.duration-ms.640}",
+          "$description": "motion duration slower — 640ms (tempo: snappy)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.640",
+              "ms": 640
+            }
+          }
+        }
+      },
+      "duration-reduced": {
+        "instant": {
+          "$type": "duration",
+          "$value": "{prism.motion.duration-ms.40}",
+          "$description": "reduce-motion instant — 40ms",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.40",
+              "ms": 40
+            }
+          }
+        },
+        "fast": {
+          "$type": "duration",
+          "$value": "{prism.motion.duration-ms.80}",
+          "$description": "reduce-motion fast — 80ms",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.80",
+              "ms": 80
+            }
+          }
+        },
+        "normal": {
+          "$type": "duration",
+          "$value": "{prism.motion.duration-ms.50}",
           "$description": "reduce-motion normal — 50ms",
           "$extensions": {
             "prism3": {
-              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.50",
               "ms": 50
             }
           }
         },
         "moderate": {
           "$type": "duration",
-          "$value": "0ms",
+          "$value": "{prism.motion.duration-ms.0}",
           "$description": "reduce-motion moderate — 0ms (eliminated — substitute a cross-fade)",
           "$extensions": {
             "prism3": {
-              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.0",
               "ms": 0
             }
           }
         },
         "slow": {
           "$type": "duration",
-          "$value": "0ms",
+          "$value": "{prism.motion.duration-ms.0}",
           "$description": "reduce-motion slow — 0ms (eliminated — substitute a cross-fade)",
           "$extensions": {
             "prism3": {
-              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.0",
               "ms": 0
             }
           }
         },
         "slower": {
           "$type": "duration",
-          "$value": "0ms",
+          "$value": "{prism.motion.duration-ms.0}",
           "$description": "reduce-motion slower — 0ms (eliminated — substitute a cross-fade)",
           "$extensions": {
             "prism3": {
-              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.motion.duration-ms.0",
               "ms": 0
             }
           }
@@ -9928,11 +10041,12 @@
       },
       "stagger": {
         "$type": "duration",
-        "$value": "30ms",
+        "$value": "{prism.motion.duration-ms.30}",
         "$description": "stagger standard — 30ms between siblings",
         "$extensions": {
           "prism3": {
-            "generated": true,
+            "role": "semantic",
+            "aliasOf": "prism.motion.duration-ms.30",
             "ms": 30
           }
         }

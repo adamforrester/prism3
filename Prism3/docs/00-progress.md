@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-07-30) — Motion gets a primitive ms tier (#296, motion half)
+
+**STATUS: engine.** `out/*` **regenerated** (shape change). Closes the motion half of #296; only
+**shadow** remains ledgered.
+
+- **The typography fix could NOT be ported, and checking why mattered.** Tempo scales the whole ramp
+  by a multiplier (snappy 0.8× / standard 1.0× / relaxed 1.3×), so `relaxed.normal` is **260ms — a
+  value no standard rung holds**. Line-height worked because the mode's target *was* an existing rung.
+  Here there is nothing to re-point at, so a rung-name map is not expressible.
+- **RADIUS is the real precedent**, not typography: a scalar lever scaling a ramp, solved with a
+  value-keyed primitive grid (`radius.md → {dimension.8}`). That's why per-mode radius was already
+  correct with no special handling.
+- **The KB settled the naming** — `18-motion-foundations.md` §Motion tokens prescribes exactly this
+  three-tier shape: primitive is *"literal, not semantic"* and value-named (**`duration-200`**), while
+  semantic *"names a use, not a value"* (`duration/short`). Checking the KB changed the answer: I had
+  proposed a root-level `duration.<ms>` group, which would have collided conceptually with
+  `motion.duration.<name>`.
+- **Shape:** `motion.duration-ms.<n>` holds every reachable ms across the base tempo AND every
+  per-mode tempo (union, so every alias lands on a real leaf). `motion.duration.<name>`,
+  `motion.duration-reduced.<name>` and `motion.stagger` are now `role: semantic` aliases into it; a
+  per-mode tempo re-points the alias. Named after `font.weight` / `font.weight-role` — a suffixed
+  sibling primitive group, so **`motion.duration.*` keeps its path**. The KB's argument for the
+  semantic tier is that it's the stable handle consumers bind to; renaming it would break the thing
+  the tier exists to protect.
+- **`easing` / `spring` are correctly out of scope** — untouched by tempo, separate primitive families.
+- **Dead code removed:** `durWithModes` existed only to attach per-mode values to duration leaves.
+  With the tier in place nothing needs it.
+- **Also noted from the KB, not acted on:** *"A system needs four duration tokens, give or take one.
+  More than six and consumers stop choosing meaningfully."* We ship exactly six — at the ceiling, not
+  over it. A reason not to grow the ramp, and a reason the tier split matters more than adding rungs.
+- **Verified:** 998/998 engine tests (up from 991; `D-motion(a)` inverted to the new contract plus new
+  assertions that both ms endpoints exist as invariant primitives carrying no per-mode variant, and
+  that stagger + duration-reduced ride the same tier); `regen.ts --check` in sync (85 artifacts, so
+  CI's coverage assertion still holds); nb-regression exits 0; web `tsc` + both builds clean;
+  Playwright swept nine pages × light/dark with zero console errors — including #292's new motion
+  specimen, which reads durations and was the risk area.
+- **#296 remaining: shadow only** (`role: composite`, zero refs in or out — needs decomposing before
+  it can be tiered). Still ledgered so it can't be forgotten.
+
+---
+
 ## (2026-07-30) — Primitives are mode-invariant: the guard + leading/tracking re-point (#296)
 
 **STATUS: engine + test guard + one UI note.** `out/*` **byte-identical** (no committed brand exercises
