@@ -1226,23 +1226,32 @@ const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string)
     (step) => setFillOverride(roleKey, palette, step), contrastMark(roleKey, palette));
 };
 
-/** Flags the steps that would BREAK a contrast-gated role, in the picker, before the pick is made.
+/** Marks the steps that SATISFY a contrast-gated role, in the picker, before the pick is made.
  *
  *  Overrides apply-but-warn by design (`modes.ts`) — deliberately, since a UI that refused the option
  *  would be false assurance: the same override is authorable through `design.md`/`BrandInput`, which
  *  the engine accepts, so blocking here would hide the capability from one surface without protecting
  *  the artifact. Only the engine can guarantee, and whether it should CLAMP instead of warn is a
- *  layer-wide question, not a per-role one.
+ *  layer-wide question (#320), not a per-role one.
  *
  *  So this informs rather than blocks: the warning stays as the backstop, and the picker stops being
  *  the place you discover the problem only after choosing. Applies to every contrast-gated override
  *  picker, not just one row — the same reasoning holds everywhere the layer is used.
  *
+ *  Marks the PASSING steps, not the failing ones. On a subtle tint only ~4 of 21 steps clear the label,
+ *  so flagging failures put a warning on 80% of the list — technically accurate and useless, since a
+ *  list that is nearly all warnings reads as noise rather than guidance. The short list is the useful
+ *  signal, so it is the one that gets marked. (Interim: if #320 lands on clamping, the failing steps
+ *  stop being reachable and this can go back to being a plain list.)
+ *
  *  Contrast is symmetric, so one comparison covers both directions — a role that IS a surface
  *  (`subtle-fill`, measured against its state ink) and a role that sits ON one (text against a
- *  background) use the same formula. Returns '' when the role states no contract, is absent in this
- *  mode, or is measured against `self` — an unmarked option must mean "nothing to judge", never
- *  "judged and passed". */
+ *  background) use the same formula.
+ *
+ *  Returns undefined — not a no-op marker — when the role states no contract, is absent in this mode,
+ *  or is measured against `self`. That distinction matters under inversion: within a picker either
+ *  NOTHING is marked (no contract to judge) or the passing steps are, so an unmarked option is never
+ *  ambiguous between "fails" and "wasn't judged". */
 const contrastMark = (roleKey: string, palette: string): ((step: string) => string) | undefined => {
   const roles = iRoles();
   const r = roles[roleKey];
@@ -1252,10 +1261,13 @@ const contrastMark = (roleKey: string, palette: string): ((step: string) => stri
   if (!againstHex) return undefined;                       // nothing resolvable to compare against
   const againstRgb = hexToRgb(againstHex);
   const steps = theme.palettes.find((p) => p.palette === palette)?.steps ?? [];
+  // States the number rather than a bare tick: the minimum is 4.5 for text and 3 for non-text, so
+  // "✓" alone would hide WHICH bar a step clears.
+  const label = ` · ✓ ${String(min).replace(/\.0$/, '')}:1`;
   return (step: string): string => {
     const s = steps.find((x) => x.key === step);
     if (!s) return '';
-    return contrast(hexToRgb(s.hex), againstRgb) >= min ? '' : ' · low contrast';
+    return contrast(hexToRgb(s.hex), againstRgb) >= min ? label : '';
   };
 };
 
@@ -2821,7 +2833,9 @@ const renderForegroundEditor = (): HTMLElement => {
  *  Auto; other values are step keys. */
 const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void, mark?: (step: string) => string): HTMLSelectElement => {
   const sel = selectEl('cap');
-  sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}`, current == null));
+  // Auto carries the mark too. It is the engine's contract-satisfying pick, so leaving it bare in a
+  // marked list would make the one guaranteed-good option look like the failing ones.
+  sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}${mark?.(autoStep) ?? ''}`, current == null));
   for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}${mark?.(s) ?? ''}`, current === s));
   sel.onchange = () => onPick(sel.value === '' ? undefined : sel.value);
   return sel;

@@ -82,13 +82,25 @@ Picking one for `subtle-fill` alone would make it behave unlike every other over
 question — should the override layer clamp rather than warn? — is filed separately (#320) to be
 answered once, layer-wide.
 
-What landed instead is **pre-emptive marking**: contrast-gated override pickers now flag the steps that
-would break the role, so the problem is visible BEFORE the pick rather than only after. Applied at
+What landed instead is **pre-emptive marking**: contrast-gated override pickers show which steps satisfy
+the role, so the problem is visible BEFORE the pick rather than only after. Applied at
 `roleSourceSelect`, so every override picker gets it, not just this row. Contrast is symmetric, so one
 comparison serves both directions — a role that IS a surface (`subtle-fill`, measured against its state
-ink) and one that sits on a surface use the same formula. An unmarked option means "nothing to judge"
-(no contract, role absent, or `against: self`) — never "judged and passed", which is why the helper
-returns undefined rather than a no-op marker in those cases.
+ink) and one that sits on a surface use the same formula.
+
+**Marks the PASSING steps, not the failing ones** — and the first cut had it the other way. On a subtle
+tint only 4 of 21 steps clear the label, so flagging failures put a warning on 17 of them: accurate and
+useless, since a list that is nearly all warnings reads as noise rather than guidance. Owner called it
+("17 of 21 is why I was considering limiting options"); inverting keeps the same information and makes
+the short list the signal. **Auto carries the mark too** — it is the engine's contract-satisfying pick,
+so leaving it bare in a marked list would make the one guaranteed-good option look like the failures.
+The label states the number (`✓ 4.5:1`) rather than a bare tick, because the minimum is 4.5 for text
+and 3 for non-text and a tick alone would hide which bar was cleared.
+
+The helper returns undefined — not a no-op marker — when there is no contract to judge (`min` 0, role
+absent, `against: self`). Under inversion that distinction is load-bearing: within a picker either
+NOTHING is marked or the passing steps are, so an unmarked option is never ambiguous between "fails"
+and "wasn't judged".
 
 **Out of scope, still open:** nothing. #288's own "out of scope" note deferred the dashboard wiring,
 but leaving it unwired would have kept the reported symptom on screen, so it is included.
