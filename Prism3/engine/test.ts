@@ -283,6 +283,65 @@ for (const b of brands) {
   const noOverlay = resolveAllModes({ ...nbTheme(), outlineInteraction: 'none' })
     .flatMap((m) => Object.keys(m.roles)).filter((k) => k.includes('.overlay.'));
   ok(noOverlay.length === 0, 'interactive: outlineInteraction=none emits no overlays' + (noOverlay.length ? ` — ${noOverlay.slice(0, 2).join(',')}` : ''));
+
+  // (h) `solid-tint` emits a REAL per-column tint (#288). Before this, the value was selectable and
+  // emitted nothing for any brand — behaviourally identical to `none` — because the doc comment
+  // pointed at `foreground.<color>-subtle`, a role only ever keyed by the five SEMANTICS names, never
+  // by an interactive COLUMN name. The bug was invisible precisely because nothing asserted the
+  // difference, so the first thing checked here is that the two values DIFFER at all.
+  {
+    const tintRoles = (t: any) => resolveAllModes({ ...t, outlineInteraction: 'solid-tint' });
+    const noneRoles = (t: any) => resolveAllModes({ ...t, outlineInteraction: 'none' });
+    const keysOf = (ms: any[]) => ms.flatMap((m) => Object.keys(m.roles)).filter((k) => k.includes('.subtle-fill.'));
+
+    ok(keysOf(tintRoles(nbTheme())).length > 0, '#288 solid-tint emits subtle-fill roles (it emitted NOTHING before)');
+    ok(keysOf(noneRoles(nbTheme())).length === 0, '#288 outlineInteraction=none still emits no subtle-fill');
+    ok(keysOf(resolveAllModes(nbTheme())).length === 0, '#288 the default (overlay-neutral) emits no subtle-fill — existing artifacts unmoved');
+
+    // The contract, on every brand INCLUDING the extremes — two example brands generalising is an
+    // assumption, and the nominal step is only a starting point for the contract-driven walk.
+    const brands: Array<[string, any]> = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/aurora.design.md'), 'utf8')).input)],
+      ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/harbor.design.md'), 'utf8')).input)],
+      // near-black primary + a light high-chroma yellow: the two hardest ink/tint pairings the suite has.
+      ['near-black', brandTheme({ id: 'nbk', primary: { l: 0.18, c: 0.04, h: 260 }, neutral: { hue: 260, chroma: 0.006, auto: true } } as any)],
+      ['hot-yellow', brandTheme({ id: 'hy', primary: { l: 0.86, c: 0.19, h: 95 }, neutral: { hue: 95, chroma: 0.006, auto: true } } as any)],
+    ];
+    const bad: string[] = [];
+    let checked = 0;
+    for (const [id, t] of brands) {
+      for (const m of tintRoles(t)) {
+        for (const [key, r] of Object.entries(m.roles) as [string, any][]) {
+          if (!key.includes('.subtle-fill.')) continue;
+          checked++;
+          // The published promise is ink-on-tint, so hold it to its own stated minimum.
+          if (r.min > 0 && r.ratio < r.min - 0.005) bad.push(`${id}/${m.mode}/${key} ${r.ratio.toFixed(2)} < ${r.min}`);
+        }
+      }
+    }
+    ok(bad.length === 0, `#288 every subtle-fill keeps its state ink legible (${checked} roles across ${brands.length} brands)`
+      + (bad.length ? ` — FAILING: ${bad.slice(0, 4).join(', ')}` : ''));
+    ok(checked > 0, '#288 the subtle-fill contract check is live (it found roles to judge)');
+
+    // And the tint must be VISIBLE against the page, or the hover does nothing — the inert-control
+    // class this repo has now hit three times (#288 itself, #305, pre-#297 leading). ΔE00 2.3 is the
+    // classic just-noticeable bar; measured worst across the example brands was 5.81.
+    const invisible: string[] = [];
+    for (const [id, t] of brands) {
+      for (const m of tintRoles(t)) {
+        const page = m.roles['background.primary'];
+        if (!page) continue;
+        for (const [key, r] of Object.entries(m.roles) as [string, any][]) {
+          if (!key.includes('.subtle-fill.')) continue;
+          const d = deltaE2000(hexToRgb(r.hex), hexToRgb(page.hex));
+          if (d < 2.3) invisible.push(`${id}/${m.mode}/${key} ΔE ${d.toFixed(2)}`);
+        }
+      }
+    }
+    ok(invisible.length === 0, '#288 every subtle-fill is perceptibly different from the page (ΔE00 ≥ 2.3)'
+      + (invisible.length ? ` — INVISIBLE: ${invisible.slice(0, 4).join(', ')}` : ''));
+  }
 }
 
 // DISABLED — cross-cutting family (docs/20 §7): one treatment regardless of intent,
