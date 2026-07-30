@@ -4493,7 +4493,21 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 /* true size; padding keeps descenders inside the clip box even at tight leading */
 .tr-samp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:.24em;margin-top:2px}
 @media(max-width:760px){.tf-grid{grid-template-columns:1fr}.lt-grid{grid-template-columns:1fr}}
-@media(max-width:900px){.shell{grid-template-columns:1fr;gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
+/* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
+   1fr track never clamps and the widest child drags the whole column past the viewport.
+   The desktop rule above already uses the idiom; the collapse override had lost it (#144). */
+@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
+/* Narrow viewports (#144). The plugin iframe runs this same UI, so its window lands here:
+   gutters, hero and chrome all shrink, and nothing is allowed to overflow horizontally. */
+@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
+/* Below ~480 the 10 hex read-outs under a ramp cannot fit (each needs ~45px, the row has ~406):
+   drop the hex and keep the step number, so labels stay 1:1 under their swatches. Wrapping or
+   scrolling the row would break that alignment, which is the whole point of a ramp. */
+/* The contrast + breakpoint tables have more columns than 456px can hold, and neither shrinks:
+   ly-table pushed the page 57px, ctable was silently clipped by an ancestor (worse — the cells
+   were unreadable rather than reachable). display:block turns each into its own scroll box, so
+   the table scrolls and the page does not. Applied only here; both fit unaided at 640+. */
+@media(max-width:480px){#app{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable,.ly-table{display:block;overflow-x:auto}}
 `;
 const styleEl = document.createElement('style');
 styleEl.textContent = STYLE;
