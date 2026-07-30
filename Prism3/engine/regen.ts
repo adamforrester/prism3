@@ -1,5 +1,6 @@
-// regen.ts — the single entry point for regenerating every committed artifact under `out/`,
-// and the drift gate that proves the committed ones still match what the engine emits (#281).
+// regen.ts — the single entry point for regenerating EVERY committed generated artifact — `out/**`,
+// the three emitted `schema/` contracts, and the two engine-root reports — plus the drift gate that
+// proves the committed copies still match what the engine emits (#281).
 //
 // Why this exists: regeneration used to be four separate commands, and only `emit-dtcg.ts`
 // (nb/aurora/harbor) was in the habitual path — so `tokens.html` and the wendys artifacts rotted
@@ -32,6 +33,7 @@ const repoRoot = resolve(here, '..', '..');
 // engine-native one — that split is precisely why it kept getting missed.
 const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-dtcg      (nb · aurora · harbor)', args: ['Prism3/engine/emit-dtcg.ts'] },
+  { label: 'nb-regression  (regression report)', args: ['Prism3/engine/nb-regression.ts'] },
   { label: 'cli            (wendys + fidelity)', args: ['Prism3/engine/cli.ts', 'Prism3/examples/wendys.design.md', '--out', 'Prism3/engine/out', '--fidelity'] },
   { label: 'emit-figma     (out/figma/**)', args: ['Prism3/engine/emit-figma.ts'] },
   { label: 'visualize      (tokens.html)', args: ['Prism3/engine/visualize.ts'] },
@@ -39,6 +41,12 @@ const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-preview   (preview-spec)', args: ['Prism3/engine/emit-preview.ts'] },
   { label: 'emit-brandinput(example-brands)', args: ['Prism3/engine/emit-brandinput.ts'] },
 ];
+
+// Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were
+// outside the comparison until now: `modes-report.md` was regenerated (emit-dtcg writes it) but never
+// CHECKED, and `nb-regression-report.md` was neither regenerated nor checked — so this file's own
+// claim to cover "every committed artifact" was an overclaim. Both are gated now.
+const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md'];
 
 // `schema/` mixes hand-authored contracts (theme-schema.json) with emitted ones, so unlike `out/`
 // — which is generated wholesale — it is compared file-by-file against this list. These three are
@@ -60,8 +68,9 @@ const walk = (dir: string): string[] => {
 
 const runStep = (args: string[], label: string): void => {
   process.stdout.write(`  ${label} … `);
-  // Reuse the tsx that is already running this file, so `--check` can't disagree with a plain regen
-  // by resolving a different toolchain.
+  // Shells out per step rather than importing: `visualize.ts` / `cli.ts` execute at module load, so
+  // importing them would run them as a side effect and couple their exit behaviour to ours. Each step
+  // resolves `npx tsx` the same way a developer would, so a plain regen and `--check` agree.
   const r = spawnSync('npx', ['tsx', ...args], { cwd: repoRoot, encoding: 'utf8' });
   if (r.status !== 0) {
     console.log('FAILED');
@@ -81,10 +90,13 @@ const check = (): void => {
   const tmp = mkdtempSync(join(tmpdir(), 'prism3-regen-'));
   const outSnap = join(tmp, 'out');
   const schemaSnap = join(tmp, 'schema');
+  const engineSnap = join(tmp, 'engine');
   try {
     cpSync(outDir, outSnap, { recursive: true });
     mkdirSync(schemaSnap, { recursive: true });
     for (const f of SCHEMA_ARTIFACTS) cpSync(join(schemaDir, f), join(schemaSnap, f));
+    mkdirSync(engineSnap, { recursive: true });
+    for (const f of ENGINE_ARTIFACTS) cpSync(join(here, f), join(engineSnap, f));
 
     regenerate();
 
@@ -106,13 +118,18 @@ const check = (): void => {
     for (const f of SCHEMA_ARTIFACTS) {
       if (!readFileSync(join(schemaSnap, f)).equals(readFileSync(join(schemaDir, f)))) drifted.push(`Prism3/schema/${f}`);
     }
+    // engine root — the two committed reports.
+    for (const f of ENGINE_ARTIFACTS) {
+      if (!readFileSync(join(engineSnap, f)).equals(readFileSync(join(here, f)))) drifted.push(`Prism3/engine/${f}`);
+    }
 
     // Restore the committed state either way — the gate reports, it never rewrites.
     rmSync(outDir, { recursive: true, force: true });
     cpSync(outSnap, outDir, { recursive: true });
     for (const f of SCHEMA_ARTIFACTS) cpSync(join(schemaSnap, f), join(schemaDir, f));
+    for (const f of ENGINE_ARTIFACTS) cpSync(join(engineSnap, f), join(here, f));
 
-    const checked = after.size + SCHEMA_ARTIFACTS.length;
+    const checked = after.size + SCHEMA_ARTIFACTS.length + ENGINE_ARTIFACTS.length;
     if (!drifted.length && !added.length && !removed.length) {
       console.log(`\n✓ in sync — ${checked} committed artifacts byte-match what the engine emits.`);
       return;
