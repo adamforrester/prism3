@@ -7,6 +7,58 @@
 
 ---
 
+## (2026-07-30) — Disabled contrast: an absolute 3:1 floor, both branches gated (#290)
+
+**STATUS: engine + schema + dashboard.** Resolves #290. Owner decision after the triage discussion:
+**contrast-preserving means actually meeting 4.5:1**, and the other branch may go lower **but never
+below 3:1**. So the dial moved OFF the compliant branch and onto the reduced one, and the system
+stopped using the WCAG inactive-component exemption entirely.
+
+- **What was wrong, measured.** The old pair was `accessible` (gated at `disabledMin`, dial 2–4.5)
+  vs `conventional` (ungated, `pickClosest(..., 2)`, `min: 0`). At the bottom of the dial they
+  **collapsed onto each other** — `accessible@2` and `conventional` both produced `disabled.on-fill`
+  at 2.14:1, `disabled.text` at 2.32 vs 2.07 — while the first still called itself *accessible* and
+  asserted a passing contract against a floor that is no WCAG threshold. The owner's instinct
+  ("feels weird that I can pick a floor below contrast") was understating it.
+- **Two further findings from the same probe.** (a) `conventional` **ignored high-contrast mode**:
+  only the gated branch escalated, so a brand choosing it shipped 2.07:1 disabled text inside its
+  HC theme. (b) `disabledMin` had **no `minimum`/`maximum` in the schema** at all — a hand-authored
+  `design.md` could set `disabledMin: 0.5` and it validated and shipped.
+- **The new model.** `'full'` = a fixed **4.5:1** (AA text), no dial — a promise, not a range.
+  `'reduced'` (default) = a dialable **3–4.5** floor, default 3. Both branches now GATE; the ungated
+  path is deleted. Both escalate to ≥4.5 in HC, closing (a). Schema pins `disabledMin` to `[3, 4.5]`
+  and the engine clamps independently, closing (b) at both layers.
+- **3:1 is not arbitrary** — it is the SC 1.4.11 non-text / SC 1.4.3 large-text threshold, and where
+  Primer and USWDS sit. The schema already documented that ("field-rare — 0/12 surveyed systems
+  guarantee it"); the owner's floor landed on the strongest available precedent.
+- **Legacy aliases, accepted not dropped.** `'accessible'` → `'reduced'` keeping its `disabledMin`
+  (clamped ≥3); `'conventional'` → `'reduced'` at 3, which **RAISES** its contrast from ~2:1 — a
+  deliberate breaking improvement, called out rather than silent. Nothing in-repo set either lever,
+  so no fixture needed migrating.
+- **`out/*`: every resolved value is byte-identical.** Verified by grepping the whole regen diff for
+  `$value` / hex / ratio changes — none. Only `$description` prose moved (3 disabled roles × mode ×
+  brand, the `notes` line, and the mirrored Figma descriptions), because the retired word
+  "accessible" had to leave the emitted text. Choosing `reduced@3` as the default is what preserved
+  the values.
+- **The affordance caveat is surfaced, not buried.** At 4.5:1 a disabled label is as legible as body
+  copy, so "disabled" then reads only from fill / border / cursor / `aria-disabled`. The UI shows
+  that inline when `full` is selected, and the engine note says it too — the KB's "colour is never
+  the sole carrier" makes it defensible, but it should be a conscious choice.
+- **A test guard had to be loosened deliberately, and narrowed to compensate.** The lever↔schema
+  enum check was strict set-equality, which the back-compat aliases break. It now asserts the hard
+  direction (UI options ⊆ schema enum — the UI may never offer a value the schema rejects) and
+  allows schema-only values ONLY when the description marks them `LEGACY ALIAS`. Forgetting to
+  surface a genuinely new option still fails.
+- **Verified:** 976/976 engine tests (17 new in a `(7b)` block — the absolute floor swept across
+  every strategy × min × mode, `full` ignoring the dial, clamping, both aliases, HC escalation on
+  all three inputs, and schema rejection of 2); nb-regression exits 0; `regen.ts --check` in sync;
+  web `tsc` + build clean; plugin build clean; the "every lever exercised" fixture repointed from a
+  now-legacy alias to the live `full` branch; Playwright confirmed the dial appears only on
+  `reduced`, the caveat only on `full`, the slider range is 3–4.5, and the disabled specimen tracks
+  the branch live (fg `rgb(104,104,109)` → `rgb(79,79,84)`); nine pages × light/dark, no console errors.
+
+---
+
 ## (2026-07-29) — Bug triage: Surfaces dark-mode text, outline-hover method, anchor clamp feedback
 
 **STATUS: dashboard fixes + one real engine gap surfaced.** Owner dropped six UI reports; three were
