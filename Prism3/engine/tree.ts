@@ -545,7 +545,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // the composite SET is untouched. Absent maps ⇒ byte-identical.
   const familiesByMode = ty.familiesByMode ?? {};
   const weightRolesByMode = ty.weightRolesByMode ?? {};
-  const stackKey = (s: string[]): string => s.join(' ');
+  const stackKey = (s: string[]): string => s.join('\u0000');
   // Tier 1 - the typeface PRIMITIVES, named after the face itself. Two roles bound to one
   // face share a single primitive (NB binds display and text to Inter).
   const typeface: Record<string, Token> = {};
