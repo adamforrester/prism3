@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-07-30) — US English actually completes (#302, #310) — and the log entry that broke it
+
+**STATUS: web + engine.** `schema/lever-manifest.json` regenerated; `out/*` untouched. Closes #302
+(PR #309) and #310 (PR #311), alongside #308 which added the #260 entry below. The standard is now
+written into `CLAUDE.md` so it stops being re-derived from this log.
+
+- **The root cause was a false claim in this very file.** The #164 entry (2026-07-17, far below) records
+  that #162 applied US English *"across all visible UI text (main.ts + **lever labels/descriptions**;
+  the token-`$description` prose that emits into out/\* is a separate deferred pass)"*. The parenthetical
+  is wrong: **lever labels and descriptions were never touched.** Ten UK spellings sat in `levers.ts`
+  from #162 until #311 today. Correcting here rather than editing the old entry, per this log's habit of
+  recording corrections forward (cf. *"I filed #296 wrong and rewrote it"*).
+- **That one sentence propagated for five months.** #260 was filed carving `levers.ts` out as
+  already-covered *because the log said so*; #302 was scoped to `main.ts` alone for the same reason; and
+  #302's own list then under-counted its own file. Four consecutive passes each inherited the previous
+  one's assurance instead of re-checking. **The lesson is narrow and worth keeping: a completion claim in
+  this log is a claim, not a receipt.**
+- **What actually landed:** six string literals in `web/src/main.ts` (#309) — one of them, the Wireframe
+  modes-menu tooltip, absent from #302's list — and ten in `Prism3/engine/levers.ts` (#311), two of which
+  (`generalised`, and the `leverGroups` label `'Colour'`) appeared in *no* prior list.
+- **The two methods that finally worked**, both cheap, both worth reusing: **scan patterns, not word
+  lists** (`-is(e|ed|es|ing|ation)` and `-our`, then filter false positives like *source*/*precise*) —
+  a fixed list of `colour|grey|behaviour` missed `generalised` three times running; and **grep the built
+  bundle, not the source** — that is what revealed `levers.ts` prose is inlined into `web/dist/main.js`
+  and therefore renders as live dashboard controls, which is what #260 had classified as artifact-only.
+- **A correction to my own correction.** #310 was filed claiming the `leverGroups` `'Colour'` label
+  renders as a dashboard section heading. It does not — `leverGroups` is **tree-shaken out of the web
+  bundle entirely** (sibling label `Form factor`: zero occurrences in `web/dist/main.js`); the dashboard
+  hardcodes its own sections. The fix stands on different grounds: `leverGroups` *is* emitted into
+  `schema/lever-manifest.json`, the published contract any manifest-driven host renders from.
+- **Deliberately still UK-spelled:** `Prism3/schema/theme-schema.json` (19 hits). It is **hand-authored,
+  not emitted** — `regen.ts:51` splits `schema/` into emitted files it owns and hand-authored contracts
+  it does not touch — so no regen will ever fix it and whether hand-authored contract prose follows the
+  standard is an open call, not an oversight. `preview-spec.json` and `example-brands.json` are clean.
+  Code comments and identifiers remain exempt, as every pass since #162 has held.
+- **Verified:** 1000/1000 engine tests; `regen.ts --check` 85/85 byte-match; nb-regression PASS, aggregate
+  ΔE00 **1.95 unchanged**; 432/432 mode contracts across all three brands; web + plugin `tsc` and builds
+  clean; and on merged `main` the shipped bundle contains **zero** UK spellings in string content — the
+  split that motivated this (`subtle · light gray` in one control, `Subtle (light grey)` in another) is
+  closed at both ends.
+
+---
+
 ## (2026-07-30) — US-English pass on emitted `$description` prose (#260)
 
 **STATUS: engine.** `out/*` **regenerated** (prose-only — zero `$value`, alias or structural change).
