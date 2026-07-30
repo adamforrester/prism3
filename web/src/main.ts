@@ -1189,19 +1189,35 @@ const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string)
 };
 
 // ---- examples (locked right) ----------------------------------------------
-const exBtn = (bg: string, fg: string, dark = false, label = 'Button'): HTMLElement => {
+/** #291 — click-to-pin the pressed state on a live example. `:hover` already gives the transient hover
+ *  feel; a bare `:active` vanishes the instant the mouse releases, too fleeting to actually evaluate a
+ *  pressed color, so a click toggles a HELD `.is-pressed` state instead (click again to release). Only
+ *  wired when a pressed color was actually resolved (`exBtn`/`exLink`/`exOutline` call this conditionally). */
+const wirePress = (n: HTMLElement): void => {
+  n.classList.add('pinnable');
+  n.title = 'Click to hold the pressed state';
+  n.onclick = (e) => { e.preventDefault(); n.classList.toggle('is-pressed'); };
+};
+const exBtn = (bg: string, fg: string, dark = false, label = 'Button', hover?: string, pressed?: string): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : ''));
-  const b = el('span', 'ibtn'); b.style.background = bg; b.style.color = fg;
+  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', bg); b.style.color = fg;
+  if (hover) b.style.setProperty('--ibtn-hbg', hover);
+  if (pressed) { b.style.setProperty('--ibtn-pbg', pressed); wirePress(b); }
   b.append(document.createTextNode(label), iconEl('arrow', fg));
   box.append(b); return box;
 };
-const exLink = (color: string, dark = false): HTMLElement => {
+const exLink = (color: string, dark = false, hover?: string, pressed?: string): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : ''));
-  const a = el('a', 'ilink', 'Text link'); a.style.color = color; box.append(a); return box;
+  const a = el('a', 'ilink', 'Text link'); a.style.setProperty('--ilink-fg', color);
+  if (hover) a.style.setProperty('--ilink-hfg', hover);
+  if (pressed) { a.style.setProperty('--ilink-pfg', pressed); wirePress(a); }
+  box.append(a); return box;
 };
-const exOutline = (edge: string, wash: string, dark = false): HTMLElement => {
+const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : ''));
-  const b = el('span', 'ibtn'); b.style.background = wash; b.style.color = edge; b.style.border = `1.5px solid ${edge}`;
+  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); b.style.color = edge; b.style.border = `1.5px solid ${edge}`;
+  if (hoverWash) b.style.setProperty('--ibtn-hbg', hoverWash);
+  if (pressedWash) { b.style.setProperty('--ibtn-pbg', pressedWash); wirePress(b); }
   b.append(document.createTextNode('Outline'), iconEl('arrow', edge));
   box.append(b); return box;
 };
@@ -1303,7 +1319,8 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
     swatchBg: r.hex, label: 'Fill · rest', select, pill: `color.interactive.${col.name}.fill.rest`,
     desc: 'The button / container fill. This anchors the family — hover, pressed, text and on-fill derive from it unless you override them below.',
     warn,
-    example: iExample(exBtn(r.hex, onFill?.hex ?? '#ffffff'), iBadge(onFill)),
+    example: iExample(exBtn(r.hex, onFill?.hex ?? '#ffffff', false, 'Button',
+      roles[`interactive.${col.name}.fill.hover`]?.hex, roles[`interactive.${col.name}.fill.pressed`]?.hex), iBadge(onFill)),
     states: iStates(roles, col.palette, [['Hover', `interactive.${col.name}.fill.hover`], ['Pressed', `interactive.${col.name}.fill.pressed`]]),
   });
 };
@@ -1320,7 +1337,10 @@ const overlayRow = (col: ICol): HTMLElement | null => {
     select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, stepKeyOf(r.path)),
     pill: `color.interactive.${col.name}.overlay.hover`,
     desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — it composites over any surface.',
-    example: iExample(exOutline(edge, rgbaOf(r))),
+    // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
+    // ever appears on hover/pressed), so only pressed needs wiring here; a :hover cue would be a no-op.
+    example: iExample(exOutline(edge, rgbaOf(r), false, undefined,
+      roles[`interactive.${col.name}.overlay.pressed`] ? rgbaOf(roles[`interactive.${col.name}.overlay.pressed`]!) : undefined)),
     states: iStates(roles, nPal, [['Hover', `interactive.${col.name}.overlay.hover`], ['Pressed', `interactive.${col.name}.overlay.pressed`]]),
   });
 };
@@ -1339,16 +1359,19 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
     fillRestRow(col),
     slotRow({ name: nm, slot: 'on-inverse.fill.rest', label: 'Fill · inverse', palette: P,
       desc: 'The button fill on a dark / inverse surface — a light fill. Derived, or pin a step.',
-      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true),
+      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true, 'Button',
+        rs[`interactive.${inv}.fill.hover`]?.hex, rs[`interactive.${inv}.fill.pressed`]?.hex),
       badgeRole: `interactive.${inv}.on-fill`,
       states: [['Hover', `interactive.${inv}.fill.hover`], ['Pressed', `interactive.${inv}.fill.pressed`]] }),
     slotRow({ name: nm, slot: 'text.rest', label: 'Text · rest', palette: P,
       desc: 'Text links & text buttons on light surfaces.',
-      example: (rs) => exLink(rs[`interactive.${nm}.text.rest`]?.hex ?? '#000000'),
+      example: (rs) => exLink(rs[`interactive.${nm}.text.rest`]?.hex ?? '#000000', false,
+        rs[`interactive.${nm}.text.hover`]?.hex, rs[`interactive.${nm}.text.pressed`]?.hex),
       states: [['Hover', `interactive.${nm}.text.hover`], ['Pressed', `interactive.${nm}.text.pressed`]] }),
     slotRow({ name: nm, slot: 'on-inverse.text.rest', label: 'Text · inverse', palette: P,
       desc: 'Text links & text buttons on dark / inverse surfaces.',
-      example: (rs) => exLink(rs[`interactive.${inv}.text.rest`]?.hex ?? '#ffffff', true),
+      example: (rs) => exLink(rs[`interactive.${inv}.text.rest`]?.hex ?? '#ffffff', true,
+        rs[`interactive.${inv}.text.hover`]?.hex, rs[`interactive.${inv}.text.pressed`]?.hex),
       states: [['Hover', `interactive.${inv}.text.hover`], ['Pressed', `interactive.${inv}.text.pressed`]] }),
     overlayRow(col),
     slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
@@ -4167,9 +4190,17 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .aex-spec{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;align-items:center}
 .exbox{width:100%;min-height:72px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:14px 16px;overflow:hidden}
 .exbox.dark{background:#0d0d10;border-color:transparent}
-.ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap;background:var(--ibtn-bg)}
+.ibtn:hover{background:var(--ibtn-hbg,var(--ibtn-bg))}
+.ibtn.is-pressed,.ibtn.is-pressed:hover{background:var(--ibtn-pbg,var(--ibtn-hbg,var(--ibtn-bg)))}
 .ibtn svg{width:16px;height:16px}
-.ilink{font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.ilink{font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px;color:var(--ilink-fg)}
+.ilink:hover{color:var(--ilink-hfg,var(--ilink-fg))}
+.ilink.is-pressed,.ilink.is-pressed:hover{color:var(--ilink-pfg,var(--ilink-hfg,var(--ilink-fg)))}
+/* #291 — live hover/pressed on interactive examples: :hover is CSS-native; pressed is click-to-pin
+   (see wirePress) since a bare :active vanishes on mouse-up, too fleeting to evaluate a color. */
+.pinnable{cursor:pointer}
+.pinnable.is-pressed{outline:2px solid var(--ink2);outline-offset:2px}
 .inote{display:inline-flex;align-items:center;gap:7px;font-size:14px}
 .inote-ic{display:inline-flex}
 .inote-ic svg{width:17px;height:17px}
