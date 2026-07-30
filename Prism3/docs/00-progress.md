@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-07-30) — Primitives are mode-invariant: the guard + leading/tracking re-point (#296)
+
+**STATUS: engine + test guard + one UI note.** `out/*` **byte-identical** (no committed brand exercises
+per-mode leading). Owner principle: *"any primitives should be mode-invariant."* Closes the
+line-height/letter-spacing half of #296; motion + shadow remain, ledgered.
+
+- **I filed #296 wrong and rewrote it.** First version claimed 6 of 8 per-mode axes mutate primitives.
+  Real answer: **3**. I had read the READ-MODEL (`dims.radiusByMode`) as if it were the emitted
+  contract. In the emitted tree `radius.md` is `role: semantic` moving `{dimension.4}` → `{dimension.8}`
+  with **both primitives present and unchanged** — colour, radius and density were already correct. I
+  had recommended building a fix that already existed.
+- **The real diagnosis** is sharper: the violating axes are the ones that were **never given a
+  primitive tier**, so a per-mode override has nowhere to land but the value itself. `font.weight-role`
+  is the canonical correct shape (semantic name → `{font.weight.<numeric>}` primitive).
+- **The guard (7c) is the thing #296 actually asked for.** A token may carry
+  `$extensions.prism3.modes` only if it RE-POINTS: `$value` is an alias, or `role: semantic`, or — for a
+  DTCG composite — every field the variant *changed* is an alias. That last clause is what separates
+  `type.*` (swaps `{font.line-height.normal}` for `{…relaxed}` ✓) from `shadow.*` (swaps raw colour/px
+  objects ✗). `KNOWN_VIOLATIONS` is a migration **ledger**, and a second assertion fails if an entry
+  goes stale, so a fixed axis can't leave a dead exemption behind.
+- **The guard found something the manual audit missed on its first run:** `motion.stagger`. I had only
+  identified `motion.duration`. Also **proved it bites** — removing the line-height exemption makes it
+  fail and name the offending group.
+- **The fix:** rung primitives keep exactly one value across all modes; the per-mode change moves to
+  the semantic composite, which re-points its `lineHeight` / `letterSpacing` alias at a different rung.
+  `TypeComposite` gained `lineHeightByMode` / `trackingByMode`; `tree.ts` emits the variant on the
+  composite and no longer on the rung.
+- **The per-mode input NAMES A RUNG, not a value** (owner call, after I first shipped value-snapping):
+  `modeLevers.dark.lineHeights: { normal: 'relaxed' }` reads *"in dark, styles that would use `normal`
+  use `relaxed` instead"*. This is strictly better than the snapping model I built first and then
+  replaced: **the silent-no-op class disappears entirely** rather than being warned about, there is no
+  ambiguity about what a value resolves to, and it **separates two operations that were both numbers
+  meaning different things** — `typography.lineHeights` (numeric, brand-wide, re-anchors what a rung is
+  WORTH) vs the per-mode map (rung name, re-points WHICH rung is used). Different operations, now
+  different types.
+- **A number in the per-mode slot is REJECTED, not coerced,** with a message pointing at
+  `typography.lineHeights` — coercing it would quietly reintroduce the mode-varying-primitive bug. That
+  rejection immediately caught my own stale fixtures, which is how it should behave.
+- **A self-map (`normal → normal`) is dropped** as no-diff, the same suppression the other axes use, so
+  an inert declaration can't create a mode entry or a spurious composite variant.
+- **The UI now has two different controls for the two operations:** Light edits the rung VALUE (number
+  field); any other mode picks a TARGET RUNG (select, self excluded since it would be a no-op). The
+  read-model fields were renamed `lineHeightRepointByMode` / `letterSpacingRepointByMode` — they are
+  re-point maps, not per-mode ramps, and the old names asserted something untrue.
+- **Two tests inverted deliberately.** `D-lhls(a)/(b)` asserted the retired contract (per-mode value ON
+  the rung); they now assert the opposite — the rung carries NO per-mode override and is byte-equal to
+  the no-per-mode build. `(c)` asserted the composite was *unchanged*; it now asserts the re-point, plus
+  that only alias fields changed. `(d)` is new: the quantised no-op is asserted to be noted.
+- **Verified:** 991/991 engine tests (up from 976); `regen.ts --check` in sync (83 artifacts);
+  nb-regression exits 0; `out/*` byte-identical; web `tsc` + build clean; plugin build clean.
+- **Still open on #296:** motion (`duration` + `stagger`, untiered — no `role` at all) and shadow
+  (`role: composite`, zero refs in or out, needs decomposing). Both ledgered so they cannot be
+  forgotten and cannot silently grow.
+
+---
+
 ## (2026-07-30) — Disabled contrast: an absolute 3:1 floor, both branches gated (#290)
 
 **STATUS: engine + schema + dashboard.** Resolves #290. Owner decision after the triage discussion:

@@ -63,12 +63,14 @@ export type ModeLevers = {
   // Per-mode font WEIGHT per weight-role — a different NUMERIC value the role resolves to (e.g. dark's
   // `strong` = 600 not 700). Never changes WHICH roles exist; only their number.
   weights?: Partial<Record<WeightRoleName, number>>;
-  // Per-mode LINE HEIGHT per named step — a different unitless multiplier for a leading step (e.g. dark
-  // opens `normal` to 1.55 for legibility on dark). Composites referencing that key inherit it.
-  lineHeights?: Partial<Record<LineHeightKey, number>>;
-  // Per-mode LETTER SPACING per named step — a different em value for a tracking step (e.g. dark loosens
-  // `normal` to +0.005em). Composites referencing that key inherit it.
-  letterSpacings?: Partial<Record<LetterSpacingKey, number>>;
+  // Per-mode LEADING RE-POINT (#296) — maps a rung to ANOTHER RUNG: `{ normal: 'relaxed' }` reads
+  // "in this mode, styles that would use `normal` use `relaxed` instead". It names a rung, never a
+  // number, because rungs are mode-invariant PRIMITIVES — a mode re-points, it never re-anchors.
+  // (Re-anchoring what a rung is WORTH is `typography.lineHeights`, which is numeric and brand-wide.)
+  // Naming the target rung rather than a value it snaps to means a request can never silently no-op.
+  lineHeights?: Partial<Record<LineHeightKey, LineHeightKey>>;
+  // Per-mode TRACKING RE-POINT — same contract: `{ normal: 'wide' }`.
+  letterSpacings?: Partial<Record<LetterSpacingKey, LetterSpacingKey>>;
   // Per-mode MOTION TEMPO — a different tempo enum (scales the duration ramp + stagger for this mode).
   // The motion analog of radius: one lever re-derives the whole ramp. Mirrors the global `tempo` enum;
   // e.g. a `marketing` custom mode runs `relaxed` while the app mode stays `snappy`.
@@ -543,6 +545,10 @@ export type TypeComposite = {
   group: TypeGroup; variant: string; path: string; sizePx: number;   // desktop / max
   sizeMinPx: number;                               // mobile / min (== sizePx when static)
   family: FamilyRoleName; lineHeight: string; weightRole: WeightRoleName; tracking: string;
+  // #296 — per-mode RE-POINT: the rung key this composite binds in a given mode, when it differs
+  // from the light key. Absent ⇒ the composite uses one rung across every mode.
+  lineHeightByMode?: Record<string, string>;
+  trackingByMode?: Record<string, string>;
   textCase: 'none' | 'uppercase' | 'lowercase';   // baked style (not Figma-bindable; code/style-side)
   link: boolean;                                   // underlined link variant (textDecoration baked)
   italic: boolean;                                 // italic variant — orthogonal modifier PAIRED with the weight
@@ -577,8 +583,10 @@ export type Typography = {
   // `letterSpacings` deviate the baseline. Each carries the FULL named ramp re-anchored for that mode
   // (steps at the light value where the mode didn't override). Composites inherit via their
   // line-height/letter-spacing key alias, so the composite set is untouched. Absent ⇒ byte-identical.
-  lineHeightsByMode?: Record<string, { key: string; value: number }[]>;
-  letterSpacingsByMode?: Record<string, { key: string; em: number }[]>;
+  // #296 — per-mode leading/tracking RE-POINT maps (rung → rung). Not per-mode ramps: the rungs are
+  // mode-invariant primitives, so a mode records only which rung stands in for which.
+  lineHeightRepointByMode?: Record<string, Record<string, string>>;
+  letterSpacingRepointByMode?: Record<string, Record<string, string>>;
 };
 
 const SANS_FALLBACK = ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'];
@@ -586,7 +594,10 @@ const MONO_FALLBACK = ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'L
 // Line-height + letter-spacing are curated NAMED ramps (semantic keys → value). The key ORDER is the
 // single source: `LineHeightKey`/`LetterSpacingKey` derive from it, and per-mode overrides
 // (modeLevers.lineHeights/letterSpacings) are keyed by these names. Composites reference a key
-// (lineHeightFor / trackingFor pick which), so re-anchoring a key's value per mode reflows every
+// (lineHeightFor / trackingFor pick which). NOTE (#296): a per-mode override no longer re-anchors a
+// key's VALUE — the rungs are mode-invariant primitives, and the mode re-points the composite at a
+// different rung instead. What follows describes the BRAND-level ramp, which a brand may re-anchor
+// freely (mode-invariantly); the per-mode path snaps to whichever rung it lands nearest. Was: every
 // composite that uses it — the same seam as weight-role.
 export const LINE_HEIGHT_KEYS = ['tight', 'snug', 'compact', 'normal', 'relaxed', 'loose'] as const;
 export type LineHeightKey = typeof LINE_HEIGHT_KEYS[number];
@@ -1246,16 +1257,22 @@ export const brandTheme = (input: BrandInput): Theme => {
       if (w !== undefined && (!Number.isFinite(w) || w < 100 || w > 900))
         throw new Error(`modeLevers: mode '${m}' weight '${role}' ${w} is out of range — must be a finite number in [100, 900]`);
     }
-    // Per-mode line-height must be a sane unitless multiplier [0.8, 3]; letter-spacing a sane em
-    // [-0.5, 0.5]. Bounds guard typos, not taste (a designer wouldn't set leading 10× or tracking 2em).
-    for (const [k, v] of Object.entries(lev.lineHeights ?? {})) {
-      if (v !== undefined && (!Number.isFinite(v) || v < 0.8 || v > 3))
-        throw new Error(`modeLevers: mode '${m}' lineHeight '${k}' ${v} is out of range — must be a finite multiplier in [0.8, 3]`);
-    }
-    for (const [k, v] of Object.entries(lev.letterSpacings ?? {})) {
-      if (v !== undefined && (!Number.isFinite(v) || v < -0.5 || v > 0.5))
-        throw new Error(`modeLevers: mode '${m}' letterSpacing '${k}' ${v} is out of range — must be a finite em in [-0.5, 0.5]`);
-    }
+    // #296 — per-mode leading/tracking name a RUNG on both sides (source key → target key). Both must
+    // be real rungs; a NUMBER here is the old pre-#296 shape and is rejected with a pointer, because
+    // silently coercing it would reintroduce exactly the mode-varying-primitive bug this replaced.
+    const rungCheck = (obj: Record<string, unknown> | undefined, keys: readonly string[], label: string, brandField: string): void => {
+      for (const [k, v] of Object.entries(obj ?? {})) {
+        if (v === undefined) continue;
+        if (typeof v === 'number')
+          throw new Error(`modeLevers: mode '${m}' ${label} '${k}' is ${v} — per-mode ${label} names a TARGET RUNG (one of ${keys.join('/')}), not a value. To change what a rung is worth, set typography.${brandField} (brand-wide; rungs are mode-invariant primitives, #296).`);
+        if (!keys.includes(String(v)))
+          throw new Error(`modeLevers: mode '${m}' ${label} '${k}' → '${v}' is not a rung — must be one of ${keys.join('/')}`);
+        if (!keys.includes(k))
+          throw new Error(`modeLevers: mode '${m}' ${label} source '${k}' is not a rung — must be one of ${keys.join('/')}`);
+      }
+    };
+    rungCheck(lev.lineHeights as Record<string, unknown> | undefined, LINE_HEIGHT_KEYS, 'lineHeight', 'lineHeights');
+    rungCheck(lev.letterSpacings as Record<string, unknown> | undefined, LETTER_SPACING_KEYS, 'letterSpacing', 'letterSpacings');
     // Per-mode tempo must be one of the three tempo enums (the same set as the global lever).
     if (lev.tempo !== undefined && !['snappy', 'standard', 'relaxed'].includes(lev.tempo))
       throw new Error(`modeLevers: mode '${m}' tempo '${lev.tempo}' is invalid — must be one of snappy/standard/relaxed`);
@@ -1608,21 +1625,31 @@ export const brandTheme = (input: BrandInput): Theme => {
   // step. Merge the mode's per-step overrides over the base ramp and emit the FULL ramp for that mode
   // (a step the mode didn't touch keeps the light value). Only overriding modes get an entry ⇒ absent
   // maps stay byte-identical. Composites reference the step by KEY, so they inherit automatically.
-  const lineHeightsByMode: Record<string, { key: string; value: number }[]> = {};
-  const letterSpacingsByMode: Record<string, { key: string; em: number }[]> = {};
-  // No-diff suppression (mirrors radius/family/weight): a mode re-declaring the global ramp gets no entry.
-  // Base is the BRAND's ramp (which may itself re-anchor rungs), not the curated const — otherwise a
-  // brand-level re-anchor would be silently dropped for any mode that overrides a different rung.
-  const baseLh = brandLineHeights(input.typography);
-  const baseLs = brandLetterSpacings(input.typography);
-  const baseLhJson = JSON.stringify(baseLh);
-  const baseLsJson = JSON.stringify(baseLs);
+  // #296 — a per-mode leading/tracking lever is a RE-POINT MAP (rung → rung), stored as-is. The rung
+  // primitives themselves are mode-invariant, so there is no per-mode ramp to derive: the mode simply
+  // says which rung stands in for which. Composites resolve it below; `tree.ts` emits the swapped alias
+  // on the semantic composite, never a per-mode value on the rung.
+  const lineHeightRepointByMode: Record<string, Record<string, string>> = {};
+  const letterSpacingRepointByMode: Record<string, Record<string, string>> = {};
   for (const [m, lev] of Object.entries(modeLevers)) {
-    if (lev?.lineHeights) diffAssign(lineHeightsByMode, m, baseLh.map((l) => ({ key: l.key, value: lev.lineHeights![l.key as LineHeightKey] ?? l.value })), baseLhJson);
-    if (lev?.letterSpacings) diffAssign(letterSpacingsByMode, m, baseLs.map((l) => ({ key: l.key, em: lev.letterSpacings![l.key as LetterSpacingKey] ?? l.em })), baseLsJson);
+    // Drop self-maps (`normal → normal`): a no-diff entry, same suppression the other axes use, so an
+    // inert declaration can't create a mode entry or a spurious composite variant.
+    const lh = Object.entries(lev?.lineHeights ?? {}).filter(([k, v]) => v && v !== k);
+    const ls = Object.entries(lev?.letterSpacings ?? {}).filter(([k, v]) => v && v !== k);
+    if (lh.length) lineHeightRepointByMode[m] = Object.fromEntries(lh) as Record<string, string>;
+    if (ls.length) letterSpacingRepointByMode[m] = Object.fromEntries(ls) as Record<string, string>;
   }
-  if (Object.keys(lineHeightsByMode).length) typography.lineHeightsByMode = lineHeightsByMode;
-  if (Object.keys(letterSpacingsByMode).length) typography.letterSpacingsByMode = letterSpacingsByMode;
+  if (Object.keys(lineHeightRepointByMode).length) typography.lineHeightRepointByMode = lineHeightRepointByMode;
+  if (Object.keys(letterSpacingRepointByMode).length) typography.letterSpacingRepointByMode = letterSpacingRepointByMode;
+  // Resolve onto each composite: if this mode re-points the rung the composite uses, record the target.
+  // No snapping and no nearest-match, so a request can never be quantised away — it either names a
+  // different rung (and applies) or is a self-map (dropped above).
+  for (const c of typography.composites) {
+    for (const [m, map] of Object.entries(lineHeightRepointByMode))
+      if (map[c.lineHeight]) (c.lineHeightByMode ??= {})[m] = map[c.lineHeight];
+    for (const [m, map] of Object.entries(letterSpacingRepointByMode))
+      if (map[c.tracking]) (c.trackingByMode ??= {})[m] = map[c.tracking];
+  }
   const dispSizes = typography.composites.filter((c) => c.group === 'display').map((c) => c.sizePx);
   const reqCeiling = input.typography?.displayCeiling ?? 160;
   const effCap = dispSizes.length ? Math.max(...dispSizes) : 0;
@@ -1671,7 +1698,7 @@ export const brandTheme = (input: BrandInput): Theme => {
   return {
     id: input.id, root, namespace: `${root}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
     ...(customModes.length ? { customModes } : {}),
-    ...(Object.keys(radiusByMode).length || Object.keys(familiesByMode).length || Object.keys(weightRolesByMode).length || Object.keys(lineHeightsByMode).length || Object.keys(letterSpacingsByMode).length || Object.keys(motionByMode).length || Object.keys(shadowByMode).length || Object.keys(sizesByMode).length ? { modeLevers } : {}),
+    ...(Object.keys(radiusByMode).length || Object.keys(familiesByMode).length || Object.keys(weightRolesByMode).length || Object.keys(lineHeightRepointByMode).length || Object.keys(letterSpacingRepointByMode).length || Object.keys(motionByMode).length || Object.keys(shadowByMode).length || Object.keys(sizesByMode).length ? { modeLevers } : {}),
     roleAnchorStep: { brand: anchorStep, neutral: 500, success: 500, warning: 500, danger: 500, info: 500, action: actionAnchorStep },
     surfaces: input.surfaces,
     overrides: input.overrides,

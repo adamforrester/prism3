@@ -258,7 +258,7 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
   const preferred = `${interceptRem}rem + ${slopeVw}vw`;
   return { clamp: `clamp(${round(minPx / 16, 4)}rem, ${preferred}, ${round(maxPx / 16, 4)}rem)`, preferred };
 };
-const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; family: string; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean }, face: string, minVW: number, maxVW: number): Token => {
+const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; family: string; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string> }, face: string, minVW: number, maxVW: number): Token => {
   const a = (seg: string) => `{${root}.font.${seg}}`;
   const value: Record<string, unknown> = {
     fontFamily: a(`family.${c.family}`),
@@ -283,10 +283,19 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
         figma: { field: 'fontSize', scope: 'FONT_SIZE', modes: { mobile: c.sizeMinPx, desktop: c.sizePx } },
       }
     : { fluid: false, px: c.sizePx };
+  // #296 — a per-mode leading/tracking change re-points THIS composite's alias at a different rung;
+  // every rung primitive keeps one value across all modes. Mirrors `radius.md` → `{dimension.N}` and
+  // `font.weight-role.default` → `{font.weight.N}`.
+  const rungModes: Record<string, Record<string, string>> = {};
+  for (const [m, key] of Object.entries(c.lineHeightByMode ?? {})) (rungModes[m] ??= {}).lineHeight = a(`line-height.${key}`);
+  for (const [m, key] of Object.entries(c.trackingByMode ?? {})) (rungModes[m] ??= {}).letterSpacing = a(`letter-spacing.${key}`);
+  const modeVariants = Object.keys(rungModes).length
+    ? { modes: Object.fromEntries(Object.entries(rungModes).map(([m, parts]) => [m, { $value: { ...value, ...parts }, note: `leading/tracking re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})` }])) }
+    : {};
   return {
     $type: 'typography', $value: value,
     $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face} (${c.family} role), ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* colour)' : ''} — consumer-facing type style`,
-    $extensions: { prism3: { role: 'composite', group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontWeight'], baked: ['lineHeight', 'letterSpacing', ...(c.italic ? ['fontStyle'] : []), ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])], note: 'Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table.' } } },
+    $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontWeight'], baked: ['lineHeight', 'letterSpacing', ...(c.italic ? ['fontStyle'] : []), ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])], note: 'Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table.' } } },
   };
 };
 
@@ -545,32 +554,17 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // ({font.line-height.<key>} / {font.letter-spacing.<key>}), so it inherits per-mode automatically. NOTE:
   // Figma text styles BAKE line-height/letter-spacing as percent (not variables), so the per-mode value
   // rides the DTCG primitive + web/CSS; the Figma text-style export stays light-baked (as today).
-  const lhByMode = ty.lineHeightsByMode ?? {};
-  const lsByMode = ty.letterSpacingsByMode ?? {};
+  // #296 — these rungs are PRIMITIVES: exactly one value each, across every mode. A per-mode
+  // leading/tracking change is expressed on the semantic COMPOSITE (see `typographyLeaf`), which
+  // re-points its alias at a different rung. Previously each rung carried
+  // `$extensions.prism3.modes.<mode>.$value`, which redefined what e.g. `normal` MEANS per mode for
+  // all 35 composite references — the violation #296 was filed for.
   const lineHeight: Record<string, Token> = {};
-  for (const lh of ty.lineHeights) {
-    const leaf = lineHeightLeaf(lh.value, `line height ${lh.key} — ${lh.value}× (unitless multiplier)`);
-    const modeOverrides: Record<string, unknown> = {};
-    for (const [mode, steps] of Object.entries(lhByMode)) {
-      const ms = steps.find((x) => x.key === lh.key);
-      if (!ms || ms.value === lh.value) continue;   // same multiplier → no diff → no override
-      modeOverrides[mode] = { $value: ms.value, percent: Math.round(ms.value * 100), note: `line-height lever override — ${mode} (${lh.key} → ${ms.value}×)` };
-    }
-    if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
-    lineHeight[lh.key] = leaf;
-  }
+  for (const lh of ty.lineHeights)
+    lineHeight[lh.key] = lineHeightLeaf(lh.value, `line height ${lh.key} — ${lh.value}× (unitless multiplier)`);
   const letterSpacing: Record<string, Token> = {};
-  for (const ls of ty.letterSpacings) {
-    const leaf = letterSpacingLeaf(ls.em, `letter spacing ${ls.key} — ${ls.em}em`);
-    const modeOverrides: Record<string, unknown> = {};
-    for (const [mode, steps] of Object.entries(lsByMode)) {
-      const ms = steps.find((x) => x.key === ls.key);
-      if (!ms || ms.em === ls.em) continue;   // same em → no diff → no override
-      modeOverrides[mode] = { $value: `${ms.em}em`, em: ms.em, note: `letter-spacing lever override — ${mode} (${ls.key} → ${ms.em}em)` };
-    }
-    if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
-    letterSpacing[ls.key] = leaf;
-  }
+  for (const ls of ty.letterSpacings)
+    letterSpacing[ls.key] = letterSpacingLeaf(ls.em, `letter spacing ${ls.key} — ${ls.em}em`);
   const font = { typeface, family, size: fsize, weight: fweight, 'weight-role': weightRole, 'line-height': lineHeight, 'letter-spacing': letterSpacing };
 
   // ---- typography semantic composites (Phase 2) ----

@@ -2333,24 +2333,27 @@ const renderLeadingTracking = (): HTMLElement => {
       const cell = el('div', 'lt-cell');
       const top = el('div', 'lt-top');
       top.append(el('span', 'lt-key mono', s.key));
-      const inp = numberField({ className: 'lt-in', min, max, step, value: perMode ? '' : s.val });
+      // #296 — two DIFFERENT operations, so two different controls. In Light you edit the rung's VALUE
+      // (a brand-wide re-anchor of a mode-invariant primitive). In any other mode you pick a TARGET
+      // RUNG (a re-point for that mode) — never a number, because a mode may not redefine a primitive.
       if (perMode) {
-        const ov = getModeLever(currentMode, `${modeField}.${s.key}`) as number | undefined;
-        inp.value = ov !== undefined ? String(ov) : '';
-        inp.placeholder = `Auto ${fmt(s.val)}`;
-        inp.onchange = () => {
-          const raw = inp.value.trim();
-          if (raw === '') { setModeLever(currentMode, `${modeField}.${s.key}`, undefined); applyFull(); return; }
-          const n = Number(raw);
-          if (n >= min && n <= max) { setModeLever(currentMode, `${modeField}.${s.key}`, n); applyFull(); } else inp.value = ov !== undefined ? String(ov) : '';
-        };
+        const ov = getModeLever(currentMode, `${modeField}.${s.key}`) as string | undefined;
+        const sel = selectEl('sm fill');
+        sel.append(optionEl('', `Auto — ${s.key} (${fmt(s.val)})`, !ov));
+        for (const t of steps) {
+          if (t.key === s.key) continue;                       // a self-map is a no-op; don't offer it
+          sel.append(optionEl(t.key, `${t.key} (${fmt(t.val)})`, ov === t.key));
+        }
+        sel.onchange = () => { setModeLever(currentMode, `${modeField}.${s.key}`, sel.value || undefined); applyFull(); };
+        top.append(sel);
       } else {
+        const inp = numberField({ className: 'lt-in', min, max, step, value: s.val });
         inp.onchange = () => {
           const n = Number(inp.value);
           if (n >= min && n <= max) { setPath(brandState, `${globalKey}.${s.key}`, n); apply(); } else inp.value = String(s.val);
         };
+        top.append(inp);
       }
-      top.append(inp);
       cell.append(top);
       const who = [...new Set(ty.composites.filter((c) => (modeField === 'lineHeights' ? c.lineHeight : c.tracking) === s.key).map((c) => c.group))];
       cell.append(el('div', 'lt-who', who.length ? who.join(', ') : 'not currently used'));
@@ -2367,7 +2370,7 @@ const renderLeadingTracking = (): HTMLElement => {
   ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`,
     'typography.letterSpacings', 'letterSpacings', -0.5, 0.5, 0.005,
     (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
-  if (perMode) sec.append(el('p', 'te-modenote', `Values shown are ${modeLabel}’s — blank follows the global ramp.`));
+  if (perMode) sec.append(el('p', 'te-modenote', `Each rung shows what ${modeLabel} SUBSTITUTES for it — “Auto” keeps the rung itself. The rung values are mode-invariant primitives, shared across every mode; to change what a rung is worth, edit it in Light.`));
   return sec;
 };
 
@@ -2845,12 +2848,15 @@ const renderTypeRamp = (): HTMLElement => {
   const ty = theme.typography;
   const fams = ty.familiesByMode?.[currentMode] ?? ty.families;
   const wrs = ty.weightRolesByMode?.[currentMode] ?? ty.weightRoles;
-  const lhs = ty.lineHeightsByMode?.[currentMode] ?? ty.lineHeights;
-  const lss = ty.letterSpacingsByMode?.[currentMode] ?? ty.letterSpacings;
+  // #296 — the rungs are mode-invariant, so read them straight. What varies per mode is WHICH rung a
+  // composite uses: `lineHeightByMode` / `trackingByMode` carry the re-point. Resolving the key first
+  // and the value second is what keeps the preview honest about the two tiers.
   const stackOf = (r: string): string => fams.find((f) => f.role === r)?.stack.join(', ') ?? 'inherit';
   const wOf = (r: string): number => wrs.find((w) => w.role === r)?.value ?? 400;
-  const lhOf = (k: string): number => lhs.find((l) => l.key === k)?.value ?? 1.5;
-  const lsOf = (k: string): number => lss.find((l) => l.key === k)?.em ?? 0;
+  const lhKey = (c: { lineHeight: string; lineHeightByMode?: Record<string, string> }): string => c.lineHeightByMode?.[currentMode] ?? c.lineHeight;
+  const lsKey = (c: { tracking: string; trackingByMode?: Record<string, string> }): string => c.trackingByMode?.[currentMode] ?? c.tracking;
+  const lhOf = (k: string): number => ty.lineHeights.find((l) => l.key === k)?.value ?? 1.5;
+  const lsOf = (k: string): number => ty.letterSpacings.find((l) => l.key === k)?.em ?? 0;
 
   const sec = palSection('The full type ramp', `Every style the system generates — ${ty.composites.length} in total, grouped by category. This is what ships as tokens.`);
   for (const g of TYPE_GROUP_ORDER) {
@@ -2866,14 +2872,14 @@ const renderTypeRamp = (): HTMLElement => {
       const meta = el('div', 'tr-meta');
       meta.append(tokenPill(`type.${c.path}`));
       const fluidTag = c.sizeMinPx !== c.sizePx ? ` · fluid ${c.sizeMinPx}→${c.sizePx}` : '';
-      meta.append(el('span', 'tr-attr mono', `${c.sizePx}px · ${c.weightRole} ${wOf(c.weightRole)} · ${c.lineHeight} ${lhOf(c.lineHeight)}× · ${c.tracking} ${lsOf(c.tracking)}em · ${c.family}${fluidTag}`));
+      meta.append(el('span', 'tr-attr mono', `${c.sizePx}px · ${c.weightRole} ${wOf(c.weightRole)} · ${lhKey(c)} ${lhOf(lhKey(c))}× · ${lsKey(c)} ${lsOf(lsKey(c))}em · ${c.family}${fluidTag}`));
       row.append(meta);
       const samp = el('div', 'tr-samp', rampSample(c.group, c.sizePx));
       samp.style.fontFamily = stackOf(c.family);
       samp.style.fontSize = `${c.sizePx}px`;
       samp.style.fontWeight = String(wOf(c.weightRole));
-      samp.style.lineHeight = String(lhOf(c.lineHeight));
-      samp.style.letterSpacing = `${lsOf(c.tracking)}em`;
+      samp.style.lineHeight = String(lhOf(lhKey(c)));
+      samp.style.letterSpacing = `${lsOf(lsKey(c))}em`;
       if (c.link) samp.style.textDecoration = 'underline';
       if (c.italic) samp.style.fontStyle = 'italic';
       if (c.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
