@@ -92,6 +92,88 @@ Resolves #260; landed as PR #306.
 
 ---
 
+## (2026-07-30) — Long token paths elide from the left, not the right (#289)
+
+**STATUS: web-only.** `out/*` untouched; engine tests and the 85-artifact drift gate unchanged. Landed
+as PR #307. *(Backfilled entry — reconstructed from the commit record, not written at the time.)*
+
+- **Measured, not eyeballed.** On `origin/main`: 12 pills wrap at 1280px and 43 at 1024px, 9 and 34 of
+  those overflowing their parent box. `.sf-id` is a 168px grid column and the style-guide grid is five
+  columns wide, so the wrap is structural rather than incidental.
+- **The fix lands on `.tpill` itself**, not the two containers that happened to get reported. The pill
+  is used in 17 places; a per-context rule would just wait for the next narrow column.
+- **Left elision, and the data is the reason.** These paths share long prefixes and differ only in the
+  tail — `color.foreground.brand` vs `color.foreground.brand-subtle`, or the six
+  `color.interactive.destructive.on-inverse.{text,fill}.{rest,hover,pressed}` whose first 40 characters
+  are identical. Cutting from the right renders all of them as the same stub; the discriminating
+  information is at the end. The cost is that the namespace prefix is what hides when space is tight —
+  `title` and the style-guide hover bubble both carry the full path, and the emitted path is unchanged,
+  which is what doc-26's namespace rule actually governs.
+- **Widening the column was rejected:** the longest emitted path is 53 chars
+  (`color.interactive.destructive.on-inverse.text.pressed`), ~350px at the pill's 10.5px mono, and every
+  new interactive role can extend the tail.
+- **Two implementations were built and discarded, both caught by measurement rather than review.** An
+  inline-flex head+tail sized correctly, but flex items are blockified, so selecting a pill returned
+  `color\n.background.primary`. What shipped keeps the path a **single text node** and elides purely
+  visually via `direction: rtl`, so a selection still yields the exact path.
+- **`sgPill` no longer overwrites `title`** with the resolution string: `data-sgtip` keeps the resolved
+  step/hex/ratio bubble and `title` carries the full path — which matters once a path can be elided.
+- **Verified:** Playwright across 6 configurations (aurora/harbor × 820–1440px × light/dark), all nine
+  rail pages, ~198 pills each — 0 wrapped, 0 inexact selections, 0 pills whose text node differs from
+  its `title` (so bidi reordering is a no-op on these ASCII paths), 0 console errors. The audit was run
+  against `origin/main` first to confirm it detects the wrapping it claims to fix. The `sg-failpill`
+  "!" marker never renders in the live example brands, so its absolute positioning was exercised by
+  synthesizing the fail state — the marker stays right, inside the box, on elided pills.
+
+---
+
+## (2026-07-30) — Validation-color borrow controls: two bugs were already dead, one was real (#157)
+
+**STATUS: web-only.** One narrow fix (6+/1-) in `web/src/main.ts`. Landed as PR #303.
+*(Backfilled entry — reconstructed from the commit record, not written at the time.)*
+
+- **Two of the three reported bugs no longer reproduce** — borrow-leak across ramps, and wrong-color +
+  dropdown revert on "Use accent". Both had been fixed by #228 (full borrowed-ramp render) and #233
+  (`roleToPalette` resolution), which landed *after* #157 was filed. Verified live across five
+  sequential multi-row scenarios on the `aurora` fixture rather than assumed stale — the check was
+  cheap, and the alternative was re-fixing something already fixed.
+- **The third was real.** `anchorStepFor` handled only `primary` / `neutral` / `brandColors`; a
+  custom-hue-seeded status role has no case, so it always fell through to "derived" instead of exposing
+  an anchor step like every other scale. Added the status-role branch, reading the same pinned lightness
+  the other three cases use and reusing the existing `STATUS_ROLES` / `StatusRole` constructs rather
+  than inventing new ones.
+- **The fix rests on an assumption that was checked rather than assumed:** `roleToPalette` defaults
+  every non-borrowed status role to its own name, so at the call site (`refresh()` in the status row)
+  `srcName = borrowed ?? resolved` resolves to exactly `role` for a non-borrowed, non-reused status role.
+- **Verified in the browser:** switching Danger's Source to "Custom hue…" moves the anchor badge from
+  **derived** to **450**, matching the highlighted ramp step; Success/Warning/Info stay derived,
+  confirming the fix is scoped to the custom-hue case alone.
+
+---
+
+## (2026-07-30) — Raw NUL bytes banned in source (#304)
+
+**STATUS: engine + test guard.** Output byte-identical — the escape changed no behavior. Landed as
+PR #304. *(Backfilled entry — reconstructed from the commit record, not written at the time.)*
+
+- **What it was:** `tree.ts:548` held a literal `0x00` character where the escape was intended. Legal to
+  the compiler, invisible in an editor, byte-identical at runtime — but it makes the file **binary** to
+  the grep/ripgrep family, so content searches return "binary file matches" with no lines. The engine's
+  largest source file was invisible to the tool used to navigate it. On `main` since 9f719e3 (#185).
+- **Second instance of the class.** The first, in `web/src/main.ts`, also broke a Playwright
+  `select_option`, because the option values no longer matched what was typed.
+- **A total ban, not a judgement call.** The escape is always available and always equivalent, so there
+  is no case where the literal byte is wanted — the guard scans the engine plus both bundled surfaces.
+  Fixing without the guard would just wait for the third instance.
+- **The guard was watched failing** on `tree.ts:548` before the fix landed, and its liveness assertion
+  checks that every scanned root contributed files — a total-count threshold was tried first and
+  rejected as brittle against ordinary file churn.
+- **Verified:** 1000/1000 tests (998 + the two new assertions), nb-regression exits 0, `regen --check`
+  in sync at 85 artifacts — byte-identical output confirms the escape changed no behavior, so CI's
+  coverage assertion is untouched.
+
+---
+
 ## (2026-07-30) — Motion gets a primitive ms tier (#296, motion half)
 
 **STATUS: engine.** `out/*` **regenerated** (shape change). Closes the motion half of #296; only
@@ -130,6 +212,24 @@ Resolves #260; landed as PR #306.
   specimen, which reads durations and was the risk area.
 - **#296 remaining: shadow only** (`role: composite`, zero refs in or out — needs decomposing before
   it can be tiered). Still ledgered so it can't be forgotten.
+
+---
+
+## (2026-07-30) — Motion specimen: trace the curve (#292)
+
+**STATUS: web-only.** Landed as PR #299. *(Backfilled entry — reconstructed from the commit record, not
+written at the time.)*
+
+- **Replaces the stacked bar-fill list** with one large stage per semantic transition
+  (default / enter / exit / emphasized): the resolved easing curve plotted as a ghost line, with a dot
+  tracing it over the resolved duration. The bar-fill showed *that* something took time; the traced
+  curve shows *the shape of* the easing, which is what the token actually encodes.
+- **Playback control** (real · ½× · ¼× · ⅛×, defaulting to ¼× for legibility) uniformly divides all four
+  durations. It never touches the displayed ms label — always the real resolved token value — nor the
+  curve shape, and it preserves the ratio between transitions at any speed, so slowing the specimen down
+  to read it cannot misrepresent what ships.
+- **Downstream note:** this specimen reads durations, which made it the risk area for #300's
+  `motion.duration-ms.*` tier landing immediately after — swept with Playwright there and clean.
 
 ---
 
