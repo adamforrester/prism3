@@ -7,6 +7,45 @@
 
 ---
 
+## (2026-07-30) — The top bar on mobile: one row, and menus that stay on screen (#144 follow-up)
+
+**STATUS: web-only.** Engine untouched. Found by the owner on the live deploy after #315 shipped —
+worth noting the finding came from *using* the thing, not from the audit that passed it.
+
+- **A closed dropdown is not in the DOM, so an overflow sweep cannot see it.** #315's 38 green checks
+  were real but blind: the brand menu opened ~152px off the left edge at every width below 640, and
+  nothing measured it because the panel only exists while open. **The menu audit now opens each one.**
+  Generalises past this PR: any conditionally-rendered surface — dropdown, modal, popover, toast — is
+  invisible to a static sweep and needs its own pass.
+- **Both the before and after states were broken, differently.** The panels are anchored `right:0` to
+  their own wrapper, which is only safe while that wrapper sits at the viewport's right edge. #315 made
+  the bar wrap so it stopped overflowing, and that moved the actions LEFT, taking the right-anchored
+  panel off-screen. Before #315 the panel was nominally on-screen, but the bar itself overflowed 252px
+  at 360px wide — so the button that opens it was unreachable. Measured both, rather than assuming the
+  regression was purely mine.
+- **Right-aligning the row was necessary but not sufficient**, which only showed up on re-measurement:
+  the brand button is not the rightmost item, so its panel still began ~122px short of the edge and hung
+  9px off at 360px. The wrappers drop to `position:static` so the actions ROW becomes the containing
+  block, and both panels align to the one edge that is always flush with the gutter.
+- **"Fits by one pixel" is not a fit.** Full labels need ~455px against 456 available at 480px. Below
+  560 the "Theme studio" descriptor and the "Export" word are dropped — the ↓ and caret stay, and an
+  `aria-label` carries the accessible name — which takes the row to ~278px and holds a single line down
+  to ~312px of viewport. **Icon-only Export alone was not enough below 430px**; the owner sanctioned the
+  icon change, and the descriptor had to go with it to actually reach one row.
+- **The Export word is a nested span with the space inside it**, so wide layout still renders
+  `↓ Export` byte-identically — splitting it into sibling spans would have added a 9px flex gap and
+  quietly changed the desktop bar.
+- **Verified on the web build specifically** — the plugin bundle carries an extra "Apply to Figma"
+  button, so its bar is wider and measuring it would have overstated the widths for the deploy that
+  actually has the bug. Menus fully on-screen and one row at 360/393/430/480/640/900; desktop unchanged
+  (`.barbtn-lab`/`.studio` still inline/block at 640+, export 112px there vs 57px at 393). The #315
+  responsive sweep still 38/38 with 0 console errors, grip checks still pass, both surfaces typecheck
+  and build, `regen.ts --check` 85/85, `test.ts` 1006/1006.
+- **Deliberately untouched:** the modes bar. It is due a revamp or relocation, so tightening it now
+  would be work thrown away — the opportunity to improve it on mobile rides with that change.
+
+---
+
 ## (2026-07-30) — Narrow viewports: the collapse rule never clamped (#144)
 
 **STATUS: web + plugin.** Engine untouched, `out/*` unchanged. Closes #144; landed as PR #315.

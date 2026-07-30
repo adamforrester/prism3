@@ -3705,7 +3705,13 @@ function renderBar(): void {
   // Export — the download artifacts.
   const eWrap = el('div', 'barmenu-wrap');
   const exp = el('button', 'barbtn' + (exportMenuOpen ? ' open' : '')) as HTMLButtonElement;
-  exp.append(el('span', undefined, '↓ Export'), el('span', 'caret', '▾'));
+  // The word is its own span so the narrow bar can drop to icon-only (the arrow alone) without
+  // touching the arrow or the caret. Nested inside one span with the space INSIDE the label, so
+  // wide layout renders "↓ Export" exactly as before — no extra flex gap appears between them.
+  const expText = el('span');
+  expText.append(document.createTextNode('↓'), el('span', 'barbtn-lab', ' Export'));
+  exp.append(expText, el('span', 'caret', '▾'));
+  exp.setAttribute('aria-label', 'Export');   // stable accessible name once the word is hidden
   exp.onclick = (e) => { e.stopPropagation(); exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; renderBar(); };
   eWrap.append(exp);
   if (exportMenuOpen) eWrap.append(renderExportMenu());
@@ -4580,7 +4586,22 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 @media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
 /* Narrow viewports (#144). The plugin iframe runs this same UI, so its window lands here:
    gutters, hero and chrome all shrink, and nothing is allowed to overflow horizontally. */
-@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
+/* The bar's dropdowns are anchored right:0 to their wrapper, which is only safe while the wrapper
+   sits at the viewport's right edge. When the bar wraps, the actions land at the LEFT and a 288px
+   panel hangs ~152px off-screen — invisible to an overflow sweep, because a closed menu isn't in
+   the DOM at all. margin-left:auto keeps the actions right-aligned on their own wrapped row, which
+   fixes the cause; the max-width is the belt-and-braces cap for viewports under ~312px. */
+/* Right-aligning the row is necessary but not sufficient: each menu anchors to its OWN wrapper,
+   and the brand button is not the rightmost item, so its panel still started ~122px short of the
+   edge and hung 9px off at 360px. Dropping the wrappers to static makes the actions row itself the
+   containing block, so both panels align to the row's right edge — the one edge that is always
+   flush with the viewport gutter, whatever the buttons ahead of them are doing. */
+@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap;margin-left:auto;position:relative}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
+/* Compact bar. Full labels need ~455px and the row has 456 at 480px — i.e. it only "fits" by a
+   pixel, so the treatment starts before the numbers get tight. Dropping the "Theme studio"
+   descriptor and the Export word (the ↓ and caret stay, and aria-label keeps the accessible name)
+   takes the row to ~278px, which is a single line down to ~312px of viewport. */
+@media(max-width:560px){.studio{display:none}.barbtn-lab{display:none}}
 /* Below ~480 the 10 hex read-outs under a ramp cannot fit (each needs ~45px, the row has ~406):
    drop the hex and keep the step number, so labels stay 1:1 under their swatches. Wrapping or
    scrolling the row would break that alignment, which is the whole point of a ramp. */
