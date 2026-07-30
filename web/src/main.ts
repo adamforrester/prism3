@@ -2836,6 +2836,7 @@ const renderShadowEditor = (softness?: Lever): HTMLElement => {
         // update the ↺ Auto reset in place (no full re-render, so dragging stays smooth).
         setAuto(overriding);
         apply();
+        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
       };
       const body = el('div', 'knob-body'); body.append(input, val);
       knob.append(body);
@@ -2853,7 +2854,12 @@ const renderShadowEditor = (softness?: Lever): HTMLElement => {
       knob.append(el('label', 'knob-label', label));
       const input = rangeInput({ min, max, step, value: cur?.[key] ?? gTint[key] });
       const val = el('span', 'knob-val', `${input.value}${unit}`);
-      input.oninput = () => { setPath(brandState, `shadow.tint.${key}`, Number(input.value)); val.textContent = `${input.value}${unit}`; apply(); };
+      input.oninput = () => {
+        setPath(brandState, `shadow.tint.${key}`, Number(input.value));
+        val.textContent = `${input.value}${unit}`;
+        apply();
+        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
+      };
       const body = el('div', 'knob-body'); body.append(input, val);
       knob.append(body);
       panel.append(knob);
@@ -2861,6 +2867,67 @@ const renderShadowEditor = (softness?: Lever): HTMLElement => {
     mk('hue', 'Tint hue', 0, 360, 1, '°');
     mk('amount', 'Tint amount', 0, 1, 0.05, '');
   }
+  panel.append(tintReadout());
+  return wrap;
+};
+
+/** #305 — the tint sliders' honest feedback.
+ *
+ *  The shadow ramp runs at 10–14% alpha, so even a fully saturated tint moves the COMPOSITED shadow
+ *  only ~3 ΔE00 — visible, but nowhere near what the slider's travel implies. Without this read-out the
+ *  control looked broken: the reported symptom was "I cannot see the tint sliders changing the
+ *  examples", and the honest answer is that the base colour changes a lot while the shadow changes a
+ *  little. So show the base colour at FULL opacity (where the hue is unmistakable) beside the shadow as
+ *  actually painted, and say why they differ.
+ *
+ *  Refreshed IMPERATIVELY via `refreshTintReadout`, not by re-render. The shadow editor lives in the
+ *  stable head (doc-26: controls are built once and survive `apply()`; only the volatile bands
+ *  re-render), so a read-out that computed its colour at construction time would freeze at the value
+ *  it was born with. That is exactly the inert-control bug this issue is about — the first cut of this
+ *  fix shipped frozen and a browser check caught it, so the slider handlers call the refresh. */
+let refreshTintReadout: (() => void) | null = null;
+
+const tintReadout = (): HTMLElement => {
+  const row = el('div', 'sh-tintout');
+
+  // The colour goes on an INNER fill so the chip's checkerboard stays behind it — setting
+  // `style.background` on the chip itself would clobber the background-image shorthand and the 12%
+  // swatch would read as an opaque grey instead of a translucent near-black.
+  const swatch = (caption: string): { cell: HTMLElement; fill: HTMLElement } => {
+    const chip = el('div', 'sh-tintchip');
+    const fill = el('div', 'sh-tintfill');
+    chip.append(fill);
+    const cell = el('div', 'sh-tintcell');
+    cell.append(chip, el('div', 'sh-tintcap', caption));
+    return { cell, fill };
+  };
+  const solid = swatch('Tint color · 100%');
+  // The same colour at a mid-ramp alpha — what the eye actually gets on the ramp.
+  const painted = swatch('In a shadow · 12%');
+  row.append(solid.cell, painted.cell);
+
+  const note = el('div', 'sh-tintnote');
+  const hexLabel = el('b', undefined, '');
+  const noteText = document.createTextNode('');
+  note.append(hexLabel, noteText);
+
+  const refresh = (): void => {
+    // A mode with its own tint override re-derives its own base colour; otherwise it inherits the global.
+    const base = theme.shadow.shadowByMode?.[currentMode]?.colorRgb ?? theme.shadow.colorRgb;
+    const baseHex = hex(base);
+    const amount = theme.shadow.shadowByMode?.[currentMode]?.tint.amount ?? theme.shadow.tint.amount;
+    solid.fill.style.backgroundColor = baseHex;
+    painted.fill.style.backgroundColor = `${baseHex}1f`;   // 12% — mid-ramp
+    hexLabel.textContent = baseHex.toUpperCase() + ' ';
+    noteText.nodeValue = amount === 0
+      ? '— pure black. Raise Tint amount to shift the shadow base off black.'
+      : 'is the shadow base. Shadows paint it at 10–14% opacity, so the hue reads far subtler on the ramp than on the swatch above — that is the shadow doing its job, not the slider failing.';
+  };
+  refresh();
+  refreshTintReadout = refresh;
+
+  const wrap = el('div', 'sh-tintblock');
+  wrap.append(row, note);
   return wrap;
 };
 
@@ -4032,6 +4099,20 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sh-knob-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .sh-auto{font:inherit;font-size:11px;color:var(--muted);background:none;border:none;padding:0;cursor:default}
 .sh-auto.on{color:var(--ink2);cursor:pointer;text-decoration:underline}
+/* #305 tint read-out — the tint colour at full opacity beside the same colour at a mid-ramp 12%.
+   The checkerboard under the 12% chip is what makes a translucent near-black legible as translucent;
+   on a flat panel it would just read as a slightly different flat grey. */
+.sh-tintblock{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line2)}
+.sh-tintout{display:flex;gap:14px}
+.sh-tintcell{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sh-tintchip{width:76px;height:44px;border-radius:var(--r-xs);border:1px solid var(--line2);overflow:hidden;
+  background-color:#fff;
+  background-image:linear-gradient(45deg,#e6e6e8 25%,transparent 25%,transparent 75%,#e6e6e8 75%),linear-gradient(45deg,#e6e6e8 25%,transparent 25%,transparent 75%,#e6e6e8 75%);
+  background-size:10px 10px;background-position:0 0,5px 5px}
+.sh-tintfill{width:100%;height:100%}
+.sh-tintcap{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.sh-tintnote{margin-top:10px;font-size:11.5px;line-height:1.5;color:var(--faint)}
+.sh-tintnote b{font-family:var(--mono);font-size:11px;color:var(--ink2)}
 /* Specimen meta row — a mono label + its token pill(s) inline (type / motion specimens). */
 .spec-metarow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .obj-row{display:flex;gap:8px;margin-top:8px}
