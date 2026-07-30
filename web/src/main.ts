@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES } from '../../Prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
@@ -1446,15 +1446,21 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
     example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
   host.append(oh);
 
-  const ds = el('div', 'psec'); ds.append(el('p', 'psec-t', 'Disabled'), el('p', 'psec-d', 'How disabled controls look and whether they stay legible.'));
+  const ds = el('div', 'psec'); ds.append(el('p', 'psec-t', 'Disabled'), el('p', 'psec-d', 'How much contrast disabled controls keep. Never below 3:1 either way — this system doesn’t use the WCAG exemption for inactive controls.'));
   const eBg = roles['interactive.primary.fill.rest']?.hex ?? '#5e4bc3', eFg = roles['interactive.primary.on-fill']?.hex ?? '#ffffff';
   // Read the RESOLVED disabled roles (not the invariant tertiary surface) so the example tracks the
-  // strategy + contrast-floor controls live — accessible vs. conventional lands on different steps.
+  // strategy + floor controls live — Full and Reduced land on different steps.
   const dBg = roles['disabled.fill']?.hex ?? '#e7e7ee', dFg = roles['disabled.on-fill']?.hex ?? '#9a9aa6';
-  ds.append(iRow({ lead: true, srcLabel: 'Strategy', select: iEnumSelect('disabledStrategy'),
-    desc: 'Keep disabled controls legible (clears the floor), or the conventional low-contrast look.',
+  const dFull = normalizeDisabledStrategy(getPath(brandState, 'disabledStrategy') as string | undefined) === 'full';
+  ds.append(iRow({ lead: true, srcLabel: 'Contrast', select: iEnumSelect('disabledStrategy'),
+    desc: 'Full guarantees AA text (4.5:1); Reduced dims to a floor you set, no lower than 3:1.',
+    // The affordance caveat, surfaced where the choice is made rather than left to be discovered:
+    // at 4.5:1 the label is as legible as body copy, so "disabled" reads from fill/border/cursor.
+    warn: dFull ? 'At 4.5:1 the label is as legible as body text — check a disabled control still reads as disabled (the cue now rests on fill, border, cursor and aria-disabled).' : undefined,
     example: twoUp(['Enabled', exBtn(eBg, eFg, false, 'Save')], ['Disabled', exBtn(dBg, dFg, false, 'Save')]) }));
-  if ((getPath(brandState, 'disabledStrategy') ?? 'accessible') === 'accessible') {
+  // The floor dial belongs to Reduced — Full is a fixed promise with nothing to tune. (Inverted from
+  // the original, where the dial sat on the compliant branch and could be pulled below AA.)
+  if (!dFull) {
     const min = leverByKey('disabledMin');
     if (min) {
       const c = renderControl(min);

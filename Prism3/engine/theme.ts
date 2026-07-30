@@ -141,12 +141,17 @@ export type Theme = {
   // the global `radiusScale` baseline every mode inherits — modeLevers deviate a single mode. The
   // re-derived radius ramps land on `dims.radiusByMode`; this carries the raw levers for round-trip.
   modeLevers?: Partial<Record<ModeName, ModeLevers>>;
-  // Disabled-state strategy. 'accessible' (default): disabled text/icon/border
-  // clears `disabledMin` on the floor, so it stays legible (the KB's `inactive`).
-  // 'conventional': intentionally sub-AA, leaning on the WCAG 1.4.3/1.4.11
-  // inactive-component exemption (the field-standard dimmed look).
-  disabledStrategy: 'accessible' | 'conventional';
-  disabledMin: number;               // accessible floor (default 3:1; bumped in HC)
+  // Disabled-state contrast. BOTH branches are gated — this system never ships disabled
+  // ink below 3:1, so neither leans on the WCAG 1.4.3/1.4.11 inactive-component exemption
+  // (owner decision, 2026-07-29; supersedes the old 'accessible'/'conventional' pair where
+  // 'conventional' sat at ~2:1 ungated and, at the bottom of its range, 'accessible'
+  // collapsed onto it).
+  //   'full'    — promises AA text: a fixed 4.5:1. No dial; it's a guarantee, not a range.
+  //   'reduced' — the default: a dialable `disabledMin` floor, 3–4.5. 3:1 is where
+  //               Primer/USWDS sit — visibly dimmed but legible (the KB's `inactive`).
+  // Both escalate to >=4.5:1 in high-contrast modes.
+  disabledStrategy: 'full' | 'reduced';
+  disabledMin: number;               // the 'reduced' floor (default 3:1, clamped 3–4.5; bumped in HC)
   // Icon contrast floor. 'text' (default): icons mirror text (4.5:1). '3:1':
   // icons resolve against the WCAG SC 1.4.11 non-text floor (3:1) — standards-
   // correct (graphical objects), letting secondary/semantic icons run lighter
@@ -310,10 +315,13 @@ export type BrandInput = {
   modeLevers?: Partial<Record<ModeName, ModeLevers>>;
   /** Optional measured status overrides; omit to let the engine synthesise. */
   status?: Partial<Record<'success' | 'warning' | 'danger' | 'info', OKLCH & { chroma: number }>>;
-  /** Disabled-state policy. Default 'accessible' (disabled clears `disabledMin`,
-   *  the KB's contrast-preserving `inactive`); 'conventional' for the field's
-   *  sub-AA exempt look. `disabledMin` is the accessible floor (default 3). */
-  disabledStrategy?: 'accessible' | 'conventional';
+  /** Disabled-state contrast. Default `'reduced'` — a dialable `disabledMin` floor
+   *  (3–4.5, default 3, where Primer/USWDS sit); `'full'` promises AA text at a fixed
+   *  4.5:1 and ignores `disabledMin`. Neither goes below 3:1.
+   *  LEGACY ALIASES, accepted for back-compat: `'accessible'` → `'reduced'` (keeps its
+   *  `disabledMin`, clamped to >=3); `'conventional'` → `'reduced'` at 3, which RAISES
+   *  its contrast from the old ~2:1 exempt look — a deliberate breaking improvement. */
+  disabledStrategy?: 'full' | 'reduced' | 'accessible' | 'conventional';
   disabledMin?: number;
   /** Icon contrast floor. Default 'text' (icons mirror text, 4.5:1). '3:1'
    *  resolves icons against the WCAG 1.4.11 non-text floor so they may diverge. */
@@ -479,6 +487,25 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
 // strong/max over a numeric reference tier) — the white-label-safe answer to "one
 // brand's bold is 700, another's 600": the role is the stable contract, the
 // numeric is the brand-variable part (23 §"Naming the weight ladder"). The role
+/** The lowest disabled-ink contrast this system will emit, on either branch. 3:1 is the
+ *  SC 1.4.11 non-text / SC 1.4.3 large-text threshold and where Primer + USWDS sit — the
+ *  lowest ratio defensibly called legible. Below this we'd be relying on the WCAG
+ *  inactive-component exemption, which this system deliberately does not do. */
+export const DISABLED_FLOOR_MIN = 3;
+/** The `'full'` branch's fixed promise, and the ceiling of the `'reduced'` dial: AA text. */
+export const DISABLED_FLOOR_MAX = 4.5;
+/** Normalize `disabledStrategy`, absorbing the two legacy aliases. Both map to `'reduced'`:
+ *  `'accessible'` was already a gated floor, and `'conventional'` (~2:1, ungated) is retired
+ *  because the floor is now absolute. Single source of truth for `brandTheme` + the read-model. */
+export const normalizeDisabledStrategy = (s: string | undefined): 'full' | 'reduced' =>
+  s === 'full' ? 'full' : 'reduced';
+/** Normalize `disabledMin` into [3, 4.5]. A legacy `'conventional'` input carried no floor of
+ *  its own (it targeted ~2:1), so it lands on the 3:1 minimum — RAISING its contrast. */
+export const normalizeDisabledMin = (strategy: string | undefined, min: number | undefined): number => {
+  if (strategy === 'conventional') return DISABLED_FLOOR_MIN;
+  return Math.min(DISABLED_FLOOR_MAX, Math.max(DISABLED_FLOOR_MIN, min ?? DISABLED_FLOOR_MIN));
+};
+
 // set is data-driven (WEIGHT_ROLE_ORDER) so it extends without renames.
 export type FontFamilyRole = { role: 'display' | 'text' | 'mono'; stack: string[]; variable: boolean };
 export type FamilyRoleName = 'display' | 'text' | 'mono';
@@ -1606,10 +1633,11 @@ export const brandTheme = (input: BrandInput): Theme => {
       : '';
   const varFams = typography.families.filter((f) => f.variable).map((f) => f.role);
   notes.push(`typography: curated rem size ladder (${typography.sizesPx.length} steps, ${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px — NOT ratio-derived; covers all bases, clean values); weight roles ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.role}=${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; typeScale '${typography.typeScale}'. ${typography.composites.length} semantic composites (title/display sizes shifted by typeScale; display capped at ${reqCeiling}px; title floor ${input.typography?.titleFloor ?? 18}px)${capNote}. ${typography.fluid ? `responsive: ${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() ${typography.minViewport}–${typography.maxViewport}px + Figma desktop/mobile modes)` : 'responsive: OFF (all sizes static)'}. Line-height unitless multiplier in \$value; px-from-ratio materialization for Figma in \$extensions.`);
-  const dStrat = input.disabledStrategy ?? 'accessible';
-  notes.push(dStrat === 'accessible'
-    ? `disabled: 'accessible' — disabled text/icon/border clears ${input.disabledMin ?? 3}:1 on the floor (legible, contrast-preserving; the field-rare default). Set disabledStrategy:'conventional' for the sub-AA exempt look.`
-    : `disabled: 'conventional' — disabled is intentionally sub-AA (WCAG 1.4.3/1.4.11 inactive-component exemption); CONFIRM this engagement accepts the reduced legibility`);
+  const dStrat = normalizeDisabledStrategy(input.disabledStrategy);
+  const dMin = normalizeDisabledMin(input.disabledStrategy, input.disabledMin);
+  notes.push(dStrat === 'full'
+    ? `disabled: 'full' — disabled text/icon clears a fixed 4.5:1 (AA text) on the floor. Legibility is guaranteed, so the disabled AFFORDANCE rests on the fill / border / cursor / aria-disabled rather than on dimming — confirm a disabled control still reads as disabled.`
+    : `disabled: 'reduced' (default) — disabled text/icon clears ${dMin}:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.`);
   const oInt = input.outlineInteraction ?? 'overlay-neutral';
   notes.push(oInt === 'overlay-neutral'
     ? `interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.`
@@ -1648,8 +1676,8 @@ export const brandTheme = (input: BrandInput): Theme => {
     surfaces: input.surfaces,
     overrides: input.overrides,
     modeAnchors: input.modeAnchors,
-    disabledStrategy: input.disabledStrategy ?? 'accessible',
-    disabledMin: input.disabledMin ?? 3,
+    disabledStrategy: dStrat,
+    disabledMin: dMin,
     iconContrast: input.iconContrast ?? 'text',
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, inverseContext, interactivePalettes,
@@ -1703,7 +1731,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     id: 'nb', root: 'nbds', namespace: 'nbds.palette', colorFormat: 'rgb', modes: ALL_MODES, palettes,
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
     roleAnchorStep: { brand: 550, neutral: 500, success: 500, warning: 500, danger: 550, info: 500, action: 550 },
-    disabledStrategy: 'accessible', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
+    disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
     neutralEmphasis: 'subtle', inverseContext: true, interactivePalettes: [],
     dims, motion: buildMotion(),
     typography: buildTypography(),

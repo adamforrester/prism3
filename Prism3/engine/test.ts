@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
-import { brandTheme, BrandInput, inRedTerritory } from './theme';
+import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes } from './modes';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
@@ -152,7 +152,7 @@ const brands: BrandInput[] = [
   { id: 't-red', primary: { l: 0.55, c: 0.2, h: 25 }, neutral: { hue: 25, chroma: 0.01 }, actionPalette: 'neutral' }, // red (danger-reuse) + action≠brand→neutral
   { id: 't-yellow', primary: { l: 0.85, c: 0.18, h: 95 }, neutral: { hue: 95, chroma: 0.015 } },                // light high-chroma yellow (hard accessible action)
   { id: 't-min', primary: { l: 0.5, c: 0.15, h: 200 }, neutral: { hue: 200, chroma: 0.008 } },                  // bare minimum (all defaults)
-  { id: 't-hcdark', primary: { l: 0.5, c: 0.12, h: 300 }, neutral: { hue: 300, chroma: 0.01 }, surfaces: { light: { base: 100 }, dark: { base: 950 } }, motionPersonality: { tempo: 'relaxed' }, iconContrast: '3:1', disabledStrategy: 'conventional' }, // every lever exercised
+  { id: 't-hcdark', primary: { l: 0.5, c: 0.12, h: 300 }, neutral: { hue: 300, chroma: 0.01 }, surfaces: { light: { base: 100 }, dark: { base: 950 } }, motionPersonality: { tempo: 'relaxed' }, iconContrast: '3:1', disabledStrategy: 'full' }, // every lever exercised (disabledStrategy on its non-default LIVE branch; the legacy aliases are covered directly in (7b))
 ];
 
 for (const b of brands) {
@@ -1993,11 +1993,23 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const badGC = leverManifest.filter((l) => !groups.has(l.group) || !controls.has(l.control)).map((l) => l.key);
   ok(badGC.length === 0, 'lever manifest: every group + control is from the allowed set' + (badGC.length ? ` — BAD: ${badGC.join(', ')}` : ''));
 
+  // Enum parity, two-sided but asymmetric. The hard invariant: the UI may never offer a value the
+  // schema would REJECT (options ⊆ enum). The other direction is softer, because the schema can
+  // legitimately accept more than the UI offers — a retired value kept as a back-compat alias
+  // (`disabledStrategy`'s `accessible`/`conventional`). Those must be MARKED: an unoffered enum
+  // value is only allowed if the schema description flags it as a legacy alias. So forgetting to
+  // surface a genuinely new option still fails, while a documented alias passes.
   const enumDrift = leverManifest.filter((l) => l.control === 'enum').filter((l) => {
-    const e = resolveNode(l.key)?.enum;
-    return !e || !setEq(e, (l.options ?? []).map((o) => o.value));
+    const node = resolveNode(l.key);
+    const e: string[] | undefined = node?.enum;
+    if (!e) return true;
+    const offered = (l.options ?? []).map((o) => String(o.value));
+    if (offered.some((v) => !e.map(String).includes(v))) return true;      // UI offers a schema-invalid value
+    const unoffered = e.map(String).filter((v) => !offered.includes(v));
+    if (!unoffered.length) return false;
+    return !/LEGACY ALIAS/i.test(String(node.description ?? ''));          // unoffered ⇒ must be documented legacy
   }).map((l) => l.key);
-  ok(enumDrift.length === 0, 'lever manifest: every enum lever’s options match the schema enum (as a set)' + (enumDrift.length ? ` — DRIFT: ${enumDrift.join(', ')}` : ''));
+  ok(enumDrift.length === 0, 'lever manifest: enum options ⊆ schema enum, and any schema-only value is a documented legacy alias' + (enumDrift.length ? ` — DRIFT: ${enumDrift.join(', ')}` : ''));
 
   const defDrift = leverManifest.filter((l) => {
     const n = resolveNode(l.key);
@@ -2016,6 +2028,73 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const committed = readFileSync(resolve(HERE, '../schema/lever-manifest.json'), 'utf8');
   ok(committed === JSON.stringify(buildLeverManifest(), null, 2) + '\n',
     'lever manifest: schema/lever-manifest.json is up to date (run `npx tsx engine/emit-levers.ts`)');
+}
+
+// (7b) DISABLED CONTRAST — the absolute 3:1 floor (#290). Both branches gate: 'full' promises a
+// fixed 4.5:1, 'reduced' a dialable 3–4.5. Nothing may emit disabled ink below 3:1, so the WCAG
+// 1.4.3/1.4.11 inactive-component exemption is never relied on. The old model failed exactly here:
+// 'conventional' sat ungated at ~2:1, and 'accessible' at the bottom of its 2–4.5 dial collapsed
+// onto it while still calling itself accessible.
+{
+  const dRoles = (input: any, mode: string) => {
+    const R = resolveAllModes(brandTheme(input)).find((x) => x.mode === mode)!;
+    return R.roles as Record<string, { ratio?: number; min?: number } | undefined>;
+  };
+  const seed = { id: 'd', root: 'prism', modes: ['light', 'dark', 'hc-light'], primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
+
+  // The floor is absolute — every reachable strategy/min combination, in every mode.
+  const combos: any[] = [
+    { ...seed }, { ...seed, disabledStrategy: 'full' }, { ...seed, disabledStrategy: 'reduced' },
+    { ...seed, disabledStrategy: 'reduced', disabledMin: 3 }, { ...seed, disabledStrategy: 'reduced', disabledMin: 4.5 },
+    { ...seed, disabledStrategy: 'accessible' }, { ...seed, disabledStrategy: 'conventional' },
+    // out-of-range inputs a hand-authored design.md could carry — must clamp, not honour.
+    { ...seed, disabledStrategy: 'reduced', disabledMin: 1 }, { ...seed, disabledStrategy: 'reduced', disabledMin: 0 },
+    { ...seed, disabledStrategy: 'reduced', disabledMin: 9 },
+  ];
+  let worst = Infinity, ungated = 0;
+  for (const c of combos) for (const m of ['light', 'dark', 'hc-light']) {
+    for (const k of ['disabled.text', 'disabled.icon', 'disabled.on-fill']) {
+      const r = dRoles(c, m)[k];
+      if (!r) continue;
+      if (!r.min || r.min < 3) ungated++;
+      worst = Math.min(worst, r.ratio ?? 0);
+    }
+  }
+  ok(ungated === 0, `#290 disabled: every disabled ink role is gated at >=3:1 across all strategies/mins/modes (ungated or sub-3 contracts: ${ungated})`);
+  ok(worst >= 3, `#290 disabled: worst measured disabled ratio across every combination is >=3:1 (got ${worst.toFixed(2)})`);
+
+  // 'full' is a fixed promise, not a range — disabledMin cannot pull it below AA text.
+  const fullLow = dRoles({ ...seed, disabledStrategy: 'full', disabledMin: 3 }, 'light')['disabled.text'];
+  ok(fullLow?.min === 4.5, `#290 disabled: 'full' ignores disabledMin and holds 4.5 (got min ${fullLow?.min})`);
+
+  // 'reduced' honours its dial, and clamps out-of-range input into [3, 4.5].
+  ok(dRoles({ ...seed, disabledStrategy: 'reduced', disabledMin: 4 }, 'light')['disabled.text']?.min === 4,
+    `#290 disabled: 'reduced' honours an in-range floor (4)`);
+  ok(normalizeDisabledMin('reduced', 1) === 3 && normalizeDisabledMin('reduced', 9) === 4.5,
+    '#290 disabled: disabledMin clamps into [3, 4.5]');
+
+  // Legacy aliases: both normalize to 'reduced'; 'conventional' RAISES to the 3:1 floor.
+  ok(normalizeDisabledStrategy('accessible') === 'reduced' && normalizeDisabledStrategy('conventional') === 'reduced'
+    && normalizeDisabledStrategy('full') === 'full' && normalizeDisabledStrategy(undefined) === 'reduced',
+    '#290 disabled: legacy accessible/conventional both normalize to reduced; full and the default survive');
+  ok(normalizeDisabledMin('conventional', undefined) === 3,
+    '#290 disabled: legacy conventional lands on the 3:1 floor (raised from its old ~2:1 exempt look)');
+  ok(normalizeDisabledMin('accessible', 4) === 4, `#290 disabled: legacy accessible keeps its own floor`);
+
+  // HC escalates BOTH branches — the old model escalated only the gated one, so 'conventional'
+  // shipped ~2:1 disabled text even inside a high-contrast mode.
+  for (const s of ['full', 'reduced', 'conventional']) {
+    const r = dRoles({ ...seed, disabledStrategy: s, disabledMin: 3 }, 'hc-light')['disabled.text'];
+    ok((r?.min ?? 0) >= 4.5, `#290 disabled: high-contrast escalates '${s}' to >=4.5 (got ${r?.min})`);
+  }
+
+  // The schema must REJECT a sub-3 floor rather than rely on the engine clamp — the clamp protects
+  // the emit, the schema protects the author from thinking 2:1 was accepted.
+  const dSchema = JSON.parse(readFileSync(resolve(HERE, '../schema/theme-schema.json'), 'utf8'));
+  const dm = dSchema.properties.disabledMin;
+  ok(dm.minimum === 3 && dm.maximum === 4.5, '#290 disabled: schema pins disabledMin to [3, 4.5]');
+  ok(validateBrandInput({ ...seed, disabledMin: 2 }).length > 0, '#290 disabled: schema rejects disabledMin 2');
+  ok(validateBrandInput({ ...seed, disabledMin: 3 }).length === 0, '#290 disabled: schema accepts disabledMin 3');
 }
 // (8) PREVIEW SPEC — the shared live-preview contract (docs/08 §7, B1a). Every bound
 // token path (bindings + contract endpoints) must resolve to a real leaf in the

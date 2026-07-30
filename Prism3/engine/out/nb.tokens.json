@@ -5985,7 +5985,7 @@
         "text": {
           "$type": "color",
           "$value": "{nbds.palette.neutral.450}",
-          "$description": "Disabled text — clears 3:1 (accessible)",
+          "$description": "Disabled text — clears 3:1 (reduced contrast, legible)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6029,7 +6029,7 @@
         "icon": {
           "$type": "color",
           "$value": "{nbds.palette.neutral.450}",
-          "$description": "Disabled icon — clears 3:1 (accessible)",
+          "$description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
