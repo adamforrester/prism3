@@ -1465,20 +1465,29 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   host.append(cap);
   const roles = iRoles();
 
-  const oh = el('div', 'psec'); oh.append(el('p', 'psec-t', 'Outline button hover'), el('p', 'psec-d', 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.'));
+  const oh = el('div', 'psec');
+  // The second sentence is method-specific: the Overlay wash row only tunes the translucent method.
+  // Under solid-tint the fill comes from the control's own palette automatically, so pointing at a
+  // control that does nothing there would be the same species of wrong answer as the empty swatch.
+  const ohBlurb = theme.outlineInteraction === 'solid-tint'
+    ? 'How every outline & text action reacts on hover. The tint is a step of each control’s own palette, so a destructive outline hovers red-tinted rather than gray.'
+    : theme.outlineInteraction === 'none'
+      ? 'How every outline & text action reacts on hover. No hover fill — the border and ink carry the state on their own.'
+      : 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.';
+  oh.append(el('p', 'psec-t', 'Outline button hover'), el('p', 'psec-d', ohBlurb));
   const ohEdge = roles['interactive.primary.text.rest']?.hex ?? '#000000';
-  // Only `overlay-neutral` actually emits a token here (`interactive.<name>.overlay.hover`).
-  // `solid-tint`'s doc comment (modes.ts) says it reuses an opaque `foreground.<color>-subtle` —
-  // but that role only exists for the 5 fixed SEMANTICS names (brand/success/warning/danger/info),
-  // never for an interactive COLUMN name (primary/neutral/destructive/accent), so there is no real
-  // token to read for ANY brand today; `none` has no fill by design. Previously this always read
-  // the overlay-hover role regardless of method, which looked identically empty for solid-tint and
-  // made it indistinguishable from a bug — showing the gap explicitly (rather than a wrong color)
-  // avoids implying a fix that isn't there. Tracked as a real engine gap, not a UI bug: #288.
+  // Each method reads its OWN role, which is the whole point of #288: `overlay-neutral` emits a
+  // translucent `interactive.<name>.overlay.hover`, `solid-tint` an opaque
+  // `interactive.<name>.subtle-fill.hover`, and `none` no fill by design. This used to read the
+  // overlay role unconditionally, which rendered solid-tint identically to none — and once that was
+  // made conditional there was still nothing to read, because the engine emitted no solid-tint token
+  // for any brand (#288). Both halves are fixed now, so the example tracks the method for real.
   const ohWash = theme.outlineInteraction === 'overlay-neutral' && roles['interactive.primary.overlay.hover']
-    ? rgbaOf(roles['interactive.primary.overlay.hover']) : 'transparent';
+    ? rgbaOf(roles['interactive.primary.overlay.hover'])
+    : theme.outlineInteraction === 'solid-tint' && roles['interactive.primary.subtle-fill.hover']
+      ? roles['interactive.primary.subtle-fill.hover'].hex     // opaque — a real palette step, no alpha
+      : 'transparent';
   oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
-    warn: theme.outlineInteraction === 'solid-tint' ? 'Opaque subtle tint has no token yet — this hover currently renders the same as “No hover fill” (tracked in #288).' : undefined,
     example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
   host.append(oh);
 

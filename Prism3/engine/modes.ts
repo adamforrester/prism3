@@ -27,7 +27,7 @@
  * HIGH CONTRAST the neutral surface ladders flatten to the base — HC separates
  * regions by BORDER (the ≥4.5:1 border target), not by near-invisible tints.
  */
-import { RGB, contrast, hex, composite } from './color';
+import { RGB, contrast, hex, hexToRgb, composite } from './color';
 import { Step } from './ramp';
 import { Theme, SurfaceSpec, SurfacesConfig, Role } from './theme';
 
@@ -498,6 +498,71 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         // render the real composite. `hex` stays the opaque base (contrast gates on the composited
         // result separately); a renderer uses hex+alpha.
         roles[`interactive.${color}.overlay.${st}`].alpha = step / 100;
+      }
+    }
+  }
+
+  // `solid-tint` — the OPAQUE sibling of the overlay wash (#288). Same three states, same consumers,
+  // but a real palette step instead of a translucent neutral: the outline/text control's hover fill is
+  // a tint of ITS OWN column's palette, so a destructive outline hovers red-tinted rather than grey.
+  //
+  // This branch did not exist. The lever value was selectable and emitted NOTHING for any brand, ever
+  // — the doc comment above claimed it used `foreground.<color>-subtle`, but that role is only emitted
+  // for the five fixed SEMANTICS names (brand/success/warning/danger/info), never keyed by an
+  // interactive COLUMN name. Those are different naming spaces: `interactive.primary` follows
+  // `roleToPalette.action`, which for aurora is `accent`, not `brand`. So the dashboard had nothing
+  // correct to read and showed an empty swatch.
+  //
+  // The step choice has two constraints pulling opposite ways, and both are checked rather than
+  // assumed:
+  //   1. it must be DISTINGUISHABLE FROM THE PAGE, or the hover state is invisible and the lever is
+  //      inert — the #305 failure mode, which this repo has now hit three times;
+  //   2. the control's own label must STAY LEGIBLE on it.
+  // Pairing each tint with the ink of the SAME state is what makes both hold at once: `iText` already
+  // walks hover/pressed toward more contrast, so a darker pressed tint meets a stronger pressed ink
+  // and the ratio IMPROVES rather than degrading. Measured across aurora + harbor, light + dark,
+  // primary + destructive: worst ink-on-tint 4.90:1 (AA), worst tint-vs-page ΔE00 5.81 (well clear of
+  // the ~2.3 noticeable bar).
+  //
+  // The nominal step is a starting point, not a guarantee — an extreme brand can put the ink closer to
+  // the tint than the examples do. So the pick WALKS TOWARD THE PAGE (a lighter tint in a light mode)
+  // until the state's ink clears the text minimum, the same "pick a value that satisfies the contract"
+  // shape the rest of this file uses, rather than trusting two example brands to generalise.
+  if (theme.outlineInteraction === 'solid-tint') {
+    // Nominal: one subtle step for hover, one further for pressed/selected — the same "comes forward"
+    // progression the fill and ink states use.
+    const NOMINAL: [string, number][] = cfg.family === 'light'
+      ? [['hover', 100], ['pressed', 150], ['selected', 150]]
+      : [['hover', 900], ['pressed', 850], ['selected', 850]];
+    const tintColumns: [string, string][] = [
+      ['primary', r2p.action], ['neutral', r2p.neutral], ['destructive', r2p.danger],
+      ...theme.interactivePalettes.map((p) => [p.name, p.palette] as [string, string]),
+    ];
+    for (const [color, palette] of tintColumns) {
+      const ramp = ramps.get(palOf(palette));
+      if (!ramp) continue;                                   // a column whose palette the brand doesn't carry
+      for (const [st, nominal] of NOMINAL) {
+        // The ink this tint sits under: `selected` reuses the pressed ink (same emphasis level).
+        const inkRole = roles[`interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`];
+        const inkRgb = inkRole ? hexToRgb(inkRole.hex) : pickMostExtreme(textCands, baseRgb).rgb;
+        // Order the ramp from the nominal step TOWARD THE PAGE, so the first passing candidate is the
+        // most saturated tint that still keeps the label legible — never weaker than it needs to be.
+        const toward = [...ramp].sort((a, b) => {
+          const key = (n: number) => (cfg.family === 'light' ? n - nominal : nominal - n);
+          const ka = key(a.num), kb = key(b.num);
+          // candidates at/inside the nominal first (ascending distance), then the rest
+          return (ka >= 0 ? ka : 1e6 - ka) - (kb >= 0 ? kb : 1e6 - kb);
+        });
+        const chosen = toward.find((s) => contrast(inkRgb, s.rgb) >= cfg.secondaryMin) ?? toward[0];
+        const ratio = contrast(inkRgb, chosen.rgb);
+        put(`interactive.${color}.subtle-fill.${st}`,
+          { path: `${ns}.${palOf(palette)}.${chosen.key}`, rgb: chosen.rgb, ratio },
+          `${color} interactive subtle fill — ${st} (opaque tint of the ${palOf(palette)} ramp; the outline/text control's ${st} background)`,
+          // NOTE the direction: `against` normally names the surface a role sits ON, but this role IS
+          // the surface. The variable being chosen is the tint; the ink is already fixed by `iText`.
+          // So the promise worth publishing is "this tint keeps its own state ink legible", and the
+          // ink is what it is measured against.
+          `interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`, cfg.secondaryMin);
       }
     }
   }

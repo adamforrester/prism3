@@ -7,6 +7,61 @@
 
 ---
 
+## (2026-07-30) — `solid-tint` gets a real token (#288)
+
+**STATUS: engine + web.** `out/*` **byte-identical** — the default is `overlay-neutral`, so nothing
+moves unless a brand opts in. Only `schema/lever-manifest.json` changes, and only its prose.
+
+**The defect.** `outlineInteraction: 'solid-tint'` was selectable and emitted **nothing, for any brand,
+ever** — behaviourally identical to `none`. Its own doc comment claimed it reused
+`foreground.<color>-subtle`, but that role is only emitted for the five fixed `SEMANTICS` names
+(brand/success/warning/danger/info), never keyed by an interactive COLUMN name. Those are different
+naming spaces: `interactive.primary` follows `roleToPalette.action`, which for aurora is `accent`, not
+`brand`. Surfaced as "the Opaque subtle tint option appears empty" in dashboard triage.
+
+**The fix.** A `solid-tint` sibling branch to `overlay-neutral` in `modes.ts`, emitting
+`interactive.<column>.subtle-fill.{hover,pressed,selected}` — an opaque step of the column's OWN
+palette, so a destructive outline hovers red-tinted rather than gray. (Name follows the issue's own
+suggestion; it is the first published shape, so it is the cheapest thing to change if a better one
+appears.)
+
+**Two constraints pull opposite ways**, and both are gated rather than assumed:
+
+1. the tint must be **distinguishable from the page**, or the hover is invisible and the lever is inert
+   — the failure this repo has now hit three times (#288 itself, #305, pre-#297 leading);
+2. the control's label must **stay legible on it**.
+
+**Pairing each tint with the ink of the SAME state is what makes both hold at once.** `iText` already
+walks hover/pressed toward more contrast, so a darker pressed tint meets a stronger pressed ink and the
+ratio IMPROVES rather than degrading. Measured across aurora + harbor x light/dark x primary/destructive:
+worst ink-on-tint **4.90:1** (AA), worst tint-vs-page **ΔE00 5.81** (clear of the ~2.3 bar).
+
+**The nominal step is not trusted to generalise.** It is a starting point; the pick then WALKS TOWARD
+THE PAGE until the state's ink clears the text minimum. That walk is load-bearing, not defensive
+decoration — tamper-testing it (take the nominal blindly) fails on the extreme brands: near-black
+destructive at **4.03:1** and hot-yellow primary at **4.09:1**, both sub-AA. Two example brands would
+have shipped a broken contract for real ones.
+
+**`against` runs the other way here, deliberately.** It normally names the surface a role sits on, but
+this role IS the surface; the tint is the variable being chosen and the ink is already fixed by
+`iText`. So the published promise is "this tint keeps its own state ink legible", and the ink is what
+it is measured against. Called out in the code so it doesn't read as a mistake.
+
+**Two false statements removed** — both would have outlived the bug: the lever `description` still said
+`solid-tint = opaque foreground.<color>-subtle` (the claim that caused this), and the dashboard still
+carried "Opaque subtle tint has no token yet". The section blurb is now method-aware too; pointing at
+the Overlay wash row under solid-tint would be the same species of wrong answer as the empty swatch.
+
+**Verified:** 1009 → **1015** tests, including the contract and the visibility floor across **5 brands**
+(nb, aurora, harbor, near-black, hot-yellow = 180 roles); `regen --check` 85/85 byte-match;
+nb-regression PASS; Playwright confirms the three methods now render distinctly — overlay
+`rgba(0,0,0,0.1)`, solid-tint opaque `rgb(204,222,233)` (aurora accent 100), none transparent.
+
+**Out of scope, still open:** nothing. #288's own "out of scope" note deferred the dashboard wiring,
+but leaving it unwired would have kept the reported symptom on screen, so it is included.
+
+---
+
 ## (2026-07-30) — #296 closes by NARROWING, not by tiering shadow (#301)
 
 **STATUS: engine (source-only).** Zero artifact change — `regen.ts --check` 85/85 byte-match, alias
