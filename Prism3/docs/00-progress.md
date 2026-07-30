@@ -34,19 +34,28 @@ line-height/letter-spacing half of #296; motion + shadow remain, ledgered.
   the semantic composite, which re-points its `lineHeight` / `letterSpacing` alias at a different rung.
   `TypeComposite` gained `lineHeightByMode` / `trackingByMode`; `tree.ts` emits the variant on the
   composite and no longer on the rung.
-- **Deliberate consequence: per-mode leading/tracking is now QUANTISED to the brand's ladder.** The
-  ladder is the design system; a mode inventing an off-ladder value is what broke the invariant. A
-  brand wanting an unavailable value re-anchors that rung globally (#270), which is mode-invariant.
-- **Quantisation is made visible, not silent.** A value nearer its own rung than any neighbour cannot
-  re-point ⇒ no-op. The engine now pushes a `notes` entry naming it, and the dashboard's per-mode
-  leading editor carries an inline warning. This is the same "request silently clamped" trap fixed for
-  the interactive colour anchor earlier — worth noting the old test fixture used 1.55 and 0.01, **both
-  of which quantise to no-ops**, so the tests had to move to 1.66 → `relaxed` and 0.019 → `wide`.
+- **The per-mode input NAMES A RUNG, not a value** (owner call, after I first shipped value-snapping):
+  `modeLevers.dark.lineHeights: { normal: 'relaxed' }` reads *"in dark, styles that would use `normal`
+  use `relaxed` instead"*. This is strictly better than the snapping model I built first and then
+  replaced: **the silent-no-op class disappears entirely** rather than being warned about, there is no
+  ambiguity about what a value resolves to, and it **separates two operations that were both numbers
+  meaning different things** — `typography.lineHeights` (numeric, brand-wide, re-anchors what a rung is
+  WORTH) vs the per-mode map (rung name, re-points WHICH rung is used). Different operations, now
+  different types.
+- **A number in the per-mode slot is REJECTED, not coerced,** with a message pointing at
+  `typography.lineHeights` — coercing it would quietly reintroduce the mode-varying-primitive bug. That
+  rejection immediately caught my own stale fixtures, which is how it should behave.
+- **A self-map (`normal → normal`) is dropped** as no-diff, the same suppression the other axes use, so
+  an inert declaration can't create a mode entry or a spurious composite variant.
+- **The UI now has two different controls for the two operations:** Light edits the rung VALUE (number
+  field); any other mode picks a TARGET RUNG (select, self excluded since it would be a no-op). The
+  read-model fields were renamed `lineHeightRepointByMode` / `letterSpacingRepointByMode` — they are
+  re-point maps, not per-mode ramps, and the old names asserted something untrue.
 - **Two tests inverted deliberately.** `D-lhls(a)/(b)` asserted the retired contract (per-mode value ON
   the rung); they now assert the opposite — the rung carries NO per-mode override and is byte-equal to
   the no-per-mode build. `(c)` asserted the composite was *unchanged*; it now asserts the re-point, plus
   that only alias fields changed. `(d)` is new: the quantised no-op is asserted to be noted.
-- **Verified:** 988/988 engine tests (up from 976); `regen.ts --check` in sync (83 artifacts);
+- **Verified:** 991/991 engine tests (up from 976); `regen.ts --check` in sync (83 artifacts);
   nb-regression exits 0; `out/*` byte-identical; web `tsc` + build clean; plugin build clean.
 - **Still open on #296:** motion (`duration` + `stagger`, untiered — no `role` at all) and shadow
   (`role: composite`, zero refs in or out, needs decomposing). Both ledgered so they cannot be

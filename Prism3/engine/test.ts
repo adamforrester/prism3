@@ -931,9 +931,9 @@ for (const b of brands) {
   const stable = (v: any): any => Array.isArray(v) ? v.map(stable)
     : (v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])])) : v);
   // dark opens `normal` leading to 1.55 and loosens `normal` tracking to +0.01em.
-  // #296 — values chosen to RE-POINT unambiguously: 1.66 → `relaxed` (1.65), 0.019 → `wide` (0.02).
-  // A value nearer its own rung (e.g. 1.55, which stays `normal`) quantises to a no-op — asserted below.
-  const perMode = { ...base, modeLevers: { dark: { lineHeights: { normal: 1.66 }, letterSpacings: { normal: 0.019 } } } } as unknown as BrandInput;
+  // #296 — per-mode leading/tracking NAME A TARGET RUNG: dark substitutes `relaxed` wherever a style
+  // would use `normal`, and `wide` wherever it would use `normal` tracking. No values, no snapping.
+  const perMode = { ...base, modeLevers: { dark: { lineHeights: { normal: 'relaxed' }, letterSpacings: { normal: 'wide' } } } } as unknown as BrandInput;
   const baseTree = buildTree(brandTheme(base)).tree[root];
   const built = buildTree(brandTheme(perMode));
   const pmTree = built.tree[root];
@@ -971,15 +971,20 @@ for (const b of brands) {
       .every((k) => /^\{.+\}$/.test(String(cDark.$value[k]))),
     'D-lhls(c): the mode variant changes ONLY alias fields (re-point, never re-value)');
 
-  // (d) QUANTISATION IS VISIBLE. A per-mode value nearer its own rung than any other cannot re-point,
-  //     so it is a no-op — the same "request silently clamped" trap fixed for the interactive anchor
-  //     earlier. The engine must SAY so rather than drop it quietly.
-  const noop = buildTree(brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.55 } } } } as unknown as BrandInput));
-  const noopTheme = brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.55 } } } } as unknown as BrandInput);
-  ok(noop.tree[root].type.body.md.default.$extensions.prism3.modes === undefined,
-    'D-lhls(d): a value nearer its own rung produces no re-point (quantised to a no-op)');
-  ok(noopTheme.notes.some((n) => /quantis/i.test(n)),
-    'D-lhls(d): the engine NOTES the quantised no-op rather than dropping it silently');
+  // (d) A NUMBER is the retired pre-#296 shape and must be REJECTED, not coerced — coercing it would
+  //     quietly reintroduce the mode-varying-primitive bug. The message points at the brand-wide field.
+  let numErr = '';
+  try { brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.66 } } } } as unknown as BrandInput); }
+  catch (e) { numErr = (e as Error).message; }
+  ok(/names a TARGET RUNG/.test(numErr) && /typography\.lineHeights/.test(numErr),
+    'D-lhls(d): a per-mode NUMBER is rejected and points at typography.lineHeights (got: ' + numErr.slice(0, 60) + ')');
+  ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 'nope' } } } } as unknown as BrandInput)),
+    'D-lhls(d): an unknown target rung is rejected');
+
+  // (e) a SELF-MAP is inert — dropped before it can create a mode entry or a composite variant.
+  const selfMap = buildTree(brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 'normal' } } } } as unknown as BrandInput));
+  ok(selfMap.tree[root].type.body.md.default.$extensions.prism3.modes === undefined,
+    'D-lhls(e): a self-map (normal → normal) produces no per-mode variant');
 
   // (d) every DTCG alias resolves.
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `D-lhls(d): all ${built.stats.aliases} aliases resolve` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 3).map((b: any) => b.ref).join(',')}` : ''));
@@ -990,8 +995,8 @@ for (const b of brands) {
   ok(fontFiles.length === 1 && fontFiles[0].$mode === 'Default', `D-lhls(e): LH/LS-only override leaves core-font single-mode (${fontFiles.map((f) => f.$mode).join(',')})`);
 
   // (f) validation throws — LH/LS on a generate-only mode (hc-light), and values out of the sane range.
-  ok(threw(() => brandTheme({ ...base, modes: ['light', 'dark', 'hc-light', 'hc-dark'], modeLevers: { 'hc-light': { lineHeights: { normal: 1.6 } } } } as unknown as BrandInput)), 'D-lhls(f): lineHeights on hc-light (generate-only) throws');
-  ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 5 } } } } as unknown as BrandInput)), 'D-lhls(f): a line-height of 5 (>3) throws');
+  ok(threw(() => brandTheme({ ...base, modes: ['light', 'dark', 'hc-light', 'hc-dark'], modeLevers: { 'hc-light': { lineHeights: { normal: 'relaxed' } } } } as unknown as BrandInput)), 'D-lhls(f): lineHeights on hc-light (generate-only) throws');
+  ok(threw(() => brandTheme({ ...base, typography: { lineHeights: { normal: 5 } } } as unknown as BrandInput)), 'D-lhls(f): a BRAND line-height of 5 (>3) throws — the numeric range guard lives on the brand-wide field now');
   ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { letterSpacings: { normal: 1 } } } } as unknown as BrandInput)), 'D-lhls(f): a letter-spacing of 1em (>0.5) throws');
 
   // (g) design.md round-trip preserves modeLevers.lineHeights/letterSpacings through parse∘serialize.
@@ -999,13 +1004,13 @@ for (const b of brands) {
     'D-lhls(g): parseDesignMd(toDesignMd(input)) preserves modeLevers.lineHeights/letterSpacings');
 
   // (h) validateBrandInput ACCEPTS per-mode LH/LS — RETURNS an empty error array (never throws).
-  const accept = { id: 'dlhls-schema', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modes: ['light', 'dark'], modeLevers: { dark: { lineHeights: { normal: 1.55 }, letterSpacings: { normal: 0.01 } } } } as unknown as BrandInput;
+  const accept = { id: 'dlhls-schema', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modes: ['light', 'dark'], modeLevers: { dark: { lineHeights: { normal: 'relaxed' }, letterSpacings: { normal: 'wide' } } } } as unknown as BrandInput;
   ok(validateBrandInput(accept).length === 0, `D-lhls(h): validateBrandInput accepts per-mode LH/LS (errors: ${JSON.stringify(validateBrandInput(accept))})`);
 
   // (i) no-diff suppression at the TOKEN level — a per-mode value EQUAL to light attaches NO leaf
   //     override (the primitive/composite tokens are byte-identical; only the decisions log records the
   //     lever was set — same as radius/weight when a lever matches the baseline).
-  const equalTree = buildTree(brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.5 }, letterSpacings: { normal: 0 } } } } as unknown as BrandInput)).tree[root];
+  const equalTree = buildTree(brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 'normal' }, letterSpacings: { normal: 'normal' } } } } as unknown as BrandInput)).tree[root];
   ok(equalTree.font['line-height'].normal.$extensions.prism3.modes === undefined && equalTree.font['letter-spacing'].normal.$extensions.prism3.modes === undefined,
     'D-lhls(i): a per-mode LH/LS equal to the light value attaches no leaf override (no-diff suppression)');
 
@@ -1251,13 +1256,14 @@ for (const b of brands) {
 
   // (d) FIX #2 — line-height / letter-spacing now suppress the per-mode MAP when a mode re-declares the
   //     global ramp (mirrors radius/family/weight): no leaf override AND no lineHeightsByMode entry.
-  const equalLh = brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.5 }, letterSpacings: { normal: 0 } } } } as unknown as BrandInput);
-  ok(equalLh.typography.lineHeightsByMode === undefined && equalLh.typography.letterSpacingsByMode === undefined,
-    'D-rev(d): a per-mode LH/LS equal to the global leaves the *ByMode maps unset (map-level no-diff suppression)');
+  const equalLh = brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 'normal' }, letterSpacings: { normal: 'normal' } } } } as unknown as BrandInput);
+  ok(equalLh.typography.lineHeightRepointByMode === undefined && equalLh.typography.letterSpacingRepointByMode === undefined,
+    'D-rev(d): a SELF-MAP (normal → normal) leaves the re-point maps unset (no-diff suppression, #296)');
   ok(equalLh.modeLevers === undefined, 'D-rev(d): an all-equal LH/LS override leaves modeLevers off the Theme (byte-identical)');
   // a genuinely divergent LH still populates the map.
-  const diffLh = brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.6 } } } } as unknown as BrandInput);
-  ok(!!diffLh.typography.lineHeightsByMode?.dark, 'D-rev(d): a divergent per-mode line-height still populates lineHeightsByMode');
+  const diffLh = brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 'relaxed' } } } } as unknown as BrandInput);
+  ok(diffLh.typography.lineHeightRepointByMode?.dark?.normal === 'relaxed',
+    'D-rev(d): a genuine rung→rung re-point still populates the map');
 }
 
 // Brand-level leading/tracking rung values (#270) + per-group leading/tracking nudge.
@@ -1301,16 +1307,23 @@ for (const b of brands) {
   ok(threw(() => mk({ letterSpacings: { normal: 2 } })), 'type-ramp(e): a letter-spacing of 2em (>0.5) throws');
   ok(threw(() => mk({ leadingShift: { title: 1.5 } })), 'type-ramp(e): a fractional rung nudge throws');
 
-  // (f) a per-mode override layers on the BRAND's ramp, not the curated const — so a brand
-  //     re-anchor survives in a mode that only touches a different rung.
+  // (f) #296 — the two operations COMPOSE without colliding: a brand re-anchors what a rung is worth
+  //     (numeric, mode-invariant), and a mode re-points which rung is used (a rung name). The mode's
+  //     target therefore resolves through the brand's re-anchored value automatically.
   const both = brandTheme({ id: 'lhls2', primary: { l: 0.5, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
-    modes: ['light', 'dark'], typography: { lineHeights: { normal: 1.4 } },
-    modeLevers: { dark: { lineHeights: { tight: 1.1 } } } } as unknown as BrandInput);
-  const darkRamp = both.typography.lineHeightsByMode?.dark ?? [];
-  ok(darkRamp.find((l: any) => l.key === 'normal')?.value === 1.4,
-    'type-ramp(f): a per-mode ramp inherits the BRAND re-anchor for rungs the mode did not override');
-  ok(darkRamp.find((l: any) => l.key === 'tight')?.value === 1.1,
-    'type-ramp(f): the mode override still wins on the rung it does set');
+    modes: ['light', 'dark'], typography: { lineHeights: { relaxed: 1.9 } },
+    modeLevers: { dark: { lineHeights: { normal: 'relaxed' } } } } as unknown as BrandInput);
+  ok(both.typography.lineHeights.find((l: any) => l.key === 'relaxed')?.value === 1.9,
+    'type-ramp(f): the brand re-anchor of `relaxed` holds (one value, every mode)');
+  ok(both.typography.lineHeightRepointByMode?.dark?.normal === 'relaxed',
+    'type-ramp(f): the mode records a rung→rung re-point, not a ramp');
+  const bodyC = both.typography.composites.find((c: any) => c.group === 'body' && c.lineHeight === 'normal');
+  ok(bodyC?.lineHeightByMode?.dark === 'relaxed',
+    'type-ramp(f): a body composite using `normal` re-points to `relaxed` in dark — resolving to the brand value 1.9');
+  // A rung the mode did NOT re-point keeps its own key everywhere — the re-point is per-rung, not global.
+  const tightC = both.typography.composites.find((c: any) => c.lineHeight === 'tight');
+  ok(!tightC || tightC.lineHeightByMode === undefined,
+    'type-ramp(f): a rung the mode did not re-point is untouched in that mode');
 
   // (g) the new levers must survive the design.md round-trip, or a brand authored in the
   //     dashboard would silently lose them on export→import.
@@ -2145,7 +2158,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     modeLevers: { dark: {
       radius: 2, density: 'compact', tempo: 'relaxed',
       families: { display: 'Georgia' }, weights: { default: 500 },
-      lineHeights: { normal: 1.8 }, letterSpacings: { normal: 0.02 },
+      lineHeights: { normal: 'relaxed' }, letterSpacings: { normal: 'wide' },
       shadow: { softness: 2, tint: { hue: 10, amount: 0.4 } },
     } },
   } as any);
