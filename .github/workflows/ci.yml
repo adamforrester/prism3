@@ -1,0 +1,79 @@
+name: gates
+
+# Every gate in this repo used to run only when a human typed it. The single automated check was
+# Vercel's preview deploy, which runs `build:site` (esbuild) — esbuild does NOT typecheck, so that
+# check could not fail on a TypeScript error, let alone a broken contrast contract or a drifted
+# artifact. `CLAUDE.md` working principle 4 mandates this sequence pre-push; this makes it machinery
+# instead of discipline.
+#
+# Most pointed case: #281's drift gate exists because committed `out/*` rotted 6,400 lines across
+# many merged PRs undetected. Until this workflow, that gate protected nothing automatically — the
+# exact failure mode it was filed to prevent was still live for any PR whose author didn't run it.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A force-push supersedes the previous run; don't burn minutes finishing a stale one.
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # The engine core is buildless (run via tsx) and dependency-free, but the `web` + `plugin`
+      # workspaces need esbuild + typescript, and `tsx` itself is not pinned anywhere in the repo
+      # (the root package.json has no devDependencies). `npm ci` covers the workspaces; tsx is
+      # pinned at the call site below so a new major can't silently change how the engine parses.
+      - name: Install workspace deps
+        run: npm ci
+
+      # ---- the gates, cheapest-first so a fast failure reports fast -------------------------
+
+      - name: Engine unit tests
+        run: npx --yes tsx@4 Prism3/engine/test.ts
+
+      # Reproduces New Balance perceptually from the schema alone; every step within its ΔE00
+      # ceiling, plus the contrast contracts. Exits non-zero on any regression.
+      - name: NB regression
+        run: npx --yes tsx@4 Prism3/engine/nb-regression.ts
+
+      # The ONLY gate that reads the COMMITTED artifacts. Every other one runs the engine live and
+      # compares it against itself, so a stale committed artifact passes them all (#281). Snapshots,
+      # regenerates, byte-compares, restores — so it never leaves the tree dirty.
+      - name: Committed artifacts have not drifted
+        run: npx --yes tsx@4 Prism3/engine/regen.ts --check
+
+      # esbuild (and therefore the Vercel build) does not typecheck. These do.
+      - name: Typecheck web
+        run: npm run -w @prism3/web typecheck
+
+      - name: Build web
+        run: npm run -w @prism3/web build
+
+      - name: Build plugin
+        run: npm run -w @prism3/plugin build
+
+      # A gate that silently stops running is worse than no gate, because green starts meaning
+      # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this
+      # fails loudly rather than quietly shrinking. Update the number deliberately when the set
+      # legitimately grows.
+      - name: Drift gate still covers the full artifact set
+        run: |
+          set -euo pipefail
+          count=$(npx --yes tsx@4 Prism3/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
+          echo "reported: $count"
+          case "$count" in
+            "85 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 85. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+          esac
