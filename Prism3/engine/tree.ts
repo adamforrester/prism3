@@ -696,14 +696,30 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
             if (m) aliases.push({ path: path.join('.'), ref: m[1] });
           }
         }
-        // Per-mode value overrides (colour role layer): each $extensions.prism3.modes.<m>
-        // carries a `$value` alias for that mode. (shadow's modes.* is a layer ARRAY with
-        // raw colours — no `$value` string — so it's correctly skipped here.)
+        // Per-mode value overrides: each $extensions.prism3.modes.<m> carries this mode's value —
+        // either a `$value` (the colour role layer: a string alias) or, for a COMPOSITE, the raw
+        // sub-value shape itself (shadow's modes.<m> is a layer ARRAY; a per-mode transition would be
+        // an object).
+        //
+        // Composite sub-values are walked here too (#301). They carry no aliases today, so this
+        // changes no count and no artifact — but the branch used to read ONLY a string `$value`,
+        // which meant an alias placed in a per-mode array was invisible to the gate while the
+        // light-mode half of the very same leaf was validated by the array branch above. A future
+        // composite tiering would have shipped dangling per-mode refs with the gate reporting clean:
+        // the #281 failure shape exactly. Found while running the #301 spike.
+        const pushRef = (v: unknown): void => {
+          if (typeof v !== 'string') return;
+          const m = v.match(/^\{(.+)\}$/);
+          if (m) aliases.push({ path: path.join('.'), ref: m[1] });
+        };
         const modeOv = node.$extensions?.prism3?.modes;
         if (modeOv && typeof modeOv === 'object' && !Array.isArray(modeOv)) {
           for (const mv of Object.values(modeOv)) {
+            if (Array.isArray(mv)) { for (const item of mv) if (item && typeof item === 'object') Object.values(item).forEach(pushRef); continue; }
             const sv = (mv as any)?.$value;
-            if (typeof sv === 'string') { const m = sv.match(/^\{(.+)\}$/); if (m) aliases.push({ path: path.join('.'), ref: m[1] }); }
+            pushRef(sv);
+            if (Array.isArray(sv)) { for (const item of sv) if (item && typeof item === 'object') Object.values(item).forEach(pushRef); }
+            else if (sv && typeof sv === 'object') Object.values(sv).forEach(pushRef);
           }
         }
         // Fluid-typography refs (M-11): a fluid composite carries its mobile/desktop size

@@ -7,6 +7,254 @@
 
 ---
 
+## (2026-07-30) — `solid-tint` gets a real token (#288)
+
+**STATUS: engine + web.** `out/*` **byte-identical** — the default is `overlay-neutral`, so nothing
+moves unless a brand opts in. Only `schema/lever-manifest.json` changes, and only its prose.
+
+**The defect.** `outlineInteraction: 'solid-tint'` was selectable and emitted **nothing, for any brand,
+ever** — behaviourally identical to `none`. Its own doc comment claimed it reused
+`foreground.<color>-subtle`, but that role is only emitted for the five fixed `SEMANTICS` names
+(brand/success/warning/danger/info), never keyed by an interactive COLUMN name. Those are different
+naming spaces: `interactive.primary` follows `roleToPalette.action`, which for aurora is `accent`, not
+`brand`. Surfaced as "the Opaque subtle tint option appears empty" in dashboard triage.
+
+**The fix.** A `solid-tint` sibling branch to `overlay-neutral` in `modes.ts`, emitting
+`interactive.<column>.subtle-fill.{hover,pressed,selected}` — an opaque step of the column's OWN
+palette, so a destructive outline hovers red-tinted rather than gray. (Name follows the issue's own
+suggestion; it is the first published shape, so it is the cheapest thing to change if a better one
+appears.)
+
+**Two constraints pull opposite ways**, and both are gated rather than assumed:
+
+1. the tint must be **distinguishable from the page**, or the hover is invisible and the lever is inert
+   — the failure this repo has now hit three times (#288 itself, #305, pre-#297 leading);
+2. the control's label must **stay legible on it**.
+
+**Pairing each tint with the ink of the SAME state is what makes both hold at once.** `iText` already
+walks hover/pressed toward more contrast, so a darker pressed tint meets a stronger pressed ink and the
+ratio IMPROVES rather than degrading. Measured across aurora + harbor x light/dark x primary/destructive:
+worst ink-on-tint **4.90:1** (AA), worst tint-vs-page **ΔE00 5.81** (clear of the ~2.3 bar).
+
+**The nominal step is not trusted to generalise.** It is a starting point; the pick then WALKS TOWARD
+THE PAGE until the state's ink clears the text minimum. That walk is load-bearing, not defensive
+decoration — tamper-testing it (take the nominal blindly) fails on the extreme brands: near-black
+destructive at **4.03:1** and hot-yellow primary at **4.09:1**, both sub-AA. Two example brands would
+have shipped a broken contract for real ones.
+
+**`against` runs the other way here, deliberately.** It normally names the surface a role sits on, but
+this role IS the surface; the tint is the variable being chosen and the ink is already fixed by
+`iText`. So the published promise is "this tint keeps its own state ink legible", and the ink is what
+it is measured against. Called out in the code so it doesn't read as a mistake.
+
+**Two false statements removed** — both would have outlived the bug: the lever `description` still said
+`solid-tint = opaque foreground.<color>-subtle` (the claim that caused this), and the dashboard still
+carried "Opaque subtle tint has no token yet". The section blurb is now method-aware too; pointing at
+the Overlay wash row under solid-tint would be the same species of wrong answer as the empty swatch.
+
+**Verified:** 1009 → **1015** tests, including the contract and the visibility floor across **5 brands**
+(nb, aurora, harbor, near-black, hot-yellow = 180 roles); `regen --check` 85/85 byte-match;
+nb-regression PASS; Playwright confirms the three methods now render distinctly — overlay
+`rgba(0,0,0,0.1)`, solid-tint opaque `rgb(204,222,233)` (aurora accent 100), none transparent.
+
+**Author control over WHICH tint** — asked for during review, and it needed no new engine concept.
+The `overrides` layer (A1) is generic over emitted roles, so the moment `subtle-fill` became a real
+role it was already overridable; verified by probe before claiming it. The gap was UI-only, so the
+Interactive page gained a `Subtle tint` row mirroring `Overlay wash`, self-hiding by method the same
+way (each returns null when its role is absent, so exactly one is ever shown). Its step picker is bound
+to the COLUMN'S OWN palette, not the neutral one the overlay row uses — picking which step of its own
+ramp a control hovers to is the point of the method.
+
+**The contract survives the override, and that is a consequence of the inverted `against`.** Overrides
+apply-but-warn by design. Because the role is measured against its state ink, an author pick that costs
+legibility is caught: `accent.200` warns at 3.76 < 4.5, `accent.400` at 2.04 < 4.5. Had the role been
+gated against the page instead — the obvious choice — the warning would have checked the wrong thing
+and a hand-picked unreadable tint would have passed silently. The row surfaces that verdict inline
+rather than leaving it in an engine warning the designer never sees.
+
+**Should the picker BLOCK a failing choice?** Asked in review; answered no, and the reasoning is worth
+keeping because it is not obvious. A UI block would be **false assurance** — the same override is
+authorable through `design.md`/`BrandInput`, which the engine accepts with a warning, so refusing the
+option hides the capability from one surface without protecting the artifact. Only the engine can
+guarantee, and the repo already has two deliberate and DIFFERENT precedents for that: the override
+layer *warns and applies*, while the fill anchor *clamps to the nearest passing step and says so*.
+Picking one for `subtle-fill` alone would make it behave unlike every other override, so the real
+question — should the override layer clamp rather than warn? — is filed separately (#320) to be
+answered once, layer-wide.
+
+What landed instead is **pre-emptive marking**: contrast-gated override pickers show which steps satisfy
+the role, so the problem is visible BEFORE the pick rather than only after. Applied at
+`roleSourceSelect`, so every override picker gets it, not just this row. Contrast is symmetric, so one
+comparison serves both directions — a role that IS a surface (`subtle-fill`, measured against its state
+ink) and one that sits on a surface use the same formula.
+
+**Marks the PASSING steps, not the failing ones** — and the first cut had it the other way. On a subtle
+tint only 4 of 21 steps clear the label, so flagging failures put a warning on 17 of them: accurate and
+useless, since a list that is nearly all warnings reads as noise rather than guidance. Owner called it
+("17 of 21 is why I was considering limiting options"); inverting keeps the same information and makes
+the short list the signal. **Auto carries the mark too** — it is the engine's contract-satisfying pick,
+so leaving it bare in a marked list would make the one guaranteed-good option look like the failures.
+The label states the number (`✓ 4.5:1`) rather than a bare tick, because the minimum is 4.5 for text
+and 3 for non-text and a tick alone would hide which bar was cleared.
+
+The helper returns undefined — not a no-op marker — when there is no contract to judge (`min` 0, role
+absent, `against: self`). Under inversion that distinction is load-bearing: within a picker either
+NOTHING is marked or the passing steps are, so an unmarked option is never ambiguous between "fails"
+and "wasn't judged".
+
+**Out of scope, still open:** nothing. #288's own "out of scope" note deferred the dashboard wiring,
+but leaving it unwired would have kept the reported symptom on screen, so it is included.
+
+---
+
+## (2026-07-30) — #296 closes by NARROWING, not by tiering shadow (#301)
+
+**STATUS: engine (source-only).** Zero artifact change — `regen.ts --check` 85/85 byte-match, alias
+counts unchanged (872/871/865). Closes #301 and, with it, **#296** — the mode-invariance arc that ran
+through #294 (leading/tracking) and #300 (motion).
+
+**The decision.** Shadow was the last entry in what the guard called a "migration ledger", with "an
+empty list is the finish line". It does not get a primitive tier. The invariant is amended instead:
+
+> A **terminal composite** — one that neither references a primitive nor is referenced by anything —
+> MAY swap raw sub-values per mode.
+
+**Why, from evidence rather than preference.** The #301 spike aliased one field of one shadow layer at
+a real primitive and walked every consumer. A `shadow` leaf's `$value` is an ARRAY OF OBJECTS, and
+**no consumer resolves an alias inside it**:
+
+| Consumer | Result | Exit |
+|---|---|---|
+| alias gate | ✅ sees it (872 → 874) | 0 |
+| `emit-figma` | ❌ `radius: 0` — `pxToNum` NaN → `\|\| 0` | **0** |
+| plugin `write-plan` | ❌ same, and it WRITES INTO FIGMA | 0 |
+| `resolve-preview` | ❌ raw `{…}` into `box-shadow` → invalid CSS, shadow vanishes | — |
+| `visualize` | ❌ raw `{…}` leaks into `tokens.html` | 0 |
+
+Three exit 0 while emitting a wrong artifact. So tiering shadow is not "~80 tokens plus naming" — it is
+~80 tokens **plus a nested-composite alias resolver in four consumers, one of which mutates a real
+Figma file**, to buy mode-invariance on tokens nobody consumes individually (designers reach for
+`shadow.md`, never a raw blur). Motion was cheap because it re-points a top-level `$value` string every
+consumer already resolved; shadow is not the same shape of change.
+
+**The exemption has teeth.** `TERMINAL_COMPOSITE_EXEMPTIONS` is not a pass-list — "terminal" is
+**re-derived from the tree every run**. If a shadow leaf ever gains an alias, or anything ever aliases
+into shadow, the premise is false and the test fails, naming the offending path and saying *re-decide
+the exemption*. Plus a presence check, because a renamed group would make both directions vacuously
+true. All three tamper-tested: an outgoing alias, an inbound alias, and removing the exemption
+(which correctly re-exposes all 7 shadow leaves as violations).
+
+**Revisit trigger, recorded so it isn't inherited as permanent:** if #305's tint work makes shadow
+values expressive enough that consumers want to re-point them, that is the moment to revisit — not the
+mere existence of the exemption.
+
+**Also fixed: a latent alias-gate hole (#281's shape).** The gate validated aliases in a composite's
+light `$value` array but **not** in `$extensions.prism3.modes.<mode>` arrays — that branch read only a
+string `$value`, and per-mode composite values are arrays. So the light half of a leaf was validated
+while its per-mode half was not: a future composite tiering would have shipped dangling per-mode refs
+with the gate reporting clean. Nothing puts aliases there today, hence zero artifact change.
+
+**The M-11 counter had the SAME hole**, and that is the more interesting half: the independent counter
+that exists to cross-check the gate read only a string `$value` too. Two implementations of "count the
+refs" sharing one blind spot agree — for the wrong reason. Both were fixed together so they match by
+construction rather than by coincidence.
+
+**Verified:** 1006 → **1009** tests; `regen.ts --check` 85/85; nb-regression PASS; web + plugin
+typecheck and builds clean; alias counts unchanged, confirming source-only.
+
+---
+
+## (2026-07-30) — The top bar on mobile: one row, and menus that stay on screen (#144 follow-up)
+
+**STATUS: web-only.** Engine untouched. Found by the owner on the live deploy after #315 shipped —
+worth noting the finding came from *using* the thing, not from the audit that passed it.
+
+- **A closed dropdown is not in the DOM, so an overflow sweep cannot see it.** #315's 38 green checks
+  were real but blind: the brand menu opened ~152px off the left edge at every width below 640, and
+  nothing measured it because the panel only exists while open. **The menu audit now opens each one.**
+  Generalises past this PR: any conditionally-rendered surface — dropdown, modal, popover, toast — is
+  invisible to a static sweep and needs its own pass.
+- **Both the before and after states were broken, differently.** The panels are anchored `right:0` to
+  their own wrapper, which is only safe while that wrapper sits at the viewport's right edge. #315 made
+  the bar wrap so it stopped overflowing, and that moved the actions LEFT, taking the right-anchored
+  panel off-screen. Before #315 the panel was nominally on-screen, but the bar itself overflowed 252px
+  at 360px wide — so the button that opens it was unreachable. Measured both, rather than assuming the
+  regression was purely mine.
+- **Right-aligning the row was necessary but not sufficient**, which only showed up on re-measurement:
+  the brand button is not the rightmost item, so its panel still began ~122px short of the edge and hung
+  9px off at 360px. The wrappers drop to `position:static` so the actions ROW becomes the containing
+  block, and both panels align to the one edge that is always flush with the gutter.
+- **"Fits by one pixel" is not a fit.** Full labels need ~455px against 456 available at 480px. Below
+  560 the "Theme studio" descriptor and the "Export" word are dropped — the ↓ and caret stay, and an
+  `aria-label` carries the accessible name — which takes the row to ~278px and holds a single line down
+  to ~312px of viewport. **Icon-only Export alone was not enough below 430px**; the owner sanctioned the
+  icon change, and the descriptor had to go with it to actually reach one row.
+- **The Export word is a nested span with the space inside it**, so wide layout still renders
+  `↓ Export` byte-identically — splitting it into sibling spans would have added a 9px flex gap and
+  quietly changed the desktop bar.
+- **Verified on the web build specifically** — the plugin bundle carries an extra "Apply to Figma"
+  button, so its bar is wider and measuring it would have overstated the widths for the deploy that
+  actually has the bug. Menus fully on-screen and one row at 360/393/430/480/640/900; desktop unchanged
+  (`.barbtn-lab`/`.studio` still inline/block at 640+, export 112px there vs 57px at 393). The #315
+  responsive sweep still 38/38 with 0 console errors, grip checks still pass, both surfaces typecheck
+  and build, `regen.ts --check` 85/85, `test.ts` 1006/1006.
+- **Deliberately untouched:** the modes bar. It is due a revamp or relocation, so tightening it now
+  would be work thrown away — the opportunity to improve it on mobile rides with that change.
+
+---
+
+## (2026-07-30) — Narrow viewports: the collapse rule never clamped (#144)
+
+**STATUS: web + plugin.** Engine untouched, `out/*` unchanged. Closes #144; landed as PR #315.
+
+- **The bug was the collapse rule, not the gutters** — which is why bumping the plugin window (#143)
+  only masked it. `.shell` uses `minmax(0,1fr)` for its second column at desktop, but the `≤900px`
+  override dropped to a bare `1fr`, and **a grid item's automatic minimum is min-content**, so the
+  track never clamped. Measured at a 480px viewport: `.shell` itself was correctly 400px while *both*
+  its children were 626px. Restoring the idiom fixes the bulk of the overflow at every width below 900.
+- **Baseline was measured on `origin/main` before anything was touched** (the #307 discipline): 186px
+  overflow / 285 clipped elements at 480px, 26px / 19 at 640px. The owner's independent re-measurement
+  landed on 186/283 and 26/19 — close enough to treat the harness as trustworthy.
+- **A trap for anyone re-verifying this later, found by the owner:** reverting *only* the
+  `.shell{grid-template-columns}` line while keeping the rest of the narrow tier **does not reproduce
+  the overflow** — the gutter/hero/table fixes independently keep content narrow enough. The bug only
+  reproduces against the genuine pre-PR baseline. A partial revert will read as "there was never a bug
+  here," which is exactly the wrong conclusion.
+- **Sweeping every page mattered, and nearly didn't happen.** After the first fix the landing page
+  measured clean at all four widths while **Interactive and Layout were still failing** — a single-page
+  check would have shipped the regression. The audit covers 9 rail pages × 480/640/900/1280 plus dark.
+- **Two things genuinely do not fit 456px and are handled rather than shrunk.** Ramp hex read-outs need
+  ~45px × 10 steps against ~406px available, so below 480 the hex is dropped and the step number kept —
+  labels stay 1:1 under their swatches, because a ramp is a continuous scale and wrapping or scrolling
+  the row destroys the alignment that makes it readable. **This is an information tradeoff, flagged as
+  vetoable at review and not vetoed.** The contrast + breakpoint tables become their own scroll boxes;
+  `.ctable` was the worse of the two because it was *silently clipped by an ancestor* rather than
+  pushing the page, so its cells were unreachable rather than merely off-screen — an overflow that no
+  page-level scrollWidth check would ever have caught.
+- **Plugin half:** a corner grip posting a new `resize-ui` over the existing typed bridge. `commit`
+  splits the drag from the write — every pointer-move resizes so the window tracks the pointer, only
+  pointer-up persists, so a drag is one `clientStorage` write rather than a hundred. **The clamp lives
+  on the main thread, not the UI** (the UI does not get to decide the minimum usable size; 380×420).
+  Boot restore reopens at the last size; `clientStorage` is async and `showUI` is not, so the window
+  opens at the default and resizes a tick later — awaiting storage first would trade a visible resize
+  for a visible delay.
+- **A runtime host check does not tree-shake.** The grip was first gated on `commit.isFigma` with a
+  comment asserting esbuild would drop it from the web bundle. It did not — esbuild cannot see through
+  the call. Re-gated on the `PRISM3_HOST` define (which `write-adapter.ts` already calls *"the single
+  BUILD-TIME swap point"*) and **verified by grepping both bundles**: `setPointerCapture` 0× in
+  `web/dist/main.js`, 1× in `plugin/dist/ui.html`. The lesson generalises past this PR — `isFigma` is
+  for *behaviour*, `PRISM3_HOST` is for *what ships*.
+- **Not verified, stated rather than papered over:** the main-thread half (`figma.ui.resize`, the
+  `clientStorage` round-trip) is typechecked but never live-driven — that needs the Desktop Bridge,
+  down per #237. The UI half was driven for real: 10 live drag messages, exactly one commit, and no
+  resize on hover after release.
+- **Verified:** responsive sweep 38/38 clean with 0 console errors, re-run on the post-merge head after
+  #314 landed in the same file (its new shadow-tint UI measures clean at narrow widths unaided);
+  `test.ts` 1006/1006; `regen.ts --check` 85/85; nb-regression PASS, ΔE00 1.95 unchanged; both surfaces
+  typecheck + build clean; `plugin/dist/main.js` still 0 `node:` builtins.
+
+---
+
 ## (2026-07-30) — Shadow tint becomes perceptible (#305)
 
 **STATUS: engine + web.** `out/*` **regenerated** — aurora/harbor/wendys shadow values change; **NB is
@@ -99,9 +347,13 @@ written into `CLAUDE.md` so it stops being re-derived from this log.
   Code comments and identifiers remain exempt, as every pass since #162 has held.
 - **Verified:** 1000/1000 engine tests; `regen.ts --check` 85/85 byte-match; nb-regression PASS, aggregate
   ΔE00 **1.95 unchanged**; 432/432 mode contracts across all three brands; web + plugin `tsc` and builds
-  clean; and on merged `main` the shipped bundle contains **zero** UK spellings in string content — the
-  split that motivated this (`subtle · light gray` in one control, `Subtle (light grey)` in another) is
-  closed at both ends.
+  clean; and on merged `main` the shipped bundle contains zero UK spellings in **UI-facing** string
+  content — the split that motivated this (`subtle · light gray` in one control, `Subtle (light grey)`
+  in another) is closed at both ends. *(Corrected at review: an earlier wording here said "zero UK
+  spellings in string content" flatly, which is not literally true — thrown `Error(...)` templates such
+  as `theme.ts:1339` and `color.ts:151` do ship in the bundle. They sit inside the carve-out this whole
+  series made deliberately, so it was loose wording rather than a missed gap — but this entry is about
+  a completion claim that outran its evidence, so it does not get to make one of its own.)*
 
 ---
 

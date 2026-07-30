@@ -21,7 +21,7 @@
  */
 import { brandTheme, ALL_MODES, normalizeDisabledStrategy } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput } from '../../Prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch } from '../../Prism3/engine/color';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
 import { leverManifest, leverGroups } from '../../Prism3/engine/levers';
 import type { Lever } from '../../Prism3/engine/levers';
@@ -1200,7 +1200,9 @@ const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', c
 // hover, disabled, icon colours) sit at the TOP — they govern every palette. Overrides only live on the
 // customizable modes, so renderScreen renders the generated-note on the derived modes and this editor
 // never runs there.
-type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; alpha?: number };
+// A structural narrowing of the engine's `ResolvedRole`. `against` names the role this one's `ratio`
+// is measured against — needed to judge a candidate step before it is picked (`contrastMark`).
+type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; against?: string; alpha?: number };
 type RoleMap = Record<string, RoleRes | undefined>;
 const iRoles = (): RoleMap => (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as RoleMap;
 const stepsOf = (palette: string): string[] => (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
@@ -1221,7 +1223,52 @@ const rgbaOf = (r: RoleRes): string => {
 const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string): HTMLSelectElement => {
   const cur = brandState.overrides?.[currentMode]?.[roleKey]?.step;
   return stepPicker(palette, stepsOf(palette), derivedStep, typeof cur === 'string' ? cur : undefined,
-    (step) => setFillOverride(roleKey, palette, step));
+    (step) => setFillOverride(roleKey, palette, step), contrastMark(roleKey, palette));
+};
+
+/** Marks the steps that SATISFY a contrast-gated role, in the picker, before the pick is made.
+ *
+ *  Overrides apply-but-warn by design (`modes.ts`) — deliberately, since a UI that refused the option
+ *  would be false assurance: the same override is authorable through `design.md`/`BrandInput`, which
+ *  the engine accepts, so blocking here would hide the capability from one surface without protecting
+ *  the artifact. Only the engine can guarantee, and whether it should CLAMP instead of warn is a
+ *  layer-wide question (#320), not a per-role one.
+ *
+ *  So this informs rather than blocks: the warning stays as the backstop, and the picker stops being
+ *  the place you discover the problem only after choosing. Applies to every contrast-gated override
+ *  picker, not just one row — the same reasoning holds everywhere the layer is used.
+ *
+ *  Marks the PASSING steps, not the failing ones. On a subtle tint only ~4 of 21 steps clear the label,
+ *  so flagging failures put a warning on 80% of the list — technically accurate and useless, since a
+ *  list that is nearly all warnings reads as noise rather than guidance. The short list is the useful
+ *  signal, so it is the one that gets marked. (Interim: if #320 lands on clamping, the failing steps
+ *  stop being reachable and this can go back to being a plain list.)
+ *
+ *  Contrast is symmetric, so one comparison covers both directions — a role that IS a surface
+ *  (`subtle-fill`, measured against its state ink) and a role that sits ON one (text against a
+ *  background) use the same formula.
+ *
+ *  Returns undefined — not a no-op marker — when the role states no contract, is absent in this mode,
+ *  or is measured against `self`. That distinction matters under inversion: within a picker either
+ *  NOTHING is marked (no contract to judge) or the passing steps are, so an unmarked option is never
+ *  ambiguous between "fails" and "wasn't judged". */
+const contrastMark = (roleKey: string, palette: string): ((step: string) => string) | undefined => {
+  const roles = iRoles();
+  const r = roles[roleKey];
+  const min = r?.min ?? 0;
+  if (!r || min <= 0 || !r.against || r.against === 'self') return undefined;
+  const againstHex = roles[r.against]?.hex;
+  if (!againstHex) return undefined;                       // nothing resolvable to compare against
+  const againstRgb = hexToRgb(againstHex);
+  const steps = theme.palettes.find((p) => p.palette === palette)?.steps ?? [];
+  // States the number rather than a bare tick: the minimum is 4.5 for text and 3 for non-text, so
+  // "✓" alone would hide WHICH bar a step clears.
+  const label = ` · ✓ ${String(min).replace(/\.0$/, '')}:1`;
+  return (step: string): string => {
+    const s = steps.find((x) => x.key === step);
+    if (!s) return '';
+    return contrast(hexToRgb(s.hex), againstRgb) >= min ? label : '';
+  };
 };
 
 // ---- examples (locked right) ----------------------------------------------
@@ -1381,6 +1428,41 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   });
 };
 
+/** The subtle-tint row — the OPAQUE sibling of the overlay wash (#288), shown only when
+ *  `outlineInteraction: solid-tint` is the method (the role is absent otherwise, so this returns null
+ *  and the row self-hides, same as `overlayRow` does under the other methods).
+ *
+ *  The step picker is bound to the COLUMN'S OWN palette, not the neutral one the overlay row uses —
+ *  choosing which tint of its own ramp a control hovers to is the whole point of the method.
+ *
+ *  The engine picks a default step that keeps the state's ink legible, but an override is applied and
+ *  WARNED, never blocked (the established `overrides` behaviour). Since the role's `against` is the
+ *  state ink, `ratio`/`min` already carry that verdict — so a pick that costs legibility says so here
+ *  rather than only in an engine warning the designer never sees. */
+const subtleFillRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.subtle-fill.hover`]; if (!r) return null;
+  const pressed = roles[`interactive.${col.name}.subtle-fill.pressed`];
+  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
+  return iRow({
+    swatchBg: r.hex, label: 'Subtle tint',
+    select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, stepKeyOf(r.path)),
+    pill: `color.interactive.${col.name}.subtle-fill.hover`,
+    desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
+    // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
+    // which must read as no warning, not as a failed one.
+    warn: (r.min ?? 0) > 0 && (r.ratio ?? Infinity) < (r.min ?? 0)
+      ? `This tint leaves the hover label at ${short(r.ratio ?? 0)}:1, under the ${short(r.min ?? 0)}:1 it needs — pick a step closer to the page, or the text stops being readable on hover.`
+      : undefined,
+    example: iExample(exOutline(edge, r.hex, false, undefined, pressed?.hex)),
+    states: iStates(roles, col.palette, [
+      ['Hover', `interactive.${col.name}.subtle-fill.hover`],
+      ['Pressed', `interactive.${col.name}.subtle-fill.pressed`],
+    ]),
+  });
+};
+
 /** One action-palette section: header (+ optional remove) · optional lead control · the slot rows. */
 const renderPaletteSection = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
@@ -1410,6 +1492,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
         rs[`interactive.${inv}.text.hover`]?.hex, rs[`interactive.${inv}.text.pressed`]?.hex),
       states: [['Hover', `interactive.${inv}.text.hover`], ['Pressed', `interactive.${inv}.text.pressed`]] }),
     overlayRow(col),
+    subtleFillRow(col),   // #288 — the opaque sibling; only one of the two is ever non-null
     slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
       desc: 'The ink on the fill — auto-picked to clear contrast on the button surface.',
       example: (rs) => exBtn(rs[`interactive.${nm}.fill.rest`]?.hex ?? '#000000', rs[`interactive.${nm}.on-fill`]?.hex ?? '#ffffff') }),
@@ -1465,20 +1548,29 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   host.append(cap);
   const roles = iRoles();
 
-  const oh = el('div', 'psec'); oh.append(el('p', 'psec-t', 'Outline button hover'), el('p', 'psec-d', 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.'));
+  const oh = el('div', 'psec');
+  // The second sentence is method-specific: the Overlay wash row only tunes the translucent method.
+  // Under solid-tint the fill comes from the control's own palette automatically, so pointing at a
+  // control that does nothing there would be the same species of wrong answer as the empty swatch.
+  const ohBlurb = theme.outlineInteraction === 'solid-tint'
+    ? 'How every outline & text action reacts on hover. The tint is a step of each control’s own palette, so a destructive outline hovers red-tinted rather than gray.'
+    : theme.outlineInteraction === 'none'
+      ? 'How every outline & text action reacts on hover. No hover fill — the border and ink carry the state on their own.'
+      : 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.';
+  oh.append(el('p', 'psec-t', 'Outline button hover'), el('p', 'psec-d', ohBlurb));
   const ohEdge = roles['interactive.primary.text.rest']?.hex ?? '#000000';
-  // Only `overlay-neutral` actually emits a token here (`interactive.<name>.overlay.hover`).
-  // `solid-tint`'s doc comment (modes.ts) says it reuses an opaque `foreground.<color>-subtle` —
-  // but that role only exists for the 5 fixed SEMANTICS names (brand/success/warning/danger/info),
-  // never for an interactive COLUMN name (primary/neutral/destructive/accent), so there is no real
-  // token to read for ANY brand today; `none` has no fill by design. Previously this always read
-  // the overlay-hover role regardless of method, which looked identically empty for solid-tint and
-  // made it indistinguishable from a bug — showing the gap explicitly (rather than a wrong color)
-  // avoids implying a fix that isn't there. Tracked as a real engine gap, not a UI bug: #288.
+  // Each method reads its OWN role, which is the whole point of #288: `overlay-neutral` emits a
+  // translucent `interactive.<name>.overlay.hover`, `solid-tint` an opaque
+  // `interactive.<name>.subtle-fill.hover`, and `none` no fill by design. This used to read the
+  // overlay role unconditionally, which rendered solid-tint identically to none — and once that was
+  // made conditional there was still nothing to read, because the engine emitted no solid-tint token
+  // for any brand (#288). Both halves are fixed now, so the example tracks the method for real.
   const ohWash = theme.outlineInteraction === 'overlay-neutral' && roles['interactive.primary.overlay.hover']
-    ? rgbaOf(roles['interactive.primary.overlay.hover']) : 'transparent';
+    ? rgbaOf(roles['interactive.primary.overlay.hover'])
+    : theme.outlineInteraction === 'solid-tint' && roles['interactive.primary.subtle-fill.hover']
+      ? roles['interactive.primary.subtle-fill.hover'].hex     // opaque — a real palette step, no alpha
+      : 'transparent';
   oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
-    warn: theme.outlineInteraction === 'solid-tint' ? 'Opaque subtle tint has no token yet — this hover currently renders the same as “No hover fill” (tracked in #288).' : undefined,
     example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
   host.append(oh);
 
@@ -2739,10 +2831,12 @@ const renderForegroundEditor = (): HTMLElement => {
 // mode the whole page is the read-only note (renderScreen), so this never renders there.
 /** A palette step select with an "Auto" (the generated baseline) option — audit §8 candidate #3. `''` is
  *  Auto; other values are step keys. */
-const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void): HTMLSelectElement => {
+const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void, mark?: (step: string) => string): HTMLSelectElement => {
   const sel = selectEl('cap');
-  sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}`, current == null));
-  for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}`, current === s));
+  // Auto carries the mark too. It is the engine's contract-satisfying pick, so leaving it bare in a
+  // marked list would make the one guaranteed-good option look like the failing ones.
+  sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}${mark?.(autoStep) ?? ''}`, current == null));
+  for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}${mark?.(s) ?? ''}`, current === s));
   sel.onchange = () => onPick(sel.value === '' ? undefined : sel.value);
   return sel;
 };
@@ -3705,7 +3799,13 @@ function renderBar(): void {
   // Export — the download artifacts.
   const eWrap = el('div', 'barmenu-wrap');
   const exp = el('button', 'barbtn' + (exportMenuOpen ? ' open' : '')) as HTMLButtonElement;
-  exp.append(el('span', undefined, '↓ Export'), el('span', 'caret', '▾'));
+  // The word is its own span so the narrow bar can drop to icon-only (the arrow alone) without
+  // touching the arrow or the caret. Nested inside one span with the space INSIDE the label, so
+  // wide layout renders "↓ Export" exactly as before — no extra flex gap appears between them.
+  const expText = el('span');
+  expText.append(document.createTextNode('↓'), el('span', 'barbtn-lab', ' Export'));
+  exp.append(expText, el('span', 'caret', '▾'));
+  exp.setAttribute('aria-label', 'Export');   // stable accessible name once the word is hidden
   exp.onclick = (e) => { e.stopPropagation(); exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; renderBar(); };
   eWrap.append(exp);
   if (exportMenuOpen) eWrap.append(renderExportMenu());
@@ -4580,7 +4680,22 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 @media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
 /* Narrow viewports (#144). The plugin iframe runs this same UI, so its window lands here:
    gutters, hero and chrome all shrink, and nothing is allowed to overflow horizontally. */
-@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
+/* The bar's dropdowns are anchored right:0 to their wrapper, which is only safe while the wrapper
+   sits at the viewport's right edge. When the bar wraps, the actions land at the LEFT and a 288px
+   panel hangs ~152px off-screen — invisible to an overflow sweep, because a closed menu isn't in
+   the DOM at all. margin-left:auto keeps the actions right-aligned on their own wrapped row, which
+   fixes the cause; the max-width is the belt-and-braces cap for viewports under ~312px. */
+/* Right-aligning the row is necessary but not sufficient: each menu anchors to its OWN wrapper,
+   and the brand button is not the rightmost item, so its panel still started ~122px short of the
+   edge and hung 9px off at 360px. Dropping the wrappers to static makes the actions row itself the
+   containing block, so both panels align to the row's right edge — the one edge that is always
+   flush with the viewport gutter, whatever the buttons ahead of them are doing. */
+@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap;margin-left:auto;position:relative}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
+/* Compact bar. Full labels need ~455px and the row has 456 at 480px — i.e. it only "fits" by a
+   pixel, so the treatment starts before the numbers get tight. Dropping the "Theme studio"
+   descriptor and the Export word (the ↓ and caret stay, and aria-label keeps the accessible name)
+   takes the row to ~278px, which is a single line down to ~312px of viewport. */
+@media(max-width:560px){.studio{display:none}.barbtn-lab{display:none}}
 /* Below ~480 the 10 hex read-outs under a ramp cannot fit (each needs ~45px, the row has ~406):
    drop the hex and keep the step number, so labels stay 1:1 under their swatches. Wrapping or
    scrolling the row would break that alignment, which is the whole point of a ramp. */
