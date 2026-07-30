@@ -222,8 +222,34 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
   input.onchange = () => { val.textContent = input.checked ? 'On' : 'Off'; onToggle(input.checked); };
   return knobBody(input, val);
 };
-/** A token-path chip (doc 24 C4) — the small mono pill that shows a DTCG/role path. */
-const tokenPill = (path: string): HTMLElement => el('span', 'tpill mono', path);
+/** A token-path chip (doc 24 C4) — the small mono pill that shows a DTCG/role path.
+ *
+ *  A long path ELIDES FROM THE LEFT instead of wrapping to two lines (#289): the CSS gives the pill
+ *  `direction:rtl`, which moves where `text-overflow:ellipsis` bites to the start, so
+ *  `color.background.inverse.primary` renders as `…kground.inverse.primary`.
+ *
+ *  Why not the obvious right-truncation: these paths share long prefixes and differ only in the tail.
+ *  `color.foreground.brand` and `color.foreground.brand-subtle` — or the six
+ *  `color.interactive.destructive.on-inverse.{text,fill}.{rest,hover,pressed}`, whose first 40
+ *  characters are identical — all collapse to the SAME visual stub if you cut from the right. The
+ *  discriminating information lives at the end, so that is the end worth keeping. The cost is that the
+ *  namespace prefix is the part hidden when space is tight; `title` and (on style-guide pills) the
+ *  hover bubble both carry the full path, and the emitted path itself is unchanged, which is what
+ *  doc-26's namespace rule is actually about.
+ *
+ *  The path stays a SINGLE text node and the elision is purely visual, which is what keeps a text
+ *  `text-overflow` bites), which is what keeps a text selection exact — today's pill is one text node
+ *  too, so anything that split it would REGRESS copy/paste. Two earlier attempts did exactly that:
+ *  `inline-flex` head+tail laid out correctly but flex items are blockified, so a selection came back
+ *  as `color\n.background.primary`; switching to `inline-block` with the tail's width reserved in `ch`
+ *  fixed the newline but the head's `max-width:100%` resolved against the pill's own shrink-to-fit
+ *  width — circular — which collapsed the head to nothing on 181 of 198 pills. Both measured, not
+ *  reasoned about. `title` carries the full path for the elided case. */
+const tokenPill = (path: string): HTMLElement => {
+  const p = el('span', 'tpill mono', path);
+  p.title = path;
+  return p;
+};
 /** A dashed "+ add" button (doc 24 C4). `.addbtn` owns the styling; pass context classes (width/margin)
  *  via `cls`. */
 const addButton = (label: string, onClick: () => void, cls = ''): HTMLButtonElement => {
@@ -875,8 +901,13 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // visible label is the real, resolvable path — semantic roles emit under `color.*` (doc-26 contract),
   // so a bare role key is prefixed; a short contextual label (e.g. `fill.rest`) is shown verbatim.
   const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
-    const p = tokenPill(label ?? `color.${k}`);
-    const t = tipOf(m, k); p.setAttribute('data-sgtip', t); p.title = t;
+    const path = label ?? `color.${k}`;
+    const p = tokenPill(path);
+    // Two tooltips carrying two different things, deliberately: the custom `data-sgtip` bubble reveals
+    // what the role RESOLVES to (primitive step · hex · ratio), while `title` — set by tokenPill and
+    // preserved here — is the full PATH, which matters now that a long path can be elided (#289).
+    // Previously `title` was overwritten with the resolution too, making it redundant.
+    p.setAttribute('data-sgtip', tipOf(m, k));
     if (fails(m, k)) { p.classList.add('sg-failpill'); p.append(el('b', 'sg-fx', '!')); }
     return p;
   };
@@ -4198,6 +4229,18 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .cb-ratio{font-variant-numeric:tabular-nums;font-weight:600}
 .cbadge.ok .cb-mark{color:#1a9c52}.cbadge.no .cb-mark{color:#d23}
 .tpill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--line);color:var(--faint)}
+/* #289 — long paths elide rather than wrapping. Applied to .tpill itself, not to the two
+   containers that happened to be reported: the pill is used in 17 places and any narrow one has the
+   same problem, so per-context rules would just wait for the next narrow column. max-width:100% plus
+   a min-width:0 parent is what lets it shrink; where the pill has room, nothing changes. */
+.tpill{display:inline-block;position:relative;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top;direction:rtl;text-align:left}
+/* direction:rtl moves the ellipsis to the START, so the ELIDED end is the shared namespace prefix and
+   the visible end is the tail that distinguishes siblings — color.foreground.brand vs
+   color.foreground.brand-subtle stay tellable apart, where a right-side ellipsis renders both as the
+   same stub. The path is pure-ASCII with no trailing punctuation, so bidi reordering is a no-op on it
+   (asserted in the audit: every pill's text node still equals its title). */
+.sg-failpill{padding-right:19px}
+.sg-failpill .sg-fx{position:absolute;right:6px;top:2px;margin:0}
 /* Interactive & action colors — per-mode note + add-accent row (#69). */
 .ic-modenote{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.55;padding:10px 13px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm)}
 /* A2c — per-mode foreground/text override rows. */
@@ -4229,7 +4272,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .alabel{font-size:14px;font-weight:640;line-height:1.2;color:var(--ink)}
 .amid .sf-ctlblock{width:100%}
 .amid .select{max-width:300px}
-.amid .tpill{display:inline-block;white-space:normal;word-break:break-word;line-height:1.4}
+.amid .tpill{line-height:1.4}
 .adesc{font-size:11.5px;color:var(--faint);line-height:1.45;max-width:340px}
 .aex{width:300px;justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:8px}
 .aex .cbadge{align-self:flex-end}
@@ -4266,7 +4309,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sf-sw{width:56px;height:56px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line2)}
 .sf-id{min-width:0;padding-top:2px}
 .sf-name{font-size:14.5px;font-weight:620;letter-spacing:-.01em;line-height:1.25;color:var(--ink)}
-.sf-id .tpill{display:inline-block;margin-top:7px;white-space:normal;word-break:break-word;line-height:1.4}
+.sf-id .tpill{margin-top:7px;line-height:1.4}
 .sf-desc{font-size:12px;color:var(--faint);margin-top:7px;line-height:1.45}
 .sf-ctl{display:flex;flex-direction:column;gap:12px;min-width:0}
 .sf-ctlblock{display:flex;flex-direction:column;gap:6px}
