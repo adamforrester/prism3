@@ -132,7 +132,7 @@ const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token 
     $description: description,
     $extensions: { prism3: { generated: true, role: 'composite', layers: step.light.length,
       modes,
-      figma: { kind: 'effect-style', styleType: 'EFFECT', binds: ['color', 'radius', 'spread', 'offsetX', 'offsetY'], note: 'Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark' } } },
+      figma: { kind: 'effect-style', styleType: 'EFFECT', binds: ['color', 'radius', 'spread', 'offsetX', 'offsetY'], note: 'Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark' } } },
   };
 };
 
@@ -166,7 +166,7 @@ const gradientLeaf = (g: ResolvedGradient, fmt: 'rgb' | 'hex'): Token => {
         note: `text-on-gradient: white text clears ${wOnW}:1 at the lightest stop, black text ${wOnB}:1 at the darkest — a text overlay must meet its ratio at the worst-case point (constrain the lightness range or add a scrim)${aa < 4.5 ? '; NEITHER plain overlay clears 4.5:1 body text — use a scrim or a solid container' : ''}` },
       figma: { kind: 'paint-style', styleType: 'PAINT', paintType, binds: ['gradientStops[].color'], baked: ['type', g.kind === 'radial' ? 'center/shape' : 'angle', 'positions'],
         sampledStops: g.sampled,
-        note: 'Figma Paint Style (gradient fill) — created via the Plugin API only (REST cannot write/read Paint values). Only stop COLOURS bind to COLOR variables (Plugin API Update 92); kind, angle/transform and stop positions are baked. Figma interpolates in sRGB only, so bind the canonical stop colours AND lay down sampledStops to approximate the OKLCH curve.' } } },
+        note: 'Figma Paint Style (gradient fill) — created via the Plugin API only (REST cannot write/read Paint values). Only stop COLORS bind to COLOR variables (Plugin API Update 92); kind, angle/transform and stop positions are baked. Figma interpolates in sRGB only, so bind the canonical stop colors AND lay down sampledStops to approximate the OKLCH curve.' } } },
   };
 };
 
@@ -294,7 +294,7 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
     : {};
   return {
     $type: 'typography', $value: value,
-    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face} (${c.family} role), ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* colour)' : ''} — consumer-facing type style`,
+    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face} (${c.family} role), ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* color)' : ''} — consumer-facing type style`,
     $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontWeight'], baked: ['lineHeight', 'letterSpacing', ...(c.italic ? ['fontStyle'] : []), ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])], note: 'Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table.' } } },
   };
 };
@@ -359,7 +359,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = aliasLeaf(lr.path, lr.description, {
       contrast: round(lr.ratio, 2), against: lr.against, ...(lr.min > 0 ? { min: lr.min } : {}),
       modes: modeOverrides,
-      figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*' },
+      figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*' },
     });
     const parts = roleKey.split('.'); // property-led, may nest (group / variant / state)
     let node = colorRoles;
@@ -639,7 +639,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const b of ly.breakpoints) breakpoint[b.name] = dimLeaf(b.px, `breakpoint ${b.name} — min-width ${b.px}px (mobile-first)`);
   const gridSpaceAlias = (px: number, desc: string, bp: string, variable: string): Token => {
     const key = spaceKeyOf.get(px);
-    const fig = { figma: { collection: 'layout', mode: bp, variable, note: 'breakpoint = Figma mode (separate layout collection; composes with colour light/dark)' } };
+    const fig = { figma: { collection: 'layout', mode: bp, variable, note: 'breakpoint = Figma mode (separate layout collection; composes with color light/dark)' } };
     return key ? dimAlias(`${root}.space.${key}`, desc, { px, ...fig }) : dimLeaf(px, desc);
   };
   const grid: Record<string, any> = {};
@@ -663,7 +663,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const tree = {
     [root]: brand,
     $extensions: {
-      generator: { name: 'Prism3 engine', method: 'OKLCH colour + grid-derived dimension generation' },
+      generator: { name: 'Prism3 engine', method: 'OKLCH color + grid-derived dimension generation' },
       prism3: { theme: theme.id, root, colorFormat: theme.colorFormat, decisions: theme.notes },
     },
   };

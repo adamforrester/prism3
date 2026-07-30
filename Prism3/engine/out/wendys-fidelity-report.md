@@ -13,7 +13,7 @@
 - Palettes generated: primary, neutral, secondary, tertiary, success, warning, info, danger · danger draws from `danger`.
 - x-prism3 levers: none (plain spec → engine defaults).
 
-## 1. Colour fidelity (ΔE00 — observed swatch vs nearest generated step)
+## 1. Color fidelity (ΔE00 — observed swatch vs nearest generated step)
 
 ### Primary (brand anchor + state variants)
 
@@ -63,13 +63,13 @@
 | `warning` | #C25700 | `warning.500` #b75c23 | 3.60 | hue-pinned (L by ramp) |
 | `error` | #9E0D24 | `danger.650` #8f2b2f | 4.26 | hue-pinned (L by ramp) |
 
-### Info (engine-synthesised — expect divergence)
+### Info (engine-synthesized — expect divergence)
 
 | token | observed | → nearest generated | ΔE00 | relation |
 |---|---|---|---|---|
 | `info` | #0077A3 | `info.500` #317bb2 | 5.45 | · |
 
-**Aggregate colour ΔE00** across 24 observed swatches: **2.02** (the anchor pins to ~0; the ramp steps and status/neutral — which the engine PLACES by contrast role, not by the observed value — carry the divergence).
+**Aggregate color ΔE00** across 24 observed swatches: **2.02** (the anchor pins to ~0; the ramp steps and status/neutral — which the engine PLACES by contrast role, not by the observed value — carry the divergence).
 
 ## 2. Typography parity
 
@@ -152,7 +152,7 @@ Observed radius vs the engine's small **bounded** set (`none/sm/md/lg/round`) �
 ## 5. Elevation parity
 
 Observed elevation is single-layer CSS `box-shadow` strings; the engine generates a 6-step (`xs–2xl`) **two-layer**
-(key + ambient) mode-aware ramp with a tinted-near-black colour. Different shapes — reported qualitatively:
+(key + ambient) mode-aware ramp with a tinted-near-black color. Different shapes — reported qualitatively:
 
 | observed | value | nearest engine step (light, key blur / ambient blur) |
 |---|---|---|
@@ -165,7 +165,7 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 
 ## 6. Classification & engine decisions
 
-### Colour-role classification log
+### Color-role classification log
 
 | token | decision |
 |---|---|
@@ -182,32 +182,32 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 | `secondary-light` | · report-only — state/scale variant of 'secondary'; engine regenerates the ramp — kept for the fidelity diff |
 | `secondary-dark` | · report-only — state/scale variant of 'secondary'; engine regenerates the ramp — kept for the fidelity diff |
 | `white` | · report-only — white is a primitive; kept for the fidelity diff |
-| `info` | · report-only — info is engine-SYNTHESISED (not an anchor); kept for the fidelity diff |
+| `info` | · report-only — info is engine-SYNTHESIZED (not an anchor); kept for the fidelity diff |
 
 ### Engine decisions (from theme notes)
 
 - primary anchor (h22.32) pinned exactly at step 500
-- brand colour 'secondary' (h233.18) added
-- brand colour 'tertiary' (h18.01) added
+- brand color 'secondary' (h233.18) added
+- brand color 'tertiary' (h18.01) added
 - success: brand-supplied hue 142.51 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
 - warning: brand-supplied hue 48.48 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
 - info: engine default hue 245
-- action colour defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive colour for this brand
+- action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand
 - danger: brand-supplied hue 21.95
 - dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)
 - motion: tempo 'standard' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
 - shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 249.14, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
 - gradient: none (opt-in axis; brand declared no gradients — the field-common default).
-- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with colour light/dark.
+- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
 - typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, text=Roboto, mono=JetBrains Mono; typeScale 'default'. 36 semantic composites (title/display sizes shifted by typeScale; display capped at 160px; title floor 18px). responsive: 10 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
 - disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.
-- neutral interactive emphasis: 'subtle' (light-grey, default); inverse surface-context: on (interactive.<color>.on-inverse generated)
+- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.on-inverse generated)
 
 ### Interchange notes
 
-- **Colour-role classifier** reads `primary/secondary/tertiary/neutral-<step>/success/warning/error/info` by convention; `error`→`danger` is the one rename the engine applies (its status role is `danger`).
+- **Color-role classifier** reads `primary/secondary/tertiary/neutral-<step>/success/warning/error/info` by convention; `error`→`danger` is the one rename the engine applies (its status role is `danger`).
 - **Scale/state variants** (`*-dark`, `*-50`, …) are observed ramp points; the engine regenerates the full ramp and reports divergence rather than consuming them.
-- Observed `info` duplicates `secondary` (both `#0077A3`); the engine synthesises `info` independently, so the dup doesn't propagate.
+- Observed `info` duplicates `secondary` (both `#0077A3`); the engine synthesizes `info` independently, so the dup doesn't propagate.
 - **`x-prism3`** carries engine-only levers (radiusScale, typeScale, density, motionTempo, actionPalette, iconContrast, surfaces, gradients). None here → engine defaults (the plain-spec guarantee).
 

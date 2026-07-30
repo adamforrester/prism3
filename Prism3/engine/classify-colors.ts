@@ -177,10 +177,10 @@ export const classifyColors = (colors: Record<string, string>): ColorClassificat
 
   // --- report-only swatches (info / white / black / variants / unknown) ---
   for (const p of provided.filter((x) => !x.usedAsAnchor)) {
-    const why = p.role === 'info' ? 'info is engine-SYNTHESISED (not an anchor); kept for the fidelity diff'
+    const why = p.role === 'info' ? 'info is engine-SYNTHESIZED (not an anchor); kept for the fidelity diff'
       : p.role === 'white' || p.role === 'black' ? `${p.role} is a primitive; kept for the fidelity diff`
       : p.role === 'variant' ? `state/scale variant of '${p.baseRamp}'; engine regenerates the ramp — kept for the fidelity diff`
-      : 'unrecognised token; kept for the fidelity diff';
+      : 'unrecognized token; kept for the fidelity diff';
     log.push({ token: p.token, decision: `· report-only — ${why}` });
   }
 

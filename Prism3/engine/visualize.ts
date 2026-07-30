@@ -73,7 +73,7 @@ for (const b of brands) {
 
   // ---- colour primitives ----
   txt.push('\n— COLOUR PRIMITIVES —');
-  html.push('<h3>Colour primitives</h3>');
+  html.push('<h3>Color primitives</h3>');
   const palettes = Object.keys(data.palette).filter((k) => k !== 'white' && k !== 'black');
   for (const pal of palettes) {
     const steps = STEP_ORDER(Object.keys(data.palette[pal]));
@@ -553,7 +553,7 @@ const page = `<!doctype html><html lang="en"><head><meta charset="utf-8">
   .taxdesc{color:#6b7280;max-width:48ch}
 </style></head><body>
 <h1>Prism3 — generated token taxonomy</h1>
-<p class="lead">Every value below is engine-generated from a small theme input and read back from the emitted DTCG files (<code>out/*.tokens.json</code>) — colour, semantic roles, dimension, typography, shadow, motion, layout, gradient (opt-in), opacity and border-width. ★ marks the exact brand anchor. Type styles, shadows and easing curves are rendered live from the resolved tokens. Each brand section includes a <b>live component preview</b> — sample components rendered from the shared preview spec + <code>resolvePreview</code> (the same model the Figma plugin and web playground use), with a per-mode contrast overlay (L/D/HL/HD, green = passes its declared min). Each brand section ends with a <b>full taxonomy table</b> — every token with its complete path (filter by typing, click a path to copy). Regenerate with <code>npx tsx Prism3/engine/visualize.ts</code>.</p>
+<p class="lead">Every value below is engine-generated from a small theme input and read back from the emitted DTCG files (<code>out/*.tokens.json</code>) — color, semantic roles, dimension, typography, shadow, motion, layout, gradient (opt-in), opacity and border-width. ★ marks the exact brand anchor. Type styles, shadows and easing curves are rendered live from the resolved tokens. Each brand section includes a <b>live component preview</b> — sample components rendered from the shared preview spec + <code>resolvePreview</code> (the same model the Figma plugin and web playground use), with a per-mode contrast overlay (L/D/HL/HD, green = passes its declared min). Each brand section ends with a <b>full taxonomy table</b> — every token with its complete path (filter by typing, click a path to copy). Regenerate with <code>npx tsx Prism3/engine/visualize.ts</code>.</p>
 ${html.join('\n')}
 <script>
   // taxonomy filter — scoped to each brand section; opens groups while filtering

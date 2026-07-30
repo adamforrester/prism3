@@ -66,14 +66,14 @@ export const buildFidelityReport = (std: StandardDesignMd, cls: ColorClassificat
     `- x-prism3 levers: ${xApplied.length ? xApplied.join(', ') : 'none (plain spec → engine defaults)'}.`, '');
 
   // §1 colour
-  P(`## 1. Colour fidelity (ΔE00 — observed swatch vs nearest generated step)`, '');
+  P(`## 1. Color fidelity (ΔE00 — observed swatch vs nearest generated step)`, '');
   const groups: { title: string; filter: (p: ProvidedColor) => boolean }[] = [
     { title: 'Primary (brand anchor + state variants)', filter: (p) => p.baseRamp === 'primary' },
     { title: 'Secondary', filter: (p) => p.baseRamp === 'secondary' },
     { title: 'Tertiary', filter: (p) => p.baseRamp === 'tertiary' },
     { title: 'Neutral (+ white)', filter: (p) => p.baseRamp === 'neutral' },
     { title: 'Status: success / warning / danger(←error)', filter: (p) => ['success', 'warning', 'danger'].includes(p.baseRamp ?? '') },
-    { title: 'Info (engine-synthesised — expect divergence)', filter: (p) => p.baseRamp === 'info' },
+    { title: 'Info (engine-synthesized — expect divergence)', filter: (p) => p.baseRamp === 'info' },
   ];
   // How each observed swatch relates to the generated ramp: brand palettes pin an
   // EXACT step; neutral swatches DERIVE the aggregate { hue, chroma }; status pins
@@ -96,7 +96,7 @@ export const buildFidelityReport = (std: StandardDesignMd, cls: ColorClassificat
     P('');
   }
   const meanDe = allDe.reduce((a, b) => a + b, 0) / (allDe.length || 1);
-  P(`**Aggregate colour ΔE00** across ${allDe.length} observed swatches: **${de2(meanDe)}** (the anchor pins to ~0; the ramp steps and status/neutral — which the engine PLACES by contrast role, not by the observed value — carry the divergence).`, '');
+  P(`**Aggregate color ΔE00** across ${allDe.length} observed swatches: **${de2(meanDe)}** (the anchor pins to ~0; the ramp steps and status/neutral — which the engine PLACES by contrast role, not by the observed value — carry the divergence).`, '');
 
   // §2 typography
   P(`## 2. Typography parity`, '',
@@ -145,7 +145,7 @@ export const buildFidelityReport = (std: StandardDesignMd, cls: ColorClassificat
   // §5 elevation
   P(`## 5. Elevation parity`, '',
     `Observed elevation is single-layer CSS \`box-shadow\` strings; the engine generates a 6-step (\`xs–2xl\`) **two-layer**`,
-    `(key + ambient) mode-aware ramp with a tinted-near-black colour. Different shapes — reported qualitatively:`, '',
+    `(key + ambient) mode-aware ramp with a tinted-near-black color. Different shapes — reported qualitatively:`, '',
     '| observed | value | nearest engine step (light, key blur / ambient blur) |', '|---|---|---|');
   const engSteps = theme.shadow.steps.filter((s) => s.name !== 'inset');
   for (const [token, val] of Object.entries(std.elevation)) {
@@ -160,17 +160,17 @@ export const buildFidelityReport = (std: StandardDesignMd, cls: ColorClassificat
 
   // §6 classification / decisions
   P(`## 6. Classification & engine decisions`, '');
-  P(`### Colour-role classification log`, '', '| token | decision |', '|---|---|');
+  P(`### Color-role classification log`, '', '| token | decision |', '|---|---|');
   for (const e of cls.log) P(`| \`${e.token}\` | ${e.decision} |`);
   P('');
   P(`### Engine decisions (from theme notes)`, '');
   for (const n of theme.notes) P(`- ${n}`);
   P('');
   P(`### Interchange notes`, '',
-    `- **Colour-role classifier** reads \`primary/secondary/tertiary/neutral-<step>/success/warning/error/info\` by convention; \`error\`→\`danger\` is the one rename the engine applies (its status role is \`danger\`).`,
+    `- **Color-role classifier** reads \`primary/secondary/tertiary/neutral-<step>/success/warning/error/info\` by convention; \`error\`→\`danger\` is the one rename the engine applies (its status role is \`danger\`).`,
     `- **Scale/state variants** (\`*-dark\`, \`*-50\`, …) are observed ramp points; the engine regenerates the full ramp and reports divergence rather than consuming them.`,
     (std.colors.info && std.colors.secondary && std.colors.info.toLowerCase() === std.colors.secondary.toLowerCase()
-      ? `- Observed \`info\` duplicates \`secondary\` (both \`${std.colors.info}\`); the engine synthesises \`info\` independently, so the dup doesn't propagate.` : ''),
+      ? `- Observed \`info\` duplicates \`secondary\` (both \`${std.colors.info}\`); the engine synthesizes \`info\` independently, so the dup doesn't propagate.` : ''),
     `- **\`x-prism3\`** carries engine-only levers (radiusScale, typeScale, density, motionTempo, actionPalette, iconContrast, surfaces, gradients). ${xApplied.length ? `Applied here: ${xApplied.join(', ')}.` : 'None here → engine defaults (the plain-spec guarantee).'}`, '');
 
   return { md: md.filter((l) => l !== undefined).join('\n') + '\n', anchorDe: anchor.de };

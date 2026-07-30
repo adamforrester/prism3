@@ -2,7 +2,7 @@
   "$schema": "prism3-ai-metadata/0.1",
   "brand": "nb",
   "generated": true,
-  "note": "Agent-readable metadata, companion to nb.tokens.json. The colour (semantic role) tier and the typography tier (type composites + weight roles) carry the rich schema; the primitive tier a simplified set + colour-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the two-hop weight chain composite→role→numeric is visible). `aliased_by` is recomputed from the token tree on every build (authoritative at build time, never hand-maintained — it cannot drift). All fields generated and contract-true.",
+  "note": "Agent-readable metadata, companion to nb.tokens.json. The color (semantic role) tier and the typography tier (type composites + weight roles) carry the rich schema; the primitive tier a simplified set + color-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the two-hop weight chain composite→role→numeric is visible). `aliased_by` is recomputed from the token tree on every build (authoritative at build time, never hand-maintained — it cannot drift). All fields generated and contract-true.",
   "color_fields": [
     "$description",
     "meaning",
@@ -2949,7 +2949,7 @@
       ]
     },
     "border.focus": {
-      "$description": "Focus ring colour.",
+      "$description": "Focus ring color.",
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements.",
       "avoid_when": "Do not use as a decorative divider (use border.primary).",
@@ -3144,7 +3144,7 @@
     "type.body.sm.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body sm default link (14px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.sm without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3171,7 +3171,7 @@
     "type.body.sm.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body sm strong link (14px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.sm without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3198,7 +3198,7 @@
     "type.body.md.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body md default link (16px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.md without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3225,7 +3225,7 @@
     "type.body.md.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body md strong link (16px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.md without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3252,7 +3252,7 @@
     "type.body.lg.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body lg default link (18px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.lg without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3279,7 +3279,7 @@
     "type.body.lg.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body lg strong link (18px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.lg without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3332,7 +3332,7 @@
     "type.caption.md.default-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption md default link (11px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.md without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3359,7 +3359,7 @@
     "type.caption.md.strong-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption md strong link (11px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.md without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3386,7 +3386,7 @@
     "type.caption.lg.default-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption lg default link (12px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.lg without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3413,7 +3413,7 @@
     "type.caption.lg.strong-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption lg strong link (12px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.lg without -link).",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.text}",
@@ -3533,7 +3533,7 @@
     "palette.white": {
       "$description": "Pure white — Highlight base / default surface",
       "meaning": "Pure white primitive",
-      "intent": "Pure highlight base — default light surface / on-colour text",
+      "intent": "Pure highlight base — default light surface / on-color text",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
@@ -3581,7 +3581,7 @@
     "palette.black": {
       "$description": "Pure black — Shadow base",
       "meaning": "Pure black primitive",
-      "intent": "Shadow base — scrim & shadow source / on-colour text",
+      "intent": "Shadow base — scrim & shadow source / on-color text",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
@@ -3800,7 +3800,7 @@
     "palette.red.550": {
       "$description": "brand (red) 550 — Mid-Tone band — brand anchor (exact, pinned)",
       "meaning": "red ramp — raw step 550",
-      "intent": "Solid fills & UI-element backgrounds — reach for this when fidelity to the source brand colour matters",
+      "intent": "Solid fills & UI-element backgrounds — reach for this when fidelity to the source brand color matters",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
@@ -4637,7 +4637,7 @@
       ]
     },
     "palette.info.100": {
-      "$description": "info status (engine-synthesised — NB has no blue) 100 — Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 100 — Quarter-Tone band",
       "meaning": "info ramp — raw step 100",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -4647,28 +4647,28 @@
       ]
     },
     "palette.info.150": {
-      "$description": "info status (engine-synthesised — NB has no blue) 150 — Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 150 — Quarter-Tone band",
       "meaning": "info ramp — raw step 150",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.200": {
-      "$description": "info status (engine-synthesised — NB has no blue) 200 — Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 200 — Quarter-Tone band",
       "meaning": "info ramp — raw step 200",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.250": {
-      "$description": "info status (engine-synthesised — NB has no blue) 250 — Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 250 — Quarter-Tone band",
       "meaning": "info ramp — raw step 250",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.300": {
-      "$description": "info status (engine-synthesised — NB has no blue) 300 — Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 300 — Quarter-Tone band",
       "meaning": "info ramp — raw step 300",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -4680,7 +4680,7 @@
       ]
     },
     "palette.info.350": {
-      "$description": "info status (engine-synthesised — NB has no blue) 350 — Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 350 — Quarter-Tone band",
       "meaning": "info ramp — raw step 350",
       "intent": "Subtle borders, dividers, and disabled / secondary fills",
       "tier": "primitive",
@@ -4691,14 +4691,14 @@
       ]
     },
     "palette.info.400": {
-      "$description": "info status (engine-synthesised — NB has no blue) 400 — Mid-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 400 — Mid-Tone band",
       "meaning": "info ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.450": {
-      "$description": "info status (engine-synthesised — NB has no blue) 450 — Mid-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 450 — Mid-Tone band",
       "meaning": "info ramp — raw step 450",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -4712,7 +4712,7 @@
       ]
     },
     "palette.info.500": {
-      "$description": "info status (engine-synthesised — NB has no blue) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "$description": "info status (engine-synthesized — NB has no blue) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
       "meaning": "info ramp — raw step 500",
       "intent": "Solid fills & UI-element backgrounds — the one mid step that reads as text or icons over both light and dark fills",
       "tier": "primitive",
@@ -4722,7 +4722,7 @@
       ]
     },
     "palette.info.550": {
-      "$description": "info status (engine-synthesised — NB has no blue) 550 — Mid-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 550 — Mid-Tone band",
       "meaning": "info ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
@@ -4734,21 +4734,21 @@
       ]
     },
     "palette.info.600": {
-      "$description": "info status (engine-synthesised — NB has no blue) 600 — Mid-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 600 — Mid-Tone band",
       "meaning": "info ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.650": {
-      "$description": "info status (engine-synthesised — NB has no blue) 650 — Three-Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 650 — Three-Quarter-Tone band",
       "meaning": "info ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.700": {
-      "$description": "info status (engine-synthesised — NB has no blue) 700 — Three-Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 700 — Three-Quarter-Tone band",
       "meaning": "info ramp — raw step 700",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -4760,28 +4760,28 @@
       ]
     },
     "palette.info.750": {
-      "$description": "info status (engine-synthesised — NB has no blue) 750 — Three-Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 750 — Three-Quarter-Tone band",
       "meaning": "info ramp — raw step 750",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.800": {
-      "$description": "info status (engine-synthesised — NB has no blue) 800 — Three-Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 800 — Three-Quarter-Tone band",
       "meaning": "info ramp — raw step 800",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.850": {
-      "$description": "info status (engine-synthesised — NB has no blue) 850 — Three-Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 850 — Three-Quarter-Tone band",
       "meaning": "info ramp — raw step 850",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.900": {
-      "$description": "info status (engine-synthesised — NB has no blue) 900 — Three-Quarter-Tone band",
+      "$description": "info status (engine-synthesized — NB has no blue) 900 — Three-Quarter-Tone band",
       "meaning": "info ramp — raw step 900",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
@@ -4791,21 +4791,21 @@
       ]
     },
     "palette.info.950": {
-      "$description": "info status (engine-synthesised — NB has no blue) 950 — Shadow band",
+      "$description": "info status (engine-synthesized — NB has no blue) 950 — Shadow band",
       "meaning": "info ramp — raw step 950",
       "intent": "Highest-contrast text and strong foreground",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.025": {
-      "$description": "info status (engine-synthesised — NB has no blue) 025 — Highlight band",
+      "$description": "info status (engine-synthesized — NB has no blue) 025 — Highlight band",
       "meaning": "info ramp — raw step 025",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
     },
     "palette.info.050": {
-      "$description": "info status (engine-synthesised — NB has no blue) 050 — Highlight band",
+      "$description": "info status (engine-synthesized — NB has no blue) 050 — Highlight band",
       "meaning": "info ramp — raw step 050",
       "intent": "Lightest tints — app / subtle backgrounds, hover & selected fills",
       "tier": "primitive",

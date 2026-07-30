@@ -2772,7 +2772,7 @@
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Focus ring colour (keyboard focus)",
+      "description": "Focus ring color (keyboard focus)",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,

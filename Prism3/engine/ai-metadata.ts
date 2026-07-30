@@ -96,7 +96,7 @@ const describe = (group: string, variant: string, state: string | undefined): { 
     if (variant === 'primary') return { desc: 'Default / decorative border', when_to_use: 'Dividers, card outlines, low-emphasis separation.', avoid_when: 'Do not use where a 3:1 non-text contrast is required (use border.secondary / border.focus).' };
     if (variant === 'secondary') return { desc: 'Stronger divider border', when_to_use: 'Higher-emphasis dividers and separators; control borders.', avoid_when: 'Do not use as a faint hairline (use border.primary).' };
     if (variant === 'inverse') return { desc: 'Border on inverse surfaces', when_to_use: 'Borders on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces.', paired_with: ['background.inverse.primary'] };
-    if (variant === 'focus') return { desc: 'Focus ring colour', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary).', paired_with: ['background.primary'] };
+    if (variant === 'focus') return { desc: 'Focus ring color', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary).', paired_with: ['background.primary'] };
     if (intent) return { desc: `${cap(intent)} validation border`, when_to_use: `Validation/state borders for ${variant} (e.g. invalid fields).`, avoid_when: `Do not use as ${variant} ink or fill — use text.${variant} / foreground.${variant}.` };
   }
 
@@ -157,16 +157,16 @@ const BAND_INTENT: Record<string, string> = {
   Shadows: 'Highest-contrast text and strong foreground',
 };
 const colorIntent = (seg: string[], node: any): string | undefined => {
-  if (seg[0] !== 'palette') return undefined;                     // scale-role intent is colour-primitive-specific
-  if (seg[1] === 'white') return 'Pure highlight base — default light surface / on-colour text';
-  if (seg[1] === 'black') return 'Shadow base — scrim & shadow source / on-colour text';
+  if (seg[0] !== 'palette') return undefined;                     // scale-role intent is color-primitive-specific
+  if (seg[1] === 'white') return 'Pure highlight base — default light surface / on-color text';
+  if (seg[1] === 'black') return 'Shadow base — scrim & shadow source / on-color text';
   if (seg[1] === 'black-alpha' || seg[1] === 'white-alpha') return 'Overlay / scrim / shadow compositing (alpha — composites over any surface)';
   const ext = node.$extensions?.prism3 ?? {};
   if (!ext.band) return undefined;
   // Usage-framed tails (what the step UNLOCKS) — distinct from the identity the
   // leaf $description states (the measured property / provenance). No paraphrase.
   const pivot = seg[2] === '500' ? ' — the one mid step that reads as text or icons over both light and dark fills' : '';
-  return BAND_INTENT[ext.band] + pivot + (ext.anchor ? ' — reach for this when fidelity to the source brand colour matters' : '');
+  return BAND_INTENT[ext.band] + pivot + (ext.anchor ? ' — reach for this when fidelity to the source brand color matters' : '');
 };
 
 // `consume` differs by family: colour/dimension are PRIVATE (reach them through a
@@ -327,7 +327,7 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
     typography[`type.${c.path}`] = {
       $description: `${cap(d.desc)}${c.italic ? ' (italic variant)' : ''}${c.link ? ' (underlined link variant)' : ''}.`,
       meaning: `Type style — ${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} (${c.sizePx}px, ${c.family} face${c.textCase !== 'none' ? `, ${c.textCase}` : ''})`,
-      when_to_use: c.link ? `${d.when} The underlined link variant — pair with the text.link.* colour.` : d.when,
+      when_to_use: c.link ? `${d.when} The underlined link variant — pair with the text.link.* color.` : d.when,
       avoid_when: c.link ? `Do not use for non-link text (use ${c.group}.${c.variant || c.weightRole} without -link).` : d.avoid,
       resolves_to: resolves,
     };
@@ -355,7 +355,7 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
     const r2 = (x: number) => Math.round(x * 100) / 100;    // round only for display/emit
     gradient[`gradient.${g.name}`] = {
       $description: `Brand gradient — ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ` ${g.shape}`}, ${g.stops.length} stops.`,
-      meaning: `Decorative ${g.kind} gradient (opt-in); stop colours alias the ramp, ${g.interpolation} interpolation. Materializes as a Figma Paint Style — only stop colours bind (kind/angle/positions baked).`,
+      meaning: `Decorative ${g.kind} gradient (opt-in); stop colors alias the ramp, ${g.interpolation} interpolation. Materializes as a Figma Paint Style — only stop colors bind (kind/angle/positions baked).`,
       when_to_use: 'Brand / marketing surfaces, hero backgrounds, decorative fills.',
       avoid_when: aa < 4.5
         ? `Do not place body text directly over it — worst-case contrast is ${r2(aa)}:1 (below 4.5:1); use a scrim or a solid container.`
@@ -369,9 +369,9 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
     $schema: 'prism3-ai-metadata/0.1',
     brand: theme.id,
     generated: true,
-    note: 'Agent-readable metadata, companion to ' + `${theme.id}.tokens.json` + '. The colour (semantic role) tier and the ' +
+    note: 'Agent-readable metadata, companion to ' + `${theme.id}.tokens.json` + '. The color (semantic role) tier and the ' +
       'typography tier (type composites + weight roles) carry the rich schema; the primitive tier a simplified set + ' +
-      'colour-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the ' +
+      'color-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the ' +
       'two-hop weight chain composite→role→numeric is visible). `aliased_by` is recomputed from the token tree on every ' +
       'build (authoritative at build time, never hand-maintained — it cannot drift). All fields generated and contract-true.',
     color_fields: ['$description', 'meaning', 'when_to_use', 'avoid_when', 'paired_with', 'contrast_with', 'mode_overrides'],
