@@ -1100,6 +1100,57 @@ for (const b of brands) {
     'D-motion(j): a modeLevers entry with no tempo lever produces byte-identical output');
 }
 
+// SHADOW TINT IS PERCEPTIBLE (#305). The lever used to be expressible but visually inert: its ENTIRE
+// range moved ~1.0–1.5 ΔE00, under the ~2.3 "just noticeable" bar, so a designer sliding it saw
+// nothing and reported the control as broken. A lever that cannot be seen is worse than no lever,
+// because it teaches distrust of every other control on the page.
+//
+// Guards the perceptual OUTCOME, not the formula — the coefficients may be retuned, but max tint must
+// stay visible on EVERY hue. Measures the shadow composited over white, which is what the eye gets;
+// comparing the raw base colours would pass even when the composite is indistinguishable, which is
+// exactly how the original defect survived.
+{
+  const over = (c: RGB, a: number): RGB => ({
+    r: Math.round(a * c.r + (1 - a) * 255), g: Math.round(a * c.g + (1 - a) * 255), b: Math.round(a * c.b + (1 - a) * 255) });
+  const BLACK_RGB: RGB = { r: 0, g: 0, b: 0 };
+  const A = 0.12; // a mid-ramp shadow alpha — the ramp runs 10–14%
+  const tintBase = (amount: number, hue: number): RGB =>
+    brandTheme({ id: 't', root: 'prism', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+      shadow: { tint: { hue, amount } } } as any).shadow.colorRgb;
+
+  // Swept at 15° rather than spot-checked: sampling three hues is what produced wrong numbers while
+  // writing this, because the sRGB chroma floor sits at yellow-green, not at either end.
+  let worstVis = Infinity, worstHue = -1;
+  for (let h = 0; h < 360; h += 15) {
+    const vis = deltaE2000(over(tintBase(1, h), A), over(BLACK_RGB, A));
+    if (vis < worstVis) { worstVis = vis; worstHue = h; }
+  }
+  ok(worstVis >= 2.3,
+    `#305 shadow tint at amount 1.0 is perceptible on every hue (worst h${worstHue} = ${worstVis.toFixed(2)} ΔE00, bar 2.3)`);
+
+  // amount 0 is the NB dialect and must stay EXACTLY pure black — NB's committed artifacts depend on it.
+  const zero = tintBase(0, 30);
+  ok(zero.r === 0 && zero.g === 0 && zero.b === 0, '#305 tint amount 0 is still exactly pure black (NB dialect)');
+
+  // Monotonic where it matters: once the tint is perceptible at all, more amount must not mean less
+  // visible tint. Below ~0.3 everything sits under 1 ΔE00 where 8-bit rounding dominates, so the
+  // check starts where a user can actually see the difference.
+  for (const h of [30, 200, 262]) {
+    const seq = [0.3, 0.5, 0.75, 1].map((a) => deltaE2000(over(tintBase(a, h), A), over(BLACK_RGB, A)));
+    ok(seq.every((v, i) => i === 0 || v >= seq[i - 1] - 0.05),
+      `#305 tint visibility rises with amount at h${h} (${seq.map((v) => v.toFixed(2)).join(' → ')})`);
+  }
+
+  // The tint must never push the base out of sRGB — an out-of-gamut oklch would clip unpredictably
+  // and the emitted hex would stop matching the requested hue.
+  let outOfGamut = 0;
+  for (let h = 0; h < 360; h += 30) for (const a of [0.15, 0.5, 1]) {
+    const c = tintBase(a, h);
+    if (c.r < 0 || c.r > 255 || c.g < 0 || c.g > 255 || c.b < 0 || c.b > 255) outOfGamut++;
+  }
+  ok(outOfGamut === 0, '#305 every tinted shadow base is inside sRGB');
+}
+
 // PER-MODE SHADOW (Phase D) — a mode re-derives its shadow ramp at its own softness/tint via the SAME
 // buildShadow the baseline uses, picking the layer-set for the mode's APPEARANCE (dark/dark-based →
 // reduced; light/light-based → full) with the mode's own tinted colorRgb. Rides

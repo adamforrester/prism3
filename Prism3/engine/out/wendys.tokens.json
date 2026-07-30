@@ -13058,14 +13058,14 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#06080a1a",
+            "color": "#0a0d0f1a",
             "offsetX": "0px",
             "offsetY": "1px",
             "blur": "2px",
             "spread": "0px"
           },
           {
-            "color": "#06080a0f",
+            "color": "#0a0d0f0f",
             "offsetX": "0px",
             "offsetY": "1px",
             "blur": "3px",
@@ -13081,14 +13081,14 @@
             "modes": {
               "dark": [
                 {
-                  "color": "#06080a08",
+                  "color": "#0a0d0f08",
                   "offsetX": "0px",
                   "offsetY": "1px",
                   "blur": "2px",
                   "spread": "0px"
                 },
                 {
-                  "color": "#06080a05",
+                  "color": "#0a0d0f05",
                   "offsetX": "0px",
                   "offsetY": "1px",
                   "blur": "3px",
@@ -13115,14 +13115,14 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#06080a1a",
+            "color": "#0a0d0f1a",
             "offsetX": "0px",
             "offsetY": "1px",
             "blur": "2px",
             "spread": "-1px"
           },
           {
-            "color": "#06080a12",
+            "color": "#0a0d0f12",
             "offsetX": "0px",
             "offsetY": "2px",
             "blur": "6px",
@@ -13138,14 +13138,14 @@
             "modes": {
               "dark": [
                 {
-                  "color": "#06080a0a",
+                  "color": "#0a0d0f0a",
                   "offsetX": "0px",
                   "offsetY": "1px",
                   "blur": "2px",
                   "spread": "-1px"
                 },
                 {
-                  "color": "#06080a08",
+                  "color": "#0a0d0f08",
                   "offsetX": "0px",
                   "offsetY": "2px",
                   "blur": "6px",
@@ -13172,14 +13172,14 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#06080a1f",
+            "color": "#0a0d0f1f",
             "offsetX": "0px",
             "offsetY": "2px",
             "blur": "4px",
             "spread": "-2px"
           },
           {
-            "color": "#06080a14",
+            "color": "#0a0d0f14",
             "offsetX": "0px",
             "offsetY": "4px",
             "blur": "12px",
@@ -13195,14 +13195,14 @@
             "modes": {
               "dark": [
                 {
-                  "color": "#06080a0f",
+                  "color": "#0a0d0f0f",
                   "offsetX": "0px",
                   "offsetY": "2px",
                   "blur": "4px",
                   "spread": "-2px"
                 },
                 {
-                  "color": "#06080a0a",
+                  "color": "#0a0d0f0a",
                   "offsetX": "0px",
                   "offsetY": "4px",
                   "blur": "12px",
@@ -13229,14 +13229,14 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#06080a1f",
+            "color": "#0a0d0f1f",
             "offsetX": "0px",
             "offsetY": "3px",
             "blur": "6px",
             "spread": "-3px"
           },
           {
-            "color": "#06080a14",
+            "color": "#0a0d0f14",
             "offsetX": "0px",
             "offsetY": "8px",
             "blur": "20px",
@@ -13252,14 +13252,14 @@
             "modes": {
               "dark": [
                 {
-                  "color": "#06080a12",
+                  "color": "#0a0d0f12",
                   "offsetX": "0px",
                   "offsetY": "3px",
                   "blur": "6px",
                   "spread": "-3px"
                 },
                 {
-                  "color": "#06080a0d",
+                  "color": "#0a0d0f0d",
                   "offsetX": "0px",
                   "offsetY": "8px",
                   "blur": "20px",
@@ -13286,14 +13286,14 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#06080a24",
+            "color": "#0a0d0f24",
             "offsetX": "0px",
             "offsetY": "4px",
             "blur": "8px",
             "spread": "-4px"
           },
           {
-            "color": "#06080a1a",
+            "color": "#0a0d0f1a",
             "offsetX": "0px",
             "offsetY": "14px",
             "blur": "32px",
@@ -13309,14 +13309,14 @@
             "modes": {
               "dark": [
                 {
-                  "color": "#06080a17",
+                  "color": "#0a0d0f17",
                   "offsetX": "0px",
                   "offsetY": "4px",
                   "blur": "8px",
                   "spread": "-4px"
                 },
                 {
-                  "color": "#06080a12",
+                  "color": "#0a0d0f12",
                   "offsetX": "0px",
                   "offsetY": "14px",
                   "blur": "32px",
@@ -13343,14 +13343,14 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#06080a24",
+            "color": "#0a0d0f24",
             "offsetX": "0px",
             "offsetY": "6px",
             "blur": "12px",
             "spread": "-6px"
           },
           {
-            "color": "#06080a1f",
+            "color": "#0a0d0f1f",
             "offsetX": "0px",
             "offsetY": "22px",
             "blur": "52px",
@@ -13366,14 +13366,14 @@
             "modes": {
               "dark": [
                 {
-                  "color": "#06080a1c",
+                  "color": "#0a0d0f1c",
                   "offsetX": "0px",
                   "offsetY": "6px",
                   "blur": "12px",
                   "spread": "-6px"
                 },
                 {
-                  "color": "#06080a17",
+                  "color": "#0a0d0f17",
                   "offsetX": "0px",
                   "offsetY": "22px",
                   "blur": "52px",
@@ -13400,7 +13400,7 @@
         "$type": "shadow",
         "$value": [
           {
-            "color": "#06080a14",
+            "color": "#0a0d0f14",
             "offsetX": "0px",
             "offsetY": "2px",
             "blur": "4px",
@@ -13416,7 +13416,7 @@
             "modes": {
               "dark": [
                 {
-                  "color": "#06080a4d",
+                  "color": "#0a0d0f4d",
                   "offsetX": "0px",
                   "offsetY": "2px",
                   "blur": "4px",
