@@ -7,6 +7,57 @@
 
 ---
 
+## (2026-07-30) — The rail becomes a Pages menu below 900 (#144 follow-up)
+
+**STATUS: web-only.** Engine untouched. Owner-directed after reviewing the deploy on a phone; the
+alternatives were talked through before any code was written, which is why this entry records the
+options not taken as well as the one taken.
+
+- **The number that decided it:** collapsed, the rail was a static stack of nine destinations
+  measuring **669–707px tall**, so page content began at **y=834–1013**. On a phone that is below the
+  fold on every page load — you scroll past the entire navigation to reach anything. It now starts at
+  **y=165–306**. This was the largest remaining responsive problem by a wide margin, and it survived
+  #315 because a 690px stack overflows nothing: it is merely bad, and the audit only measured overflow.
+- **Four options were weighed; three were rejected for reasons worth keeping.** A *horizontal scroll
+  strip* is the intuitive answer and measures badly — the labels total ~880px, so at 393px you see
+  about three of nine with the rest invisible, and it forces dropping the subtitles. It also inverts
+  with width, becoming genuinely good at 640–900 where ~90% is visible. A *current-page select* has the
+  same footprint as a menu and names the page in its closed state, but this app uses selects everywhere
+  as **value editors** (`Auto · neutral 950`), so a navigating select sends the wrong signal.
+  *Grouping nine into four* (Color / Type / Form / Preview) is the only option that shrinks the problem
+  rather than repackaging it, and the rail-note's own ordering already implies those groups — parked as
+  the right move **if the nine ever feel like too many on desktop**, since it is an IA change that
+  touches every width, not a mobile fix.
+- **The strip is blocked on the modes-bar rework, the menu is not** — two stacked horizontal strips
+  would compete. That sequencing, not the design merits, is why the menu ships first; the strip is
+  worth revisiting when the modes bar moves down and the vertical budget exists.
+- **Right placement is nearly free, left is not.** `.bar-actions` is already the positioned containing
+  block (from the previous fix), so the panel right-aligns to the gutter with no new positioning code.
+  Left-of-logo needs a new positioned container and a **left**-anchored panel — new code, and a fresh
+  instance of the bug class just closed. The convention argument for top-left nav was considered and
+  overridden: this rail switches editor views of one document, which is closer to a control than to
+  site navigation.
+- **Nothing the sidebar showed is silently lost.** The panel renders from the same `NAV` data and
+  reuses the rail's own `.stage-t` block, so the subtitles come across (they teach what each page is),
+  along with the divider before the `view` destination and the ordering note.
+- **A CSS-ordering trap, which the first measurement caught:** the base `.navbtn{display:none}` must
+  be declared **before** the `max-width:900` rule that turns it on. A media query adds no specificity,
+  so placed after it the `display:none` simply wins at every width — the control existed, was correct,
+  and never appeared. Worth remembering for any "off by default, on at a breakpoint" control.
+- **The audit had to change with the UI.** The page sweep navigated by clicking `.rail .stage`, which
+  no longer exists below 900 — it now goes via whichever surface the width exposes. A harness that
+  drives the thing it audits has to follow it.
+- **Found while verifying, deliberately not fixed here:** a **pre-existing** ~10px overflow in the
+  narrow 901–919px band, where the sidebar is back but the content column is too tight for the ramp's
+  hex labels. Confirmed against unmodified `main`, so it is not from this change and is a separate
+  concern — the `≤900` narrow-tier label rules stop just below it.
+- **Verified** at 320/360/393/480/640/900/901/1280: exactly one of rail / Pages control visible at every
+  width, panel fully on-screen with all nine destinations and the current one marked, single row
+  throughout, zero overflow, no console errors. Page sweep 38/38; bar-menu and resize-grip checks
+  unchanged; both surfaces typecheck and build.
+
+---
+
 ## (2026-07-30) — `solid-tint` gets a real token (#288)
 
 **STATUS: engine + web.** `out/*` **byte-identical** — the default is `overlay-neutral`, so nothing
