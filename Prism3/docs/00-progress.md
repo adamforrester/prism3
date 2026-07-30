@@ -7,6 +7,58 @@
 
 ---
 
+## (2026-07-30) — Shadow tint becomes perceptible (#305)
+
+**STATUS: engine + web.** `out/*` **regenerated** — aurora/harbor/wendys shadow values change; **NB is
+byte-identical** (it ships `tint.amount: 0` → pure black, so nothing moves and the NB regression is
+untouched).
+
+**The defect.** Owner reported the shadow tint hue/amount sliders as having no visible effect. They were
+wired correctly and did change the emitted tokens — but the effect was **below perceptual threshold**.
+Shadow alphas run 10–14%, so a hue shift on a near-black composited over a light surface moved
+**~1.0–1.5 ΔE00 across the lever's ENTIRE range**, under the ~2.3 "just noticeable" bar. Third instance
+of the same class in this repo (after `solid-tint` #288 and pre-#297 quantised leading): a control that
+is *expressible* but has no perceptible effect. That trains distrust of every other control on the page.
+
+**Why the obvious fix doesn't work.** Holding lightness and raising chroma cannot help: sRGB's chroma
+ceiling at `l 0.13` is 0.023 (cyan) to 0.066 (blue) — essentially the flat `0.05` already in use.
+Chroma capacity is a function of lightness, so **L has to rise with `amount`** for the hue to have
+anywhere to go.
+
+**New curve** (`theme.ts` `buildShadow`): `l = 0.13 + 0.17 × amount`, `c = maxChroma(l, hue) × amount`.
+So `amount` now means "how far toward as-chromatic-as-this-dark-can-be", and the result is always in
+gamut. `amount: 0` still returns exactly pure black (the NB dialect).
+
+**Measured** at a mid-ramp 12% alpha over white, swept at 5° (spot-checking three hues is what produced
+three wrong numbers in the first draft — the sRGB chroma floor is at yellow-green, not at either end):
+
+| | before | after |
+|---|---|---|
+| worst-hue tint visibility @ amount 1.0 | ~0.6–1.5 ΔE00 | **2.88** (h≈70; warm/blue reach 3.8–4.6) |
+| default (amount 0.15) drift | — | 0.86 ΔE00 (under the ~1.0 JND → invisible, but artifacts DO change) |
+| shadow presence vs pure-black @ max tint | — | −8% … **+59%** |
+
+0.17 is the smallest coefficient at which **every** hue clears 2.3; at 0.13 the worst hue stalls at 2.28.
+
+**Two consequences, deliberately not hidden.** (1) A tinted shadow reads more *present*, not only more
+coloured — inherent, since a saturated dark differs from white more than black does at equal alpha;
+removing it would mean lowering alpha as tint rises, and alpha encodes elevation. (2) The default is not
+byte-identical to the old curve.
+
+**Web.** The Elevation editor gained a tint read-out beside the sliders: the base colour at 100% next to
+the same colour at 12% over a checkerboard, plus a note explaining that shadows paint it at 10–14% so
+the ramp reads subtler than the swatch. It refreshes **imperatively** (`refreshTintReadout`) — the
+shadow editor lives in the doc-26 stable head, so the first cut computed its colour at construction and
+froze. A browser check caught it; the fix for an inert control had itself shipped inert.
+
+**Guarded.** `test.ts` locks the perceptual OUTCOME, not the formula — coefficients may be retuned, but
+max tint must stay ≥2.3 ΔE00 on every hue (swept 15°), `amount 0` must stay exactly black, visibility
+must rise monotonically above amount 0.3, and every base must be in sRGB. Tamper-tested: restoring the
+old formula fails the guard at 0.59 ΔE00. 998 → **1004** tests.
+
+**Not done here:** #301 (whether shadow gets a primitive tier) is a separate, still-open decision — the
+spike found nested aliases in a `shadow` array are unresolved by every consumer and fail silently, so
+tiering is not the cheap change it looked like. See #301 for the evidence.
 ## (2026-07-30) — US-English pass on emitted `$description` prose (#260)
 
 **STATUS: engine.** `out/*` **regenerated** (prose-only — zero `$value`, alias or structural change).

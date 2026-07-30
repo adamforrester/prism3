@@ -968,11 +968,44 @@ const SHADOW_BASE: { name: string; key: number[]; amb: number[] }[] = [
 const buildShadow = (neutralHue: number, input: BrandInput['shadow'] = {}): ShadowAxis => {
   const softness = input.softness ?? 1;
   const tint = { hue: input.tint?.hue ?? neutralHue, amount: input.tint?.amount ?? 0.15 };
-  // Shadow base colour: amount 0 = pure black (the NB dialect); any tint lifts it
-  // to a hue-tinted near-black (l 0.13, chroma scaled by amount — Polaris/Comeau:
-  // a tinted near-black reads richer than dead grey). Layers reuse this RGB and
-  // vary only alpha — one shadow colour per theme.
-  const colorRgb = tint.amount === 0 ? { r: 0, g: 0, b: 0 } : oklchToRgb({ l: 0.13, c: 0.05 * tint.amount, h: tint.hue });
+  // Shadow base colour: amount 0 = pure black (the NB dialect); any tint lifts it to a hue-tinted
+  // dark (Polaris/Comeau: a tinted near-black reads richer than dead grey). Layers reuse this RGB
+  // and vary only alpha — one shadow colour per theme.
+  //
+  // Both L AND chroma scale with `amount` (#305). The old curve held l at 0.13 and scaled a fixed
+  // `c: 0.05 * amount`, which made the lever PERCEPTUALLY INERT: shadow alphas are 10–14%, so a hue
+  // shift on a near-black composited over a light surface moved ~1.0–1.5 ΔE00 across the lever's
+  // ENTIRE range — under the ~2.3 "just noticeable" bar. The slider looked functional and did
+  // nothing visible.
+  //
+  // Holding L and simply raising chroma cannot fix it: sRGB's chroma ceiling at l 0.13 is only
+  // 0.023 (cyan) to 0.066 (blue), i.e. essentially the 0.05 already in use. Chroma capacity is a
+  // function of lightness, so L has to rise for the hue to have anywhere to go.
+  //
+  // The 0.17 coefficient is the SMALLEST lift at which every hue clears the bar, swept at 5°
+  // (not sampled at a few hues — doing that is what produced three wrong numbers in the first
+  // draft of this comment). Measured at a mid-ramp 12% alpha over white, amount 1.0:
+  //   · worst hue is yellow-green (~h70) at 2.88 ΔE00 — over the 2.3 bar, under 3.0
+  //   · warm/blue hues reach 3.8–4.6 ΔE00
+  //   · lift 0.13 leaves the worst hue at 2.28, i.e. still not reliably visible
+  //
+  // TWO consequences worth knowing, neither hidden:
+  //   1. A tinted shadow reads MORE PRESENT, not just more coloured — ΔE00 against the bare
+  //      surface ranges −8%…+59% vs a pure-black shadow across hues at max tint. That is
+  //      inherent: a saturated dark differs from white more than black does at the same alpha.
+  //      Removing it would mean lowering alpha as tint rises, and alpha is what encodes
+  //      elevation, so the cure is worse than the symptom.
+  //   2. The default (amount 0.15) is NOT byte-identical to the old curve — it drifts 0.86 ΔE00,
+  //      driven by chroma now tracking the gamut ceiling rather than a flat 0.05. That is below
+  //      the ~1.0 JND for a large flat field, so it is invisible in use, but committed artifacts
+  //      for tinted brands DO change (NB ships amount 0 → pure black → byte-identical).
+  //
+  // Chroma is a fraction of the in-gamut ceiling at that L (verified in gamut across 72 hues ×
+  // 6 amounts), so `amount` means "how far toward as-chromatic-as-this-dark-can-be".
+  const tintL = 0.13 + 0.17 * tint.amount;
+  const colorRgb = tint.amount === 0
+    ? { r: 0, g: 0, b: 0 }
+    : oklchToRgb({ l: tintL, c: maxChroma(tintL, tint.hue) * tint.amount, h: tint.hue });
   const layer = (a: number[]): ShadowLayer => ({ offsetX: 0, offsetY: a[0], blur: Math.round(a[1] * softness), spread: a[2], alpha: a[3] });
   // Dark: same geometry, alpha reduced and ramping UP with elevation (lower steps
   // nearly disappear — the surface lift does the work; top steps keep a whisper).
