@@ -581,7 +581,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('border.inverse', pickClosest(ramp, invRgb, cfg.borderTarget), 'Border on inverse surfaces', 'background.inverse.primary', 0);
   for (const r of SEMANTICS)
     put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.primary', cfg.nonTextMin);
-  put('border.focus', rated(actionRest, baseRgb), 'Focus ring colour (keyboard focus)', 'background.primary', cfg.nonTextMin);
+  put('border.focus', rated(actionRest, baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
 
   // ---- per-mode colour override layer (Phase A1) ----
   // A brand may repoint a resolved role at an EXISTING primitive step in ANY palette (no raw

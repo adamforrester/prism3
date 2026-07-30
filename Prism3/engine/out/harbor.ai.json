@@ -2,7 +2,7 @@
   "$schema": "prism3-ai-metadata/0.1",
   "brand": "harbor",
   "generated": true,
-  "note": "Agent-readable metadata, companion to harbor.tokens.json. The colour (semantic role) tier and the typography tier (type composites + weight roles) carry the rich schema; the primitive tier a simplified set + colour-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the two-hop weight chain composite→role→numeric is visible). `aliased_by` is recomputed from the token tree on every build (authoritative at build time, never hand-maintained — it cannot drift). All fields generated and contract-true.",
+  "note": "Agent-readable metadata, companion to harbor.tokens.json. The color (semantic role) tier and the typography tier (type composites + weight roles) carry the rich schema; the primitive tier a simplified set + color-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the two-hop weight chain composite→role→numeric is visible). `aliased_by` is recomputed from the token tree on every build (authoritative at build time, never hand-maintained — it cannot drift). All fields generated and contract-true.",
   "color_fields": [
     "$description",
     "meaning",
@@ -2949,7 +2949,7 @@
       ]
     },
     "border.focus": {
-      "$description": "Focus ring colour.",
+      "$description": "Focus ring color.",
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements.",
       "avoid_when": "Do not use as a decorative divider (use border.primary).",
@@ -3131,7 +3131,7 @@
     "type.body.sm.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body sm default link (14px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.sm without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3158,7 +3158,7 @@
     "type.body.sm.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body sm strong link (14px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.sm without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3185,7 +3185,7 @@
     "type.body.md.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body md default link (16px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.md without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3212,7 +3212,7 @@
     "type.body.md.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body md strong link (16px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.md without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3239,7 +3239,7 @@
     "type.body.lg.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body lg default link (18px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.lg without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3266,7 +3266,7 @@
     "type.body.lg.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
       "meaning": "Type style — body lg strong link (18px, text face)",
-      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.lg without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3319,7 +3319,7 @@
     "type.caption.md.default-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption md default link (11px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.md without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3346,7 +3346,7 @@
     "type.caption.md.strong-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption md strong link (11px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.md without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3373,7 +3373,7 @@
     "type.caption.lg.default-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption lg default link (12px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.lg without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3400,7 +3400,7 @@
     "type.caption.lg.strong-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
       "meaning": "Type style — caption lg strong link (12px, text face)",
-      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* colour.",
+      "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.lg without -link).",
       "resolves_to": {
         "fontFamily": "{prism.font.family.text}",
@@ -3519,7 +3519,7 @@
     "palette.white": {
       "$description": "Pure white — Highlight base / default surface",
       "meaning": "Pure white primitive",
-      "intent": "Pure highlight base — default light surface / on-colour text",
+      "intent": "Pure highlight base — default light surface / on-color text",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
@@ -3567,7 +3567,7 @@
     "palette.black": {
       "$description": "Pure black — Shadow base",
       "meaning": "Pure black primitive",
-      "intent": "Shadow base — scrim & shadow source / on-colour text",
+      "intent": "Shadow base — scrim & shadow source / on-color text",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
@@ -3756,7 +3756,7 @@
     "palette.primary.600": {
       "$description": "Brand primary 600 — Mid-Tone band — brand anchor (exact, pinned)",
       "meaning": "primary ramp — raw step 600",
-      "intent": "Solid fills & UI-element backgrounds — reach for this when fidelity to the source brand colour matters",
+      "intent": "Solid fills & UI-element backgrounds — reach for this when fidelity to the source brand color matters",
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [

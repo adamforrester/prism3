@@ -1184,7 +1184,7 @@ export const brandTheme = (input: BrandInput): Theme => {
   // Note only the default (light/dark/HC) opt-out; wireframe is an opt-IN addition, noted separately.
   const stdModes = modes.filter((m) => m !== 'wireframe');
   if (stdModes.length < ALL_MODES.length) notes.push(`modes: generating ${stdModes.join(', ')} only (dark/HC opt-out)`);
-  if (modes.includes('wireframe')) notes.push('modes: wireframe generated (greyscale — non-neutral roles → equivalent neutral; radius → 0)');
+  if (modes.includes('wireframe')) notes.push('modes: wireframe generated (grayscale — non-neutral roles → equivalent neutral; radius → 0)');
   // User-added custom modes (Phase C1) — each `{ name, base }` LIVE-INHERITS a customizable
   // built-in (`base` = light/dark only): it re-derives exactly like its base each build (a cloned
   // descriptor, same kind/family/mins, new name), then its own overrides/modeAnchors deviate it.
@@ -1222,7 +1222,7 @@ export const brandTheme = (input: BrandInput): Theme => {
     if (!CUSTOMIZABLE_MODES.includes(m))
       throw new Error(`overrides: mode '${m}' is generate-only and not customizable — only ${CUSTOMIZABLE_MODES.join('/')} accept overrides`);
   }
-  if (Object.keys(input.overrides ?? {}).length) notes.push(`overrides: per-mode colour overrides applied for ${Object.keys(input.overrides!).join(', ')} (roles repointed to specific primitive steps; tuned picks that miss a contrast min are warned, not blocked)`);
+  if (Object.keys(input.overrides ?? {}).length) notes.push(`overrides: per-mode color overrides applied for ${Object.keys(input.overrides!).join(', ')} (roles repointed to specific primitive steps; tuned picks that miss a contrast min are warned, not blocked)`);
   // Per-mode interactive anchors (A2b) — same customizable-mode rule as overrides. An anchor
   // re-derives the whole interactive column for that mode (still floor-gated via `chromatic`).
   for (const m of Object.keys(input.modeAnchors ?? {}) as ModeName[]) {
@@ -1318,8 +1318,8 @@ export const brandTheme = (input: BrandInput): Theme => {
   const neutralSteps = nAnchor
     ? generateRamp({ hue: nAnchor.h, chroma: nAnchor.c, anchor: { oklch: nAnchor, stepNum: autoPlaceStep(nAnchor.l) } })
     : generateRamp({ hue: nHue, chroma: input.neutral.chroma });
-  if (nAnchor) notes.push(`neutral pinned around a pre-defined grey (L${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — ramp built from the anchor, not the hue/chroma cast`);
-  else if (input.neutral.auto) notes.push(`neutral hue auto-follows the brand primary (H${Math.round(input.primary.h)}) — recolouring the brand re-tracks the cast`);
+  if (nAnchor) notes.push(`neutral pinned around a pre-defined gray (L${nAnchor.l}) at step ${autoPlaceStep(nAnchor.l)} — ramp built from the anchor, not the hue/chroma cast`);
+  else if (input.neutral.auto) notes.push(`neutral hue auto-follows the brand primary (H${Math.round(input.primary.h)}) — recoloring the brand re-tracks the cast`);
 
   const palettes: PaletteBuild[] = [
     { palette: 'primary', role: 'brand', description: 'Brand primary', steps: generateRamp({ hue: input.primary.h, chroma: input.primary.c, anchor: { oklch: input.primary, stepNum: anchorStep } }) },
@@ -1341,7 +1341,7 @@ export const brandTheme = (input: BrandInput): Theme => {
   }
   for (const bc of input.brandColors ?? []) {
     palettes.push({ palette: bc.name, role: 'brand', description: `Brand ${bc.name}`, steps: generateRamp({ hue: bc.oklch.h, chroma: bc.oklch.c, anchor: { oklch: bc.oklch, stepNum: autoPlaceStep(bc.oklch.l) } }) });
-    notes.push(`brand colour '${bc.name}' (h${bc.oklch.h}) added`);
+    notes.push(`brand color '${bc.name}' (h${bc.oklch.h}) added`);
   }
 
   const status = (k: 'success' | 'warning' | 'info') => {
@@ -1365,8 +1365,8 @@ export const brandTheme = (input: BrandInput): Theme => {
     throw new Error(`actionPalette '${actionPalette}' is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
   }
   notes.push(actionPalette === 'primary'
-    ? `action colour defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive colour for this brand`
-    : `action colour is decoupled: uses palette '${actionPalette}', NOT the primary brand palette — explicit brand decision`);
+    ? `action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand`
+    : `action color is decoupled: uses palette '${actionPalette}', NOT the primary brand palette — explicit brand decision`);
 
   // ---- danger carve ----
   const roleToPalette: Record<Role, string> = {
@@ -1397,7 +1397,7 @@ export const brandTheme = (input: BrandInput): Theme => {
     // for danger (a near-grey can't signal destruction), even though its hue is in the window.
     const hueIsRed = hueDist(input.primary.h, STATUS_DEFAULTS.danger.h) <= 20;
     notes.push(hueIsRed
-      ? `danger: primary hue ${input.primary.h} is red-ish but its chroma ${input.primary.c} is below the ${RED_CHROMA_FLOOR} floor to read as danger → carved a dedicated saturated red at hue ${d.h} (a near-grey warm primary can't signal destructive actions)`
+      ? `danger: primary hue ${input.primary.h} is red-ish but its chroma ${input.primary.c} is below the ${RED_CHROMA_FLOOR} floor to read as danger → carved a dedicated saturated red at hue ${d.h} (a near-gray warm primary can't signal destructive actions)`
       : `danger: primary hue ${input.primary.h} is NOT red → carved a dedicated danger red at hue ${d.h}`);
   }
   // Knife-edge note (M-05): flag when the primary hue sits within 3° of the ±20° red boundary —
@@ -1429,7 +1429,7 @@ export const brandTheme = (input: BrandInput): Theme => {
     notes.push(`roleColors: ${r} re-based on palette '${pal}' — the ${r} family regenerates on that ramp, re-gated (explicit brand decision)`);
     const want = CANONICAL_HUE[r], got = paletteHue(pal);
     if (want !== undefined && got !== null && hueDist(got, want) > 40)
-      notes.push(`roleColors: ${r} → '${pal}' hue ${Math.round(got)}° is far from the canonical ${r} hue ${want}° (Δ${Math.round(hueDist(got, want))}°) — CONFIRM the ${r} signal still reads; contrast holds but the colour may mislead`);
+      notes.push(`roleColors: ${r} → '${pal}' hue ${Math.round(got)}° is far from the canonical ${r} hue ${want}° (Δ${Math.round(hueDist(got, want))}°) — CONFIRM the ${r} signal still reads; contrast holds but the color may mislead`);
   }
 
   // ---- interactive palettes (docs/20 §3): N opt-in `interactive.<name>.*` columns ----
@@ -1573,12 +1573,12 @@ export const brandTheme = (input: BrandInput): Theme => {
   if (Object.keys(shadowByMode).length) shadow.shadowByMode = shadowByMode;
   const gradient = buildGradient(input.gradients, palettes, root);
   if (gradient.gradients.length) {
-    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) [${gradient.gradients.map((g) => `${g.name} ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''} ${g.stops.length}-stop`).join(', ')}] — OPT-IN. DTCG composite spine, stop colours alias the ramp; kind/angle/${gradient.gradients[0].interpolation} interpolation in \$extensions (DTCG omits them — issue #101). OKLCH-interpolated + ${gradient.gradients[0].sampled.length}-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colours bind). Worst-case-stop contrast computed for text-on-gradient.`);
+    notes.push(`gradient: ${gradient.gradients.length} brand gradient(s) [${gradient.gradients.map((g) => `${g.name} ${g.kind}${g.kind === 'linear' ? ` ${g.angle}°` : ''} ${g.stops.length}-stop`).join(', ')}] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/${gradient.gradients[0].interpolation} interpolation in \$extensions (DTCG omits them — issue #101). OKLCH-interpolated + ${gradient.gradients[0].sampled.length}-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.`);
   } else {
     notes.push('gradient: none (opt-in axis; brand declared no gradients — the field-common default).');
   }
   const layout = buildLayout(input.layout);
-  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${b.px}`).join(', ')}); grid base ${layout.baseColumns} cols (ladder ${layout.grid.map((g) => g.columns).join('/')}); gutter/margin alias the spacing scale (${layout.grid.map((g) => g.gutterPx).join('/')} · ${layout.grid.map((g) => g.marginPx).join('/')}); container max ${layout.containerMax}px + narrow ${layout.containerNarrow}px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with colour light/dark.`);
+  notes.push(`layout: ${layout.breakpoints.length} breakpoints (${layout.breakpoints.map((b) => `${b.name} ${b.px}`).join(', ')}); grid base ${layout.baseColumns} cols (ladder ${layout.grid.map((g) => g.columns).join('/')}); gutter/margin alias the spacing scale (${layout.grid.map((g) => g.gutterPx).join('/')} · ${layout.grid.map((g) => g.marginPx).join('/')}); container max ${layout.containerMax}px + narrow ${layout.containerNarrow}px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.`);
   const typography = buildTypography(input.typography);
   // Per-mode typography levers (Phase D): a customizable mode may override the font FAMILY per
   // family-role and/or the font WEIGHT per weight-role. Re-derive the affected PRIMITIVES via the
@@ -1673,7 +1673,7 @@ export const brandTheme = (input: BrandInput): Theme => {
   // ---- surface confirmation ----
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
     if (sf?.base !== undefined && sf.base !== 'white' && sf.base !== 'black') {
-      notes.push(`${mode} primary surface is NON-default (neutral.${sf.base}) — CONFIRM this is the page colour; the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}`);
+      notes.push(`${mode} primary surface is NON-default (neutral.${sf.base}) — CONFIRM this is the page color; the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}`);
     } else if (sf?.floorStep !== undefined) {
       notes.push(`${mode} contrast floor overridden to neutral.${sf.floorStep}`);
     }
@@ -1693,7 +1693,7 @@ export const brandTheme = (input: BrandInput): Theme => {
 
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
   const inverseContext = input.inverse ?? true;
-  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-grey, default)'}; inverse surface-context: ${inverseContext ? 'on (interactive.<color>.on-inverse generated)' : 'off'}`);
+  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: ${inverseContext ? 'on (interactive.<color>.on-inverse generated)' : 'off'}`);
 
   return {
     id: input.id, root, namespace: `${root}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
@@ -1747,7 +1747,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     palette: spec.palette, role: spec.role, description: spec.name, steps: buildRamp(spec),
   }));
   // NB ships no blue; synthesise an info palette so the semantic layer is complete.
-  palettes.push({ palette: 'info', role: 'info', description: 'info status (engine-synthesised — NB has no blue)', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
+  palettes.push({ palette: 'info', role: 'info', description: 'info status (engine-synthesized — NB has no blue)', steps: statusRamp(STATUS_DEFAULTS.info.h, STATUS_DEFAULTS.info.chroma) });
   const baseUnit = s.density?.baseUnit ?? 4;
   const baseMd = s.radius?.baseMd ?? 4;
   // Engine taxonomy (not NB's): 8px space rhythm reproducing Prism2's numbered

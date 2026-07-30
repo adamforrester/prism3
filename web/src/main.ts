@@ -308,7 +308,12 @@ const anchorStepFor = (palette: string): number | null => {
   if (palette === 'primary') return autoPlaceStep(lastGoodInput.primary.l);
   if (palette === 'neutral') return lastGoodInput.neutral.anchor ? autoPlaceStep(lastGoodInput.neutral.anchor.l) : null;
   const bc = (lastGoodInput.brandColors ?? []).find((b) => b.name === palette);
-  return bc ? autoPlaceStep(bc.oklch.l) : null;
+  if (bc) return autoPlaceStep(bc.oklch.l);
+  // A Custom-hue-seeded status role (#157): the picked hue IS the anchor color, same treatment as
+  // primary/neutral/brandColors above. `roleToPalette` defaults each status role to its own name, so
+  // a non-borrowed status ramp's palette name equals the role name.
+  const seed = (STATUS_ROLES as readonly string[]).includes(palette) ? lastGoodInput.status?.[palette as StatusRole] : undefined;
+  return seed ? autoPlaceStep(seed.l) : null;
 };
 
 /** Just the ramp bands — 10 swatches per row, labels beneath. The VOLATILE part of a palette row

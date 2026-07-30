@@ -1569,7 +1569,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 100 — Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 100 — Quarter-Tone band",
       "value": {
         "r": 0.7960784435272217,
         "g": 0.8705882430076599,
@@ -1588,7 +1588,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 150 — Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 150 — Quarter-Tone band",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.8235294222831726,
@@ -1607,7 +1607,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 200 — Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 200 — Quarter-Tone band",
       "value": {
         "r": 0.615686297416687,
         "g": 0.7764706015586853,
@@ -1626,7 +1626,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 250 — Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 250 — Quarter-Tone band",
       "value": {
         "r": 0.5176470875740051,
         "g": 0.729411780834198,
@@ -1645,7 +1645,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 300 — Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 300 — Quarter-Tone band",
       "value": {
         "r": 0.40784314274787903,
         "g": 0.6823529601097107,
@@ -1664,7 +1664,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 350 — Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 350 — Quarter-Tone band",
       "value": {
         "r": 0.29411765933036804,
         "g": 0.6313725709915161,
@@ -1683,7 +1683,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 400 — Mid-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 400 — Mid-Tone band",
       "value": {
         "r": 0.25882354378700256,
         "g": 0.5803921818733215,
@@ -1702,7 +1702,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 450 — Mid-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 450 — Mid-Tone band",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -1721,7 +1721,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
+      "description": "info status (engine-synthesized — NB has no blue) 500 — Mid-Tone band — mid-tone AA pivot (≥4.5:1 on white & black)",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -1740,7 +1740,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 550 — Mid-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 550 — Mid-Tone band",
       "value": {
         "r": 0.1568627506494522,
         "g": 0.4274509847164154,
@@ -1759,7 +1759,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 600 — Mid-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 600 — Mid-Tone band",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.3764705955982208,
@@ -1778,7 +1778,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 650 — Three-Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 650 — Three-Quarter-Tone band",
       "value": {
         "r": 0.08627451211214066,
         "g": 0.32549020648002625,
@@ -1797,7 +1797,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 700 — Three-Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 700 — Three-Quarter-Tone band",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.27843138575553894,
@@ -1816,7 +1816,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 750 — Three-Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 750 — Three-Quarter-Tone band",
       "value": {
         "r": 0.0117647061124444,
         "g": 0.22745098173618317,
@@ -1835,7 +1835,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 800 — Three-Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 800 — Three-Quarter-Tone band",
       "value": {
         "r": 0,
         "g": 0.18431372940540314,
@@ -1854,7 +1854,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 850 — Three-Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 850 — Three-Quarter-Tone band",
       "value": {
         "r": 0,
         "g": 0.13725490868091583,
@@ -1873,7 +1873,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 900 — Three-Quarter-Tone band",
+      "description": "info status (engine-synthesized — NB has no blue) 900 — Three-Quarter-Tone band",
       "value": {
         "r": 0,
         "g": 0.09803921729326248,
@@ -1892,7 +1892,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 950 — Shadow band",
+      "description": "info status (engine-synthesized — NB has no blue) 950 — Shadow band",
       "value": {
         "r": 0,
         "g": 0.054901961237192154,
@@ -1911,7 +1911,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 025 — Highlight band",
+      "description": "info status (engine-synthesized — NB has no blue) 025 — Highlight band",
       "value": {
         "r": 0.9529411792755127,
         "g": 0.9686274528503418,
@@ -1930,7 +1930,7 @@
         "TEXT_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info status (engine-synthesised — NB has no blue) 050 — Highlight band",
+      "description": "info status (engine-synthesized — NB has no blue) 050 — Highlight band",
       "value": {
         "r": 0.8784313797950745,
         "g": 0.9215686321258545,

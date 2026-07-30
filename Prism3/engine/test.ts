@@ -41,9 +41,9 @@ import { iconButton } from './components/icon-button';
 import { fieldLabel } from './components/field-label';
 import { fieldMessage } from './components/field-message';
 import { textField } from './components/text-field';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 let pass = 0; const fails: string[] = [];
@@ -1903,7 +1903,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(broken.length === 0, 'harbor: all mode contrast contracts hold' + (broken.length ? ` — FAILED: ${broken.join(', ')}` : ''));
   const built = buildTree(theme);
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `harbor: all ${built.stats.aliases} aliases resolve`);
-  ok(theme.notes.some((n) => n.toLowerCase().includes('action colour defaults to the primary')), 'harbor: default action=primary flagged in notes');
+  ok(theme.notes.some((n) => n.toLowerCase().includes('action color defaults to the primary')), 'harbor: default action=primary flagged in notes');
 
   // M-11: the alias gate must include fluid-typography responsive refs (`responsive.{min,max}.ref`)
   // — a dangling {root.font.size.NN} used to ship while the gate reported clean. Independently
@@ -3848,6 +3848,58 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(noNeutral.neutral.auto === true, 'neutral.auto: a standard brief with no neutral classifies to auto-follow');
   const withAuto = { id: 'x', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } };
   ok(validateBrandInput(withAuto).length === 0, `neutral.auto: a BrandInput carrying neutral.auto satisfies the schema (errors: ${JSON.stringify(validateBrandInput(withAuto))})`);
+}
+
+// ------------------------------------------------------------------- source hygiene: no NUL bytes
+// A raw 0x00 in a TypeScript source is legal to the compiler and invisible in an editor, but it makes
+// the file BINARY to the whole grep/ripgrep family — content searches return "binary file matches"
+// with no lines, silently hiding the file from exactly the tool used to navigate it. It bit twice:
+// once in `web/src/main.ts` (typed as a separator, broke a Playwright `select_option` because the
+// option values no longer matched) and once in `tree.ts:548`'s `stackKey`, where it hid the engine's
+// largest source file from content search.
+//
+// Both cases were the same slip: intending the ESCAPE (a backslash-u sequence) and emitting the CHARACTER. The
+// escape is byte-identical at runtime, so there is never a reason for the literal byte to be here —
+// which makes this a cheap total ban rather than a judgement call. Scans the engine plus both
+// bundled surfaces, since the class has now appeared in each.
+{
+  const roots = [HERE, resolve(HERE, '../../web/src'), resolve(HERE, '../../plugin/src')];
+  const TEXT = /\.(ts|tsx|js|mjs|json|md|html|css)$/;
+  const sources: string[] = [];
+  const walk = (dir: string, into: string[]): void => {
+    if (!existsSync(dir)) return;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name === 'dist' || e.name.startsWith('.')) continue;
+      const p = join(dir, e.name);
+      // `out/` is generated wholesale and gated by regen.ts --check; this is about hand-written source.
+      if (e.isDirectory()) { if (e.name !== 'out') walk(p, into); }
+      else if (TEXT.test(e.name)) into.push(p);
+    }
+  };
+  // Per-root counts, so the liveness check below can name the root that went dark. A total-count
+  // threshold would be the obvious thing and is the wrong thing — it drifts with ordinary file churn,
+  // so it either rots into noise or gets set so low it stops proving anything.
+  const perRoot = roots.map((r) => { const found: string[] = []; walk(r, found); sources.push(...found); return { r, n: found.length }; });
+
+  const offenders: string[] = [];
+  for (const p of sources) {
+    const buf = readFileSync(p);
+    const at = buf.indexOf(0);
+    if (at !== -1) {
+      // Report line:col so the fix is a jump, not a hunt — the byte is invisible in an editor.
+      const line = buf.subarray(0, at).toString('utf8').split('\n').length;
+      offenders.push(`${relative(resolve(HERE, '../..'), p)}:${line}`);
+    }
+  }
+  ok(offenders.length === 0,
+    `source hygiene: no raw NUL byte in hand-written source (use the escape '\\u0000' — byte-identical at runtime, and keeps the file greppable)`
+    + (offenders.length ? ` — OFFENDERS: ${offenders.join(', ')}` : ''));
+  // Guard against the scan silently going dark — a renamed/moved surface, or a tightened extension
+  // list, would make the check above vacuously green. Every root must contribute at least one file.
+  const dark = perRoot.filter((x) => x.n === 0).map((x) => relative(resolve(HERE, '../..'), x.r));
+  ok(dark.length === 0,
+    `source hygiene: the scan is live — every scanned root contributed files (${perRoot.map((x) => x.n).join('+')} = ${sources.length})`
+    + (dark.length ? ` — EMPTY ROOTS: ${dark.join(', ')} (moved or renamed? point the scan at the new path)` : ''));
 }
 
 // ------------------------------------------------------------------- report
