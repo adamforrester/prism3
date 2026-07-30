@@ -543,6 +543,10 @@ export type TypeComposite = {
   group: TypeGroup; variant: string; path: string; sizePx: number;   // desktop / max
   sizeMinPx: number;                               // mobile / min (== sizePx when static)
   family: FamilyRoleName; lineHeight: string; weightRole: WeightRoleName; tracking: string;
+  // #296 — per-mode RE-POINT: the rung key this composite binds in a given mode, when it differs
+  // from the light key. Absent ⇒ the composite uses one rung across every mode.
+  lineHeightByMode?: Record<string, string>;
+  trackingByMode?: Record<string, string>;
   textCase: 'none' | 'uppercase' | 'lowercase';   // baked style (not Figma-bindable; code/style-side)
   link: boolean;                                   // underlined link variant (textDecoration baked)
   italic: boolean;                                 // italic variant — orthogonal modifier PAIRED with the weight
@@ -586,7 +590,10 @@ const MONO_FALLBACK = ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'L
 // Line-height + letter-spacing are curated NAMED ramps (semantic keys → value). The key ORDER is the
 // single source: `LineHeightKey`/`LetterSpacingKey` derive from it, and per-mode overrides
 // (modeLevers.lineHeights/letterSpacings) are keyed by these names. Composites reference a key
-// (lineHeightFor / trackingFor pick which), so re-anchoring a key's value per mode reflows every
+// (lineHeightFor / trackingFor pick which). NOTE (#296): a per-mode override no longer re-anchors a
+// key's VALUE — the rungs are mode-invariant primitives, and the mode re-points the composite at a
+// different rung instead. What follows describes the BRAND-level ramp, which a brand may re-anchor
+// freely (mode-invariantly); the per-mode path snaps to whichever rung it lands nearest. Was: every
 // composite that uses it — the same seam as weight-role.
 export const LINE_HEIGHT_KEYS = ['tight', 'snug', 'compact', 'normal', 'relaxed', 'loose'] as const;
 export type LineHeightKey = typeof LINE_HEIGHT_KEYS[number];
@@ -1623,6 +1630,44 @@ export const brandTheme = (input: BrandInput): Theme => {
   }
   if (Object.keys(lineHeightsByMode).length) typography.lineHeightsByMode = lineHeightsByMode;
   if (Object.keys(letterSpacingsByMode).length) typography.letterSpacingsByMode = letterSpacingsByMode;
+  // #296 — PRIMITIVES STAY MODE-INVARIANT. The per-mode ramps above are a READ-MODEL convenience (the
+  // dashboard's leading/tracking editor reads them); they must NOT reach the emit as per-mode values on
+  // the rung primitives, because a composite references a rung by KEY and re-anchoring that key's value
+  // silently redefines it for all 35 semantic references. Instead each composite RE-POINTS: for a mode
+  // that asked for value V where the composite currently uses rung R, bind the rung whose INVARIANT
+  // value is nearest V. Same shape as `radius.md` moving `{dimension.4}` → `{dimension.8}`, and as
+  // `font.weight-role.default` moving between `font.weight.<numeric>` primitives.
+  //
+  // Consequence, deliberate: per-mode leading/tracking is QUANTISED to the brand's own ladder rather
+  // than free-floating. That is the stronger contract — the ladder IS the design system, and a mode
+  // inventing an off-ladder value is what broke the invariant. A brand wanting a value no rung carries
+  // re-anchors that rung globally (brand-level, mode-invariant), which is already supported (#270).
+  const nearestKey = <T extends { key: string }>(ramp: T[], val: (t: T) => number, want: number): string =>
+    ramp.reduce((best, r) => (Math.abs(val(r) - want) < Math.abs(val(best) - want) ? r : best)).key;
+  const quantised = new Set<string>();
+  for (const c of typography.composites) {
+    for (const [m, ramp] of Object.entries(lineHeightsByMode)) {
+      const want = ramp.find((r) => r.key === c.lineHeight)?.value;
+      if (want === undefined) continue;
+      const key = nearestKey(typography.lineHeights, (r) => r.value, want);
+      if (key !== c.lineHeight) (c.lineHeightByMode ??= {})[m] = key;
+      else if (want !== typography.lineHeights.find((r) => r.key === c.lineHeight)?.value)
+        quantised.add(`${m}: line-height ${c.lineHeight} → ${want}×`);
+    }
+    for (const [m, ramp] of Object.entries(letterSpacingsByMode)) {
+      const want = ramp.find((r) => r.key === c.tracking)?.em;
+      if (want === undefined) continue;
+      const key = nearestKey(typography.letterSpacings, (r) => r.em, want);
+      if (key !== c.tracking) (c.trackingByMode ??= {})[m] = key;
+      else if (want !== typography.letterSpacings.find((r) => r.key === c.tracking)?.em)
+        quantised.add(`${m}: letter-spacing ${c.tracking} → ${want}em`);
+    }
+  }
+  // Never drop a request silently. A per-mode value closer to its OWN rung than to any neighbour
+  // cannot re-point, so it has no effect — say so, rather than leaving the author to discover that
+  // their override did nothing. (Same principle as surfacing a contrast-floor-clamped colour anchor.)
+  if (quantised.size)
+    notes.push(`typography per-mode leading/tracking — NO-OP (quantised to the existing rung): ${[...quantised].join('; ')}. Per-mode values snap to the brand's own ladder (#296: rungs are mode-invariant primitives; a mode re-points, it does not re-anchor). To move it, pick a value nearer a different rung, or re-anchor the rung brand-wide via typography.lineHeights/letterSpacings.`);
   const dispSizes = typography.composites.filter((c) => c.group === 'display').map((c) => c.sizePx);
   const reqCeiling = input.typography?.displayCeiling ?? 160;
   const effCap = dispSizes.length ? Math.max(...dispSizes) : 0;

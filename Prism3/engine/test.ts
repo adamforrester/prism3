@@ -931,31 +931,55 @@ for (const b of brands) {
   const stable = (v: any): any => Array.isArray(v) ? v.map(stable)
     : (v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])])) : v);
   // dark opens `normal` leading to 1.55 and loosens `normal` tracking to +0.01em.
-  const perMode = { ...base, modeLevers: { dark: { lineHeights: { normal: 1.55 }, letterSpacings: { normal: 0.01 } } } } as unknown as BrandInput;
+  // #296 — values chosen to RE-POINT unambiguously: 1.66 → `relaxed` (1.65), 0.019 → `wide` (0.02).
+  // A value nearer its own rung (e.g. 1.55, which stays `normal`) quantises to a no-op — asserted below.
+  const perMode = { ...base, modeLevers: { dark: { lineHeights: { normal: 1.66 }, letterSpacings: { normal: 0.019 } } } } as unknown as BrandInput;
   const baseTree = buildTree(brandTheme(base)).tree[root];
   const built = buildTree(brandTheme(perMode));
   const pmTree = built.tree[root];
 
-  // (a) line-height.normal carries a modes.dark override (1.55 + percent); light's canonical $value is
-  //     untouched, and an un-overridden step (tight) carries no override.
-  const lhDark = pmTree.font['line-height'].normal.$extensions.prism3.modes?.dark;
-  ok(!!lhDark && lhDark.$value === 1.55 && lhDark.percent === 155,
-    `D-lhls(a): dark line-height override → line-height.normal modes.dark $value 1.55 + percent 155 (got ${lhDark?.$value})`);
+  // (a) #296 INVERTED CONTRACT: the rung PRIMITIVES are mode-invariant — no `modes` override, and the
+  //     value is identical to the no-per-mode build. Previously each rung carried a per-mode $value,
+  //     which redefined what `normal` MEANS for all 35 composite references.
+  ok(pmTree.font['line-height'].normal.$extensions.prism3.modes === undefined,
+    'D-lhls(a): line-height.normal carries NO per-mode override — it is a primitive (#296)');
   ok(pmTree.font['line-height'].normal.$value === baseTree.font['line-height'].normal.$value,
-    `D-lhls(a): light canonical line-height.normal $value is unchanged (${pmTree.font['line-height'].normal.$value})`);
-  ok(pmTree.font['line-height'].tight.$extensions.prism3.modes === undefined, 'D-lhls(a): an un-overridden step (tight) carries no modes override');
+    `D-lhls(a): line-height.normal $value is mode-invariant (${pmTree.font['line-height'].normal.$value})`);
+  ok(pmTree.font['line-height'].relaxed.$value === baseTree.font['line-height'].relaxed.$value,
+    'D-lhls(a): the rung the mode re-points TO is also unchanged');
 
-  // (b) letter-spacing.normal carries a modes.dark override (0.01em + em); light stays 0em.
-  const lsDark = pmTree.font['letter-spacing'].normal.$extensions.prism3.modes?.dark;
-  ok(!!lsDark && lsDark.$value === '0.01em' && lsDark.em === 0.01,
-    `D-lhls(b): dark letter-spacing override → letter-spacing.normal modes.dark $value '0.01em' + em 0.01 (got ${lsDark?.$value})`);
+  // (b) same for letter-spacing.
+  ok(pmTree.font['letter-spacing'].normal.$extensions.prism3.modes === undefined,
+    'D-lhls(b): letter-spacing.normal carries NO per-mode override — it is a primitive (#296)');
   ok(pmTree.font['letter-spacing'].normal.$value === baseTree.font['letter-spacing'].normal.$value,
-    `D-lhls(b): light canonical letter-spacing.normal $value is unchanged (${pmTree.font['letter-spacing'].normal.$value})`);
+    'D-lhls(b): letter-spacing.normal $value is mode-invariant');
 
-  // (c) a composite that uses line-height.normal + letter-spacing.normal (body) is UNCHANGED — it aliases
-  //     the primitives, so the per-mode value is inherited via the alias (the composite SET is fixed).
-  ok(JSON.stringify(pmTree.type.body.md.default) === JSON.stringify(baseTree.type.body.md.default),
-    'D-lhls(c): the body.md.default composite leaf is unchanged (inheritance via the line-height/letter-spacing alias)');
+  // (c) the per-mode change now lives on the semantic COMPOSITE, which RE-POINTS its alias at a
+  //     different rung — the `radius.md → {dimension.N}` shape applied to typography.
+  const bodyMd = pmTree.type.body.md.default;
+  const cDark = bodyMd.$extensions.prism3.modes?.dark;
+  ok(!!cDark, 'D-lhls(c): body.md.default carries a modes.dark variant (the re-point lives on the semantic)');
+  ok(cDark?.$value?.lineHeight === `{${root}.font.line-height.relaxed}`,
+    `D-lhls(c): dark re-points lineHeight to the relaxed rung (got ${cDark?.$value?.lineHeight})`);
+  ok(cDark?.$value?.letterSpacing === `{${root}.font.letter-spacing.wide}`,
+    `D-lhls(c): dark re-points letterSpacing to the wide rung (got ${cDark?.$value?.letterSpacing})`);
+  ok(bodyMd.$value.lineHeight === `{${root}.font.line-height.normal}`,
+    'D-lhls(c): the light canonical $value still points at the normal rung');
+  // Every field the variant changed must be an ALIAS — never a baked value. This is the invariant
+  // #296's guard enforces globally; asserted here at the point of change too.
+  ok(Object.keys(cDark.$value).filter((k) => JSON.stringify(cDark.$value[k]) !== JSON.stringify((bodyMd.$value as any)[k]))
+      .every((k) => /^\{.+\}$/.test(String(cDark.$value[k]))),
+    'D-lhls(c): the mode variant changes ONLY alias fields (re-point, never re-value)');
+
+  // (d) QUANTISATION IS VISIBLE. A per-mode value nearer its own rung than any other cannot re-point,
+  //     so it is a no-op — the same "request silently clamped" trap fixed for the interactive anchor
+  //     earlier. The engine must SAY so rather than drop it quietly.
+  const noop = buildTree(brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.55 } } } } as unknown as BrandInput));
+  const noopTheme = brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 1.55 } } } } as unknown as BrandInput);
+  ok(noop.tree[root].type.body.md.default.$extensions.prism3.modes === undefined,
+    'D-lhls(d): a value nearer its own rung produces no re-point (quantised to a no-op)');
+  ok(noopTheme.notes.some((n) => /quantis/i.test(n)),
+    'D-lhls(d): the engine NOTES the quantised no-op rather than dropping it silently');
 
   // (d) every DTCG alias resolves.
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `D-lhls(d): all ${built.stats.aliases} aliases resolve` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 3).map((b: any) => b.ref).join(',')}` : ''));
@@ -2096,6 +2120,106 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(validateBrandInput({ ...seed, disabledMin: 2 }).length > 0, '#290 disabled: schema rejects disabledMin 2');
   ok(validateBrandInput({ ...seed, disabledMin: 3 }).length === 0, '#290 disabled: schema accepts disabledMin 3');
 }
+// (7c) PRIMITIVES ARE MODE-INVARIANT (#296). The rule: a token may carry a per-mode variant
+// (`$extensions.prism3.modes`) ONLY if it is a SEMANTIC — i.e. its `$value` is an alias into a
+// primitive, so the mode moves the POINTER and every primitive keeps one value across all modes.
+// Colour, radius and density already satisfy this (`{palette.*}`, `{dimension.*}`); `font.weight-role`
+// is the canonical shape (semantic name → `{font.weight.<numeric>}` primitive).
+//
+// KNOWN_VIOLATIONS is a migration ledger, not an excuse list: these axes emit a per-mode variant on a
+// leaf holding a LITERAL, because they were never given a primitive tier to point at. The test passes
+// today so the invariant is locked against NEW violations, and each entry is deleted as its axis is
+// tiered. An empty list is the finish line.
+{
+  const KNOWN_VIOLATIONS = [
+    // line-height + letter-spacing were here and are now FIXED — the rungs stayed primitives and the
+    // semantic composites re-point instead. Their absence is what the ledger looks like when an axis lands.
+    /^prism\.motion\.(duration|stagger)/, // #296 — motion leaves carry no `role` at all; untiered.
+                                          //        `stagger` was found by THIS guard, not by the manual audit.
+    /^prism\.shadow\./,                 // #296 — `role: composite`, zero refs in or out; needs decomposing first (deferred)
+  ];
+  const t: any = brandTheme({
+    id: 'inv', root: 'prism', modes: ['light', 'dark'],
+    primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+    // Every per-mode axis engaged at once, so the walk sees the full violation surface.
+    modeLevers: { dark: {
+      radius: 2, density: 'compact', tempo: 'relaxed',
+      families: { display: 'Georgia' }, weights: { default: 500 },
+      lineHeights: { normal: 1.8 }, letterSpacings: { normal: 0.02 },
+      shadow: { softness: 2, tint: { hue: 10, amount: 0.4 } },
+    } },
+  } as any);
+  const built: any = buildTree(t);
+  const tree = built.tree ?? built;
+
+  const offenders: string[] = [];
+  const allowed: string[] = [];
+  const walk = (node: any, path: string): void => {
+    if (!node || typeof node !== 'object') return;
+    if (node.$value !== undefined) {
+      const x = node.$extensions?.prism3;
+      if (!x?.modes) return;
+      // The rule: a per-mode variant must RE-POINT, never re-value.
+      //  · a scalar leaf re-points iff its $value is an alias string
+      //  · `role: semantic` is declared as such
+      //  · a DTCG COMPOSITE ($value is an object of aliases + baked literals) re-points iff every
+      //    field the variant CHANGED is an alias — so `type.*` swapping `{font.line-height.normal}`
+      //    for `{font.line-height.relaxed}` passes, while `shadow.*` swapping raw colour/px objects
+      //    does not. Baked literals that didn't change (textCase, textDecoration) are irrelevant.
+      const isAliasStr = (v: unknown): boolean => typeof v === 'string' && /^\{.+\}$/.test(v);
+      const changedFieldsAllAliases = (): boolean => {
+        const base = node.$value;
+        if (base === null || typeof base !== 'object' || Array.isArray(base)) return false;
+        return Object.values(x.modes as Record<string, any>).every((mv: any) => {
+          const v = mv?.$value;
+          if (v === null || typeof v !== 'object' || Array.isArray(v)) return false;
+          const changed = Object.keys(v).filter((k) => JSON.stringify(v[k]) !== JSON.stringify((base as any)[k]));
+          return changed.length > 0 && changed.every((k) => isAliasStr(v[k]));
+        });
+      };
+      if (isAliasStr(node.$value) || x.role === 'semantic') return;
+      if (x.role === 'composite' && changedFieldsAllAliases()) return;
+      (KNOWN_VIOLATIONS.some((re) => re.test(path)) ? allowed : offenders).push(path);
+      return;
+    }
+    for (const k of Object.keys(node)) if (!k.startsWith('$')) walk(node[k], path ? `${path}.${k}` : k);
+  };
+  walk(tree, '');
+
+  ok(offenders.length === 0,
+    '#296 primitives are mode-invariant: no NEW literal-valued leaf carries a per-mode variant'
+    + (offenders.length ? ` — OFFENDERS: ${[...new Set(offenders.map((p) => p.split('.').slice(0, 3).join('.')))].join(', ')}` : ''));
+  // The ledger must stay honest in BOTH directions: an entry that no longer matches anything is a
+  // fixed axis whose exemption should be deleted, which this catches instead of letting it rot.
+  ok(allowed.length > 0, '#296 migration ledger: KNOWN_VIOLATIONS still matches real leaves (delete stale entries as axes are tiered)');
+  // And the axes we HAVE tiered must stay TIERED — the real regression risk. Re-walk each one in
+  // isolation with the ledger disabled, so a future change that turns an alias back into a literal
+  // fails here even though the global check above would have excused nothing.
+  const root = tree.prism;
+  const literalModeLeaves = (sub: any, base: string): string[] => {
+    const hits: string[] = [];
+    const rec = (node: any, path: string): void => {
+      if (!node || typeof node !== 'object') return;
+      if (node.$value !== undefined) {
+        const x = node.$extensions?.prism3;
+        if (!x?.modes) return;
+        const isAlias = typeof node.$value === 'string' && /^\{.+\}$/.test(node.$value);
+        if (!isAlias && x.role !== 'semantic') hits.push(path);
+        return;
+      }
+      for (const k of Object.keys(node)) if (!k.startsWith('$')) rec(node[k], `${path}.${k}`);
+    };
+    rec(sub, base);
+    return hits;
+  };
+  for (const g of ['color', 'radius', 'size']) {
+    const hits = literalModeLeaves(root[g] ?? {}, g);
+    ok(hits.length === 0, `#296 '${g}' stays tiered — per-mode variants only on alias/semantic leaves` + (hits.length ? ` — REGRESSED: ${hits.slice(0, 4).join(', ')}` : ''));
+  }
+  // Sanity: the walk must actually be reaching mode-carrying leaves, or the checks above are vacuous.
+  ok(allowed.length + offenders.length > 0, '#296 guard is live — the tree walk found mode-carrying leaves to judge');
+}
+
 // (8) PREVIEW SPEC — the shared live-preview contract (docs/08 §7, B1a). Every bound
 // token path (bindings + contract endpoints) must resolve to a real leaf in the
 // emitted token tree (binding-validity), contract mins are sane, and the committed

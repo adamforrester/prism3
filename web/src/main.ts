@@ -2367,7 +2367,13 @@ const renderLeadingTracking = (): HTMLElement => {
   ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`,
     'typography.letterSpacings', 'letterSpacings', -0.5, 0.5, 0.005,
     (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
-  if (perMode) sec.append(el('p', 'te-modenote', `Values shown are ${modeLabel}’s — blank follows the global ramp.`));
+  if (perMode) {
+    sec.append(el('p', 'te-modenote', `Values shown are ${modeLabel}’s — blank follows the global ramp.`));
+    // #296 — the rungs are mode-invariant primitives, so a per-mode value cannot re-anchor a rung;
+    // it re-points each style at whichever rung it lands NEAREST. A value closer to its own rung
+    // than to any neighbour therefore does nothing, which would otherwise be an invisible no-op.
+    sec.append(el('p', 'fz-warn', `Per-mode values snap to the nearest rung on the ladder above — they re-point ${modeLabel}’s styles rather than re-defining a rung, so a value closer to its own rung than to a neighbour has no effect. To move a rung itself, edit it in Light (it is shared across every mode).`));
+  }
   return sec;
 };
 
