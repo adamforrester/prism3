@@ -3041,29 +3041,35 @@ const paintContainersPreview = (into: HTMLElement): void => {
   into.append(cont);
 };
 
-/** The motion specimen (#114): the resolved semantic transitions (default/enter/exit/emphasized), each a
- *  bar that fills at its resolved duration + easing curve. Motion can't show in the static component
- *  preview, so the tempo lever had no payoff; here it does — the bars re-run on every re-render (i.e. the
- *  moment you change the tempo), plus a Replay. `prefers-reduced-motion` is honoured (bars shown filled,
- *  no animation), nodding to the engine's derived reduced ramp. Kind-B specimen: reads `theme.motion`. */
-/** A small cubic-bezier easing curve plotted 0→1 (SVG). Makes the easing choice legible — the timing bar
- *  shows speed, this shows the *shape* of the acceleration. Y is flipped (SVG y grows down). */
-const easingCurveSvg = (bez: number[]): SVGElement => {
-  const W = 44, H = 44, P = 5;
+/** The motion specimen (#114, redesigned #292 "trace the curve"): one large stage per semantic
+ *  transition (default/enter/exit/emphasized) — the ghost line is the easing curve's shape, the dot
+ *  traces it over the resolved duration. Motion can't show in the static component preview, so the
+ *  tempo lever had no payoff; here it does — the traces re-run on every re-render (i.e. the moment
+ *  you change the tempo), plus a Replay. A Playback control uniformly divides all four durations for
+ *  legibility only: it never changes the `${ms}ms` label (always the real resolved token value) or the
+ *  curve shape, and it preserves the ratio between transitions (exit stays 2× faster than default,
+ *  etc.) at any speed. `prefers-reduced-motion` is honoured (dot shown at its resting position, no
+ *  animation), nodding to the engine's derived reduced ramp. Kind-B specimen: reads `theme.motion`. */
+/** The easing curve for one stage, plotted 0→1 in a 100-unit viewBox (SVG). Y is flipped (SVG y grows
+ *  down). Percent-based, not px, so the stage scales for free. */
+const motionStageSvg = (bez: number[]): SVGElement => {
+  const W = 100, H = 100, P = 11.364;
   const x = (t: number): number => P + t * (W - 2 * P);
   const y = (v: number): number => H - P - v * (H - 2 * P);
   const svg = document.createElementNS(SVGNS, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'mo-curve');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('class', 'mo-stage-svg');
   const axis = document.createElementNS(SVGNS, 'path');
   axis.setAttribute('d', `M${x(0)},${y(1)} L${x(0)},${y(0)} L${x(1)},${y(0)}`);
-  axis.setAttribute('class', 'mo-curve-axis'); axis.setAttribute('fill', 'none');
+  axis.setAttribute('class', 'mo-stage-axis'); axis.setAttribute('fill', 'none');
   const [x1, y1, x2, y2] = bez.length === 4 ? bez : [0.4, 0, 0.2, 1];
   const line = document.createElementNS(SVGNS, 'path');
   line.setAttribute('d', `M${x(0)},${y(0)} C${x(x1)},${y(y1)} ${x(x2)},${y(y2)} ${x(1)},${y(1)}`);
-  line.setAttribute('class', 'mo-curve-line'); line.setAttribute('fill', 'none');
+  line.setAttribute('class', 'mo-stage-line'); line.setAttribute('fill', 'none');
   svg.append(axis, line);
   return svg;
 };
+const MOTION_SLOWMO_OPTIONS = [1, 2, 4, 8];
+let motionSlowmo = 4;   // uniform playback divisor for the trace (#292) — never touches the ms label, the curve, or the ratio between transitions
 const renderMotionSpecimen = (): HTMLElement => {
   const mo = theme.motion;
   // D — reflect the current mode's per-mode tempo (modeLevers.tempo) when it deviates, so the ramp
@@ -3072,34 +3078,56 @@ const renderMotionSpecimen = (): HTMLElement => {
   const moByMode = mo.motionByMode?.[currentMode];
   const durOf = (role: string): number => (moByMode?.duration ?? mo.duration)[role] ?? 0;
   const tempoLabel = moByMode?.tempo ?? mo.tempo;
-  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each bar fills at its resolved duration + easing curve. Adjust the tempo and they re-run; reduce-motion is honoured (the engine also derives a reduced ramp).`);
-  const bez = (b: number[]): string => `cubic-bezier(${b.join(', ')})`;
-  const list = el('div', 'mo-list');
-  const fills: HTMLElement[] = [];
+  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each stage traces the resolved duration + easing curve. Playback below is a legibility aid only (the ms label is always the real token value); reduce-motion is honoured (the engine also derives a reduced ramp).`);
+
+  const toolbar = el('div', 'mo-toolbar');
+  const slowmoLabel = el('label', 'mo-slowmo');
+  slowmoLabel.append(document.createTextNode('Playback '));
+  const select = el('select', 'mo-slowmo-sel') as HTMLSelectElement;
+  for (const v of MOTION_SLOWMO_OPTIONS) {
+    const opt = el('option', undefined, v === 1 ? 'real speed' : `1/${v}×`) as HTMLOptionElement;
+    opt.value = String(v);
+    if (v === motionSlowmo) opt.selected = true;
+    select.append(opt);
+  }
+  select.onchange = () => { motionSlowmo = Number(select.value) || 1; paintVolatile(); };
+  slowmoLabel.append(select);
+  toolbar.append(slowmoLabel);
+  wrap.append(toolbar);
+
+  const grid = el('div', 'mo-grid');
+  const dots: { el: HTMLElement; anim: string }[] = [];
   for (const t of mo.transitions) {
     const ms = durOf(t.duration);
-    const row = el('div', 'mo-row');
+    const playMs = ms * motionSlowmo;
     const curveBez = mo.easing[t.easing] ?? mo.easing.standard;
-    row.append(easingCurveSvg(curveBez));                          // the easing curve, plotted — makes the abstract timing concrete
-    const body = el('div', 'mo-body');
+    const bez = `cubic-bezier(${curveBez.join(', ')})`;
+    const anim = `mo-trace-x ${playMs}ms linear both, mo-trace-y ${playMs}ms ${bez} both`;
+
+    const col = el('div', 'mo-col');
+    const stage = el('div', 'mo-stage');
+    stage.append(motionStageSvg(curveBez));
+    const dot = el('div', 'mo-dot');
+    dot.style.animation = anim;
+    stage.append(dot);
+    dots.push({ el: dot, anim });
+    col.append(stage);
+
+    const meta = el('div', 'mo-colmeta');
+    meta.append(el('div', 'mo-colname', t.name));
     const metaRow = el('div', 'spec-metarow');
-    metaRow.append(el('span', 'mo-meta mono', `${t.name} · ${ms}ms · ${t.easing}`), tokenPill(`motion.duration.${t.duration}`), tokenPill(`motion.easing.${t.easing}`));
-    body.append(metaRow);
-    const track = el('div', 'mo-track');
-    const fill = el('div', 'mo-fill');
-    fill.style.animationDuration = `${ms}ms`;
-    fill.style.animationTimingFunction = bez(curveBez);
-    track.append(fill);
-    fills.push(fill);
-    body.append(track);
-    row.append(body);
-    list.append(row);
+    metaRow.append(el('span', 'mo-meta mono', `${ms}ms · ${t.easing}`), tokenPill(`motion.duration.${t.duration}`), tokenPill(`motion.easing.${t.easing}`));
+    meta.append(metaRow);
+    if (motionSlowmo > 1) meta.append(el('div', 'mo-playnote mono', `playing at ${playMs}ms (1/${motionSlowmo}×)`));
+    meta.append(el('div', 'mo-coldesc', t.desc));
+    col.append(meta);
+    grid.append(col);
   }
-  wrap.append(list);
+  wrap.append(grid);
+
   const replay = el('button', 'mo-replay', 'Replay') as HTMLButtonElement;
-  // Re-trigger by clearing only the animation NAME (the inline duration/easing longhands survive), forcing
-  // a reflow between so the browser restarts the keyframes.
-  replay.onclick = () => { for (const f of fills) { f.style.animationName = 'none'; void f.offsetWidth; f.style.removeProperty('animation-name'); } };
+  // Re-trigger by clearing the animation, forcing a reflow between so the browser restarts the keyframes.
+  replay.onclick = () => { for (const d of dots) { d.el.style.animation = 'none'; void d.el.offsetWidth; d.el.style.animation = d.anim; } };
   wrap.append(replay);
   return wrap;
 };
@@ -3991,19 +4019,27 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sh-card{width:64px;height:64px;border-radius:10px;background:#fff}
 .sh-lab{font-size:11.5px;color:#5b6472}
 .motion-spec{margin-bottom:8px}
-.mo-list{display:flex;flex-direction:column;gap:18px;padding:14px 0 2px}
-.mo-row{display:flex;align-items:center;gap:16px;min-width:0}
-.mo-curve{width:44px;height:44px;flex:none;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-xs)}
-.mo-curve-axis{stroke:var(--line2);stroke-width:1}
-.mo-curve-line{stroke:var(--ink);stroke-width:1.5;stroke-linecap:round}
-.mo-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.mo-toolbar{display:flex;justify-content:flex-end;margin:-4px 0 4px}
+.mo-slowmo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--faint)}
+.mo-slowmo-sel{font:inherit;font-size:12px;color:var(--ink2);background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-xs);padding:4px 8px;cursor:pointer}
+.mo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:14px 0 2px}
+@media(max-width:760px){.mo-grid{grid-template-columns:repeat(2,1fr)}}
+.mo-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.mo-stage{position:relative;aspect-ratio:1;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.mo-stage-svg{position:absolute;inset:0;width:100%;height:100%}
+.mo-stage-axis{stroke:var(--line2);stroke-width:1.5}
+.mo-stage-line{stroke:var(--line2);stroke-width:2.5;stroke-linecap:round}
+.mo-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--ink);left:11.364%;top:88.636%;transform:translate(-50%,-50%);animation-iteration-count:1;animation-fill-mode:both}
+@keyframes mo-trace-x{from{left:11.364%}to{left:88.636%}}
+@keyframes mo-trace-y{from{top:88.636%}to{top:11.364%}}
+.mo-colmeta{display:flex;flex-direction:column;gap:4px}
+.mo-colname{font-size:13px;font-weight:700}
 .mo-meta{font-size:11.5px;color:var(--faint)}
-.mo-track{position:relative;height:8px;background:var(--line2);border-radius:999px;overflow:hidden}
-.mo-fill{height:100%;width:100%;background:var(--ink);border-radius:999px;transform-origin:left;animation-name:mo-fill;animation-iteration-count:1;animation-fill-mode:both}
-@keyframes mo-fill{from{transform:scaleX(0.02)}to{transform:scaleX(1)}}
+.mo-playnote{font-size:10.5px;color:var(--faint);opacity:.75}
+.mo-coldesc{font-size:11.5px;color:var(--muted)}
 .mo-replay{margin-top:14px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:7px 14px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
 .mo-replay:hover{border-color:var(--ink);color:var(--ink)}
-@media (prefers-reduced-motion:reduce){.mo-fill{animation:none;transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.mo-dot{animation:none!important;left:88.636%!important;top:11.364%!important}}
 .radius-spec{margin-bottom:8px}
 .rad-list{display:flex;flex-wrap:wrap;gap:24px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
 .rad-cell{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}
