@@ -1036,13 +1036,29 @@ for (const b of brands) {
   const built = buildTree(brandTheme(perMode));
   const pmTree = built.tree[root];
 
-  // (a) duration.normal carries a modes.dark override at the relaxed ms (260); light's canonical $value
-  //     (200ms) is untouched.
+  // (a) #296 INVERTED CONTRACT: `duration.normal` is a SEMANTIC that ALIASES an ms primitive, and a
+  //     per-mode tempo re-points the alias rather than re-valuing a leaf. Tempo scales the ramp, so
+  //     relaxed's 260ms is a new value — hence a value-keyed primitive grid (the radius/dimension
+  //     shape, and the naming KB 18-motion-foundations prescribes), not a re-point at a named rung.
   const durDark = pmTree.motion.duration.normal.$extensions.prism3.modes?.dark;
-  ok(!!durDark && durDark.$value === '260ms' && durDark.ms === 260,
-    `D-motion(a): dark tempo override → duration.normal modes.dark $value '260ms' + ms 260 (got ${durDark?.$value})`);
-  ok(pmTree.motion.duration.normal.$value === baseTree.motion.duration.normal.$value && baseTree.motion.duration.normal.$value === '200ms',
-    `D-motion(a): light canonical duration.normal $value is unchanged (${pmTree.motion.duration.normal.$value})`);
+  ok(!!durDark && durDark.$value === `{${root}.motion.duration-ms.260}` && durDark.ms === 260,
+    `D-motion(a): dark tempo re-points duration.normal at the 260ms primitive (got ${durDark?.$value})`);
+  ok(pmTree.motion.duration.normal.$value === `{${root}.motion.duration-ms.200}`,
+    `D-motion(a): light canonical duration.normal aliases the 200ms primitive (${pmTree.motion.duration.normal.$value})`);
+  ok(pmTree.motion.duration.normal.$extensions.prism3.role === 'semantic',
+    'D-motion(a): duration.normal is declared semantic');
+  // Both endpoints exist as INVARIANT primitives, and neither carries a per-mode variant.
+  for (const v of ['200', '260']) {
+    const prim = pmTree.motion['duration-ms'][v];
+    ok(!!prim && prim.$value === `${v}ms`, `D-motion(a): duration-ms.${v} primitive exists and is literal`);
+    ok(prim.$extensions.prism3.modes === undefined, `D-motion(a): duration-ms.${v} carries NO per-mode variant`);
+  }
+  // stagger + duration-reduced ride the same tier.
+  ok(pmTree.motion.stagger.$value === `{${root}.motion.duration-ms.40}`
+    && pmTree.motion.stagger.$extensions.prism3.modes?.dark?.$value === `{${root}.motion.duration-ms.50}`,
+    'D-motion(a): stagger is a semantic alias that re-points per mode (40 → 50)');
+  ok(pmTree.motion['duration-reduced'].instant.$extensions.prism3.role === 'semantic',
+    'D-motion(a): duration-reduced is on the semantic tier too');
 
   // (b) stagger + a reduce-motion step also carry the per-mode override (the whole ramp scales).
   ok(pmTree.motion.stagger.$extensions.prism3.modes?.dark?.ms === 50, `D-motion(b): stagger modes.dark → 50ms (got ${pmTree.motion.stagger.$extensions.prism3.modes?.dark?.ms})`);
@@ -2147,8 +2163,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const KNOWN_VIOLATIONS = [
     // line-height + letter-spacing were here and are now FIXED — the rungs stayed primitives and the
     // semantic composites re-point instead. Their absence is what the ledger looks like when an axis lands.
-    /^prism\.motion\.(duration|stagger)/, // #296 — motion leaves carry no `role` at all; untiered.
-                                          //        `stagger` was found by THIS guard, not by the manual audit.
+    // motion (duration / duration-reduced / stagger) was here and is now FIXED — a value-keyed
+    // `motion.duration-ms.*` primitive tier, with the named rungs re-pointing into it per mode.
     /^prism\.shadow\./,                 // #296 — `role: composite`, zero refs in or out; needs decomposing first (deferred)
   ];
   const t: any = brandTheme({

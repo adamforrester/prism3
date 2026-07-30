@@ -479,23 +479,59 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // (motion.transition.*) reference duration by alias, so they inherit per-mode. Absent ⇒ byte-identical.
   const m = theme.motion;
   const motionByMode = m.motionByMode ?? {};
-  const durWithModes = (leaf: Token, pick: (mm: NonNullable<typeof m.motionByMode>[string]) => number | undefined, ms: number, label: (mode: string, v: number) => string): Token => {
+  // ---- motion: primitive ms tier + semantics that alias it (#296) --------------------------------
+  // Tempo SCALES the whole ramp by a multiplier (snappy 0.8× / standard 1.0× / relaxed 1.3×), so a
+  // mode's value is a genuinely new number — `relaxed.normal` is 260ms, which no standard rung holds.
+  // That rules out the typography fix (re-point at an existing named rung); the precedent here is
+  // RADIUS, where a scalar lever scales a ramp and the named semantic aliases a VALUE-KEYED primitive
+  // grid (`radius.md → {dimension.8}`). KB `18-motion-foundations` §Motion tokens prescribes exactly
+  // this shape: the primitive tier is "literal, not semantic" and named by value (`duration-200`),
+  // while the semantic tier "names a use, not a value" (`duration/short`).
+  //
+  // So: `motion.duration-ms.<n>` holds every reachable millisecond value across the base tempo AND
+  // every per-mode tempo — one invariant leaf per value. `motion.duration.<name>`,
+  // `motion.duration-reduced.<name>` and `motion.stagger` become SEMANTICS that alias one, and a
+  // per-mode tempo re-points the alias instead of re-valuing the leaf. `motion.duration.*` keeps its
+  // path: the KB's whole argument for the semantic tier is that it is the stable handle consumers
+  // bind to, so renaming it would break the thing the tier exists to protect.
+  const msPath = (v: number) => `${root}.motion.duration-ms.${v}`;
+  // Union across base + every mode, so every alias lands on a real leaf whichever mode is active.
+  const msValues = new Set<number>();
+  const collect = (mo: any) => {
+    if (!mo) return;
+    for (const v of Object.values(mo.duration ?? {})) msValues.add(v as number);
+    for (const v of Object.values(mo.durationReduced ?? {})) msValues.add(v as number);
+    if (mo.stagger !== undefined) msValues.add(mo.stagger);
+  };
+  collect(m);
+  for (const mm of Object.values(motionByMode)) collect(mm);
+
+  const motion: Record<string, any> = { 'duration-ms': {}, duration: {}, 'duration-reduced': {}, easing: {}, spring: {}, transition: {} };
+  for (const v of [...msValues].sort((a, b) => a - b))
+    motion['duration-ms'][String(v)] = durLeaf(v, `duration primitive — ${v}ms (literal; the semantic tier names the use)`);
+
+  // A semantic duration: aliases the ms primitive, and a per-mode tempo swaps WHICH primitive.
+  const durSemantic = (baseMs: number, description: string, pick: (mm: any) => number | undefined, label: (mode: string, v: number) => string): Token => {
+    const leaf: Token = {
+      $type: 'duration', $value: `{${msPath(baseMs)}}`, $description: description,
+      $extensions: { prism3: { role: 'semantic', aliasOf: msPath(baseMs), ms: baseMs } },
+    };
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, mm] of Object.entries(motionByMode)) {
       const v = pick(mm);
-      if (v === undefined || v === ms) continue;   // same ms → no diff → no override
-      modeOverrides[mode] = { $value: `${v}ms`, ms: v, note: label(mode, v) };
+      if (v === undefined || v === baseMs) continue;          // same ms → no diff → no override
+      modeOverrides[mode] = { $value: `{${msPath(v)}}`, aliasOf: msPath(v), ms: v, note: label(mode, v) };
     }
-    if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
+    if (Object.keys(modeOverrides).length) (leaf.$extensions.prism3 as Record<string, unknown>).modes = modeOverrides;
     return leaf;
   };
-  const motion: Record<string, any> = { duration: {}, 'duration-reduced': {}, easing: {}, spring: {}, transition: {} };
-  for (const [k, v] of Object.entries(m.duration)) motion.duration[k] = durWithModes(durLeaf(v, `motion duration ${k} — ${v}ms (tempo: ${m.tempo})`), (mm) => mm.duration[k], v, (mode, mv) => `motion tempo lever override — ${mode} (duration ${k} → ${mv}ms)`);
-  for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durWithModes(durLeaf(v, `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`), (mm) => mm.durationReduced[k], v, (mode, mv) => `motion tempo lever override — ${mode} (reduce-motion ${k} → ${mv}ms)`);
+
+  for (const [k, v] of Object.entries(m.duration)) motion.duration[k] = durSemantic(v as number, `motion duration ${k} — ${v}ms (tempo: ${m.tempo})`, (mm) => mm.duration[k], (mode, mv) => `motion tempo lever override — ${mode} (duration ${k} → ${mv}ms)`);
+  for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k], (mode, mv) => `motion tempo lever override — ${mode} (reduce-motion ${k} → ${mv}ms)`);
   for (const [k, v] of Object.entries(m.easing)) motion.easing[k] = bezierLeaf(v, `easing ${k}${k === 'calm' ? ' — accessibility: soft onset for long/involuntary motion' : ''}`);
   for (const [k, v] of Object.entries(m.spring)) motion.spring[k] = springLeaf(v, `spring ${k} — damping ${v.damping}, stiffness ${v.stiffness}`);
   for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing.${t.easing}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${t.easing})`);
-  motion.stagger = durWithModes(durLeaf(m.stagger, `stagger standard — ${m.stagger}ms between siblings`), (mm) => mm.stagger, m.stagger, (mode, mv) => `motion tempo lever override — ${mode} (stagger → ${mv}ms)`);
+  motion.stagger = durSemantic(m.stagger, `stagger standard — ${m.stagger}ms between siblings`, (mm) => mm.stagger, (mode, mv) => `motion tempo lever override — ${mode} (stagger → ${mv}ms)`);
 
   // ---- typography axis — primitive tier (Phase 1) ----
   // Curated rem size ladder (brand-invariant, not ratio-derived); numeric weight
