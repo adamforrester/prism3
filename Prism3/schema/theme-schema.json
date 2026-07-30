@@ -190,14 +190,16 @@
     },
     "disabledStrategy": {
       "type": "string",
-      "enum": ["accessible", "conventional"],
-      "default": "accessible",
-      "description": "OPTIONAL. How disabled states are coloured. 'accessible' (default): disabled text/icon/border clears `disabledMin` on the contrast floor, staying legible (the practice's contrast-preserving stance; field-rare — 0/12 surveyed systems guarantee it). 'conventional': intentionally sub-AA, leaning on the WCAG 1.4.3/1.4.11 inactive-component exemption (the field-standard dimmed look)."
+      "enum": ["full", "reduced", "accessible", "conventional"],
+      "default": "reduced",
+      "description": "OPTIONAL. Disabled-state contrast. 'reduced' (default): disabled text/icon clears `disabledMin` on the contrast floor — visibly dimmed but legible. 'full': a fixed 4.5:1, guaranteeing AA text (legibility is certain, so the disabled affordance rests on fill/border/cursor rather than dimming — confirm a disabled control still reads as disabled). NEITHER goes below 3:1: this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption (field-rare — 0/12 surveyed systems guarantee legible disabled states). LEGACY ALIASES, accepted for back-compat: 'accessible' → 'reduced' (keeps its `disabledMin`, clamped to >=3); 'conventional' → 'reduced' at 3:1, which RAISES its contrast from the old ~2:1 exempt look."
     },
     "disabledMin": {
       "type": "number",
+      "minimum": 3,
+      "maximum": 4.5,
       "default": 3,
-      "description": "OPTIONAL. Contrast floor for the 'accessible' disabled strategy (default 3:1 — visibly dimmed but legible, where Primer/USWDS sit; escalates to 4.5:1 in high-contrast modes). Ignored when disabledStrategy is 'conventional'."
+      "description": "OPTIONAL. The 'reduced' floor (default 3:1 — the WCAG non-text / large-text threshold, where Primer/USWDS sit; escalates to 4.5:1 in high-contrast modes). Clamped to 3–4.5. Ignored when disabledStrategy is 'full' (fixed at 4.5)."
     },
     "iconContrast": {
       "type": "string",

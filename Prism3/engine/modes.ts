@@ -279,24 +279,24 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const tintStep = cfg.family === 'light' ? 100 : 900;       // subtle semantic SURFACE tint
   const mutedStep = cfg.family === 'light' ? 450 : 350;      // muted semantic INK
 
-  // Disabled-state strategy (theme-level). 'accessible' clears a floor so disabled
-  // stays legible (KB's `inactive`); 'conventional' is the sub-AA exempt look.
-  const accessibleDisabled = theme.disabledStrategy === 'accessible';
-  const disabledTarget = hc ? Math.max(theme.disabledMin, 4.5) : theme.disabledMin;
+  // Disabled-state contrast (theme-level). BOTH branches gate now: 'full' promises AA text at a
+  // fixed 4.5:1, 'reduced' clears the dialable `disabledMin` (3–4.5). The old ungated
+  // 'conventional' path — `pickClosest(..., 2)` with `min: 0` — is gone: this system no longer
+  // uses the WCAG 1.4.3/1.4.11 inactive-component exemption, so there is no un-contracted disabled
+  // ink. (That path also made the two strategies indistinguishable at the bottom of the old 2–4.5
+  // dial, while still labelling the result "accessible".) HC escalates BOTH branches to >=4.5 —
+  // previously only the gated one escalated, so 'conventional' shipped ~2:1 disabled text even in
+  // a high-contrast mode.
+  const disabledFloor = theme.disabledStrategy === 'full' ? 4.5 : theme.disabledMin;
+  const disabledTarget = hc ? Math.max(disabledFloor, 4.5) : disabledFloor;
   const disabledText = (): { r: Rated; against: string; min: number } =>
-    accessibleDisabled
-      ? { r: pickMinPass(textCands, floorRgb, disabledTarget), against: cfg.floorName, min: disabledTarget }
-      : { r: pickClosest(textCands, baseRgb, 2), against: 'background.primary', min: 0 };
+    ({ r: pickMinPass(textCands, floorRgb, disabledTarget), against: cfg.floorName, min: disabledTarget });
   // The label/ink on a DISABLED fill (disabled.fill, a muted neutral). A dedicated
   // pair — Carbon's `text-on-color-disabled` — resolved against the disabled FILL (not
   // the page), so it stays muted-but-legible on it rather than landing at the wrong
   // contrast like `disabled.text`. Feeds the cross-cutting `disabled.on-fill`.
-  const onDisabled = (): { r: Rated; against: string; min: number } => {
-    const fill = neutralLow().rgb;                       // the shared disabled-fill colour
-    return accessibleDisabled
-      ? { r: pickMinPass(textCands, fill, disabledTarget), against: 'disabled.fill', min: disabledTarget }
-      : { r: pickClosest(textCands, fill, 2), against: 'disabled.fill', min: 0 };
-  };
+  const onDisabled = (): { r: Rated; against: string; min: number } =>
+    ({ r: pickMinPass(textCands, neutralLow().rgb, disabledTarget), against: 'disabled.fill', min: disabledTarget });
 
   // -------------------------------------------------------------- backgrounds
   // The canvas: thin, page-level, tonal in both modes. `inverse.*` is the opposite-
@@ -508,9 +508,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the per-colour action.disabled / foreground.danger.disabled / interactive.*.fill.disabled
   // are retired — components bind these five roles for any disabled control (docs/20 §16).
   putSurf('disabled.fill', neutralLow(), 'Disabled control fill — one muted neutral, any intent');
-  { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but ${accessibleDisabled ? `clears ${d.min}:1` : 'sub-AA (WCAG-exempt)'}`, 'disabled.fill', d.min); }
-  { const d = disabledText(); put('disabled.text', d.r, accessibleDisabled ? `Disabled text — clears ${disabledTarget}:1 (accessible)` : 'Disabled text — sub-AA (WCAG-exempt)', d.against, d.min); }
-  { const d = disabledText(); put('disabled.icon', d.r, accessibleDisabled ? `Disabled icon — clears ${disabledTarget}:1 (accessible)` : 'Disabled icon — sub-AA (WCAG-exempt)', d.against, d.min); }
+  // Both branches carry a real ratio now, so the description states the number and which promise
+  // it comes from — no "sub-AA (WCAG-exempt)" variant remains to describe.
+  const dBranch = theme.disabledStrategy === 'full' ? 'full contrast, AA text' : 'reduced contrast, legible';
+  { const d = onDisabled(); put('disabled.on-fill', d.r, `Label / icon on a disabled fill — muted but clears ${d.min}:1`, 'disabled.fill', d.min); }
+  { const d = disabledText(); put('disabled.text', d.r, `Disabled text — clears ${disabledTarget}:1 (${dBranch})`, d.against, d.min); }
+  { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — clears ${disabledTarget}:1 (${dBranch})`, d.against, d.min); }
   put('disabled.border', rated(neutralLow(), baseRgb), 'Disabled control border — muted neutral', 'background.primary', 0);
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field

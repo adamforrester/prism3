@@ -1625,7 +1625,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Disabled text — clears 3:1 (accessible)",
+      "description": "Disabled text — clears 3:1 (reduced contrast, legible)",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -1645,7 +1645,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Disabled icon — clears 3:1 (accessible)",
+      "description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
