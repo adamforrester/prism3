@@ -283,6 +283,65 @@ for (const b of brands) {
   const noOverlay = resolveAllModes({ ...nbTheme(), outlineInteraction: 'none' })
     .flatMap((m) => Object.keys(m.roles)).filter((k) => k.includes('.overlay.'));
   ok(noOverlay.length === 0, 'interactive: outlineInteraction=none emits no overlays' + (noOverlay.length ? ` — ${noOverlay.slice(0, 2).join(',')}` : ''));
+
+  // (h) `solid-tint` emits a REAL per-column tint (#288). Before this, the value was selectable and
+  // emitted nothing for any brand — behaviourally identical to `none` — because the doc comment
+  // pointed at `foreground.<color>-subtle`, a role only ever keyed by the five SEMANTICS names, never
+  // by an interactive COLUMN name. The bug was invisible precisely because nothing asserted the
+  // difference, so the first thing checked here is that the two values DIFFER at all.
+  {
+    const tintRoles = (t: any) => resolveAllModes({ ...t, outlineInteraction: 'solid-tint' });
+    const noneRoles = (t: any) => resolveAllModes({ ...t, outlineInteraction: 'none' });
+    const keysOf = (ms: any[]) => ms.flatMap((m) => Object.keys(m.roles)).filter((k) => k.includes('.subtle-fill.'));
+
+    ok(keysOf(tintRoles(nbTheme())).length > 0, '#288 solid-tint emits subtle-fill roles (it emitted NOTHING before)');
+    ok(keysOf(noneRoles(nbTheme())).length === 0, '#288 outlineInteraction=none still emits no subtle-fill');
+    ok(keysOf(resolveAllModes(nbTheme())).length === 0, '#288 the default (overlay-neutral) emits no subtle-fill — existing artifacts unmoved');
+
+    // The contract, on every brand INCLUDING the extremes — two example brands generalising is an
+    // assumption, and the nominal step is only a starting point for the contract-driven walk.
+    const brands: Array<[string, any]> = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/aurora.design.md'), 'utf8')).input)],
+      ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/harbor.design.md'), 'utf8')).input)],
+      // near-black primary + a light high-chroma yellow: the two hardest ink/tint pairings the suite has.
+      ['near-black', brandTheme({ id: 'nbk', primary: { l: 0.18, c: 0.04, h: 260 }, neutral: { hue: 260, chroma: 0.006, auto: true } } as any)],
+      ['hot-yellow', brandTheme({ id: 'hy', primary: { l: 0.86, c: 0.19, h: 95 }, neutral: { hue: 95, chroma: 0.006, auto: true } } as any)],
+    ];
+    const bad: string[] = [];
+    let checked = 0;
+    for (const [id, t] of brands) {
+      for (const m of tintRoles(t)) {
+        for (const [key, r] of Object.entries(m.roles) as [string, any][]) {
+          if (!key.includes('.subtle-fill.')) continue;
+          checked++;
+          // The published promise is ink-on-tint, so hold it to its own stated minimum.
+          if (r.min > 0 && r.ratio < r.min - 0.005) bad.push(`${id}/${m.mode}/${key} ${r.ratio.toFixed(2)} < ${r.min}`);
+        }
+      }
+    }
+    ok(bad.length === 0, `#288 every subtle-fill keeps its state ink legible (${checked} roles across ${brands.length} brands)`
+      + (bad.length ? ` — FAILING: ${bad.slice(0, 4).join(', ')}` : ''));
+    ok(checked > 0, '#288 the subtle-fill contract check is live (it found roles to judge)');
+
+    // And the tint must be VISIBLE against the page, or the hover does nothing — the inert-control
+    // class this repo has now hit three times (#288 itself, #305, pre-#297 leading). ΔE00 2.3 is the
+    // classic just-noticeable bar; measured worst across the example brands was 5.81.
+    const invisible: string[] = [];
+    for (const [id, t] of brands) {
+      for (const m of tintRoles(t)) {
+        const page = m.roles['background.primary'];
+        if (!page) continue;
+        for (const [key, r] of Object.entries(m.roles) as [string, any][]) {
+          if (!key.includes('.subtle-fill.')) continue;
+          const d = deltaE2000(hexToRgb(r.hex), hexToRgb(page.hex));
+          if (d < 2.3) invisible.push(`${id}/${m.mode}/${key} ΔE ${d.toFixed(2)}`);
+        }
+      }
+    }
+    ok(invisible.length === 0, '#288 every subtle-fill is perceptibly different from the page (ΔE00 ≥ 2.3)'
+      + (invisible.length ? ` — INVISIBLE: ${invisible.slice(0, 4).join(', ')}` : ''));
+  }
 }
 
 // DISABLED — cross-cutting family (docs/20 §7): one treatment regardless of intent,
@@ -1970,8 +2029,19 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
         if (isRef(n.$value)) refs++;
         else if (n.$value && typeof n.$value === 'object' && !Array.isArray(n.$value)) for (const s of Object.values(n.$value)) if (isRef(s)) refs++;
         else if (Array.isArray(n.$value)) for (const it of n.$value) if (it && typeof it === 'object') for (const s of Object.values(it)) if (isRef(s)) refs++;
+        // Mode overrides: a string `$value` alias (colour roles) OR a composite's raw sub-value shape
+        // (shadow's modes.<m> is a layer array). Mirrors the gate's walk — the two must agree BY
+        // CONSTRUCTION, or this check drifts into comparing two different definitions of "a ref"
+        // (#301: both sides previously read only a string `$value`, so both missed the same case and
+        // agreed for the wrong reason).
         const mo = n.$extensions?.prism3?.modes;
-        if (mo && !Array.isArray(mo)) for (const mv of Object.values(mo)) if (isRef((mv as any)?.$value)) refs++;
+        if (mo && !Array.isArray(mo)) for (const mv of Object.values(mo)) {
+          if (Array.isArray(mv)) { for (const it of mv) if (it && typeof it === 'object') for (const s of Object.values(it)) if (isRef(s)) refs++; continue; }
+          const sv = (mv as any)?.$value;
+          if (isRef(sv)) refs++;
+          else if (Array.isArray(sv)) { for (const it of sv) if (it && typeof it === 'object') for (const s of Object.values(it)) if (isRef(s)) refs++; }
+          else if (sv && typeof sv === 'object') { for (const s of Object.values(sv)) if (isRef(s)) refs++; }
+        }
         const r = n.$extensions?.prism3?.responsive;
         if (r?.fluid) for (const e of [r.min, r.max]) if (isRef(e?.ref)) { refs++; fluidRefs++; }
         return;
@@ -2206,18 +2276,39 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // Colour, radius and density already satisfy this (`{palette.*}`, `{dimension.*}`); `font.weight-role`
 // is the canonical shape (semantic name → `{font.weight.<numeric>}` primitive).
 //
-// KNOWN_VIOLATIONS is a migration ledger, not an excuse list: these axes emit a per-mode variant on a
-// leaf holding a LITERAL, because they were never given a primitive tier to point at. The test passes
-// today so the invariant is locked against NEW violations, and each entry is deleted as its axis is
-// tiered. An empty list is the finish line.
+// The list below WAS a migration ledger — axes awaiting a primitive tier, each deleted as it landed,
+// with "an empty list is the finish line". Line-height/letter-spacing (#294) and motion (#300) were
+// deleted that way. Shadow was the last entry, and #301 resolved it by NARROWING THE INVARIANT rather
+// than by tiering. The amendment, so a future reader does not re-open a settled question:
+//
+//   A TERMINAL COMPOSITE — one that neither references a primitive nor is referenced by anything —
+//   MAY swap raw sub-values per mode.
+//
+// Why, from the #301 spike (evidence, not preference): a `shadow` leaf's `$value` is an ARRAY OF
+// OBJECTS, and no consumer resolves an alias inside it. `emit-figma` turns `{…}` into `radius: 0` via
+// `pxToNum`'s `|| 0`; the plugin's `write-plan` inherits that and writes the wrong effect INTO FIGMA;
+// `resolve-preview` interpolates the raw `{…}` into a `box-shadow` string, which the browser drops as
+// invalid CSS; `visualize` leaks it into `tokens.html`. Three of the four exit 0 while emitting a wrong
+// artifact. So tiering shadow means shipping a nested-composite alias resolver to four consumers —
+// including the Figma write path — to buy mode-invariance on tokens no one consumes individually
+// (designers reach for `shadow.md`, never a raw blur).
+//
+// The exemption is NOT a blanket pass. `assertTerminal` below re-derives "terminal" from the tree on
+// every run: if a shadow leaf ever gains an alias, or anything ever aliases INTO shadow, the premise
+// is false and this fails — forcing the decision to be re-made rather than inherited. That is what
+// keeps this an amendment with teeth instead of the excuse list the original comment warned about.
+//
+// If #305's tint work makes shadow values genuinely brand-expressive enough that consumers want to
+// re-point them, revisit — that is the trigger, not the mere existence of the exemption.
 {
-  const KNOWN_VIOLATIONS = [
+  const TERMINAL_COMPOSITE_EXEMPTIONS = [
     // line-height + letter-spacing were here and are now FIXED — the rungs stayed primitives and the
     // semantic composites re-point instead. Their absence is what the ledger looks like when an axis lands.
     // motion (duration / duration-reduced / stagger) was here and is now FIXED — a value-keyed
     // `motion.duration-ms.*` primitive tier, with the named rungs re-pointing into it per mode.
-    /^prism\.shadow\./,                 // #296 — `role: composite`, zero refs in or out; needs decomposing first (deferred)
+    { re: /^prism\.shadow\./, group: 'shadow', why: '#301 — terminal composite; no consumer resolves nested aliases' },
   ];
+  const KNOWN_VIOLATIONS = TERMINAL_COMPOSITE_EXEMPTIONS.map((e) => e.re);
   const t: any = brandTheme({
     id: 'inv', root: 'prism', modes: ['light', 'dark'],
     primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
@@ -2269,9 +2360,57 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(offenders.length === 0,
     '#296 primitives are mode-invariant: no NEW literal-valued leaf carries a per-mode variant'
     + (offenders.length ? ` — OFFENDERS: ${[...new Set(offenders.map((p) => p.split('.').slice(0, 3).join('.')))].join(', ')}` : ''));
-  // The ledger must stay honest in BOTH directions: an entry that no longer matches anything is a
+  // The list must stay honest in BOTH directions: an entry that no longer matches anything is a
   // fixed axis whose exemption should be deleted, which this catches instead of letting it rot.
-  ok(allowed.length > 0, '#296 migration ledger: KNOWN_VIOLATIONS still matches real leaves (delete stale entries as axes are tiered)');
+  ok(allowed.length > 0, '#296 exemption list still matches real leaves (delete stale entries as axes are tiered)');
+
+  // THE EXEMPTION'S PREMISE, RE-DERIVED (#301). "Terminal" is not an assertion in a comment — it is
+  // re-checked here every run: an exempt group must contain no alias, and nothing outside it may alias
+  // into it. If either becomes false, the group is participating in the reference graph after all, the
+  // reason for exempting it is gone, and this fails loudly rather than letting a stale exemption
+  // quietly excuse a real violation.
+  {
+    const refsOf = (v: unknown): string[] => {
+      if (typeof v === 'string') { const m = v.match(/^\{(.+)\}$/); return m ? [m[1]] : []; }
+      if (Array.isArray(v)) return v.flatMap(refsOf);
+      if (v && typeof v === 'object') return Object.values(v).flatMap(refsOf);
+      return [];
+    };
+    for (const ex of TERMINAL_COMPOSITE_EXEMPTIONS) {
+      const outgoing: string[] = [];   // an alias INSIDE the exempt group
+      const incoming: string[] = [];   // an alias elsewhere POINTING AT the exempt group
+      const scan = (node: any, path: string): void => {
+        if (!node || typeof node !== 'object') return;
+        if (node.$value !== undefined) {
+          const inGroup = ex.re.test(path);
+          const all = [...refsOf(node.$value), ...refsOf(node.$extensions?.prism3?.modes ?? {})];
+          for (const r of all) {
+            if (inGroup) outgoing.push(`${path} → {${r}}`);
+            // `prism.` prefix: refs are absolute paths from the tree root, same shape the regex matches.
+            else if (ex.re.test(r.startsWith('prism.') ? r : `prism.${r}`)) incoming.push(`${path} → {${r}}`);
+          }
+          return;
+        }
+        for (const k of Object.keys(node)) if (!k.startsWith('$')) scan(node[k], path ? `${path}.${k}` : k);
+      };
+      scan(tree, '');
+      ok(outgoing.length === 0,
+        `#301 '${ex.group}' is still TERMINAL — no alias inside it (exemption assumes it references nothing)`
+        + (outgoing.length ? ` — FOUND: ${outgoing.slice(0, 3).join(', ')}. It now participates in the reference graph; re-decide the exemption.` : ''));
+      ok(incoming.length === 0,
+        `#301 '${ex.group}' is still TERMINAL — nothing aliases into it (exemption assumes nothing depends on it)`
+        + (incoming.length ? ` — FOUND: ${incoming.slice(0, 3).join(', ')}. Consumers now depend on it; re-decide the exemption.` : ''));
+      // And the group must actually EXIST — a renamed group would make both checks vacuously true.
+      let present = false;
+      const findGroup = (node: any, path: string): void => {
+        if (present || !node || typeof node !== 'object') return;
+        if (node.$value !== undefined) { if (ex.re.test(path)) present = true; return; }
+        for (const k of Object.keys(node)) if (!k.startsWith('$')) findGroup(node[k], path ? `${path}.${k}` : k);
+      };
+      findGroup(tree, '');
+      ok(present, `#301 '${ex.group}' exists in the tree (a renamed group would make its terminal checks vacuous)`);
+    }
+  }
   // And the axes we HAVE tiered must stay TIERED — the real regression risk. Re-walk each one in
   // isolation with the ledger disabled, so a future change that turns an alias back into a literal
   // fails here even though the global check above would have excused nothing.

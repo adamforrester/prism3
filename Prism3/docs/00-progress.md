@@ -58,6 +58,118 @@ options not taken as well as the one taken.
 
 ---
 
+## (2026-07-30) — `solid-tint` gets a real token (#288)
+
+**STATUS: engine + web.** `out/*` **byte-identical** — the default is `overlay-neutral`, so nothing
+moves unless a brand opts in. Only `schema/lever-manifest.json` changes, and only its prose.
+
+**The defect.** `outlineInteraction: 'solid-tint'` was selectable and emitted **nothing, for any brand,
+ever** — behaviourally identical to `none`. Its own doc comment claimed it reused
+`foreground.<color>-subtle`, but that role is only emitted for the five fixed `SEMANTICS` names
+(brand/success/warning/danger/info), never keyed by an interactive COLUMN name. Those are different
+naming spaces: `interactive.primary` follows `roleToPalette.action`, which for aurora is `accent`, not
+`brand`. Surfaced as "the Opaque subtle tint option appears empty" in dashboard triage.
+
+**The fix.** A `solid-tint` sibling branch to `overlay-neutral` in `modes.ts`, emitting
+`interactive.<column>.subtle-fill.{hover,pressed,selected}` — an opaque step of the column's OWN
+palette, so a destructive outline hovers red-tinted rather than gray. (Name follows the issue's own
+suggestion; it is the first published shape, so it is the cheapest thing to change if a better one
+appears.)
+
+**Two constraints pull opposite ways**, and both are gated rather than assumed:
+
+1. the tint must be **distinguishable from the page**, or the hover is invisible and the lever is inert
+   — the failure this repo has now hit three times (#288 itself, #305, pre-#297 leading);
+2. the control's label must **stay legible on it**.
+
+**Pairing each tint with the ink of the SAME state is what makes both hold at once.** `iText` already
+walks hover/pressed toward more contrast, so a darker pressed tint meets a stronger pressed ink and the
+ratio IMPROVES rather than degrading. Measured across aurora + harbor x light/dark x primary/destructive:
+worst ink-on-tint **4.90:1** (AA), worst tint-vs-page **ΔE00 5.81** (clear of the ~2.3 bar).
+
+**The nominal step is not trusted to generalise.** It is a starting point; the pick then WALKS TOWARD
+THE PAGE until the state's ink clears the text minimum. That walk is load-bearing, not defensive
+decoration — tamper-testing it (take the nominal blindly) fails on the extreme brands: near-black
+destructive at **4.03:1** and hot-yellow primary at **4.09:1**, both sub-AA. Two example brands would
+have shipped a broken contract for real ones.
+
+**`against` runs the other way here, deliberately.** It normally names the surface a role sits on, but
+this role IS the surface; the tint is the variable being chosen and the ink is already fixed by
+`iText`. So the published promise is "this tint keeps its own state ink legible", and the ink is what
+it is measured against. Called out in the code so it doesn't read as a mistake.
+
+**Two false statements removed** — both would have outlived the bug: the lever `description` still said
+`solid-tint = opaque foreground.<color>-subtle` (the claim that caused this), and the dashboard still
+carried "Opaque subtle tint has no token yet". The section blurb is now method-aware too; pointing at
+the Overlay wash row under solid-tint would be the same species of wrong answer as the empty swatch.
+
+**Verified:** 1009 → **1015** tests, including the contract and the visibility floor across **5 brands**
+(nb, aurora, harbor, near-black, hot-yellow = 180 roles); `regen --check` 85/85 byte-match;
+nb-regression PASS; Playwright confirms the three methods now render distinctly — overlay
+`rgba(0,0,0,0.1)`, solid-tint opaque `rgb(204,222,233)` (aurora accent 100), none transparent.
+
+**Out of scope, still open:** nothing. #288's own "out of scope" note deferred the dashboard wiring,
+but leaving it unwired would have kept the reported symptom on screen, so it is included.
+
+---
+
+## (2026-07-30) — #296 closes by NARROWING, not by tiering shadow (#301)
+
+**STATUS: engine (source-only).** Zero artifact change — `regen.ts --check` 85/85 byte-match, alias
+counts unchanged (872/871/865). Closes #301 and, with it, **#296** — the mode-invariance arc that ran
+through #294 (leading/tracking) and #300 (motion).
+
+**The decision.** Shadow was the last entry in what the guard called a "migration ledger", with "an
+empty list is the finish line". It does not get a primitive tier. The invariant is amended instead:
+
+> A **terminal composite** — one that neither references a primitive nor is referenced by anything —
+> MAY swap raw sub-values per mode.
+
+**Why, from evidence rather than preference.** The #301 spike aliased one field of one shadow layer at
+a real primitive and walked every consumer. A `shadow` leaf's `$value` is an ARRAY OF OBJECTS, and
+**no consumer resolves an alias inside it**:
+
+| Consumer | Result | Exit |
+|---|---|---|
+| alias gate | ✅ sees it (872 → 874) | 0 |
+| `emit-figma` | ❌ `radius: 0` — `pxToNum` NaN → `\|\| 0` | **0** |
+| plugin `write-plan` | ❌ same, and it WRITES INTO FIGMA | 0 |
+| `resolve-preview` | ❌ raw `{…}` into `box-shadow` → invalid CSS, shadow vanishes | — |
+| `visualize` | ❌ raw `{…}` leaks into `tokens.html` | 0 |
+
+Three exit 0 while emitting a wrong artifact. So tiering shadow is not "~80 tokens plus naming" — it is
+~80 tokens **plus a nested-composite alias resolver in four consumers, one of which mutates a real
+Figma file**, to buy mode-invariance on tokens nobody consumes individually (designers reach for
+`shadow.md`, never a raw blur). Motion was cheap because it re-points a top-level `$value` string every
+consumer already resolved; shadow is not the same shape of change.
+
+**The exemption has teeth.** `TERMINAL_COMPOSITE_EXEMPTIONS` is not a pass-list — "terminal" is
+**re-derived from the tree every run**. If a shadow leaf ever gains an alias, or anything ever aliases
+into shadow, the premise is false and the test fails, naming the offending path and saying *re-decide
+the exemption*. Plus a presence check, because a renamed group would make both directions vacuously
+true. All three tamper-tested: an outgoing alias, an inbound alias, and removing the exemption
+(which correctly re-exposes all 7 shadow leaves as violations).
+
+**Revisit trigger, recorded so it isn't inherited as permanent:** if #305's tint work makes shadow
+values expressive enough that consumers want to re-point them, that is the moment to revisit — not the
+mere existence of the exemption.
+
+**Also fixed: a latent alias-gate hole (#281's shape).** The gate validated aliases in a composite's
+light `$value` array but **not** in `$extensions.prism3.modes.<mode>` arrays — that branch read only a
+string `$value`, and per-mode composite values are arrays. So the light half of a leaf was validated
+while its per-mode half was not: a future composite tiering would have shipped dangling per-mode refs
+with the gate reporting clean. Nothing puts aliases there today, hence zero artifact change.
+
+**The M-11 counter had the SAME hole**, and that is the more interesting half: the independent counter
+that exists to cross-check the gate read only a string `$value` too. Two implementations of "count the
+refs" sharing one blind spot agree — for the wrong reason. Both were fixed together so they match by
+construction rather than by coincidence.
+
+**Verified:** 1006 → **1009** tests; `regen.ts --check` 85/85; nb-regression PASS; web + plugin
+typecheck and builds clean; alias counts unchanged, confirming source-only.
+
+---
+
 ## (2026-07-30) — The top bar on mobile: one row, and menus that stay on screen (#144 follow-up)
 
 **STATUS: web-only.** Engine untouched. Found by the owner on the live deploy after #315 shipped —
