@@ -545,7 +545,7 @@ const renderPrimitives = (host: HTMLElement): void => {
   host.append(brandSec);
 
   // Neutral — one row, two sources (Custom tint / Pinned color).
-  const neuSec = palSection('Neutral', 'A tinted grey scale that follows your brand hue automatically. Switch to Custom tint to tune it, or Pinned color to lock an exact brand grey.');
+  const neuSec = palSection('Neutral', 'A tinted gray scale that follows your brand hue automatically. Switch to Custom tint to tune it, or Pinned color to lock an exact brand gray.');
   { const n = neutralRow(); neuSec.append(n.row); refreshers.push(n.refresh); }
   host.append(neuSec);
 
@@ -1423,7 +1423,7 @@ const neutralEmphasisLead = (): HTMLElement => {
   sel.onchange = () => { setPath(brandState, 'neutralEmphasis', sel.value); applyFull(); };
   const roles = iRoles();
   return iRow({ lead: true, label: 'Button emphasis', srcLabel: 'Emphasis', select: sel,
-    desc: 'A neutral / secondary button as a subtle light-grey surface, or a bold near-black/white fill. Shared across modes.',
+    desc: 'A neutral / secondary button as a subtle light-gray surface, or a bold near-black/white fill. Shared across modes.',
     example: iExample(exBtn(roles['interactive.neutral.fill.rest']?.hex ?? '#eeeeee', roles['interactive.neutral.on-fill']?.hex ?? '#111111')) });
 };
 
@@ -1595,7 +1595,7 @@ const renderModeSetMenu = (): HTMLElement => {
   };
   opt('Dark', darkOn, 'A dark appearance — generated, editable', () => setModes(!darkOn, hcOn, wireOn));
   opt('High contrast', hcOn, 'AAA contrast floors — auto-derived, read-only', () => setModes(darkOn, !hcOn, wireOn));
-  opt('Wireframe', wireOn, 'Greyscale, sharp corners — auto-derived, generate-only', () => setModes(darkOn, hcOn, !wireOn));
+  opt('Wireframe', wireOn, 'Grayscale, sharp corners — auto-derived, generate-only', () => setModes(darkOn, hcOn, !wireOn));
 
   // Custom modes (C2) — each seeds (live-inherits) a customizable base (light/dark), then tunes via
   // its own overrides/anchors. Listed with a remove; the add form validates the name client-side
@@ -1653,7 +1653,7 @@ const renderModeSetMenu = (): HTMLElement => {
     form.append(nameField, baseField, err, btns);
     menu.append(form);
   }
-  menu.append(el('p', 'mctx-note', 'A custom mode seeds from its base every build, then deviates via the per-mode colour controls (interactive, foreground).'));
+  menu.append(el('p', 'mctx-note', 'A custom mode seeds from its base every build, then deviates via the per-mode color controls (interactive, foreground).'));
   return menu;
 };
 
@@ -1702,7 +1702,7 @@ const renderGeneratedNote = (): HTMLElement => {
   const box = el('div', 'genview');
   box.append(el('h3', 'genview-t', `${label} is auto-derived — read-only`));
   box.append(el('p', 'genview-d', wf
-    ? 'Wireframe is a mechanical greyscale: every non-neutral role collapses to its neutral equivalent and corners go sharp. It’s generated from your theme, not hand-tuned — edit Light or Dark and it follows.'
+    ? 'Wireframe is a mechanical grayscale: every non-neutral role collapses to its neutral equivalent and corners go sharp. It’s generated from your theme, not hand-tuned — edit Light or Dark and it follows.'
     : 'High contrast pushes every role to meet the AAA contrast floors. It’s derived from your contrast contracts, not hand-tuned — edit Light or Dark and it follows. Verifying it here is the point: confirm it holds before you ship.'));
   const ok = modeAllPass(currentMode);
   const chip = el('div', 'genview-chip ' + (ok ? 'ok' : 'no'));
@@ -3144,7 +3144,7 @@ const renderMotionSpecimen = (): HTMLElement => {
 
 /** The neutral-emphasis option labels — subtle (a light-grey surface) vs strong (a bold near-black/white
  *  fill). Drives the Neutral section's "Button emphasis" lead in the interactive matrix. */
-const NEUTRAL_EMPHASES: Array<['subtle' | 'strong', string]> = [['subtle', 'subtle · light grey'], ['strong', 'strong · bold fill']];
+const NEUTRAL_EMPHASES: Array<['subtle' | 'strong', string]> = [['subtle', 'subtle · light gray'], ['strong', 'strong · bold fill']];
 
 // ---- Gradient editor (docs/23 §2 "Gradients") -----------------------------
 // The gradient axis was on/off only; this edits the DEFINITION — kind (linear/radial), angle or
