@@ -160,7 +160,7 @@ if (isMain) {
     for (const n of theme.notes) md.push(`- ${n}`);
     md.push('', `Palettes: ${theme.palettes.map((p) => p.palette).join(', ')}. Danger draws from \`${theme.roleToPalette.danger}\`.`, '');
     for (const mr of modes) {
-      md.push(`## ${theme.id} — colour mode: ${mr.mode}`, '', '| role | → step | contrast | floor | result |', '|---|---|---|---|---|');
+      md.push(`## ${theme.id} — color mode: ${mr.mode}`, '', '| role | → step | contrast | floor | result |', '|---|---|---|---|---|');
       for (const [roleKey, r] of Object.entries(mr.roles)) {
         const checked = r.min > 0, pass = !checked || r.ratio >= r.min;
         md.push(`| ${roleKey} | ${r.path.replace(theme.namespace + '.', '')} | ${checked ? r.ratio.toFixed(2) : '—'} | ${checked ? r.min : '—'} | ${checked ? (pass ? '✅' : '❌') : '·'} |`);

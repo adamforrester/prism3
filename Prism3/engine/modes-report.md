@@ -10,7 +10,7 @@
 
 Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 
-## nb — colour mode: light
+## nb — color mode: light
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -162,7 +162,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.info | info.500 | 4.56 | 3 | ✅ |
 | border.focus | red.550 | 5.62 | 3 | ✅ |
 
-## nb — colour mode: dark
+## nb — color mode: dark
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -314,7 +314,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.info | info.500 | 4.27 | 3 | ✅ |
 | border.focus | red.450 | 5.05 | 3 | ✅ |
 
-## nb — colour mode: hc-light
+## nb — color mode: hc-light
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -466,7 +466,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | red.700 | 10.03 | 4.5 | ✅ |
 
-## nb — colour mode: hc-dark
+## nb — color mode: hc-dark
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -669,27 +669,27 @@ Component sizes — t-shirt, density `comfortable` (height + paired padding from
 
 - primary anchor (h285) pinned exactly at step 550
 - anchor 'accent' (L0.55 C0.15 h235) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~0.117; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~0.117 for an exact match.
-- brand colour 'accent' (h235) added
+- brand color 'accent' (h235) added
 - success: engine default hue 145
 - warning: engine default hue 75
 - info: engine default hue 245
-- action colour is decoupled: uses palette 'accent', NOT the primary brand palette — explicit brand decision
+- action color is decoupled: uses palette 'accent', NOT the primary brand palette — explicit brand decision
 - danger: primary hue 285 is NOT red → carved a dedicated danger red at hue 27
 - dimension axis: 4px grid, 8px space rhythm, density 'compact' (drives component sizes), radius scale 2 (baseMd 4px)
 - motion: tempo 'snappy' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
 - shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1.3; tinted base (hue 285, amount 0.5). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
-- gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colours alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colours bind). Worst-case-stop contrast computed for text-on-gradient.
-- layout: 6 breakpoints (xs 0, sm 480, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32/32 · 16/24/24/32/48/48); container max 1280px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with colour light/dark.
+- gradient: 2 brand gradient(s) [brand linear 135° 2-stop, glow radial 2-stop] — OPT-IN. DTCG composite spine, stop colors alias the ramp; kind/angle/oklch interpolation in $extensions (DTCG omits them — issue #101). OKLCH-interpolated + 5-stop sRGB pre-sample for Figma (sRGB-only); materializes as a Figma Paint Style (only stop colors bind). Worst-case-stop contrast computed for text-on-gradient.
+- layout: 6 breakpoints (xs 0, sm 480, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32/32 · 16/24/24/32/48/48); container max 1280px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
 - typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/700/900; families display=Clash Display, text=Inter, mono=JetBrains Mono (variable: display/text); typeScale 'expressive'. 35 semantic composites (title/display sizes shifted by typeScale; display capped at 128px; title floor 16px) — NOTE: requested ceiling 128px; effective top display is 112px (typeScale shifts sizes off the exact ladder rung). responsive: 9 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 360–1440px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
 - disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.
-- light primary surface is NON-default (neutral.50) — CONFIRM this is the page colour; the contrast floor moves with it
+- light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it
 - action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor
-- neutral interactive emphasis: 'subtle' (light-grey, default); inverse surface-context: on (interactive.<color>.on-inverse generated)
+- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.on-inverse generated)
 
 Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws from `danger`.
 
-## aurora — colour mode: light
+## aurora — color mode: light
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -841,7 +841,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.info | info.500 | 3.76 | 3 | ✅ |
 | border.focus | accent.600 | 5.65 | 3 | ✅ |
 
-## aurora — colour mode: dark
+## aurora — color mode: dark
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -993,7 +993,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.info | info.500 | 4.26 | 3 | ✅ |
 | border.focus | accent.400 | 5.80 | 3 | ✅ |
 
-## aurora — colour mode: hc-light
+## aurora — color mode: hc-light
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -1145,7 +1145,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | accent.700 | 10.03 | 4.5 | ✅ |
 
-## aurora — colour mode: hc-dark
+## aurora — color mode: hc-dark
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -1351,22 +1351,22 @@ Component sizes — t-shirt, density `compact` (height + paired padding from the
 - success: brand-supplied hue 150 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
 - warning: brand-supplied hue 70 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)
 - info: engine default hue 245
-- action colour defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive colour for this brand
+- action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand
 - danger: brand-supplied hue 27
 - dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)
 - motion: tempo 'relaxed' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)
 - shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 65, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.
 - gradient: none (opt-in axis; brand declared no gradients — the field-common default).
-- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with colour light/dark.
+- layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.
 - typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=Inter, text=Inter, mono=JetBrains Mono; typeScale 'compact'. 35 semantic composites (title/display sizes shifted by typeScale; display capped at 160px; title floor 18px) — NOTE: requested ceiling 160px; effective top display is 144px (typeScale shifts sizes off the exact ladder rung). responsive: 9 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.
 - disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.
 - interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.
-- light primary surface is NON-default (neutral.50) — CONFIRM this is the page colour; the contrast floor moves with it
-- neutral interactive emphasis: 'subtle' (light-grey, default); inverse surface-context: on (interactive.<color>.on-inverse generated)
+- light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it
+- neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.on-inverse generated)
 
 Palettes: primary, neutral, success, warning, info, danger. Danger draws from `danger`.
 
-## harbor — colour mode: light
+## harbor — color mode: light
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -1518,7 +1518,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.info | info.500 | 3.75 | 3 | ✅ |
 | border.focus | primary.600 | 5.59 | 3 | ✅ |
 
-## harbor — colour mode: dark
+## harbor — color mode: dark
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -1670,7 +1670,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.info | info.500 | 4.26 | 3 | ✅ |
 | border.focus | primary.450 | 5.00 | 3 | ✅ |
 
-## harbor — colour mode: hc-light
+## harbor — color mode: hc-light
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|
@@ -1822,7 +1822,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | primary.700 | 9.96 | 4.5 | ✅ |
 
-## harbor — colour mode: hc-dark
+## harbor — color mode: hc-dark
 
 | role | → step | contrast | floor | result |
 |---|---|---|---|---|

@@ -2721,7 +2721,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -2761,7 +2761,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -2801,7 +2801,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -2842,7 +2842,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -2882,7 +2882,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -2922,7 +2922,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -2965,7 +2965,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3007,7 +3007,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3047,7 +3047,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3087,7 +3087,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3128,7 +3128,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -3168,7 +3168,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -3208,7 +3208,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -3253,7 +3253,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3297,7 +3297,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3341,7 +3341,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3385,7 +3385,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3425,7 +3425,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3465,7 +3465,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3505,7 +3505,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3545,7 +3545,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3585,7 +3585,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3629,7 +3629,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -3677,7 +3677,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -3721,7 +3721,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -3765,7 +3765,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -3809,7 +3809,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -3853,7 +3853,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -3898,7 +3898,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -3943,7 +3943,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -3987,7 +3987,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4031,7 +4031,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4076,7 +4076,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -4122,7 +4122,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -4166,7 +4166,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -4210,7 +4210,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -4256,7 +4256,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -4300,7 +4300,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -4344,7 +4344,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -4389,7 +4389,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4435,7 +4435,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4479,7 +4479,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4523,7 +4523,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4571,7 +4571,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4615,7 +4615,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4659,7 +4659,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4703,7 +4703,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4747,7 +4747,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4792,7 +4792,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -4837,7 +4837,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4881,7 +4881,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4925,7 +4925,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -4970,7 +4970,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -5016,7 +5016,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5060,7 +5060,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5104,7 +5104,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5150,7 +5150,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5194,7 +5194,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5238,7 +5238,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5283,7 +5283,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5329,7 +5329,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5373,7 +5373,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5417,7 +5417,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5461,7 +5461,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5501,7 +5501,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5541,7 +5541,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5581,7 +5581,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5621,7 +5621,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5666,7 +5666,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -5711,7 +5711,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5755,7 +5755,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5799,7 +5799,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -5844,7 +5844,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -5890,7 +5890,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5934,7 +5934,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -5978,7 +5978,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -6024,7 +6024,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -6068,7 +6068,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -6112,7 +6112,7 @@
                         "hc-light",
                         "hc-dark"
                       ],
-                      "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     }
                   }
                 }
@@ -6157,7 +6157,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -6203,7 +6203,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -6247,7 +6247,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -6291,7 +6291,7 @@
                       "hc-light",
                       "hc-dark"
                     ],
-                    "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   }
                 }
               }
@@ -6335,7 +6335,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6379,7 +6379,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6423,7 +6423,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6467,7 +6467,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6507,7 +6507,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6549,7 +6549,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6594,7 +6594,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -6638,7 +6638,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -6683,7 +6683,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6729,7 +6729,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6773,7 +6773,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6817,7 +6817,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6861,7 +6861,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6905,7 +6905,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6949,7 +6949,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -6993,7 +6993,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7037,7 +7037,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7077,7 +7077,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7117,7 +7117,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7157,7 +7157,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7197,7 +7197,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7237,7 +7237,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7281,7 +7281,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7325,7 +7325,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7369,7 +7369,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7413,7 +7413,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7457,7 +7457,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7501,7 +7501,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7546,7 +7546,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -7590,7 +7590,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -7634,7 +7634,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -7678,7 +7678,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -7725,7 +7725,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7769,7 +7769,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7813,7 +7813,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7857,7 +7857,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7901,7 +7901,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7945,7 +7945,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -7989,7 +7989,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8033,7 +8033,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8073,7 +8073,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8113,7 +8113,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8153,7 +8153,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8193,7 +8193,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8233,7 +8233,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8277,7 +8277,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8321,7 +8321,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8365,7 +8365,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8409,7 +8409,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8453,7 +8453,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8497,7 +8497,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8542,7 +8542,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -8586,7 +8586,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -8630,7 +8630,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -8674,7 +8674,7 @@
                     "hc-light",
                     "hc-dark"
                   ],
-                  "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
               }
             }
@@ -8717,7 +8717,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8757,7 +8757,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8797,7 +8797,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8841,7 +8841,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8885,7 +8885,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8929,7 +8929,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -8973,7 +8973,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -9017,7 +9017,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -9025,7 +9025,7 @@
         "focus": {
           "$type": "color",
           "$value": "{prism.palette.primary.600}",
-          "$description": "Focus ring colour (keyboard focus)",
+          "$description": "Focus ring color (keyboard focus)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -9061,7 +9061,7 @@
                   "hc-light",
                   "hc-dark"
                 ],
-                "note": "one Figma colour variable; light is $value, other modes in $extensions.prism3.modes.*"
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               }
             }
           }
@@ -11244,7 +11244,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm default link — 14px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "body sm default link — 14px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11323,7 +11323,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm strong link — 14px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "body sm strong link — 14px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11404,7 +11404,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md default link — 16px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "body md default link — 16px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11483,7 +11483,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md strong link — 16px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "body md strong link — 16px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11564,7 +11564,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg default link — 18px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "body lg default link — 18px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11643,7 +11643,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg strong link — 18px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "body lg strong link — 18px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11808,7 +11808,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md default link — 11px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "caption md default link — 11px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11887,7 +11887,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md strong link — 11px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "caption md strong link — 11px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11968,7 +11968,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg default link — 12px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "caption lg default link — 12px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12047,7 +12047,7 @@
               "letterSpacing": "{prism.font.letter-spacing.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg strong link — 12px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* colour) — consumer-facing type style",
+            "$description": "caption lg strong link — 12px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12219,7 +12219,7 @@
                 "offsetX",
                 "offsetY"
               ],
-              "note": "Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
             }
           }
         }
@@ -12276,7 +12276,7 @@
                 "offsetX",
                 "offsetY"
               ],
-              "note": "Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
             }
           }
         }
@@ -12333,7 +12333,7 @@
                 "offsetX",
                 "offsetY"
               ],
-              "note": "Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
             }
           }
         }
@@ -12390,7 +12390,7 @@
                 "offsetX",
                 "offsetY"
               ],
-              "note": "Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
             }
           }
         }
@@ -12447,7 +12447,7 @@
                 "offsetX",
                 "offsetY"
               ],
-              "note": "Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
             }
           }
         }
@@ -12504,7 +12504,7 @@
                 "offsetX",
                 "offsetY"
               ],
-              "note": "Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
             }
           }
         }
@@ -12547,7 +12547,7 @@
                 "offsetX",
                 "offsetY"
               ],
-              "note": "Figma Effect Style (drop-shadow layers); colour + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
+              "note": "Figma Effect Style (drop-shadow layers); color + numerics bindable per layer; mode-aware — dark shadow is reduced (surface lift carries dark elevation), see modes.dark"
             }
           }
         }
@@ -12641,7 +12641,7 @@
                 "collection": "layout",
                 "mode": "sm",
                 "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12659,7 +12659,7 @@
                 "collection": "layout",
                 "mode": "sm",
                 "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12695,7 +12695,7 @@
                 "collection": "layout",
                 "mode": "md",
                 "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12713,7 +12713,7 @@
                 "collection": "layout",
                 "mode": "md",
                 "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12749,7 +12749,7 @@
                 "collection": "layout",
                 "mode": "lg",
                 "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12767,7 +12767,7 @@
                 "collection": "layout",
                 "mode": "lg",
                 "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12803,7 +12803,7 @@
                 "collection": "layout",
                 "mode": "xl",
                 "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12821,7 +12821,7 @@
                 "collection": "layout",
                 "mode": "xl",
                 "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12857,7 +12857,7 @@
                 "collection": "layout",
                 "mode": "2xl",
                 "variable": "grid.gutter",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -12875,7 +12875,7 @@
                 "collection": "layout",
                 "mode": "2xl",
                 "variable": "grid.margin",
-                "note": "breakpoint = Figma mode (separate layout collection; composes with colour light/dark)"
+                "note": "breakpoint = Figma mode (separate layout collection; composes with color light/dark)"
               }
             }
           }
@@ -13918,7 +13918,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "method": "OKLCH colour + grid-derived dimension generation"
+      "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
       "theme": "harbor",
@@ -13930,18 +13930,18 @@
         "success: brand-supplied hue 150 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)",
         "warning: brand-supplied hue 70 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)",
         "info: engine default hue 245",
-        "action colour defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive colour for this brand",
+        "action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive color for this brand",
         "danger: brand-supplied hue 27",
         "dimension axis: 4px grid, 8px space rhythm, density 'comfortable' (drives component sizes), radius scale 1 (baseMd 4px)",
         "motion: tempo 'relaxed' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)",
         "shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 65, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.",
         "gradient: none (opt-in axis; brand declared no gradients — the field-common default).",
-        "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with colour light/dark.",
+        "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.",
         "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=Inter, text=Inter, mono=JetBrains Mono; typeScale 'compact'. 35 semantic composites (title/display sizes shifted by typeScale; display capped at 160px; title floor 18px) — NOTE: requested ceiling 160px; effective top display is 144px (typeScale shifts sizes off the exact ladder rung). responsive: 9 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.",
-        "light primary surface is NON-default (neutral.50) — CONFIRM this is the page colour; the contrast floor moves with it",
-        "neutral interactive emphasis: 'subtle' (light-grey, default); inverse surface-context: on (interactive.<color>.on-inverse generated)"
+        "light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it",
+        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.on-inverse generated)"
       ]
     }
   }
