@@ -56,6 +56,7 @@ Don't force one brand's structure onto the other.
 - Prism2 tokens are namespaced `nbds.pds.<category>.<...>` — preserve this prefix.
 - Token slugs in DTCG paths use kebab-case for words, dot-separated levels, with numeric scale steps as keys (`blueberry.100`, `blueberry.150`).
 - The Figma exports use slash paths (`pds/color/blueberry/050`) — the `0` padding (e.g. `050`) only appears in raw-figma; DTCG drops it.
+- **US English** in all *visible UI text* and all *emitted artifact prose* (`out/**`, the emitted `schema/*` files, the generated reports): `color` not `colour`, `gray` not `grey`, `-ize` not `-ise`. **Code comments and identifiers are exempt** — a deliberate carve-out, not an oversight. Hand-authored contracts (`Prism3/schema/theme-schema.json`) are not yet converted; that's an open decision, not a gap to close silently. Two traps, each of which caught a previous pass (#162 → #260 → #302 → #310): a **fixed word list under-counts** — scan the `-is(e|ed|es|ing|ation)` and `-our` *patterns* and filter false positives, since `colour|grey|behaviour` misses `generalised`; and **source greps miss what ships** — `Prism3/engine/levers.ts` prose is inlined into `web/dist/main.js`, so check the built bundle and the emitted artifact, not just the `.ts`.
 
 ## Working with this repo
 
