@@ -4508,9 +4508,56 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
    were unreadable rather than reachable). display:block turns each into its own scroll box, so
    the table scrolls and the page does not. Applied only here; both fit unaided at 640+. */
 @media(max-width:480px){#app{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable,.ly-table{display:block;overflow-x:auto}}
+/* Plugin resize grip (#144) — plugin-only; a Figma iframe has no window chrome of its own.
+   touch-action:none so the pointer capture owns the gesture instead of the page scrolling. */
+.resize-grip{position:fixed;right:0;bottom:0;width:16px;height:16px;z-index:60;cursor:nwse-resize;touch-action:none;color:var(--faint)}
+.resize-grip::after{content:"";position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;border-bottom-right-radius:2px;opacity:.45}
+.resize-grip:hover::after{opacity:.9}
 `;
 const styleEl = document.createElement('style');
 styleEl.textContent = STYLE;
 document.head.append(styleEl);
+
+/** Distance from the pointer to the window's edge while the grip is held. The grip sits flush in
+ *  the corner, so the dragged size is the pointer position plus this — the same small offset
+ *  Figma's own resize sample uses. */
+const GRIP_INSET = 5;
+
+/** Mount the plugin window's resize grip (#144). Attached to `body`, not `#app`, because `#app` is
+ *  re-rendered wholesale on every state change and the grip must outlive that. Pointer capture is
+ *  what makes the drag survive the pointer leaving the 16px target — without it the gesture dies
+ *  the moment you move faster than the window resizes. Gated on the `PRISM3_HOST` define rather
+ *  than `commit.isFigma` so the branch is statically false on web and esbuild really does drop
+ *  this function (a runtime check would keep it). The three CSS rules still ride along in the
+ *  shared stylesheet, which is a string constant — not worth splitting for ~150 bytes. */
+const mountResizeGrip = (): void => {
+  const grip = el('div', 'resize-grip');
+  grip.title = 'Drag to resize the plugin window';
+  let dragging = false;
+  const sizeFrom = (e: PointerEvent): [number, number] => [e.clientX + GRIP_INSET, e.clientY + GRIP_INSET];
+  grip.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    grip.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const [w, h] = sizeFrom(e);
+    commit.requestResize(w, h, false);
+  });
+  // Pointer-up AND pointer-cancel both end the drag: cancel fires if the browser takes the
+  // gesture back, and without it `dragging` would stay true and the next hover would resize.
+  const end = (e: PointerEvent): void => {
+    if (!dragging) return;
+    dragging = false;
+    if (grip.hasPointerCapture(e.pointerId)) grip.releasePointerCapture(e.pointerId);
+    const [w, h] = sizeFrom(e);
+    commit.requestResize(w, h, true);   // commit → the host persists this size
+  };
+  grip.addEventListener('pointerup', end);
+  grip.addEventListener('pointercancel', end);
+  document.body.append(grip);
+};
+if (PRISM3_HOST === 'figma') mountResizeGrip();
 
 build();
