@@ -61,8 +61,29 @@ jobs:
       - name: Build web
         run: npm run -w @prism3/web build
 
+      # Two contexts, checked separately: the main thread (figma.*, no DOM) and the UI iframe (DOM,
+      # no figma.*). CONTRIBUTING §3 documents both as a plugin gate; missing from this workflow's
+      # initial cut (#298) — only Build plugin ran.
+      - name: Typecheck plugin
+        run: npm run -w @prism3/plugin typecheck
+
+      # write / readback / persist / float / styles shims against an in-memory Figma API shim.
+      - name: Plugin shim tests
+        run: npm run -w @prism3/plugin test
+
       - name: Build plugin
         run: npm run -w @prism3/plugin build
+
+      # dist/main.js runs in Figma's sandboxed main thread, which has no node: builtins. A regression
+      # here breaks the plugin at load in Figma, not at typecheck or build time.
+      - name: "Plugin main.js has 0 node: builtins"
+        run: |
+          set -euo pipefail
+          if grep -q "node:" plugin/dist/main.js; then
+            echo "::error::plugin/dist/main.js references a node: builtin — the main thread must stay sandbox-safe."
+            grep -n "node:" plugin/dist/main.js
+            exit 1
+          fi
 
       # US English in shipped text. Runs AFTER the web build on purpose: `engine/levers.ts` prose is
       # inlined into `web/dist/main.js`, and a source-only grep calls that bundle clean — the trap
