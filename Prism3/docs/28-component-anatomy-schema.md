@@ -190,7 +190,36 @@ for tokens: some anatomy provably will not survive the Figma leg, and the schema
 
 ---
 
-## 5. Open decisions
+## 5. Decisions (resolved 2026-07-30)
+
+All five were taken in the session that produced this doc. Recorded here rather than
+left open, so a later thread doesn't re-litigate them.
+
+1. **Gap scale → `size.*.gap`.** RESOLVED. The `size.*` tier is *already* component-scoped,
+   so putting gap there gives us Spectrum's dedicated-scale separation without inventing a
+   new top-level category. Cheapest option that doesn't concede the optical argument.
+2. **`align` stays a constant, not a prop.** RESOLVED — keep it simple. Primer's
+   CTA-vs-selection-toggle rule is real but does not justify introducing the first *layout*
+   prop into `ComponentDef`, a precedent that would propagate across ~40 components. Revisit
+   only if a concrete surface needs it.
+3. **Do NOT split `trailingVisual`.** RESOLVED. The counter-plus-caret combination that
+   splitting would unlock is niche and opinionated. Verified the condition this depended on:
+   the **pending/loading state is fully carried by the existing anatomy** — `states` includes
+   `pending`, `isPending` preserves width and announces busy, `leadingVisual` already holds a
+   spinner, and the brief's don't-list prescribes the mechanism ("swap the leading visual"
+   rather than replacing the label). No extra slot required.
+4. **`padding-x` split is additive, not a rename.** RESOLVED. `padding-x` keeps meaning the
+   label side; add `padding-inline-visual` alongside. A rename churns every committed artifact
+   and trips the drift gate for no functional gain.
+5. **`anatomy` nests inside `ComponentDef`.** RESOLVED. Both the materializer and the code
+   outputs read it; a sibling artifact would only create a join to maintain.
+
+### Still genuinely open
+
+- **Schema syntax details** — the §4 shape is illustrative. Exact key names get settled when
+  the first definition is authored against a real materializer.
+- **Gap/icon-size values** — *that* they belong in `size.*` / `icon.*` is settled; the actual
+  ramps are a generation decision (the engine derives, it doesn't copy Spectrum's numbers).
 
 1. **Gap scale: dedicated (`text-to-visual`-style) or reuse `space.*`?** (§3.1). Lean dedicated.
 2. **Is `align` a constant or a prop?** Primer makes it contextual (CTA vs selection-toggle).
