@@ -21,7 +21,7 @@
  */
 import { brandTheme, ALL_MODES, normalizeDisabledStrategy } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput } from '../../Prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch } from '../../Prism3/engine/color';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
 import { leverManifest, leverGroups } from '../../Prism3/engine/levers';
 import type { Lever } from '../../Prism3/engine/levers';
@@ -1200,7 +1200,9 @@ const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', c
 // hover, disabled, icon colours) sit at the TOP — they govern every palette. Overrides only live on the
 // customizable modes, so renderScreen renders the generated-note on the derived modes and this editor
 // never runs there.
-type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; alpha?: number };
+// A structural narrowing of the engine's `ResolvedRole`. `against` names the role this one's `ratio`
+// is measured against — needed to judge a candidate step before it is picked (`contrastMark`).
+type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; against?: string; alpha?: number };
 type RoleMap = Record<string, RoleRes | undefined>;
 const iRoles = (): RoleMap => (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as RoleMap;
 const stepsOf = (palette: string): string[] => (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
@@ -1221,7 +1223,52 @@ const rgbaOf = (r: RoleRes): string => {
 const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string): HTMLSelectElement => {
   const cur = brandState.overrides?.[currentMode]?.[roleKey]?.step;
   return stepPicker(palette, stepsOf(palette), derivedStep, typeof cur === 'string' ? cur : undefined,
-    (step) => setFillOverride(roleKey, palette, step));
+    (step) => setFillOverride(roleKey, palette, step), contrastMark(roleKey, palette));
+};
+
+/** Marks the steps that SATISFY a contrast-gated role, in the picker, before the pick is made.
+ *
+ *  Overrides apply-but-warn by design (`modes.ts`) — deliberately, since a UI that refused the option
+ *  would be false assurance: the same override is authorable through `design.md`/`BrandInput`, which
+ *  the engine accepts, so blocking here would hide the capability from one surface without protecting
+ *  the artifact. Only the engine can guarantee, and whether it should CLAMP instead of warn is a
+ *  layer-wide question (#320), not a per-role one.
+ *
+ *  So this informs rather than blocks: the warning stays as the backstop, and the picker stops being
+ *  the place you discover the problem only after choosing. Applies to every contrast-gated override
+ *  picker, not just one row — the same reasoning holds everywhere the layer is used.
+ *
+ *  Marks the PASSING steps, not the failing ones. On a subtle tint only ~4 of 21 steps clear the label,
+ *  so flagging failures put a warning on 80% of the list — technically accurate and useless, since a
+ *  list that is nearly all warnings reads as noise rather than guidance. The short list is the useful
+ *  signal, so it is the one that gets marked. (Interim: if #320 lands on clamping, the failing steps
+ *  stop being reachable and this can go back to being a plain list.)
+ *
+ *  Contrast is symmetric, so one comparison covers both directions — a role that IS a surface
+ *  (`subtle-fill`, measured against its state ink) and a role that sits ON one (text against a
+ *  background) use the same formula.
+ *
+ *  Returns undefined — not a no-op marker — when the role states no contract, is absent in this mode,
+ *  or is measured against `self`. That distinction matters under inversion: within a picker either
+ *  NOTHING is marked (no contract to judge) or the passing steps are, so an unmarked option is never
+ *  ambiguous between "fails" and "wasn't judged". */
+const contrastMark = (roleKey: string, palette: string): ((step: string) => string) | undefined => {
+  const roles = iRoles();
+  const r = roles[roleKey];
+  const min = r?.min ?? 0;
+  if (!r || min <= 0 || !r.against || r.against === 'self') return undefined;
+  const againstHex = roles[r.against]?.hex;
+  if (!againstHex) return undefined;                       // nothing resolvable to compare against
+  const againstRgb = hexToRgb(againstHex);
+  const steps = theme.palettes.find((p) => p.palette === palette)?.steps ?? [];
+  // States the number rather than a bare tick: the minimum is 4.5 for text and 3 for non-text, so
+  // "✓" alone would hide WHICH bar a step clears.
+  const label = ` · ✓ ${String(min).replace(/\.0$/, '')}:1`;
+  return (step: string): string => {
+    const s = steps.find((x) => x.key === step);
+    if (!s) return '';
+    return contrast(hexToRgb(s.hex), againstRgb) >= min ? label : '';
+  };
 };
 
 // ---- examples (locked right) ----------------------------------------------
@@ -1381,6 +1428,41 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   });
 };
 
+/** The subtle-tint row — the OPAQUE sibling of the overlay wash (#288), shown only when
+ *  `outlineInteraction: solid-tint` is the method (the role is absent otherwise, so this returns null
+ *  and the row self-hides, same as `overlayRow` does under the other methods).
+ *
+ *  The step picker is bound to the COLUMN'S OWN palette, not the neutral one the overlay row uses —
+ *  choosing which tint of its own ramp a control hovers to is the whole point of the method.
+ *
+ *  The engine picks a default step that keeps the state's ink legible, but an override is applied and
+ *  WARNED, never blocked (the established `overrides` behaviour). Since the role's `against` is the
+ *  state ink, `ratio`/`min` already carry that verdict — so a pick that costs legibility says so here
+ *  rather than only in an engine warning the designer never sees. */
+const subtleFillRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.subtle-fill.hover`]; if (!r) return null;
+  const pressed = roles[`interactive.${col.name}.subtle-fill.pressed`];
+  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
+  return iRow({
+    swatchBg: r.hex, label: 'Subtle tint',
+    select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, stepKeyOf(r.path)),
+    pill: `color.interactive.${col.name}.subtle-fill.hover`,
+    desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
+    // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
+    // which must read as no warning, not as a failed one.
+    warn: (r.min ?? 0) > 0 && (r.ratio ?? Infinity) < (r.min ?? 0)
+      ? `This tint leaves the hover label at ${short(r.ratio ?? 0)}:1, under the ${short(r.min ?? 0)}:1 it needs — pick a step closer to the page, or the text stops being readable on hover.`
+      : undefined,
+    example: iExample(exOutline(edge, r.hex, false, undefined, pressed?.hex)),
+    states: iStates(roles, col.palette, [
+      ['Hover', `interactive.${col.name}.subtle-fill.hover`],
+      ['Pressed', `interactive.${col.name}.subtle-fill.pressed`],
+    ]),
+  });
+};
+
 /** One action-palette section: header (+ optional remove) · optional lead control · the slot rows. */
 const renderPaletteSection = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
@@ -1410,6 +1492,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
         rs[`interactive.${inv}.text.hover`]?.hex, rs[`interactive.${inv}.text.pressed`]?.hex),
       states: [['Hover', `interactive.${inv}.text.hover`], ['Pressed', `interactive.${inv}.text.pressed`]] }),
     overlayRow(col),
+    subtleFillRow(col),   // #288 — the opaque sibling; only one of the two is ever non-null
     slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
       desc: 'The ink on the fill — auto-picked to clear contrast on the button surface.',
       example: (rs) => exBtn(rs[`interactive.${nm}.fill.rest`]?.hex ?? '#000000', rs[`interactive.${nm}.on-fill`]?.hex ?? '#ffffff') }),
@@ -2748,10 +2831,12 @@ const renderForegroundEditor = (): HTMLElement => {
 // mode the whole page is the read-only note (renderScreen), so this never renders there.
 /** A palette step select with an "Auto" (the generated baseline) option — audit §8 candidate #3. `''` is
  *  Auto; other values are step keys. */
-const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void): HTMLSelectElement => {
+const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void, mark?: (step: string) => string): HTMLSelectElement => {
   const sel = selectEl('cap');
-  sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}`, current == null));
-  for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}`, current === s));
+  // Auto carries the mark too. It is the engine's contract-satisfying pick, so leaving it bare in a
+  // marked list would make the one guaranteed-good option look like the failing ones.
+  sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}${mark?.(autoStep) ?? ''}`, current == null));
+  for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}${mark?.(s) ?? ''}`, current === s));
   sel.onchange = () => onPick(sel.value === '' ? undefined : sel.value);
   return sel;
 };

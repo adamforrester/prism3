@@ -108,6 +108,51 @@ the Overlay wash row under solid-tint would be the same species of wrong answer 
 nb-regression PASS; Playwright confirms the three methods now render distinctly — overlay
 `rgba(0,0,0,0.1)`, solid-tint opaque `rgb(204,222,233)` (aurora accent 100), none transparent.
 
+**Author control over WHICH tint** — asked for during review, and it needed no new engine concept.
+The `overrides` layer (A1) is generic over emitted roles, so the moment `subtle-fill` became a real
+role it was already overridable; verified by probe before claiming it. The gap was UI-only, so the
+Interactive page gained a `Subtle tint` row mirroring `Overlay wash`, self-hiding by method the same
+way (each returns null when its role is absent, so exactly one is ever shown). Its step picker is bound
+to the COLUMN'S OWN palette, not the neutral one the overlay row uses — picking which step of its own
+ramp a control hovers to is the point of the method.
+
+**The contract survives the override, and that is a consequence of the inverted `against`.** Overrides
+apply-but-warn by design. Because the role is measured against its state ink, an author pick that costs
+legibility is caught: `accent.200` warns at 3.76 < 4.5, `accent.400` at 2.04 < 4.5. Had the role been
+gated against the page instead — the obvious choice — the warning would have checked the wrong thing
+and a hand-picked unreadable tint would have passed silently. The row surfaces that verdict inline
+rather than leaving it in an engine warning the designer never sees.
+
+**Should the picker BLOCK a failing choice?** Asked in review; answered no, and the reasoning is worth
+keeping because it is not obvious. A UI block would be **false assurance** — the same override is
+authorable through `design.md`/`BrandInput`, which the engine accepts with a warning, so refusing the
+option hides the capability from one surface without protecting the artifact. Only the engine can
+guarantee, and the repo already has two deliberate and DIFFERENT precedents for that: the override
+layer *warns and applies*, while the fill anchor *clamps to the nearest passing step and says so*.
+Picking one for `subtle-fill` alone would make it behave unlike every other override, so the real
+question — should the override layer clamp rather than warn? — is filed separately (#320) to be
+answered once, layer-wide.
+
+What landed instead is **pre-emptive marking**: contrast-gated override pickers show which steps satisfy
+the role, so the problem is visible BEFORE the pick rather than only after. Applied at
+`roleSourceSelect`, so every override picker gets it, not just this row. Contrast is symmetric, so one
+comparison serves both directions — a role that IS a surface (`subtle-fill`, measured against its state
+ink) and one that sits on a surface use the same formula.
+
+**Marks the PASSING steps, not the failing ones** — and the first cut had it the other way. On a subtle
+tint only 4 of 21 steps clear the label, so flagging failures put a warning on 17 of them: accurate and
+useless, since a list that is nearly all warnings reads as noise rather than guidance. Owner called it
+("17 of 21 is why I was considering limiting options"); inverting keeps the same information and makes
+the short list the signal. **Auto carries the mark too** — it is the engine's contract-satisfying pick,
+so leaving it bare in a marked list would make the one guaranteed-good option look like the failures.
+The label states the number (`✓ 4.5:1`) rather than a bare tick, because the minimum is 4.5 for text
+and 3 for non-text and a tick alone would hide which bar was cleared.
+
+The helper returns undefined — not a no-op marker — when there is no contract to judge (`min` 0, role
+absent, `against: self`). Under inversion that distinction is load-bearing: within a picker either
+NOTHING is marked or the passing steps are, so an unmarked option is never ambiguous between "fails"
+and "wasn't judged".
+
 **Out of scope, still open:** nothing. #288's own "out of scope" note deferred the dashboard wiring,
 but leaving it unwired would have kept the reported symptom on screen, so it is included.
 
