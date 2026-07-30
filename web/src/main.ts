@@ -21,7 +21,7 @@
  */
 import { brandTheme, ALL_MODES, normalizeDisabledStrategy } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput } from '../../Prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch } from '../../Prism3/engine/color';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
 import { leverManifest, leverGroups } from '../../Prism3/engine/levers';
 import type { Lever } from '../../Prism3/engine/levers';
@@ -1200,7 +1200,9 @@ const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', c
 // hover, disabled, icon colours) sit at the TOP — they govern every palette. Overrides only live on the
 // customizable modes, so renderScreen renders the generated-note on the derived modes and this editor
 // never runs there.
-type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; alpha?: number };
+// A structural narrowing of the engine's `ResolvedRole`. `against` names the role this one's `ratio`
+// is measured against — needed to judge a candidate step before it is picked (`contrastMark`).
+type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; against?: string; alpha?: number };
 type RoleMap = Record<string, RoleRes | undefined>;
 const iRoles = (): RoleMap => (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as RoleMap;
 const stepsOf = (palette: string): string[] => (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
@@ -1221,7 +1223,40 @@ const rgbaOf = (r: RoleRes): string => {
 const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string): HTMLSelectElement => {
   const cur = brandState.overrides?.[currentMode]?.[roleKey]?.step;
   return stepPicker(palette, stepsOf(palette), derivedStep, typeof cur === 'string' ? cur : undefined,
-    (step) => setFillOverride(roleKey, palette, step));
+    (step) => setFillOverride(roleKey, palette, step), contrastMark(roleKey, palette));
+};
+
+/** Flags the steps that would BREAK a contrast-gated role, in the picker, before the pick is made.
+ *
+ *  Overrides apply-but-warn by design (`modes.ts`) — deliberately, since a UI that refused the option
+ *  would be false assurance: the same override is authorable through `design.md`/`BrandInput`, which
+ *  the engine accepts, so blocking here would hide the capability from one surface without protecting
+ *  the artifact. Only the engine can guarantee, and whether it should CLAMP instead of warn is a
+ *  layer-wide question, not a per-role one.
+ *
+ *  So this informs rather than blocks: the warning stays as the backstop, and the picker stops being
+ *  the place you discover the problem only after choosing. Applies to every contrast-gated override
+ *  picker, not just one row — the same reasoning holds everywhere the layer is used.
+ *
+ *  Contrast is symmetric, so one comparison covers both directions — a role that IS a surface
+ *  (`subtle-fill`, measured against its state ink) and a role that sits ON one (text against a
+ *  background) use the same formula. Returns '' when the role states no contract, is absent in this
+ *  mode, or is measured against `self` — an unmarked option must mean "nothing to judge", never
+ *  "judged and passed". */
+const contrastMark = (roleKey: string, palette: string): ((step: string) => string) | undefined => {
+  const roles = iRoles();
+  const r = roles[roleKey];
+  const min = r?.min ?? 0;
+  if (!r || min <= 0 || !r.against || r.against === 'self') return undefined;
+  const againstHex = roles[r.against]?.hex;
+  if (!againstHex) return undefined;                       // nothing resolvable to compare against
+  const againstRgb = hexToRgb(againstHex);
+  const steps = theme.palettes.find((p) => p.palette === palette)?.steps ?? [];
+  return (step: string): string => {
+    const s = steps.find((x) => x.key === step);
+    if (!s) return '';
+    return contrast(hexToRgb(s.hex), againstRgb) >= min ? '' : ' · low contrast';
+  };
 };
 
 // ---- examples (locked right) ----------------------------------------------
@@ -2784,10 +2819,10 @@ const renderForegroundEditor = (): HTMLElement => {
 // mode the whole page is the read-only note (renderScreen), so this never renders there.
 /** A palette step select with an "Auto" (the generated baseline) option — audit §8 candidate #3. `''` is
  *  Auto; other values are step keys. */
-const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void): HTMLSelectElement => {
+const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void, mark?: (step: string) => string): HTMLSelectElement => {
   const sel = selectEl('cap');
   sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}`, current == null));
-  for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}`, current === s));
+  for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}${mark?.(s) ?? ''}`, current === s));
   sel.onchange = () => onPick(sel.value === '' ? undefined : sel.value);
   return sel;
 };

@@ -72,6 +72,24 @@ gated against the page instead — the obvious choice — the warning would have
 and a hand-picked unreadable tint would have passed silently. The row surfaces that verdict inline
 rather than leaving it in an engine warning the designer never sees.
 
+**Should the picker BLOCK a failing choice?** Asked in review; answered no, and the reasoning is worth
+keeping because it is not obvious. A UI block would be **false assurance** — the same override is
+authorable through `design.md`/`BrandInput`, which the engine accepts with a warning, so refusing the
+option hides the capability from one surface without protecting the artifact. Only the engine can
+guarantee, and the repo already has two deliberate and DIFFERENT precedents for that: the override
+layer *warns and applies*, while the fill anchor *clamps to the nearest passing step and says so*.
+Picking one for `subtle-fill` alone would make it behave unlike every other override, so the real
+question — should the override layer clamp rather than warn? — is filed separately (#320) to be
+answered once, layer-wide.
+
+What landed instead is **pre-emptive marking**: contrast-gated override pickers now flag the steps that
+would break the role, so the problem is visible BEFORE the pick rather than only after. Applied at
+`roleSourceSelect`, so every override picker gets it, not just this row. Contrast is symmetric, so one
+comparison serves both directions — a role that IS a surface (`subtle-fill`, measured against its state
+ink) and one that sits on a surface use the same formula. An unmarked option means "nothing to judge"
+(no contract, role absent, or `against: self`) — never "judged and passed", which is why the helper
+returns undefined rather than a no-op marker in those cases.
+
 **Out of scope, still open:** nothing. #288's own "out of scope" note deferred the dashboard wiring,
 but leaving it unwired would have kept the reported symptom on screen, so it is included.
 
