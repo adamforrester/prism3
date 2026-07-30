@@ -57,6 +57,21 @@ the Overlay wash row under solid-tint would be the same species of wrong answer 
 nb-regression PASS; Playwright confirms the three methods now render distinctly — overlay
 `rgba(0,0,0,0.1)`, solid-tint opaque `rgb(204,222,233)` (aurora accent 100), none transparent.
 
+**Author control over WHICH tint** — asked for during review, and it needed no new engine concept.
+The `overrides` layer (A1) is generic over emitted roles, so the moment `subtle-fill` became a real
+role it was already overridable; verified by probe before claiming it. The gap was UI-only, so the
+Interactive page gained a `Subtle tint` row mirroring `Overlay wash`, self-hiding by method the same
+way (each returns null when its role is absent, so exactly one is ever shown). Its step picker is bound
+to the COLUMN'S OWN palette, not the neutral one the overlay row uses — picking which step of its own
+ramp a control hovers to is the point of the method.
+
+**The contract survives the override, and that is a consequence of the inverted `against`.** Overrides
+apply-but-warn by design. Because the role is measured against its state ink, an author pick that costs
+legibility is caught: `accent.200` warns at 3.76 < 4.5, `accent.400` at 2.04 < 4.5. Had the role been
+gated against the page instead — the obvious choice — the warning would have checked the wrong thing
+and a hand-picked unreadable tint would have passed silently. The row surfaces that verdict inline
+rather than leaving it in an engine warning the designer never sees.
+
 **Out of scope, still open:** nothing. #288's own "out of scope" note deferred the dashboard wiring,
 but leaving it unwired would have kept the reported symptom on screen, so it is included.
 

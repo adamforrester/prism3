@@ -1381,6 +1381,41 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   });
 };
 
+/** The subtle-tint row — the OPAQUE sibling of the overlay wash (#288), shown only when
+ *  `outlineInteraction: solid-tint` is the method (the role is absent otherwise, so this returns null
+ *  and the row self-hides, same as `overlayRow` does under the other methods).
+ *
+ *  The step picker is bound to the COLUMN'S OWN palette, not the neutral one the overlay row uses —
+ *  choosing which tint of its own ramp a control hovers to is the whole point of the method.
+ *
+ *  The engine picks a default step that keeps the state's ink legible, but an override is applied and
+ *  WARNED, never blocked (the established `overrides` behaviour). Since the role's `against` is the
+ *  state ink, `ratio`/`min` already carry that verdict — so a pick that costs legibility says so here
+ *  rather than only in an engine warning the designer never sees. */
+const subtleFillRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.subtle-fill.hover`]; if (!r) return null;
+  const pressed = roles[`interactive.${col.name}.subtle-fill.pressed`];
+  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
+  return iRow({
+    swatchBg: r.hex, label: 'Subtle tint',
+    select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, stepKeyOf(r.path)),
+    pill: `color.interactive.${col.name}.subtle-fill.hover`,
+    desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
+    // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
+    // which must read as no warning, not as a failed one.
+    warn: (r.min ?? 0) > 0 && (r.ratio ?? Infinity) < (r.min ?? 0)
+      ? `This tint leaves the hover label at ${short(r.ratio ?? 0)}:1, under the ${short(r.min ?? 0)}:1 it needs — pick a step closer to the page, or the text stops being readable on hover.`
+      : undefined,
+    example: iExample(exOutline(edge, r.hex, false, undefined, pressed?.hex)),
+    states: iStates(roles, col.palette, [
+      ['Hover', `interactive.${col.name}.subtle-fill.hover`],
+      ['Pressed', `interactive.${col.name}.subtle-fill.pressed`],
+    ]),
+  });
+};
+
 /** One action-palette section: header (+ optional remove) · optional lead control · the slot rows. */
 const renderPaletteSection = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
@@ -1410,6 +1445,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
         rs[`interactive.${inv}.text.hover`]?.hex, rs[`interactive.${inv}.text.pressed`]?.hex),
       states: [['Hover', `interactive.${inv}.text.hover`], ['Pressed', `interactive.${inv}.text.pressed`]] }),
     overlayRow(col),
+    subtleFillRow(col),   // #288 — the opaque sibling; only one of the two is ever non-null
     slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
       desc: 'The ink on the fill — auto-picked to clear contrast on the button surface.',
       example: (rs) => exBtn(rs[`interactive.${nm}.fill.rest`]?.hex ?? '#000000', rs[`interactive.${nm}.on-fill`]?.hex ?? '#ffffff') }),
