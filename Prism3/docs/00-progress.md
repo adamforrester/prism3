@@ -7,6 +7,48 @@
 
 ---
 
+## (2026-07-30) — US-English pass on emitted `$description` prose (#260)
+
+**STATUS: engine.** `out/*` **regenerated** (prose-only — zero `$value`, alias or structural change).
+Resolves #260; landed as PR #306.
+
+- **The scope boundary came from `regen.ts`, not from grep.** A tree-wide `colour`→`color` replace is
+  wrong in both directions at once: it rewrites strings no consumer ever reads, and it still misses
+  prose that reaches an artifact by a non-obvious path. So every candidate was traced to its **sink**,
+  using `regen.ts`'s own list of committed artifacts (`out/**`, the three emitted `schema/*` files,
+  `modes-report.md`, `nb-regression-report.md`) as the in/out test.
+- **Fixed** (each reaches a committed artifact): `ai-metadata.ts` (`.ai.json` prose), `tree.ts` (inline
+  `$description` templates + Figma `note` extensions), `theme.ts` (`notes.push(...)` →
+  `$extensions.prism3.decisions` via `tree.ts:667`, and `PaletteBuild.description` → `$description` via
+  `primitiveLeaf`), `emit-dtcg.ts` (the one literal inside its own `md.push(...)` report builder),
+  `fidelity.ts` / `classify-colors.ts` (the `why` / `title` strings rendered into
+  `wendys-fidelity-report.md`), `visualize.ts` (the `html.push(...)` / page-template strings reaching
+  `tokens.html`), `modes.ts` (`border.focus`, which flows to `$description` via `aliasLeaf`).
+- **Deliberately left alone:** thrown `Error(...)` messages everywhere (validation/parse failures, not
+  token prose), `console.log`-only strings — including `visualize.ts`'s parallel `txt.push(...)` block,
+  which mirrors the HTML but is never written to disk — and `test.ts` / `mcp.ts` / `eval-run.ts`.
+- **The one exception proves the boundary is about sinks, not files.** `test.ts` had an assertion
+  hardcoding the *old* spelling of a note it checks (`'action colour defaults to the primary'`). It was
+  updated because the note text it asserts genuinely changed — **not** because `test.ts` came into scope.
+- **`levers.ts` is a real remaining gap, not a judgement call.** It still carries `grey` / `synthesise`
+  in lever text that feeds `schema/lever-manifest.json` — a committed artifact, so by this PR's own test
+  it is in scope for the standard. Left out to keep one concern per PR; **needs its own follow-up issue,
+  unfiled as of this entry.**
+- **That is the second "already covered" assumption to fail.** #260 was filed assuming #162's UI sweep
+  was complete; it wasn't (→ #302, five visible strings still in `main.ts`). `levers.ts` is the same
+  shape of gap. Treat "#162/#260 covered that" as a claim to re-check, not a fact.
+- **Prose-only was verified mechanically, not by eyeball:** the full `out/*` diff with every
+  description-shaped key excluded (`$description`, `description`, `intent`, `method`, `note`,
+  `decisions`, `meaning`, `when_to_use`, `avoid_when`) leaves only `notes` array entries and HTML table
+  cells carrying the same prose — zero `$value` / alias / structural hits anywhere.
+- **Verified:** 1000/1000 engine tests; `regen.ts --check` 85/85 byte-match; nb-regression PASS with
+  aggregate ΔE00 **1.95 unchanged** (the value-drift proof), 11/11 contrast contracts, 23/23 dimensions;
+  aliases 872/872, 871/871, 865/865 resolve; 432/432 mode contracts across all three brands; web +
+  plugin `tsc --noEmit` and builds clean. `Prism3/schema/*` diff empty, as expected — none of the fixed
+  files feed it.
+
+---
+
 ## (2026-07-30) — Motion gets a primitive ms tier (#296, motion half)
 
 **STATUS: engine.** `out/*` **regenerated** (shape change). Closes the motion half of #296; only
