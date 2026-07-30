@@ -110,11 +110,18 @@ export interface HostCommit {
         | { kind: 'restore-input'; input: unknown },
     ) => void,
   ): void;
+  /** Ask the host to resize its window to these outer dimensions (#144; Figma only, no-op on web,
+   *  where the browser owns the window). Called continuously while the grip is dragged; `commit`
+   *  is true on pointer-up, the host's cue to persist. The host clamps — this layer does not know
+   *  the minimum usable size. */
+  requestResize(width: number, height: number, commit: boolean): void;
 }
 
 /** The wire shape the iframe posts to the main thread. Kept in sync with the plugin's
  *  `messages.ts` `UiToMain` (`apply-theme`) — the bridge unwraps `{ pluginMessage }`. */
 type UiApplyMsg = { type: 'apply-theme'; input: unknown };
+/** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
+type UiResizeMsg = { type: 'resize-ui'; width: number; height: number; commit: boolean };
 
 /** Figma commit — the DOM-only bridge half (no `figma.*`; lives in the iframe). Posts to the
  *  main thread via `parent.postMessage` and listens for the main thread's replies. */
@@ -138,6 +145,9 @@ const figmaCommit = (): HostCommit => ({
     // Listener attached — signal the main thread it can post (and run the boot read-back, #109).
     parent.postMessage({ pluginMessage: { type: 'ui-ready' } }, '*');
   },
+  requestResize(width, height, commit) {
+    parent.postMessage({ pluginMessage: { type: 'resize-ui', width, height, commit } as UiResizeMsg }, '*');
+  },
 });
 
 /** Web commit — the export bar IS the commit path, so this is inert (the UI wires its own
@@ -146,6 +156,7 @@ const webCommit = (): HostCommit => ({
   isFigma: false,
   postTheme() {/* web commits via the export bar (download design.md / tokens.json) */},
   onHostMessage() {/* no host messages on web */},
+  requestResize() {/* the browser window is the user's to size on web */},
 });
 
 /** The single BUILD-TIME swap point. `PRISM3_HOST` is substituted by esbuild `--define`

@@ -30,7 +30,36 @@ import type { BrandInput } from '../../Prism3/engine/theme';
 // `web/src` UI is laid out desktop-first: `#app` caps content at 1200px with 40px gutters, so the
 // full layout wants 1280px. Figma is desktop-only, so we size the window to the web canvas rather
 // than a "standard" narrow plugin — the same UI renders identically to the standalone web app.
-figma.showUI(__html__, { width: 1280, height: 900, themeColors: true });
+const UI_SIZE_KEY = 'prism3:ui-size';
+const DEFAULT_SIZE = { width: 1280, height: 900 };
+// Floor only. The shared UI's narrow tier (#144) is designed down to 480, and below ~380 the chrome
+// bar stops being usable at all; Figma clamps the ceiling to the screen, so no maximum is needed.
+const MIN_SIZE = { width: 380, height: 420 };
+const clampSize = (w: number, h: number): { width: number; height: number } => ({
+  width: Math.max(MIN_SIZE.width, Math.round(w)),
+  height: Math.max(MIN_SIZE.height, Math.round(h)),
+});
+
+figma.showUI(__html__, { ...DEFAULT_SIZE, themeColors: true });
+
+/** Reopen at the size the designer last dragged to (#144). `clientStorage` is async and `showUI`
+ *  is not, so the window opens at the default and resizes a tick later — the alternative (awaiting
+ *  storage before showing any UI) trades a visible resize for a visible delay, which is worse.
+ *  Anything unparseable is ignored rather than repaired: a bad blob just means the default size. */
+void (async (): Promise<void> => {
+  try {
+    const stored: unknown = await figma.clientStorage.getAsync(UI_SIZE_KEY);
+    if (!stored || typeof stored !== 'object') return;
+    const { width, height } = stored as { width?: unknown; height?: unknown };
+    if (typeof width !== 'number' || typeof height !== 'number') return;
+    if (!Number.isFinite(width) || !Number.isFinite(height)) return;
+    const size = clampSize(width, height);
+    if (size.width === DEFAULT_SIZE.width && size.height === DEFAULT_SIZE.height) return;
+    figma.ui.resize(size.width, size.height);
+  } catch {
+    /* storage unavailable — the default size already applied */
+  }
+})();
 
 /**
  * Materialise a brand into `figma.variables` (#108) — the theme now comes LIVE from the shared UI's
@@ -107,6 +136,14 @@ onUiMessage((msg: UiToMain) => {
     case 'apply-theme':
       void applyTheme(msg.input);
       return;
+    case 'resize-ui': {
+      // Resize on every drag message so the window tracks the pointer; persist only on the
+      // commit (pointer-up), so a drag is one storage write rather than hundreds.
+      const size = clampSize(msg.width, msg.height);
+      figma.ui.resize(size.width, size.height);
+      if (msg.commit) void figma.clientStorage.setAsync(UI_SIZE_KEY, size).catch(() => {/* best-effort */});
+      return;
+    }
     default:
       assertNever(msg); // compile error if a UiToMain variant is added but not handled here
   }

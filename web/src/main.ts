@@ -4574,10 +4574,71 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 /* true size; padding keeps descenders inside the clip box even at tight leading */
 .tr-samp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:.24em;margin-top:2px}
 @media(max-width:760px){.tf-grid{grid-template-columns:1fr}.lt-grid{grid-template-columns:1fr}}
-@media(max-width:900px){.shell{grid-template-columns:1fr;gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
+/* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
+   1fr track never clamps and the widest child drags the whole column past the viewport.
+   The desktop rule above already uses the idiom; the collapse override had lost it (#144). */
+@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{position:static}.phead{gap:16px}.pfield.r{margin-left:0}}
+/* Narrow viewports (#144). The plugin iframe runs this same UI, so its window lands here:
+   gutters, hero and chrome all shrink, and nothing is allowed to overflow horizontally. */
+@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
+/* Below ~480 the 10 hex read-outs under a ramp cannot fit (each needs ~45px, the row has ~406):
+   drop the hex and keep the step number, so labels stay 1:1 under their swatches. Wrapping or
+   scrolling the row would break that alignment, which is the whole point of a ramp. */
+/* The contrast + breakpoint tables have more columns than 456px can hold, and neither shrinks:
+   ly-table pushed the page 57px, ctable was silently clipped by an ancestor (worse — the cells
+   were unreadable rather than reachable). display:block turns each into its own scroll box, so
+   the table scrolls and the page does not. Applied only here; both fit unaided at 640+. */
+@media(max-width:480px){#app{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable,.ly-table{display:block;overflow-x:auto}}
+/* Plugin resize grip (#144) — plugin-only; a Figma iframe has no window chrome of its own.
+   touch-action:none so the pointer capture owns the gesture instead of the page scrolling. */
+.resize-grip{position:fixed;right:0;bottom:0;width:16px;height:16px;z-index:60;cursor:nwse-resize;touch-action:none;color:var(--faint)}
+.resize-grip::after{content:"";position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;border-bottom-right-radius:2px;opacity:.45}
+.resize-grip:hover::after{opacity:.9}
 `;
 const styleEl = document.createElement('style');
 styleEl.textContent = STYLE;
 document.head.append(styleEl);
+
+/** Distance from the pointer to the window's edge while the grip is held. The grip sits flush in
+ *  the corner, so the dragged size is the pointer position plus this — the same small offset
+ *  Figma's own resize sample uses. */
+const GRIP_INSET = 5;
+
+/** Mount the plugin window's resize grip (#144). Attached to `body`, not `#app`, because `#app` is
+ *  re-rendered wholesale on every state change and the grip must outlive that. Pointer capture is
+ *  what makes the drag survive the pointer leaving the 16px target — without it the gesture dies
+ *  the moment you move faster than the window resizes. Gated on the `PRISM3_HOST` define rather
+ *  than `commit.isFigma` so the branch is statically false on web and esbuild really does drop
+ *  this function (a runtime check would keep it). The three CSS rules still ride along in the
+ *  shared stylesheet, which is a string constant — not worth splitting for ~150 bytes. */
+const mountResizeGrip = (): void => {
+  const grip = el('div', 'resize-grip');
+  grip.title = 'Drag to resize the plugin window';
+  let dragging = false;
+  const sizeFrom = (e: PointerEvent): [number, number] => [e.clientX + GRIP_INSET, e.clientY + GRIP_INSET];
+  grip.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    grip.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const [w, h] = sizeFrom(e);
+    commit.requestResize(w, h, false);
+  });
+  // Pointer-up AND pointer-cancel both end the drag: cancel fires if the browser takes the
+  // gesture back, and without it `dragging` would stay true and the next hover would resize.
+  const end = (e: PointerEvent): void => {
+    if (!dragging) return;
+    dragging = false;
+    if (grip.hasPointerCapture(e.pointerId)) grip.releasePointerCapture(e.pointerId);
+    const [w, h] = sizeFrom(e);
+    commit.requestResize(w, h, true);   // commit → the host persists this size
+  };
+  grip.addEventListener('pointerup', end);
+  grip.addEventListener('pointercancel', end);
+  document.body.append(grip);
+};
+if (PRISM3_HOST === 'figma') mountResizeGrip();
 
 build();

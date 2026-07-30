@@ -22,7 +22,13 @@ export type UiToMain =
   | { type: 'ui-ready' }
   /** Materialise this brand into `figma.variables` (#108). Carries the live `BrandInput` from the
    *  shared UI's knobs; the main thread rebuilds the plan + runs the executor. */
-  | { type: 'apply-theme'; input: BrandInput };
+  | { type: 'apply-theme'; input: BrandInput }
+  /** Designer is dragging the UI's resize grip (#144). Sent continuously during the drag so the
+   *  window tracks the pointer; `commit` is true only on pointer-up, which is when the main thread
+   *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
+   *  writing to storage on every pointer-move. The main thread clamps — the UI does not decide
+   *  the minimum. */
+  | { type: 'resize-ui'; width: number; height: number; commit: boolean };
 
 /** Messages the main thread sends TO the UI iframe. */
 export type MainToUi =
