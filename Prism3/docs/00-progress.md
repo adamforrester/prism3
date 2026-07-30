@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-07-30) — #296 closes by NARROWING, not by tiering shadow (#301)
+
+**STATUS: engine (source-only).** Zero artifact change — `regen.ts --check` 85/85 byte-match, alias
+counts unchanged (872/871/865). Closes #301 and, with it, **#296** — the mode-invariance arc that ran
+through #294 (leading/tracking) and #300 (motion).
+
+**The decision.** Shadow was the last entry in what the guard called a "migration ledger", with "an
+empty list is the finish line". It does not get a primitive tier. The invariant is amended instead:
+
+> A **terminal composite** — one that neither references a primitive nor is referenced by anything —
+> MAY swap raw sub-values per mode.
+
+**Why, from evidence rather than preference.** The #301 spike aliased one field of one shadow layer at
+a real primitive and walked every consumer. A `shadow` leaf's `$value` is an ARRAY OF OBJECTS, and
+**no consumer resolves an alias inside it**:
+
+| Consumer | Result | Exit |
+|---|---|---|
+| alias gate | ✅ sees it (872 → 874) | 0 |
+| `emit-figma` | ❌ `radius: 0` — `pxToNum` NaN → `\|\| 0` | **0** |
+| plugin `write-plan` | ❌ same, and it WRITES INTO FIGMA | 0 |
+| `resolve-preview` | ❌ raw `{…}` into `box-shadow` → invalid CSS, shadow vanishes | — |
+| `visualize` | ❌ raw `{…}` leaks into `tokens.html` | 0 |
+
+Three exit 0 while emitting a wrong artifact. So tiering shadow is not "~80 tokens plus naming" — it is
+~80 tokens **plus a nested-composite alias resolver in four consumers, one of which mutates a real
+Figma file**, to buy mode-invariance on tokens nobody consumes individually (designers reach for
+`shadow.md`, never a raw blur). Motion was cheap because it re-points a top-level `$value` string every
+consumer already resolved; shadow is not the same shape of change.
+
+**The exemption has teeth.** `TERMINAL_COMPOSITE_EXEMPTIONS` is not a pass-list — "terminal" is
+**re-derived from the tree every run**. If a shadow leaf ever gains an alias, or anything ever aliases
+into shadow, the premise is false and the test fails, naming the offending path and saying *re-decide
+the exemption*. Plus a presence check, because a renamed group would make both directions vacuously
+true. All three tamper-tested: an outgoing alias, an inbound alias, and removing the exemption
+(which correctly re-exposes all 7 shadow leaves as violations).
+
+**Revisit trigger, recorded so it isn't inherited as permanent:** if #305's tint work makes shadow
+values expressive enough that consumers want to re-point them, that is the moment to revisit — not the
+mere existence of the exemption.
+
+**Also fixed: a latent alias-gate hole (#281's shape).** The gate validated aliases in a composite's
+light `$value` array but **not** in `$extensions.prism3.modes.<mode>` arrays — that branch read only a
+string `$value`, and per-mode composite values are arrays. So the light half of a leaf was validated
+while its per-mode half was not: a future composite tiering would have shipped dangling per-mode refs
+with the gate reporting clean. Nothing puts aliases there today, hence zero artifact change.
+
+**The M-11 counter had the SAME hole**, and that is the more interesting half: the independent counter
+that exists to cross-check the gate read only a string `$value` too. Two implementations of "count the
+refs" sharing one blind spot agree — for the wrong reason. Both were fixed together so they match by
+construction rather than by coincidence.
+
+**Verified:** 1006 → **1009** tests; `regen.ts --check` 85/85; nb-regression PASS; web + plugin
+typecheck and builds clean; alias counts unchanged, confirming source-only.
+
+---
+
 ## (2026-07-30) — Shadow tint becomes perceptible (#305)
 
 **STATUS: engine + web.** `out/*` **regenerated** — aurora/harbor/wendys shadow values change; **NB is
