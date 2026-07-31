@@ -159,7 +159,7 @@ const roundFloat = (n: number): number => Math.round(n * 1e5) / 1e5;
 /** Reshape one axis's per-mode `FigmaCollectionFile[]` (all sharing one variable order) into a
  *  `FloatCollectionPlan`. Mirrors the colour reshape: walk the first mode's vars, read each mode's
  *  value/alias at the same index. A single-mode axis is just a one-element array. */
-const floatPlanFor = (name: string, files: FigmaCollectionFile[]): FloatCollectionPlan => {
+export const floatPlanFor = (name: string, files: FigmaCollectionFile[]): FloatCollectionPlan => {
   const modes = files.map((f) => f.$mode);
   const base = files[0]?.variables ?? [];
   const create: FloatCreateRow[] = base.map((v, i) => ({
