@@ -7,6 +7,54 @@
 
 ---
 
+## (2026-07-31) — Ceiling and floor become set membership; `compact` was deleting a title rung (#328)
+
+**STATUS: engine + web.** PR A of the #328 typography rebuild. `out/*` regenerated — the entire
+behavioral change is **harbor gaining a rung it should always have had**; every other brand moves only
+in notes prose, and `nb.tokens.json` is byte-identical (the regression target never moved).
+
+- **The bug, shipping on `main` until now.** `typeScale: 'compact'` silently deleted a title rung and
+  left a **gap mid-ramp**: `xs, md, lg, xl, 2xl` — no `sm`. With `titleFloor: 16` it lost `xs` instead.
+  `harbor.design.md` uses `compact`, so `out/harbor.tokens.json` shipped a 5-rung title ramp. The
+  mechanism is a **size operation feeding a set operation**: compact shifts `title.xs` 18→16, the old
+  `Math.max(sizePx, titleFloor)` pushed it back to 18, that collided with the shifted `title.sm`, and
+  the monotonic guard resolved the collision by *dropping* one. Nobody chose that; it fell out.
+- **Why no gate caught it.** The C1 test asserted `titleFloor: 16` yields a literal 16px `title.2xs`
+  under every typeScale — it checked that one rung **exists** and never that the ramp was **complete**.
+  Third instance in this cluster of a gate passing while the thing beside it is broken (#281; the
+  vacuous weight-union assertion in #337). The new C1b counts the ramp and asserts distinct sizes, so
+  the specific failure that shipped is now the thing under test.
+- **The design fix that makes the class of bug unreachable.** `displayCeiling` is now a **rung name**
+  (`'xl'`), not px. A px ceiling was compared against sizes `typeScale` had already shifted, so the
+  same `96` kept 4 display rungs under compact/default but 3 under expressive — **a brand lever
+  silently changing the type SET**, the per-mode defect in brand-level clothing. Corroboration that
+  this was a known wart: `theme.ts` shipped a runtime note apologizing for it (*"requested ceiling
+  Npx; effective top display is Mpx"*), and `web/src/main.ts` rendered the same disclaimer. Both are
+  deleted — a rung-named ceiling cannot disagree with what ships. Trimming from the top also means no
+  surviving rung is ever renumbered.
+- **`titleFloor` is now pure set membership** — 16 includes `title.2xs`, 18 omits it, and it never
+  clamps a size. `compact` + `titleFloor: 16` is **rejected** with an actionable message rather than
+  silently resolved: compact already places a title at 16px, so `2xs` would duplicate `xs`.
+- **The monotonic guard rejects instead of dropping.** `sizePx <= prev` was `continue`; it now throws.
+  Dropping a rung is never right — it changes the type SET, which is the one thing the set/size split
+  exists to hold stable. This single line covers three cases: the compact collision, the latent
+  ladder-end shift collision (`shiftPx` clamps at the ladder ends, so two bases could land on one
+  rung), and per-mode inversion when PR C lands.
+- **A trap removed, not just a bug.** Five comments invited `typeScale` into `modeLevers`
+  (*"typeScale/tempo/density slotting in the same map later"*). That plan was wrong: per-mode
+  `typeScale` gives modes different type sets, exactly what this work exists to prevent. Left alone,
+  a future agent would have implemented the bug **on the codebase's own invitation**. All five now say
+  why `typeScale` is excluded.
+- **Migration.** `aurora.design.md` moves `displayCeiling: 128` → `'xl'`, which is byte-compatible:
+  128px under `expressive` already resolved to a 4-rung display tier topping at `xl`. Note the old px
+  ceiling could zero out the display tier entirely (`displayCeiling: 18`); a rung name cannot, since
+  the smallest choice is `'sm'` — one rung. The `dispSizes.length === 0` note survives because an
+  unbound display family role still drops the group.
+- **Next:** PR B (eyebrow as a heading category, rungs `sm=12/md=14/lg=20` + the title-shaped fluid
+  rule), then PR C (the per-mode rung-size axis). Full scope and rationale: #328 comment 5143891943.
+
+---
+
 ## (2026-07-31) — `size.*.padding-x-visual`: the label side and the visual side are not the same distance (#326)
 
 **STATUS: engine.** `out/*` regenerated — strictly additive, one new leaf per size step (`60 0` on the

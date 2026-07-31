@@ -49,7 +49,7 @@
         "strong": 700
       },
       "typeScale": "expressive",
-      "displayCeiling": 128,
+      "displayCeiling": "xl",
       "titleFloor": 16,
       "familyMap": {
         "label": "text"

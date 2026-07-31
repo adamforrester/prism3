@@ -2377,11 +2377,9 @@ const renderSizeLadder = (): HTMLElement => {
       sec.append(knob(lever.label, el('div', 'te-shared-ro', `${cur} · shared across modes — edit in Light`), lever.description));
     } else sec.append(renderControl(lever));
   }
-  // requested-vs-effective: the scale shift can land the top display size off the exact rung.
-  const disp = ty.composites.filter((c) => c.group === 'display').map((c) => c.sizePx);
-  const req = (getPath(brandState, 'typography.displayCeiling') as number | undefined) ?? 160;
-  if (disp.length && Math.max(...disp) !== req)
-    sec.append(el('p', 'sl-note', `Requested ceiling ${req}px; effective top display is ${Math.max(...disp)}px — the scale shift lands between rungs.`));
+  // No requested-vs-effective note any more: the ceiling names a RUNG, so what was asked for and
+  // what ships cannot disagree (#328). The px ceiling could, because it was compared against sizes
+  // typeScale had already shifted.
 
   sec.append(subHead('The ladder — largest first'));
   const headRungs = new Set(ty.composites.filter((c) => c.group === 'display' || c.group === 'title').map((c) => c.sizePx));

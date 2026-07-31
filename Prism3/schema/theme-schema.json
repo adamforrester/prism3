@@ -319,15 +319,16 @@
           }
         },
         "displayCeiling": {
-          "type": "number",
-          "default": 160,
-          "description": "Cap the display tier (px). Brands that don't need mega heroes stop lower (e.g. 96); the ladder is unchanged, the engine just omits display composites above the cap."
+          "type": "string",
+          "enum": ["sm", "md", "lg", "xl", "2xl", "3xl"],
+          "default": "3xl",
+          "description": "Highest display rung the brand ships; rungs above it are omitted. Named by rung rather than px so the typeScale preset cannot silently change how many rungs survive. The ladder is unchanged."
         },
         "titleFloor": {
           "type": "number",
           "enum": [16, 18],
           "default": 18,
-          "description": "Smallest title size. Default 18 (title.xs). Set 16 to add title.2xs — a 16px brand-font heading that deliberately overlaps body.md."
+          "description": "Whether the title tier includes title.2xs — a 16px brand-font heading that deliberately overlaps body.md. Set 16 to include it, 18 (default) to omit it. Incompatible with typeScale 'compact', which already places a title at 16px."
         },
         "responsive": {
           "type": "object",
