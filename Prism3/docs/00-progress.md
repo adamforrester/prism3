@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-07-31) — Mode-switcher audit: the decisions live in issues, this is the thread to pull
+
+**STATUS: no code change.** Investigation + decision record. Recorded here because the log is what a
+fresh agent reads first, and this cluster has no other entry point.
+
+- **What happened.** "Where should the mode switcher live?" (#268) turned into an audit of what actually
+  responds to it, which turned into a typography tier review, which surfaced an engine validation gap.
+  The decisions are captured on the issues; this entry exists so they can be found.
+- **The measured result** (Light→Dark DOM diff per section, against `12364ab`): **Palettes and Layout are
+  fully inert** — the mode bar changes nothing on either. Five of nine pages **mix** responding and inert
+  sections (Surfaces, Interactive, Typography, Size & radius, Motion). **Elevation is display-only** and is
+  the case #318 explicitly carved out. Full table: the #268 comment.
+- **The finding that changes the rule.** Primitive-vs-semantic does **not** predict mode-sensitivity,
+  because the UI groups controls by **subject matter, not by tier** — radius, density and tempo re-point
+  semantics per mode, but their controls sit on pages named after the primitive. So a tier-based switcher
+  rule cannot be derived from the current page structure without relocating controls. A rule keyed on
+  *measured mode-sensitivity* works today and survives any later reorganization, since the reorg changes
+  the data the rule reads, not the rule. **Page-level placement is settled; the specific treatment is not.**
+- **Method note worth keeping: static analysis failed twice, in opposite directions.** Counting
+  `currentMode` references per function **under-counts** (delegation hides it — `renderPerModeRadius` and
+  siblings read as blind because the access lives in `renderPerModeSelect`). Resolving the call graph on a
+  real TypeScript AST **over-counts**: it reported every page as mode-aware, including Palettes, because
+  controls call `build()` to re-render, so the graph leaks back through the chrome and everything reaches
+  everything. Switching the mode and diffing the DOM answered it in one pass. Don't re-derive this
+  statically — it has now been attempted twice and been wrong both times.
+- **A second blind spot, from the same week:** a closed dropdown is not in the DOM, so an overflow sweep
+  cannot see it — #315 passed 38/38 while a menu sat 152px off-screen. And a 690px nav stack overflows
+  nothing at all; it was found by a human on a phone. Green audits mean "no measured defect", not "good".
+- **Where the decisions are:** #268 (audit + placement, open) · #328 (typography tier — font roles, weight
+  primitives, ceiling/floor, what moves to semantics) · #329 (spaceBase / baseUnit levers) · #332 (invalid
+  lever values accepted silently — `typeScale: 'gigantic'` builds a display composite with
+  `sizePx: undefined`) · #334 (901–919px ramp-label overflow, pre-existing) · #333 + #267 (carry context
+  contributed from this audit).
+- **Two engine facts that surprised on inspection**, both now decisions rather than assumptions: all nine
+  numeric font weights (100–900) are emitted for **every** brand regardless of use (`theme.ts:915`), and
+  `displayCeiling`/`titleFloor` **change which composites exist** rather than only their sizes — so making
+  them per-mode would hand different modes different type sets.
+
+---
+
 ## (2026-07-30) — The rail becomes a Pages menu below 900 (#144 follow-up)
 
 **STATUS: web-only.** Engine untouched. Owner-directed after reviewing the deploy on a phone; the
