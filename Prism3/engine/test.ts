@@ -32,8 +32,8 @@ import { handleRpc, callTool, toolDefs } from './mcp';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, passJs, passOrder } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor } from './write-plan';
-import { verifyReadback, verifyFloatReadback, ReadbackSnapshot } from './read-back';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan } from './write-plan';
+import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planToPluginJs, figmaVarName } from './anatomy-figma';
@@ -752,6 +752,71 @@ for (const b of brands) {
   const lightOnly = buildStylesPlan(brandTheme({ ...(exampleBrands()['aurora'] as BrandInput), modes: ['light'] }));
   ok(lightOnly.effects.some((e) => e.name.startsWith('shadow/')) && !lightOnly.effects.some((e) => e.name.startsWith('shadow-dark/')),
     'styles: a light-only brand emits shadow/* but NO shadow-dark/*');
+}
+
+// TYPOGRAPHY WRITE PLANS (#237): core-font/type-sets VARIABLE plan + the Text Style plan.
+{
+  const nb = nbTheme();
+  const fontVars = buildFontVarPlan(nb);
+  const coreFont = fontVars.find((c) => c.name === 'core-font')!;
+  const typeSets = fontVars.find((c) => c.name === 'type-sets')!;
+  ok(!!coreFont && !!typeSets && fontVars.length === 2, 'font-plan: two collections — core-font + type-sets');
+
+  // core-font mixes STRING (family) + FLOAT (size/weight/weight-role); families are STRING with string values.
+  const familyRows = coreFont.rows.filter((r) => r.name.startsWith('font/family/'));
+  ok(familyRows.length > 0 && familyRows.every((r) => r.resolvedType === 'STRING' && typeof r.valuesByMode[0] === 'string'),
+    'font-plan: font/family/* rows are STRING with a string face value');
+  ok(coreFont.rows.some((r) => r.name.startsWith('font/size/') && r.resolvedType === 'FLOAT'), 'font-plan: font/size/* rows are FLOAT');
+
+  // weight-role rows alias font/weight/N (within core-font — resolves against the same collection).
+  const wr = coreFont.rows.filter((r) => r.name.startsWith('font/weight-role/'));
+  const coreNames = new Set(coreFont.rows.map((r) => r.name));
+  const wrDangling = wr.flatMap((r) => r.aliasByMode.filter((a): a is string => !!a)).filter((t) => !coreNames.has(t));
+  ok(wr.length > 0 && wr.every((r) => r.aliasByMode.every((a) => a === null || a.startsWith('font/weight/'))) && wrDangling.length === 0,
+    'font-plan: weight-role rows alias font/weight/N, all resolving within core-font');
+
+  // type-sets is FLOAT, mobile/desktop.
+  ok(typeSets.modes.join(',') === 'mobile,desktop' && typeSets.rows.every((r) => r.resolvedType === 'FLOAT'),
+    `font-plan: type-sets is FLOAT with mobile/desktop modes (${typeSets.modes.join('/')})`);
+
+  // Text Style plan — one row per composite; bound vars named + fontStyle/lineHeight baked.
+  const ts = buildTextStylePlan(nb);
+  ok(ts.length > 0, `font-plan: text-style plan has rows (${ts.length})`);
+  const tbad: string[] = [];
+  for (const r of ts) {
+    if (!r.fontFamilyVar.startsWith('font/family/')) tbad.push(`${r.name}: familyVar`);
+    if (!r.fontFamilyPrimary) tbad.push(`${r.name}: no primary face`);
+    if (!(r.fontSizeCollection === 'core-font' || r.fontSizeCollection === 'type-sets')) tbad.push(`${r.name}: sizeColl`);
+    if (!r.fontWeightVar.startsWith('font/weight-role/')) tbad.push(`${r.name}: weightVar`);
+    if (!r.fontStyle) tbad.push(`${r.name}: no fontStyle`);
+    if (typeof r.lineHeightPct !== 'number') tbad.push(`${r.name}: lineHeight`);
+  }
+  ok(tbad.length === 0, 'font-plan: every text-style row names bound vars + a primary face + baked fontStyle/lineHeight' + (tbad.length ? ` — ${tbad.slice(0, 3).join('; ')}` : ''));
+
+  // Italic axis: an italics-opted brand carries italic style-names on the italic composites.
+  const italicPlan = buildTextStylePlan(brandTheme({ id: 'ts-it', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, typography: { italics: ['body'], links: ['body'] } }));
+  const italicRows = italicPlan.filter((r) => r.name.includes('-italic'));
+  ok(italicRows.length > 0 && italicRows.every((r) => /Italic/.test(r.fontStyle)), 'font-plan: italic composites carry an Italic style-name');
+  ok(buildTextStylePlan(nb).every((r) => !/Italic/.test(r.fontStyle)), 'font-plan: a no-italics brand carries no Italic style-names');
+
+  // verifyTypographyReadback guard: absent → all-pass (typography-less read isn't a failure); a
+  // dangling weight-role alias fails; a well-formed snapshot passes.
+  ok(verifyTypographyReadback({ collections: [], palette: [], color: [] }).ok, 'verifyTypographyReadback: typography-absent snapshot passes (not a failure)');
+  const goodTypo = verifyTypographyReadback({
+    collections: [], palette: [], color: [],
+    font: { 'core-font': [
+      { name: 'font/weight/700', scopes: [], hidden: true, valuesByMode: { Default: 700 } },
+      { name: 'font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'font/weight/700' } } },
+    ] },
+    textStyles: ['body/md/default'],
+  });
+  ok(goodTypo.ok, 'verifyTypographyReadback: well-formed core-font + text style passes');
+  const danglingTypo = verifyTypographyReadback({
+    collections: [], palette: [], color: [],
+    font: { 'core-font': [{ name: 'font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'font/weight/999' } } }] },
+    textStyles: ['x'],
+  });
+  ok(!danglingTypo.ok && !danglingTypo.checks.weightAliasesResolve, 'verifyTypographyReadback: a dangling weight-role alias fails (negative)');
 }
 
 // INVERSE + neutralEmphasis + accentPalette (docs/20 §9/§10/§3, increment 4).

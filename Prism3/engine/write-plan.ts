@@ -28,6 +28,8 @@ import type { Theme } from './theme';
 import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
 import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
 import type { FigmaEffect } from './emit-figma-styles';
+import { buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles } from './emit-figma-font';
+import type { FigmaTextStyle } from './emit-figma-font';
 
 /** A colour value as Figma's variable API wants it (RGBA floats 0–1). */
 export type Rgba = { r: number; g: number; b: number; a: number };
@@ -293,4 +295,129 @@ export const buildStylesPlan = (theme: Theme): StylesPlan => {
   }));
 
   return { effects, paints };
+};
+
+// ---------------------------------------------------------------------------
+// TYPOGRAPHY (#237) — `core-font`/`type-sets` VARIABLES + Text Styles. Two host-neutral plans:
+//   • buildFontVarPlan   → VarCollectionPlan[] for `core-font` (per-mode; STRING family + FLOAT
+//     size/weight + FLOAT weight-role aliased to font/weight/N) and `type-sets` (FLOAT, mobile/desktop).
+//   • buildTextStylePlan → TextStyleRow[] — one per composite; names the bound target var+collection
+//     for fontFamily/fontSize/fontWeight and carries the baked fontStyle/lineHeight/letterSpacing/
+//     case/decoration. `fontFamilyPrimary` is the primary face (for loadFontAsync + fontName.family),
+//     resolved from the `core-font` family var value so plan + vars agree.
+// Unlike the FLOAT plan, `core-font` mixes STRING + FLOAT + aliases in ONE collection, so rows carry a
+// per-row `resolvedType`. PURE — calls the node-free font builders; bundles into the plugin.
+// ---------------------------------------------------------------------------
+
+/** One variable to materialise into a mixed-type collection (`core-font`/`type-sets`). Per-row
+ *  `resolvedType`; literal per-mode value (string for family, number for size/weight); optional
+ *  per-mode alias target (weight-role → `font/weight/N`). */
+export type VarRow = {
+  name: string;
+  resolvedType: 'FLOAT' | 'STRING';
+  scopes: string[];
+  description: string;
+  hidden: boolean;
+  valuesByMode: (number | string)[];
+  aliasByMode: (string | null)[];
+};
+/** One variable collection's plan (a `core-font` per-mode or `type-sets` mobile/desktop collection). */
+export type VarCollectionPlan = { name: string; modes: string[]; rows: VarRow[] };
+
+/** Reshape a per-mode `FigmaCollectionFile[]` (shared var order) into a `VarCollectionPlan` — the
+ *  mixed-type sibling of `floatPlanFor` (carries `resolvedType` + string values + aliases). */
+const varPlanFor = (name: string, files: FigmaCollectionFile[]): VarCollectionPlan => {
+  const modes = files.map((f) => f.$mode);
+  const base = files[0]?.variables ?? [];
+  const rows: VarRow[] = base.map((v, i) => ({
+    name: v.name,
+    resolvedType: v.resolvedType === 'STRING' ? 'STRING' : 'FLOAT',
+    scopes: v.scopes,
+    description: v.description,
+    hidden: !!v.hiddenFromPublishing,
+    valuesByMode: files.map((f) => {
+      const val = f.variables[i].value;
+      return typeof val === 'number' ? roundFloat(val) : String(val);
+    }),
+    aliasByMode: files.map((f) => (f.variables[i] as FigmaVar).alias?.name ?? null),
+  }));
+  return { name, modes, rows };
+};
+
+/**
+ * The font-variable plan — `core-font` (per-mode) + `type-sets` (mobile/desktop). PURE: calls the
+ * node-free `buildFigmaFont`/`buildFigmaFontFluid` and reshapes; bundles into the plugin.
+ */
+export const buildFontVarPlan = (theme: Theme): VarCollectionPlan[] => {
+  const font = buildFigmaFont(theme);        // per-mode core-font FigmaCollectionFile[]
+  const fluid = buildFigmaFontFluid(theme);  // type-sets mobile/desktop FigmaCollectionFile[]
+  return [
+    varPlanFor('core-font', font),
+    varPlanFor('type-sets', fluid),
+  ];
+};
+
+/** One Text Style to materialise. Bound props name their target var + collection (the executor binds
+ *  via `setBoundVariable`); the rest are baked. `fontStyle` + `fontFamilyPrimary` drive `loadFontAsync`
+ *  and the literal `fontName` fallback. */
+export type TextStyleRow = {
+  name: string;
+  description: string;
+  fontFamilyVar: string;         // 'font/family/<role>' — in core-font
+  fontFamilyPrimary: string;     // the primary face (loadFontAsync + fontName.family)
+  fontSizeVar: string;
+  fontSizeCollection: 'core-font' | 'type-sets';
+  fontWeightVar: string;         // 'font/weight-role/<role>' — in core-font
+  fontStyle: string;             // baked style-name (loadFontAsync + fontName.style)
+  lineHeightPct: number;
+  letterSpacingPct: number;
+  textCase: 'ORIGINAL' | 'UPPER' | 'LOWER';
+  textDecoration: 'NONE' | 'UNDERLINE';
+};
+export type TextStylePlan = TextStyleRow[];
+
+/** Value of a bound `FigmaTextStyleProp` — the property is always `bound:false` with a literal here. */
+const bakedNum = (p: FigmaTextStyle['properties']['lineHeight']): number =>
+  p.bound === false && typeof p.value === 'object' ? p.value.value : 0;
+const bakedStr = (p: FigmaTextStyle['properties']['fontStyle']): string =>
+  p.bound === false && typeof p.value === 'string' ? p.value : '';
+const boundVar = (p: FigmaTextStyle['properties']['fontSize']): { variable: string; collection: string } =>
+  p.bound === true ? { variable: p.variable, collection: p.collection } : { variable: '', collection: 'core-font' };
+
+/**
+ * The Text Style plan — one `TextStyleRow` per composite. Flattens `buildFigmaTextStyles` into the
+ * host-neutral shape the plugin executor consumes, resolving each family role's PRIMARY FACE from the
+ * matching `core-font` family variable (so `loadFontAsync` + `fontName` get the real face). PURE.
+ */
+export const buildTextStylePlan = (theme: Theme): TextStylePlan => {
+  const styles = buildFigmaTextStyles(theme).styles;
+  // Primary face per family var name, from the Default-mode core-font family rows (value = primary face).
+  // NB: we deliberately use the DEFAULT-mode face for loadFontAsync + the fontName fallback. A brand
+  // with a per-mode family override (`familiesByMode`) still binds `fontFamily` to the STRING var,
+  // which carries the per-mode value at render — so the Default face is the correct thing to load for
+  // the style's own fallback. No shipping brand sets `familiesByMode` today, so this path is currently
+  // unexercised by a fixture; a `familiesByMode` example brand would close that gap before it matters.
+  const fontDefault = buildFigmaFont(theme)[0];
+  const faceByVar = new Map(
+    fontDefault.variables.filter((v) => v.name.startsWith('font/family/')).map((v) => [v.name, String(v.value)] as const),
+  );
+  return styles.map((s) => {
+    const p = s.properties;
+    const familyVar = p.fontFamily.bound === true ? p.fontFamily.variable : '';
+    const size = boundVar(p.fontSize);
+    return {
+      name: s.name,
+      description: s.description,
+      fontFamilyVar: familyVar,
+      fontFamilyPrimary: faceByVar.get(familyVar) ?? '',
+      fontSizeVar: size.variable,
+      fontSizeCollection: size.collection === 'type-sets' ? 'type-sets' : 'core-font',
+      fontWeightVar: p.fontWeight.bound === true ? p.fontWeight.variable : '',
+      fontStyle: bakedStr(p.fontStyle),
+      lineHeightPct: bakedNum(p.lineHeight),
+      letterSpacingPct: bakedNum(p.letterSpacing),
+      textCase: p.textCase.value,
+      textDecoration: p.textDecoration.value,
+    };
+  });
 };

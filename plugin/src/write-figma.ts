@@ -21,7 +21,7 @@
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `plugin/test-write.mjs`) with no real Figma.
  */
-import type { WritePlan, Rgba, FloatCollectionPlan } from '../../Prism3/engine/write-plan';
+import type { WritePlan, Rgba, FloatCollectionPlan, VarCollectionPlan } from '../../Prism3/engine/write-plan';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -30,7 +30,7 @@ export interface VariablesApi {
   getLocalVariableCollectionsAsync(): Promise<VarCollection[]>;
   getLocalVariablesAsync(type?: string): Promise<Variable[]>;
   createVariableCollection(name: string): VarCollection;
-  createVariable(name: string, collection: VarCollection, resolvedType: 'COLOR' | 'FLOAT'): Variable;
+  createVariable(name: string, collection: VarCollection, resolvedType: 'COLOR' | 'FLOAT' | 'STRING'): Variable;
   createVariableAlias(target: Variable): VariableAlias;
 }
 export interface VarMode { modeId: string; name: string }
@@ -57,7 +57,7 @@ export interface Variable {
   // Per-mode values as Figma stores them — read by the READ executor (#109); the write path sets
   // them via setValueForMode (which takes the narrow Rgba | VariableAlias the writer produces).
   valuesByMode: Record<string, ReadVarValue>;
-  setValueForMode(modeId: string, value: Rgba | VariableAlias | number): void;
+  setValueForMode(modeId: string, value: Rgba | VariableAlias | number | string): void;
 }
 
 /** What the executor did — surfaced to the UI + asserted by the harness. */
@@ -227,6 +227,76 @@ export const applyFloatPlan = async (
       p.modes.forEach((m, i) => {
         const target = row.targetsByMode[i];
         if (!target) return; // literal-only for this mode — leave the pass-A value
+        const tv = byNameGlobal.get(target);
+        if (!tv) { misses.push(`${row.name} @${m} -> ${target}`); return; }
+        v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
+        bound++;
+      });
+    }
+  }
+
+  return { collections, bound, misses };
+};
+
+/** What the var-collection executor did (#237 — `core-font`/`type-sets`). */
+export type VarCollectionApplyResult = {
+  collections: { name: string; total: number; created: number }[];
+  bound: number;      // weight-role → font/weight/N aliases written
+  misses: string[];
+};
+
+/**
+ * Materialise mixed-type variable collections into `figma.variables` (#237 — `core-font` STRING family
+ * + FLOAT size/weight + FLOAT weight-role aliased, per-mode; `type-sets` FLOAT mobile/desktop). Same
+ * two-pass shape as `applyFloatPlan`, but each row carries its own `resolvedType` (STRING vs FLOAT) and
+ * a string|number literal, and the alias target lives per-row (`aliasByMode`) rather than a separate
+ * array. Pass A creates/updates every var (literal per-mode); pass B binds the per-mode aliases against
+ * ONE global name→Variable map (weight-role → `font/weight/N`, both in `core-font`). Idempotent
+ * find-by-name.
+ */
+export const applyVarCollectionPlan = async (
+  plans: VarCollectionPlan[],
+  vars: VariablesApi,
+): Promise<VarCollectionApplyResult> => {
+  const collections: VarCollectionApplyResult['collections'] = [];
+  const modeIdsByCollection = new Map<string, Record<string, string>>();
+  const byNameGlobal = new Map<string, Variable>();
+
+  // ---- pass A: create/update every var (STRING or FLOAT) with its literal per-mode value ----
+  for (const p of plans) {
+    const { collection, byName } = await upsertCollection(vars, p.name);
+    collection.renameMode(collection.modes[0].modeId, p.modes[0]);
+    const modeIds: Record<string, string> = { [p.modes[0]]: collection.modes[0].modeId };
+    for (let i = 1; i < p.modes.length; i++) {
+      const existing = collection.modes.find((m) => m.name === p.modes[i]);
+      modeIds[p.modes[i]] = existing ? existing.modeId : collection.addMode(p.modes[i]);
+    }
+    modeIdsByCollection.set(p.name, modeIds);
+
+    let created = 0;
+    for (const row of p.rows) {
+      let v = byName.get(row.name);
+      if (!v) { v = vars.createVariable(row.name, collection, row.resolvedType); byName.set(row.name, v); created++; }
+      v.scopes = row.scopes;
+      v.description = row.description;
+      v.hiddenFromPublishing = row.hidden;
+      p.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
+    }
+    collections.push({ name: p.name, total: p.rows.length, created });
+    for (const [name, v] of byName) byNameGlobal.set(name, v);
+  }
+
+  // ---- pass B: bind the per-row aliases PER MODE against the global name map ----
+  let bound = 0;
+  const misses: string[] = [];
+  for (const p of plans) {
+    const modeIds = modeIdsByCollection.get(p.name)!;
+    for (const row of p.rows) {
+      const v = byNameGlobal.get(row.name);
+      if (!v) { misses.push(`var:${row.name}`); continue; }
+      p.modes.forEach((m, i) => {
+        const target = row.aliasByMode[i];
+        if (!target) return; // literal-only for this mode
         const tv = byNameGlobal.get(target);
         if (!tv) { misses.push(`${row.name} @${m} -> ${target}`); return; }
         v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));

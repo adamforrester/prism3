@@ -109,8 +109,8 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   cross-collection aliases (space→dimension, size→dimension/space, radius→dimension, layout grid→space)
   against one global name map. Idempotent find-by-name; `layout` carries one mode per breakpoint,
   `radius` a `wireframe` mode when the brand opts in.
-- ⏭ **Typography + shadow/gradient are NOT here** — those are Figma *Styles* (text/effect/paint), a
-  different API; typography also waits on the #112/#113 type-model decisions. Own follow-up issues.
+- ⏭ **Typography + shadow/gradient** land in their own lanes (below) — they're Figma *Styles* and a
+  mixed font-variable collection, distinct from the FLOAT axes here.
 
 ## Scope (shadow/gradient — write beyond variables: Figma Styles)
 
@@ -124,7 +124,20 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   + pure `buildStylesPlan`. Live-verified: a linear gradient + shadow render on a real rect.
 - ⏭ **Variable-linked gradient stops** (bind `ColorStop.boundVariables` to `palette/*` so gradients
   re-theme live) — a fast-follow; this lane bakes resolved colours.
-- ⏭ **Typography** (text styles + font variables) — still its own lane, blocked on #112/#113.
+
+## Scope (#237 — write typography: core-font/type-sets variables + Text Styles)
+
+- ✅ **The last write axis** — the plugin now materialises the whole generated system. Font VARIABLES
+  (`core-font` per-mode: STRING family + FLOAT size/weight + FLOAT weight-role aliased; `type-sets`
+  mobile/desktop) via the widened `VariablesApi` + `applyVarCollectionPlan` (mixed STRING+FLOAT, per-row
+  `resolvedType`). Node-free `engine/emit-figma-font.ts` + pure `buildFontVarPlan`/`buildTextStylePlan`.
+- ✅ **Text Styles** — new `plugin/src/write-text-styles.ts` `TextStylesApi` port + `applyTextStylePlan`.
+  fontFamily/fontSize/fontWeight bound to the font vars via `setBoundVariable`; fontStyle/lineHeight/
+  letterSpacing/case/decoration baked. Run after the font vars (bound targets must exist first).
+- ✅ **Font fallback = SKIP-WITH-WARNING** — `loadFontAsync` is the first write that loads a resource; if
+  a family/style isn't available in that Figma, the style is skipped + reported (never substituted, never
+  a throw that aborts the write). The font variables write regardless.
+- ⏭ **Variable-linked gradient stops** (#236) and per-(category,size) links remain the only deferred bits.
 
 ## Run
 
@@ -133,7 +146,7 @@ npm install          # from the repo root (workspaces) — installs @figma/plugi
 npm run build -w @prism3/plugin      # → plugin/dist/main.js + plugin/dist/ui.html (shared UI inlined)
 npm run watch -w @prism3/plugin      # rebuild on change (watches plugin/src + web/src)
 npm run typecheck -w @prism3/plugin  # both contexts (main + ui)
-npm test -w @prism3/plugin           # write + read + persist + float + styles executors (in-memory shims)
+npm test -w @prism3/plugin           # write + read + persist + float + styles + typography executors (in-memory shims)
 ```
 
 Then in Figma: **Plugins → Development → Import plugin from manifest…** → pick `plugin/manifest.json`.
