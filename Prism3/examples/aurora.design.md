@@ -35,13 +35,13 @@ iconContrast: "3:1"
 motionPersonality: { tempo: snappy }
 
 # A distinct variable display face, a remapped emphasis weight (500, not the
-# default 600), the expressive type scale, a 128px hero cap, a 16px brand-font
+# default 600), the expressive type scale, a hero cap at the display.xl rung, a 16px brand-font
 # title (overlaps body.md), labels on the text face, and a wider clamp window.
 typography:
   families: { display: Clash Display, text: Inter, mono: JetBrains Mono, variable: { display: true, text: true } }
   weightRoles: { subtle: 300, default: 400, emphasis: 500, strong: 700 }
   typeScale: expressive
-  displayCeiling: 128
+  displayCeiling: xl
   titleFloor: 16
   familyMap: { label: text }
   responsive: { fluid: true, minViewport: 360, maxViewport: 1440 }

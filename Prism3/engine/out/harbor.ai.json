@@ -3052,7 +3052,20 @@
     },
     "type.title.xs.strong": {
       "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
-      "meaning": "Type style — title xs strong (18px, display face)",
+      "meaning": "Type style — title xs strong (16px, display face)",
+      "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
+      "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
+      "resolves_to": {
+        "fontFamily": "{prism.font.family.display}",
+        "fontSize": "{prism.font.size.16}",
+        "fontWeight": "{prism.font.weight-role.strong}",
+        "lineHeight": "{prism.font.line-height.compact}",
+        "letterSpacing": "{prism.font.letter-spacing.snug}"
+      }
+    },
+    "type.title.sm.strong": {
+      "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
+      "meaning": "Type style — title sm strong (18px, display face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
       "resolves_to": {
@@ -3503,6 +3516,7 @@
         "type.title.2xl.strong",
         "type.title.lg.strong",
         "type.title.md.strong",
+        "type.title.sm.strong",
         "type.title.xl.strong",
         "type.title.xs.strong"
       ]
@@ -5409,6 +5423,7 @@
         "type.title.2xl.strong",
         "type.title.lg.strong",
         "type.title.md.strong",
+        "type.title.sm.strong",
         "type.title.xl.strong",
         "type.title.xs.strong"
       ]
@@ -5478,7 +5493,8 @@
         "type.body.md.default",
         "type.body.md.default-link",
         "type.body.md.strong",
-        "type.body.md.strong-link"
+        "type.body.md.strong-link",
+        "type.title.xs.strong"
       ]
     },
     "font.size.18": {
@@ -5491,7 +5507,7 @@
         "type.body.lg.default-link",
         "type.body.lg.strong",
         "type.body.lg.strong-link",
-        "type.title.xs.strong"
+        "type.title.sm.strong"
       ]
     },
     "font.size.20": {
@@ -5700,6 +5716,7 @@
         "type.title.2xl.strong",
         "type.title.lg.strong",
         "type.title.md.strong",
+        "type.title.sm.strong",
         "type.title.xl.strong",
         "type.title.xs.strong"
       ]
@@ -5748,6 +5765,7 @@
       "aliased_by": [
         "type.title.lg.strong",
         "type.title.md.strong",
+        "type.title.sm.strong",
         "type.title.xs.strong"
       ]
     },
@@ -5823,6 +5841,7 @@
         "type.title.2xl.strong",
         "type.title.lg.strong",
         "type.title.md.strong",
+        "type.title.sm.strong",
         "type.title.xl.strong",
         "type.title.xs.strong"
       ]

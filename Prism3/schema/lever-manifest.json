@@ -240,14 +240,36 @@
       "key": "typography.displayCeiling",
       "group": "type",
       "label": "Display size ceiling",
-      "control": "slider",
+      "control": "enum",
       "advanced": true,
-      "default": 160,
-      "min": 48,
-      "max": 160,
-      "step": 8,
-      "unit": "px",
-      "description": "Cap the display tier; brands with no mega heroes stop lower (e.g. 96)."
+      "default": "3xl",
+      "options": [
+        {
+          "value": "sm",
+          "label": "display.sm (1 rung)"
+        },
+        {
+          "value": "md",
+          "label": "display.md (2 rungs)"
+        },
+        {
+          "value": "lg",
+          "label": "display.lg (3 rungs)"
+        },
+        {
+          "value": "xl",
+          "label": "display.xl (4 rungs)"
+        },
+        {
+          "value": "2xl",
+          "label": "display.2xl (5 rungs)"
+        },
+        {
+          "value": "3xl",
+          "label": "display.3xl (all 6)"
+        }
+      ],
+      "description": "Highest display rung the brand ships; rungs above it are omitted. Named by rung, not px, so the type scale preset cannot change how many rungs survive."
     },
     {
       "key": "typography.titleFloor",
@@ -266,7 +288,7 @@
           "label": "16px (adds title.2xs)"
         }
       ],
-      "description": "Smallest title size. 16 adds a 16px brand-font heading that overlaps body.md."
+      "description": "Whether the title tier includes title.2xs — a 16px brand-font heading that overlaps body.md. Not available with the compact type scale, which already places a title at 16px."
     },
     {
       "key": "typography.responsive",
