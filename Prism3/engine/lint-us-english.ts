@@ -15,13 +15,13 @@
  *  2. SOURCE GREPS MISS WHAT SHIPS. `engine/levers.ts` prose is inlined into `web/dist/main.js`, so
  *     the built bundle is scanned directly. A `.ts` grep would have called the bundle clean.
  *
- * GATED vs REPORTED is the whole design. Two surfaces carry known en-GB text that CLAUDE.md records
- * as an OPEN DECISION rather than a defect — the hand-authored `theme-schema.json` contract, and the
- * engine README (developer docs, neither UI nor emitted artifact). Gating them would force a silent
- * conversion this file has no mandate to make, so they are counted and printed every run, and never
- * fail the build. That keeps them tracked instead of forgotten, which is the actual ask.
+ * SCOPE. Everything shipped is gated, and as of this pass that includes the two surfaces previously
+ * carried as "reported, never fatal": the hand-authored `theme-schema.json` contract and the engine
+ * README. Both are now converted (owner decision), so the open-decision carve-out that CLAUDE.md
+ * recorded is closed and there is nothing left to merely count — a surface that is clean and NOT
+ * gated is just a surface waiting to regress quietly.
  *
- * Run: `npx tsx Prism3/engine/lint-us-english.ts`  (exit 1 = a GATED surface regressed)
+ * Run: `npx tsx Prism3/engine/lint-us-english.ts`  (exit 1 = a gated surface regressed)
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
@@ -80,12 +80,10 @@ const gated: string[] = [
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'Prism3/schema', f)),
   ...ENGINE_ARTIFACTS.map((f) => join(repo, 'Prism3/engine', f)),
   ...walk(join(repo, 'web/dist')).filter((f) => f.endsWith('.js')),   // trap 2: what actually ships
-];
-
-// ---- REPORTED: known en-GB, recorded in CLAUDE.md as an open decision. Counted, never fatal. ----
-const reported: { path: string; why: string }[] = [
-  { path: 'Prism3/schema/theme-schema.json', why: 'hand-authored contract — conversion is an open decision (CLAUDE.md), not a gap to close silently' },
-  { path: 'Prism3/engine/README.md', why: 'developer docs — neither visible UI text nor an emitted artifact, so outside the rule as written' },
+  // Converted and folded in (owner decision) — previously reported-but-not-fatal because CLAUDE.md
+  // held their conversion open. Gated now: leaving a clean surface ungated only defers the regression.
+  join(repo, 'Prism3/schema/theme-schema.json'),
+  join(repo, 'Prism3/engine/README.md'),
 ];
 
 const gatedHits = gated.flatMap(scan);
@@ -103,16 +101,5 @@ if (gatedHits.length) {
 } else {
   console.log('  ✓ clean — no en-GB spellings in any shipped surface.');
 }
-
-console.log('\nTracked (not gated — open decisions, see CLAUDE.md):');
-let trackedTotal = 0;
-for (const r of reported) {
-  const hits = scan(join(repo, r.path));
-  trackedTotal += hits.length;
-  const words = [...new Set(hits.map((h) => h.word.toLowerCase()))].sort();
-  console.log(`  ${hits.length ? '•' : '✓'} ${r.path} — ${hits.length} hit(s)${words.length ? `: ${words.join(', ')}` : ''}`);
-  if (hits.length) console.log(`      ${r.why}`);
-}
-console.log(`  ${trackedTotal} tracked hit(s) total — decide and convert, or record the decision; they never fail the build.`);
 
 process.exit(gatedHits.length ? 1 : 0);

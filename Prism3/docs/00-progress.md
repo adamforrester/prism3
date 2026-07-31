@@ -22,13 +22,16 @@ of those passes missed something, which is the argument for a gate rather than a
   also the correct US Windows label), and two shipped CSS comments. Two printed test names went with
   them for consistency. **Code comments stay exempt** — the carve-out is deliberate, and `scale.ts`
   already had `neighbours` long before this.
-- **GATED vs REPORTED is the design, not a shortcut.** Gated: `out/`, the emitted schema contracts,
-  the two reports, and `web/dist/*.js`. Reported-but-never-fatal: `theme-schema.json` (15 hits) and
-  `engine/README.md` (31 hits) — CLAUDE.md records the first as an **open decision**, and the second
-  is neither UI nor an emitted artifact, so it falls outside the rule as written. Gating either would
-  force a conversion this gate has no mandate to make; printing them every run keeps them tracked
-  instead of forgotten. **46 tracked hits currently — an open decision for the owner, not a backlog
-  item I should close unilaterally.**
+- **The last open decision is closed: everything shipped is now gated.** The gate first shipped with
+  `theme-schema.json` (15 hits) and `engine/README.md` (31 hits) *reported but never fatal*, because
+  CLAUDE.md recorded the first as an explicit open decision and the second is neither UI nor an
+  emitted artifact. The owner then called it — convert both. 64 replacements later they are clean and
+  **folded into the gated set** (91 files), the reporting tier is gone, and the CLAUDE.md carve-out is
+  rewritten to point at the gate. A surface that is clean but ungated is only a surface waiting to
+  regress quietly, so there was no reason to keep the tier once it was empty.
+- **The schema conversion was verified as prose-only before it ran:** a walk confirmed every hit sat
+  in a `description` field, never a key, enum value or `$ref` — so the contract itself is untouched
+  and `regen --check` stayed at 88/88.
 - **Scope is IMPORTED from `regen.ts`,** not restated. `SCHEMA_ARTIFACTS`/`ENGINE_ARTIFACTS` are now
   exported and consumed by the linter, so a new emitted artifact comes under the gate automatically.
   A copied list would have drifted, and a gate with a stale scope reports green because it stopped
