@@ -913,7 +913,10 @@ for (const b of brands) {
   const threw = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
   const stable = (v: any): any => Array.isArray(v) ? v.map(stable)
     : (v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])])) : v);
-  const perMode = { ...base, modeLevers: { dark: { families: { display: 'Georgia' }, weights: { strong: 600 } } } } as unknown as BrandInput;
+  // 500 is deliberately a weight NO default role points at (roles are 300/400/600/700/900), so the
+  // union assertion below is non-vacuous now that weightsRef is minted from need (#328) rather than
+  // hardcoding 100–900 — with a role-owned value like 600 the primitive would exist regardless.
+  const perMode = { ...base, modeLevers: { dark: { families: { display: 'Georgia' }, weights: { strong: 500 } } } } as unknown as BrandInput;
   const baseTree = buildTree(brandTheme(base)).tree[root];
   const built = buildTree(brandTheme(perMode));
   const pmTree = built.tree[root];
@@ -929,13 +932,13 @@ for (const b of brands) {
     `D-typo(a): light canonical family.display $value is unchanged by the dark lever (${pmTree.font.family.display.$value})`);
   ok(pmTree.font.family.text.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden family (text) carries no modes override');
 
-  // (b) weight-role.strong carries a modes.dark override aliasing font.weight.600; light stays 700.
+  // (b) weight-role.strong carries a modes.dark override aliasing font.weight.500; light stays 700.
   const wrDark = pmTree.font['weight-role'].strong.$extensions.prism3.modes?.dark;
-  ok(!!wrDark && wrDark.$value === `{${root}.font.weight.600}` && wrDark.weight === 600,
-    `D-typo(b): dark weight override → weight-role.strong modes.dark aliases font.weight.600 (got ${wrDark?.$value})`);
+  ok(!!wrDark && wrDark.$value === `{${root}.font.weight.500}` && wrDark.weight === 500,
+    `D-typo(b): dark weight override → weight-role.strong modes.dark aliases font.weight.500 (got ${wrDark?.$value})`);
   ok(pmTree.font['weight-role'].strong.$value === baseTree.font['weight-role'].strong.$value,
     `D-typo(b): light canonical weight-role.strong $value is unchanged (${pmTree.font['weight-role'].strong.$value})`);
-  ok(!!pmTree.font.weight['600'], 'D-typo(b): the font.weight.600 primitive EXISTS (weightsRef union) so the per-mode alias resolves');
+  ok(!!pmTree.font.weight['500'], 'D-typo(b): the font.weight.500 primitive EXISTS (weightsRef union) so the per-mode alias resolves — 500 is role-owned by nothing, so this fails if the union is dropped');
 
   // (c) a composite that binds display + strong is UNCHANGED — it just aliases the primitives, so the
   //     per-mode value is inherited via the alias, not stamped on the composite (the composite SET is fixed).
@@ -954,7 +957,7 @@ for (const b of brands) {
   const defWr = fontFiles.find((f) => f.$mode === 'Default')?.variables.find((v) => v.name === 'font/weight-role/strong');
   ok(fontFiles.length === 2 && !!darkFile, `D-typo(e): buildFigmaFont emits Default + dark core-font files (${fontFiles.map((f) => f.$mode).join(',')})`);
   ok(figFamDark?.value === 'Georgia', `D-typo(e): dark font/family/display bound to Georgia (${figFamDark?.value})`);
-  ok(figWrDark?.value === 600 && figWrDark?.alias?.name === 'font/weight/600', `D-typo(e): dark font/weight-role/strong → font/weight/600 (value ${figWrDark?.value})`);
+  ok(figWrDark?.value === 500 && figWrDark?.alias?.name === 'font/weight/500', `D-typo(e): dark font/weight-role/strong → font/weight/500 (value ${figWrDark?.value})`);
   ok(defWr?.value === 700 && defWr?.alias?.name === 'font/weight/700', `D-typo(e): Default (light) font/weight-role/strong stays 700 (${defWr?.value})`);
 
   // (f) validation throws — families/weights on a generate-only mode (hc-light), on an un-generated
@@ -2644,7 +2647,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const FIXDIR = resolve(HERE, '../fixtures/figma/nb');
   const theme = nbTheme();
 
-  // (a) font.json — byte-reproduce (39 vars: 3 family + 22 size + 9 weight + 5 weight-role).
+  // (a) font.json — byte-reproduce (35 vars: 3 family + 22 size + 5 weight + 5 weight-role).
+  // Was 9 weight until #328: weight numerics are minted from the roles that reference them,
+  // so 100/200/500/800 — which no role pointed at and nothing aliased — are no longer emitted.
   const font = buildFigmaFont(theme)[0];
   const fontFix = JSON.parse(readFileSync(resolve(FIXDIR, 'font.json'), 'utf8'));
   const fontByName = new Map<string, any>(fontFix.variables.map((v: any) => [v.name, v]));

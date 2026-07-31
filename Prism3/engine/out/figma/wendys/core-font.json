@@ -278,28 +278,6 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "font/weight/100",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "font weight 100 — numeric reference (the brand's literal axis value)",
-      "value": 100,
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
-      "name": "font/weight/200",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "font weight 200 — numeric reference (the brand's literal axis value)",
-      "value": 200,
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
       "name": "font/weight/300",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -322,17 +300,6 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "font/weight/500",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "font weight 500 — numeric reference (the brand's literal axis value)",
-      "value": 500,
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
       "name": "font/weight/600",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -351,17 +318,6 @@
       ],
       "description": "font weight 700 — numeric reference (the brand's literal axis value)",
       "value": 700,
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
-      "name": "font/weight/800",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "font weight 800 — numeric reference (the brand's literal axis value)",
-      "value": 800,
       "alias": null,
       "hiddenFromPublishing": true
     },
