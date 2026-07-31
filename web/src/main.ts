@@ -20,7 +20,7 @@
  * combination is caught and surfaced with the last-good render preserved.
  */
 import { brandTheme, ALL_MODES, normalizeDisabledStrategy } from '../../Prism3/engine/theme';
-import type { BrandInput, Theme, GradientInput } from '../../Prism3/engine/theme';
+import type { BrandInput, Theme, GradientInput, TypeComposite } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
 import { leverManifest, leverGroups } from '../../Prism3/engine/levers';
@@ -3042,21 +3042,47 @@ const rampSample = (group: string, px: number): string =>
 
 /** The full semantic ramp — every generated style at true size, grouped by category.
  *  Resolves through the active mode's family / weight / leading / tracking. */
+/** The full ramp, EVERY MODE SIDE BY SIDE (owner decision, #268 follow-up).
+ *
+ *  It used to render one mode — whichever `currentMode` was — so a per-mode deviation was only
+ *  visible if you already suspected it and went looking. That is the wrong default for a dimension
+ *  the engine can vary five different ways (`families`, `weights`, `lineHeights`, `letterSpacings`,
+ *  `typeSizes`), and it is what made per-mode SIZES (#328/#347) effectively invisible in the UI.
+ *  Showing all modes at once makes the mode axis a property of the table rather than of the session.
+ *
+ *  Every row shows every mode — including modes where nothing differs. Confirming "identical
+ *  everywhere" is usually the thing you actually want, and a table whose shape shifts as you edit is
+ *  harder to read than a wider one that doesn't.
+ *
+ *  This does NOT retire the mode switcher on Styles: the editors above still resolve against
+ *  `currentMode` and WRITE per-mode overrides. Seeing every mode removes the need to switch for
+ *  READING, never for EDITING (#268). */
 const renderTypeRamp = (): HTMLElement => {
   const ty = theme.typography;
-  const fams = ty.familiesByMode?.[currentMode] ?? ty.families;
-  const wrs = ty.weightRolesByMode?.[currentMode] ?? ty.weightRoles;
-  // #296 — the rungs are mode-invariant, so read them straight. What varies per mode is WHICH rung a
-  // composite uses: `lineHeightByMode` / `trackingByMode` carry the re-point. Resolving the key first
-  // and the value second is what keeps the preview honest about the two tiers.
-  const stackOf = (r: string): string => fams.find((f) => f.role === r)?.stack.join(', ') ?? 'inherit';
-  const wOf = (r: string): number => wrs.find((w) => w.role === r)?.value ?? 400;
-  const lhKey = (c: { lineHeight: string; lineHeightByMode?: Record<string, string> }): string => c.lineHeightByMode?.[currentMode] ?? c.lineHeight;
-  const lsKey = (c: { tracking: string; trackingByMode?: Record<string, string> }): string => c.trackingByMode?.[currentMode] ?? c.tracking;
+  const modes = rp.modes;
+  // Resolve the whole composite FOR ONE MODE. Each axis falls back to the brand-level value, which is
+  // what makes an untouched mode render identically rather than blank.
+  // #296 — the rungs are mode-invariant, so read them straight. What varies is WHICH rung a composite
+  // uses; resolving the key first and the value second keeps the preview honest about the two tiers.
   const lhOf = (k: string): number => ty.lineHeights.find((l) => l.key === k)?.value ?? 1.5;
   const lsOf = (k: string): number => ty.letterSpacings.find((l) => l.key === k)?.em ?? 0;
+  const inMode = (c: TypeComposite, m: string) => {
+    const fams = ty.familiesByMode?.[m] ?? ty.families;
+    const wrs = ty.weightRolesByMode?.[m] ?? ty.weightRoles;
+    const lhKey = c.lineHeightByMode?.[m] ?? c.lineHeight;
+    const lsKey = c.trackingByMode?.[m] ?? c.tracking;
+    // #347 — a re-sized rung carries its OWN mobile endpoint, so read the pair together. Taking
+    // sizeMinPx from the brand while sizePx came from the mode would print an incoherent fluid range.
+    const sizePx = c.sizeByMode?.[m] ?? c.sizePx;
+    const sizeMinPx = c.sizeMinByMode?.[m] ?? (c.sizeByMode?.[m] !== undefined ? sizePx : c.sizeMinPx);
+    return {
+      sizePx, sizeMinPx, lhKey, lsKey,
+      stack: fams.find((f) => f.role === c.family)?.stack.join(', ') ?? 'inherit',
+      weight: wrs.find((w) => w.role === c.weightRole)?.value ?? 400,
+    };
+  };
 
-  const sec = palSection('The full type ramp', `Every style the system generates — ${ty.composites.length} in total, grouped by category. This is what ships as tokens.`);
+  const sec = palSection('The full type ramp', `Every style the system generates — ${ty.composites.length} in total, grouped by category — resolved in all ${modes.length} ${modes.length === 1 ? 'mode' : 'modes'} side by side. This is what ships as tokens.`);
   for (const g of TYPE_GROUP_ORDER) {
     const comps = ty.composites.filter((c) => c.group === g);
     if (!comps.length) continue;
@@ -3069,19 +3095,31 @@ const renderTypeRamp = (): HTMLElement => {
       const row = el('div', 'tr-row');
       const meta = el('div', 'tr-meta');
       meta.append(tokenPill(`type.${c.path}`));
-      const fluidTag = c.sizeMinPx !== c.sizePx ? ` · fluid ${c.sizeMinPx}→${c.sizePx}` : '';
-      meta.append(el('span', 'tr-attr mono', `${c.sizePx}px · ${c.weightRole} ${wOf(c.weightRole)} · ${lhKey(c)} ${lhOf(lhKey(c))}× · ${lsKey(c)} ${lsOf(lsKey(c))}em · ${c.family}${fluidTag}`));
+      meta.append(el('span', 'tr-attr mono', `${c.weightRole} · ${c.family}`));
       row.append(meta);
-      const samp = el('div', 'tr-samp', rampSample(c.group, c.sizePx));
-      samp.style.fontFamily = stackOf(c.family);
-      samp.style.fontSize = `${c.sizePx}px`;
-      samp.style.fontWeight = String(wOf(c.weightRole));
-      samp.style.lineHeight = String(lhOf(lhKey(c)));
-      samp.style.letterSpacing = `${lsOf(lsKey(c))}em`;
-      if (c.link) samp.style.textDecoration = 'underline';
-      if (c.italic) samp.style.fontStyle = 'italic';
-      if (c.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
-      row.append(samp);
+      // One column per mode. Scrolls horizontally rather than wrapping: a wrapped column would read as
+      // a new row, which is precisely the confusion a side-by-side table exists to remove.
+      const cols = el('div', 'tr-modes');
+      cols.style.gridTemplateColumns = `repeat(${modes.length}, minmax(220px, 1fr))`;
+      for (const m of modes) {
+        const v = inMode(c, m);
+        const col = el('div', 'tr-mode');
+        col.append(el('span', 'tr-mode-n', m));
+        const fluidTag = v.sizeMinPx !== v.sizePx ? ` · fluid ${v.sizeMinPx}→${v.sizePx}` : '';
+        col.append(el('span', 'tr-attr mono', `${v.sizePx}px · ${v.weight} · ${v.lhKey} ${lhOf(v.lhKey)}× · ${v.lsKey} ${lsOf(v.lsKey)}em${fluidTag}`));
+        const samp = el('div', 'tr-samp', rampSample(c.group, v.sizePx));
+        samp.style.fontFamily = v.stack;
+        samp.style.fontSize = `${v.sizePx}px`;
+        samp.style.fontWeight = String(v.weight);
+        samp.style.lineHeight = String(lhOf(v.lhKey));
+        samp.style.letterSpacing = `${lsOf(v.lsKey)}em`;
+        if (c.link) samp.style.textDecoration = 'underline';
+        if (c.italic) samp.style.fontStyle = 'italic';
+        if (c.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
+        col.append(samp);
+        cols.append(col);
+      }
+      row.append(cols);
       block.append(row);
     }
     sec.append(block);
@@ -4753,6 +4791,13 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .tr-attr{font-size:10.5px;color:var(--faint)}
 /* true size; padding keeps descenders inside the clip box even at tight leading */
 .tr-samp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:.24em;margin-top:2px}
+/* Per-mode ramp columns — one per mode, side by side. Scrolls horizontally rather than wrapping: a
+   wrapped column reads as a new row, which is the confusion the side-by-side table exists to remove.
+   min-width:0 on the column is what actually lets the sample's ellipsis work inside a grid track. */
+.tr-modes{display:grid;gap:14px;overflow-x:auto;padding-bottom:2px}
+.tr-mode{min-width:0;border-left:1px solid var(--line);padding-left:11px}
+.tr-mode:first-child{border-left:0;padding-left:0}
+.tr-mode-n{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);margin-bottom:2px}
 @media(max-width:760px){.tf-grid{grid-template-columns:1fr}.lt-grid{grid-template-columns:1fr}}
 /* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
    1fr track never clamps and the widest child drags the whole column past the viewport.
