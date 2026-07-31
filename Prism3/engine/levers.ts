@@ -95,7 +95,7 @@ export const leverManifest: Lever[] = [
   // ---- TYPE ----
   { key: 'typography.typeScale', group: 'type', label: 'Type scale', control: 'enum', default: 'default',
     options: enumOpts(['compact', 'Compact'], ['default', 'Default'], ['expressive', 'Expressive']),
-    description: 'Shifts heading sizes (display + title) up/down the ladder; body/label/caption stay put.' },
+    description: 'Shifts heading sizes (display, title and eyebrow) up/down the ladder; body/label/caption/code stay put.' },
   { key: 'typography.families', group: 'type', label: 'Font families', control: 'object',
     description: 'Display / text / mono faces (+ a variable-font flag). A single name auto-pads a system fallback stack.' },
   { key: 'typography.weightRoles', group: 'type', label: 'Weight roles → numeric', control: 'object', advanced: true,

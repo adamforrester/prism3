@@ -1667,7 +1667,7 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/12",
+          "variable": "font/size/14",
           "collection": "core-font",
           "resolvedType": "FLOAT"
         },
@@ -1717,8 +1717,8 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "font-fluid/eyebrow/md/emphasis",
+          "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {

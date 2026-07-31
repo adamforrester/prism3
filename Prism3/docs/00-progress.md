@@ -7,6 +7,40 @@
 
 ---
 
+## (2026-07-31) — `typeScale` shifts eyebrow too (#328, PR B follow-up)
+
+**STATUS: engine + web.** Owner-directed after PR B (#344) merged. Closes the open question that PR
+left flagged: eyebrow was a heading category for *fluid* and *per-mode* purposes but not for the
+*scale preset*, so "heading category" meant two different things depending on which lever you asked.
+
+- **The design argument, which is the real one.** A kicker sits **directly above** a display or title
+  and is read as a pair with it. Leave eyebrow out of the shift and an `expressive` brand grows its
+  titles a rung while the kicker stays put — breaking the very pairing that makes an eyebrow an
+  eyebrow. Consistency was the weaker justification; the pairing is the actual reason.
+- **Verified safe before building, not after.** Strictly increasing under all three scales with no
+  collisions: compact `11/12/18`, default `12/14/20`, expressive `14/16/24`. That mattered because
+  the monotonic guard now **throws** (#341) rather than dropping — a collision would have failed the
+  build, not silently lost a rung.
+- **"Shift it but floor it at 12" was never available.** Flooring `sm` at 12 under compact collides
+  with the shifted `md` (also 12) and the guard rejects the build, breaking every compact brand
+  starting with harbor. That is the `titleFloor` bug from #341 in a new costume. The choice was
+  binary — accept 11px under compact, or don't shift — and the artifact churn is exactly two brands.
+- **On the 11px.** Not a new smallest size: `caption.md` is 11px by default in every brand. But
+  eyebrow is uppercase and tracked `wider`, which is harder at the same px than lowercase caption,
+  and `compact` is an explicit opt-in to density. Recorded as a known tradeoff rather than a
+  non-issue.
+- **Correction to PR B's write-up.** That PR reported `main.ts:2372` as *still accurate* — it says the
+  three levers never move eyebrow, which was true only because `typeScale` excluded it. This change
+  makes it false, so the string PR B deliberately left alone is now fixed. The check was right at the
+  time; the conclusion had a one-PR shelf life.
+- **A claim from PR B that deserves narrowing.** The 12px eyebrow fluid floor was described as a
+  legibility guard. It is **defensive only** — the static threshold (14) sits above it, so nothing
+  that shrinks can land below 12 and the floor never binds. Still correct to keep; it was oversold.
+- **Blast radius:** harbor (compact) `11/12/18` and aurora (expressive) `14/16/24`. NB and wendys run
+  the default scale and are unchanged, so the regression target does not move.
+
+---
+
 ## (2026-07-31) — Eyebrow becomes a heading category (#328, PR B)
 
 **STATUS: engine + web + fixtures.** Stacked on PR A (#341). Eyebrow gains three sized rungs and the

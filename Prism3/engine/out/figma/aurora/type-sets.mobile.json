@@ -93,13 +93,23 @@
       "alias": null
     },
     {
+      "name": "font-fluid/eyebrow/md/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "eyebrow md emphasis — 14→16px fluid Clash Display (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+      "value": 14,
+      "alias": null
+    },
+    {
       "name": "font-fluid/eyebrow/lg/emphasis",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
       ],
-      "description": "eyebrow lg emphasis — 18→20px fluid Clash Display (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
-      "value": 18,
+      "description": "eyebrow lg emphasis — 20→24px fluid Clash Display (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+      "value": 20,
       "alias": null
     }
   ]

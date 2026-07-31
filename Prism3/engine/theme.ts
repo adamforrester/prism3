@@ -863,7 +863,12 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   };
   for (const group of Object.keys(TYPE_VARIANTS) as TypeGroup[]) {
     if (!boundRoles.has(familyMap[group])) continue;   // unbound family role ⇒ no composites
-    const isHeading = group === 'display' || group === 'title';
+    // The heading SYSTEM, not just the heading hierarchy (#328): eyebrow shifts with display/title
+    // because a kicker sits directly above one and is read as a pair with it. Leave it out and an
+    // `expressive` brand grows its titles a rung while the kicker stays put, which breaks the very
+    // pairing that makes an eyebrow an eyebrow. Reading/UI text (body/label/caption/code) still
+    // never moves — that boundary is the one the scale preset exists to respect.
+    const isHeading = group === 'display' || group === 'title' || group === 'eyebrow';
     let prev = -Infinity;
     // title floor: a fixed 16px brand-font heading, PINNED (exempt from the
     // typeScale shift) so titleFloor:16 always delivers a literal 16px title that
@@ -874,7 +879,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
       // membership, decided once here and never re-applied per mode (#328). Trimming from
       // the end is what keeps the surviving names stable: no rung is ever renumbered.
       if (group === 'display' && i > ceilingIdx) continue;
-      // typeScale shifts headings only (display + title); reading/UI text stays put.
+      // typeScale shifts the heading SYSTEM only (display + title + eyebrow); reading/UI text stays put.
       const sizePx = isHeading ? shiftPx(base) : base;
       // The ramp must be STRICTLY INCREASING. This used to `continue` — silently dropping
       // the colliding rung and leaving a gap mid-ramp (`compact` lost title.sm). Dropping a
