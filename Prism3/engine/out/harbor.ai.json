@@ -6104,6 +6104,7 @@
         "grid.md.gutter",
         "grid.sm.gutter",
         "grid.sm.margin",
+        "icon.size.xs",
         "size.md.padding-x",
         "size.sm.padding-x",
         "size.xl.padding-y",
@@ -6116,6 +6117,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "icon.size.sm",
         "space.250"
       ]
     },
@@ -6129,6 +6131,7 @@
         "grid.lg.margin",
         "grid.md.margin",
         "grid.xl.gutter",
+        "icon.size.md",
         "size.lg.padding-x",
         "size.xl.padding-x",
         "space.300"
@@ -6148,6 +6151,7 @@
       "aliased_by": [
         "grid.2xl.gutter",
         "grid.xl.margin",
+        "icon.size.lg",
         "size.xs.height",
         "space.400"
       ]
@@ -6164,6 +6168,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "icon.size.xl",
         "size.sm.height",
         "space.500"
       ]

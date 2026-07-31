@@ -69,6 +69,40 @@ export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
   });
 };
 
+// ---------------------------------------------------------------------------
+// ICON SIZES (#324). The one dimension tier that is deliberately NOT parametric.
+//
+// Every other scale here is derived from a lever — space from `spaceBase`, sizes from `density`,
+// radius from `radiusScale`. Icons are not, and that is the finding rather than an omission. The
+// field research (KB `components/icon.md` §2) is unusually firm:
+//
+//   "Icons are drawn on a square, base-4/base-8 artboard so vector points land on the hardware
+//    pixel grid and strokes don't blur between pixels. The field standardises on a small fixed
+//    set — 16 / 20 / 24 (Carbon adds 32; Atlassian 12/16; Polaris 20) — and PROHIBITS arbitrary
+//    sizes. Off-grid scaling is the first thing an icon system must forbid."
+//
+// and on the API shape: "`size` — ENUMERATED (sm/md/lg), mapping to the fixed pixel grid, NOT
+// arbitrary integers — so the glyph snaps to the grid and can't be scaled off it."
+//
+// So a brand-variable icon ramp would break the rule the research exists to state. What IS derived
+// is the tier's structure: every step must land on the brand's `dimension` grid, and the emitted
+// token aliases `dimension.<px>` rather than carrying a loose literal — asserted in `test.ts`, not
+// assumed. `baseUnit` 4 (default) puts all five on the grid; a coarser `baseUnit` is checked at emit.
+//
+// The ladder pairs 1:1 with `componentSizes`' xs…xl (32/40/48/56/64), so the component layer's
+// control-size → icon-size mapping is the identity rather than a reconciliation between a 4-step
+// and a 5-step scale. The ratio is a clean 0.5 through md and eases off above it (0.57, 0.63) —
+// a 64px control with a 32px glyph reads sparse, so the top steps intentionally run larger than half.
+// 40 extends the field set by one on-grid step for hero / empty-state use; the KB's icon-vs-
+// illustration boundary is about NARRATIVE content ("larger, narrative, its own component"),
+// not a pixel threshold, so a 40px UI metaphor glyph is still an icon.
+export type IconSizeStep = { name: string; px: number };
+export const ICON_SIZES: IconSizeStep[] = [
+  { name: 'xs', px: 16 }, { name: 'sm', px: 20 }, { name: 'md', px: 24 },
+  { name: 'lg', px: 32 }, { name: 'xl', px: 40 },
+];
+export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }));
+
 // Radius base ramp (px at scale=1) — a small bounded, genuinely-semantic set, so
 // t-shirt naming holds (both NB and Prism2 name it this way).
 const RADIUS_LADDER: { name: string; factor: number }[] = [

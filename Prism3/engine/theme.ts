@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, iconSizes, IconSizeStep } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 
@@ -94,6 +94,10 @@ export type Dims = {
   space: SpaceStep[];        // reference tier — numbered multiplier, density-free
   radius: RadiusStep[];
   sizes: SizeStep[];         // component tier — t-shirt, density acts here
+  // Icon tier (#324) — a FIXED enumerated ladder, not derived from a lever. The field research
+  // prohibits arbitrary/off-grid icon sizes, so this is invariant across brands, modes and density;
+  // what varies is only whether the brand's grid can express it (checked at emit).
+  icons: IconSizeStep[];
   density: Density;
   radiusScaleValue: number;
   spaceBase: number;
@@ -399,10 +403,15 @@ const buildDims = (baseUnit: number, spaceBase: number, density: Density, rScale
   // land on the grid, so committed out/* is byte-identical.
   const space = spaceScale(spaceBase);
   return {
-    grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px)]),
+    // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit
+    // (e.g. 6) the fixed icon ladder lands OFF the grid, and `icon.size.<k> -> {dimension.<px>}`
+    // would dangle. Feeding them in makes every icon alias resolve by construction. At baseUnit 4
+    // they are already grid members, so committed out/* is unaffected.
+    grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px), ...iconSizes().map((i) => i.px)]),
     space,
     radius: radiusScale(rScale, baseMd, 128),
     sizes: componentSizes(density, spaceBase),
+    icons: iconSizes(),
     density,
     radiusScaleValue: rScale,
     spaceBase,
