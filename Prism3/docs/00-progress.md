@@ -7,6 +7,68 @@
 
 ---
 
+## (2026-07-31) — `size.*.padding-x-visual`: the label side and the visual side are not the same distance (#326)
+
+**STATUS: engine.** `out/*` regenerated — strictly additive, one new leaf per size step (`60 0` on the
+numstat for `nb.tokens.json`: sixty insertions, zero deletions). Artifact count **unchanged at 88**.
+
+**Built stacked on `claude/325-size-gap`, not `main`,** because #338 (#325) was still under review and
+both PRs restructure the same `SizeStep` shape and the same size-emit path. Once #338 squash-merged this
+was rebased with `git rebase --onto origin/main <old-base>` and re-verified — recorded because a stacked
+branch that nobody rebases is how a merge produces a diff nobody wrote, and because GitHub's squash
+leaves the old base *not* an ancestor of `main`, so the rebase is mandatory rather than cosmetic.
+
+**The gap.** `size.*.padding-x` was a single number applied to both ends of a control. But an icon's own
+bounding box already carries apparent space inside it, so the *same* numeric padding reads as visibly
+looser on the visual side than on the text side. Every control with a leading icon was therefore
+slightly wrong, and no token existed to say so.
+
+**Three independent systems converge here**, which is what makes it field consensus rather than one
+vendor's house style: Material 3 (`leading-space` 24 vs `with-leading-icon-leading-space` 16),
+Spectrum (`edge-to-text` and `edge-to-visual` on separate scales), Carbon (a 1px ghost nudge). Nobody
+who has built this at scale ships one horizontal padding.
+
+**Two open questions in the issue, both settled empirically rather than by preference:**
+
+*Naming* — `padding-x-visual`, keeping the `padding-x` stem so the pair sorts adjacently in every
+consumer that lists tokens alphabetically. `padding-x-icon` was rejected: the distinction is optical,
+not "is this glyph an icon", and it applies equally to an avatar or a swatch.
+
+*Ratio, not a fixed step* — Material subtracts a constant 8px. That **collapses at the small end**:
+`padX` 8 − 8 = 0, no padding at all. Two-thirds **snapped to the space scale** holds its shape at every
+size and every `spaceBase`, and snapping keeps the value ON the scale so the emitted token aliases
+`space.*` like its siblings instead of minting an off-scale literal. At lg/comfortable this lands on
+**24/16 — Material's own pair, arrived at independently**, which is the reassurance that the ratio
+isn't a coincidence of one rhythm.
+
+**The contract is an ordering, not three numbers.** The horizontal model, left edge inward, is
+`[padXVisual][icon][gap][label][padX]`, and the whole optical story is one chain:
+
+    gap  <  padXVisual  <  padX
+
+tightest inside the group (proximity, #325), looser where a glyph contributes its own apparent space,
+loosest against plain text. **It holds across all 45 cases** (3 `spaceBase` × 3 densities × 5 sizes),
+and *that* is what `test.ts` locks — deliberately not the literal values, which would pass just as
+happily if the ordering inverted and someone updated the expectations to match.
+
+**Additive, and proven so rather than asserted.** `padding-x` keeps its exact prior meaning and values,
+so no existing binding moves. Verified two ways: a test pinning the per-density `padX` ladders, and a
+`git stash` diff of the emitted values before/after — identical.
+
+**Tamper-tested (four ways, all bite):** `padXVisual = padX` breaks the chain at every step;
+`padXVisual = gap` breaks the lower bound; `+1` off the snap breaks *both* the chain and the space-alias
+assertion; and implementing it as a *mutation* of `padX` (the tempting shortcut) fails all three
+additive assertions at once. Each tamper also trips the `design.md` byte-identity check, which is the
+drift gate doing its job on a live-vs-committed comparison.
+
+**Sequencing, same as #325:** this earns its keep when #327 (anatomy) binds it. Emitted and unbound it
+is a loose token, and the honest framing is that #326 exists so #327 has something correct to bind to.
+
+**Verified:** 1042 → **1047** tests; nb-regression PASS; `regen --check` 88/88; web + plugin typecheck
+and builds clean.
+
+---
+
 ## (2026-07-31) — Font weight primitives are minted from need (#328 items 3+8)
 
 **STATUS: engine.** First of the settled #328 decisions to be built. Every artifact change is a

@@ -29,6 +29,19 @@
       }
     },
     {
+      "name": "size/xs/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.xs horizontal inset on the VISUAL side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/075"
+      }
+    },
+    {
       "name": "size/xs/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -78,6 +91,19 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "space/100"
+      }
+    },
+    {
+      "name": "size/sm/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.sm horizontal inset on the VISUAL side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/075"
       }
     },
     {
@@ -133,6 +159,19 @@
       }
     },
     {
+      "name": "size/md/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.md horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/150"
+      }
+    },
+    {
       "name": "size/md/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -185,6 +224,19 @@
       }
     },
     {
+      "name": "size/lg/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.lg horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/150"
+      }
+    },
+    {
       "name": "size/lg/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -234,6 +286,19 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "space/300"
+      }
+    },
+    {
+      "name": "size/xl/padding-x-visual",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.xl horizontal inset on the VISUAL side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/200"
       }
     },
     {
