@@ -18,11 +18,13 @@
 import type { ReadbackSnapshot, ReadValue } from '../../Prism3/engine/read-back';
 import type { VariablesApi, VariableAlias, ReadVarValue } from './write-figma';
 
-/** The minimal styles-read surface (shadow/gradient lane) — just the two name getters. `figma`
- *  structurally satisfies it; passing it is optional so the colour/FLOAT read stays standalone. */
+/** The minimal styles-read surface (shadow/gradient + typography lanes) — the style-name getters.
+ *  `figma` structurally satisfies it; passing it is optional so the colour/FLOAT read stays standalone.
+ *  `getLocalTextStylesAsync` is optional so a pre-#237 caller (styles only) still satisfies the port. */
 export interface StylesReadApi {
   getLocalEffectStylesAsync(): Promise<{ name: string }[]>;
   getLocalPaintStylesAsync(): Promise<{ name: string }[]>;
+  getLocalTextStylesAsync?(): Promise<{ name: string }[]>;
 }
 
 const isAlias = (v: ReadVarValue): v is VariableAlias =>
@@ -96,13 +98,39 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
       });
   }
 
-  // STYLE axes (shadow/gradient lane) — local Effect + Paint style NAMES (name-level readback; styles
+  // TYPOGRAPHY (#237) — the `core-font`/`type-sets` collections, same per-mode shape as FLOAT (family
+  // STRING values are surfaced as strings; weight-role aliases → target NAME). Keyed by collection name.
+  const FONT_COLLECTIONS = ['core-font', 'type-sets'];
+  const font: NonNullable<ReadbackSnapshot['font']> = {};
+  for (const name of FONT_COLLECTIONS) {
+    const coll = collections.find((c) => c.name === name);
+    if (!coll) continue;
+    const modeNameF = new Map(coll.modes.map((m) => [m.modeId, m.name] as const));
+    font[name] = allVars
+      .filter((v) => v.variableCollectionId === coll.id)
+      .map((v) => {
+        const valuesByMode: Record<string, ReadValue> = {};
+        for (const [modeId, mName] of modeNameF) {
+          const raw = v.valuesByMode[modeId];
+          if (raw === undefined) continue;
+          if (isAlias(raw)) valuesByMode[mName] = { alias: nameById.get(raw.id) ?? null };
+          else if (typeof raw === 'number') valuesByMode[mName] = raw;
+          // STRING family values (`typeof raw === 'string'`) aren't surfaced in ReadValue — the
+          // name-level verify only needs presence + the weight-role alias graph. Skip defensively.
+        }
+        return { name: v.name, scopes: v.scopes, hidden: v.hiddenFromPublishing, valuesByMode };
+      });
+  }
+
+  // STYLE + TEXT-STYLE NAMES — local Effect + Paint + Text style NAMES (name-level readback; styles
   // hold resolved values, no alias graph). Only read when a styles API is supplied.
   let stylesSnap: ReadbackSnapshot['styles'] | undefined;
+  let textStyles: string[] | undefined;
   if (styles) {
     const effects = (await styles.getLocalEffectStylesAsync()).map((s) => s.name);
     const paints = (await styles.getLocalPaintStylesAsync()).map((s) => s.name);
     stylesSnap = { effects, paints };
+    if (styles.getLocalTextStylesAsync) textStyles = (await styles.getLocalTextStylesAsync()).map((s) => s.name);
   }
 
   return {
@@ -110,6 +138,8 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
     palette,
     color,
     ...(Object.keys(float).length ? { float } : {}),
+    ...(Object.keys(font).length ? { font } : {}),
     ...(stylesSnap ? { styles: stylesSnap } : {}),
+    ...(textStyles ? { textStyles } : {}),
   };
 };

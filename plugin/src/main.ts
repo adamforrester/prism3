@@ -15,11 +15,12 @@
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { UiToMain } from './messages';
-import { applyWritePlan, applyFloatPlan } from './write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-figma';
 import { applyStylesPlan } from './write-styles';
+import { applyTextStylePlan } from './write-text-styles';
 import { readFigmaVariables } from './read-figma';
 import { buildFigmaColor } from '../../Prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan } from '../../Prism3/engine/write-plan';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '../../Prism3/engine/write-plan';
 import { verifyReadback } from '../../Prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
 import { brandTheme } from '../../Prism3/engine/theme';
@@ -76,16 +77,33 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
     // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
     const s = await applyStylesPlan(buildStylesPlan(theme), figma);
+    // TYPOGRAPHY (#237): core-font/type-sets variables first (bound targets must exist), then Text
+    // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
+    const tv = await applyVarCollectionPlan(buildFontVarPlan(theme), figma.variables);
+    const textApi = {
+      getLocalTextStylesAsync: figma.getLocalTextStylesAsync.bind(figma),
+      createTextStyle: figma.createTextStyle.bind(figma),
+      loadFontAsync: figma.loadFontAsync.bind(figma),
+      getLocalVariablesAsync: figma.variables.getLocalVariablesAsync.bind(figma.variables),
+    };
+    const ts = await applyTextStylePlan(buildTextStylePlan(theme), textApi);
     // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
     // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
     persistInput(figma.root, input);
     const floatCreated = f.collections.reduce((n, c) => n + c.created, 0);
-    const misses = r.misses.length + f.misses.length;
+    const fontVarCreated = tv.collections.reduce((n, c) => n + c.created, 0);
+    const fontVarTotal = tv.collections.reduce((n, c) => n + c.total, 0);
+    const misses = r.misses.length + f.misses.length + tv.misses.length + ts.misses.length;
+    const skippedNote = ts.skipped.length
+      ? `, ⚠️ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
+      : '';
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}), ` +
-      `${r.bound + f.bound} aliases bound` + (misses ? `, ${misses} misses` : '');
+      `type ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
+      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + skippedNote;
+    // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false.
     postToUi({ type: 'apply-result', ok: misses === 0, summary });
   } catch (e) {
     postToUi({ type: 'apply-result', ok: false, summary: `write failed: ${(e as Error).message}` });

@@ -470,6 +470,99 @@ fresh agent reads first, and this cluster has no other entry point.
 
 ---
 
+## (2026-07-30) — Typography WRITE: the plugin materialises core-font/type-sets + Text Styles (#237)
+
+**STATUS: in review (branch `feat/237-write-typography`); static gates green, LIVE DRIVE DONE
+(2026-07-31, Prism Test File v2).** The FINAL write axis. The plugin now writes the entire
+generated system into Figma: colour (#108), FLOAT vars (#146/#148), shadow/gradient Styles (#151), and
+now **typography** — `core-font`/`type-sets` variables + Text Styles.
+
+- **Node-free extraction — `engine/emit-figma-font.ts`** (new): `buildFigmaFont` (→ `core-font` per-mode:
+  STRING family + FLOAT size/weight + FLOAT weight-role aliased), `buildFigmaFontFluid` (→ `type-sets`
+  mobile/desktop), `buildFigmaTextStyles` (→ Text Styles) moved out of the I/O-shell `emit-figma.ts`,
+  which re-exports them (same pattern as color/dims/styles). `out/*` byte-identical; the #269/#276/#297
+  typeface-tier retiering is engine-internal and didn't move the emit output. Dropped a now-dead
+  `subNode` import from the shell.
+- **Pure plans — `write-plan.ts`**: `buildFontVarPlan` (→ `VarCollectionPlan[]`; `core-font` mixes
+  STRING+FLOAT+alias in one collection, so rows carry a per-row `resolvedType`) + `buildTextStylePlan`
+  (→ `TextStyleRow[]`; named bound vars for fontFamily/fontSize/fontWeight + baked fontStyle/lineHeight/
+  letterSpacing, plus `fontFamilyPrimary` resolved from the core-font family var for `loadFontAsync`).
+- **Executors**: `write-figma.ts` — widened `VariablesApi` (`createVariable` adds `'STRING'`;
+  `setValueForMode` adds `string`) + `applyVarCollectionPlan` (generalises `applyFloatPlan` to mixed-type
+  N-collection, two-pass, alias-binding). New `write-text-styles.ts` — `TextStylesApi` port +
+  `applyTextStylePlan`: **font fallback = SKIP-WITH-WARNING** (owner decision) — `loadFontAsync` in
+  try/catch, on failure the style is skipped + recorded, never substituted, never a throw that aborts;
+  bound props wired via `setBoundVariable` after the baked literal fallback. First write that must LOAD a
+  resource (the #113 name-resolution concern made concrete).
+- **Wiring**: `main.ts` runs the font vars then Text Styles after the styles write (order matters — bound
+  targets must exist); summary widens + surfaces skipped fonts; skipped fonts don't flip `ok=false`. Light
+  read-back: `font?`/`textStyles?` snapshot + `verifyTypographyReadback` (name-level; empty textStyles is a
+  warning not a failure, consistent with skip-with-warning).
+
+**Gates: engine +12 (font-plan + text-style-plan + verify cases, incl. italic) — 991→1003 as built,
+1113→1125 after the 2026-07-31 rebase onto `608e078`; `regen --check` in sync over 89 artifacts; `out/*`
+byte-identical; plugin two-context typecheck clean; plugin `npm test` write+read+persist+float+styles+
+**typography** all green (the shim exercises BOTH the font-load-success AND the load-fail→skip paths — 38
+styles created / 114 bindings when available, 10 skipped-with-reason / 28 created when one font is
+withheld, no throw); web tsc+build clean; `dist/main.js`+`ui.html` 0 `node:` builtins. Independent code
+review: "Ship it, no Critical/Important" — hardest on the mixed-type var executor + the font-load-skip
+executor, both confirmed correct; two latent read-back nice-to-haves addressed (empty-textStyles is
+non-punitive; per-mode-family path documented as unexercised).**
+
+**The counts here are plan-derived, so a rebase moves them.** As built the plan was 45 vars / 36 styles /
+108 bindings; rebasing onto #328 (eyebrow becomes a heading category) added an `eyebrow/lg` fluid row and
+two eyebrow styles, making it 46 / 38 / 114. Nothing in the executors changed — but the live drive had to
+be **re-run**, because a drive is evidence about a specific plan and the rebase replaced the plan. Worth
+expecting on any write-lane branch that sits across a typography-shaped merge.
+
+**LIVE DRIVE — 2026-07-31, Prism Test File v2 (re-run on the rebase onto `608e078`).** Driven with the
+SHIPPED executors, not a re-implementation: `applyVarCollectionPlan` + `applyTextStylePlan` bundled by
+esbuild (2.7KB, 0 `node:`) and run through `figma_execute` with the real `buildFontVarPlan`/
+`buildTextStylePlan` output injected as JSON — the same pure-plan-over-a-serializable-boundary shape
+production uses, and the same `textApi` wiring as `main.ts:83-88` verbatim. **Every live number matched
+the shim exactly**: 46 font vars created (core-font 35 / type-sets 11), 5 alias bindings, 38/38 Text
+Styles, 114 bound props, 0 skipped, 0 misses. Re-run: **+0 created on both passes**, no duplicate names,
+`type-sets` still exactly 2 modes (the `addMode` loop doesn't accumulate). File restored to its exact
+baseline afterwards (285 vars, 2 collections, 0 Text Styles, empty page).
+
+The re-run tightened one assertion worth keeping: read-back now checks each binding against the
+**variable name the plan asked for**, not merely that the id resolves to something — 114/114 correct.
+Resolvability alone would pass even if two rows' bindings were transposed.
+
+**What the live drive proved that the shim could not** — the reason this gate exists (#148 precedent):
+- **The binding chain is real end-to-end.** Applying `display/lg/strong` to a real text node and flipping
+  the frame's `type-sets` mode moved the RENDERED `fontSize` **40 → 80 → 40**, matching the plan's
+  `[40, 80]`, with the binding still intact afterwards. That exercises plan → STRING/FLOAT var → per-mode
+  value → `setBoundVariable` → rendered text in one observable step; the shim can only assert the call
+  was made.
+- **`modesDistinct` holds on the fluid axis** — `font-fluid/display/lg/strong` reads 40 (mobile) /
+  80 (desktop) from the real API, so the #84 mode-collapse bug does not recur here.
+- **`weight-role/*` is a genuine `VARIABLE_ALIAS`** to `font/weight/700` in the document, not a baked
+  literal that merely happens to equal it. The STRING family var comes back correctly typed, scoped
+  `FONT_FAMILY`, hidden, valued `"Inter"`.
+- **The skip path against the REAL `loadFontAsync`**, including a case no shim was modelling: a *real*
+  family with a *nonexistent style* (`Inter` / `Ultra Hairline Oblique`) skips just like an absent family
+  and like an empty family string. 3 of 4 skipped with reasons, control style still written with all 3
+  bindings, no throw, and the skipped styles are **absent** from the document — never a substituted
+  wrong face.
+- **Float32 storage, not a plan bug:** a written `lineHeight` of 115 reads back as
+  `114.99999761581421` (105 → `104.99999523162842`). Worth knowing before someone "fixes" the emit; any
+  exact-equality read-back assertion on PERCENT units will fail for this reason.
+- **Eight styles applied to real text nodes + screenshot**: the weight ladder, the `strong-link`
+  underline, `UPPER` on eyebrow, the 5% tracking, and `JetBrains Mono` on `code/inline` are all visually
+  correct — the baked literals and the bound props agree on the canvas, not just in the API.
+
+Three harness slips, all mine and all instructive for the next drive: the first attempt passed
+`figma.getLocalVariablesAsync` (it lives on `figma.variables` — the shipped `main.ts` already had this
+right, so the drive caught my harness, not the code); `layoutSizingHorizontal` was set before appending
+to the auto-layout parent; and on the re-run I tried to serve the 28KB payload over `127.0.0.1` and
+`fetch` it from the plugin sandbox — **the Desktop Bridge manifest has no `allowedDomains`, so the
+sandbox cannot reach localhost at all.** The way through is a compact tuple encoding of the plan expanded
+back inside the sandbox (46 rows + 38 styles fits in ~8KB that way, versus ~24KB as full objects), which
+keeps the drive inside the `figma_execute` payload budget without splitting it into many calls. Zero
+errors originated in the executors across every pass. This COMPLETES the plugin write scope (only
+variable-linked gradient stops #236 remains, a minor fast-follow).
+
 ## (2026-07-30) — The rail becomes a Pages menu below 900 (#144 follow-up)
 
 **STATUS: web-only.** Engine untouched. Owner-directed after reviewing the deploy on a phone; the
