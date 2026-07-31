@@ -91,6 +91,16 @@
       "description": "title 2xl strong — 40→48px fluid Clash Display (display role), snug line-height, strong weight, snug tracking — consumer-facing type style",
       "value": 48,
       "alias": null
+    },
+    {
+      "name": "font-fluid/eyebrow/lg/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "eyebrow lg emphasis — 18→20px fluid Clash Display (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+      "value": 20,
+      "alias": null
     }
   ]
 }

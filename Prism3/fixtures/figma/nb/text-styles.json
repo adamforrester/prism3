@@ -8,18 +8,18 @@
   "generatedFrom": "Figma Plugin API — figma.getLocalTextStylesAsync() + variable resolution",
   "note": "Snapshot of the 36 text styles imported from Prism3/engine/out/nb.tokens.json into Figma. Each property records whether it is bound to a Figma variable, which variable, and the resolved value across every mode of that variable's collection. Non-bindable properties (textDecoration, textCase) are always baked. fontStyle is currently baked because the engine has no fontStyle primitive — it is derived from the numeric weight-role at import time.",
   "summary": {
-    "total": 36,
-    "fluid": 10,
-    "static": 26,
+    "total": 38,
+    "fluid": 11,
+    "static": 27,
     "withUnderline": 10,
-    "withUpperCase": 1,
+    "withUpperCase": 3,
     "byGroup": {
       "display": 6,
       "title": 6,
       "body": 12,
       "label": 2,
       "caption": 8,
-      "eyebrow": 1,
+      "eyebrow": 3,
       "code": 1
     }
   },
@@ -2347,8 +2347,8 @@
       }
     },
     {
-      "name": "text/eyebrow/emphasis",
-      "description": "eyebrow emphasis — uppercase, wider tracking",
+      "name": "text/eyebrow/sm/emphasis",
+      "description": "eyebrow sm emphasis — uppercase, wider tracking",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -2393,6 +2393,141 @@
           "value": {
             "unit": "PIXELS",
             "value": 0.6
+          }
+        },
+        "paragraphSpacing": {
+          "bound": false,
+          "value": 0
+        },
+        "paragraphIndent": {
+          "bound": false,
+          "value": 0
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "UPPER"
+        }
+      }
+    },
+    {
+      "name": "text/eyebrow/md/emphasis",
+      "description": "eyebrow md emphasis — uppercase, wider tracking",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "font/family/display",
+          "collection": "font",
+          "type": "STRING",
+          "resolvedByMode": {
+            "Default": "Inter"
+          }
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Semi Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "font/size/14",
+          "collection": "font",
+          "type": "FLOAT",
+          "resolvedByMode": {
+            "Default": 14
+          }
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "font/weight-role/emphasis",
+          "collection": "font",
+          "type": "FLOAT",
+          "resolvedByMode": {
+            "Default": 600
+          }
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PIXELS",
+            "value": 16.1
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PIXELS",
+            "value": 0.7
+          }
+        },
+        "paragraphSpacing": {
+          "bound": false,
+          "value": 0
+        },
+        "paragraphIndent": {
+          "bound": false,
+          "value": 0
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "UPPER"
+        }
+      }
+    },
+    {
+      "name": "text/eyebrow/lg/emphasis",
+      "description": "eyebrow lg emphasis — uppercase, wider tracking",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "font/family/display",
+          "collection": "font",
+          "type": "STRING",
+          "resolvedByMode": {
+            "Default": "Inter"
+          }
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Semi Bold"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "font-fluid/eyebrow/lg/emphasis",
+          "collection": "font-fluid",
+          "type": "FLOAT",
+          "resolvedByMode": {
+            "mobile": 18,
+            "desktop": 20
+          }
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "font/weight-role/emphasis",
+          "collection": "font",
+          "type": "FLOAT",
+          "resolvedByMode": {
+            "Default": 600
+          }
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PIXELS",
+            "value": 23.0
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PIXELS",
+            "value": 1.0
           }
         },
         "paragraphSpacing": {

@@ -7,6 +7,50 @@
 
 ---
 
+## (2026-07-31) — Eyebrow becomes a heading category (#328, PR B)
+
+**STATUS: engine + web + fixtures.** Stacked on PR A (#341). Eyebrow gains three sized rungs and the
+fluid behavior of the heading system it belongs to.
+
+- **What it was.** `eyebrow: [['', 12]]` — a single **sizeless** rung, and the only composite path in
+  the system with no size segment (`type.eyebrow.<weight>`). Paths are now
+  `type.eyebrow.<size>.<weight>`. That is a **breaking token rename**, taken deliberately while
+  adoption is zero rather than deferred to when it costs something.
+- **Why three rungs and not two.** `sm=12, md=14, lg=20`. An earlier draft proposed `sm=12, md=14`
+  mirroring `label`, and that was wrong twice over: label is a UI-text category (eyebrow belongs to
+  the heading system), and with only 12/14 **nothing ever clears the fluid threshold**, so the rule
+  below would have been dead code and the hero-kicker case — the entire reason for the change —
+  would not have been served.
+- **Fluid is not a new mechanism and not an exception.** `title` already implements exactly
+  "fluid above a threshold, static at or below it" (`desktopPx <= 20 ? static : one rung down,
+  floor 20`). Eyebrow takes the same shape with its own numbers: static ≤14, else one rung down,
+  floor 12. So `sm`/`md` never move across breakpoints and only the hero kicker does. The 12px floor
+  is lower than title's 20 because the rungs are smaller, but it exists for a sharper reason —
+  eyebrow is uppercase and tracked `wider`, which costs legibility that lowercase body text at the
+  same px does not pay.
+- **`typeScale` still does NOT shift eyebrow — deliberate, and worth a second opinion.** `isHeading`
+  remains display + title. The argument for leaving it: `typeScale` tunes the heading *hierarchy*, and
+  an eyebrow is an accessory label rather than a level in it; including it would also move every
+  brand's eyebrow sizes under a non-default scale, which is beyond what #328 approved. The argument
+  against: "eyebrow is a heading category" now means two different things depending on which lever
+  you ask. Flagged rather than silently decided.
+- **A prose claim that turned out to still be true.** Two web strings assert eyebrow never moves.
+  `main.ts:1843` (responsive sizing) is now false and is fixed. `main.ts:2372` says the *three levers*
+  never move eyebrow — and since `typeScale` still excludes it and ceiling/floor are display/title
+  only, that one is **still accurate** and was left alone. Checking beat pattern-matching here.
+- **Fixture honesty.** `fixtures/figma/nb/text-styles.json` is not hand-authored guesswork and not an
+  independent source: its own metadata says *"Snapshot of the 36 text styles imported from
+  `Prism3/engine/out/nb.tokens.json` into Figma"* — a round-trip of engine output, so it moves with
+  the engine (same conclusion as the font fixture in #337, but stated in the file this time). **The
+  three new eyebrow entries are derived from emitter output, not from an actual Figma import** — the
+  ratios (`lineHeight` 1.15×size, `letterSpacing` 0.05×size) are reconstructed from the existing 12px
+  entry, which is exactly what the test reconstructs them from. They should be refreshed on the next
+  real Figma round-trip. `font-fluid.{mobile,desktop}.json` gain the one new fluid variable (18/20).
+- **Next:** PR C — the per-mode rung-size axis over display/title/eyebrow, with per-category floors
+  (title 16, display 32, eyebrow 12) and non-inversion validation. Scope: #328 comment 5143891943.
+
+---
+
 ## (2026-07-31) — the CLI paste path could only write color (#342, items 1–2)
 
 **STATUS: engine.** **No artifact changes** — `regen --check` still 88/88. This is wiring, not new

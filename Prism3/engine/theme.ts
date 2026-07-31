@@ -748,7 +748,12 @@ const TYPE_VARIANTS: Record<TypeGroup, [string, number][]> = {
   body: [['sm', 14], ['md', 16], ['lg', 18]],
   label: [['sm', 12], ['md', 14]],
   caption: [['md', 11], ['lg', 12]],          // small print; lg=12 (standard), md=11 (denser). sm=10 (fine print) is a future opt-in.
-  eyebrow: [['', 12]],
+  // Eyebrow is part of the HEADING system, not the UI-text system (#328): a kicker sits above a
+  // title and scales with the heading it accompanies. It was a single SIZELESS rung, which made
+  // `type.eyebrow.<weight>` the only composite path with no size segment. Three rungs now — `lg`
+  // exists specifically for the hero kicker, which is also what makes the fluid rule below do
+  // anything (with only 12/14 nothing would ever clear the threshold).
+  eyebrow: [['sm', 12], ['md', 14], ['lg', 20]],
   code: [['inline', 14]],
 };
 const TYPE_SCALE_SHIFT = { compact: -1, default: 0, expressive: 1 } as const;
@@ -775,7 +780,13 @@ const DISPLAY_MOBILE: Record<number, number> = {
 const mobileEndpoint = (ladder: number[], group: TypeGroup, desktopPx: number): number => {
   if (group === 'display') return Math.min(desktopPx, DISPLAY_MOBILE[desktopPx] ?? Math.max(oneRungDown(ladder, desktopPx), 32));
   if (group === 'title') return desktopPx <= 20 ? desktopPx : Math.min(desktopPx, Math.max(oneRungDown(ladder, desktopPx), 20));
-  return desktopPx;   // body / label / caption / eyebrow / code — static (field consensus)
+  // Eyebrow follows title's shape with its own numbers (#328) — fluid ABOVE a threshold, static at
+  // or below it. Not a new mechanism and not an exception: `title` above is already exactly
+  // "small ones don't move, large ones do". So sm=12/md=14 never shift across breakpoints and only
+  // a hero kicker does. Floor 12 because it is uppercase and tracked wider, which costs legibility
+  // that lowercase body text at the same px does not pay.
+  if (group === 'eyebrow') return desktopPx <= 14 ? desktopPx : Math.min(desktopPx, Math.max(oneRungDown(ladder, desktopPx), 12));
+  return desktopPx;   // body / label / caption / code — static (field consensus)
 };
 // Bigger heading → tighter line-height (display tightest; small titles open up).
 const lineHeightFor = (group: TypeGroup, px: number): string => {

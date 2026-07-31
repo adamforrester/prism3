@@ -11677,43 +11677,149 @@
         }
       },
       "eyebrow": {
-        "emphasis": {
-          "$type": "typography",
-          "$value": {
-            "fontFamily": "{nbds.font.family.display}",
-            "fontSize": "{nbds.font.size.12}",
-            "fontWeight": "{nbds.font.weight-role.emphasis}",
-            "lineHeight": "{nbds.font.line-height.snug}",
-            "letterSpacing": "{nbds.font.letter-spacing.wider}",
-            "textCase": "uppercase"
-          },
-          "$description": "eyebrow emphasis — 12px Inter (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
-          "$extensions": {
-            "prism3": {
-              "role": "composite",
-              "group": "eyebrow",
-              "variant": "",
-              "weightRole": "emphasis",
-              "sizePx": 12,
-              "textCase": "uppercase",
-              "responsive": {
-                "fluid": false,
-                "px": 12
-              },
-              "figma": {
-                "kind": "text-style",
-                "styleType": "TEXT",
-                "binds": [
-                  "fontFamily",
-                  "fontSize",
-                  "fontWeight"
-                ],
-                "baked": [
-                  "lineHeight",
-                  "letterSpacing",
-                  "textCase"
-                ],
-                "note": "Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table."
+        "sm": {
+          "emphasis": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{nbds.font.family.display}",
+              "fontSize": "{nbds.font.size.12}",
+              "fontWeight": "{nbds.font.weight-role.emphasis}",
+              "lineHeight": "{nbds.font.line-height.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing.wider}",
+              "textCase": "uppercase"
+            },
+            "$description": "eyebrow sm emphasis — 12px Inter (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "eyebrow",
+                "variant": "sm",
+                "weightRole": "emphasis",
+                "sizePx": 12,
+                "textCase": "uppercase",
+                "responsive": {
+                  "fluid": false,
+                  "px": 12
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontWeight"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textCase"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table."
+                }
+              }
+            }
+          }
+        },
+        "md": {
+          "emphasis": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{nbds.font.family.display}",
+              "fontSize": "{nbds.font.size.14}",
+              "fontWeight": "{nbds.font.weight-role.emphasis}",
+              "lineHeight": "{nbds.font.line-height.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing.wider}",
+              "textCase": "uppercase"
+            },
+            "$description": "eyebrow md emphasis — 14px Inter (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "eyebrow",
+                "variant": "md",
+                "weightRole": "emphasis",
+                "sizePx": 14,
+                "textCase": "uppercase",
+                "responsive": {
+                  "fluid": false,
+                  "px": 14
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontWeight"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textCase"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table."
+                }
+              }
+            }
+          }
+        },
+        "lg": {
+          "emphasis": {
+            "$type": "typography",
+            "$value": {
+              "fontFamily": "{nbds.font.family.display}",
+              "fontSize": "{nbds.font.size.20}",
+              "fontWeight": "{nbds.font.weight-role.emphasis}",
+              "lineHeight": "{nbds.font.line-height.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing.wider}",
+              "textCase": "uppercase"
+            },
+            "$description": "eyebrow lg emphasis — 18→20px fluid Inter (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$extensions": {
+              "prism3": {
+                "role": "composite",
+                "group": "eyebrow",
+                "variant": "lg",
+                "weightRole": "emphasis",
+                "sizePx": 20,
+                "textCase": "uppercase",
+                "responsive": {
+                  "fluid": true,
+                  "min": {
+                    "px": 18,
+                    "rem": 1.125,
+                    "ref": "{nbds.font.size.18}"
+                  },
+                  "max": {
+                    "px": 20,
+                    "rem": 1.25,
+                    "ref": "{nbds.font.size.20}"
+                  },
+                  "web": "clamp(1.125rem, 1.0732rem + 0.221vw, 1.25rem)",
+                  "figma": {
+                    "field": "fontSize",
+                    "scope": "FONT_SIZE",
+                    "modes": {
+                      "mobile": 18,
+                      "desktop": 20
+                    }
+                  }
+                },
+                "figma": {
+                  "kind": "text-style",
+                  "styleType": "TEXT",
+                  "binds": [
+                    "fontFamily",
+                    "fontSize",
+                    "fontWeight"
+                  ],
+                  "baked": [
+                    "lineHeight",
+                    "letterSpacing",
+                    "textCase"
+                  ],
+                  "note": "Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table."
+                }
               }
             }
           }

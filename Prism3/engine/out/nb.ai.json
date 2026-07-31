@@ -3424,14 +3424,42 @@
         "textDecoration": "underline"
       }
     },
-    "type.eyebrow.emphasis": {
+    "type.eyebrow.sm.emphasis": {
       "$description": "Eyebrow / kicker — small uppercase label above a heading.",
-      "meaning": "Type style — eyebrow emphasis (12px, display face, uppercase)",
+      "meaning": "Type style — eyebrow sm emphasis (12px, display face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
       "resolves_to": {
         "fontFamily": "{nbds.font.family.display}",
         "fontSize": "{nbds.font.size.12}",
+        "fontWeight": "{nbds.font.weight-role.emphasis}",
+        "lineHeight": "{nbds.font.line-height.snug}",
+        "letterSpacing": "{nbds.font.letter-spacing.wider}",
+        "textCase": "uppercase"
+      }
+    },
+    "type.eyebrow.md.emphasis": {
+      "$description": "Eyebrow / kicker — small uppercase label above a heading.",
+      "meaning": "Type style — eyebrow md emphasis (14px, display face, uppercase)",
+      "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
+      "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
+      "resolves_to": {
+        "fontFamily": "{nbds.font.family.display}",
+        "fontSize": "{nbds.font.size.14}",
+        "fontWeight": "{nbds.font.weight-role.emphasis}",
+        "lineHeight": "{nbds.font.line-height.snug}",
+        "letterSpacing": "{nbds.font.letter-spacing.wider}",
+        "textCase": "uppercase"
+      }
+    },
+    "type.eyebrow.lg.emphasis": {
+      "$description": "Eyebrow / kicker — small uppercase label above a heading.",
+      "meaning": "Type style — eyebrow lg emphasis (20px, display face, uppercase)",
+      "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
+      "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
+      "resolves_to": {
+        "fontFamily": "{nbds.font.family.display}",
+        "fontSize": "{nbds.font.size.20}",
         "fontWeight": "{nbds.font.weight-role.emphasis}",
         "lineHeight": "{nbds.font.line-height.snug}",
         "letterSpacing": "{nbds.font.letter-spacing.wider}",
@@ -3485,7 +3513,9 @@
       "avoid_when": "Do not hard-code the numeric (600); reference the role.",
       "resolves_to": "{nbds.font.weight.600}",
       "used_by": [
-        "type.eyebrow.emphasis",
+        "type.eyebrow.lg.emphasis",
+        "type.eyebrow.md.emphasis",
+        "type.eyebrow.sm.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis"
       ]
@@ -5239,7 +5269,9 @@
         "type.display.md.strong",
         "type.display.sm.strong",
         "type.display.xl.strong",
-        "type.eyebrow.emphasis",
+        "type.eyebrow.lg.emphasis",
+        "type.eyebrow.md.emphasis",
+        "type.eyebrow.sm.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis",
         "type.title.2xl.strong",
@@ -5288,7 +5320,7 @@
         "type.caption.lg.default-link",
         "type.caption.lg.strong",
         "type.caption.lg.strong-link",
-        "type.eyebrow.emphasis",
+        "type.eyebrow.sm.emphasis",
         "type.label.sm.emphasis"
       ]
     },
@@ -5303,6 +5335,7 @@
         "type.body.sm.strong",
         "type.body.sm.strong-link",
         "type.code.inline.default",
+        "type.eyebrow.md.emphasis",
         "type.label.md.emphasis"
       ]
     },
@@ -5328,6 +5361,7 @@
         "type.body.lg.default-link",
         "type.body.lg.strong",
         "type.body.lg.strong-link",
+        "type.eyebrow.lg.emphasis",
         "type.title.xs.strong"
       ]
     },
@@ -5337,6 +5371,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "type.eyebrow.lg.emphasis",
         "type.title.md.strong",
         "type.title.sm.strong"
       ]
@@ -5508,7 +5543,9 @@
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
         "font.weight-role.emphasis",
-        "type.eyebrow.emphasis",
+        "type.eyebrow.lg.emphasis",
+        "type.eyebrow.md.emphasis",
+        "type.eyebrow.sm.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis"
       ]
@@ -5573,7 +5610,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
-        "type.eyebrow.emphasis",
+        "type.eyebrow.lg.emphasis",
+        "type.eyebrow.md.emphasis",
+        "type.eyebrow.sm.emphasis",
         "type.label.md.emphasis",
         "type.label.sm.emphasis",
         "type.title.2xl.strong",
@@ -5712,7 +5751,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
-        "type.eyebrow.emphasis"
+        "type.eyebrow.lg.emphasis",
+        "type.eyebrow.md.emphasis",
+        "type.eyebrow.sm.emphasis"
       ]
     },
     "shadow.xs": {

@@ -121,6 +121,18 @@
       "value": 40,
       "alias": null,
       "codeSyntax": {}
+    },
+    {
+      "id": "VariableID:6:eyebrow-lg",
+      "name": "font-fluid/eyebrow/lg/emphasis",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "FONT_SIZE"
+      ],
+      "description": "",
+      "value": 20,
+      "alias": null,
+      "codeSyntax": {}
     }
   ]
 }

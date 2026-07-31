@@ -1652,8 +1652,8 @@
       }
     },
     {
-      "name": "eyebrow/emphasis",
-      "description": "eyebrow emphasis",
+      "name": "eyebrow/sm/emphasis",
+      "description": "eyebrow sm emphasis",
       "properties": {
         "fontFamily": {
           "bound": true,
@@ -1669,6 +1669,106 @@
           "bound": true,
           "variable": "font/size/12",
           "collection": "core-font",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "font/weight-role/emphasis",
+          "collection": "core-font",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "UPPER"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "eyebrow/md/emphasis",
+      "description": "eyebrow md emphasis",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "font/family/display",
+          "collection": "core-font",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Medium"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "font/size/14",
+          "collection": "core-font",
+          "resolvedType": "FLOAT"
+        },
+        "fontWeight": {
+          "bound": true,
+          "variable": "font/weight-role/emphasis",
+          "collection": "core-font",
+          "resolvedType": "FLOAT"
+        },
+        "lineHeight": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 115
+          }
+        },
+        "letterSpacing": {
+          "bound": false,
+          "value": {
+            "unit": "PERCENT",
+            "value": 5
+          }
+        },
+        "textCase": {
+          "bindable": false,
+          "value": "UPPER"
+        },
+        "textDecoration": {
+          "bindable": false,
+          "value": "NONE"
+        }
+      }
+    },
+    {
+      "name": "eyebrow/lg/emphasis",
+      "description": "eyebrow lg emphasis",
+      "properties": {
+        "fontFamily": {
+          "bound": true,
+          "variable": "font/family/display",
+          "collection": "core-font",
+          "resolvedType": "STRING"
+        },
+        "fontStyle": {
+          "bound": false,
+          "value": "Medium"
+        },
+        "fontSize": {
+          "bound": true,
+          "variable": "font-fluid/eyebrow/lg/emphasis",
+          "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
