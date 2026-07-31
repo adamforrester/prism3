@@ -7,6 +7,44 @@
 
 ---
 
+## (2026-07-31) — Font weight primitives are minted from need (#328 items 3+8)
+
+**STATUS: engine.** First of the settled #328 decisions to be built. Every artifact change is a
+**deletion** — four dead `font.weight.*` leaves per brand, and the Figma vars that mirrored them.
+
+- **The change is one expression.** `theme.ts` hardcoded `weightsRef: [100…900]` for every brand
+  regardless of use; it now emits the distinct values the five weight **roles** actually point at.
+  Because `weight-role.<role>` is the only thing that aliases `font.weight.<n>`, the role values *are*
+  the complete referenced set by construction — there is no second referrer to miss. The per-mode union
+  (`theme.ts:1649`) is unchanged and still layers on top, which is what keeps a mode's deviating numeric
+  resolvable.
+- **Verified per brand, not in aggregate:** emitted set ≡ referenced set with zero broken aliases for all
+  four. The load-bearing case is **Aurora**, which mints `500` where the others mint `600` — it sets a
+  custom `emphasis`, so it proves the set is brand-driven rather than a new hardcoded five. A test that
+  only ran NB would not have distinguished those two outcomes.
+- **The trap this walked into, and why the test changed.** The existing per-mode union test used
+  `weights: { strong: 600 }` — but 600 is the `emphasis` default, so once weights are minted from need the
+  primitive exists *anyway* and the assertion passes without testing the union at all. It is re-pointed at
+  **500**, a value no default role owns, so it now fails if the union is ever dropped. This is the #281
+  shape again in miniature: a gate that still passes after the thing it guards is removed.
+- **On the fixture deletion — read this before assuming it was wrong.** `fixtures/figma/nb/font.json`
+  loses four vars, and the block above it in `test.ts` calls the NB fixtures "the FROZEN real NB Token
+  Press export", where `missing === 0` is the byte-repro guarantee. That comment describes the
+  **color/palette** fixtures. The numeric 100–900 axis was never New Balance's: the legacy hand-built
+  export under `Tokens/New Balance/` has *named* weights (`medium`, `regular`, `book-condensed`) and no
+  numeric axis, and the font fixture's composition — 3 family roles + the engine's 22-step ladder + 5
+  weight-roles named subtle/default/emphasis/strong/max — is pure engine structure. It is an engine
+  snapshot, so it moves with the engine. Anyone re-checking this should verify against `Tokens/New
+  Balance/`, not against the comment.
+- **Not in scope, deliberately.** Numeric → Figma style-name resolution (`SemiBold` vs `Semi Bold`) stays
+  an emitter/plugin problem — #237 resolves against the plugin's loaded-font list, #113 is the open
+  research. This change only shortens the list that has to be resolved.
+- **Next from #328, in order:** responsive sizing → Layout (item 2, agreed) and leading & tracking →
+  semantic tab (item 4, agreed). Items 5/6 remain blocked on the set-shaping → size-clamping
+  prerequisite, which has an unresolved sub-decision — see the entry below and #328.
+
+---
+
 ## (2026-07-31) — Mode-switcher audit: the decisions live in issues, this is the thread to pull
 
 **STATUS: no code change.** Investigation + decision record. Recorded here because the log is what a

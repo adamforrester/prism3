@@ -10997,36 +10997,6 @@
         }
       },
       "weight": {
-        "100": {
-          "$type": "fontWeight",
-          "$value": 100,
-          "$description": "font weight 100 — numeric reference (the brand's literal axis value)",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "figma": {
-                "kind": "variable",
-                "field": "fontWeight",
-                "scope": "FONT_WEIGHT"
-              }
-            }
-          }
-        },
-        "200": {
-          "$type": "fontWeight",
-          "$value": 200,
-          "$description": "font weight 200 — numeric reference (the brand's literal axis value)",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "figma": {
-                "kind": "variable",
-                "field": "fontWeight",
-                "scope": "FONT_WEIGHT"
-              }
-            }
-          }
-        },
         "300": {
           "$type": "fontWeight",
           "$value": 300,
@@ -11057,21 +11027,6 @@
             }
           }
         },
-        "500": {
-          "$type": "fontWeight",
-          "$value": 500,
-          "$description": "font weight 500 — numeric reference (the brand's literal axis value)",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "figma": {
-                "kind": "variable",
-                "field": "fontWeight",
-                "scope": "FONT_WEIGHT"
-              }
-            }
-          }
-        },
         "600": {
           "$type": "fontWeight",
           "$value": 600,
@@ -11091,21 +11046,6 @@
           "$type": "fontWeight",
           "$value": 700,
           "$description": "font weight 700 — numeric reference (the brand's literal axis value)",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "figma": {
-                "kind": "variable",
-                "field": "fontWeight",
-                "scope": "FONT_WEIGHT"
-              }
-            }
-          }
-        },
-        "800": {
-          "$type": "fontWeight",
-          "$value": 800,
-          "$description": "font weight 800 — numeric reference (the brand's literal axis value)",
           "$extensions": {
             "prism3": {
               "generated": true,

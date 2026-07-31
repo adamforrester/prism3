@@ -303,30 +303,6 @@
       "codeSyntax": {}
     },
     {
-      "id": "VariableID:6:28",
-      "name": "font/weight/100",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "",
-      "value": 100,
-      "alias": null,
-      "codeSyntax": {}
-    },
-    {
-      "id": "VariableID:6:29",
-      "name": "font/weight/200",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "",
-      "value": 200,
-      "alias": null,
-      "codeSyntax": {}
-    },
-    {
       "id": "VariableID:6:30",
       "name": "font/weight/300",
       "resolvedType": "FLOAT",
@@ -351,18 +327,6 @@
       "codeSyntax": {}
     },
     {
-      "id": "VariableID:6:32",
-      "name": "font/weight/500",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "",
-      "value": 500,
-      "alias": null,
-      "codeSyntax": {}
-    },
-    {
       "id": "VariableID:6:33",
       "name": "font/weight/600",
       "resolvedType": "FLOAT",
@@ -383,18 +347,6 @@
       ],
       "description": "",
       "value": 700,
-      "alias": null,
-      "codeSyntax": {}
-    },
-    {
-      "id": "VariableID:6:35",
-      "name": "font/weight/800",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "FONT_WEIGHT"
-      ],
-      "description": "",
-      "value": 800,
       "alias": null,
       "codeSyntax": {}
     },

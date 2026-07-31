@@ -5844,18 +5844,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
     },
-    "font.weight.100": {
-      "$description": "font weight 100 — numeric reference (the brand's literal axis value)",
-      "meaning": "Font weight primitive — numeric 100 (reference tier)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
-    },
-    "font.weight.200": {
-      "$description": "font weight 200 — numeric reference (the brand's literal axis value)",
-      "meaning": "Font weight primitive — numeric 200 (reference tier)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
-    },
     "font.weight.300": {
       "$description": "font weight 300 — numeric reference (the brand's literal axis value)",
       "meaning": "Font weight primitive — numeric 300 (reference tier)",
@@ -5897,12 +5885,6 @@
         "type.label.sm.emphasis"
       ]
     },
-    "font.weight.600": {
-      "$description": "font weight 600 — numeric reference (the brand's literal axis value)",
-      "meaning": "Font weight primitive — numeric 600 (reference tier)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
-    },
     "font.weight.700": {
       "$description": "font weight 700 — numeric reference (the brand's literal axis value)",
       "meaning": "Font weight primitive — numeric 700 (reference tier)",
@@ -5932,12 +5914,6 @@
         "type.title.xl.strong",
         "type.title.xs.strong"
       ]
-    },
-    "font.weight.800": {
-      "$description": "font weight 800 — numeric reference (the brand's literal axis value)",
-      "meaning": "Font weight primitive — numeric 800 (reference tier)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
     },
     "font.weight.900": {
       "$description": "font weight 900 — numeric reference (the brand's literal axis value)",

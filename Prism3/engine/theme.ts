@@ -921,7 +921,12 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
     families,
     typefaces: deriveTypefaces(families),
     sizesPx: fontSizeLadder(),
-    weightsRef: [100, 200, 300, 400, 500, 600, 700, 800, 900],
+    // Minted from need, not the full 100–900 axis (#328): emit only the numerics some
+    // weight ROLE actually points at. Every `weight-role.<role>` aliases `font.weight.<n>`,
+    // so the role values ARE the complete set of referenced numerics — anything else was a
+    // dead leaf (default roles use 5 of 9). Per-mode weights union onto this below, which is
+    // what keeps a mode's deviating numeric resolvable.
+    weightsRef: [...new Set(WEIGHT_ROLE_ORDER.map((role) => wr[role]))].sort((a, b) => a - b),
     weightRoles: WEIGHT_ROLE_ORDER.map((role) => ({ role, value: wr[role] })),
     lineHeights: brandLineHeights(t),
     letterSpacings: brandLetterSpacings(t),
