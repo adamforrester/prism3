@@ -6353,6 +6353,7 @@
       "aliased_by": [
         "radius.lg",
         "size.sm.padding-y",
+        "size.xs.padding-x-visual",
         "space.075"
       ]
     },
@@ -6377,6 +6378,8 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "size.lg.gap",
+        "size.md.padding-x-visual",
+        "size.sm.padding-x-visual",
         "size.xl.gap",
         "space.150"
       ]
@@ -6391,8 +6394,10 @@
         "grid.sm.gutter",
         "grid.sm.margin",
         "icon.size.xs",
+        "size.lg.padding-x-visual",
         "size.md.padding-x",
         "size.sm.padding-x",
+        "size.xl.padding-x-visual",
         "size.xl.padding-y",
         "space.200"
       ]

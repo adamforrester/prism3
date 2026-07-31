@@ -6271,6 +6271,8 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "size.md.padding-y",
+        "size.sm.padding-x-visual",
+        "size.xs.padding-x-visual",
         "space.075"
       ]
     },
@@ -6297,6 +6299,8 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "radius.lg",
+        "size.lg.padding-x-visual",
+        "size.md.padding-x-visual",
         "size.xl.gap",
         "space.150"
       ]
@@ -6313,6 +6317,7 @@
         "icon.size.xs",
         "size.lg.padding-x",
         "size.md.padding-x",
+        "size.xl.padding-x-visual",
         "space.200"
       ]
     },

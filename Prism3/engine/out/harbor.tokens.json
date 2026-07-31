@@ -13748,6 +13748,18 @@
             }
           }
         },
+        "padding-x-visual": {
+          "$type": "dimension",
+          "$value": "{prism.space.075}",
+          "$description": "size.xs horizontal inset on the VISUAL side — 6px (an icon's own box adds apparent space, so it insets less than the 8px label side)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.075",
+              "px": 6
+            }
+          }
+        },
         "padding-y": {
           "$type": "dimension",
           "$value": "{prism.space.050}",
@@ -13796,6 +13808,18 @@
               "role": "semantic",
               "aliasOf": "prism.space.200",
               "px": 16
+            }
+          }
+        },
+        "padding-x-visual": {
+          "$type": "dimension",
+          "$value": "{prism.space.150}",
+          "$description": "size.sm horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.150",
+              "px": 12
             }
           }
         },
@@ -13850,6 +13874,18 @@
             }
           }
         },
+        "padding-x-visual": {
+          "$type": "dimension",
+          "$value": "{prism.space.150}",
+          "$description": "size.md horizontal inset on the VISUAL side — 12px (an icon's own box adds apparent space, so it insets less than the 16px label side)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.150",
+              "px": 12
+            }
+          }
+        },
         "padding-y": {
           "$type": "dimension",
           "$value": "{prism.space.100}",
@@ -13901,6 +13937,18 @@
             }
           }
         },
+        "padding-x-visual": {
+          "$type": "dimension",
+          "$value": "{prism.space.200}",
+          "$description": "size.lg horizontal inset on the VISUAL side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.200",
+              "px": 16
+            }
+          }
+        },
         "padding-y": {
           "$type": "dimension",
           "$value": "{prism.space.100}",
@@ -13949,6 +13997,18 @@
               "role": "semantic",
               "aliasOf": "prism.space.300",
               "px": 24
+            }
+          }
+        },
+        "padding-x-visual": {
+          "$type": "dimension",
+          "$value": "{prism.space.200}",
+          "$description": "size.xl horizontal inset on the VISUAL side — 16px (an icon's own box adds apparent space, so it insets less than the 24px label side)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.200",
+              "px": 16
             }
           }
         },

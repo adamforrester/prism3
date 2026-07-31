@@ -432,6 +432,45 @@ for (const b of brands) {
   ok(violations.length === 0, '#325 gap is always tighter than padding-x, at every size / density / spaceBase (proximity)'
     + (violations.length ? ` — VIOLATIONS: ${violations.slice(0, 4).join(', ')}` : ''));
 
+  // #326 — the THREE-WAY ordering, which is the whole optical model in one assertion:
+  //     gap  <  padXVisual  <  padX
+  // tightest inside the group; looser where a glyph's own bounding box already contributes apparent
+  // space; loosest against plain text. The ratios are tuning knobs — this chain is the contract, so it
+  // is what gets locked rather than the numbers (which would pass just as happily if the ordering
+  // inverted and someone had updated the expected values to match).
+  const chain: string[] = [];
+  for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+    for (const base of [4, 8, 12]) {
+      for (const z of componentSizes(d, base)) {
+        if (!(z.gap < z.padXVisual && z.padXVisual < z.padX))
+          chain.push(`${d}/base${base}/${z.name}: ${z.gap} < ${z.padXVisual} < ${z.padX}`);
+      }
+    }
+  }
+  ok(chain.length === 0, '#326 the ordering holds everywhere: gap < padding-x-visual < padding-x'
+    + (chain.length ? ` — BROKEN: ${chain.slice(0, 4).join(' | ')}` : ''));
+
+  // #326 is ADDITIVE — `padding-x` keeps its meaning (the label side) so no existing binding moves.
+  // The claim is only true if the visual-side value is a DIFFERENT leaf, never a mutation of padX.
+  for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+    const sizes = componentSizes(d, 8);
+    const padXs = sizes.map((z) => z.padX).join(',');
+    const expected = { compact: '8,8,16,16,24', comfortable: '8,16,16,24,24', spacious: '16,16,24,24,24' }[d];
+    ok(padXs === expected, `#326 ${d}: padding-x is unchanged by the split (${padXs})`);
+  }
+
+  // …and it must alias the space scale like its siblings, not mint an off-scale literal.
+  {
+    const built = buildTree(nbTheme());
+    const size = (built.tree as any)[Object.keys(built.tree)[0]].size;
+    const bad = Object.keys(size).filter((k) => {
+      const v = size[k]?.['padding-x-visual']?.$value;
+      return typeof v !== 'string' || !/^\{.+\.space\..+\}$/.test(v);
+    });
+    ok(bad.length === 0, '#326 every padding-x-visual aliases space.* rather than carrying a literal'
+      + (bad.length ? ` — LITERAL: ${bad.join(', ')}` : ''));
+  }
+
   // 2. The issue's own bar: "visibly proportionate across the sizes (not a constant)". A gap that is
   //    the same at every size would make the token pure overhead — space.* would do.
   const gaps = componentSizes('comfortable', 8).map((z) => z.gap);

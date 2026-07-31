@@ -21,7 +21,7 @@
 export type Density = 'comfortable' | 'compact' | 'spacious';
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };
-export type SizeStep = { name: string; height: number; padX: number; padY: number; gap: number };
+export type SizeStep = { name: string; height: number; padX: number; padY: number; padXVisual: number; gap: number };
 
 /** The primitive dimension grid (px): fine sub-steps for borders/hairlines, a
  *  base / 1.5×base / 2×base shoulder, then a `base`-spaced ladder to `max`. */
@@ -63,23 +63,45 @@ const SIZE_LADDER: { name: string; h: number; x: number; y: number }[] = [
  *  the name — so `size.md` stays `md` but renders tighter. */
 export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
   const shift = density === 'compact' ? -1 : density === 'spacious' ? 1 : 0;
+  const space = spaceScale(spaceBase).map((sp) => sp.px);
+  const snapToSpace = (v: number): number => space.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
   return SIZE_LADDER.map((s, i) => {
     const src = SIZE_LADDER[Math.min(SIZE_LADDER.length - 1, Math.max(0, i + shift))];
     const padX = Math.round(src.x * spaceBase);
-    // GAP (#325) — the label<->visual space, HALF the horizontal padding.
+    // The horizontal model, left edge inward: [padXVisual][icon][gap][label][padX].
     //
-    // Not an arbitrary ratio: it encodes proximity. Everything inside the control must sit closer to
-    // its neighbours than to the control's own edge, or the icon and label stop reading as one unit
-    // and start reading as two things that happen to share a box. So `gap < padX` is the property
-    // that matters — the exact fraction is a tuning knob, the inequality is the contract, and it is
-    // what `test.ts` asserts across every size and density rather than the literal numbers.
+    // Three values, one ordering, which is the whole optical story in a line:
     //
-    // Half specifically, rather than a third: at the smallest step a third rounds to 2px, which is
-    // not a gap so much as a rendering accident. Half yields 4/8/8/12/12 at the default spaceBase —
-    // every value already a step on the space scale, so the emitted token ALIASES `space.*` exactly
-    // as `padding-x` does. That is the whole answer to "won't teams just use spacing variables?":
-    // they are, and this names which one belongs here at this size.
-    return { name: s.name, height: Math.round(src.h * spaceBase), padX, padY: Math.round(src.y * spaceBase), gap: Math.round(padX / 2) };
+    //     gap  <  padXVisual  <  padX
+    //
+    //   · `gap` (#325) is tightest — PROXIMITY. Everything inside the control must sit closer to its
+    //     neighbours than to the control's own edge, or the icon and label stop reading as one unit
+    //     and start reading as two things that happen to share a box.
+    //   · `padXVisual` (#326) sits between — an icon's own bounding box already contributes apparent
+    //     space, so equal numeric padding reads as TOO MUCH on the visual side. Three independent
+    //     systems converge here, which is what makes it field consensus rather than one vendor's
+    //     house style: Material 3 (`leading-space` 24 vs `with-leading-icon-leading-space` 16),
+    //     Spectrum (`edge-to-text` vs `edge-to-visual`, separate scales), Carbon (a 1px ghost nudge).
+    //   · `padX` is loosest — plain text carries no bounding-box bonus.
+    //
+    // The RATIOS are tuning knobs; the ORDERING is the contract, and it is what `test.ts` asserts
+    // across every density × spaceBase × size rather than the literal numbers.
+    //
+    // Why these fractions specifically:
+    //   · gap = half. A third rounds to 2px at the smallest step — a rendering accident, not a gap.
+    //   · padXVisual = two-thirds, SNAPPED to the space scale, rather than Material's fixed 8px step:
+    //     a fixed step collapses at the small end (padX 8 − 8 = 0, no padding at all), while a ratio
+    //     holds its shape at every size and rhythm. Snapping keeps it ON the scale, so the emitted
+    //     token aliases `space.*` like its siblings instead of minting an off-scale literal.
+    //     At lg/comfortable this lands on 24/16 — Material's pair exactly, arrived at independently.
+    return {
+      name: s.name,
+      height: Math.round(src.h * spaceBase),
+      padX,
+      padXVisual: snapToSpace((padX * 2) / 3),
+      padY: Math.round(src.y * spaceBase),
+      gap: Math.round(padX / 2),
+    };
   });
 };
 
