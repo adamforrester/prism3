@@ -119,7 +119,17 @@
               }
             }
           },
-          "density": { "type": "string", "enum": ["comfortable", "compact", "spacious"], "description": "OPTIONAL. Per-mode component density — re-derives this mode's component-size tier (`size.*` control heights + paired padding) at the chosen density via the same componentSizes the global lever uses. The `space.*` reference scale is density-free, so it doesn't change; only the component tier does. A size sub-leaf (height / padding-x / padding-y) whose px differs from light carries a per-mode override." }
+          "density": { "type": "string", "enum": ["comfortable", "compact", "spacious"], "description": "OPTIONAL. Per-mode component density — re-derives this mode's component-size tier (`size.*` control heights + paired padding) at the chosen density via the same componentSizes the global lever uses. The `space.*` reference scale is density-free, so it doesn't change; only the component tier does. A size sub-leaf (height / padding-x / padding-y) whose px differs from light carries a per-mode override." },
+          "typeSizes": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "OPTIONAL (#328). Per-mode TYPE SIZE overrides per heading group. Heading groups ONLY — body, label, caption and code are mode-invariant by contract and are REJECTED here, not silently ignored. Names a NUMBER rather than a rung key (unlike the lineHeights/letterSpacings re-points) because a ladder STEP is itself the primitive: every step is always emitted, so any selection lands on a real leaf. Deep-validated by brandTheme() at resolve time (the rung exists in this brand's set; the value is a ladder step; it clears the group floor; and the MERGED per-mode ramp is strictly increasing). A re-sized rung recomputes its own mobile endpoint, so its fluid pair stays coherent. Omit for none (byte-identical).",
+            "properties": {
+              "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Per-mode display rung sizes, keyed by rung name (e.g. { \"3xl\": 96 }). Floor 32px — the smallest size this system emits for display anywhere." },
+              "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Per-mode title rung sizes, keyed by rung name (e.g. { \"2xl\": 32 }). Floor 16px — titleFloor's minimum." },
+              "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Per-mode eyebrow rung sizes, keyed by rung name (e.g. { \"lg\": 16 }). Floor 11px — what typeScale 'compact' already shifts eyebrow.sm to." }
+            }
+          }
         }
       }
     },

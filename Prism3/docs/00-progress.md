@@ -7,6 +7,52 @@
 
 ---
 
+## (2026-07-31) — Per-mode rung sizes (#328, PR C)
+
+**STATUS: engine + schema.** The last and most substantive piece of #328. A mode can now re-size
+heading rungs — `modeLevers.dark.typeSizes = { title: { '2xl': 36 } }` — while the rung **SET** stays
+mode-invariant. Sizes vary per mode; membership never does, because the set is fixed once at brand
+level by `displayCeiling`/`titleFloor` and is never re-derived per mode.
+
+- **Reused the existing re-point mechanism, did not invent one.** `lineHeightByMode`/`trackingByMode`
+  (#296) already had the exact shape: a per-mode alias swap emitted into
+  `$extensions.prism3.modes.<m>.$value`, with the primitives themselves mode-invariant. `sizeByMode`
+  is the third instance, not a new concept.
+- **Why this axis names a NUMBER when leading/tracking name a RUNG KEY.** Not an inconsistency. A
+  leading rung is a *named* primitive holding a brand-chosen value, so naming a number there would
+  re-anchor rather than re-point. A ladder **step is itself the primitive**, and all 22 steps are
+  always emitted — so any selection lands on a real leaf and no union mechanism is needed (contrast
+  per-mode weights, #337, which did need one).
+- **The bug this would have shipped, caught by design rather than by test.** A re-sized rung must
+  recompute its **own mobile endpoint**. Inheriting the brand-level `sizeMinPx` pairs a mode's 36px
+  title with the 36px floor derived from the 40px it replaced — a "fluid" pair that shrinks *upward*.
+  One call to the existing `mobileEndpoint`, and invisible if skipped since both numbers look sane in
+  isolation. Pinned by a test asserting **32→36**, not 36→40.
+- **THE SHARP EDGE, worth knowing before authoring one: shrinking a top rung CASCADES.** The ladder is
+  dense at the small end (…20, 24, 28, 32…), so `title.2xl: 32` collides with an untouched `xl` at 32,
+  and fixing that collides with `lg`, and so on down. Compressing `title` meaningfully means rewriting
+  the whole ramp. This is not hypothetical: **my first two fixture attempts were both rejected by my
+  own guard**, which is the single most useful thing that happened in this PR. Both cases are now
+  pinned as tests — the throw *and* the accepted full-cascade version.
+- **Validation THROWS, never drops.** Rejects: a non-heading group (body/label/caption/code — refused,
+  not ignored, in both the schema and `brandTheme`), a rung this brand doesn't ship, a non-ladder
+  value, a value below the group floor, and a non-increasing **merged** ramp. Merged is the point: you
+  collide with a rung you *didn't* touch, so checking overrides in isolation misses the real mistake.
+  A silently dropped per-mode request would be worse than the #341 ramp drop it echoes — it would only
+  be wrong in one mode's output.
+- **Floors are absolute (display 32, title 16, eyebrow 11), each equal to the smallest value the
+  brand-level machinery already produces for that group.** A cross-category rule (display ≥ title ≥
+  body) was considered and rejected again here: `titleFloor` 16 deliberately overlaps `body.md`, so a
+  relative rule would forbid a brand the engine already ships.
+- **`out/*` is byte-identical.** No brand fixture uses `modeLevers` at all, so the feature is covered
+  by unit tests rather than an artifact. Deliberate — adding a fixture that used it would have churned
+  artifacts across a brand for a demo. Worth revisiting when a real brand wants per-mode sizing.
+- **Not in this PR:** the web UI does not expose `typeSizes` (no `modeLevers` lever does). That waits
+  on the owner's per-mode Typography table direction, which may also settle whether that page needs a
+  mode switcher at all (#268).
+
+---
+
 ## (2026-07-31) — `typeScale` shifts eyebrow too (#328, PR B follow-up)
 
 **STATUS: engine + web.** Owner-directed after PR B (#344) merged. Closes the open question that PR

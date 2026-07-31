@@ -258,7 +258,7 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
   const preferred = `${interceptRem}rem + ${slopeVw}vw`;
   return { clamp: `clamp(${round(minPx / 16, 4)}rem, ${preferred}, ${round(maxPx / 16, 4)}rem)`, preferred };
 };
-const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; family: string; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string> }, face: string, minVW: number, maxVW: number): Token => {
+const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; family: string; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
   const a = (seg: string) => `{${root}.font.${seg}}`;
   const value: Record<string, unknown> = {
     fontFamily: a(`family.${c.family}`),
@@ -289,8 +289,26 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
   const rungModes: Record<string, Record<string, string>> = {};
   for (const [m, key] of Object.entries(c.lineHeightByMode ?? {})) (rungModes[m] ??= {}).lineHeight = a(`line-height.${key}`);
   for (const [m, key] of Object.entries(c.trackingByMode ?? {})) (rungModes[m] ??= {}).letterSpacing = a(`letter-spacing.${key}`);
+  // #328 — a per-mode SIZE re-points fontSize at a different ladder step, exactly as leading/tracking
+  // re-point their rungs. Every step primitive keeps one value across all modes; only the alias moves.
+  for (const [m, px] of Object.entries(c.sizeByMode ?? {})) (rungModes[m] ??= {}).fontSize = a(`size.${px}`);
   const modeVariants = Object.keys(rungModes).length
-    ? { modes: Object.fromEntries(Object.entries(rungModes).map(([m, parts]) => [m, { $value: { ...value, ...parts }, note: `leading/tracking re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})` }])) }
+    ? { modes: Object.fromEntries(Object.entries(rungModes).map(([m, parts]) => [m, {
+        $value: { ...value, ...parts },
+        // A re-sized rung carries its OWN fluid pair — the brand-level one was derived from the size
+        // this mode replaced, so reusing it would pair a smaller desktop value with a larger mobile
+        // floor. Absent when the mode only re-points leading/tracking, which don't affect size.
+        ...(c.sizeByMode?.[m] !== undefined && c.sizeMinByMode?.[m] !== undefined
+          ? { responsive: c.sizeMinByMode[m] !== c.sizeByMode[m]
+              ? { fluid: true,
+                  min: { px: c.sizeMinByMode[m], rem: round(c.sizeMinByMode[m] / 16, 4), ref: `{${root}.font.size.${c.sizeMinByMode[m]}}` },
+                  max: { px: c.sizeByMode[m], rem: round(c.sizeByMode[m] / 16, 4), ref: `{${root}.font.size.${c.sizeByMode[m]}}` },
+                  web: fluidClamp(c.sizeMinByMode[m], c.sizeByMode[m], minVW, maxVW).clamp,
+                  figma: { field: 'fontSize', scope: 'FONT_SIZE', modes: { mobile: c.sizeMinByMode[m], desktop: c.sizeByMode[m] } } }
+              : { fluid: false, px: c.sizeByMode[m] } }
+          : {}),
+        note: `${Object.keys(parts).includes('fontSize') ? 'size' : ''}${Object.keys(parts).some((k) => k !== 'fontSize') ? `${Object.keys(parts).includes('fontSize') ? ' + ' : ''}leading/tracking` : ''} re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})`,
+      }])) }
     : {};
   return {
     $type: 'typography', $value: value,

@@ -88,6 +88,14 @@ export type ModeLevers = {
   // same componentSizes the baseline uses. The `space.*` reference scale is density-free, so it doesn't
   // change; only the component tier does. e.g. a `touch` custom mode runs `spacious`.
   density?: Density;
+  // Per-mode TYPE SIZE (#328) — `{ display: { '3xl': 96 } }` reads "in this mode, display.3xl is 96px".
+  // Unlike the leading/tracking re-points above it names a NUMBER, not a rung key, and that asymmetry
+  // is principled: a leading rung is a NAMED primitive with a brand-chosen value, so naming a number
+  // there would re-anchor rather than re-point. A ladder STEP is the primitive here — all 22 are always
+  // emitted, so any selection lands on a real leaf and no union mechanism is needed (unlike per-mode
+  // weights, #337). Heading groups only, and it changes SIZES within a mode-invariant SET: the rung set
+  // is fixed once at brand level by displayCeiling/titleFloor and is never re-derived per mode.
+  typeSizes?: Partial<Record<PerModeSizeGroup, Record<string, number>>>;
 };  // per-mode lever overrides; extensible (tempo/density later — NOT typeScale, see ModeLevers)
 
 /** The non-color (dimension) axis: a primitive grid + space/radius/size scales. */
@@ -560,6 +568,10 @@ export type TypeComposite = {
   // from the light key. Absent ⇒ the composite uses one rung across every mode.
   lineHeightByMode?: Record<string, string>;
   trackingByMode?: Record<string, string>;
+  // #328 — per-mode rung SIZE. Carries its OWN recomputed mobile endpoint: inheriting the brand-level
+  // `sizeMinPx` would pair a re-sized desktop value with a floor derived from the size it replaced.
+  sizeByMode?: Record<string, number>;
+  sizeMinByMode?: Record<string, number>;
   textCase: 'none' | 'uppercase' | 'lowercase';   // baked style (not Figma-bindable; code/style-side)
   link: boolean;                                   // underlined link variant (textDecoration baked)
   italic: boolean;                                 // italic variant — orthogonal modifier PAIRED with the weight
@@ -598,6 +610,9 @@ export type Typography = {
   // mode-invariant primitives, so a mode records only which rung stands in for which.
   lineHeightRepointByMode?: Record<string, Record<string, string>>;
   letterSpacingRepointByMode?: Record<string, Record<string, string>>;
+  /** #328 — mode → heading group → rung → px. Only DIFFERING rungs are recorded, so an inert
+   *  declaration leaves this absent and the artifact byte-identical. */
+  typeSizesByMode?: Record<string, Record<string, Record<string, number>>>;
 };
 
 const SANS_FALLBACK = ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'];
@@ -788,6 +803,17 @@ const mobileEndpoint = (ladder: number[], group: TypeGroup, desktopPx: number): 
   if (group === 'eyebrow') return desktopPx <= 14 ? desktopPx : Math.min(desktopPx, Math.max(oneRungDown(ladder, desktopPx), 12));
   return desktopPx;   // body / label / caption / code — static (field consensus)
 };
+/** Per-mode rung SIZE overrides (#328) are heading-only. Each group's floor is the smallest value the
+ *  brand-level machinery can ALREADY produce for it — display 32 (its mobile-endpoint floor), title 16
+ *  (titleFloor's minimum), eyebrow 11 (what `compact` shifts sm to since #346). A mode may re-size a
+ *  rung; it may not invent a size the rest of the system would never emit. Reading/UI text
+ *  (body/label/caption/code) is absent BY CONTRACT, not by oversight: those groups are mode-invariant,
+ *  and both the schema and brandTheme REJECT them rather than silently ignoring the request.
+ *  These floors are ABSOLUTE and deliberately not a cross-category rule (display ≥ title ≥ body):
+ *  titleFloor 16 already overlaps body.md on purpose, so a relative rule would forbid a shipped brand. */
+const PER_MODE_SIZE_FLOOR = { display: 32, title: 16, eyebrow: 11 } as const;
+export type PerModeSizeGroup = keyof typeof PER_MODE_SIZE_FLOOR;
+export const PER_MODE_SIZE_GROUPS = Object.keys(PER_MODE_SIZE_FLOOR) as PerModeSizeGroup[];
 // Bigger heading → tighter line-height (display tightest; small titles open up).
 const lineHeightFor = (group: TypeGroup, px: number): string => {
   if (group === 'display') return 'tight';
@@ -1742,6 +1768,55 @@ export const brandTheme = (input: BrandInput): Theme => {
     for (const [m, map] of Object.entries(letterSpacingRepointByMode))
       if (map[c.tracking]) (c.trackingByMode ??= {})[m] = map[c.tracking];
   }
+  // #328 — per-mode rung SIZES. Same re-point SHAPE as leading/tracking above, with one difference
+  // that is easy to miss and silently wrong: a re-sized rung must recompute its OWN mobile endpoint.
+  // Inheriting the brand-level `sizeMinPx` would pair a mode's 32px title with the 36px floor derived
+  // from the 40px it replaced — a "fluid" pair that shrinks UPWARD on mobile.
+  // Everything here THROWS rather than dropping. A silently ignored size request is precisely the
+  // failure mode #341 removed from the ramp, and re-introducing it on a new axis would be worse:
+  // the request is per-mode, so the drop would only be visible in one mode's output.
+  const typeSizesByMode: Record<string, Record<string, Record<string, number>>> = {};
+  const ladderSet = new Set(typography.sizesPx);
+  for (const [m, lev] of Object.entries(modeLevers)) {
+    const groups = lev?.typeSizes;
+    if (!groups) continue;
+    for (const [g, rungs] of Object.entries(groups)) {
+      if (!PER_MODE_SIZE_GROUPS.includes(g as PerModeSizeGroup))
+        throw new Error(`modeLevers.${m}.typeSizes: '${g}' is not a heading group — per-mode sizing covers ${PER_MODE_SIZE_GROUPS.join('/')} only. Reading and UI text (body/label/caption/code) is mode-invariant by contract.`);
+      const inGroup = typography.composites.filter((c) => c.group === g);
+      const known: string[] = [];
+      for (const c of inGroup) if (!known.includes(c.variant)) known.push(c.variant);   // rung order, first-appearance
+      const baseSize = new Map(inGroup.map((c) => [c.variant, c.sizePx]));
+      for (const [variant, px] of Object.entries(rungs ?? {})) {
+        if (!known.includes(variant))
+          throw new Error(`modeLevers.${m}.typeSizes.${g}: rung '${variant}' does not exist — this brand ships ${g} ${known.join('/')}. A mode re-sizes the rungs it has; it can never add or remove one (the set is fixed at brand level by displayCeiling/titleFloor).`);
+        if (!ladderSet.has(px))
+          throw new Error(`modeLevers.${m}.typeSizes.${g}.${variant}: ${px}px is not a step on this brand's size ladder (${typography.sizesPx.join(', ')}).`);
+        const floor = PER_MODE_SIZE_FLOOR[g as PerModeSizeGroup];
+        if (px < floor)
+          throw new Error(`modeLevers.${m}.typeSizes.${g}.${variant}: ${px}px is below the ${g} floor of ${floor}px — the smallest size this system emits for ${g} anywhere.`);
+      }
+      // The mode's ramp must hold the SAME invariant the brand ramp does (#341): strictly increasing.
+      // Checked on the MERGED ramp, not the overrides alone — re-sizing one rung is exactly how you
+      // collide with an untouched neighbour, and that is the case a per-override check would miss.
+      const merged = known.map((v) => ({ v, px: (rungs as Record<string, number>)[v] ?? baseSize.get(v)! }));
+      for (let i = 1; i < merged.length; i++)
+        if (merged[i].px <= merged[i - 1].px)
+          throw new Error(`modeLevers.${m}.typeSizes.${g}: ${merged[i].v} resolves to ${merged[i].px}px, which is not larger than ${merged[i - 1].v} (${merged[i - 1].px}px) — a mode's ramp must be strictly increasing, same as the brand's. Merged ramp: ${merged.map((x) => `${x.v}=${x.px}`).join(' ')}.`);
+      // Drop self-sizes: an override equal to the brand size is inert, the same suppression the other
+      // axes use, so a no-diff declaration can't create a mode entry or a spurious composite variant.
+      const diff = Object.entries(rungs ?? {}).filter(([v, px]) => baseSize.get(v) !== px);
+      if (diff.length) ((typeSizesByMode[m] ??= {})[g] = Object.fromEntries(diff));
+    }
+  }
+  if (Object.keys(typeSizesByMode).length) typography.typeSizesByMode = typeSizesByMode;
+  for (const c of typography.composites)
+    for (const [m, groups] of Object.entries(typeSizesByMode)) {
+      const px = groups[c.group]?.[c.variant];
+      if (px === undefined) continue;
+      (c.sizeByMode ??= {})[m] = px;
+      (c.sizeMinByMode ??= {})[m] = typography.fluid ? mobileEndpoint(typography.sizesPx, c.group, px) : px;
+    }
   const dispSizes = typography.composites.filter((c) => c.group === 'display').map((c) => c.sizePx);
   const reqCeiling = input.typography?.displayCeiling ?? '3xl';
   const effCap = dispSizes.length ? Math.max(...dispSizes) : 0;
