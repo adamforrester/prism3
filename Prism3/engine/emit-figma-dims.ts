@@ -175,7 +175,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // per leaf; height aliases dimension, padding aliases space.
   const sizeVars: FigmaVar[] = [];
   for (const t of Object.keys(brand.size)) {
-    for (const prop of ['height', 'padding-x', 'padding-y']) {
+    for (const prop of ['height', 'padding-x', 'padding-y', 'gap']) {
       const leaf = brand.size[t][prop];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);

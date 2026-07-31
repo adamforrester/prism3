@@ -136,6 +136,65 @@ options not taken as well as the one taken.
 
 ---
 
+## (2026-07-30) — `size.*.gap`: the token that answers "why not just use spacing?" (#325)
+
+**STATUS: engine.** `out/*` regenerated (additive — one new leaf per size step); artifact **count
+unchanged at 88**, so `ci.yml` needed no bump.
+
+**The gap.** `size.*` carried `height` / `padding-x` / `padding-y` and nothing for the space between a
+leading visual, the label, and a trailing visual — so a Button with an icon had no token for the one
+measurement that makes it read as assembled rather than crammed. `preview.ts` sidestepped it by not
+modelling slots at all.
+
+**This was filed as a task and re-opened as a design question, correctly.** The owner's hesitation:
+*"many design teams using this will find it confusing and want to just use standard spacing variables
+for everything, and then you'll have some things as gaps and others as generic spacing."* That is the
+real failure mode for component-scoped spacing, and it is also exactly the live disagreement in the
+field — Spectrum ships a dedicated `text-to-visual-*` scale, Material a named `icon-label-space`,
+**Carbon just uses `$spacing-03`**.
+
+**What resolved it was structural, not rhetorical.** The component tier does not mint values — it
+ALIASES the space scale (`size.md.padding-x` → `{space.200}`). So `size.md.gap` is `{space.100}`: a
+named pointer into the scale the team already uses, not a competing 8px. A team that "just uses
+spacing variables" is using the same variable either way; the token only says WHICH one belongs here at
+this size. And the precedent was already accepted — nobody hand-picks `size.md.height`, the component
+does, which is why that tier has never caused the confusion feared here.
+
+The corollary, recorded because it governs sequencing: **the token earns its keep only once a component
+binds it.** Emitted and unbound it IS the loose duplicate the owner described. It should land with or
+just before #327 (anatomy), not sit unconsumed.
+
+**Derivation: half the horizontal padding**, which encodes proximity rather than taste. Everything
+inside the control must sit closer to its neighbours than to the control's own edge, or the icon and
+label stop reading as one unit and start reading as two things sharing a box. So **`gap < padX` is the
+contract and the exact fraction is a tuning knob** — that inequality is what `test.ts` asserts, across
+every size × density × spaceBase, rather than the literal numbers. Half rather than a third: a third
+rounds to 2px at the smallest step, which is a rendering accident, not a gap. Result at the default
+rhythm: 4/8/8/12/12 → `{space.050/100/100/150/150}`, every value already a step on the scale.
+
+**Rides the per-mode density seam** like padding does, so a mode at a different density re-derives its
+ladder and its gap moves with it rather than freezing at the base value.
+
+**A stale constant found on the way.** The Figma↔DTCG cross-check computed the expected `size`
+variable count as `Object.keys(brand.size).length * 3` — *"3 props per t-shirt"*. Adding a fourth made
+it report a Figma/DTCG mismatch that was really a stale expectation. Replaced with a count derived from
+the tree, so the next sub-leaf is covered automatically rather than re-teaching the same lesson.
+
+**Tamper-tested:** setting `gap = padX` fails the proximity contract at every step; a constant 8px gap
+fails both proximity AND the non-constant bar the issue set itself (*"visibly proportionate across the
+sizes, not a constant"*) — which is the precise failure the owner's objection predicted, so it is worth
+having a test that names it.
+
+**Filed upstream:** knowledge-base#6 — the vault asserts the container *"owns the gap"* and takes no
+position on what governs its value, which is conspicuous next to `icon.md`'s detailed optical metrics.
+The Spectrum/Material/Carbon divergence is a genuine practice question with no house answer; the
+decision here was made on engine-shaped grounds and does not substitute for one.
+
+**Verified:** 1034 → **1042** tests; nb-regression PASS; `regen --check` 88/88; web + plugin typecheck
+and builds clean.
+
+---
+
 ## (2026-07-30) — `icon.size.*`: the tier that is deliberately not parametric (#324)
 
 **STATUS: engine.** `out/*` **regenerated** (new category); artifact count **85 → 88** (one

@@ -21,7 +21,7 @@
 export type Density = 'comfortable' | 'compact' | 'spacious';
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };
-export type SizeStep = { name: string; height: number; padX: number; padY: number };
+export type SizeStep = { name: string; height: number; padX: number; padY: number; gap: number };
 
 /** The primitive dimension grid (px): fine sub-steps for borders/hairlines, a
  *  base / 1.5×base / 2×base shoulder, then a `base`-spaced ladder to `max`. */
@@ -65,7 +65,21 @@ export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
   const shift = density === 'compact' ? -1 : density === 'spacious' ? 1 : 0;
   return SIZE_LADDER.map((s, i) => {
     const src = SIZE_LADDER[Math.min(SIZE_LADDER.length - 1, Math.max(0, i + shift))];
-    return { name: s.name, height: Math.round(src.h * spaceBase), padX: Math.round(src.x * spaceBase), padY: Math.round(src.y * spaceBase) };
+    const padX = Math.round(src.x * spaceBase);
+    // GAP (#325) — the label<->visual space, HALF the horizontal padding.
+    //
+    // Not an arbitrary ratio: it encodes proximity. Everything inside the control must sit closer to
+    // its neighbours than to the control's own edge, or the icon and label stop reading as one unit
+    // and start reading as two things that happen to share a box. So `gap < padX` is the property
+    // that matters — the exact fraction is a tuning knob, the inequality is the contract, and it is
+    // what `test.ts` asserts across every size and density rather than the literal numbers.
+    //
+    // Half specifically, rather than a third: at the smallest step a third rounds to 2px, which is
+    // not a gap so much as a rendering accident. Half yields 4/8/8/12/12 at the default spaceBase —
+    // every value already a step on the space scale, so the emitted token ALIASES `space.*` exactly
+    // as `padding-x` does. That is the whole answer to "won't teams just use spacing variables?":
+    // they are, and this names which one belongs here at this size.
+    return { name: s.name, height: Math.round(src.h * spaceBase), padX, padY: Math.round(src.y * spaceBase), gap: Math.round(padX / 2) };
   });
 };
 

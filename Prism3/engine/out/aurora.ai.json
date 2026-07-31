@@ -6257,7 +6257,9 @@
       "aliased_by": [
         "border-width.heavy",
         "radius.sm",
+        "size.sm.gap",
         "size.sm.padding-y",
+        "size.xs.gap",
         "size.xs.padding-y",
         "space.050"
       ]
@@ -6279,7 +6281,9 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "radius.md",
+        "size.lg.gap",
         "size.lg.padding-y",
+        "size.md.gap",
         "size.sm.padding-x",
         "size.xl.padding-y",
         "size.xs.padding-x",
@@ -6293,6 +6297,7 @@
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
         "radius.lg",
+        "size.xl.gap",
         "space.150"
       ]
     },

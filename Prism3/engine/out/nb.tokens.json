@@ -13426,6 +13426,18 @@
               "px": 4
             }
           }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{nbds.space.050}",
+          "$description": "size.xs label↔visual gap — 4px (density: comfortable)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.space.050",
+              "px": 4
+            }
+          }
         }
       },
       "sm": {
@@ -13465,6 +13477,18 @@
               "px": 6
             }
           }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{nbds.space.100}",
+          "$description": "size.sm label↔visual gap — 8px (density: comfortable)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.space.100",
+              "px": 8
+            }
+          }
         }
       },
       "md": {
@@ -13497,6 +13521,18 @@
           "$type": "dimension",
           "$value": "{nbds.space.100}",
           "$description": "size.md vertical inset — 8px (density: comfortable)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.space.100",
+              "px": 8
+            }
+          }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{nbds.space.100}",
+          "$description": "size.md label↔visual gap — 8px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -13543,6 +13579,18 @@
               "px": 8
             }
           }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{nbds.space.150}",
+          "$description": "size.lg label↔visual gap — 12px (density: comfortable)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.space.150",
+              "px": 12
+            }
+          }
         }
       },
       "xl": {
@@ -13580,6 +13628,18 @@
               "role": "semantic",
               "aliasOf": "nbds.space.200",
               "px": 16
+            }
+          }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{nbds.space.150}",
+          "$description": "size.xl label↔visual gap — 12px (density: comfortable)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.space.150",
+              "px": 12
             }
           }
         }
