@@ -7,6 +7,42 @@
 
 ---
 
+## (2026-07-31) — US-English gate for shipped text
+
+**STATUS: engine + web + CI.** Owner-directed: keep en-GB spellings tracked and fixed rather than
+re-discovered. The rule has been re-derived by hand four times (#162 → #260 → #302 → #310) and three
+of those passes missed something, which is the argument for a gate rather than another careful read.
+
+- **The ad-hoc scan I ran first under-counted, in this very pass.** It deduplicated by word and
+  reported 9 `colour` hits in the bundle; the gate found **8 distinct shipped hits** the dedupe had
+  collapsed, including three separate `brand colour name` throws. Encoding the check found more than
+  running it by hand — one iteration after I had already "checked."
+- **Fixed at source, all user-visible:** five thrown error messages (`theme.ts` ×4, `color.ts` ×1 —
+  these surface in the web UI), the Fonts help text (`Personalisation` → `Personalization`, which is
+  also the correct US Windows label), and two shipped CSS comments. Two printed test names went with
+  them for consistency. **Code comments stay exempt** — the carve-out is deliberate, and `scale.ts`
+  already had `neighbours` long before this.
+- **GATED vs REPORTED is the design, not a shortcut.** Gated: `out/`, the emitted schema contracts,
+  the two reports, and `web/dist/*.js`. Reported-but-never-fatal: `theme-schema.json` (15 hits) and
+  `engine/README.md` (31 hits) — CLAUDE.md records the first as an **open decision**, and the second
+  is neither UI nor an emitted artifact, so it falls outside the rule as written. Gating either would
+  force a conversion this gate has no mandate to make; printing them every run keeps them tracked
+  instead of forgotten. **46 tracked hits currently — an open decision for the owner, not a backlog
+  item I should close unilaterally.**
+- **Scope is IMPORTED from `regen.ts`,** not restated. `SCHEMA_ARTIFACTS`/`ENGINE_ARTIFACTS` are now
+  exported and consumed by the linter, so a new emitted artifact comes under the gate automatically.
+  A copied list would have drifted, and a gate with a stale scope reports green because it stopped
+  looking — the #281 shape.
+- **Pattern scan, not a word list**, per the documented trap: `colour|grey|behaviour` misses
+  `generalised`, `tokenisation`, `synthesising` (all of which the README actually contains). The
+  linter scans `-is(e|ed|es|ing|ation)`/`-our` and subtracts a false-positive set, so it fails toward
+  over-reporting. Adding to `NOT_EN_GB` is the correct fix for a false positive — never narrowing the
+  pattern.
+- **CI placement matters:** the step runs *after* `Build web`, because `levers.ts` prose is inlined
+  into `web/dist/main.js` and a source-only grep calls that bundle clean.
+
+---
+
 ## (2026-07-31) — Per-mode rung sizes (#328, PR C)
 
 **STATUS: engine + schema.** The last and most substantive piece of #328. A mode can now re-size

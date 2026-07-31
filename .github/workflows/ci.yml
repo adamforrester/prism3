@@ -64,6 +64,13 @@ jobs:
       - name: Build plugin
         run: npm run -w @prism3/plugin build
 
+      # US English in shipped text. Runs AFTER the web build on purpose: `engine/levers.ts` prose is
+      # inlined into `web/dist/main.js`, and a source-only grep calls that bundle clean — the trap
+      # that got #302 and #310. Gates out/, the emitted schema + reports, and the built bundle; the
+      # two surfaces CLAUDE.md records as open decisions are printed every run but never fatal.
+      - name: US-English gate (shipped text)
+        run: npx --yes tsx@4 Prism3/engine/lint-us-english.ts
+
       # A gate that silently stops running is worse than no gate, because green starts meaning
       # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this
       # fails loudly rather than quietly shrinking. Update the number deliberately when the set
