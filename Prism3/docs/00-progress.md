@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-07-31) — The type ramp shows every mode side by side
+
+**STATUS: web.** Second piece of the UI phase, owner-chosen shape: all modes, every row.
+
+- **What was wrong with the old ramp.** It rendered whichever mode `currentMode` happened to be, so a
+  per-mode deviation was only visible if you already suspected one and went looking. That is the wrong
+  default for an axis the engine can vary five ways (`families`, `weights`, `lineHeights`,
+  `letterSpacings`, `typeSizes`) — and it is the specific reason per-mode SIZES (#328/#347) were
+  invisible in the UI despite shipping. The mode axis is now a property of the table, not the session.
+- **Every row shows every mode, including modes where nothing differs.** Confirming "identical
+  everywhere" is usually the thing you actually want, and a table whose shape shifts as you edit is
+  harder to read than a wider one that doesn't. No difference highlighting — deliberately the plain
+  side-by-side of the two options offered.
+- **The subtle bit is the fluid pair.** `sizePx` and `sizeMinPx` must be read from the SAME tier: take
+  the size from the mode and the endpoint from the brand and you print an incoherent range — the exact
+  incoherence #347 fixed in the engine, re-introduced at the display layer. The fallback is written so
+  a mode that re-sizes without a recorded endpoint renders STATIC rather than borrowing the brand's.
+- **This does NOT retire the switcher on Styles** (#268): the editors still resolve against
+  `currentMode` and WRITE per-mode overrides. Seeing every mode removes the need to switch for
+  READING, never for EDITING.
+- **Verified end-to-end in a real browser, not just by rendering it.** The first pass proved little —
+  the demo brand is light-only, so the table drew one column. So: enabled dark through the UI, switched
+  the authoring context to dark, changed the `strong` weight role to 100, and confirmed **only the dark
+  column moved** (700 → 100) while light held at 700, both visible at once, zero page errors. A
+  single-column screenshot would have "passed" while proving nothing about the per-mode path.
+
+---
+
 ## (2026-07-31) — Mode-switcher scope: hide it where nothing varies (#268)
 
 **STATUS: web.** First piece of the UI phase, and it **closes #268** — a decision issue explicitly
