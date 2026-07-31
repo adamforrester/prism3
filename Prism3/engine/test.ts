@@ -1997,6 +1997,17 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(em.$value.fontSize === '{prism.font.size.40}', '[#328] emitted canonical $value.fontSize still aliases the light step');
     ok(em.$extensions.prism3.modes.dark.responsive?.max?.px === 36 && em.$extensions.prism3.modes.dark.responsive?.min?.px === 32,
       '[#328] the emitted per-mode responsive pair is the RECOMPUTED one (32→36), not the inherited 36→40');
+    // The fidelity gate DOES reach into `$extensions.prism3.modes.<m>.$value` — hardened in #301 for
+    // exactly this shape. What was missing was an assertion USING it: no committed artifact contains a
+    // per-mode TYPE composite (the 154 per-brand mode blocks are all color + shadow), so without this
+    // the emitted re-point's aliases were only ever checked as strings by the tests above. Pinning the
+    // delta as well as `broken` matters — an alias the walker silently skipped would also report zero
+    // broken, which is the #281 shape: a gate reporting clean because it never looked.
+    const btBase = buildTree(brandTheme({ ...pmBase, typography: {} } as any));
+    const btMode = buildTree(t1);
+    ok(btMode.stats.broken.length === 0, '[#328] a theme with per-mode sizes has no broken aliases');
+    ok(btMode.stats.aliases - btBase.stats.aliases === 15,
+      `[#328] per-mode sizes CONTRIBUTE aliases to the gate (+15 = 3 re-sized composites × the 5 alias fields of a per-mode $value, got +${btMode.stats.aliases - btBase.stats.aliases})`);
     // A size re-point and a leading re-point on the same composite compose rather than clobber.
     const both = brandTheme({ ...pmBase, typography: {}, modeLevers: { dark: { typeSizes: { title: { '2xl': 36 } }, lineHeights: { snug: 'relaxed' } } } } as any);
     const bl = leaf(buildTree(both).tree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
