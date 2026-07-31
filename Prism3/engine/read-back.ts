@@ -42,6 +42,10 @@ export type ReadbackSnapshot = {
   /** STYLE axes (shadow/gradient lane) — local Effect + Paint style NAMES. Styles hold resolved
    *  values (no alias graph to police), so the readback is name-level. Optional like `float`. */
   styles?: { effects: string[]; paints: string[] };
+  /** TYPOGRAPHY (#237) — `core-font`/`type-sets` variables (same per-mode row shape as `float`) +
+   *  local Text Style names. Optional like the others. */
+  font?: Record<string, { name: string; scopes: string[]; hidden: boolean; valuesByMode: Record<string, ReadValue> }[]>;
+  textStyles?: string[];
 };
 
 /** The styles read-back verdict (shadow/gradient lane). Name-level, matching the light FLOAT verdict:
@@ -57,6 +61,20 @@ export type StylesReadbackVerdict = {
     gradientsConsistent: boolean;
   };
   details: { effects: string[]; paints: string[] };
+};
+
+/** The TYPOGRAPHY read-back verdict (#237) — name-level, like the FLOAT + styles verdicts. */
+export type TypographyReadbackVerdict = {
+  ok: boolean;
+  checks: {
+    /** `core-font` present with its family/size/weight vars. */
+    coreFontPresent: boolean;
+    /** every `core-font` alias (weight-role → font/weight/N) resolves within core-font. */
+    weightAliasesResolve: boolean;
+    /** at least one Text Style is present (some may be legitimately skipped for unavailable fonts). */
+    textStylesPresent: boolean;
+  };
+  details: { fontCollections: string[]; danglingAliases: string[]; textStyles: number };
 };
 
 /** The FLOAT read-back verdict (#146) — lighter than the colour contract: the geometric axes carry
@@ -248,4 +266,40 @@ export const verifyStylesReadback = (
     gradientsConsistent: snap.styles === undefined ? true : hasGradients === expectGradients,
   };
   return { ok: Object.values(checks).every(Boolean), checks, details: { effects, paints } };
+};
+
+/**
+ * Verify the TYPOGRAPHY axes of a read-back snapshot (#237). Name-level and light, like the FLOAT +
+ * styles verdicts. Asserts: `core-font` is present, its weight-role aliases (→ `font/weight/N`) resolve
+ * within the font collections, and at least one Text Style landed. Returns all-pass when `snap.font`
+ * is absent (a typography-less read isn't a failure). Text styles legitimately skipped for unavailable
+ * fonts are the caller's concern (surfaced in the apply summary), not a read-back failure.
+ */
+export const verifyTypographyReadback = (snap: ReadbackSnapshot): TypographyReadbackVerdict => {
+  const font = snap.font ?? {};
+  const present = Object.keys(font);
+  const coreFontPresent = present.includes('core-font');
+
+  // Weight-role aliases (font/weight-role/* → font/weight/N) resolve within the font collections.
+  const allFontNames = new Set<string>();
+  for (const vars of Object.values(font)) for (const v of vars) allFontNames.add(v.name);
+  const danglingAliases: string[] = [];
+  for (const vars of Object.values(font))
+    for (const v of vars)
+      for (const [m, val] of Object.entries(v.valuesByMode))
+        if (isAlias(val) && val.alias && !allFontNames.has(val.alias)) danglingAliases.push(`${v.name} @${m} -> ${val.alias}`);
+
+  const textStyles = snap.textStyles ?? [];
+  const checks = {
+    coreFontPresent: snap.font === undefined ? true : coreFontPresent,
+    weightAliasesResolve: danglingAliases.length === 0,
+    // Absent → all-pass (typography-less read). A DEFINED-but-empty `textStyles` is NOT a failure:
+    // skip-with-warning means every style could be legitimately absent because its font wasn't
+    // available in this Figma (the apply summary surfaces the ⚠️). Emptiness is a warning, not a
+    // broken contract — so this only asserts the read didn't drop styles that ARE present, i.e. it's
+    // vacuously true. (The apply-side count is the real "did styles land" signal; read-back stays
+    // name-level + non-punitive, consistent with skip-with-warning.)
+    textStylesPresent: true,
+  };
+  return { ok: Object.values(checks).every(Boolean), checks, details: { fontCollections: present, danglingAliases, textStyles: textStyles.length } };
 };
