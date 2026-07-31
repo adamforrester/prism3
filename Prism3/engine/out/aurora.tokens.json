@@ -14398,6 +14398,18 @@
               "px": 4
             }
           }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{prism.space.050}",
+          "$description": "size.xs label↔visual gap — 4px (density: compact)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.050",
+              "px": 4
+            }
+          }
         }
       },
       "sm": {
@@ -14430,6 +14442,18 @@
           "$type": "dimension",
           "$value": "{prism.space.050}",
           "$description": "size.sm vertical inset — 4px (density: compact)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.050",
+              "px": 4
+            }
+          }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{prism.space.050}",
+          "$description": "size.sm label↔visual gap — 4px (density: compact)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14476,6 +14500,18 @@
               "px": 6
             }
           }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{prism.space.100}",
+          "$description": "size.md label↔visual gap — 8px (density: compact)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.100",
+              "px": 8
+            }
+          }
         }
       },
       "lg": {
@@ -14508,6 +14544,18 @@
           "$type": "dimension",
           "$value": "{prism.space.100}",
           "$description": "size.lg vertical inset — 8px (density: compact)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.100",
+              "px": 8
+            }
+          }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{prism.space.100}",
+          "$description": "size.lg label↔visual gap — 8px (density: compact)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14552,6 +14600,18 @@
               "role": "semantic",
               "aliasOf": "prism.space.100",
               "px": 8
+            }
+          }
+        },
+        "gap": {
+          "$type": "dimension",
+          "$value": "{prism.space.150}",
+          "$description": "size.xl label↔visual gap — 12px (density: compact)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.space.150",
+              "px": 12
             }
           }
         }

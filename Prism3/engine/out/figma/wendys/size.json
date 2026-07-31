@@ -42,6 +42,19 @@
       }
     },
     {
+      "name": "size/xs/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.xs label↔visual gap — 4px (density: comfortable)",
+      "value": 4,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/050"
+      }
+    },
+    {
       "name": "size/sm/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -81,6 +94,19 @@
       }
     },
     {
+      "name": "size/sm/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.sm label↔visual gap — 8px (density: comfortable)",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/100"
+      }
+    },
+    {
       "name": "size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -113,6 +139,19 @@
         "GAP"
       ],
       "description": "size.md vertical inset — 8px (density: comfortable)",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/100"
+      }
+    },
+    {
+      "name": "size/md/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.md label↔visual gap — 8px (density: comfortable)",
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -159,6 +198,19 @@
       }
     },
     {
+      "name": "size/lg/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.lg label↔visual gap — 12px (density: comfortable)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/150"
+      }
+    },
+    {
       "name": "size/xl/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -195,6 +247,19 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "space/200"
+      }
+    },
+    {
+      "name": "size/xl/gap",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "GAP"
+      ],
+      "description": "size.xl label↔visual gap — 12px (density: comfortable)",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "space/150"
       }
     }
   ]

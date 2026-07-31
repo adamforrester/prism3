@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES } from './scale';
+import { radiusScale, ICON_SIZES, componentSizes } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -403,6 +403,66 @@ for (const b of brands) {
   const sizeNames = nbTheme().dims.sizes.map((s: any) => s.name).join(',');
   ok(ICON_SIZES.map((s) => s.name).join(',') === sizeNames,
     `#324 icon steps pair 1:1 with size.* names (icon ${ICON_SIZES.map((s) => s.name).join('/')} vs size ${sizeNames})`);
+}
+
+
+// SIZE GAP (#325) — the label<->visual space. `size.*` carried height/padding-x/padding-y but nothing
+// for the space between a leading visual, the label, and a trailing visual, so a Button with an icon
+// had no token for the one measurement that makes it read as assembled.
+//
+// The owner's hesitation on filing was the right one to design against: "teams will just use standard
+// spacing variables, and then you'll have some things as gaps and others as generic spacing." The
+// answer is structural — the component tier ALIASES the space scale rather than minting values, so
+// `size.md.gap` is `{space.100}`, a named pointer, not a competing 8px. These assert that property
+// holds rather than trusting it.
+{
+  // 1. The CONTRACT, not the numbers: gap must be strictly tighter than the padding that separates
+  //    content from the control edge. That is proximity — elements inside a group must sit closer to
+  //    each other than to the group's boundary, or the icon and label stop reading as one unit. The
+  //    exact fraction is a tuning knob; this inequality is what must never break.
+  const violations: string[] = [];
+  for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+    for (const base of [4, 8, 12]) {
+      for (const z of componentSizes(d, base)) {
+        if (!(z.gap < z.padX)) violations.push(`${d}/base${base}/${z.name}: gap ${z.gap} !< padX ${z.padX}`);
+        if (z.gap <= 0) violations.push(`${d}/base${base}/${z.name}: gap ${z.gap} is not positive`);
+      }
+    }
+  }
+  ok(violations.length === 0, '#325 gap is always tighter than padding-x, at every size / density / spaceBase (proximity)'
+    + (violations.length ? ` — VIOLATIONS: ${violations.slice(0, 4).join(', ')}` : ''));
+
+  // 2. The issue's own bar: "visibly proportionate across the sizes (not a constant)". A gap that is
+  //    the same at every size would make the token pure overhead — space.* would do.
+  const gaps = componentSizes('comfortable', 8).map((z) => z.gap);
+  ok(new Set(gaps).size >= 3, `#325 gap varies across sizes — a constant would make the token pointless (${gaps.join('/')})`);
+  ok(gaps.every((g, i) => i === 0 || g >= gaps[i - 1]), `#325 gap never shrinks as the control grows (${gaps.join('/')})`);
+
+  // 3. It ALIASES the space scale — the whole answer to "isn't this a second spacing system?". A
+  //    literal here would be exactly the duplicate-value problem the design set out to avoid.
+  for (const [id, t] of [['nb', nbTheme()], ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/aurora.design.md'), 'utf8')).input)]] as Array<[string, any]>) {
+    const built = buildTree(t);
+    const size = (built.tree as any)[Object.keys(built.tree)[0]].size;
+    const bad = Object.keys(size).filter((k) => {
+      const v = size[k]?.gap?.$value;
+      return typeof v !== 'string' || !/^\{.+\.space\..+\}$/.test(v);
+    });
+    ok(bad.length === 0, `#325 ${id}: every gap aliases space.* rather than carrying a literal`
+      + (bad.length ? ` — LITERAL: ${bad.map((k) => `${k}=${JSON.stringify(size[k]?.gap?.$value)}`).join(', ')}` : ''));
+    const dangling = Object.keys(size).filter((k) => {
+      const m = String(size[k].gap.$value).match(/^\{(.+)\}$/);
+      return !m || !at(built.tree, m[1]);
+    });
+    ok(dangling.length === 0, `#325 ${id}: every gap alias resolves` + (dangling.length ? ` — DANGLING: ${dangling.join(', ')}` : ''));
+  }
+
+  // 4. Gap rides the per-mode density seam like padding does — a mode at a different density
+  //    re-derives its ladder, so its gap must move with it rather than freezing at the base value.
+  const perMode = (buildTree(brandTheme({ id: 'g', root: 'prism', modes: ['light', 'dark'],
+    primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+    modeLevers: { dark: { density: 'compact' } } } as any)).tree as any).prism.size;
+  const moved = Object.keys(perMode).filter((k) => perMode[k].gap?.$extensions?.prism3?.modes?.dark);
+  ok(moved.length > 0, '#325 gap carries a per-mode override where density deviates (it must not freeze at the base density)');
 }
 
 // DISABLED — cross-cutting family (docs/20 §7): one treatment regardless of intent,
@@ -2858,7 +2918,10 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     dimension: Object.keys(brand.dimension).length,
     space: Object.keys(brand.space).length,
     radius: Object.keys(brand.radius).length,
-    size: Object.keys(brand.size).length * 3, // 3 props per t-shirt
+    // Counted from the tree, not `× <n> props per t-shirt`: that constant silently went stale the
+    // moment `gap` was added (#325), reporting a Figma/DTCG mismatch that was really a stale
+    // expectation. Deriving it means a new size sub-leaf is covered automatically.
+    size: Object.values(brand.size).reduce((n: number, v: any) => n + Object.keys(v).length, 0),
     'border-width': Object.keys(brand['border-width']).length,
     focus: Object.keys(brand.focus.ring).filter((k) => brand.focus.ring[k].$type === 'dimension').length,
     opacity: Object.keys(brand.opacity).length,

@@ -441,10 +441,15 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const hMods = sizeModes(z.name, 'height', z.height, (s) => s.height, gridStepOverride);
     const pxMods = sizeModes(z.name, 'padding-x', z.padX, (s) => s.padX, spaceModeOverride);
     const pyMods = sizeModes(z.name, 'padding-y', z.padY, (s) => s.padY, spaceModeOverride);
+    // gap rides the same per-mode density seam as padding — a mode at a different density re-derives
+    // its ladder, so its gap moves with its padX (#325).
+    const gapLeaf = spacePad(z.gap, `size.${z.name} label↔visual gap — ${z.gap}px (density: ${theme.dims.density})`);
+    const gMods = sizeModes(z.name, 'gap', z.gap, (s) => s.gap, spaceModeOverride);
+    if (gMods) gapLeaf.$extensions.prism3.modes = gMods;
     if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
     if (pxMods) padXLeaf.$extensions.prism3.modes = pxMods;
     if (pyMods) padYLeaf.$extensions.prism3.modes = pyMods;
-    size[z.name] = { height: heightLeaf, 'padding-x': padXLeaf, 'padding-y': padYLeaf };
+    size[z.name] = { height: heightLeaf, 'padding-x': padXLeaf, 'padding-y': padYLeaf, gap: gapLeaf };
   }
 
   // ---- icon.size — the icon artboard ladder (#324) ----
