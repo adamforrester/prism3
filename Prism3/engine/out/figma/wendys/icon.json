@@ -1,0 +1,71 @@
+{
+  "$collection": "icon",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "icon/size/xs",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/16"
+      }
+    },
+    {
+      "name": "icon/size/sm",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "icon.size.sm — 20px artboard (fixed grid; pairs with size.sm)",
+      "value": 20,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/20"
+      }
+    },
+    {
+      "name": "icon/size/md",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "icon.size.md — 24px artboard (fixed grid; pairs with size.md)",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/24"
+      }
+    },
+    {
+      "name": "icon/size/lg",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "icon.size.lg — 32px artboard (fixed grid; pairs with size.lg)",
+      "value": 32,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/32"
+      }
+    },
+    {
+      "name": "icon/size/xl",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "icon.size.xl — 40px artboard (fixed grid; pairs with size.xl)",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/40"
+      }
+    }
+  ]
+}

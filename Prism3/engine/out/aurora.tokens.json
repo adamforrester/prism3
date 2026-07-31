@@ -12991,6 +12991,70 @@
         }
       }
     },
+    "icon": {
+      "size": {
+        "xs": {
+          "$type": "dimension",
+          "$value": "{prism.dimension.16}",
+          "$description": "icon.size.xs — 16px artboard (fixed grid; pairs with size.xs)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.dimension.16",
+              "px": 16
+            }
+          }
+        },
+        "sm": {
+          "$type": "dimension",
+          "$value": "{prism.dimension.20}",
+          "$description": "icon.size.sm — 20px artboard (fixed grid; pairs with size.sm)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.dimension.20",
+              "px": 20
+            }
+          }
+        },
+        "md": {
+          "$type": "dimension",
+          "$value": "{prism.dimension.24}",
+          "$description": "icon.size.md — 24px artboard (fixed grid; pairs with size.md)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.dimension.24",
+              "px": 24
+            }
+          }
+        },
+        "lg": {
+          "$type": "dimension",
+          "$value": "{prism.dimension.32}",
+          "$description": "icon.size.lg — 32px artboard (fixed grid; pairs with size.lg)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.dimension.32",
+              "px": 32
+            }
+          }
+        },
+        "xl": {
+          "$type": "dimension",
+          "$value": "{prism.dimension.40}",
+          "$description": "icon.size.xl — 40px artboard (fixed grid; pairs with size.xl)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.dimension.40",
+              "px": 40
+            }
+          }
+        }
+      }
+    },
     "gradient": {
       "brand": {
         "$type": "gradient",

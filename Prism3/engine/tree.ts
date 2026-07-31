@@ -447,6 +447,24 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     size[z.name] = { height: heightLeaf, 'padding-x': padXLeaf, 'padding-y': padYLeaf };
   }
 
+  // ---- icon.size — the icon artboard ladder (#324) ----
+  // A component's visual slot had nothing to bind for size: there was no `icon` category in the tree
+  // at all, which stopped the Button Figma round-trip outright (docs/28 §3.2). Each step ALIASES the
+  // dimension grid rather than carrying a literal — that is what makes this a tier rather than five
+  // magic numbers, and it is why `buildDims` feeds the icon px into the grid extras.
+  //
+  // Deliberately mode- AND density-invariant: the ladder is a fixed enumerated set (see `scale.ts`
+  // for the field research), so it carries no `modes` overrides and stays a primitive under #296.
+  const iconSize: Record<string, Token> = {};
+  for (const ic of theme.dims.icons) {
+    iconSize[ic.name] = gridSet.has(ic.px)
+      ? dimAlias(`${root}.dimension.${ic.px}`, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid; pairs with size.${ic.name})`, { px: ic.px })
+      // Unreachable while buildDims feeds icon px into the grid; kept so a future grid change
+      // degrades to a literal rather than emitting a dangling alias.
+      : dimLeaf(ic.px, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid)`);
+  }
+  const icon = { size: iconSize };
+
   // ---- border-width — numeric primitives via the dimension grid (0/1/2/4) ----
   // 1px hairline floor; no sub-px tokens (unreliable on hi-dpi). Field consensus
   // clusters here (Tailwind 0/1/2/4/8, Atlassian 1/2, Fluent thin/thick).
@@ -659,7 +677,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // ---- assemble under the brand root ----
   // `gradient` is included only when the brand opted in (kept off the tree for
   // brands that declare none — gradients are an opt-in axis, not a default group).
-  const brand = { palette, color: colorRoles, opacity, motion, font, type: typeGroup, shadow, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, dimension, space, radius, 'border-width': borderWidth, focus, size };
+  const brand = { palette, color: colorRoles, opacity, motion, font, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, dimension, space, radius, 'border-width': borderWidth, focus, size };
   const tree = {
     [root]: brand,
     $extensions: {
