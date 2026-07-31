@@ -48,6 +48,9 @@ fluid behavior of the heading system it belongs to.
   real Figma round-trip. `font-fluid.{mobile,desktop}.json` gain the one new fluid variable (18/20).
 - **Next:** PR C — the per-mode rung-size axis over display/title/eyebrow, with per-category floors
   (title 16, display 32, eyebrow 12) and non-inversion validation. Scope: #328 comment 5143891943.
+
+---
+
 ## (2026-07-31) — the CLI paste path could only write color (#342, items 1–2)
 
 **STATUS: engine.** **No artifact changes** — `regen --check` still 88/88. This is wiring, not new
