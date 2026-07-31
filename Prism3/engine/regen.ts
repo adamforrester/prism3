@@ -145,5 +145,14 @@ const check = (): void => {
   }
 };
 
-if (process.argv.includes('--check')) { console.log('Checking committed artifacts for drift…'); check(); }
-else { console.log('Regenerating committed artifacts…'); regenerate(); console.log('\n✓ regenerated.'); }
+// Run the CLI only when invoked directly — not when another module imports the ARTIFACTS constants.
+// Without this, `import { SCHEMA_ARTIFACTS } from './regen'` performs a full regenerate() as a side
+// effect of reading two arrays: the importer silently rewrites every committed artifact, discarding
+// any in-progress local edit, and a failure inside regenerate() surfaces as a stack trace about
+// artifact generation from a script the developer ran for something else entirely.
+// Same guard, and the same reason, as `materialise-to-figma.ts` — which already carries it precisely
+// so `test.ts` can import `aliasRows` without running a CLI.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv.includes('--check')) { console.log('Checking committed artifacts for drift…'); check(); }
+  else { console.log('Regenerating committed artifacts…'); regenerate(); console.log('\n✓ regenerated.'); }
+}

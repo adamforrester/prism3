@@ -2026,6 +2026,21 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(thr(() => mk({ title: { xl: 20 } })), '[#328] a per-mode size that inverts the ramp throws');
     ok(!thr(() => mk({ title: { xl: 36 } })), '[#328] a per-mode size that keeps the merged ramp increasing is accepted');
   }
+  // #349 review — a module imported for its EXPORTS must not run its CLI as a side effect. `regen.ts`
+  // shipped its dispatch unguarded at top level, so `import { SCHEMA_ARTIFACTS } from './regen'` ran a
+  // full regenerate(): the linter silently rewrote every committed artifact, discarding local edits,
+  // and would have reported a regeneration stack trace as a spelling failure. Pinned at the source
+  // level because the behavioral proof needs process isolation — the tamper test (append a marker to a
+  // committed artifact, run only the linter, confirm it survives) is the runtime check, and it can't
+  // live in-process here. `materialise-to-figma.ts` already carried this guard for `test.ts`'s own
+  // import of `aliasRows`; regen was the one module that never got it.
+  {
+    const src = readFileSync(new URL('./regen.ts', import.meta.url), 'utf8');
+    const guard = src.indexOf('resolve(process.argv[1]) === fileURLToPath(import.meta.url)');
+    const dispatch = src.indexOf("process.argv.includes('--check')");
+    ok(guard !== -1 && dispatch > guard,
+      '[#349] regen.ts guards its CLI dispatch behind an entry-point check — importing it for the ARTIFACTS constants must not regenerate');
+  }
   // Reading/UI text is the boundary the preset exists to respect — it must NOT move.
   for (const scale of ['compact', 'expressive'] as const) {
     const t = tBrand('ebfix-' + scale, { typeScale: scale }).typography.composites;

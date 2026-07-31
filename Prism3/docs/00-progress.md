@@ -43,6 +43,25 @@ of those passes missed something, which is the argument for a gate rather than a
   pattern.
 - **CI placement matters:** the step runs *after* `Build web`, because `levers.ts` prose is inlined
   into `web/dist/main.js` and a source-only grep calls that bundle clean.
+- **Review caught a real bug in the import, and the evidence was on screen the whole time.** Importing
+  `SCHEMA_ARTIFACTS`/`ENGINE_ARTIFACTS` from `regen.ts` ran a full `regenerate()` as a side effect,
+  because that module's CLI dispatch sat unguarded at top level. So **every linter run silently
+  rewrote every committed artifact**, discarding any in-progress local edit. Every run of the linter
+  in this session printed `Regenerating committed artifacts…`; I noticed the anomaly, attributed it to
+  the web build script, and moved on. Noticing and misattributing is worse than not noticing — the
+  signal was there and I explained it away.
+- **The repo had already solved this exact problem.** `materialise-to-figma.ts` carries the guard with
+  the comment *"Run the CLI only when invoked directly — not when test.ts imports `aliasRows`"* — the
+  identical shape (a module importing constants from a CLI script), identical fix. Three emitters use
+  the same `isMain` idiom. `regen.ts` was the one module that never got it, so the fix is the repo's
+  own pattern rather than the reviewer's suggested `file://` string compare, which is less robust
+  (breaks on symlinks and path encoding).
+- **Why it was worse than wasteful:** CI ordering *happened* to save it — `regen --check` runs before
+  the lint step, so the side effect could not paper over a real drift regression — but that safety was
+  incidental to step order and documented nowhere. Verified by tamper test: marker appended to a
+  committed artifact, linter run alone, marker survives.
+- **The invariant is pinned at the source level**, since the behavioral proof needs process isolation
+  and cannot run in-process in `test.ts`.
 
 ---
 
