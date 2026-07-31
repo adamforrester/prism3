@@ -136,6 +136,65 @@ options not taken as well as the one taken.
 
 ---
 
+## (2026-07-30) — `icon.size.*`: the tier that is deliberately not parametric (#324)
+
+**STATUS: engine.** `out/*` **regenerated** (new category); artifact count **85 → 88** (one
+`figma/<brand>/icon.json` per emitting brand) — `.github/workflows/ci.yml`'s coverage assertion
+bumped in the same PR, as its own comment requires.
+
+**The gap.** There was **no `icon` category in the emitted tree at all**, so a component's
+`leadingVisual` / `trailingVisual` slot had nothing to bind for size. `components/button.ts` binds ~60
+token slots and could not bind an icon dimension. Of the three gaps in docs/28 §3, this is the one that
+stopped the Button Figma round-trip outright rather than degrading it.
+
+**What shipped.** `icon.size.{xs,sm,md,lg,xl}` = **16/20/24/32/40**, each an ALIAS into
+`dimension.<px>`, plus a matching Figma `icon` variable collection.
+
+**The issue asked for a DERIVED scale; the field research says the opposite, and the research won.**
+KB `components/icon.md` §2 is unusually firm: *"The field standardises on a small fixed set — 16/20/24
+(Carbon adds 32; Atlassian 12/16; Polaris 20) — and PROHIBITS arbitrary sizes. Off-grid scaling is the
+first thing an icon system must forbid."* And on the API: *"`size` — ENUMERATED (sm/md/lg), mapping to
+the fixed pixel grid, NOT arbitrary integers."* A brand-variable ramp would break the rule the research
+exists to state. The obvious alternative was checked and is illusory anyway: the `typeScale` lever
+*"shifts heading sizes; body/label/caption stay put"*, so a type-derived icon size would be constant —
+derivation in name only.
+
+So "derived, not copied" was re-read as being about **structure, not variability**: every step aliases
+the dimension grid rather than carrying a literal, which is what makes this a tier instead of five
+magic numbers — and that is the property the tests assert.
+
+**The 5th step came from review.** Owner asked whether a 40 top end would hurt. It doesn't, and it
+fixes a mismatch: 16/20/24/32/40 pairs **1:1** with `componentSizes`' xs…xl (32/40/48/56/64), so the
+anatomy layer (#327) maps control size → icon size by identity instead of reconciling a 4-step scale
+against a 5-step one. The ratio is 0.5 through `md` and eases to 0.57/0.63 above — deliberate; a 64px
+control with a 32px glyph reads sparse. The KB's icon-vs-illustration line is about NARRATIVE content
+(*"larger, narrative, its own component"*), not a pixel threshold, so 40 is still an icon.
+
+**Invariant across mode AND density**, so it stays a primitive under #296 and carries no `modes`
+overrides. Density is the live risk — it shifts `size.*`, and icon size co-varies with control size, so
+it is the change someone would reasonably make; it is exactly what would push glyphs off 16/20/24.
+
+**A dangling-alias trap, pre-empted.** The icon ladder is fixed, so at a non-default `baseUnit` (6, 8)
+it lands OFF the grid and `icon.size.<k> → {dimension.<px>}` would dangle — #274's exact shape.
+`buildDims` feeds icon px into the grid extras, the same fix space uses, and a `baseUnit: 6` brand is
+in the test matrix specifically to cover it. At the default `baseUnit` 4 they are already grid members,
+so nothing else moves.
+
+**Figma included deliberately, though the issue scoped "token tier only".** The issue's own
+justification is that the spike has *"no value to `setBoundVariable()` against"* — a DTCG-only token
+would have left that blocker standing. `icon` is its own collection rather than a `size/` sub-branch:
+an icon size is chosen independently of its control (a compact button can carry a large glyph), and the
+Figma scopes differ (WIDTH_HEIGHT only, no padding sibling). Collections contract 8 → 9.
+
+**Tamper-tested**, because a test that only restates the emitted px passes just as happily when the
+tier stops aliasing: emitting literals fails the derivation + resolution assertions (9 failures);
+making icon size follow density fails the invariance assertion.
+
+**Verified:** 1015 → **1034** tests across nb / aurora / harbor / baseUnit-6; nb-regression PASS;
+`regen --check` 88/88 byte-match; web + plugin typecheck and builds clean.
+
+---
+
 ## (2026-07-30) — `solid-tint` gets a real token (#288)
 
 **STATUS: engine + web.** `out/*` **byte-identical** — the default is `overlay-neutral`, so nothing

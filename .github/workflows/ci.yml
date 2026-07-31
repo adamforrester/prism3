@@ -74,6 +74,6 @@ jobs:
           count=$(npx --yes tsx@4 Prism3/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "85 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 85. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "88 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 88. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac

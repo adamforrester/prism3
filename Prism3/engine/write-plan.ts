@@ -189,6 +189,7 @@ export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
     floatPlanFor('space', [dims.space]),
     floatPlanFor('radius', dims.radius), // 1 or 2 modes (Default [+ wireframe])
     floatPlanFor('size', [dims.size]),
+    floatPlanFor('icon', [dims.icon]),   // #324 — the visual slot's bindable size
     floatPlanFor('border-width', [dims.borderWidth]),
     floatPlanFor('focus', [dims.focus]),
     floatPlanFor('opacity', [dims.opacity]),

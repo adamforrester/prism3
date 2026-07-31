@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale } from './scale';
+import { radiusScale, ICON_SIZES } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -344,6 +344,67 @@ for (const b of brands) {
   }
 }
 
+
+// ICON SIZE TIER (#324). There was no `icon` category in the emitted tree at all, so a component's
+// visual slot had nothing to bind for size — the one gap that stopped the Button Figma round-trip
+// outright rather than degrading it (docs/28 §3.2).
+//
+// Asserts the DERIVATION, not the numbers: the issue's own verify list calls that out, because a test
+// that only restates the emitted px passes just as happily when the tier stops aliasing the grid and
+// starts carrying literals. The load-bearing property is that every step resolves through
+// `dimension.*` — that is what makes this a tier rather than five magic numbers.
+{
+  const brands: Array<[string, any]> = [
+    ['nb', nbTheme()],
+    ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/aurora.design.md'), 'utf8')).input)],
+    ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/harbor.design.md'), 'utf8')).input)],
+    // A coarse baseUnit is the case that would dangle: the fixed icon ladder is NOT a multiple of 6,
+    // so without buildDims feeding icon px into the grid extras these aliases would break (#274's shape).
+    ['baseUnit-6', brandTheme({ id: 'b6', root: 'prism', baseUnit: 6, primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } } as any)],
+  ];
+  for (const [id, t] of brands) {
+    const built = buildTree(t);
+    const root = (built.tree as any)[Object.keys(built.tree)[0]];
+    const grp = root.icon?.size;
+    ok(!!grp, `#324 ${id}: icon.size.* exists (there was no icon category at all before)`);
+    if (!grp) continue;
+    ok(ICON_SIZES.every((s) => grp[s.name]), `#324 ${id}: all ${ICON_SIZES.length} steps present (${ICON_SIZES.map((s) => s.name).join('/')})`);
+    // THE derivation assertion: an alias into the dimension grid, not a literal.
+    const notAliased = ICON_SIZES.filter((s) => typeof grp[s.name]?.$value !== 'string' || !/^\{.+\.dimension\..+\}$/.test(grp[s.name].$value));
+    ok(notAliased.length === 0, `#324 ${id}: every step aliases dimension.* rather than carrying a literal`
+      + (notAliased.length ? ` — LITERAL: ${notAliased.map((s) => `${s.name}=${JSON.stringify(grp[s.name].$value)}`).join(', ')}` : ''));
+    // …and the alias must actually resolve, which is the half a shape-check alone would miss.
+    const dangling = ICON_SIZES.filter((s) => {
+      const m = String(grp[s.name].$value).match(/^\{(.+)\}$/);
+      return !m || !at(built.tree, m[1]);
+    });
+    ok(dangling.length === 0, `#324 ${id}: every icon alias resolves` + (dangling.length ? ` — DANGLING: ${dangling.map((s) => s.name).join(', ')}` : ''));
+  }
+
+  // Invariance: the ladder is a fixed enumerated set, so it must NOT pick up a per-mode or per-density
+  // variant. Density is the live risk — it shifts `size.*`, and icon size co-varies with control size,
+  // so it is the change someone would reasonably make. The field research forbids it (off-grid).
+  const density = (d: string) => {
+    const t = brandTheme({ id: 'd', root: 'prism', density: d, modes: ['light', 'dark'],
+      primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } } as any);
+    return JSON.stringify((buildTree(t).tree as any).prism.icon.size);
+  };
+  ok(density('compact') === density('comfortable') && density('spacious') === density('comfortable'),
+    '#324 icon.size is density-invariant (a fixed artboard ladder; density must not scale it off-grid)');
+  const withModes = (buildTree(brandTheme({ id: 'm', root: 'prism', modes: ['light', 'dark'],
+    primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true },
+    modeLevers: { dark: { density: 'compact' } } } as any)).tree as any).prism.icon.size;
+  const modeCarrying = ICON_SIZES.filter((s) => withModes[s.name]?.$extensions?.prism3?.modes);
+  ok(modeCarrying.length === 0, '#324 icon.size carries no per-mode variant (primitive tier, #296)'
+    + (modeCarrying.length ? ` — CARRIES: ${modeCarrying.map((s) => s.name).join(', ')}` : ''));
+
+  // The ladder pairs 1:1 with the component-size names, which is what lets the anatomy layer (#327)
+  // map control size -> icon size by identity instead of reconciling two differently-shaped scales.
+  const sizeNames = nbTheme().dims.sizes.map((s: any) => s.name).join(',');
+  ok(ICON_SIZES.map((s) => s.name).join(',') === sizeNames,
+    `#324 icon steps pair 1:1 with size.* names (icon ${ICON_SIZES.map((s) => s.name).join('/')} vs size ${sizeNames})`);
+}
+
 // DISABLED — cross-cutting family (docs/20 §7): one treatment regardless of intent,
 // present in every mode, with its on-ink gated against the disabled surface.
 {
@@ -485,15 +546,15 @@ for (const b of brands) {
 }
 
 // FLOAT WRITE PLAN (#146): the geometric axes reshaped for the plugin write executor. The plan must
-// carry the eight collections with the right modes, every cross-collection alias must resolve within
+// carry the nine collections with the right modes, every cross-collection alias must resolve within
 // the plan (0 dangling — the executor binds against one global name map), opacity must be 0–100 (the
 // Figma OPACITY-percent convention), and a wireframe brand must add a distinct `wireframe` radius mode.
 {
   const auroraFloat = buildFloatWritePlan(brandTheme(exampleBrands()['aurora'] as BrandInput));
   const names = auroraFloat.map((c) => c.name);
-  const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'border-width', 'focus', 'opacity', 'layout'];
+  const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'icon', 'border-width', 'focus', 'opacity', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: eight collections present (${names.join(', ')})`);
+    `float-plan: nine collections present (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core-dimension')!.modes.join(',') === 'Default',

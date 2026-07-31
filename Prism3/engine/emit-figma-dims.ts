@@ -54,6 +54,10 @@ export type FigmaDimsCollections = {
    *  precedent for any future mode-varying geometry. Non-wireframe brands untouched. */
   radius: FigmaCollectionFile[];
   size: FigmaCollectionFile;
+  /** Icon artboard ladder (#324). Its own collection rather than a `size/` sub-branch: an icon size
+   *  is chosen independently of the control it sits in (a compact button can carry a large glyph),
+   *  and Figma scopes differ — WIDTH_HEIGHT only, no padding sibling. */
+  icon: FigmaCollectionFile;
   borderWidth: FigmaCollectionFile;
   focus: FigmaCollectionFile;
   opacity: FigmaCollectionFile;
@@ -186,6 +190,22 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     }
   }
 
+  // icon — one FLOAT per step, aliasing the dimension grid (the DTCG tier already does; this mirrors
+  // it so a Figma component has a variable to bind its visual slot against, which is the whole reason
+  // #324 blocked the Button materialization spike).
+  const iconVars: FigmaVar[] = Object.keys(brand.icon?.size ?? {}).map((key) => {
+    const leaf = brand.icon.size[key];
+    const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
+    return {
+      name: `icon/size/${key}`,
+      resolvedType: 'FLOAT' as const,
+      scopes: SIZE_HEIGHT_SCOPES,
+      description: desc(leaf),
+      value: pxFromValue(tree, leaf.$value),
+      alias: isAlias ? { type: 'VARIABLE_ALIAS' as const, name: aliasFigName(leaf.$value) } : null,
+    };
+  });
+
   const borderVars: FigmaVar[] = Object.keys(brand['border-width']).map((key) => {
     const leaf = brand['border-width'][key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
@@ -242,6 +262,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     space: c('space', spaceVars),
     radius: radiusFiles,
     size: c('size', sizeVars),
+    icon: c('icon', iconVars),
     borderWidth: c('border-width', borderVars),
     focus: c('focus', focusVars),
     opacity: c('opacity', opacityVars),
