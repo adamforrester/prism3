@@ -1799,12 +1799,16 @@ for (const [label, ty] of typeCases) {
   ok(!bad, `[type/${label}] all composite refs resolve + weight in name${bad ? ` — ${bad}` : ''}`);
   ok(!mono, `[type/${label}] sizes non-decreasing within group${mono ? ` — ${mono}` : ''}`);
   // fluid (Phase 3): mobile endpoint never above desktop, always a real ladder rung,
-  // and only heading groups (display/title) ever go fluid.
+  // and only the heading SYSTEM ever goes fluid — display/title, plus eyebrow since #328 made it a
+  // heading category. Reading/UI text (body/label/caption/code) stays static; that is the contract
+  // this guards, and it is the reason the list is enumerated rather than inferred.
   let flbad = '';
   for (const c of comps) {
     if (c.sizeMinPx > c.sizePx) flbad ||= `${c.path} min>${c.sizePx}`;
     if (!ladder.has(c.sizeMinPx)) flbad ||= `${c.path} min off-ladder ${c.sizeMinPx}`;
-    if (c.sizeMinPx !== c.sizePx && c.group !== 'display' && c.group !== 'title') flbad ||= `${c.path} non-heading is fluid`;
+    if (c.sizeMinPx !== c.sizePx && !['display', 'title', 'eyebrow'].includes(c.group)) flbad ||= `${c.path} non-heading is fluid`;
+    // Eyebrow is fluid ABOVE 14px only — the small kickers must NOT move (#328).
+    if (c.group === 'eyebrow' && c.sizePx <= 14 && c.sizeMinPx !== c.sizePx) flbad ||= `${c.path} small eyebrow (${c.sizePx}px) must stay static`;
   }
   ok(!flbad, `[type/${label}] fluid endpoints valid${flbad ? ` — ${flbad}` : ''}`);
 }
@@ -1856,6 +1860,26 @@ for (const scale of ['default', 'expressive'] as const) {
     "[#328] displayCeiling 'xl' → trims from the TOP; xl survives, 2xl/3xl are gone, nothing renumbered");
 }
 ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.textCase === 'uppercase', 'eyebrow carries uppercase textCase');
+// EYEBROW AS A HEADING CATEGORY (#328). Was one SIZELESS rung — the only composite path with no
+// size segment. The `lg` rung exists for the hero kicker, and it is what makes the fluid rule do
+// anything: with only 12/14 nothing clears the 14px threshold and the rule would be dead code.
+{
+  const eb = tBrand('eb2', {}).typography.composites.filter((c) => c.group === 'eyebrow');
+  const byVariant = new Map(eb.map((c) => [c.variant, c]));
+  ok(byVariant.size === 3 && [...byVariant.keys()].sort().join(',') === 'lg,md,sm',
+    `[#328] eyebrow ships 3 sized rungs (got ${[...byVariant.keys()].join(',')})`);
+  ok(byVariant.get('sm')?.sizePx === 12 && byVariant.get('md')?.sizePx === 14 && byVariant.get('lg')?.sizePx === 20,
+    '[#328] eyebrow rungs are sm=12 / md=14 / lg=20');
+  ok(eb.every((c) => c.path.split('.').length === 3 && c.path.startsWith('eyebrow.')),
+    `[#328] eyebrow paths now carry a size segment — eyebrow.<size>.<weight> (got ${eb[0]?.path})`);
+  // The whole point of the threshold: small kickers hold their size, the hero one does not.
+  ok(byVariant.get('sm')!.sizeMinPx === 12 && byVariant.get('md')!.sizeMinPx === 14,
+    '[#328] eyebrow sm/md are STATIC across breakpoints (at/below the 14px threshold)');
+  ok(byVariant.get('lg')!.sizeMinPx === 18,
+    `[#328] eyebrow lg is fluid — 20px desktop → 18px mobile, one rung down (got ${byVariant.get('lg')!.sizeMinPx})`);
+  // Floor 12: uppercase + wider tracking costs legibility lowercase body text at the same px does not.
+  ok(eb.every((c) => c.sizeMinPx >= 12), '[#328] no eyebrow rung shrinks below the 12px floor');
+}
 
 // ---- weight axis + link modifier ----
 {

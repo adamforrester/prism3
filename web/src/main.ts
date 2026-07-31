@@ -1840,7 +1840,7 @@ const renderGeneratedNote = (): HTMLElement => {
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
 const renderResponsiveEditor = (): HTMLElement => {
   const ty = theme.typography;
-  const wrap = palSection('Responsive sizing', 'Headings interpolate between a mobile floor and a desktop ceiling across the viewport range; body, label, caption, eyebrow and code stay fixed by design.');
+  const wrap = palSection('Responsive sizing', 'Headings interpolate between a mobile floor and a desktop ceiling across the viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.');
   // #271 — there is no per-mode responsive lever, so these ALWAYS write global state. Say so
   // before the controls: every other section on this page is mode-scoped, and silently
   // changing all modes from inside a mode is the one thing this page used not to disclose.
