@@ -53,7 +53,9 @@ export type PaletteBuild = { palette: string; role: Role; steps: Step[]; descrip
 
 /** Per-mode LEVER overrides for the non-colour axes (Phase D). A customizable mode may override
  *  an input lever the engine RE-DERIVES for that mode — today `radius` (the radius scale), with
- *  `typeScale`/`tempo`/`density` slotting in the same way later. Distinct from the global
+ *  `tempo`/`density` slotting in the same way later. NOT `typeScale`: it shifts heading rungs,
+ *  and per-mode rung shifts give modes different type SETS (#328) — per-mode type sizing is a
+ *  per-rung size override over a mode-invariant set, never a per-mode scale lever. Distinct from the global
  *  `radiusScale` (the baseline every mode inherits); a `modeLevers` entry deviates a single mode. */
 export type ModeLevers = {
   radius?: number;
@@ -86,7 +88,7 @@ export type ModeLevers = {
   // same componentSizes the baseline uses. The `space.*` reference scale is density-free, so it doesn't
   // change; only the component tier does. e.g. a `touch` custom mode runs `spacious`.
   density?: Density;
-};  // per-mode lever overrides; extensible (typeScale later)
+};  // per-mode lever overrides; extensible (tempo/density later — NOT typeScale, see ModeLevers)
 
 /** The non-color (dimension) axis: a primitive grid + space/radius/size scales. */
 export type Dims = {
@@ -143,7 +145,7 @@ export type Theme = {
   // 'primary' / 'destructive' / an accent (interactivePalettes) name. Customizable modes only.
   modeAnchors?: Partial<Record<ModeName, Record<string, number>>>;
   // Per-mode LEVER overrides for the non-colour axes (Phase D) — a customizable mode re-derives an
-  // axis from an overridden input lever (radius now; typeScale/tempo/density later). Distinct from
+  // axis from an overridden input lever (radius now; tempo/density later — NOT typeScale, see ModeLevers). Distinct from
   // the global `radiusScale` baseline every mode inherits — modeLevers deviate a single mode. The
   // re-derived radius ramps land on `dims.radiusByMode`; this carries the raw levers for round-trip.
   modeLevers?: Partial<Record<ModeName, ModeLevers>>;
@@ -314,7 +316,7 @@ export type BrandInput = {
   modeAnchors?: Partial<Record<ModeName, Record<string, number>>>;
   /** Per-mode NON-COLOUR lever overrides (Phase D): a customizable mode overrides an input lever the
    *  engine RE-DERIVES for that mode — today `radius` (the radius scale, 0=sharp…1=default…2=soft),
-   *  with `typeScale`/`tempo`/`density` slotting in the same map later. Customizable modes only
+   *  with `tempo`/`density` slotting in the same map later (NOT `typeScale` — see ModeLevers). Customizable modes only
    *  (light/dark or a `customModes` name); a generate-only mode (hc/wireframe) or a mode this brand
    *  doesn't generate throws, and a radius outside [0,2] throws. Distinct from the GLOBAL `radiusScale`
    *  (the baseline every mode inherits) — modeLevers deviate a single mode. Omit for none (byte-identical). */
@@ -651,12 +653,23 @@ export type TypographyInput = {
    *  of the GROUP, not the size — this is what lets a small brand-font title share
    *  a size with body while staying a distinct token. */
   familyMap?: Partial<Record<TypeGroup, FamilyRoleName>>;
-  /** Cap the display tier (px). Brands that don't need mega heroes stop lower
-   *  (e.g. 96); the ladder is unchanged, the engine just omits display composites
-   *  above the cap. Default 160 (full). */
-  displayCeiling?: number;
-  /** Smallest title size. Default 18 (`title.xs`). Set 16 to add `title.2xs` — a
-   *  16px brand-font heading that deliberately overlaps `body.md`. */
+  /** Cap the display tier by RUNG, not by px (#328). Brands that don't need mega
+   *  heroes stop lower (e.g. `'xl'`); the ladder is unchanged, the engine just omits
+   *  display composites above the named rung. Default `'3xl'` (full).
+   *
+   *  Named by rung rather than by px deliberately: a px cap is compared against sizes
+   *  that `typeScale` has already shifted, so the SAME cap yielded a different number
+   *  of rungs per scale (96px kept 4 under compact/default but 3 under expressive) —
+   *  a brand lever silently changing the type SET. The engine even shipped a note
+   *  apologizing for the discrepancy. A rung name is invariant under the shift. */
+  displayCeiling?: DisplayVariant;
+  /** Whether the title tier includes `title.2xs`. `16` adds it — a 16px brand-font
+   *  heading that deliberately overlaps `body.md`; `18` (default) omits it.
+   *
+   *  This is pure SET MEMBERSHIP: it decides whether a rung exists, and never clamps
+   *  a size. It used to also do `Math.max(sizePx, titleFloor)`, which fed a size
+   *  operation into the monotonic dedupe and silently deleted a rung — `compact`
+   *  lost `title.sm` (floor 18) or `title.xs` (floor 16), leaving a GAP mid-ramp. */
   titleFloor?: 16 | 18;
   /** Per-role weight set. Weight is an axis on every type role (every composite
    *  carries the weight in its name). Defaults: display/title `[strong]`, body
@@ -739,6 +752,9 @@ const TYPE_VARIANTS: Record<TypeGroup, [string, number][]> = {
   code: [['inline', 14]],
 };
 const TYPE_SCALE_SHIFT = { compact: -1, default: 0, expressive: 1 } as const;
+/** The display rung names, smallest→largest — the domain of `displayCeiling` (#328). */
+export const DISPLAY_VARIANTS = ['sm', 'md', 'lg', 'xl', '2xl', '3xl'] as const;
+export type DisplayVariant = typeof DISPLAY_VARIANTS[number];
 // Desktop → mobile endpoint — RESEARCH-VALIDATED (not a flat factor). The field
 // (IBM Carbon fluid-display, Utopia, practitioner consensus) shrinks BIGGER sizes
 // MORE: body/UI static, titles ~1 rung, display converging to a ~40–48px mobile
@@ -787,7 +803,7 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
   const leadShift = t.leadingShift ?? {};
   const trackShift = t.trackingShift ?? {};
   const shift = TYPE_SCALE_SHIFT[t.typeScale ?? 'default'];
-  const ceiling = t.displayCeiling ?? 160;
+  const ceilingIdx = DISPLAY_VARIANTS.indexOf(t.displayCeiling ?? '3xl');
   const titleFloor = t.titleFloor ?? 18;
   const shiftPx = (px: number): number => {
     const i = ladder.indexOf(px);
@@ -842,12 +858,20 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     // typeScale shift) so titleFloor:16 always delivers a literal 16px title that
     // overlaps body.md — the documented contract — regardless of typeScale.
     if (group === 'title' && titleFloor === 16) { push('title', '2xs', 16); prev = 16; }
-    for (const [variant, base] of TYPE_VARIANTS[group]) {
+    for (const [i, [variant, base]] of TYPE_VARIANTS[group].entries()) {
+      // displayCeiling trims the top by RUNG POSITION, before any size is computed — set
+      // membership, decided once here and never re-applied per mode (#328). Trimming from
+      // the end is what keeps the surviving names stable: no rung is ever renumbered.
+      if (group === 'display' && i > ceilingIdx) continue;
       // typeScale shifts headings only (display + title); reading/UI text stays put.
-      let sizePx = isHeading ? shiftPx(base) : base;
-      if (group === 'title') sizePx = Math.max(sizePx, titleFloor);  // never below the floor
-      if (group === 'display' && sizePx > ceiling) continue;         // displayCeiling trims the top
-      if (sizePx <= prev) continue;                                  // monotonic + dedupe (clamp/shift collisions)
+      const sizePx = isHeading ? shiftPx(base) : base;
+      // The ramp must be STRICTLY INCREASING. This used to `continue` — silently dropping
+      // the colliding rung and leaving a gap mid-ramp (`compact` lost title.sm). Dropping a
+      // rung is never the right answer: it changes the type SET, which is the one thing the
+      // set/size split exists to keep stable. Reject instead. validateBrandInput catches the
+      // one reachable combination (compact + titleFloor 16) with a friendlier message.
+      if (sizePx <= prev)
+        throw new Error(`typography: ${group}.${variant} resolves to ${sizePx}px, which is not larger than the previous rung (${prev}px) — the ramp must be strictly increasing. Check typeScale '${t.typeScale ?? 'default'}'${group === 'title' ? ` + titleFloor ${titleFloor}` : ''}.`);
       push(group, variant, sizePx);
       prev = sizePx;
     }
@@ -914,6 +938,11 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
     for (const [g, n] of Object.entries(map ?? {}))
       if (n !== undefined && (!Number.isInteger(n) || n < -5 || n > 5))
         throw new Error(`typography.${field} '${g}' ${n} is invalid — must be an integer number of rungs in [-5, 5]`);
+  // Cross-field, so it can't live in theme-schema.json: `compact` shifts title.xs 18→16, which is
+  // exactly where titleFloor 16 pins title.2xs. The old code resolved the collision by DROPPING a
+  // rung (leaving a gap mid-ramp); rejecting is the honest answer (#328).
+  if ((t.typeScale ?? 'default') === 'compact' && t.titleFloor === 16)
+    throw new Error(`typography: titleFloor 16 is incompatible with typeScale 'compact' — compact already shifts title.xs down to 16px, so title.2xs would duplicate it. Use titleFloor 18 with 'compact', or titleFloor 16 with 'default'/'expressive'.`);
   const families = deriveFamilies(t.families);
   const wr = { ...WEIGHT_ROLE_DEFAULT, ...(t.weightRoles ?? {}) };
   const fluid = t.responsive?.fluid ?? true;
@@ -1280,7 +1309,7 @@ export const brandTheme = (input: BrandInput): Theme => {
   }
   if (Object.keys(input.modeAnchors ?? {}).length) notes.push(`modeAnchors: per-mode interactive anchors for ${Object.keys(input.modeAnchors!).join(', ')} (a column's fill re-anchored per mode; still floor-gated)`);
   // Per-mode LEVER overrides (Phase D) — a customizable mode may override a non-colour axis lever
-  // (radius now; typeScale/tempo/density later slot in here). SAME customizable-mode rule as
+  // (radius now; tempo/density later slot in here — NOT typeScale, see ModeLevers). SAME customizable-mode rule as
   // overrides/modeAnchors: the mode must be generated AND customizable (light/dark/custom); the
   // generate-only built-ins (hc-light/hc-dark/wireframe) and absent modes throw. A `radius` lever
   // must be a finite number in the lever's [0, 2] range.
@@ -1698,15 +1727,15 @@ export const brandTheme = (input: BrandInput): Theme => {
       if (map[c.tracking]) (c.trackingByMode ??= {})[m] = map[c.tracking];
   }
   const dispSizes = typography.composites.filter((c) => c.group === 'display').map((c) => c.sizePx);
-  const reqCeiling = input.typography?.displayCeiling ?? 160;
+  const reqCeiling = input.typography?.displayCeiling ?? '3xl';
   const effCap = dispSizes.length ? Math.max(...dispSizes) : 0;
+  // The "requested Npx but effective Mpx" note is gone with the px ceiling (#328): a rung-named
+  // ceiling cannot disagree with what ships, because it never compared against a shifted size.
   const capNote = dispSizes.length === 0
-    ? ` — NOTE: display tier fully trimmed (ceiling ${reqCeiling}px is below the smallest display step); composite count is below the 15–25 norm`
-    : effCap !== reqCeiling
-      ? ` — NOTE: requested ceiling ${reqCeiling}px; effective top display is ${effCap}px (typeScale shifts sizes off the exact ladder rung)`
-      : '';
+    ? ` — NOTE: display tier fully trimmed; composite count is below the 15–25 norm`
+    : '';
   const varFams = typography.families.filter((f) => f.variable).map((f) => f.role);
-  notes.push(`typography: curated rem size ladder (${typography.sizesPx.length} steps, ${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px — NOT ratio-derived; covers all bases, clean values); weight roles ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.role}=${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; typeScale '${typography.typeScale}'. ${typography.composites.length} semantic composites (title/display sizes shifted by typeScale; display capped at ${reqCeiling}px; title floor ${input.typography?.titleFloor ?? 18}px)${capNote}. ${typography.fluid ? `responsive: ${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() ${typography.minViewport}–${typography.maxViewport}px + Figma desktop/mobile modes)` : 'responsive: OFF (all sizes static)'}. Line-height unitless multiplier in \$value; px-from-ratio materialization for Figma in \$extensions.`);
+  notes.push(`typography: curated rem size ladder (${typography.sizesPx.length} steps, ${typography.sizesPx[0]}–${typography.sizesPx[typography.sizesPx.length - 1]}px — NOT ratio-derived; covers all bases, clean values); weight roles ${typography.weightRoles.map((w) => w.role).join('/')} → ${typography.weightRoles.map((w) => w.value).join('/')}; families ${typography.families.map((f) => `${f.role}=${f.stack[0]}`).join(', ')}${varFams.length ? ` (variable: ${varFams.join('/')})` : ''}; typeScale '${typography.typeScale}'. ${typography.composites.length} semantic composites (title/display sizes shifted by typeScale; display capped at rung '${reqCeiling}' (${effCap}px); title tier ${(input.typography?.titleFloor ?? 18) === 16 ? 'includes' : 'omits'} title.2xs)${capNote}. ${typography.fluid ? `responsive: ${typography.composites.filter((c) => c.sizeMinPx !== c.sizePx).length} fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() ${typography.minViewport}–${typography.maxViewport}px + Figma desktop/mobile modes)` : 'responsive: OFF (all sizes static)'}. Line-height unitless multiplier in \$value; px-from-ratio materialization for Figma in \$extensions.`);
   const dStrat = normalizeDisabledStrategy(input.disabledStrategy);
   const dMin = normalizeDisabledMin(input.disabledStrategy, input.disabledMin);
   notes.push(dStrat === 'full'

@@ -1763,9 +1763,10 @@ const tBrand = (id: string, ty: any) => brandTheme({ id, primary: { l: 0.5, c: 0
 const typeCases: [string, any][] = [
   ['default', {}],
   ['expressive', { typeScale: 'expressive' }],
-  ['compact+floor16', { typeScale: 'compact', titleFloor: 16 }],
-  ['ceiling96', { displayCeiling: 96 }],
-  ['ceiling18-kills-display', { displayCeiling: 18 }],
+  ['compact', { typeScale: 'compact' }],
+  ['default+floor16', { titleFloor: 16 }],
+  ['ceiling-xl', { displayCeiling: 'xl' }],
+  ['ceiling-sm', { displayCeiling: 'sm' }],
   ['familyMap+singleface', { families: { text: 'Foo' }, familyMap: { label: 'text', title: 'text' } }],
 ];
 for (const [label, ty] of typeCases) {
@@ -1812,12 +1813,48 @@ ok(tBrand('static', { responsive: { fluid: false } }).typography.composites.ever
 // default fluid → at least the display tier is fluid (min < max somewhere)
 ok(tBrand('fl', {}).typography.composites.some((c) => c.group === 'display' && c.sizeMinPx < c.sizePx), 'default fluid → display tier shrinks on mobile');
 ok(!tBrand('tf-d', {}).typography.composites.some((c) => c.group === 'title' && c.variant === '2xs'), 'titleFloor default 18 → no title.2xs');
-// C1: titleFloor 16 delivers a LITERAL 16px title.2xs under EVERY typeScale (pinned, exempt from the shift).
-for (const scale of ['compact', 'default', 'expressive'] as const) {
+// C1: titleFloor 16 delivers a LITERAL 16px title.2xs (pinned, exempt from the shift). Only the two
+// scales it is legal with — 'compact' is rejected outright (see C1c).
+for (const scale of ['default', 'expressive'] as const) {
   const c = tBrand('tf16-' + scale, { titleFloor: 16, typeScale: scale }).typography.composites.find((x) => x.group === 'title' && x.variant === '2xs');
   ok(!!c && c.sizePx === 16, `titleFloor 16 + ${scale} → title.2xs pinned at 16px (got ${c?.sizePx})`);
 }
-ok(tBrand('dc', { displayCeiling: 96 }).typography.composites.filter((c) => c.group === 'display').every((c) => c.sizePx <= 96), 'displayCeiling 96 → no display composite above 96px');
+// C1b (#328): the SET IS COMPLETE under every typeScale — this is the regression test for the bug
+// C1 above could never have caught. It asserted only that title.2xs EXISTS; it never counted the
+// ramp, so `compact` silently shipping 5 title rungs (a GAP at .sm, floor 18) or losing .xs
+// (floor 16) passed it for months, and reached out/harbor.tokens.json in production.
+{
+  const rungOrder = ['2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl'];
+  for (const scale of ['compact', 'default', 'expressive'] as const) {
+    const t = tBrand('setc-' + scale, { typeScale: scale });
+    const got = [...new Set(t.typography.composites.filter((c) => c.group === 'title').map((c) => c.variant))]
+      .sort((a, b) => rungOrder.indexOf(a) - rungOrder.indexOf(b));
+    ok(got.length === 6 && got.join(',') === 'xs,sm,md,lg,xl,2xl',
+      `[#328] typeScale '${scale}' → COMPLETE 6-rung title ramp, no gap (got ${got.length}: ${got.join(',')})`);
+    const sizes = t.typography.composites.filter((c) => c.group === 'title').map((c) => c.sizePx);
+    ok(new Set(sizes).size === new Set(t.typography.composites.filter((c) => c.group === 'title').map((c) => c.variant)).size,
+      `[#328] typeScale '${scale}' → every title rung has a distinct size`);
+  }
+}
+// C1c (#328): compact + titleFloor 16 is REJECTED, not silently resolved by dropping a rung.
+{
+  const threwC1 = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
+  ok(threwC1(() => tBrand('tf16-compact', { titleFloor: 16, typeScale: 'compact' })),
+    '[#328] compact + titleFloor 16 throws (compact already puts a title at 16px; 2xs would duplicate it)');
+}
+// C2 (#328): the ceiling names a RUNG, so the surviving rung COUNT is invariant under typeScale.
+// The old px ceiling was compared against already-shifted sizes, so `96` kept 4 rungs under
+// compact/default but only 3 under expressive — a brand lever silently changing the type SET.
+{
+  const counts = (['compact', 'default', 'expressive'] as const).map((scale) =>
+    tBrand('cap-' + scale, { typeScale: scale, displayCeiling: 'xl' }).typography.composites
+      .filter((c) => c.group === 'display').reduce((s, c) => s.add(c.variant), new Set<string>()).size);
+  ok(new Set(counts).size === 1 && counts[0] === 4,
+    `[#328] displayCeiling 'xl' → 4 display rungs under EVERY typeScale (got ${counts.join('/')})`);
+  const top = tBrand('cap-top', { displayCeiling: 'xl' }).typography.composites.filter((c) => c.group === 'display');
+  ok(!top.some((c) => ['2xl', '3xl'].includes(c.variant)) && top.some((c) => c.variant === 'xl'),
+    "[#328] displayCeiling 'xl' → trims from the TOP; xl survives, 2xl/3xl are gone, nothing renumbered");
+}
 ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.textCase === 'uppercase', 'eyebrow carries uppercase textCase');
 
 // ---- weight axis + link modifier ----
