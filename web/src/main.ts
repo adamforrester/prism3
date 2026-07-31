@@ -2356,7 +2356,7 @@ const renderTypefaces = (): HTMLElement => {
   sec.append(grid);
 
   const spell = el('p', 'tf-note');
-  spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalisation → Fonts, or the foundry / Google Fonts specimen page.';
+  spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
   const local = el('p', 'tf-note warn');
   local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback — the ⚠ above tells you when that is happening. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(spell, local);
@@ -4250,7 +4250,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sh-knob-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
 .sh-auto{font:inherit;font-size:11px;color:var(--muted);background:none;border:none;padding:0;cursor:default}
 .sh-auto.on{color:var(--ink2);cursor:pointer;text-decoration:underline}
-/* #305 tint read-out — the tint colour at full opacity beside the same colour at a mid-ramp 12%.
+/* #305 tint read-out — the tint color at full opacity beside the same color at a mid-ramp 12%.
    The checkerboard under the 12% chip is what makes a translucent near-black legible as translucent;
    on a flat panel it would just read as a slightly different flat grey. */
 .sh-tintblock{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line2)}
@@ -4490,7 +4490,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .bg-floor{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .bg-floor-lab{font-size:12.5px;font-weight:560;color:var(--muted)}
 .bg-floor .select{margin-left:auto}
-/* Interactive matrix (#69) — global-behaviour caption, per-palette section header, slot rows, states. */
+/* Interactive matrix (#69) — global-behavior caption, per-palette section header, slot rows, states. */
 .gcap{margin:8px 0 2px;padding:0 2px}
 .gcap-t{margin:0;font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
 .gcap-d{margin:4px 0 0;color:var(--faint);font-size:12.5px;line-height:1.5;max-width:660px}

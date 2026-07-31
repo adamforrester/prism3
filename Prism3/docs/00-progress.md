@@ -7,6 +7,64 @@
 
 ---
 
+## (2026-07-31) — US-English gate for shipped text
+
+**STATUS: engine + web + CI.** Owner-directed: keep en-GB spellings tracked and fixed rather than
+re-discovered. The rule has been re-derived by hand four times (#162 → #260 → #302 → #310) and three
+of those passes missed something, which is the argument for a gate rather than another careful read.
+
+- **The ad-hoc scan I ran first under-counted, in this very pass.** It deduplicated by word and
+  reported 9 `colour` hits in the bundle; the gate found **8 distinct shipped hits** the dedupe had
+  collapsed, including three separate `brand colour name` throws. Encoding the check found more than
+  running it by hand — one iteration after I had already "checked."
+- **Fixed at source, all user-visible:** five thrown error messages (`theme.ts` ×4, `color.ts` ×1 —
+  these surface in the web UI), the Fonts help text (`Personalisation` → `Personalization`, which is
+  also the correct US Windows label), and two shipped CSS comments. Two printed test names went with
+  them for consistency. **Code comments stay exempt** — the carve-out is deliberate, and `scale.ts`
+  already had `neighbours` long before this.
+- **The last open decision is closed: everything shipped is now gated.** The gate first shipped with
+  `theme-schema.json` (15 hits) and `engine/README.md` (31 hits) *reported but never fatal*, because
+  CLAUDE.md recorded the first as an explicit open decision and the second is neither UI nor an
+  emitted artifact. The owner then called it — convert both. 64 replacements later they are clean and
+  **folded into the gated set** (91 files), the reporting tier is gone, and the CLAUDE.md carve-out is
+  rewritten to point at the gate. A surface that is clean but ungated is only a surface waiting to
+  regress quietly, so there was no reason to keep the tier once it was empty.
+- **The schema conversion was verified as prose-only before it ran:** a walk confirmed every hit sat
+  in a `description` field, never a key, enum value or `$ref` — so the contract itself is untouched
+  and `regen --check` stayed at 88/88.
+- **Scope is IMPORTED from `regen.ts`,** not restated. `SCHEMA_ARTIFACTS`/`ENGINE_ARTIFACTS` are now
+  exported and consumed by the linter, so a new emitted artifact comes under the gate automatically.
+  A copied list would have drifted, and a gate with a stale scope reports green because it stopped
+  looking — the #281 shape.
+- **Pattern scan, not a word list**, per the documented trap: `colour|grey|behaviour` misses
+  `generalised`, `tokenisation`, `synthesising` (all of which the README actually contains). The
+  linter scans `-is(e|ed|es|ing|ation)`/`-our` and subtracts a false-positive set, so it fails toward
+  over-reporting. Adding to `NOT_EN_GB` is the correct fix for a false positive — never narrowing the
+  pattern.
+- **CI placement matters:** the step runs *after* `Build web`, because `levers.ts` prose is inlined
+  into `web/dist/main.js` and a source-only grep calls that bundle clean.
+- **Review caught a real bug in the import, and the evidence was on screen the whole time.** Importing
+  `SCHEMA_ARTIFACTS`/`ENGINE_ARTIFACTS` from `regen.ts` ran a full `regenerate()` as a side effect,
+  because that module's CLI dispatch sat unguarded at top level. So **every linter run silently
+  rewrote every committed artifact**, discarding any in-progress local edit. Every run of the linter
+  in this session printed `Regenerating committed artifacts…`; I noticed the anomaly, attributed it to
+  the web build script, and moved on. Noticing and misattributing is worse than not noticing — the
+  signal was there and I explained it away.
+- **The repo had already solved this exact problem.** `materialise-to-figma.ts` carries the guard with
+  the comment *"Run the CLI only when invoked directly — not when test.ts imports `aliasRows`"* — the
+  identical shape (a module importing constants from a CLI script), identical fix. Three emitters use
+  the same `isMain` idiom. `regen.ts` was the one module that never got it, so the fix is the repo's
+  own pattern rather than the reviewer's suggested `file://` string compare, which is less robust
+  (breaks on symlinks and path encoding).
+- **Why it was worse than wasteful:** CI ordering *happened* to save it — `regen --check` runs before
+  the lint step, so the side effect could not paper over a real drift regression — but that safety was
+  incidental to step order and documented nowhere. Verified by tamper test: marker appended to a
+  committed artifact, linter run alone, marker survives.
+- **The invariant is pinned at the source level**, since the behavioral proof needs process isolation
+  and cannot run in-process in `test.ts`.
+
+---
+
 ## (2026-07-31) — Per-mode rung sizes (#328, PR C)
 
 **STATUS: engine + schema.** The last and most substantive piece of #328. A mode can now re-size

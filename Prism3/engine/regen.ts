@@ -46,13 +46,13 @@ const STEPS: Array<{ label: string; args: string[] }> = [
 // outside the comparison until now: `modes-report.md` was regenerated (emit-dtcg writes it) but never
 // CHECKED, and `nb-regression-report.md` was neither regenerated nor checked — so this file's own
 // claim to cover "every committed artifact" was an overclaim. Both are gated now.
-const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md'];
+export const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md'];
 
 // `schema/` mixes hand-authored contracts (theme-schema.json) with emitted ones, so unlike `out/`
 // — which is generated wholesale — it is compared file-by-file against this list. These three are
 // the same class of risk as the `out/` drift that prompted #281: committed, generated, and until
 // now unverified. They happen to be in sync today; the point is that nothing was keeping them so.
-const SCHEMA_ARTIFACTS = ['lever-manifest.json', 'preview-spec.json', 'example-brands.json'];
+export const SCHEMA_ARTIFACTS = ['lever-manifest.json', 'preview-spec.json', 'example-brands.json'];
 
 // Every file under `out/`, repo-relative, sorted — the comparison universe. Walks rather than
 // globbing so `out/figma/<brand>/*.json` is covered without naming each brand.
@@ -145,5 +145,14 @@ const check = (): void => {
   }
 };
 
-if (process.argv.includes('--check')) { console.log('Checking committed artifacts for drift…'); check(); }
-else { console.log('Regenerating committed artifacts…'); regenerate(); console.log('\n✓ regenerated.'); }
+// Run the CLI only when invoked directly — not when another module imports the ARTIFACTS constants.
+// Without this, `import { SCHEMA_ARTIFACTS } from './regen'` performs a full regenerate() as a side
+// effect of reading two arrays: the importer silently rewrites every committed artifact, discarding
+// any in-progress local edit, and a failure inside regenerate() surfaces as a stack trace about
+// artifact generation from a script the developer ran for something else entirely.
+// Same guard, and the same reason, as `materialise-to-figma.ts` — which already carries it precisely
+// so `test.ts` can import `aliasRows` without running a CLI.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv.includes('--check')) { console.log('Checking committed artifacts for drift…'); check(); }
+  else { console.log('Regenerating committed artifacts…'); regenerate(); console.log('\n✓ regenerated.'); }
+}

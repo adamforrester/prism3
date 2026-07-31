@@ -1365,7 +1365,7 @@ export const brandTheme = (input: BrandInput): Theme => {
     // shadows the canonical `$value` (which stays the global), so the two disagree. Reject it: set the
     // global levers directly. (Distinct from `overrides`/`modeAnchors`, where light is a real colour mode.)
     if (m === 'light')
-      throw new Error(`modeLevers: 'light' is the global baseline for the non-colour levers — set the global radius/density/tempo/shadow/typography levers directly, not modeLevers.light`);
+      throw new Error(`modeLevers: 'light' is the global baseline for the non-color levers — set the global radius/density/tempo/shadow/typography levers directly, not modeLevers.light`);
     const lev = input.modeLevers![m]!;
     if (lev.radius !== undefined && (!Number.isFinite(lev.radius) || lev.radius < 0 || lev.radius > 2))
       throw new Error(`modeLevers: mode '${m}' radius ${lev.radius} is out of range — must be a finite number in [0, 2]`);
@@ -1450,11 +1450,11 @@ export const brandTheme = (input: BrandInput): Theme => {
   const seenNames = new Set<string>();
   for (const bc of input.brandColors ?? []) {
     if (!PALETTE_NAME_RE.test(bc.name))
-      throw new Error(`brand colour name '${bc.name}' must be a single lowercase slug (letters/digits/hyphen, start with a letter — no dots, spaces, or symbols)`);
+      throw new Error(`brand color name '${bc.name}' must be a single lowercase slug (letters/digits/hyphen, start with a letter — no dots, spaces, or symbols)`);
     if (RESERVED_PALETTES.has(bc.name))
-      throw new Error(`brand colour name '${bc.name}' is reserved (an engine-generated palette) — it would overwrite that ramp; pick a distinct name`);
+      throw new Error(`brand color name '${bc.name}' is reserved (an engine-generated palette) — it would overwrite that ramp; pick a distinct name`);
     if (seenNames.has(bc.name))
-      throw new Error(`duplicate brand colour name '${bc.name}' — brand colour names must be unique`);
+      throw new Error(`duplicate brand color name '${bc.name}' — brand color names must be unique`);
     seenNames.add(bc.name);
   }
   for (const bc of input.brandColors ?? []) {
