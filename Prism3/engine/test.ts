@@ -1997,6 +1997,17 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(em.$value.fontSize === '{prism.font.size.40}', '[#328] emitted canonical $value.fontSize still aliases the light step');
     ok(em.$extensions.prism3.modes.dark.responsive?.max?.px === 36 && em.$extensions.prism3.modes.dark.responsive?.min?.px === 32,
       '[#328] the emitted per-mode responsive pair is the RECOMPUTED one (32→36), not the inherited 36→40');
+    // The fidelity gate DOES reach into `$extensions.prism3.modes.<m>.$value` — hardened in #301 for
+    // exactly this shape. What was missing was an assertion USING it: no committed artifact contains a
+    // per-mode TYPE composite (the 154 per-brand mode blocks are all color + shadow), so without this
+    // the emitted re-point's aliases were only ever checked as strings by the tests above. Pinning the
+    // delta as well as `broken` matters — an alias the walker silently skipped would also report zero
+    // broken, which is the #281 shape: a gate reporting clean because it never looked.
+    const btBase = buildTree(brandTheme({ ...pmBase, typography: {} } as any));
+    const btMode = buildTree(t1);
+    ok(btMode.stats.broken.length === 0, '[#328] a theme with per-mode sizes has no broken aliases');
+    ok(btMode.stats.aliases - btBase.stats.aliases === 15,
+      `[#328] per-mode sizes CONTRIBUTE aliases to the gate (+15 = 3 re-sized composites × the 5 alias fields of a per-mode $value, got +${btMode.stats.aliases - btBase.stats.aliases})`);
     // A size re-point and a leading re-point on the same composite compose rather than clobber.
     const both = brandTheme({ ...pmBase, typography: {}, modeLevers: { dark: { typeSizes: { title: { '2xl': 36 } }, lineHeights: { snug: 'relaxed' } } } } as any);
     const bl = leaf(buildTree(both).tree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
@@ -2025,6 +2036,21 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(thr(() => mk({ title: { md: 32 } })), '[#328] a per-mode size that collides with an untouched neighbor throws (merged ramp, not overrides alone)');
     ok(thr(() => mk({ title: { xl: 20 } })), '[#328] a per-mode size that inverts the ramp throws');
     ok(!thr(() => mk({ title: { xl: 36 } })), '[#328] a per-mode size that keeps the merged ramp increasing is accepted');
+  }
+  // #349 review — a module imported for its EXPORTS must not run its CLI as a side effect. `regen.ts`
+  // shipped its dispatch unguarded at top level, so `import { SCHEMA_ARTIFACTS } from './regen'` ran a
+  // full regenerate(): the linter silently rewrote every committed artifact, discarding local edits,
+  // and would have reported a regeneration stack trace as a spelling failure. Pinned at the source
+  // level because the behavioral proof needs process isolation — the tamper test (append a marker to a
+  // committed artifact, run only the linter, confirm it survives) is the runtime check, and it can't
+  // live in-process here. `materialise-to-figma.ts` already carried this guard for `test.ts`'s own
+  // import of `aliasRows`; regen was the one module that never got it.
+  {
+    const src = readFileSync(new URL('./regen.ts', import.meta.url), 'utf8');
+    const guard = src.indexOf('resolve(process.argv[1]) === fileURLToPath(import.meta.url)');
+    const dispatch = src.indexOf("process.argv.includes('--check')");
+    ok(guard !== -1 && dispatch > guard,
+      '[#349] regen.ts guards its CLI dispatch behind an entry-point check — importing it for the ARTIFACTS constants must not regenerate');
   }
   // Reading/UI text is the boundary the preset exists to respect — it must NOT move.
   for (const scale of ['compact', 'expressive'] as const) {
@@ -3417,8 +3443,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const bc = (name: string) => ({ ...input, actionPalette: 'primary', gradients: [], brandColors: [{ name, oklch: { l: 0.55, c: 0.15, h: 235 } }] });
   const rejects = (name: string) => { try { brandTheme(bc(name)); return false; } catch { return true; } };
   ok(brandTheme(bc('brand-blue')).palettes.some((p) => p.palette === 'brand-blue'), 'CR-03: a valid slug brand-colour name is accepted');
-  ok(rejects('neutral') && rejects('primary'), 'CR-03: a brand colour named after an engine ramp (neutral/primary) throws (would hijack it)');
-  ok(rejects('success') && rejects('white'), 'CR-03: a brand colour named after a reserved palette (status / base swatch) throws');
+  ok(rejects('neutral') && rejects('primary'), 'CR-03: a brand color named after an engine ramp (neutral/primary) throws (would hijack it)');
+  ok(rejects('success') && rejects('white'), 'CR-03: a brand color named after a reserved palette (status / base swatch) throws');
   ok(rejects('my.accent') && rejects('brand blue') && rejects('<img>'), 'CR-03: dotted / spaced / symbol brand-colour names throw (alias-path + XSS charset guard)');
   let dupThrew = false;
   try { brandTheme({ ...input, actionPalette: 'primary', gradients: [], brandColors: [{ name: 'twin', oklch: { l: 0.5, c: 0.1, h: 10 } }, { name: 'twin', oklch: { l: 0.6, c: 0.1, h: 200 } }] }); } catch { dupThrew = true; }

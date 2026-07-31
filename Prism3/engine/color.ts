@@ -89,7 +89,7 @@ export const hexToRgb = (s: string): RGB => {
   // so the alpha is irrelevant and must not be rejected as "invalid hex" (M-13).
   if (h.length === 3 || h.length === 4) h = h.split('').map((c) => c + c).join('');
   if (h.length === 8) h = h.slice(0, 6);
-  if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) throw new Error(`invalid hex colour: '${s}'`);
+  if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) throw new Error(`invalid hex color: '${s}'`);
   return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
 };
 
@@ -148,7 +148,7 @@ export const dualContrastWindow = (ratio = 4.5): [number, number] => {
   // window by throwing rather than handing back an inverted [min>max] pair a
   // caller would misread as a valid range (e.g. a future HC 7:1 caller). L-02.
   if (ratio > Math.sqrt(21))
-    throw new Error(`dualContrastWindow: no colour clears ${ratio}:1 on both black and white — the max dual-side ratio is √21 ≈ 4.58`);
+    throw new Error(`dualContrastWindow: no color clears ${ratio}:1 on both black and white — the max dual-side ratio is √21 ≈ 4.58`);
   const min = ratio * 0.05 - 0.05; // passes on black
   const max = 1.05 / ratio - 0.05; // passes on white
   return [min, max];
