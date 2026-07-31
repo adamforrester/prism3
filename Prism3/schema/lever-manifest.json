@@ -219,7 +219,7 @@
           "label": "Expressive"
         }
       ],
-      "description": "Shifts heading sizes (display + title) up/down the ladder; body/label/caption stay put."
+      "description": "Shifts heading sizes (display, title and eyebrow) up/down the ladder; body/label/caption/code stay put."
     },
     {
       "key": "typography.families",

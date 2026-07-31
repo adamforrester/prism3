@@ -3413,21 +3413,7 @@
     },
     "type.eyebrow.sm.emphasis": {
       "$description": "Eyebrow / kicker — small uppercase label above a heading.",
-      "meaning": "Type style — eyebrow sm emphasis (12px, display face, uppercase)",
-      "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
-      "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
-      "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
-        "fontSize": "{prism.font.size.12}",
-        "fontWeight": "{prism.font.weight-role.emphasis}",
-        "lineHeight": "{prism.font.line-height.snug}",
-        "letterSpacing": "{prism.font.letter-spacing.wider}",
-        "textCase": "uppercase"
-      }
-    },
-    "type.eyebrow.md.emphasis": {
-      "$description": "Eyebrow / kicker — small uppercase label above a heading.",
-      "meaning": "Type style — eyebrow md emphasis (14px, display face, uppercase)",
+      "meaning": "Type style — eyebrow sm emphasis (14px, display face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
       "resolves_to": {
@@ -3439,14 +3425,28 @@
         "textCase": "uppercase"
       }
     },
-    "type.eyebrow.lg.emphasis": {
+    "type.eyebrow.md.emphasis": {
       "$description": "Eyebrow / kicker — small uppercase label above a heading.",
-      "meaning": "Type style — eyebrow lg emphasis (20px, display face, uppercase)",
+      "meaning": "Type style — eyebrow md emphasis (16px, display face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
       "resolves_to": {
         "fontFamily": "{prism.font.family.display}",
-        "fontSize": "{prism.font.size.20}",
+        "fontSize": "{prism.font.size.16}",
+        "fontWeight": "{prism.font.weight-role.emphasis}",
+        "lineHeight": "{prism.font.line-height.snug}",
+        "letterSpacing": "{prism.font.letter-spacing.wider}",
+        "textCase": "uppercase"
+      }
+    },
+    "type.eyebrow.lg.emphasis": {
+      "$description": "Eyebrow / kicker — small uppercase label above a heading.",
+      "meaning": "Type style — eyebrow lg emphasis (24px, display face, uppercase)",
+      "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
+      "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
+      "resolves_to": {
+        "fontFamily": "{prism.font.family.display}",
+        "fontSize": "{prism.font.size.24}",
         "fontWeight": "{prism.font.weight-role.emphasis}",
         "lineHeight": "{prism.font.line-height.snug}",
         "letterSpacing": "{prism.font.letter-spacing.wider}",
@@ -5696,7 +5696,6 @@
         "type.caption.lg.default-link",
         "type.caption.lg.strong",
         "type.caption.lg.strong-link",
-        "type.eyebrow.sm.emphasis",
         "type.label.sm.emphasis"
       ]
     },
@@ -5712,6 +5711,7 @@
         "type.body.sm.strong-link",
         "type.code.inline.default",
         "type.eyebrow.md.emphasis",
+        "type.eyebrow.sm.emphasis",
         "type.label.md.emphasis"
       ]
     },
@@ -5725,6 +5725,7 @@
         "type.body.md.default-link",
         "type.body.md.strong",
         "type.body.md.strong-link",
+        "type.eyebrow.md.emphasis",
         "type.title.2xs.strong"
       ]
     },
@@ -5737,8 +5738,7 @@
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
-        "type.body.lg.strong-link",
-        "type.eyebrow.lg.emphasis"
+        "type.body.lg.strong-link"
       ]
     },
     "font.size.20": {
@@ -5758,6 +5758,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "type.eyebrow.lg.emphasis",
         "type.title.md.strong",
         "type.title.sm.strong"
       ]

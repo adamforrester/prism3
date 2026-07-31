@@ -1880,6 +1880,31 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // Floor 12: uppercase + wider tracking costs legibility lowercase body text at the same px does not.
   ok(eb.every((c) => c.sizeMinPx >= 12), '[#328] no eyebrow rung shrinks below the 12px floor');
 }
+// EYEBROW SHIFTS WITH typeScale (#328). A kicker sits directly above a display/title and is read as
+// a pair with it — leave it out of the shift and `expressive` grows the title a rung while the
+// kicker stays put. The set must stay COMPLETE and strictly increasing under every scale, the same
+// contract C1b pins for title: this is where a shifted category silently loses a rung.
+{
+  const expected: Record<string, number[]> = { compact: [11, 12, 18], default: [12, 14, 20], expressive: [14, 16, 24] };
+  for (const scale of ['compact', 'default', 'expressive'] as const) {
+    const eb = tBrand('ebts-' + scale, { typeScale: scale }).typography.composites.filter((c) => c.group === 'eyebrow');
+    const byV = new Map(eb.map((c) => [c.variant, c.sizePx]));
+    const got = ['sm', 'md', 'lg'].map((v) => byV.get(v)!);
+    ok(byV.size === 3 && JSON.stringify(got) === JSON.stringify(expected[scale]),
+      `[#328] typeScale '${scale}' → eyebrow sm/md/lg = ${expected[scale].join('/')} (got ${got.join('/')}, ${byV.size} rungs)`);
+    ok(got.every((v, i) => i === 0 || v > got[i - 1]),
+      `[#328] typeScale '${scale}' → eyebrow ramp strictly increasing, no collision-drop`);
+  }
+  // Reading/UI text is the boundary the preset exists to respect — it must NOT move.
+  for (const scale of ['compact', 'expressive'] as const) {
+    const t = tBrand('ebfix-' + scale, { typeScale: scale }).typography.composites;
+    const base = tBrand('ebfix-base', {}).typography.composites;
+    const key = (c: any) => `${c.group}.${c.variant}`;
+    const baseSize = new Map(base.map((c) => [key(c), c.sizePx]));
+    const moved = t.filter((c) => ['body', 'label', 'caption', 'code'].includes(c.group) && baseSize.get(key(c)) !== c.sizePx);
+    ok(moved.length === 0, `[#328] typeScale '${scale}' leaves body/label/caption/code untouched (moved: ${moved.map(key).join(',') || 'none'})`);
+  }
+}
 
 // ---- weight axis + link modifier ----
 {
