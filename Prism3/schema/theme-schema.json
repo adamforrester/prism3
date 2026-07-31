@@ -302,7 +302,7 @@
           "type": "string",
           "enum": ["compact", "default", "expressive"],
           "default": "default",
-          "description": "Shifts heading sizes (display + title) up/down the ladder: expressive → one rung higher, compact → one lower. Body/label/caption stay put."
+          "description": "Shifts heading sizes (display, title and eyebrow) up/down the ladder: expressive → one rung higher, compact → one lower. Body/label/caption/code stay put."
         },
         "familyMap": {
           "type": "object",

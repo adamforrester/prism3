@@ -2369,7 +2369,7 @@ const renderTypefaces = (): HTMLElement => {
 const renderSizeLadder = (): HTMLElement => {
   const ty = theme.typography;
   const perMode = currentMode !== 'light';
-  const sec = palSection('Type scale', 'The size ladder is fixed and brand-invariant — 22 rem steps. These three levers decide which rungs the heading categories land on; body, label, caption, eyebrow and code never move.');
+  const sec = palSection('Type scale', 'The size ladder is fixed and brand-invariant — 22 rem steps. These three levers decide which rungs the heading categories land on; body, label, caption and code never move.');
   for (const key of ['typography.typeScale', 'typography.displayCeiling', 'typography.titleFloor']) {
     const lever = leverByKey(key); if (!lever) continue;
     if (perMode) {
@@ -2409,7 +2409,7 @@ const renderSizeLadder = (): HTMLElement => {
   });
   const key = el('div', 'sl-key');
   const kdot = (cls: string, text: string): HTMLElement => { const s = el('span', 'sl-keyi'); s.append(el('i', cls), document.createTextNode(text)); return s; };
-  key.append(kdot('k-head', 'moves with these levers (display + title)'), kdot('k-fix', 'fixed — body, label, caption, code'), kdot('k-off', 'rung unused by any category'));
+  key.append(kdot('k-head', 'moves with these levers (display, title, eyebrow)'), kdot('k-fix', 'fixed — body, label, caption, code'), kdot('k-off', 'rung unused by any category'));
   sec.append(key);
   return sec;
 };
