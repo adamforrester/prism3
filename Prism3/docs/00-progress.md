@@ -7,6 +7,71 @@
 
 ---
 
+## (2026-07-31) — the CLI paste path could only write color (#342, items 1–2)
+
+**STATUS: engine.** **No artifact changes** — `regen --check` still 88/88. This is wiring, not new
+derivation: the pure plans already existed.
+
+**Found while scoping #327 part 3.** The anatomy projection binds `size/*`, `radius/*` and
+`icon/size/*`. None of them could be got into a Figma file, so the spike had nothing to run
+against — the projection was verifiable against emitted JSON but not *materializable*.
+
+**The actual shape of the gap**, which is worse than it first looked:
+
+| axis | emitted | plugin executor | CLI paste pass |
+|---|---|---|---|
+| palette + color | ✅ | ✅ | ✅ 3 passes |
+| floats (9 axes incl. `size`, `radius`, `icon`) | ✅ | ✅ since #108 | ❌ **none** |
+| effect + paint styles | ✅ | ✅ | ❌ **none** |
+| **text styles** | ✅ | ❌ **none** | ❌ **none** |
+
+The two write paths are supposed to be **projections of one plan** (`write-plan.ts` says so in its
+header, and that is the whole reason it was extracted). They had diverged by two thirds of the
+axes, and **nothing asserted they agreed** — so the drift gate is as much the deliverable as the
+passes are. It is the check whose absence let this open.
+
+**Why it stayed invisible:** the plugin path *does* write floats, so anyone testing through the
+installed plugin saw a complete file. Only an MCP-driven session — which can only paste — hits the
+gap. A capability that works in the path you usually exercise and fails in the one you don't is
+exactly the kind that no existing gate was shaped to catch.
+
+**Reads the emitted files rather than rebuilding from a theme.** `buildFloatWritePlan` takes a
+`Theme`, which would have been the shorter route, but every other pass here reads `out/figma/<brand>/`
+— that JSON is what the docs/10 §3 contract is written against, and a theme-rebuilt plan could
+silently disagree with the artifact `--check` verifies. Exporting `floatPlanFor` (already the
+disk-shaped reshape, taking `FigmaCollectionFile[]`) gets both: the emitted-file property AND the
+same pure function the plugin path uses, so the two still cannot drift.
+
+**Float scopes get their own code map.** Floats and colors live in disjoint scope namespaces — a
+float is `WIDTH_HEIGHT` or `GAP`, never `FRAME_FILL`. Sharing one map would let an unknown scope
+decode to a color scope that happens to share a letter; separate maps make it decode to `?` loudly,
+and `?` in a payload is asserted against because it reaches the Plugin API as `undefined` and throws
+at paste time.
+
+**One payload for all nine axes**, not nine. Floats total ≈120 variables against color's thousands
+(10.6 KB, well inside the 45 KB budget), and a single pass keeps create-before-alias honest without
+asking whoever pastes it to track nine separate steps.
+
+**Tamper-tested, four ways, all bite:** dropping the `icon` axis (3 failures, including the #327
+reachability check naming `icon/size/{sm,md,lg}` — the assertion that says the spike can run);
+creating floats as `COLOR`; leaving a scope unmapped; and renaming every alias target
+(`space/100 → space/100-typo`) to confirm the dangling check isn't reading its own output.
+
+**One coupling fixed on the way.** The unmapped-scope tamper *also* broke the dangling-target check,
+because the payload-parsing regex required a known scope alphabet. Widened to accept `?` so a bad
+scope fails the scope assertion on its own rather than making a second, unrelated check fail for the
+wrong reason — a false signal is worse than a missing one when you are reading a tamper result.
+
+**Still open (#342 items 3–4):** **text styles are written by nothing, anywhere** — a real hole in
+the plugin too, not just the CLI, and `#327`'s label binds `label/md/emphasis`. That needs a
+`buildTextStylesPlan` + a plugin applier + a CLI pass, which is a different concern from wiring an
+existing plan. The effect/paint style pass is the same wiring-only shape as this one.
+
+**Verified:** 1078 → **1095** tests; nb-regression PASS; `regen --check` 88/88; web typecheck +
+both builds clean.
+
+---
+
 ## (2026-07-31) — `anatomy`: the structural layer, and Button formalized against it (#327, parts 1–2)
 
 **STATUS: engine.** **No artifact changes** — `regen --check` still 88/88. The component layer is

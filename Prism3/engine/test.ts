@@ -31,7 +31,7 @@ import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs } from './mcp';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows } from './materialise-to-figma';
+import { aliasRows, floatCollections, passJs, passOrder } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor } from './write-plan';
 import { verifyReadback, verifyFloatReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
@@ -4299,7 +4299,64 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     broke('an orphan part fails (a materializer would silently drop it)', /unreachable/, (x) => ({ ...x, parts: { ...x.parts, container: { ...x.parts.container, children: ['label', 'trailingVisual'] } } }));
     broke('two interaction targets fail', /exactly one part must have role/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, role: 'target' } } }));
     broke('a text part carrying layout fails', /only a 'box' lays out/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, gap: 'size.{size}.gap' } } }));
+
+    // ---- can the spike actually RUN? (#342) ---------------------------------------------------
+    // The projection above is worthless if the variables it binds can't be got into a Figma file.
+    // The plugin executor has written the float axes since #108, but the CLI paste path — the only
+    // one an MCP-driven session can use — had colour passes and nothing else, so `size/*`,
+    // `radius/*` and `icon/size/*` were unreachable. These assertions close the loop: every
+    // variable the anatomy plan binds must appear in the payload that would be pasted.
+    const dimsCreate = passJs('nb', 'dims-create');
+    const wanted = [...new Set(button.variants.size.flatMap((s) => planBoundVars(figmaAnatomyPlan(button, s, { leading: true, trailing: true }).root)))];
+    const unreachable = wanted.filter((v) => !dimsCreate.includes(`"${v}"`));
+    ok(unreachable.length === 0, `anatomy: every variable the plan binds is in the dims-create payload${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${wanted.length} vars)`}`);
+    ok(passOrder().indexOf('dims-create') < passOrder().indexOf('dims-aliases'), 'materialise: dims-create is pasted before dims-aliases (a target must exist before it can be bound)');
   }
+}
+
+// ------------------------------------------- materialise-to-figma: the FLOAT paste path (#342)
+// The two write paths — the CLI paste string and the live plugin executor — are supposed to be
+// projections of ONE plan. They weren't: the plugin has written floats since #108 while the CLI
+// had no pass for them at all, and nothing asserted the two agreed. This is that assertion.
+{
+  const pluginAxes = buildFloatWritePlan(nbTheme()).map((p) => p.name).sort();
+  const pasteAxes = floatCollections('nb').sort();
+  ok(JSON.stringify(pluginAxes) === JSON.stringify(pasteAxes),
+    `materialise: the paste path covers every float axis the plugin path writes${JSON.stringify(pluginAxes) === JSON.stringify(pasteAxes) ? ` (${pasteAxes.length})` : ` — plugin [${pluginAxes}] vs paste [${pasteAxes}]`}`);
+
+  const create = passJs('nb', 'dims-create');
+  const aliases = passJs('nb', 'dims-aliases');
+
+  // FLOAT, not COLOR — a float variable created with the colour type silently accepts no numeric
+  // value, and the failure surfaces only when something tries to bind it.
+  ok(create.includes("'FLOAT'") && !create.includes("'COLOR'"), 'materialise: dims-create creates FLOAT variables');
+
+  // Every scope must decode. An unknown scope encodes to '?', which would reach the Plugin API as
+  // `undefined` and throw at paste time — the exact class of error a payload should never carry.
+  ok(!/"[a-z*]*\?[a-z*]*"/.test(create), 'materialise: every float scope encodes to a known code (no `?` in the payload)');
+
+  // Alias targets must resolve WITHIN the float lane — `size/md/gap → space/100`,
+  // `icon/size/md → dimension/24`. A target naming a variable no create pass makes would paste
+  // clean and then miss silently at bind time.
+  const created = new Set<string>();
+  // `?` is in the class deliberately: a bad scope code must fail the scope assertion above on its
+  // own, not by quietly shrinking this set and making the dangling check fail for the wrong reason.
+  for (const m of create.matchAll(/\["([a-z0-9/\-.]+)","[a-z*?]*",/g)) created.add(m[1]);
+  const targets = new Set<string>();
+  for (const m of aliases.matchAll(/\["([a-z0-9/\-.]+)",\[([^\]]*)\]\]/g))
+    for (const t of m[2].split(',')) { const s = t.replace(/"/g, '').trim(); if (s && s !== 'null') targets.add(s); }
+  ok(created.size > 0 && targets.size > 0, `materialise: parsed the float payloads (${created.size} created, ${targets.size} distinct alias targets)`);
+  const dangling = [...targets].filter((t) => !created.has(t));
+  ok(dangling.length === 0, `materialise: every float alias target is created by the same pass${dangling.length ? ` — DANGLING: ${dangling.slice(0, 5).join(', ')}` : ''}`);
+
+  // The component tier is the reason this pass exists (#327 binds it), so name it explicitly
+  // rather than trusting the axis-coverage check to imply it.
+  for (const v of ['size/md/gap', 'size/md/padding-x-visual', 'icon/size/md', 'radius/md'])
+    ok(create.includes(`"${v}"`), `materialise: dims-create carries ${v}`);
+
+  // Payload budget — the reason the colour lane is split across three passes in the first place.
+  for (const name of passOrder())
+    ok(Buffer.byteLength(passJs('nb', name), 'utf8') < 45_000, `materialise: pass '${name}' is inside the figma_execute budget (${Buffer.byteLength(passJs('nb', name), 'utf8')} bytes)`);
 }
 
 // ------------------------------------------------------------------- neutral.auto
