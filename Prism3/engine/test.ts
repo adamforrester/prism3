@@ -1960,6 +1960,72 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(got.every((v, i) => i === 0 || v > got[i - 1]),
       `[#328] typeScale '${scale}' → eyebrow ramp strictly increasing, no collision-drop`);
   }
+  // PER-MODE RUNG SIZES (#328, PR C). A mode re-sizes rungs within a mode-invariant SET.
+  {
+    const pmBase = { id: 'pm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as any;
+    const thr = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
+    const mk = (typeSizes: any, ty: any = {}) => brandTheme({ ...pmBase, typography: ty, modeLevers: { dark: { typeSizes } } } as any);
+    const comp = (t: any, g: string, v: string) => t.typography.composites.find((c: any) => c.group === g && c.variant === v)!;
+
+    // A realistic override shrinks the whole top of the display ramp, not one rung in isolation —
+    // my first attempt at this fixture set 3xl=96 alone and the merged-ramp guard rejected it for
+    // colliding with an untouched 2xl=128. That is the guard earning its place, on the author of it.
+    const t1 = mk({ display: { '2xl': 112, '3xl': 128 }, title: { '2xl': 36 } });
+    ok(comp(t1, 'display', '3xl').sizeByMode?.dark === 128, '[#328] per-mode size: dark display.3xl re-points to 128px');
+    ok(comp(t1, 'display', '3xl').sizePx === 160, '[#328] per-mode size leaves the light/canonical size untouched');
+    // THE ONE THAT SILENTLY BREAKS: a re-sized rung must recompute its OWN mobile endpoint. Inheriting
+    // the brand-level sizeMinPx would pair dark's 32px title with 36px — derived from the 40px it
+    // replaced — i.e. a "fluid" pair that shrinks UPWARD on mobile.
+    ok(comp(t1, 'title', '2xl').sizeMinPx === 36, '[#328] baseline title.2xl (40px) keeps its 36px mobile endpoint');
+    ok(comp(t1, 'title', '2xl').sizeMinByMode?.dark === 32, '[#328] a re-sized rung recomputes its OWN mobile endpoint (36px → 32, not the inherited 36)');
+    ok(comp(t1, 'title', '2xl').sizeMinByMode!.dark < comp(t1, 'title', '2xl').sizeByMode!.dark, '[#328] the per-mode fluid pair still shrinks downward');
+    ok(comp(t1, 'display', '3xl').sizeMinByMode?.dark === 48, '[#328] display.3xl at 128px takes the Carbon 48px mobile endpoint');
+    // The SET is mode-invariant — sizes vary, membership never does.
+    for (const g of ['display', 'title', 'eyebrow']) {
+      const vs = t1.typography.composites.filter((c: any) => c.group === g).map((c: any) => c.variant);
+      const bs = brandTheme({ ...pmBase, typography: {} } as any).typography.composites.filter((c: any) => c.group === g).map((c: any) => c.variant);
+      ok(JSON.stringify(vs) === JSON.stringify(bs), `[#328] per-mode sizing leaves the ${g} rung SET identical (membership is fixed at brand level)`);
+    }
+    // Inert declaration ⇒ no entry at all, so an artifact stays byte-identical.
+    const inert = mk({ title: { '2xl': 40 } });
+    ok(comp(inert, 'title', '2xl').sizeByMode === undefined && inert.typography.typeSizesByMode === undefined,
+      '[#328] a per-mode size equal to the brand size is dropped (no mode entry, byte-identical)');
+    // Emission: fontSize re-points, and the mode carries its own responsive pair.
+    const leaf = (tree: any, path: string) => path.split('.').reduce((o, k) => o?.[k], tree);
+    const em = leaf(buildTree(t1).tree, 'prism.type.title.2xl.strong');
+    ok(em.$extensions.prism3.modes.dark.$value.fontSize === '{prism.font.size.36}', '[#328] emitted dark $value.fontSize aliases the re-sized ladder step');
+    ok(em.$value.fontSize === '{prism.font.size.40}', '[#328] emitted canonical $value.fontSize still aliases the light step');
+    ok(em.$extensions.prism3.modes.dark.responsive?.max?.px === 36 && em.$extensions.prism3.modes.dark.responsive?.min?.px === 32,
+      '[#328] the emitted per-mode responsive pair is the RECOMPUTED one (32→36), not the inherited 36→40');
+    // A size re-point and a leading re-point on the same composite compose rather than clobber.
+    const both = brandTheme({ ...pmBase, typography: {}, modeLevers: { dark: { typeSizes: { title: { '2xl': 36 } }, lineHeights: { snug: 'relaxed' } } } } as any);
+    const bl = leaf(buildTree(both).tree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
+    ok(bl.$value.fontSize === '{prism.font.size.36}' && bl.$value.lineHeight === '{prism.font.line-height.relaxed}',
+      '[#328] a per-mode size and a per-mode leading re-point compose on one composite');
+
+    // Validation THROWS — never drops. A silently ignored per-mode request is only visible in one mode.
+    ok(thr(() => mk({ body: { md: 18 } })), '[#328] per-mode sizing on body (reading text) throws — rejected, not ignored');
+    ok(thr(() => mk({ caption: { md: 12 } })), '[#328] per-mode sizing on caption throws');
+    ok(thr(() => mk({ title: { '9xl': 32 } })), '[#328] per-mode sizing on a rung this brand does not ship throws');
+    // Rung existence is BRAND-relative, not a fixed list: title.2xs exists only under titleFloor 16.
+    // (16 is the only legal value for it — xs sits at 18 and 17 is not a ladder step — so this pair
+    // tests recognition: unknown-rung throws BEFORE the inert-drop, so 'no throw' proves it is known.)
+    ok(thr(() => mk({ title: { '2xs': 16 } }, {})), '[#328] per-mode sizing on title.2xs throws when titleFloor omits that rung');
+    ok(!thr(() => mk({ title: { '2xs': 16 } }, { titleFloor: 16 })), '[#328] …and is recognized when titleFloor 16 ships it');
+    ok(thr(() => mk({ title: { '2xl': 33 } })), '[#328] a per-mode size that is not a ladder step throws');
+    // The CASCADE, pinned as a real property rather than a surprise: the ladder is dense at the small
+    // end, so shrinking a top rung past its neighbour forces you to move the neighbour too. Both of my
+    // first two fixture attempts hit this. It is the guard working, but it IS the feature's sharp edge.
+    ok(thr(() => mk({ title: { '2xl': 32 } })), "[#328] shrinking title.2xl to 32 alone throws — it collides with the untouched xl (32); the neighbor must move too");
+    ok(!thr(() => mk({ title: { xs: 16, sm: 18, md: 20, lg: 24, xl: 28, '2xl': 32 } })), '[#328] …and is accepted once the cascade is carried all the way down the ramp');
+    ok(thr(() => mk({ title: { '2xl': 14 } })), '[#328] a per-mode title size below the 16px floor throws');
+    ok(thr(() => mk({ display: { sm: 28 } })), '[#328] a per-mode display size below the 32px floor throws');
+    ok(thr(() => mk({ eyebrow: { sm: 10 } })), '[#328] a per-mode eyebrow size below the 11px floor throws');
+    // The merged-ramp check is the point: colliding with an UNTOUCHED neighbour is the realistic mistake.
+    ok(thr(() => mk({ title: { md: 32 } })), '[#328] a per-mode size that collides with an untouched neighbor throws (merged ramp, not overrides alone)');
+    ok(thr(() => mk({ title: { xl: 20 } })), '[#328] a per-mode size that inverts the ramp throws');
+    ok(!thr(() => mk({ title: { xl: 36 } })), '[#328] a per-mode size that keeps the merged ramp increasing is accepted');
+  }
   // Reading/UI text is the boundary the preset exists to respect — it must NOT move.
   for (const scale of ['compact', 'expressive'] as const) {
     const t = tBrand('ebfix-' + scale, { typeScale: scale }).typography.composites;
