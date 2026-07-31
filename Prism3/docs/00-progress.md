@@ -7,6 +7,39 @@
 
 ---
 
+## (2026-07-31) — Mode-switcher scope: hide it where nothing varies (#268)
+
+**STATUS: web.** First piece of the UI phase, and it **closes #268** — a decision issue explicitly
+blocked on "the primitive-vs-semantic audit, which supplies the per-page facts this decision needs."
+
+- **The audit is the durable part.** Per-mode-capable axes are exactly the `ModeLevers` keys —
+  `radius`, `families`, `weights`, `lineHeights`, `letterSpacings`, `tempo`, `shadow`, `density`,
+  `typeSizes` — plus color. Cross-referenced against the pages, **two surfaces carry a switcher that
+  can never do anything**: `layout` (nothing layout-related appears in `ModeLevers` or carries a
+  `*ByMode` field — mode-invariant outright, not merely primitive) and `typography → Foundations`
+  (ladder, faces, weight numerics and leading/tracking rungs are all primitives).
+- **The rule needed no new taxonomy.** #268's candidate — *modes live in the semantic layer, so a
+  primitive surface shows no switcher* — lands on a line the UI already draws: the Foundations/Styles
+  split from #272. Implemented as a **predicate**, not a per-page flag, so placement is derived from
+  what a page contains and a new page inherits the right answer instead of needing a decision.
+- **Typography → STYLES keeps the switcher, and that is not an inconsistency.** I had claimed a
+  side-by-side per-mode ramp would let Typography drop it entirely. Checking before building showed
+  all three Styles editors resolve against `currentMode` and WRITE per-mode overrides
+  (`renderWeightRoles` 4 refs, `renderCategorySetup` 2, `renderResponsiveEditor` 1). Showing every
+  mode at once removes the need to switch for **reading**, never for **editing** — an editor still
+  needs one mode to write into. The claim was wrong; the correction cost one grep.
+- **Hidden, never disabled.** A greyed-out switcher still asserts the page has modes and merely
+  refuses. `currentMode` is untouched, so leaving and returning restores the mode you were in.
+- **The trap: the tab switch is header chrome, not just body.** Page nav repaints the strip free via
+  `build()`, but the Foundations/Styles segmented control sits *below* the header and only called
+  `renderWorkspace()` — so the strip would have gone stale on exactly the transition the rule governs.
+- **Verified in a real browser, not by reading the predicate:** Palettes/Motion visible,
+  Typography→Foundations hidden, Typography→Styles visible, Layout hidden, zero page errors.
+- **Next in the UI phase:** the side-by-side per-mode ramp on Styles (owner-chosen shape: all modes,
+  every row). `typeSizes` remains unexposed — no `modeLevers` lever is surfaced in the web UI yet.
+
+---
+
 ## (2026-07-31) — US-English gate for shipped text
 
 **STATUS: engine + web + CI.** Owner-directed: keep en-GB spellings tracked and fixed rather than

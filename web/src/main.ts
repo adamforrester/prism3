@@ -2019,7 +2019,10 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
   const seg = el('div', 'pvseg');
   for (const [k, label] of TYPE_TABS) {
     const b = el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement;
-    b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); } };
+    // Repaints the mode strip too: the Foundations/Styles line IS the primitive/semantic line the
+    // switcher's visibility turns on (#268), so the tab switch changes header chrome, not just body.
+    // Page nav gets this free via build(); this tab lives below it and would otherwise go stale.
+    b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); renderModeStrip(); } };
     seg.append(b);
   }
   h.append(seg);
@@ -3529,13 +3532,39 @@ const app = document.getElementById('app')!;
 let workspace: HTMLElement;
 let modeStripHost: HTMLElement;   // tier 2 of the global header — the persistent mode selector (docs/23 §7)
 
+/** #268 — the switcher appears only where a mode-varying control actually exists.
+ *
+ *  The governing rule is the one #268 proposed and #176's decision 2 implies: modes live in the
+ *  SEMANTIC layer, so a purely primitive surface has nothing to switch. This is deliberately a
+ *  predicate rather than a per-page flag — placement is DERIVED from what a page contains, so a new
+ *  page inherits the right answer instead of needing a decision.
+ *
+ *  The two surfaces that fail it today, from the audit #268 was waiting on:
+ *   • `layout` — nothing layout-related exists in `ModeLevers` or carries a `*ByMode` field. It is
+ *     mode-invariant outright, not merely primitive.
+ *   • `typography → Foundations` — the size ladder, faces, weight numerics and leading/tracking rungs
+ *     are all primitives. The Foundations/Styles split (#272) already draws exactly this line, which
+ *     is why the rule needs no new taxonomy.
+ *
+ *  Typography → STYLES keeps it, and that is not an inconsistency: the weight-role, category and
+ *  responsive editors all resolve against `currentMode` and WRITE per-mode overrides. Showing every
+ *  mode at once (the side-by-side ramp) makes the switcher redundant for READING, never for editing —
+ *  an editor still needs one mode to write into. */
+const pageHasModeVaryingControl = (): boolean => {
+  if (page === 'layout') return false;
+  if (page === 'typography' && typeTab === 'foundations') return false;
+  return true;
+};
+
 /** Repaint the persistent mode-selector strip in the global header. Called on mode change, on menu
  *  toggles, and by apply/applyFull (the per-mode contrast marks track the theme). No-op before the
  *  first build (the start screen has no header). */
 function renderModeStrip(): void {
   if (!modeStripHost) return;
   modeStripHost.innerHTML = '';
-  if (!firstRun) modeStripHost.append(renderModeContext());
+  // Hidden, never disabled: a greyed-out switcher still claims the page has modes and just won't let
+  // you use them. `currentMode` is untouched, so leaving and returning restores the mode you were in.
+  if (!firstRun && pageHasModeVaryingControl()) modeStripHost.append(renderModeContext());
   // Keep the sticky rail's offset tied to the ACTUAL header height — the mode chips can wrap to a
   // second row when a brand has many modes, and a fixed offset would tuck the rail under the header.
   const chrome = modeStripHost.parentElement;
