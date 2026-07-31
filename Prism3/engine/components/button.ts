@@ -75,18 +75,30 @@ export const button: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
 
-    // per-size geometry + label type
+    // per-size geometry + label type. `padding-x` is the LABEL side and `padding-x-visual` the
+    // slot side (#326) — the split is why a leading icon doesn't read loose; `gap` (#325) is the
+    // label↔visual space; `icon` pairs the control rung to its glyph artboard (#324, the 1:1
+    // ladder, so small→sm rather than a reconciliation between two differently-shaped scales).
     'size.small.padding-x': 'size.sm.padding-x',
+    'size.small.padding-x-visual': 'size.sm.padding-x-visual',
     'size.small.padding-y': 'size.sm.padding-y',
+    'size.small.gap': 'size.sm.gap',
     'size.small.height': 'size.sm.height',
+    'size.small.icon': 'icon.size.sm',
     'size.small.type': 'type.label.sm.emphasis',
     'size.medium.padding-x': 'size.md.padding-x',
+    'size.medium.padding-x-visual': 'size.md.padding-x-visual',
     'size.medium.padding-y': 'size.md.padding-y',
+    'size.medium.gap': 'size.md.gap',
     'size.medium.height': 'size.md.height',
+    'size.medium.icon': 'icon.size.md',
     'size.medium.type': 'type.label.md.emphasis',
     'size.large.padding-x': 'size.lg.padding-x',
+    'size.large.padding-x-visual': 'size.lg.padding-x-visual',
     'size.large.padding-y': 'size.lg.padding-y',
+    'size.large.gap': 'size.lg.gap',
     'size.large.height': 'size.lg.height',
+    'size.large.icon': 'icon.size.lg',
     'size.large.type': 'type.label.md.emphasis', // FINDING (still open): no type.label.lg — reuses md
 
     // primary — interactive.primary.* (full states)
@@ -143,6 +155,60 @@ export const button: ComponentDef = {
     'disabled.label': 'color.disabled.text',
     'disabled.icon': 'color.disabled.icon',
     'disabled.border': 'color.disabled.border',
+  },
+
+  // The STRUCTURAL layer (#327), instantiated from the KB brief §2 — which is already an
+  // adjudicated cross-system anatomy, so this is a transcription into schema, not a re-derivation.
+  //
+  // Two parts of the brief resolve differently here, and both are decisions rather than omissions:
+  //  · The brief's "container/target" and "layout container" are ONE part. In the brief they are
+  //    separate paragraphs because CSS lets them be separate concerns; in both Figma auto-layout
+  //    and `inline-flex` they are the same node, and splitting them would emit a redundant frame.
+  //  · The focus ring is NOT a part. The brief calls it "its own concern" — meaning it must not be
+  //    the element border — but it is a stroke-with-offset on the target, not a node. Making it a
+  //    part would put something in the child tree that a materializer has nowhere to place.
+  anatomy: {
+    root: 'container',
+    parts: {
+      container: {
+        kind: 'box',
+        role: 'target',
+        children: ['leadingVisual', 'label', 'trailingVisual'],
+        // justify: center is the CONSTANT (docs/28 §5.2). Primer ties alignment to purpose —
+        // centre for CTAs, left for selection toggles — but that would make `align` the first
+        // LAYOUT prop in ComponentDef, a precedent propagating across ~40 components. Deferred
+        // until a real surface needs it, not settled by preference.
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        padding: {
+          block: 'size.{size}.padding-y',
+          inlineLabel: 'size.{size}.padding-x',
+          inlineVisual: 'size.{size}.padding-x-visual',
+        },
+        gap: 'size.{size}.gap',
+        height: 'size.{size}.height',
+        radius: 'radius',
+      },
+      leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', note: 'Icon / avatar / counter / spinner before the label.' },
+      label: { kind: 'text', optional: false, type: 'size.{size}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
+      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', note: 'Icon / caret / indicator after the label. NOT split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
+      spinner: {
+        kind: 'overlay',
+        replaces: 'leadingVisual',
+        size: 'size.{size}.icon',
+        note: 'Takes the leading visual\'s position rather than the label\'s — replacing a centred label collapses the width, which the brief\'s don\'t-list prohibits explicitly.',
+      },
+    },
+    derived: {
+      'min-width': 'height × minWidthMultiplier — Spectrum computes it rather than authoring it, so a short label ("OK") cannot produce a stubby button',
+      'pill-radius': 'height ÷ 2 — only when appearance uses the pill radius; a literal radius token would be wrong at more than one height',
+    },
+    // The ceilings. Each is structure the neutral vocabulary can state and Figma provably cannot
+    // hold, so it is recorded rather than silently lost in the projection.
+    codeOnly: [
+      'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame.',
+      'focus-ring-offset — expressible as a Figma stroke, but the `:focus-visible` CONDITION is not; a materialized button carries the ring geometry with no way to say when it appears.',
+      'min-width derivation — resolved to a literal at emit, so the Figma component holds a frozen number rather than the live height×multiplier relationship.',
+    ],
   },
 
   accessibility: {

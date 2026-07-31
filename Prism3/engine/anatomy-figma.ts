@@ -1,0 +1,249 @@
+/**
+ * Prism3 engine — ANATOMY → FIGMA (the structural projection, #327).
+ *
+ * `materialise-to-figma.ts` does this for the TOKEN tier; this is its component-tier sibling and
+ * deliberately copies its shape, because that shape is the thing that made the token round-trip
+ * verifiable: a **pure plan builder** the test suite can assert against, plus a thin shell that
+ * turns the plan into plugin JS. The plan is what gets gated; the paste is just transport.
+ *
+ * WHY A PROJECTION AND NOT A FORMAT. The neutral `anatomy` vocabulary is Shoelace-derived
+ * (`::part()` + named slots) because that is a standard and the real customization surface a
+ * WC/CMS consumer uses. Figma is one CONSUMER of that vocabulary, not its definition — the same
+ * `$value` / `$extensions.figma` split the token tier already uses. Projecting here rather than
+ * authoring Figma-shaped anatomy is what keeps the code outputs from inheriting Figma's limits.
+ *
+ * THE ASYMMETRY IS THE POINT. A plan is built for a specific (size, leading?, trailing?)
+ * combination, because the horizontal padding is SLOT-AWARE: the side a visual sits against uses
+ * `padding-x-visual` and the side a label sits against uses `padding-x` (#326, Material 3's
+ * `with-leading-icon-leading-space`). A projection that ignored which slots are filled could not
+ * express that, and would emit a button that reads loose on the icon side at every size.
+ *
+ * PURE. No disk, no Figma I/O — `figmaAnatomyPlan` is a function of the def alone, so the gate
+ * runs it without a live file. Verification against what the engine actually emits is a separate,
+ * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
+ */
+import type { ComponentDef, PartDef, SizingMode } from './component-schema';
+import { expandKey } from './component-schema';
+
+/** A node in the materialization plan. Property names are Figma Plugin API property names
+ *  deliberately — this is the projection's whole job, and naming them anything else would put a
+ *  translation layer between the gate and the thing it claims to verify. */
+export type FigmaNodePlan = {
+  name: string;
+  type: 'FRAME' | 'TEXT' | 'INSTANCE_SWAP';
+  layoutMode?: 'HORIZONTAL' | 'VERTICAL';
+  primaryAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
+  counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
+  primaryAxisSizingMode?: 'AUTO' | 'FIXED';
+  counterAxisSizingMode?: 'AUTO' | 'FIXED';
+  /** Figma property → Figma variable NAME (slash-pathed). Names not IDs: the plan is
+   *  brand-invariant, and the executor resolves names to IDs in the live file. */
+  bound: Record<string, string>;
+  /** Composite type is a Figma TEXT STYLE, not a variable — a different API (`setTextStyleIdAsync`)
+   *  and a different namespace. Carried as its own field rather than squeezed into `bound`, so the
+   *  plan can't imply a binding call that would fail at paste time. */
+  textStyle?: string;
+  children: FigmaNodePlan[];
+};
+
+export type AnatomyPlan = {
+  component: string;
+  size: string;
+  slots: { leading: boolean; trailing: boolean };
+  root: FigmaNodePlan;
+  /** Carried onto the plan rather than dropped, so the ceilings travel WITH the artifact that
+   *  fails to honor them. A plan whose `codeOnly` is empty is claiming Figma holds everything. */
+  codeOnly: string[];
+  derived: Record<string, string>;
+};
+
+/** Root-relative token ref → the emitted Figma variable name. The emitters slash-path the same
+ *  dotted path, so this is the whole mapping — but it is stated once, here, rather than inlined
+ *  at each call site where a drift would be invisible. */
+export const figmaVarName = (ref: string): string => ref.replace(/\./g, '/');
+
+/** Composite type ref → the emitted Figma TEXT STYLE name. Note the asymmetry with
+ *  `figmaVarName`: text styles drop the `type.` root (`type.label.md.emphasis` →
+ *  `label/md/emphasis`) because they live in their own namespace rather than a variable
+ *  collection. Stating it here is what stops the two mappings being assumed identical. */
+export const figmaTextStyleName = (ref: string): string => ref.replace(/^type\./, '').replace(/\./g, '/');
+
+const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
+  start: 'MIN', center: 'CENTER', end: 'MAX', baseline: 'BASELINE',
+};
+const JUSTIFY: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'> = {
+  start: 'MIN', center: 'CENTER', end: 'MAX', 'space-between': 'SPACE_BETWEEN',
+};
+// `hug` and `fill` both mean "don't pin a number" on the axis; only `fixed` is FIXED.
+const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED' : 'AUTO');
+
+/**
+ * Project one component's anatomy into a materialization plan for a given size and slot fill.
+ *
+ * Throws rather than returning a partial plan on an unresolvable binding: a plan is an
+ * instruction to write into someone's Figma file, and a half-bound node is worse than no node.
+ * `validateComponentDef` catches the same class of error earlier and with a better message —
+ * this is the backstop for a caller that skipped it.
+ */
+export const figmaAnatomyPlan = (
+  def: ComponentDef,
+  size: string,
+  slots: { leading?: boolean; trailing?: boolean } = {},
+): AnatomyPlan => {
+  const a = def.anatomy;
+  if (!a) throw new Error(`${def.id}: no anatomy block to project`);
+  if (!(def.variants?.size ?? []).includes(size)) throw new Error(`${def.id}: '${size}' is not a declared size`);
+  const leading = slots.leading ?? false;
+  const trailing = slots.trailing ?? false;
+
+  // binding key (possibly `{size}`-templated) → Figma variable name, via def.tokens.
+  const varOf = (key: string): string => {
+    const [resolved] = expandKey(key, [size]);
+    const ref = def.tokens[resolved];
+    if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}', which tokens does not bind`);
+    return figmaVarName(ref);
+  };
+
+  const present = (name: string): boolean => {
+    if (name === 'leadingVisual') return leading;
+    if (name === 'trailingVisual') return trailing;
+    const p = a.parts[name];
+    return !p?.optional;
+  };
+
+  const node = (name: string, p: PartDef): FigmaNodePlan => {
+    const bound: Record<string, string> = {};
+    const kids = (p.children ?? []).filter(present).map((c) => node(c, a.parts[c]));
+
+    if (p.kind === 'box') {
+      if (p.gap) bound.itemSpacing = varOf(p.gap);
+      if (p.height) bound.height = varOf(p.height);
+      if (p.radius) for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radius);
+      if (p.padding) {
+        bound.paddingTop = varOf(p.padding.block);
+        bound.paddingBottom = varOf(p.padding.block);
+        // The slot-aware rule (#326): a filled visual slot on a side pulls that side's inset in,
+        // because the glyph's own bounding box already contributes apparent space. With no slot
+        // filled, both sides fall back to the label inset and the button is symmetric again —
+        // which is why this is additive rather than a redefinition of padding-x.
+        const inlineVisual = p.padding.inlineVisual ?? p.padding.inlineLabel;
+        bound.paddingLeft = varOf(leading ? inlineVisual : p.padding.inlineLabel);
+        bound.paddingRight = varOf(trailing ? inlineVisual : p.padding.inlineLabel);
+      }
+    } else {
+      if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
+    }
+
+    let textStyle: string | undefined;
+    if (p.type) {
+      const [resolved] = expandKey(p.type, [size]);
+      const ref = def.tokens[resolved];
+      if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}', which tokens does not bind`);
+      textStyle = figmaTextStyleName(ref);
+    }
+
+    return {
+      name,
+      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : 'INSTANCE_SWAP',
+      ...(textStyle ? { textStyle } : {}),
+      ...(p.layout
+        ? {
+            layoutMode: p.layout.direction === 'row' ? ('HORIZONTAL' as const) : ('VERTICAL' as const),
+            primaryAxisAlignItems: JUSTIFY[p.layout.justify],
+            counterAxisAlignItems: ALIGN[p.layout.align],
+            primaryAxisSizingMode: sizingMode(p.layout.sizing.x),
+            counterAxisSizingMode: sizingMode(p.layout.sizing.y),
+          }
+        : {}),
+      bound,
+      children: kids,
+    };
+  };
+
+  return {
+    component: def.id,
+    size,
+    slots: { leading, trailing },
+    root: node(a.root, a.parts[a.root]),
+    codeOnly: [...a.codeOnly],
+    derived: { ...(a.derived ?? {}) },
+  };
+};
+
+/** Every part name in a plan, depth-first. */
+export const planPartNames = (n: FigmaNodePlan): string[] => [n.name, ...n.children.flatMap(planPartNames)];
+
+/** Every Figma variable name a plan binds. */
+export const planBoundVars = (n: FigmaNodePlan): string[] =>
+  [...Object.values(n.bound), ...n.children.flatMap(planBoundVars)];
+
+/** Every Figma text style a plan applies. */
+export const planTextStyles = (n: FigmaNodePlan): string[] =>
+  [...(n.textStyle ? [n.textStyle] : []), ...n.children.flatMap(planTextStyles)];
+
+/**
+ * Cross-check a plan against what the engine actually EMITS. This is the gate that makes the
+ * projection more than an assertion about itself: `emitted` is read out of
+ * `out/figma/<brand>/*.json`, so a binding that resolves in the token tree but never reaches a
+ * Figma collection is caught here rather than in a live file at paste time.
+ *
+ * Variables and text styles are checked against SEPARATE sets on purpose — they are separate
+ * namespaces in Figma, and a single merged set would let a text style pass by matching a
+ * variable of the same name (or, more likely, mask the fact that one of the two was never
+ * emitted at all).
+ */
+export const planBindingErrors = (
+  plan: AnatomyPlan,
+  emitted: Set<string>,
+  textStyles?: Set<string>,
+): string[] => [
+  ...[...new Set(planBoundVars(plan.root))].filter((v) => !emitted.has(v)).map((v) => `bound variable '${v}' is not in the emitted Figma variables`),
+  ...(textStyles ? [...new Set(planTextStyles(plan.root))].filter((s) => !textStyles.has(s)).map((s) => `text style '${s}' is not in the emitted Figma text styles`) : []),
+];
+
+/**
+ * The SHELL: plan → plugin JS for `figma_execute`. Mirrors `materialise-to-figma.ts` — the
+ * generated code resolves variable NAMES to live variables, so the same plan works in any file
+ * that has had the token passes run against it.
+ *
+ * Deliberately builds ONE component, not forty (docs/28 §6): the spike's deliverable is the
+ * validated schema and the projection rules, not the Figma asset.
+ */
+export const planToPluginJs = (plan: AnatomyPlan): string => `(async()=>{
+const PLAN=${JSON.stringify(plan.root)};
+const vars=await figma.variables.getLocalVariablesAsync();
+const byName=new Map(vars.map(v=>[v.name,v]));
+const styles=await figma.getLocalTextStylesAsync();
+const styleByName=new Map(styles.map(s=>[s.name,s]));
+const misses=[];
+const build=async(n)=>{
+  let node;
+  if(n.type==='TEXT'){node=figma.createText();}
+  else{node=figma.createFrame();node.clipsContent=false;}
+  node.name=n.name;
+  if(n.textStyle){
+    const st=styleByName.get(n.textStyle);
+    if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
+    else await node.setTextStyleIdAsync(st.id);
+  }
+  if(n.layoutMode){
+    node.layoutMode=n.layoutMode;
+    node.primaryAxisAlignItems=n.primaryAxisAlignItems;
+    node.counterAxisAlignItems=n.counterAxisAlignItems;
+    node.primaryAxisSizingMode=n.primaryAxisSizingMode;
+    node.counterAxisSizingMode=n.counterAxisSizingMode;
+  }
+  for(const [prop,varName] of Object.entries(n.bound)){
+    const v=byName.get(varName);
+    if(!v){misses.push(n.name+'.'+prop+' -> '+varName);continue;}
+    node.setBoundVariable(prop,v);
+  }
+  for(const c of n.children) node.appendChild(await build(c));
+  return node;
+};
+const root=await build(PLAN);
+figma.currentPage.appendChild(root);
+const comp=figma.createComponentFromNode(root);
+comp.name=${JSON.stringify(`${plan.component}/size=${plan.size}${plan.slots.leading ? ', leading' : ''}${plan.slots.trailing ? ', trailing' : ''}`)};
+return {component:comp.name,parts:${JSON.stringify(planPartNames(plan.root).length)},misses,codeOnly:${JSON.stringify(plan.codeOnly.length)}};
+})()`;

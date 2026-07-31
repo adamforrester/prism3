@@ -35,7 +35,8 @@ import { aliasRows } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor } from './write-plan';
 import { verifyReadback, verifyFloatReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
-import { validateComponentDef, ComponentDef } from './component-schema';
+import { validateComponentDef, ComponentDef, AnatomyDef } from './component-schema';
+import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planToPluginJs, figmaVarName } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
 import { fieldLabel } from './components/field-label';
@@ -4225,6 +4226,117 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const vb = validateComponentDef(broken, nbTree, nbT.root);
   ok(vb.errors.some((e) => /avoidWhen/.test(e)), 'component: missing ai.avoidWhen fails the gate');
   ok(vb.errors.some((e) => /bogus/.test(e) && /does not resolve/.test(e)), 'component: a broken token binding fails the gate');
+
+  // ------------------------------------------------- ANATOMY: the structural layer (#327, docs/28)
+  // The schema gate above already proves every anatomy binding key resolves to a real leaf in BOTH
+  // brands — because anatomy names keys in `tokens`, and `tokens` is what that loop validates. That
+  // indirection is the reason this block doesn't need its own resolution pass: one check covers
+  // both layers, and a typo in anatomy fails before a tree is even supplied.
+  {
+    const a = button.anatomy!;
+    ok(!!a, 'anatomy: Button carries a structural layer');
+
+    // The ceilings list is REQUIRED and asserted non-empty. A schema claiming Figma carries every
+    // part is making a false claim; docs/14 §3 set this discipline for tokens and it is the same
+    // discipline here. Touch-target expansion is the load-bearing entry — it is the one part of the
+    // KB brief §2 that has no Figma expression at all.
+    ok(a.codeOnly.length > 0, 'anatomy: codeOnly is non-empty — the Figma ceilings are stated, not silently lost');
+    ok(a.codeOnly.some((c) => /touch-target/.test(c)), 'anatomy: touch-target expansion is declared code-only (no Figma equivalent for a hit area larger than the frame)');
+
+    // Exactly one interaction target — the node that owns hit area, radius, fill and border, and
+    // the one a materializer attaches the a11y role and focus ring to.
+    ok(Object.values(a.parts).filter((p) => p.role === 'target').length === 1, 'anatomy: exactly one part is the interaction target');
+
+    // The brief's parts are all present under the *Visual vocabulary (not *Icon — the slot holds
+    // avatars, counters and spinners, KB button.md §2).
+    ok(['container', 'leadingVisual', 'label', 'trailingVisual', 'spinner'].every((p) => p in a.parts), 'anatomy: the brief\'s parts are all declared');
+    ok(!Object.keys(a.parts).some((p) => /Icon$/.test(p)), 'anatomy: slots use the *Visual vocabulary, not *Icon');
+    // The spinner takes the LEADING VISUAL's position, never the label's — replacing a centred
+    // label collapses the width, which the brief's don't-list prohibits by name.
+    ok(a.parts.spinner.kind === 'overlay' && a.parts.spinner.replaces === 'leadingVisual', 'anatomy: the pending spinner replaces the leading visual (width-preserving), not the label');
+
+    // ---- the projection ----------------------------------------------------------------------
+    // #326's asymmetry is the reason a plan is built per slot-fill rather than per size alone. Two
+    // plans at the same size must differ ONLY in the inline padding, and only on the filled side.
+    const plain = figmaAnatomyPlan(button, 'medium');
+    const lead = figmaAnatomyPlan(button, 'medium', { leading: true });
+    const both = figmaAnatomyPlan(button, 'medium', { leading: true, trailing: true });
+    const padOf = (p: typeof plain) => [p.root.bound.paddingLeft, p.root.bound.paddingRight];
+
+    const labelSide = figmaVarName(button.tokens['size.medium.padding-x']);
+    const visualSide = figmaVarName(button.tokens['size.medium.padding-x-visual']);
+    ok(labelSide !== visualSide, `anatomy: the label side and visual side are different variables (${labelSide} vs ${visualSide})`);
+    ok(JSON.stringify(padOf(plain)) === JSON.stringify([labelSide, labelSide]), 'anatomy: with no slots filled the button is symmetric — both sides take the label inset');
+    ok(JSON.stringify(padOf(lead)) === JSON.stringify([visualSide, labelSide]), 'anatomy: a leading visual pulls in the LEADING inset only (Material 3 with-leading-icon-leading-space)');
+    ok(JSON.stringify(padOf(both)) === JSON.stringify([visualSide, visualSide]), 'anatomy: visuals on both sides pull in both insets');
+
+    // Optional slots materialize only when filled — otherwise every button would carry two empty
+    // instance-swap nodes, which is the failure mode of projecting the schema rather than an instance.
+    ok(!planPartNames(plain.root).includes('leadingVisual'), 'anatomy: an unfilled optional slot is absent from the plan');
+    ok(planPartNames(lead.root).includes('leadingVisual'), 'anatomy: a filled optional slot is present in the plan');
+    ok(planPartNames(plain.root).includes('label'), 'anatomy: the required label is always present');
+    // An overlay is not a row cell — it takes another part's position, so it must never appear as
+    // a child or the materializer would append a third item to the auto-layout row.
+    ok(!planPartNames(both.root).includes('spinner'), 'anatomy: the overlay is not projected as a child node');
+
+    // Layout survives the projection as Figma's own vocabulary.
+    ok(plain.root.layoutMode === 'HORIZONTAL' && plain.root.counterAxisAlignItems === 'CENTER', 'anatomy: the row projects to horizontal auto-layout, centred on the cross axis');
+    ok(plain.root.primaryAxisSizingMode === 'AUTO' && plain.root.counterAxisSizingMode === 'FIXED', 'anatomy: sizing {x: hug, y: fixed} projects to AUTO/FIXED');
+
+    // Every size projects, and the geometry MOVES with the size — a projection that resolved every
+    // size to the same variables would pass every check above while being useless.
+    const perSize = (button.variants.size).map((s) => JSON.stringify(planBoundVars(figmaAnatomyPlan(button, s, { leading: true }).root)));
+    ok(new Set(perSize).size === button.variants.size.length, `anatomy: each size projects to a distinct set of variables (${perSize.length} sizes, ${new Set(perSize).size} distinct)`);
+
+    // ---- the binding cross-check: does the engine actually EMIT what the plan binds? ------------
+    // This is what makes the projection more than an assertion about itself. `tokens` resolving in
+    // the DTCG tree does not imply the variable reaches a Figma collection — those are two emitters.
+    const emitted = new Set<string>();
+    const emittedStyles = new Set<string>();
+    for (const f of readdirSync(resolve(HERE, 'out/figma/nb'))) {
+      if (!f.endsWith('.json')) continue;
+      const j = JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
+      for (const v of j.variables ?? []) emitted.add(v.name);
+      for (const s of j.styles ?? []) emittedStyles.add(s.name);
+    }
+    ok(emitted.size > 0 && emittedStyles.size > 0, `anatomy: read the emitted Figma names (${emitted.size} variables, ${emittedStyles.size} styles)`);
+    const bindErrs = button.variants.size.flatMap((s) =>
+      [[false, false], [true, false], [true, true]].map(([l, t]) => planBindingErrors(figmaAnatomyPlan(button, s, { leading: l, trailing: t }), emitted, emittedStyles)).flat());
+    ok(bindErrs.length === 0, `anatomy: every bound variable + text style exists in the emitted Figma set${bindErrs.length ? ` — MISSING: ${[...new Set(bindErrs)].slice(0, 4).join(', ')}` : ''}`);
+
+    // The label's composite type is a Figma TEXT STYLE, not a variable — a different API and a
+    // different namespace. It first projected into nothing at all (the plan carried an empty
+    // `bound` on the label and dropped the typography silently), which is the exact class of loss
+    // the codeOnly discipline exists to prevent — so it is asserted, not assumed.
+    const labelNode = lead.root.children.find((c) => c.name === 'label')!;
+    ok(!!labelNode.textStyle, 'anatomy: the label carries a text style — composite type is not silently dropped');
+    ok(!Object.keys(labelNode.bound).length, 'anatomy: the text style is NOT in `bound` — it is applied via setTextStyleIdAsync, not setBoundVariable');
+    ok(emittedStyles.has(labelNode.textStyle!), `anatomy: the label's text style resolves in the emitted styles (${labelNode.textStyle})`);
+    // The two name mappings are NOT the same function: variables keep their full dotted path,
+    // text styles drop the `type.` root. Asserting the asymmetry stops a future "simplification".
+    ok(figmaVarName('type.label.md.emphasis') !== labelNode.textStyle, 'anatomy: text-style naming differs from variable naming (the `type.` root is dropped)');
+
+    // The plugin shell is the transport, not the contract — but it must at least carry the plan and
+    // the ceilings, and resolve variables by NAME so one plan works in any file with the token
+    // passes already run (the same property `materialise-to-figma.ts` relies on).
+    const js = planToPluginJs(lead);
+    ok(js.includes('getLocalVariablesAsync') && js.includes('setBoundVariable'), 'anatomy: the plugin payload binds variables through the Plugin API');
+    ok(js.includes(visualSide), 'anatomy: the plugin payload carries the asymmetric inset it was projected with');
+
+    // A def whose anatomy is structurally broken must FAIL, not warn. Four shapes, each a real
+    // authoring mistake rather than a synthetic one.
+    const withAnatomy = (patch: (a: AnatomyDef) => AnatomyDef): ComponentDef =>
+      ({ ...button, anatomy: patch(JSON.parse(JSON.stringify(a))) });
+    const broke = (label: string, re: RegExp, patch: (a: AnatomyDef) => AnatomyDef) => {
+      const errs = validateComponentDef(withAnatomy(patch), nbTree, nbT.root).errors;
+      ok(errs.some((x) => re.test(x)), `anatomy gate: ${label}${errs.some((x) => re.test(x)) ? '' : ` — got [${errs.join('; ')}]`}`);
+    };
+    broke('an empty codeOnly list fails (the false claim that Figma holds everything)', /codeOnly/, (x) => ({ ...x, codeOnly: [] }));
+    broke('a binding key tokens does not bind fails', /is not a slot in tokens/, (x) => ({ ...x, parts: { ...x.parts, container: { ...x.parts.container, gap: 'size.{size}.nope' } } }));
+    broke('an orphan part fails (a materializer would silently drop it)', /unreachable/, (x) => ({ ...x, parts: { ...x.parts, container: { ...x.parts.container, children: ['label', 'trailingVisual'] } } }));
+    broke('two interaction targets fail', /exactly one part must have role/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, role: 'target' } } }));
+    broke('a text part carrying layout fails', /only a 'box' lays out/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, gap: 'size.{size}.gap' } } }));
+  }
 }
 
 // ------------------------------------------------------------------- neutral.auto

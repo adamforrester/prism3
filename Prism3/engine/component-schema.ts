@@ -44,6 +44,95 @@ export type PropDef = {
   description: string;
 };
 
+// ---------------------------------------------------------------------------------------
+// ANATOMY (#327, docs/28 §4) — the STRUCTURAL layer.
+//
+// `ComponentDef` already carried the semantic contract (props/states/variants/a11y) and the
+// paint (`tokens`). What it never carried is structure: the node tree, the layout model, and
+// the slot→property mapping a materializer needs to actually call `createComponent()`. A
+// binding like `size.medium.padding-x → size.md.padding-x` says nothing about WHAT that
+// padding is applied to.
+//
+// THE LINE THIS DRAWS, and it is the load-bearing decision here:
+//   anatomy = structure + GEOMETRY      (tree, layout, padding, gap, height, radius, sizes)
+//   tokens  = PAINT                     (fill, border, ink, overlay — per intent × appearance)
+//
+// Paint is variant-dependent in a way structure is not: a button's fill changes across nine
+// intent×appearance combinations while its box stays one row with one gap. Folding colour into
+// anatomy would force the part tree to be re-declared per variant, which is exactly the
+// combinatorial blow-up `tokens`' flat keyed map already avoids. So the two layers stay
+// separate and each says the thing it is good at saying.
+//
+// Anatomy references BINDING KEYS in `def.tokens`, never raw token refs — one indirection,
+// already established, and it keeps a definition brand-invariant. `{size}` expands over
+// `variants.size`, so `size.{size}.gap` is required to resolve for every declared size.
+export type PartKind =
+  | 'box'      // a layout container — the only kind that carries layout/padding/gap
+  | 'text'     // a text node; carries a type binding
+  | 'slot'     // swappable content (icon / avatar / counter / spinner) — instance-swap in Figma
+  | 'overlay'; // occupies another part's position rather than its own row cell
+
+/** How a part sizes on each axis. Figma's auto-layout vocabulary, which is also CSS-expressible
+ *  (`hug` = fit-content, `fill` = stretch, `fixed` = an explicit dimension). */
+export type SizingMode = 'hug' | 'fill' | 'fixed';
+
+export type LayoutDef = {
+  direction: 'row' | 'column';
+  /** Cross-axis. */
+  align: 'start' | 'center' | 'end' | 'baseline';
+  /** Main-axis. */
+  justify: 'start' | 'center' | 'end' | 'space-between';
+  sizing: { x: SizingMode; y: SizingMode };
+};
+
+/** Per-side padding. The inline sides are SPLIT (#326): the side a visual sits against insets
+ *  less than the side a plain label sits against, because a glyph's own bounding box already
+ *  contributes apparent space. `inlineVisual` is optional — a part with no slots has one
+ *  inline padding and says so by omitting it. */
+export type PaddingDef = {
+  block: string;
+  inlineLabel: string;
+  inlineVisual?: string;
+};
+
+export type PartDef = {
+  kind: PartKind;
+  /** `target` marks the single a11y/interaction target — the node that owns the hit area,
+   *  radius, fill and border. Exactly one part per anatomy may claim it. */
+  role?: 'target' | 'presentation';
+  /** Ordered. Order IS the visual order — a materializer appends children in this sequence. */
+  children?: string[];
+  layout?: LayoutDef;
+  padding?: PaddingDef;
+  gap?: string;
+  height?: string;
+  radius?: string;
+  /** For `slot` parts: the binding key giving the slot's square artboard size. */
+  size?: string;
+  /** For `text` parts: the binding key giving the composite type style. */
+  type?: string;
+  /** A slot that need not be present. `false`/absent means required. */
+  optional?: boolean;
+  /** For `overlay`: the part whose position it takes (width-preserving, per the brief). */
+  replaces?: string;
+  note?: string;
+};
+
+export type AnatomyDef = {
+  /** The part every other part hangs beneath. */
+  root: string;
+  parts: Record<string, PartDef>;
+  /** Values COMPUTED from other values rather than authored — the third category docs/28 §2.2
+   *  identifies alongside tokenized and structural (Spectrum derives min-width from height and
+   *  pill radius from height). Prose formulas: they are resolved to literals at emit, and the
+   *  `codeOnly` note records that Figma gets a frozen number rather than a live relationship. */
+  derived?: Record<string, string>;
+  /** Structure that provably will NOT survive the Figma leg. The component-tier version of the
+   *  ceilings discipline docs/14 §3 set for tokens: a schema claiming Figma carries everything
+   *  is wrong, so this list is REQUIRED and validated non-empty. */
+  codeOnly: string[];
+};
+
 export type ComponentDef = {
   // ---- identity (§15) + specs-schema Component.id/name ----
   id: string;
@@ -72,6 +161,10 @@ export type ComponentDef = {
    *  state- or variant-qualified slot uses a dotted suffix (`fill.hover`, `label.on-fill`).
    *  VALUES are token refs, validated to resolve. Reach for SEMANTIC roles, not primitives. */
   tokens: Record<string, TokenRef>;
+
+  /** The STRUCTURAL layer (#327). Optional while the catalogue is mid-migration — a def without
+   *  it is semantically complete but not materializable. */
+  anatomy?: AnatomyDef;
 
   // ---- accessibility (§15) ----
   accessibility: {
@@ -178,5 +271,95 @@ export const validateComponentDef = (
     }
   }
 
+  // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
+  if (def.anatomy) errors.push(...anatomyErrors(def));
+
   return { errors, warnings };
+};
+
+/** Expand a binding key's `{size}` placeholder across a def's declared sizes. A key with no
+ *  placeholder expands to itself, so callers need not special-case. */
+export const expandKey = (key: string, sizes: string[]): string[] =>
+  key.includes('{size}') ? sizes.map((s) => key.replace('{size}', s)) : [key];
+
+/**
+ * Structural checks for `anatomy`. Kept separate from `validateComponentDef`'s body because it
+ * is the only block with its own graph invariants (reachability, single target, no double
+ * parent) — the rest of the validator is field-by-field.
+ *
+ * Every binding key is resolved through `def.tokens` rather than against the token tree
+ * directly: anatomy names a SLOT the component already binds, so a typo here fails even before
+ * a tree is supplied, and the binding's own resolution is checked once, in one place.
+ */
+const anatomyErrors = (def: ComponentDef): string[] => {
+  const e: string[] = [];
+  const a = def.anatomy!;
+  const parts = a.parts ?? {};
+  const names = Object.keys(parts);
+  const sizes = def.variants?.size ?? [];
+
+  if (!names.length) return ['anatomy.parts is empty'];
+  if (!parts[a.root]) e.push(`anatomy.root '${a.root}' is not a declared part`);
+
+  // The ceilings list is REQUIRED and non-empty — a schema that claims Figma carries every
+  // part is making a false claim, and this is the assertion that stops it being made silently.
+  if (!Array.isArray(a.codeOnly) || a.codeOnly.length === 0)
+    e.push('anatomy.codeOnly must be a non-empty list — some structure provably does not survive Figma, and the schema must say which (docs/14 §3)');
+
+  // Exactly one interaction target. Zero means nothing owns the hit area; two means the
+  // materializer has no single node to attach the a11y role and focus ring to.
+  const targets = names.filter((n) => parts[n].role === 'target');
+  if (targets.length !== 1) e.push(`anatomy: exactly one part must have role 'target' (found ${targets.length}${targets.length ? `: ${targets.join(', ')}` : ''})`);
+
+  // Every binding key anatomy names must be a slot the component actually binds, at every size.
+  const bindingKeys = (p: PartDef): string[] =>
+    [p.gap, p.height, p.radius, p.size, p.type, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
+      .filter((k): k is string => typeof k === 'string');
+  for (const n of names)
+    for (const key of bindingKeys(parts[n]))
+      for (const expanded of expandKey(key, sizes))
+        if (!(expanded in (def.tokens ?? {})))
+          e.push(`anatomy part '${n}': binding key '${expanded}'${expanded === key ? '' : ` (from '${key}')`} is not a slot in tokens`);
+  if (sizes.length === 0 && names.some((n) => bindingKeys(parts[n]).some((k) => k.includes('{size}'))))
+    e.push("anatomy uses the {size} placeholder but variants.size is empty — nothing to expand over");
+
+  // Tree shape: children exist, nothing is claimed twice, everything is reachable from root.
+  const claimed = new Map<string, string>();
+  for (const n of names)
+    for (const c of parts[n].children ?? []) {
+      if (!parts[c]) { e.push(`anatomy part '${n}': child '${c}' is not a declared part`); continue; }
+      if (claimed.has(c)) e.push(`anatomy part '${c}' is claimed as a child twice ('${claimed.get(c)}' and '${n}')`);
+      else claimed.set(c, n);
+    }
+  // Overlays sit outside the child tree by construction (they take another part's position
+  // rather than their own cell), so reachability is measured against the parts that aren't overlays.
+  const seen = new Set<string>();
+  const walk = (n: string) => {
+    if (seen.has(n) || !parts[n]) return;
+    seen.add(n);
+    for (const c of parts[n].children ?? []) walk(c);
+  };
+  walk(a.root);
+  for (const n of names) {
+    const p = parts[n];
+    if (p.kind === 'overlay') {
+      if (!p.replaces) e.push(`anatomy part '${n}': an overlay must declare what it 'replaces'`);
+      else if (!parts[p.replaces]) e.push(`anatomy part '${n}': replaces '${p.replaces}', which is not a declared part`);
+    } else if (!seen.has(n)) {
+      e.push(`anatomy part '${n}' is unreachable from root '${a.root}' — an orphan part would be silently dropped by a materializer`);
+    }
+  }
+
+  // Only a box lays out children; a text/slot/overlay carrying layout means the tree is
+  // mis-shaped and the materializer would emit an auto-layout frame where a leaf belongs.
+  for (const n of names) {
+    const p = parts[n];
+    if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
+    if (p.kind === 'box' && !p.layout && (p.children ?? []).length > 0)
+      e.push(`anatomy part '${n}' is a box with children but no layout — a materializer has no direction to apply`);
+    if (p.kind === 'text' && !p.type) e.push(`anatomy part '${n}' is text but binds no type style`);
+  }
+
+  return e;
 };

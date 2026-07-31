@@ -55,6 +55,92 @@ in notes prose, and `nb.tokens.json` is byte-identical (the regression target ne
 
 ---
 
+## (2026-07-31) — `anatomy`: the structural layer, and Button formalized against it (#327, parts 1–2)
+
+**STATUS: engine.** **No artifact changes** — `regen --check` still 88/88. The component layer is
+not emitted yet (it never was), so this is schema + definition + gates only. Worth stating plainly,
+because "no `out/` diff" on an engine PR usually means something was forgotten.
+
+**The gap docs/28 named.** `ComponentDef` carried the semantic contract (props/states/variants/a11y)
+and the paint (`tokens`), but nothing structural. A binding like `size.medium.padding-x →
+size.md.padding-x` says nothing about *what that padding is applied to*, whether the row is
+horizontal, or which prop becomes an instance-swap. A materializer could not run on it.
+
+**The load-bearing decision is where the line falls:**
+
+    anatomy = structure + GEOMETRY   (tree, layout, padding, gap, height, radius, slot sizes)
+    tokens  = PAINT                  (fill, border, ink, overlay — per intent x appearance)
+
+Paint is variant-dependent in a way structure is not: a button's fill changes across nine
+intent×appearance combinations while its box stays one row with one gap. **Folding color into
+anatomy would force the part tree to be re-declared per variant** — exactly the combinatorial
+blow-up the flat `tokens` map already avoids. Two layers, each saying the thing it is good at.
+
+**Anatomy names BINDING KEYS, never raw token refs.** `size.{size}.gap`, not `size.md.gap`. The
+`{size}` placeholder expands over `variants.size` and every expansion must exist in `tokens`. That
+buys a property worth more than it costs: the existing binding gate already resolves every `tokens`
+entry against two brands' trees, so **anatomy's resolution is covered by a check that already
+existed** — one pass validates both layers, and a typo in anatomy fails before a tree is supplied.
+
+**Button transcribed from KB `components/button.md` §2**, which is already an adjudicated
+cross-system anatomy — so this is transcription into schema, not re-derivation. Two places the
+brief resolves differently, both decisions rather than omissions:
+- The brief's *"container/target"* and *"layout container"* are **one part**. Separate paragraphs in
+  the brief because CSS lets them be separate concerns; in both Figma auto-layout and `inline-flex`
+  they are the same node, and splitting them emits a redundant frame.
+- **The focus ring is not a part.** The brief calls it "its own concern" — meaning it must not be
+  the element border — but it is a stroke-with-offset on the target, not a node. Making it a part
+  puts something in the child tree a materializer has nowhere to place.
+
+**The projection is what settles the key names.** The issue said the exact keys "get settled here
+against a real materializer," so `anatomy-figma.ts` deliberately copies `materialise-to-figma.ts`'s
+shape — a **pure plan builder the suite asserts against, plus a thin shell emitting plugin JS** —
+because that shape is what made the token round-trip verifiable without a live Figma. Property names
+in the plan are Figma Plugin API property names on purpose; anything else would put a translation
+layer between the gate and the thing it claims to verify.
+
+**A plan is built per (size, leading?, trailing?), not per size** — because #326's padding is
+slot-aware. At md with a leading visual: `paddingLeft → size/md/padding-x-visual`,
+`paddingRight → size/md/padding-x`. With no slots filled both sides fall back to the label inset and
+the button is symmetric again, which is what makes #326 additive rather than a redefinition.
+
+**The bug this pass caught in its own work, recorded because it is the trap for the next tier.**
+The first projection emitted the `label` node with an **empty `bound` map** — the composite type was
+silently dropped, and every assertion passed while the label carried no typography at all. Cause:
+composite type is a Figma **text style**, not a variable — different API (`setTextStyleIdAsync` vs
+`setBoundVariable`), different namespace, and **a different name mapping**
+(`type.label.md.emphasis` → `label/md/emphasis`, the `type.` root dropped, where variables keep
+their full dotted path). Fixed with `textStyle` as its own field — not squeezed into `bound`, which
+would imply a binding call that fails at paste time — a separate emitted-styles set in the
+cross-check, and an assertion that the two name mappings **differ**, so a future "simplification"
+to one function fails.
+
+**The cross-check is the gate that makes the projection more than self-assertion:** bound names are
+checked against the variables and styles actually read out of `out/figma/nb/*.json`. `tokens`
+resolving in the DTCG tree does *not* imply the variable reaches a Figma collection — those are two
+different emitters, and only this check spans them.
+
+**`codeOnly` is required and asserted non-empty** — the component-tier version of the ceilings
+discipline docs/14 §3 set for tokens. A schema claiming Figma carries everything is making a false
+claim. Three entries: touch-target expansion (Figma has no hit area larger than the frame), the
+`:focus-visible` *condition* (the ring geometry survives, the trigger does not), and the min-width
+derivation (a frozen literal, not a live height×multiplier).
+
+**Tamper-tested seven ways, all bite:** removing the asymmetry (3 failures); always materializing
+optional slots; a wrong variable-name mapping; disabling the anatomy validator (all five negative
+tests collapse to `got []`, proving they were not passing on some unrelated error); the text-style
+mapping assumed identical to the variable mapping; and not projecting the text style at all — the
+original bug, now a permanent regression test.
+
+**Out of scope, deliberately:** the live Figma spike (part 3) — it needs a real file and creates an
+asset, so it is a separate step; scaling past Button (docs/14 §6 wants Button / Text Field / Card
+before the corpus); and the code outputs (WC / React / Storybook / Code Connect).
+
+**Verified:** 1047 → **1078** tests; nb-regression PASS; `regen --check` 88/88; web typecheck +
+both builds clean.
+
+---
+
 ## (2026-07-31) — `size.*.padding-x-visual`: the label side and the visual side are not the same distance (#326)
 
 **STATUS: engine.** `out/*` regenerated — strictly additive, one new leaf per size step (`60 0` on the
