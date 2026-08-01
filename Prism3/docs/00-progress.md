@@ -33,6 +33,17 @@ layout.
 - **Mode columns now scroll rather than compress.** 112 + 5×148 = 852 against a 798px pane, so the
   container scrolls at five modes and fits four. That is the threshold the owner asked for, and it
   falls out of the fixed widths rather than being hardcoded.
+- **The "outside range" rows had silently vanished — a real regression, not a styling gap.**
+  `headingRows` read `theme.typography.composites`, which contains only rungs that SURVIVED
+  `displayCeiling` / `titleFloor`. A trimmed rung is not in there at all, so it could never render.
+  On the deployed build a `md` ceiling showed two display rows and no sign of the four it had removed,
+  which reads as "this brand has no lg display" rather than "lg is switched off". Fixed by taking the
+  row list from a candidate build at the WIDEST possible range and marking anything missing from the
+  live set. Three fallback attempts, because widening can legitimately fail: `titleFloor: 16` is
+  incompatible with `typeScale: 'compact'`, and a pinned size can collide with a neighbour that only
+  exists at the wider range — each fallback degrades to the previous behavior, never a broken one.
+  **The wireframe had this and the build lost it**, which is the second time in two rounds that a
+  behavioral browser assertion passed over a visual regression.
 - **Column widths are tokens now, ahead of the other tables.** `--tbl-col-name` / `--tbl-col-mode` in
   `:root`, so weights / leading / tracking consume the same two values and the tables stack on one
   grid down the page. Worth doing *now* rather than later for a specific reason: the SIZE table is the

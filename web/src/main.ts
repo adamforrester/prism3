@@ -20,7 +20,7 @@
  * combination is caught and surfaced with the last-good render preserved.
  */
 import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS } from '../../Prism3/engine/theme';
-import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup } from '../../Prism3/engine/theme';
+import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
 import { leverManifest, leverGroups } from '../../Prism3/engine/levers';
@@ -1872,10 +1872,36 @@ const ladderStep = (px: number, by: number): number | undefined => {
   return j >= 0 && j < l.length ? l[j] : undefined;
 };
 /** Every heading rung this brand ships, largest first — the row order for the tables. */
-const headingRows = (group: PerModeSizeGroup): Array<{ variant: string; px: number }> =>
-  theme.typography.composites.filter((c) => c.group === group)
+const rowsOf = (t: Theme, group: PerModeSizeGroup): Array<{ variant: string; px: number }> =>
+  t.typography.composites.filter((c) => c.group === group)
     .reduce((acc: Array<{ variant: string; px: number }>, c) => (acc.some((a) => a.variant === c.variant) ? acc : [...acc, { variant: c.variant, px: c.sizePx }]), [])
     .sort((a, b) => b.px - a.px);
+const headingRows = (group: PerModeSizeGroup): Array<{ variant: string; px: number }> => rowsOf(theme, group);
+/** Rows for the WIDEST range this brand could have, so trimmed rungs can be shown as "outside range"
+ *  rather than vanishing. The live theme contains only rungs that survived `displayCeiling` /
+ *  `titleFloor`, so reading it alone silently drops the excluded rows — which is exactly what
+ *  happened on the deployed build: a `md` ceiling showed two display rows and no sign of the four
+ *  it had removed.
+ *
+ *  Three attempts, because widening can legitimately fail: `titleFloor: 16` is incompatible with
+ *  `typeScale: 'compact'`, and a pinned size can collide with a neighbour that only exists at the
+ *  wider range. Falling back to the live set just restores the old behavior, never a broken one. */
+let widestRows: Map<PerModeSizeGroup, Array<{ variant: string; px: number }>> | null = null;
+const computeWidestRows = (): void => {
+  widestRows = null;
+  const tries: Array<Partial<TypographyInput>> = [
+    { displayCeiling: '3xl', titleFloor: 16 },
+    { displayCeiling: '3xl' },
+    { displayCeiling: '3xl', titleFloor: 16, sizes: undefined },
+  ];
+  for (const over of tries) {
+    try {
+      const t = brandTheme({ ...brandState, typography: { ...brandState.typography, ...over } } as BrandInput);
+      widestRows = new Map(PER_MODE_SIZE_GROUPS.map((g) => [g, rowsOf(t, g)]));
+      return;
+    } catch { /* try the next relaxation */ }
+  }
+};
 const brandSizePin = (group: PerModeSizeGroup, variant: string): number | undefined =>
   brandState.typography?.sizes?.[group]?.[variant];
 const modeSizePin = (mode: Mode, group: PerModeSizeGroup, variant: string): number | undefined =>
@@ -1946,8 +1972,10 @@ const sizeCell = (group: PerModeSizeGroup, rows: Array<{ variant: string; px: nu
 
 /** One table per heading group — rows are sizes largest-first, columns are modes. */
 const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
-  const rows = headingRows(group);
-  if (!rows.length) return null;
+  const live = headingRows(group);
+  const all = widestRows?.get(group) ?? live;
+  if (!all.length) return null;
+  const inRange = new Set(live.map((r) => r.variant));
   const modes = rp.modes;
   const box = el('div', 'szt');
   box.append(el('p', 'szt-cap', group));
@@ -1964,24 +1992,35 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
   htr.append(el('th', 'szt-fill'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
-  // Resolve each mode's full ramp once — a cell's legal range depends on its NEIGHBOURS in the same
-  // column, so per-cell resolution would need this anyway and would recompute it every time.
+  // Resolve each mode's ramp once, over the IN-RANGE rows only — a cell's legal span depends on its
+  // neighbours in the same column, and an excluded rung is not a neighbour of anything.
   const resolvedByMode = new Map<string, number[]>();
   for (const m of modes) {
-    resolvedByMode.set(m, rows.map((r) => {
+    resolvedByMode.set(m, live.map((r) => {
       const c = theme.typography.composites.find((x) => x.group === group && x.variant === r.variant)!;
       return (m === 'light' ? undefined : c.sizeByMode?.[m]) ?? c.sizePx;
     }));
   }
-  for (const [i, r] of rows.entries()) {
-    const tr = el('tr');
+  for (const r of all) {
+    const tr = el('tr', inRange.has(r.variant) ? '' : 'szt-off');
     const nameCell = el('td', 'szt-stick');
     nameCell.append(el('span', 'szt-name mono', r.variant));
+    if (!inRange.has(r.variant)) nameCell.append(el('span', 'szt-ro', ' outside range'));
     tr.append(nameCell);
-    for (const m of modes) {
-      const td = el('td', 'szt-mode');
-      td.append(sizeCell(group, rows, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
-      tr.append(td);
+    if (inRange.has(r.variant)) {
+      const i = live.findIndex((x) => x.variant === r.variant);
+      for (const m of modes) {
+        const td = el('td', 'szt-mode');
+        td.append(sizeCell(group, live, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
+        tr.append(td);
+      }
+    } else {
+      // What it WOULD be, so the row explains itself rather than just being greyed.
+      for (const [mi, m] of modes.entries()) {
+        const td = el('td', 'szt-mode');
+        td.append(el('span', 'szt-offval mono', mi === 0 ? `${r.px}px` : '—'));
+        tr.append(td);
+      }
     }
     tr.append(el('td', 'szt-fill'));
     tb.append(tr);
@@ -2090,11 +2129,12 @@ const renderTypeSizes = (): HTMLElement => {
   // CUSTOMIZE — hidden by default, but never hides the FACT that sizes are pinned.
   const pins = pinnedSizeCount();
   const open = typeSizesOpen ?? pins > 0;
+  if (open) computeWidestRows();
   const head = el('div', 'szt-head');
   head.append(toggleField(open, (checked) => { typeSizesOpen = checked; renderWorkspace(); }));
-  head.append(el('span', 'szt-headlab', 'Customize individual sizes'));
+  head.append(el('span', 'szt-headlab', 'Edit individual sizes'));
   if (pins) head.append(el('span', 'szt-badge', `${pins} customized`));
-  sec.append(fieldBlock('Individual sizes', 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.', head));
+  sec.append(fieldBlock('Customize sizes', 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.', head));
   if (open) for (const g of PER_MODE_SIZE_GROUPS) { const t = renderSizeTable(g); if (t) sec.append(t); }
   return sec;
 };
@@ -5008,6 +5048,12 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .szt-mode{width:var(--tbl-col-mode);min-width:var(--tbl-col-mode)}
 .szt-fill{width:auto;padding:0 !important;border-bottom-color:var(--line)}
 .szt-name{font-size:12.5px;font-weight:600;color:var(--ink)}
+/* Out-of-range rows stay VISIBLE rather than disappearing — a size the ramp could have is a fact
+   worth showing, and its absence from the table was reading as "this brand has no lg display". */
+.szt-off td{background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(24,24,27,.028) 5px,rgba(24,24,27,.028) 10px)}
+.szt-off .szt-stick{background:var(--panel)}
+.szt-off .szt-name{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
+.szt-offval{font-size:12.5px;color:var(--faint)}
 .szt-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
 /* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
    filtered dropdown just omitted the option and never said why. */
