@@ -33,6 +33,15 @@ layout.
 - **Mode columns now scroll rather than compress.** 112 + 5×148 = 852 against a 798px pane, so the
   container scrolls at five modes and fits four. That is the threshold the owner asked for, and it
   falls out of the fixed widths rather than being hardcoded.
+- **Column widths are tokens now, ahead of the other tables.** `--tbl-col-name` / `--tbl-col-mode` in
+  `:root`, so weights / leading / tracking consume the same two values and the tables stack on one
+  grid down the page. Worth doing *now* rather than later for a specific reason: the SIZE table is the
+  widest of the four, so its numbers are already the binding ones — its stepper cell needs ~132px
+  against ~90px for a weight select and ~130px for a leading select, and its row labels are the
+  shortest (`2xl` ≈ 46px against `emphasis` ≈ 82px). The values are therefore very likely final, which
+  is what makes a token honest rather than speculative. Deliberately NOT done: renaming `.szt-*` to a
+  generic prefix or extracting shared table markup — that stays speculative until the other tables
+  exist and their real structure is known.
 - **Trap: backticks inside the CSS.** The stylesheet is a template literal, so a backtick in a CSS
   comment terminates it. `tsc` caught it as a stray syntax error two thousand lines away from the
   cause.

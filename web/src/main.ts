@@ -4334,6 +4334,12 @@ const STYLE = `
   --ink:#18181b; --ink2:#3d3d44; --muted:#71717a; --faint:#a1a1aa;
   --paper:#f2f3f6; --panel:#ffffff; --line:#e7e8ec; --line2:#dcdde2;
   --r:10px; --r-sm:7px; --r-xs:6px;
+  /* Per-mode table geometry — shared so tables stack down the page on the same grid. The SIZE table
+     sets these because it is the widest case: its stepper cell needs ~132px where a weight select
+     needs ~90px and a leading select ~130px, and its row labels are the shortest. Future tables
+     (weights, leading, tracking) consume these rather than choosing their own, so the columns cannot
+     drift apart. Change here, not per table. */
+  --tbl-col-name:112px; --tbl-col-mode:148px;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Roboto,sans-serif;
   --mono:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
 }
@@ -4995,11 +5001,11 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .szt-tbl th,.szt-tbl td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
 .szt-tbl thead th{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
 .szt-tbl tbody tr:last-child td{border-bottom:0}
-.szt-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);width:112px;min-width:112px}
+.szt-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);width:var(--tbl-col-name);min-width:var(--tbl-col-name)}
 .szt-tbl thead .szt-stick{z-index:3;background:var(--paper)}
 /* Mode columns are equal and fixed: past roughly five modes the total exceeds the pane and the
    container scrolls, rather than the columns compressing until the steppers stop fitting. */
-.szt-mode{width:148px;min-width:148px}
+.szt-mode{width:var(--tbl-col-mode);min-width:var(--tbl-col-mode)}
 .szt-fill{width:auto;padding:0 !important;border-bottom-color:var(--line)}
 .szt-name{font-size:12.5px;font-weight:600;color:var(--ink)}
 .szt-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
