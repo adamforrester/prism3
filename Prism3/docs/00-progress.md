@@ -7,6 +7,35 @@
 
 ---
 
+## (2026-08-01) — The full type ramp gets one home, one direction, one specimen
+
+**STATUS: web.** Three owner-directed changes to the generated ramp, all display-only. Branched from
+`main` alongside the nudge-range PR; they touch different regions of `main.ts`.
+
+- **One home.** The ramp came off the Styles aside — `renderScreen`'s fourth argument is now `() => []`
+  on every typography tab. #358 kept it there on the doc-26 rule that a section carries its own
+  specimen in context; the Preview tab satisfies that rule now, and a ~220px aside column was never
+  an honest place to show a 160px display line beside five mode columns. Measured after: the content
+  column is **unchanged at 850px**, so the aside was a separate region rather than a column stealing
+  width — which means the 800px table budget the nudge PR was measured against still holds.
+- **Largest first**, matching the size editors on Styles. The safety is in the sort being **stable on
+  size alone**: rows sharing a size — the weight roles, and the italic/link variants — keep their
+  existing relative order, so only the size progression reverses. Sorting on anything richer would
+  have reshuffled them. Verified: display 160→48, and body's twelve rows come out
+  `18,18,18,18,16,16,16,16,14,14,14,14` with each same-size run intact.
+- **One specimen string.** `rampSample` shortened as the size climbed ("Type" at 80px+, "Typography"
+  at 40px+) and swapped to `const token = 16;` for `code`, so no two rows compared the same
+  letterforms — which is the whole reason to stack a ramp. Now `The quick brown fox` everywhere,
+  including `code`. `.tr-samp` already clipped with an ellipsis, so the big rows show real letterforms
+  cut off rather than a different, shorter word — which is what the owner asked for ("The quick brown
+  fox... is for all"). **The `code` row is the one place to push back**: it no longer demonstrates the
+  mono face doing its actual job. One line to revert if that reads wrong at size.
+- **Verified**: 0 ramp blocks on Foundations, 0 on Styles, 7 on Preview; descending within every
+  category; exactly one distinct sample string across all 38 rows; six `.mtbl` tables still
+  `112/148/148/390`; no horizontal body scroll; no page errors.
+
+---
+
 ## (2026-08-01) — Category leading/tracking nudges widened to ±2 rungs
 
 **STATUS: web.** Owner-directed, UI only. The category setup table offered three nudges
