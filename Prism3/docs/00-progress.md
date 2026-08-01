@@ -7,6 +7,52 @@
 
 ---
 
+## (2026-08-01) — Responsive type sizing moves to Layout (#361)
+
+**STATUS: web.** A relocation, not a behavior change: `minViewport`/`maxViewport` are viewport thresholds
+in px — the same kind of number as the breakpoints — not semantic type decisions, so they left
+Typography → Styles for the Layout page. Closes the "Also noted" paragraph of #328, which was the only
+place this was tracked.
+
+- **It became a split block, not a transplanted section.** Layout is built from `controlSplitPage`, whose
+  unit is `{controls, paint}` — a control column beside a preview node that repaints on every `apply()`.
+  Dropping the old full-width `palSection` onto that page would have been the smaller diff and the wrong
+  shape. The split was already latent in the section: the viewport fields are the control, and the "what
+  fluid does" list is *literally a preview of what they do*. **This fixed something on the way**: as a
+  `paint` the list repaints while the number field keeps its DOM, so the field **holds focus** through a
+  commit (verified `document.activeElement` is still the input after `change` → `apply()`). The old
+  section rebuilt whole.
+- **The #271 shared-across-modes note did not come with it, deliberately.** That note disclosed an
+  anomaly — one section writing global state on a page where everything else is mode-scoped. Every
+  control on Layout (`layout.breakpoints`, `.columns`, `.containerMax`, `.containerNarrow`) is already
+  global, so on the new page there is no anomaly to disclose and the note would assert a contrast that
+  does not exist. Its old text even said "unlike the faces and weights above", which are no longer above
+  it. `.te-shared-note` is still used at `main.ts:3033`, so the CSS stays — no orphan.
+- **A new empty state was required, not gilded.** The old code wrapped the list in `if (uniq.length)`,
+  which was fine when the list sat under its controls — nothing scaling just meant a shorter section. In
+  a two-column split, the same branch leaves a **blank half-page** beside populated controls. The preview
+  now says why it is bare and how to populate it. Toggling fluid off → 90px of explanation; back on →
+  11 rows again.
+- **Moved `paintFluidPreview` into the layout-preview group** rather than leaving it 1,600 lines from its
+  siblings: that group opens with a comment enumerating its members, so a fourth one sitting elsewhere
+  would have quietly falsified the comment. The enumeration was updated with it.
+- **No pointer left on Styles**, which #361 asked to decide. This repo has no "moved to X" pattern —
+  cross-references live inside a section's own `sub` prose (`renderEasingEditor`, `renderShadowEditor`)
+  and only where the reader needs the other thing to understand *this* thing. Nobody needs responsive
+  sizing to understand semantic styles. One line to add if that reads wrong.
+- **Trap for whoever re-verifies this**: on the Layout page `.cs-ctl-col .adv-num` is **not** the min
+  viewport field — the breakpoint editor uses the same class, and `.first()` silently grabs breakpoint
+  0. A first pass "verified" focus retention and live clamps against the wrong control and read a green
+  result: the clamp string legitimately did not change, because a breakpoint had been edited. Scope the
+  selector to the `.psec` containing "Responsive type sizing".
+- **Verified**: Styles has zero responsive markup and zero `.fz-list`; Layout has four split blocks in the
+  order Breakpoints → **Responsive type sizing** → Grid columns → Container caps; min viewport 360 → 480
+  rewrites the clamps live (`1.9392rem + 1.326vw` → `1.8rem + 1.5vw`); responsive preview 492/492 with no
+  overflow; no body scroll; no page errors. The Breakpoints preview overflows 492/501 — **pre-existing**,
+  measured identical on `main` with the change stashed, so left alone.
+
+---
+
 ## (2026-08-01) — The full type ramp gets one home, one direction, one specimen
 
 **STATUS: web.** Three owner-directed changes to the generated ramp, all display-only. Branched from
