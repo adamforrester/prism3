@@ -2833,6 +2833,7 @@ const WEIGHT_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 const renderWeightTable = (): HTMLElement => {
   const ty = theme.typography;
   const modes = rp.modes;
+  const textStack = ty.families.find((f) => f.role === 'text')?.stack.join(', ') ?? 'inherit';
   const box = el('div', 'mtbl');
   box.append(el('p', 'mtbl-cap', 'weight roles'));
   const scroll = el('div', 'mtbl-scroll');
@@ -2845,7 +2846,7 @@ const renderWeightTable = (): HTMLElement => {
     if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
     htr.append(th);
   }
-  htr.append(el('th', 'mtbl-fill'));
+  htr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
   for (const w of ty.weightRoles) {
@@ -2880,7 +2881,13 @@ const renderWeightTable = (): HTMLElement => {
       }));
       tr.append(td);
     }
-    tr.append(el('td', 'mtbl-fill'));
+    // A weight NUMBER is meaningless without seeing it — 400 against 500 is invisible as digits.
+    const spec = el('td', 'mtbl-fill mtbl-spec');
+    const samp = el('span', 'mtbl-spec-t', 'The quick brown fox');
+    samp.style.fontWeight = String(w.value);
+    samp.style.fontFamily = textStack;
+    spec.append(samp);
+    tr.append(spec);
     tb.append(tr);
   }
   tbl.append(tb); scroll.append(tbl); box.append(scroll);
@@ -5108,6 +5115,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
    container scrolls, rather than the columns compressing until the steppers stop fitting. */
 .mtbl-mode{width:var(--tbl-col-mode);min-width:var(--tbl-col-mode)}
 .mtbl-fill{width:auto;padding:0 !important;border-bottom-color:var(--line)}
+.mtbl-fill.mtbl-spec{padding:6px 12px !important;min-width:150px}
+.mtbl-spec-t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);font-size:14px}
 .mtbl-name{font-size:12.5px;font-weight:600;color:var(--ink)}
 /* Out-of-range rows stay VISIBLE rather than disappearing — a size the ramp could have is a fact
    worth showing, and its absence from the table was reading as "this brand has no lg display". */

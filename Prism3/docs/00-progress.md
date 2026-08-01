@@ -39,10 +39,15 @@
   not try. **The practical rule for `web/src` is US English everywhere, comments included** — the
   exemption holds for engine code, which is never bundled. Worth knowing before the next surface moves
   into the bundle.
-- **Dropped from the old editor:** the per-row `The quick brown fox` specimen. A weight number is
-  meaningless without seeing it, so this is a real loss — taken deliberately because row-height parity
-  across the tables is the point, and because the typography preview tab (next) is where a specimen
-  belongs. Worth re-checking once that lands.
+- **The specimen came back once the constraint was corrected.** I first dropped the per-row
+  `The quick brown fox` sample, justified on ROW-HEIGHT parity across tables. The owner corrected that:
+  **column-width parity is what matters down the page, row height is not.** With the justification
+  void the sample returns — placed in the trailing FILLER column, which already absorbs leftover width,
+  so the sticky and mode columns stay byte-identical to the size tables (measured: 112 / 148, one
+  distinct value each across all four). With many modes the filler shrinks and the sample degrades
+  instead of squeezing the cells.
+  Worth noting how weak the original reasoning was: I invented a constraint, used it to justify
+  removing something useful, and only the owner's correction surfaced it.
 
 ---
 
