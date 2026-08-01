@@ -2299,14 +2299,90 @@ const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'i
   renderInteractiveMatrix(h);
 }, () => [renderSectionContrast('interactive')]);
 
+/** The typography PREVIEW tab — everything the system generates, at size, in every mode.
+ *
+ *  Read-only by design: the editors live on Styles, and giving the same value two homes is how they
+ *  drift. It exists because the ramp was squeezed into the Styles aside, where a 160px display line
+ *  and five mode columns have nowhere to go.
+ *
+ *  It also carries the specimens the tables cannot: a weight number is meaningless as digits, and the
+ *  size tables show px rather than type. Those tables are the place to CHANGE a value; this is the
+ *  place to SEE it. */
+const renderTypePreview = (): HTMLElement => {
+  const ty = theme.typography;
+  const wrap = el('div');
+  // Faces first — every specimen below inherits from them, so seeing what is actually resolving
+  // explains anything that looks wrong before you go hunting in the ramp.
+  const fam = palSection('Faces', `The family each role resolves to${rp.modes.length > 1 ? ', per mode' : ''}. Everything below is set in these.`);
+  const ftbl = el('div', 'mtbl');
+  const fscroll = el('div', 'mtbl-scroll');
+  const ft = el('table', 'mtbl-tbl');
+  const fhead = el('thead'), fhtr = el('tr');
+  fhtr.append(el('th', 'mtbl-stick', 'Role'));
+  for (const m of rp.modes) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    fhtr.append(th);
+  }
+  fhtr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  fhead.append(fhtr); ft.append(fhead);
+  const fb = el('tbody');
+  for (const f of ty.families) {
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', f.role));
+    tr.append(nc);
+    let stack = f.stack.join(', ');
+    for (const m of rp.modes) {
+      const per = ty.familiesByMode?.[m]?.find((x) => x.role === f.role)?.stack.join(', ');
+      const resolved = per ?? f.stack.join(', ');
+      if (m === 'light') stack = resolved;
+      const td = el('td', 'mtbl-mode');
+      const nm = el('span', 'tp-fam', resolved.split(',')[0].replace(/["']/g, '').trim());
+      nm.title = resolved;
+      td.append(nm);
+      tr.append(td);
+    }
+    const spec = el('td', 'mtbl-fill mtbl-spec');
+    const samp = el('span', 'mtbl-spec-t', 'The quick brown fox jumps');
+    samp.style.fontFamily = stack;
+    spec.append(samp);
+    tr.append(spec);
+    fb.append(tr);
+  }
+  ft.append(fb); fscroll.append(ft); ftbl.append(fscroll); fam.append(ftbl);
+  wrap.append(fam);
+
+  // Weight roles — the specimen the numbers cannot carry.
+  const wsec = palSection('Weight roles', 'Each role at the numeric it resolves to. Set them on Styles.');
+  const wgrid = el('div', 'tp-wgrid');
+  const textStack = ty.families.find((x) => x.role === 'text')?.stack.join(', ') ?? 'inherit';
+  for (const w of ty.weightRoles) {
+    const row = el('div', 'tp-wrow');
+    row.append(el('span', 'tp-wkey mono', w.role), el('span', 'tp-wnum mono', `${w.value} ${WEIGHT_NAME[w.value] ?? ''}`.trim()));
+    const samp = el('span', 'tp-wsamp', 'The quick brown fox jumps over the lazy dog');
+    samp.style.fontWeight = String(w.value);
+    samp.style.fontFamily = textStack;
+    row.append(samp);
+    wgrid.append(row);
+  }
+  wsec.append(wgrid);
+  wrap.append(wsec);
+
+  // And the ramp itself, full width rather than squeezed into the aside.
+  wrap.append(renderTypeRamp());
+  return wrap;
+};
+
 // Typography — type scale (shared, read-only outside Light) + the family/weight/leading editor.
 /** Typography splits along the tier line (docs/26): FOUNDATIONS is the primitive raw material
  *  — the faces, the size ladder, the weight numerics, the leading/tracking rungs — and STYLES is
  *  the semantic layer built from it: which numeric each weight role means, what each category is
  *  made of, and the full generated ramp. Categories never appear on Foundations. */
-type TypeTab = 'foundations' | 'styles';
+type TypeTab = 'foundations' | 'styles' | 'preview';
 let typeTab: TypeTab = 'foundations';
-const TYPE_TABS: Array<[TypeTab, string]> = [['foundations', 'Foundations'], ['styles', 'Styles']];
+const TYPE_TABS: Array<[TypeTab, string]> = [['foundations', 'Foundations'], ['styles', 'Styles'], ['preview', 'Preview']];
 const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'typography', (h) => {
   const seg = el('div', 'pvseg');
   for (const [k, label] of TYPE_TABS) {
@@ -2320,9 +2396,14 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
   h.append(seg);
   h.append(el('p', 'tabnote', typeTab === 'foundations'
     ? 'Primitives — the raw material every style is built from.'
-    : 'Semantics — the named styles your product actually uses.'));
+    : typeTab === 'styles'
+      ? 'Semantics — the named styles your product actually uses.'
+      : 'Everything the system generates, at size, in every mode. Nothing here is editable.'));
   if (typeTab === 'foundations') h.append(renderTypefaces(), renderSizeLadder(), renderWeightScale(), renderLeadingTracking());
-  else h.append(renderTypeSizes(), renderWeightRoles(), renderCategorySetup(), renderResponsiveEditor());
+  else if (typeTab === 'styles') h.append(renderTypeSizes(), renderWeightRoles(), renderCategorySetup(), renderResponsiveEditor());
+  else h.append(renderTypePreview());
+  // The ramp stays in the Styles aside as well — doc 26 wants a section to carry its own specimen in
+  // context, and the tabs are exclusive, so it is never rendered twice at once.
 }, () => (typeTab === 'styles' ? [renderTypeRamp()] : []));
 
 // Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
@@ -3955,7 +4036,9 @@ let modeStripHost: HTMLElement;   // tier 2 of the global header — the persist
  *  an editor still needs one mode to write into. */
 const pageHasModeVaryingControl = (): boolean => {
   if (page === 'layout') return false;
-  if (page === 'typography' && typeTab === 'foundations') return false;
+  // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
+  //  do — the same reasoning that hides it on Foundations, reached from the other direction.
+  if (page === 'typography' && typeTab !== 'styles') return false;
   return true;
 };
 
@@ -5138,6 +5221,17 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mreset:hover{color:var(--ink2)}
 .mreset:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
 .mreset-sp{display:inline-block;width:20px;flex:none}
+
+/* Typography Preview tab — read-only specimens at size, in every mode. */
+.tp-fam{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tp-wgrid{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+.tp-wrow{display:flex;align-items:baseline;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
+.tp-wrow:last-child{border-bottom:0}
+/* Same 112px / 148px as the tables, from the shared tokens, so the page reads on one grid even
+   where the content is a specimen rather than a control. */
+.tp-wkey{flex:none;width:var(--tbl-col-name);font-size:12.5px;font-weight:600;color:var(--ink)}
+.tp-wnum{flex:none;width:var(--tbl-col-mode);font-size:12px;color:var(--muted)}
+.tp-wsamp{flex:1;min-width:0;font-size:17px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Typography — Foundations / Styles tabs (#272) */
 .tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
