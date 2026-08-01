@@ -2408,9 +2408,11 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
     if (repoints) h.append(repoints);
     h.append(renderCategorySetup(), renderResponsiveEditor());
   } else h.append(renderTypePreview());
-  // The ramp stays in the Styles aside as well — doc 26 wants a section to carry its own specimen in
-  // context, and the tabs are exclusive, so it is never rendered twice at once.
-}, () => (typeTab === 'styles' ? [renderTypeRamp()] : []));
+  // No aside on any tab. The ramp used to sit in the Styles aside on the doc-26 rule that a section
+  // carries its own specimen in context — but that rule is satisfied by the Preview tab now, and a
+  // ~220px column was never an honest place to show a 160px display line beside five mode columns.
+  // One ramp, one home.
+}, () => []);
 
 // Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
 const renderElevationPage = (host: HTMLElement): void => renderScreen(host, 'elevation', (h) => {
@@ -3565,10 +3567,12 @@ const TYPE_GROUP_BLURB: Record<string, string> = {
   caption: 'Secondary and supporting text.', eyebrow: 'Small uppercase kickers above headings.',
   code: 'Inline code and tabular figures.',
 };
-// Long strings stop fitting once the size climbs, so the sample shortens rather than
-// the size being capped — the ramp's whole job is showing true scale.
-const rampSample = (group: string, px: number): string =>
-  group === 'code' ? 'const token = 16;' : px >= 80 ? 'Type' : px >= 40 ? 'Typography' : 'The quick brown fox';
+// ONE string at every size and in every category, owner-directed. This used to shorten as the size
+// climbed ("Type" at 80px+, "Typography" at 40px+) and swap to a code snippet for `code`, so no two
+// rows were comparing the same letterforms — which is the whole reason to stack a ramp. `.tr-samp`
+// already clips with an ellipsis, so the big rows show real letterforms cut off rather than a
+// different, shorter word.
+const RAMP_SAMPLE = 'The quick brown fox';
 
 /** The full semantic ramp — every generated style at true size, grouped by category.
  *  Resolves through the active mode's family / weight / leading / tracking. */
@@ -3614,7 +3618,11 @@ const renderTypeRamp = (): HTMLElement => {
 
   const sec = palSection('The full type ramp', `Every style the system generates — ${ty.composites.length} in total, grouped by category — resolved in all ${modes.length} ${modes.length === 1 ? 'mode' : 'modes'} side by side. This is what ships as tokens.`);
   for (const g of TYPE_GROUP_ORDER) {
-    const comps = ty.composites.filter((c) => c.group === g);
+    // Largest first, so the page reads big → small the whole way down and matches the size editors on
+    // Styles. A STABLE sort on size alone is what makes this safe: rows sharing a size (the weight
+    // roles, and the italic / link variants) keep their existing relative order, so only the size
+    // progression reverses. Sorting on anything else would reshuffle them.
+    const comps = ty.composites.filter((c) => c.group === g).sort((a, b) => b.sizePx - a.sizePx);
     if (!comps.length) continue;
     const block = el('div', 'tr-block');
     const band = el('div', 'tr-band');
@@ -3637,7 +3645,7 @@ const renderTypeRamp = (): HTMLElement => {
         col.append(el('span', 'tr-mode-n', m));
         const fluidTag = v.sizeMinPx !== v.sizePx ? ` · fluid ${v.sizeMinPx}→${v.sizePx}` : '';
         col.append(el('span', 'tr-attr mono', `${v.sizePx}px · ${v.weight} · ${v.lhKey} ${lhOf(v.lhKey)}× · ${v.lsKey} ${lsOf(v.lsKey)}em${fluidTag}`));
-        const samp = el('div', 'tr-samp', rampSample(c.group, v.sizePx));
+        const samp = el('div', 'tr-samp', RAMP_SAMPLE);
         samp.style.fontFamily = v.stack;
         samp.style.fontSize = `${v.sizePx}px`;
         samp.style.fontWeight = String(v.weight);
