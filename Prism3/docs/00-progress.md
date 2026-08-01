@@ -7,6 +7,39 @@
 
 ---
 
+## (2026-07-31) — Brand-level per-size overrides (`typography.sizes`)
+
+**STATUS: engine + schema.** Owner-directed, out of the type-editor design sessions. Prerequisite for
+the UI: the editing table's baseline column has nothing to write to without it.
+
+- **The asymmetry ran the wrong way.** A heading size could be pinned per MODE (#328) but not at the
+  brand level — the only baseline sizing levers were `typeScale`, `displayCeiling`, `titleFloor`. So a
+  **single-mode brand, which is the common case, could not tune its ramp at all** while a multi-mode
+  one could. Reserving the flexible path for the rarer setup is backwards.
+- **Ordering: derive → typeScale shift → brand overrides → per-mode overrides.** Modes now deviate
+  from the *customized* baseline rather than the derived one, which is what anyone would expect.
+- **Pins are ABSOLUTE, and that has a consequence worth designing for.** A pinned size does not travel
+  with `typeScale` — same as the per-mode map. So changing the scale with sizes pinned can collide,
+  and the ramp check rejects it. That is correct (silently re-shifting a value the author fixed would
+  be worse), but it means a UI cannot treat the scale preset and the per-size table as independent
+  controls: changing the preset must say what will break and offer to release the pins.
+- **The error now blames the pin, not the scale.** The existing ramp message sent you to `typeScale`
+  for a collision `typeScale` did not cause. It branches on whether the rung is pinned.
+- **A no-op override throws.** An override on a rung trimmed by `displayCeiling`, or on `title.2xs`
+  when `titleFloor` omits it, is rejected rather than silently doing nothing — the #341 failure shape
+  on a new axis. Tracked with a `consumed` set rather than a membership pre-check, so it stays correct
+  as set-membership rules change.
+- **`PER_MODE_SIZE_FLOOR` → `HEADING_SIZE_FLOOR`.** It governs both tiers now; the old name asserted
+  something false.
+- **Two traps this pass, both caught by tooling rather than by reading.** `tsx` does not typecheck, so
+  1177 tests passed green while `group` (a `TypeGroup`, all seven) was indexing a heading-only map —
+  only `tsc -p web` saw it. And the US-English gate rejected `neighbour` in a new *thrown error
+  string*, which is user-visible text inlined into the web bundle. Both gates earned their place on
+  the same commit that added the feature.
+- **`out/` is byte-identical** — no brand fixture uses `sizes`, so this is covered by unit tests.
+
+---
+
 ## (2026-07-31) — The type ramp shows every mode side by side
 
 **STATUS: web.** Second piece of the UI phase, owner-chosen shape: all modes, every row.
