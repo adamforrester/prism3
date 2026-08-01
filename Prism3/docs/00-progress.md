@@ -33,6 +33,12 @@
   baseline moves — but both landed on 200, so a *following* cell would have passed identically. Re-ran
   with the pin two steps above the baseline: dark held at 500 while the baseline went 300→200, then
   followed to 200 after reset. The `.pin` class was the only sound part of the original check.
+- **The US-English gate caught a CODE COMMENT, and it was right to.** CLAUDE.md exempts comments —
+  but this build does not minify, so JS comments survive into `web/dist/main.js`, which the gate scans
+  because that is what ships. The gate cannot tell a comment from UI text inside a bundle, and should
+  not try. **The practical rule for `web/src` is US English everywhere, comments included** — the
+  exemption holds for engine code, which is never bundled. Worth knowing before the next surface moves
+  into the bundle.
 - **Dropped from the old editor:** the per-row `The quick brown fox` specimen. A weight number is
   meaningless without seeing it, so this is a real loss — taken deliberately because row-height parity
   across the tables is the point, and because the typography preview tab (next) is where a specimen

@@ -1884,7 +1884,7 @@ const headingRows = (group: PerModeSizeGroup): Array<{ variant: string; px: numb
  *  it had removed.
  *
  *  Three attempts, because widening can legitimately fail: `titleFloor: 16` is incompatible with
- *  `typeScale: 'compact'`, and a pinned size can collide with a neighbour that only exists at the
+ *  `typeScale: 'compact'`, and a pinned size can collide with a neighbor that only exists at the
  *  wider range. Falling back to the live set just restores the old behavior, never a broken one. */
 let widestRows: Map<PerModeSizeGroup, Array<{ variant: string; px: number }>> | null = null;
 const computeWidestRows = (): void => {
@@ -1936,14 +1936,14 @@ const pinnedSizeCount = (): number => {
 const sizeCell = (group: PerModeSizeGroup, rows: Array<{ variant: string; px: number }>, i: number, mode: Mode | null, resolved: number[]): HTMLElement => {
   const variant = rows[i].variant;
   const px = resolved[i];
-  const upper = i > 0 ? resolved[i - 1] : undefined;         // the larger neighbour
+  const upper = i > 0 ? resolved[i - 1] : undefined;         // the larger neighbor
   const lower = i + 1 < resolved.length ? resolved[i + 1] : undefined;
   const floor = HEADING_SIZE_FLOOR[group];
   const step = (dir: -1 | 1) => ladderStep(px, dir);
   const dn = step(-1), up = step(1);
   return stepCell({
     px,
-    // Sizes DO bound on their neighbours: the ramp must stay strictly increasing or the engine
+    // Sizes DO bound on their neighbors: the ramp must stay strictly increasing or the engine
     // refuses to build. That is the difference from weight roles, which may cross.
     canDown: dn !== undefined && dn >= floor && (lower === undefined || dn > lower),
     canUp: up !== undefined && (upper === undefined || up < upper),
@@ -1981,7 +1981,7 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
   // Resolve each mode's ramp once, over the IN-RANGE rows only — a cell's legal span depends on its
-  // neighbours in the same column, and an excluded rung is not a neighbour of anything.
+  // neighbors in the same column, and an excluded rung is not a neighbor of anything.
   const resolvedByMode = new Map<string, number[]>();
   for (const m of modes) {
     resolvedByMode.set(m, live.map((r) => {
@@ -2865,7 +2865,7 @@ const renderWeightTable = (): HTMLElement => {
       td.append(stepCell({
         px: value,
         // Ends of the scale only. Roles may cross each other — the engine allows it and the warning
-        // below says so — so a neighbour bound here would be a rule the system does not actually have.
+        // below says so — so a neighbor bound here would be a rule the system does not actually have.
         canDown: step(-1) !== undefined,
         canUp: step(1) !== undefined,
         pinned: override !== undefined,
