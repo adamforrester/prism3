@@ -296,6 +296,11 @@
             "variable": { "oneOf": [{ "type": "boolean" }, { "type": "object", "additionalProperties": false, "properties": { "display": { "type": "boolean" }, "text": { "type": "boolean" }, "mono": { "type": "boolean" } } }], "default": false, "description": "Variable-font usage. A single boolean applies to all faces; a per-face object (e.g. { display: true, text: true }) flags each of display/text/mono independently (engine BrandInput: boolean | Partial<Record<'display'|'text'|'mono', boolean>>)." }
           }
         },
+        "typefaceLibrary": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "\\S" },
+          "description": "OPTIONAL. Faces the brand HAS, independent of which job any of them does. A typeface used to exist only if a family role bound it, so \"add a typeface\" and \"bind a typeface to a role\" were one action, with nowhere to stage a face while deciding. Each entry emits a `font.typeface.<slug>` primitive exactly like a bound face, so pointing a role at one later changes no token shape. A face that is both listed here and bound to a role appears once, keeping the role's fallback stack; a library-only face gets the sans fallback tail. Listing one face twice is rejected."
+        },
         "weightRoles": {
           "type": "object",
           "additionalProperties": false,

@@ -660,6 +660,16 @@ export type TypographyInput = {
    *  face, and a brand without one ships no `code` category either. Omitted (undefined)
    *  keeps the default mono, so existing brands are unaffected. */
   families?: { display?: string | string[]; text?: string | string[]; mono?: string | string[] | null; variable?: boolean | Partial<Record<FamilyRoleName, boolean>> };
+  /** Faces the brand HAS, independent of which job any of them does (#287). Before this, a typeface
+   *  existed only if a role bound it — "add a typeface" and "bind a typeface to a role" were the same
+   *  action, with nowhere to stage a face while deciding. Each entry emits a `font.typeface.<slug>`
+   *  primitive exactly like a bound face, so pointing a role at one later changes no token shape.
+   *
+   *  Deleting a BOUND entry is not a thing the engine has to handle, which is the whole point of the
+   *  chosen removal semantics (owner, 2026-08-01: only unbound entries are deletable). Drop a still-bound
+   *  name from this list and its primitive survives anyway — the role keeps deriving it — so there is no
+   *  cascade to write and #269's "no cascade needed" resolution stands. */
+  typefaceLibrary?: string[];
   weightRoles?: Partial<Record<WeightRoleName, number>>;
   typeScale?: 'compact' | 'default' | 'expressive';
   /** Which family role each semantic group consumes. Defaults: display/title/
@@ -994,10 +1004,21 @@ const deriveFamilies = (fam: TypographyInput['families'] = {}): FontFamilyRole[]
   return out;
 };
 
-/** Collapse a set of family roles into the distinct TYPEFACE primitives they bind. Two roles on
- *  the same face share one primitive (NB binds display and text to Inter); `variable` ORs, since
- *  it is a property of the face rather than of the role. */
-const deriveTypefaces = (...roleSets: FontFamilyRole[][]): Typeface[] => {
+/** Collapse a set of family roles into the distinct TYPEFACE primitives they bind, UNIONED with the
+ *  brand's authored typeface library (#287). Two roles on the same face share one primitive (NB binds
+ *  display and text to Inter); `variable` ORs, since it is a property of the face rather than of the role.
+ *
+ *  ROLE SETS ARE WALKED FIRST, LIBRARY LAST, and that order is load-bearing twice over:
+ *   1. A face that is BOTH staged and bound keeps its ROLE-derived stack. Reversed, a library entry
+ *      would win the dedupe and a `mono`-bound face would emit the sans fallback tail.
+ *   2. An empty library appends nothing, so every existing brand derives the identical list in the
+ *      identical order — this is what makes the feature byte-additive.
+ *
+ *  A library-only face has no role to take a fallback tail from, so it gets the sans one. That is a
+ *  real (small) guess: staging a mono face before binding it gives it a sans tail until a role claims
+ *  it. Harmless because nothing consumes an unbound primitive's tail, and self-correcting because
+ *  binding re-derives it — see the test that asserts exactly this transition. */
+const deriveTypefaces = (library: string[] = [], ...roleSets: FontFamilyRole[][]): Typeface[] => {
   const out: Typeface[] = [];
   for (const roles of roleSets) {
     for (const f of roles) {
@@ -1007,6 +1028,12 @@ const deriveTypefaces = (...roleSets: FontFamilyRole[][]): Typeface[] => {
       if (hit) { hit.variable = hit.variable || f.variable; continue; }
       out.push({ slug, name, stack: f.stack, variable: f.variable });
     }
+  }
+  for (const raw of library) {
+    const name = raw.trim();
+    const slug = typefaceSlug(name);
+    if (out.some((t) => t.slug === slug)) continue;   // already bound — the role's stack wins
+    out.push({ slug, name, stack: asStack(name, name, SANS_FALLBACK), variable: false });
   }
   return out;
 };
@@ -1038,12 +1065,24 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
   // rung (leaving a gap mid-ramp); rejecting is the honest answer (#328).
   if ((t.typeScale ?? 'default') === 'compact' && t.titleFloor === 16)
     throw new Error(`typography: titleFloor 16 is incompatible with typeScale 'compact' — compact already shifts title.xs down to 16px, so title.2xs would duplicate it. Use titleFloor 18 with 'compact', or titleFloor 16 with 'default'/'expressive'.`);
+  // Typeface library (#287) — guard typos, not taste, same as every other input bound above. A blank
+  // entry would emit a `font.typeface.` leaf with an empty slug; two spellings of one face would emit
+  // one primitive and silently swallow the other, which reads as "my font vanished".
+  const librarySeen = new Set<string>();
+  for (const raw of t.typefaceLibrary ?? []) {
+    if (typeof raw !== 'string' || !raw.trim())
+      throw new Error(`typography.typefaceLibrary contains an empty entry — every entry must be a non-empty font family name`);
+    const slug = typefaceSlug(raw.trim());
+    if (librarySeen.has(slug))
+      throw new Error(`typography.typefaceLibrary lists '${raw.trim()}' twice (both resolve to '${slug}') — a face appears in the library once`);
+    librarySeen.add(slug);
+  }
   const families = deriveFamilies(t.families);
   const wr = { ...WEIGHT_ROLE_DEFAULT, ...(t.weightRoles ?? {}) };
   const fluid = t.responsive?.fluid ?? true;
   return {
     families,
-    typefaces: deriveTypefaces(families),
+    typefaces: deriveTypefaces(t.typefaceLibrary, families),
     sizesPx: fontSizeLadder(),
     // Minted from need, not the full 100–900 axis (#328): emit only the numerics some
     // weight ROLE actually points at. Every `weight-role.<role>` aliases `font.weight.<n>`,
@@ -1790,7 +1829,7 @@ export const brandTheme = (input: BrandInput): Theme => {
   // family alias lands on a real `font.typeface.<slug>` leaf — the same contract weightsRef
   // has for per-mode weight numerics. No per-mode families ⇒ unchanged.
   if (Object.keys(familiesByMode).length)
-    typography.typefaces = deriveTypefaces(typography.families, ...Object.values(familiesByMode));
+    typography.typefaces = deriveTypefaces(input.typography?.typefaceLibrary, typography.families, ...Object.values(familiesByMode));
   if (Object.keys(weightRolesByMode).length) typography.weightRolesByMode = weightRolesByMode;
   // Per-mode LINE HEIGHT / LETTER SPACING (Phase D): a mode may re-anchor any named leading/tracking
   // step. Merge the mode's per-step overrides over the base ramp and emit the FULL ramp for that mode

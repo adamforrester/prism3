@@ -7,6 +7,42 @@
 
 ---
 
+## (2026-08-01) — Typeface library: a face can exist before it has a job (#287)
+
+**STATUS: engine.** `typography.typefaceLibrary: string[]` — authored faces, independent of the three
+role bindings. `deriveTypefaces` becomes a union of role-bound ∪ authored. Web UI is deliberately out of
+scope, same sequencing as #269 (engine `#280` → UI `#282`).
+
+- **Walk order is load-bearing, twice.** Role sets first, library appended last. (1) A face that is both
+  staged and bound keeps its **role-derived** stack — reversed, a library entry would win the dedupe and
+  a `mono`-bound face would emit the *sans* fallback tail, which is a silently wrong stack rather than a
+  crash. (2) An empty library appends nothing, so every existing brand derives the identical list in the
+  identical order. That is what makes the feature byte-additive, and `regen --check` confirms it: 88
+  artifacts still byte-match.
+- **The removal decision cost nothing to implement, which was the point.** Owner-confirmed: only *unbound*
+  entries are deletable. The engine needs **no cascade code at all** for that, so #269's "no cascade
+  needed" resolution stands. The absence is what is asserted: drop a still-bound name from the library and
+  its primitive **survives**, because the role keeps deriving it. Both directions are in `test.ts` rather
+  than implied — bound-and-dropped survives, unbound-and-dropped disappears.
+- **One real (small) guess, documented and self-correcting.** A library-only face has no role to take a
+  fallback tail from, so it gets the sans one. Staging a mono face before binding it gives it a sans tail
+  until a role claims it; nothing consumes an unbound primitive's tail, and binding re-derives it. There
+  is a test asserting exactly that transition rather than leaving it to be discovered.
+- **Trap dodged in the schema, worth recording.** The obvious constraint for the entries was
+  `"minLength": 1` — and it would have been the **only** `minLength` in `theme-schema.json` and
+  **completely inert**, because the hand-rolled validator implements `enum`/`minimum`/`pattern` and not
+  `minLength`. That is precisely the failure CR-04 documents two comments away in `emit-dtcg.ts`. Used
+  `"pattern": "\\S"` instead, which the validator *does* enforce and which rejects both `''` and `'   '`,
+  matching the engine's own guard. Verified by running the validator, not by reading it.
+- **A second reformat trap**: rewriting `theme-schema.json` via `json.dumps` reflows the entire file
+  (1,080 lines changed for a 5-line addition — the file uses inline objects `{ "type": "string" }` that
+  `indent=2` explodes). Insert as text, not as a re-serialize.
+- **Verified**: 16 new assertions (1177 → **1193**), `regen --check` 88/88 in sync, NB regression PASS,
+  `tsc -p web` clean, US-English gate clean. Schema validator exercised directly on four inputs — a valid
+  library, `''`, `'   '`, a bare string, and a number entry — rather than assumed from the schema text.
+
+---
+
 ## (2026-08-01) — Weight availability moves to Preview as roles × faces (#362)
 
 **STATUS: web.** Answers #328 Q2 ("delete or repurpose the Foundations weight scale?") from the direction
