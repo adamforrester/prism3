@@ -3080,11 +3080,25 @@ const renderCategorySetup = (): HTMLElement => {
     c.onchange = () => onChange(c.checked);
     return c;
   };
+  // ±2 rungs, not ±1. The engine has always accepted `[-5, 5]` and `shiftRung` clamps at the ends of
+  // the ramp, so widening the range is a UI change only — three options were under-offering what the
+  // system could already do. Both ramps are six rungs, so ±2 still lands inside them from most
+  // starting points; beyond that the clamp makes further steps a no-op, which is why 2 and not 5.
+  const NUDGE_ENDS = { leadingShift: ['tighter', 'looser'], trackingShift: ['tighter', 'wider'] } as const;
+  const NUDGE_STEPS = [-2, -1, 0, 1, 2];
+  // One formatter for every step, which is what lets an out-of-range value below reuse it instead of
+  // needing a "(custom)" escape hatch: 3 reads as "3 looser", the same shape as "2 looser".
+  const nudgeLabel = (v: number, down: string, up: string): string =>
+    v === 0 ? 'default' : `${Math.abs(v) > 1 ? `${Math.abs(v)} ` : ''}${v < 0 ? down : up}`;
   const nudge = (group: string, field: 'leadingShift' | 'trackingShift'): HTMLSelectElement => {
     const cur = (getPath(brandState, `typography.${field}.${group}`) as number | undefined) ?? 0;
+    const [down, up] = NUDGE_ENDS[field];
     const sel = selectEl('sm cs-nudge');
-    for (const [v, lab] of [[-1, field === 'leadingShift' ? 'tighter' : 'tighter'], [0, 'default'], [1, field === 'leadingShift' ? 'looser' : 'wider']] as Array<[number, string]>)
-      sel.append(optionEl(String(v), lab, v === cur));
+    for (const v of NUDGE_STEPS) sel.append(optionEl(String(v), nudgeLabel(v, down, up), v === cur));
+    // A hand-authored shift of ±3..±5 is legal in the engine and would otherwise match no option, so
+    // the select would show the first one and rewrite the value on the next change. Same intent as
+    // `renderPerModeSelect`'s "(custom)" fallback: surface it rather than silently losing it.
+    if (!NUDGE_STEPS.includes(cur)) sel.append(optionEl(String(cur), nudgeLabel(cur, down, up), true));
     sel.disabled = perMode;
     sel.onchange = () => { const n = Number(sel.value); setPath(brandState, `typography.${field}.${group}`, n === 0 ? undefined : n); apply(); };
     return sel;
@@ -3128,7 +3142,7 @@ const renderCategorySetup = (): HTMLElement => {
   }
   wrap.append(table);
   sec.append(wrap);
-  sec.append(el('p', 'sl-note', 'The leading and tracking nudges shift that category’s whole curve by one rung — bigger headings keep tightening, they just start from a different place.'));
+  sec.append(el('p', 'sl-note', 'The leading and tracking nudges shift that category’s whole curve by one or two rungs — bigger headings keep tightening, they just start from a different place.'));
   return sec;
 };
 // ---- object-value editors (#97) --------------------------------------------
@@ -5392,7 +5406,11 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .cs-table td{padding:9px 6px}
 .cs-table th{padding:0 6px 10px}
 .cs-table .select{max-width:100px}
-.cs-table .select.cs-nudge{max-width:84px}
+/* 92px, measured rather than picked: the widest label ("2 tighter") needs 91px including the chevron
+   padding, and this table has only ~8px of slack per nudge column before it exceeds the 800px pane and
+   .cs-wrap starts scrolling the LINK column out of sight. "much tighter" needed 118px and cost exactly
+   that — which is why the ±2 steps are numbered instead. */
+.cs-table .select.cs-nudge{max-width:92px}
 .fz-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:4px}
 .fz-row{display:grid;grid-template-columns:150px 96px 1fr;gap:12px;padding:9px 13px;border-top:1px solid var(--line);align-items:center;font-size:12px}
 .fz-row:first-child{border-top:0}
