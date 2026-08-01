@@ -7,6 +7,78 @@
 
 ---
 
+## (2026-08-01) — Type-size editor: fixes from the deployed build
+
+**STATUS: web.** Owner reviewed #354 running on the preview and logged seven issues. Worth recording
+that these were found by *looking at the deployed page*, not by any gate — every one of them passed
+typecheck, tests and the browser assertions I wrote, because I asserted behavior and never measured
+layout.
+
+- **`[object Object]` in the display-ceiling select.** Lever `options` are `{value, label}` objects and
+  I stringified the object. The manifest labels are also internal jargon ("display.sm (1 rung)"), so
+  rather than use them the options are now priced — `2xl — 128px`. That needs ONE candidate build at
+  the largest ceiling, because the live ramp is trimmed by the current ceiling and cannot price the
+  options above it; the display base steps are not uniform on the ladder (48→64 spans two), so
+  extrapolating would have been wrong.
+- **Description stranded below the controls.** `knob` renders its description *after* the body, which
+  reads fine under a single field and badly under a card grid — you reach the explanation after making
+  the choice. A local `fieldBlock` puts label + description above the controls. Deliberately local:
+  changing `knob` would move the description on every control on every page.
+- **Toggle row read "switch · state · orphaned number".** The size now sits between the switch and its
+  On/Off readout, by inserting before `.knob-val` rather than appending.
+- **The baseline column was tinted** and the size column drifted right with one mode. Both came from
+  the same root cause: `width:100%` with few columns hands all the slack to the last one. A trailing
+  filler column absorbs it, so the size column (112px) and every mode column (148px) hold identical
+  widths at one mode and at five — measured, not eyeballed.
+- **Mode columns now scroll rather than compress.** 112 + 5×148 = 852 against a 798px pane, so the
+  container scrolls at five modes and fits four. That is the threshold the owner asked for, and it
+  falls out of the fixed widths rather than being hardcoded.
+- **Both toggle rows now read the same way, and the second instance of the same coupling is fixed.**
+  Range put its label INSIDE the toggle wrapper before the On/Off readout; Customize appended it
+  after — so one row read "switch · what it is · state" and the other "switch · state · what it is".
+  Alignment was off for a related reason: `.knob-body` carried `margin-top:8px`, spacing that belongs
+  to the KNOB layout (where the body follows a label), not to the body component. Scoped it to
+  `.knob > .knob-body`. Verified empirically rather than assumed: every `.knob-body` in the app is a
+  direct child (3/3 on Elevation, 4/4 on Size & radius) and still computes 8px, while the two outside
+  a knob now compute 0. Both rows measure 0px centre-offset on every sibling.
+  **That is the same bug as the toggle selector, one commit apart** — container styling baked into a
+  component, invisible until the component is used somewhere else. Worth watching for in the rest of
+  the kit before the next table conversion moves more components around.
+- **The two toggles had silently become native checkboxes — caused by the fix two bullets down.**
+  The toggle styling was scoped `.knob input.toggle`, so `toggleField` renders as a plain checkbox
+  anywhere outside a `.knob`. Moving this section from `knob` to `fieldBlock` (to get the description
+  above the controls) therefore stripped both toggles without touching a line of toggle code. Fixed by
+  unscoping the selector to `input.toggle`: a component's appearance must not depend on its container,
+  and widening only ADDS matches so no existing toggle can regress. Every `input.toggle` in the app
+  comes from `toggleField`, which always wants that styling.
+  **The lesson is the coupling, not the typo:** container-scoped component CSS means any layout change
+  can silently downgrade a control, and nothing in the type system or the tests will say so.
+- **The "outside range" rows had silently vanished — a real regression, not a styling gap.**
+  `headingRows` read `theme.typography.composites`, which contains only rungs that SURVIVED
+  `displayCeiling` / `titleFloor`. A trimmed rung is not in there at all, so it could never render.
+  On the deployed build a `md` ceiling showed two display rows and no sign of the four it had removed,
+  which reads as "this brand has no lg display" rather than "lg is switched off". Fixed by taking the
+  row list from a candidate build at the WIDEST possible range and marking anything missing from the
+  live set. Three fallback attempts, because widening can legitimately fail: `titleFloor: 16` is
+  incompatible with `typeScale: 'compact'`, and a pinned size can collide with a neighbour that only
+  exists at the wider range — each fallback degrades to the previous behavior, never a broken one.
+  **The wireframe had this and the build lost it**, which is the second time in two rounds that a
+  behavioral browser assertion passed over a visual regression.
+- **Column widths are tokens now, ahead of the other tables.** `--tbl-col-name` / `--tbl-col-mode` in
+  `:root`, so weights / leading / tracking consume the same two values and the tables stack on one
+  grid down the page. Worth doing *now* rather than later for a specific reason: the SIZE table is the
+  widest of the four, so its numbers are already the binding ones — its stepper cell needs ~132px
+  against ~90px for a weight select and ~130px for a leading select, and its row labels are the
+  shortest (`2xl` ≈ 46px against `emphasis` ≈ 82px). The values are therefore very likely final, which
+  is what makes a token honest rather than speculative. Deliberately NOT done: renaming `.szt-*` to a
+  generic prefix or extracting shared table markup — that stays speculative until the other tables
+  exist and their real structure is known.
+- **Trap: backticks inside the CSS.** The stylesheet is a template literal, so a backtick in a CSS
+  comment terminates it. `tsc` caught it as a stray syntax error two thousand lines away from the
+  cause.
+
+---
+
 ## (2026-08-01) — The type-size editor (shape · range · per-size table)
 
 **STATUS: web.** The UI half of #353, designed across several wireframe rounds with the owner. Gives
