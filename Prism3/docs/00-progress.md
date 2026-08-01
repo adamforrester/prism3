@@ -7,6 +7,56 @@
 
 ---
 
+## (2026-08-01) — apply-but-warn reaches the anchor (#331)
+
+**STATUS: engine + web.** **Zero artifact change** — `regen --check` 88/88. That is the load-bearing
+verification, not a footnote: no committed brand pins an interactive anchor, so the new behavior can
+only manifest where it was reported — on an authored pin.
+
+**The inconsistency.** Every override in the app applies-then-warns. `contrastMark`'s own comment
+states why: a UI that refused the option would be false assurance, because the same override is
+authorable through `design.md`/`BrandInput`, which the engine accepts. The **anchor** broke that
+rule — `pickBrand` substituted the nearest passing step, so picking 150 rendered 500 in the swatch,
+the example, and every derived hover/pressed row. The Source select still showed 150. The one thing
+you could never see was the consequence of your own choice, and the substitution protected nothing,
+since the identical pin through `design.md` was honored anyway.
+
+**Owner decision: apply-but-warn all the way through** — render the raw step, derive the family from
+it, let the whole column fail contrast together, honestly.
+
+**What makes that safe is AUTHORED vs DERIVED, and the code already drew that line.** `paAnchor =
+modeAnchor('primary') ?? theme.actionAnchorStep` is `undefined` when nothing was pinned. So `exact`
+applies only to a pin; an unpinned column still clamps — because there the substitution is the
+engine choosing a sane default, not overruling anybody. Without that split this would have relaxed
+every column in every brand.
+
+**The bug this pass hit, and the general lesson.** The accent columns broke a test that pins *no*
+anchor. Cause: `brandTheme` always resolves `anchorStep` (`e.anchorStep ?? interactiveStepFor(...)`),
+so by the time `modes.ts` reads it, **authored and derived are indistinguishable**. Inferring
+provenance at the point of use was the mistake; it now travels with the value as `anchorPinned`. The
+built-ins need no flag — `actionAnchorStep` is passed through undefined-preserving, so presence *is*
+provenance. Worth stating as a rule: when a normalizer fills in a default, the fact that it was
+defaulted is information, and it dies at the normalizer unless something carries it.
+
+**The UI warning had to be rewritten, not just kept.** It read *"the engine used 500 instead"* and
+fired on requested ≠ effective — a condition that can no longer be true, since the pin is now
+applied. It warns off the RESOLVED ratio instead, so it reports the real miss
+(`2.84:1 against background.primary, needs 4.5:1`) and says the family derives from it.
+
+**`tsx` does not typecheck.** 1183 tests passed over a genuine type hole — `r.min`/`r.ratio` are
+optional on the web's role type and I dereferenced both. Only `tsc -p web` saw it. Same trap #353
+logged a day earlier; it is worth treating "green suite" and "typechecked" as separate claims.
+
+**Tamper-tested, both directions:** removing `exact` restores the substitution and fails all four
+#331 assertions (the pin resolves to `.550` instead of `.100`); forcing every column to `pinned`
+fails the unpinned-still-clamps assertion *and* the two pre-existing accent-column contracts —
+which is the check that proves the provenance split is load-bearing rather than decorative.
+
+**Verified:** 1177 → **1183** tests; nb-regression PASS; `regen --check` 88/88; web typecheck clean;
+US-English gate clean (90 files).
+
+---
+
 ## (2026-08-01) — Typeface library: a face can exist before it has a job (#287)
 
 **STATUS: engine.** `typography.typefaceLibrary: string[]` — authored faces, independent of the three

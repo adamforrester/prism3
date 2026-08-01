@@ -62,10 +62,16 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number): Rated =>
     .sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
 
 /** Keep the anchor step if it clears `min`; otherwise the nearest step that does. */
-const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number): RatedNum => {
+const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
   const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
-  if (contrast(anchor.rgb, surface) >= min) return { ...anchor, ratio: contrast(anchor.rgb, surface) };
+  // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
+  // applied verbatim even when it misses the floor — the app's apply-but-warn policy (#331). The
+  // substitution below is a DERIVATION aid for an unpinned role, not an override guard: silently
+  // bumping an explicit pick means the author never sees what their own choice looks like, while
+  // the same pick authored through `design.md`/`BrandInput` would be honoured. The contrast miss
+  // still travels — `ratio` is the raw measurement, so every consumer's gate reports it.
+  if (exact || contrast(anchor.rgb, surface) >= min) return { ...anchor, ratio: contrast(anchor.rgb, surface) };
   const passing = cands
     .map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }))
     .filter((c) => c.ratio >= min)
@@ -238,10 +244,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const wf = cfg.kind === 'wireframe';                       // B — behaviour by kind, not name
   const neutralPal = r2p.neutral;
   const palOf = (palette: string): string => (wf && palette !== neutralPal ? neutralPal : palette);
-  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number): RatedNum => {
-    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min);
+  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false): RatedNum => {
+    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact);
     return wf && palette !== neutralPal
-      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min) // same position, greyscaled
+      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact) // same position, greyscaled
       : pick;
   };
   const paletteRole = (r: Role, surf: RGB, min: number): RatedNum =>
@@ -354,8 +360,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // absent → the global anchor, so an unset map is byte-identical. Columns: 'primary'/'destructive'/accent.
   const modeAnchor = (col: string): number | undefined => theme.modeAnchors?.[mode]?.[col];
   const paAnchor = modeAnchor('primary') ?? theme.actionAnchorStep;
+  // Authored pin → `exact` (#331): applied as picked, floor miss reported not corrected.
   const actionRest = paAnchor !== undefined
-    ? chromatic(r2p.action, paAnchor, floorRgb, cfg.actionMin)
+    ? chromatic(r2p.action, paAnchor, floorRgb, cfg.actionMin, true)
     : paletteRole('action', floorRgb, cfg.actionMin);
 
   // ------------------------------------------------------- interactive family
@@ -406,7 +413,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
   const daAnchor = modeAnchor('destructive') ?? theme.destructiveAnchorStep;
   const iDestructiveRest = daAnchor !== undefined
-    ? chromatic(r2p.danger, daAnchor, floorRgb, cfg.actionMin)
+    ? chromatic(r2p.danger, daAnchor, floorRgb, cfg.actionMin, true)
     : paletteRole('danger', floorRgb, cfg.actionMin);
   iFill('destructive', iDestructiveRest, r2p.danger, cfg.actionMin);
   iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true);
@@ -429,8 +436,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // extra columns (the common case) runs an empty loop → only primary/neutral/destructive ship.
   // Never falls back to primary — the resolver only lists palettes the brand actually declared.
   for (const entry of theme.interactivePalettes) {
+    // Exact only when the anchor was AUTHORED — a per-mode anchor, or `anchorPinned` from the
+    // brand input. `entry.anchorStep` alone will not do: brandTheme resolves it for every column,
+    // so a derived default is indistinguishable from a pin by the time it arrives here.
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
-    const rest = chromatic(entry.palette, anchor, floorRgb, cfg.actionMin);
+    const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
+    const rest = chromatic(entry.palette, anchor, floorRgb, cfg.actionMin, pinned);
     iFill(entry.name, rest, entry.palette, cfg.actionMin);
     iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true);
     put(`interactive.${entry.name}.border`, rated(chromatic(entry.palette, 500, baseRgb, cfg.nonTextMin), baseRgb), `${entry.name} interactive border (outline)`, 'background.primary', cfg.nonTextMin);
