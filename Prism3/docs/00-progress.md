@@ -7,6 +7,50 @@
 
 ---
 
+## (2026-08-01) — Weight roles converted to the per-mode table
+
+**STATUS: web.** Second table in the format, and the first real test of whether it generalizes.
+
+- **The constraint is axis-specific, and pretending otherwise would have invented a rule.** Sizes must
+  stay strictly increasing — the engine *throws*. Weight roles need not: verified directly that
+  `weightRoles: { default: 700, strong: 300 }` builds fine, and crossing is only a UI **warning**. So
+  the weight steppers bound at the ends of the scale (100/900) and never on a neighbour, and the
+  existing order warning is now the only thing reporting a crossing. A neighbour bound here would have
+  looked consistent and been a lie about the system.
+- **One stepper implementation, not two.** `stepCell` takes `canDown`/`canUp` from its caller, so the
+  geometry is shared and only the rule differs. `sizeCell` now delegates to it — the alternative was
+  two implementations that look identical until one drifts.
+- **The `.szt-*` → `.mtbl-*` rename finally earned itself.** It was deferred deliberately when the
+  wireframe raised shared widths, on the grounds that a second table did not exist yet. It does now,
+  and reusing "size table" classes for weight roles would have been actively misleading. 51 renames,
+  mechanical. The Customize toggle row keeps its `szt-head` naming — it belongs to the sizes section,
+  not to the table.
+- **Shared geometry, measured across all four tables:** exactly one distinct sticky-column width
+  (112px) and one distinct mode-column width (148px) over display / title / eyebrow / weight roles.
+  That is the down-page consistency the owner asked for, and it holds because both tables read the
+  same `--tbl-col-*` custom properties.
+- **A weak assertion, caught and strengthened.** The first pass "proved" a pinned cell holds while the
+  baseline moves — but both landed on 200, so a *following* cell would have passed identically. Re-ran
+  with the pin two steps above the baseline: dark held at 500 while the baseline went 300→200, then
+  followed to 200 after reset. The `.pin` class was the only sound part of the original check.
+- **The US-English gate caught a CODE COMMENT, and it was right to.** CLAUDE.md exempts comments —
+  but this build does not minify, so JS comments survive into `web/dist/main.js`, which the gate scans
+  because that is what ships. The gate cannot tell a comment from UI text inside a bundle, and should
+  not try. **The practical rule for `web/src` is US English everywhere, comments included** — the
+  exemption holds for engine code, which is never bundled. Worth knowing before the next surface moves
+  into the bundle.
+- **The specimen came back once the constraint was corrected.** I first dropped the per-row
+  `The quick brown fox` sample, justified on ROW-HEIGHT parity across tables. The owner corrected that:
+  **column-width parity is what matters down the page, row height is not.** With the justification
+  void the sample returns — placed in the trailing FILLER column, which already absorbs leftover width,
+  so the sticky and mode columns stay byte-identical to the size tables (measured: 112 / 148, one
+  distinct value each across all four). With many modes the filler shrinks and the sample degrades
+  instead of squeezing the cells.
+  Worth noting how weak the original reasoning was: I invented a constraint, used it to justify
+  removing something useful, and only the owner's correction surfaced it.
+
+---
+
 ## (2026-08-01) — Type-size editor: fixes from the deployed build
 
 **STATUS: web.** Owner reviewed #354 running on the preview and logged seven issues. Worth recording
