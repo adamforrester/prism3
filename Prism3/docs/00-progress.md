@@ -33,6 +33,15 @@ layout.
 - **Mode columns now scroll rather than compress.** 112 + 5×148 = 852 against a 798px pane, so the
   container scrolls at five modes and fits four. That is the threshold the owner asked for, and it
   falls out of the fixed widths rather than being hardcoded.
+- **The two toggles had silently become native checkboxes — caused by the fix two bullets down.**
+  The toggle styling was scoped `.knob input.toggle`, so `toggleField` renders as a plain checkbox
+  anywhere outside a `.knob`. Moving this section from `knob` to `fieldBlock` (to get the description
+  above the controls) therefore stripped both toggles without touching a line of toggle code. Fixed by
+  unscoping the selector to `input.toggle`: a component's appearance must not depend on its container,
+  and widening only ADDS matches so no existing toggle can regress. Every `input.toggle` in the app
+  comes from `toggleField`, which always wants that styling.
+  **The lesson is the coupling, not the typo:** container-scoped component CSS means any layout change
+  can silently downgrade a control, and nothing in the type system or the tests will say so.
 - **The "outside range" rows had silently vanished — a real regression, not a styling gap.**
   `headingRows` read `theme.typography.composites`, which contains only rungs that SURVIVED
   `displayCeiling` / `titleFloor`. A trimmed rung is not in there at all, so it could never render.

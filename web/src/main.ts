@@ -4572,11 +4572,11 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .knob-body{display:flex;align-items:center;gap:10px;margin-top:8px}
 .knob input[type=range]{flex:1;accent-color:var(--ink)}
 /* Toggle rendered as a switch (pill track + sliding thumb), not a native checkbox. */
-.knob input.toggle{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;margin:0;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;transition:background .15s ease}
-.knob input.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s ease}
-.knob input.toggle:checked{background:var(--ink)}
-.knob input.toggle:checked::after{transform:translateX(16px)}
-.knob input.toggle:disabled{opacity:.5;cursor:default}
+input.toggle{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;margin:0;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;transition:background .15s ease}
+input.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s ease}
+input.toggle:checked{background:var(--ink)}
+input.toggle:checked::after{transform:translateX(16px)}
+input.toggle:disabled{opacity:.5;cursor:default}
 .knob input:disabled{opacity:.5}
 .knob .select{margin-top:8px}
 .knob-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
