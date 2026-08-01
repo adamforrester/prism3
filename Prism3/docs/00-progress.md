@@ -7,6 +7,39 @@
 
 ---
 
+## (2026-08-01) — Category leading/tracking nudges widened to ±2 rungs
+
+**STATUS: web.** Owner-directed, UI only. The category setup table offered three nudges
+(`tighter / default / looser`); the engine has always accepted `[-5, 5]`, so the UI was
+under-offering what the system could already do.
+
+- **Zero engine change, and that is the point.** `shiftRung` clamps at the ends of the ramp and the
+  validator at `theme.ts:1032` bounds the shift to `[-5, 5]` — both already true. `test.ts` covers
+  ±5 clamping and the fractional-shift throw. So this is five options where there were three, and
+  ±2 rather than ±5 because both ramps are six rungs: past two steps the clamp makes further steps a
+  no-op from most starting points, and offering a control that does nothing is worse than not
+  offering it.
+- **An out-of-range authored value no longer silently rewrites itself.** A hand-authored `3` matched
+  no option, so the select displayed the first one and would have written `-2` on the next change —
+  a pre-existing bug the old ±1 range had too. Fixed the way `renderPerModeSelect` already does it,
+  except better: one `nudgeLabel` formatter serves every step, so `3` renders as "3 looser" — the
+  same shape as "2 looser" — and needs no "(custom)" escape hatch at all.
+- **The label wording was decided by measurement, after a visual regression the geometry check
+  missed.** First pass used "much tighter" and widened the column cap 84px → 112px. Two failures,
+  neither caught by `scrollWidth > clientWidth`: the label still clipped (the chevron padding eats
+  into the box without growing `scrollWidth`), and the wider column pushed the table from 784px to
+  840px inside an 800px pane, scrolling the LINK column out of sight. Measured the real budget —
+  "much tighter" needs 118px, the table has ~8px of slack per nudge column — and numbered the steps
+  instead: "2 tighter" needs 91px, cap is 92px, table lands at exactly 800px with no scroll.
+  **The lesson is narrower than "assert what is on screen": a select's clipped text is invisible to
+  scroll-width checks, and a control that grows can regress a NEIGHBOR that is nowhere near it.**
+- **Verified** on the default demo brand: 5 options with the right per-field wording (looser vs
+  wider), `+2` moves display leading `tight 1.05× → compact 1.25×` where `+1` moves it to
+  `snug 1.15×` (two rungs vs one, not a bigger single step), an authored `3` seeded through
+  `localStorage` renders as "3 looser" and stays selected, no clipped selects, no table scroll.
+
+---
+
 ## (2026-08-01) — Leading & tracking split across the two tabs
 
 **STATUS: web.** Not a restyle — the section was doing two unrelated jobs and one of them had become
