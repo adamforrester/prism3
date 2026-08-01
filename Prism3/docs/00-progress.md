@@ -7,6 +7,41 @@
 
 ---
 
+## (2026-08-01) — Typography Preview tab
+
+**STATUS: web.** Third tab on Typography — everything the system generates, at size, in every mode.
+Stacked on the weight-roles table (#357) for a reason given below.
+
+- **Read-only by design.** The editors live on Styles; giving a value two homes is how they drift.
+  The tab exists because the ramp was squeezed into the Styles aside, where a 160px display line and
+  five mode columns have nowhere to go.
+- **It carries the specimens the tables cannot.** A weight number is meaningless as digits and the
+  size tables show px rather than type. The tables are where you CHANGE a value; this is where you
+  SEE it. Faces, weight roles, then the full ramp at width.
+- **The mode switcher hides here, and it falls out of the existing rule rather than a new one.**
+  #268 hides the switcher where no mode-varying CONTROL exists. Preview is read-only and shows every
+  mode side by side, so it qualifies for the same reason Foundations does, reached from the other
+  direction. The predicate became `typeTab !== 'styles'`.
+- **The Styles aside keeps its ramp.** Doc 26 wants a section to carry its own specimen in context,
+  and tabs are exclusive so it is never rendered twice at once. Removing it would be subtractive work
+  nobody asked for; restoring it later is one line either way.
+- **I tried to avoid stacking and the dependency turned out to be real.** #357 was still open, so I
+  branched from `main` to dodge a stacked rebase — then wrote the tab against `.mtbl-*`, the class
+  names #357 introduces. On `main` those rules do not exist, so the Faces table silently lost every
+  table style: measured `min-width: 0px` where the token says 112, and a 393px table inside an 800px
+  pane. Rebased onto #357 and it measures 112 immediately.
+  **The tell was that `var(--tbl-col-name)` resolved to nothing** — an undefined custom property makes
+  the whole declaration invalid rather than erroring, so the column just quietly collapsed. Worth
+  remembering: a missing class and a missing custom property both fail silently and look like a
+  layout bug.
+- **Verified by asserting what should be ON SCREEN**, not just that clicks work — the lesson from the
+  three visual regressions earlier today: 3 tabs; switcher visible on Styles and hidden on Preview;
+  aside ramp still present on Styles; sections Faces / Weight roles / The full type ramp; 3 family
+  rows; 5 weight rows rendering at 300/400/600/700/900; ramp at full width; **zero editable controls
+  on the tab**; sticky columns 112px throughout. No page errors.
+
+---
+
 ## (2026-08-01) — Weight roles converted to the per-mode table
 
 **STATUS: web.** Second table in the format, and the first real test of whether it generalizes.
