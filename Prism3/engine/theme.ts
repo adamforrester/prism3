@@ -125,7 +125,14 @@ export type Dims = {
 /** A declared palette promoted to a full `interactive.<name>.*` column (docs/20 §3). `name` is
  *  the role suffix (`interactive.<name>.*`); `palette` is a defined palette; `anchorStep` is the
  *  fill step its rest colour anchors to (default 500 at generation time). */
-export type InteractivePalette = { name: string; palette: string; anchorStep?: number };
+export type InteractivePalette = { name: string; palette: string; anchorStep?: number;
+  /** True when `anchorStep` was AUTHORED rather than derived. `brandTheme` always resolves
+   *  `anchorStep` (pinned ?? computed), so by the time `modes.ts` reads it the two are
+   *  indistinguishable — and they must not be: an authored pin is applied verbatim under the
+   *  apply-but-warn policy (#331), while a derived default is still floor-clamped. The
+   *  provenance has to travel with the value; inferring it at the point of use is what got
+   *  this wrong the first time. */
+  anchorPinned?: boolean };
 
 /** Everything the emitter and the modes engine need to be brand-agnostic. */
 export type Theme = {
@@ -1684,7 +1691,7 @@ export const brandTheme = (input: BrandInput): Theme => {
         throw new Error(`interactivePalettes: palette '${e.palette}' (column '${name}') is not a defined palette (have: ${palettes.map((p) => p.palette).join(', ')})`);
       seen.add(name);
       const anchor = e.anchorStep ?? interactiveStepFor(e.palette);
-      resolved.push({ name, palette: e.palette, anchorStep: anchor });
+      resolved.push({ name, palette: e.palette, anchorStep: anchor, anchorPinned: e.anchorStep !== undefined });
       notes.push(`interactive column '${name}' → palette '${e.palette}' (fill step ${anchor}) → a full interactive.${name}.* column`);
     }
     return resolved;

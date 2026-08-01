@@ -1387,14 +1387,16 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
     const steps = stepsOf(col.palette);
     select = stepPicker(col.palette, steps, stepKeyOf(r.path), steps.find((k) => Number(k) === col.stepValue),
       (step) => col.setStep!(step === undefined ? undefined : Number(step)));
-    // The anchor is contrast-gated (never blocked) — a pin that misses the floor gets bumped to the
-    // nearest passing step. Silently: the Source select still shows the REQUESTED step, so without
-    // this note two different pins that both clamp to the same effective step look like "nothing
-    // happened" (hover/pressed derive from the effective step, not the request, so they don't move
-    // either) — previously indistinguishable from a stale/unresponsive control.
-    const effective = Number(stepKeyOf(r.path));
-    if (col.stepValue !== undefined && effective !== col.stepValue)
-      warn = `${col.stepValue} doesn't clear the contrast floor here — the engine used ${effective} instead (hover/pressed derive from the effective step).`;
+    // Apply-but-warn, like every other override in this file (#331). A pin that misses the floor
+    // is APPLIED — the swatch, the example and the derived hover/pressed all show the step you
+    // actually picked — and the miss is reported here. It used to substitute the nearest passing
+    // step instead, which meant the one thing you could never see was the consequence of your own
+    // choice; and the same pin authored through `design.md`/`BrandInput` was honoured anyway, so
+    // the substitution protected nothing. Warn off the RESOLVED ratio rather than off
+    // requested-vs-effective: with the pin applied those two are now always equal.
+    const min = r.min ?? 0, ratio = r.ratio ?? Infinity;
+    if (min > 0 && ratio < min)
+      warn = `${stepKeyOf(r.path)} doesn't clear the contrast floor here — ${ratio.toFixed(2)}:1 against ${r.against}, needs ${min}:1. Applied as picked; hover, pressed, text and on-fill all derive from it.`;
   } else {
     select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, stepKeyOf(r.path));
   }

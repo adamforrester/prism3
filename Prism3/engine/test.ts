@@ -885,6 +885,45 @@ for (const b of brands) {
   const twoFails = resolveAllModes(twoT).flatMap((m) => Object.entries(m.roles).filter(([k, r]) => (k.startsWith('interactive.accent') || k.startsWith('interactive.grape')) && r.min > 0 && r.ratio < r.min).map(([k]) => `${m.mode}.${k}`));
   ok(twoFails.length === 0, 'interactivePalettes: both extra columns clear every contract in every mode' + (twoFails.length ? ` — FAILS ${twoFails.slice(0, 2).join(',')}` : ''));
 
+  // ---------------------------------------------------------- #331: apply-but-warn on an ANCHOR
+  // The anchor was the one override in the app that SUBSTITUTED instead of applying: a pinned step
+  // that missed the floor got silently bumped to the nearest passing one, so the author never saw
+  // what their own pick looked like — while the identical pin authored through design.md/BrandInput
+  // would have been honoured. Owner decision: apply-but-warn all the way through.
+  //
+  // The distinction that makes this safe is AUTHORED vs DERIVED. Only a pin is applied verbatim;
+  // an unpinned column still clamps, because there the substitution is the engine choosing a sane
+  // default rather than overruling anybody.
+  {
+    const pinAt = (step?: number) => brandTheme({ ...base,
+      interactivePalettes: [{ palette: 'accent', ...(step === undefined ? {} : { anchorStep: step }) }] } as unknown as BrandInput);
+    const fillOf = (t: any, mode = 'light') => resolveAllModes(t).find((m) => m.mode === mode)!.roles['interactive.accent.fill.rest'];
+
+    // 100 is far too light to clear 4.5:1 on a light floor — the exact case the owner hit.
+    const pinned = fillOf(pinAt(100));
+    ok(/\.100$/.test(pinned.path), `#331: an AUTHORED anchor is applied verbatim, not substituted (${pinned.path})`);
+    ok(pinned.ratio < pinned.min, `#331: ...and its contrast miss is reported, not corrected (${pinned.ratio.toFixed(2)} < ${pinned.min})`);
+
+    // The derived path is UNTOUCHED — this is what stops apply-but-warn leaking into every column.
+    const derived = fillOf(pinAt(undefined));
+    ok(derived.ratio >= derived.min, `#331: an UNPINNED column still clamps to a passing step (${derived.path}, ${derived.ratio.toFixed(2)} >= ${derived.min})`);
+    ok(!/\.100$/.test(derived.path), '#331: the derived anchor is not the pinned one — the two paths are genuinely different');
+
+    // hover/pressed derive from the RAW step, not a clamped one. Without this the family would
+    // still be built on the substituted anchor and the pin would remain invisible in the example.
+    const roles = resolveAllModes(pinAt(100)).find((m) => m.mode === 'light')!.roles;
+    const hover = roles['interactive.accent.fill.hover'], pressed = roles['interactive.accent.fill.pressed'];
+    const stepNum = (p: string) => Number(p.split('.').pop());
+    ok(stepNum(hover.path) > 100 && stepNum(hover.path) <= 300 && stepNum(pressed.path) > stepNum(hover.path),
+      `#331: hover/pressed walk forward from the RAW pinned step (100 -> ${stepNum(hover.path)} -> ${stepNum(pressed.path)})`);
+
+    // The built-in columns take the same route, and there presence IS provenance — brandTheme
+    // passes actionAnchorStep through undefined-preserving, so no extra flag is needed.
+    const actPin = resolveAllModes(brandTheme({ ...base, actionAnchorStep: 100 } as unknown as BrandInput))
+      .find((m) => m.mode === 'light')!.roles['interactive.primary.fill.rest'];
+    ok(/\.100$/.test(actPin.path) && actPin.ratio < actPin.min, `#331: a pinned actionAnchorStep is applied verbatim too (${actPin.path}, ${actPin.ratio.toFixed(2)} < ${actPin.min})`);
+  }
+
   // (c) an anchorStep override changes the accent fill vs the default placement.
   const defFill = rolesOf(brandTheme({ ...base, interactivePalettes: [{ palette: 'accent' }] } as unknown as BrandInput))['interactive.accent.fill.rest'].path;
   const ovrFill = rolesOf(brandTheme({ ...base, interactivePalettes: [{ palette: 'accent', anchorStep: 700 }] } as unknown as BrandInput))['interactive.accent.fill.rest'].path;
