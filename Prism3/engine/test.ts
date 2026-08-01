@@ -1960,6 +1960,47 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(got.every((v, i) => i === 0 || v > got[i - 1]),
       `[#328] typeScale '${scale}' → eyebrow ramp strictly increasing, no collision-drop`);
   }
+  // BRAND-LEVEL per-size overrides. The baseline counterpart of the per-mode map: until now a size
+  // could be pinned per MODE but not at the brand level, so a single-mode brand — the common case —
+  // could not tune its ramp while a multi-mode one could. The asymmetry ran the wrong way.
+  {
+    const sz = (g: string, v: string, t: any) => t.typography.composites.find((c: any) => c.group === g && c.variant === v)!.sizePx;
+    const thr = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
+
+    // 56, not 26: there is no ladder step between md 24 and xl 32 other than 28, which lg already is.
+    const t1 = tBrand('bsz', { sizes: { title: { '2xl': 56 } } } as any);
+    ok(sz('title', '2xl', t1) === 56, '[baseline] a per-size override pins the brand ramp (title.2xl → 56)');
+    ok(sz('title', 'xl', t1) === 32 && sz('title', 'md', t1) === 24, '[baseline] …and leaves its neighbours alone');
+    // Pins are ABSOLUTE, so they do not travel with the scale. That is the whole reason a scale change
+    // can collide, and it must fail rather than silently re-shifting the value the author fixed.
+    const t2 = tBrand('bsz2', { typeScale: 'expressive', sizes: { title: { '2xl': 56 } } } as any);
+    ok(sz('title', '2xl', t2) === 56, '[baseline] a pinned size does NOT move when typeScale changes');
+    ok(sz('title', 'xl', t2) === 36, '[baseline] …while unpinned neighbours do shift');
+    // Modes stack on the CUSTOMIZED baseline, not the derived one.
+    const t3 = brandTheme({ id: 'bsz3', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 },
+      typography: { sizes: { title: { '2xl': 56 } } }, modeLevers: { dark: { typeSizes: { title: { '2xl': 48 } } } } } as any);
+    const c3 = t3.typography.composites.find((c: any) => c.group === 'title' && c.variant === '2xl')!;
+    ok(c3.sizePx === 56 && c3.sizeByMode?.dark === 48, '[baseline] a mode overrides on top of the customized baseline');
+    // titleFloor decides the rung EXISTS; a size override still governs what it is worth.
+    // 2xs sits at 16 with xs at 18 and no ladder step between, so the only legal value IS 16 — this
+    // asserts the rung is RECOGNIZED (an unknown rung throws before the value is ever considered).
+    ok(!thr(() => tBrand('bsz4', { titleFloor: 16, sizes: { title: { '2xs': 16 } } } as any)),
+      '[baseline] the floor-enabled 2xs rung accepts a size override');
+
+    ok(thr(() => tBrand('e1', { sizes: { body: { md: 18 } } } as any)), '[baseline] a per-size override on reading text throws');
+    ok(thr(() => tBrand('e2', { sizes: { title: { lg: 27 } } } as any)), '[baseline] a size that is not a ladder step throws');
+    ok(thr(() => tBrand('e3', { sizes: { title: { lg: 14 } } } as any)), '[baseline] a size below the group floor throws');
+    ok(thr(() => tBrand('e4', { sizes: { title: { '2xl': 32 } } } as any)), '[baseline] a size colliding with an untouched neighbour throws');
+    // A no-op override is the #341 failure shape on a new axis: the request is accepted and does
+    // nothing, and you only notice when the output is wrong.
+    ok(thr(() => tBrand('e5', { displayCeiling: 'xl', sizes: { display: { '3xl': 144 } } } as any)), '[baseline] an override on a rung trimmed by displayCeiling throws rather than no-opping');
+    ok(thr(() => tBrand('e6', { sizes: { title: { '2xs': 16 } } } as any)), '[baseline] an override on title.2xs throws when titleFloor omits that rung');
+    // The error must blame the pin, not the scale — the old message sent you to typeScale for a
+    // collision typeScale did not cause.
+    let msg = '';
+    try { tBrand('e7', { sizes: { title: { '2xl': 32 } } } as any); } catch (e: any) { msg = e.message; }
+    ok(/typography\.sizes\.title\.2xl pins it/.test(msg), '[baseline] the ramp error names the pin, not typeScale');
+  }
   // PER-MODE RUNG SIZES (#328, PR C). A mode re-sizes rungs within a mode-invariant SET.
   {
     const pmBase = { id: 'pm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as any;

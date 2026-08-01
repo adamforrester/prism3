@@ -340,6 +340,16 @@
           "default": 18,
           "description": "Whether the title tier includes title.2xs — a 16px brand-font heading that deliberately overlaps body.md. Set 16 to include it, 18 (default) to omit it. Incompatible with typeScale 'compact', which already places a title at 16px."
         },
+        "sizes": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "OPTIONAL. Per-size overrides for the heading groups — the BASELINE counterpart of modeLevers.<mode>.typeSizes. Heading groups ONLY; body, label, caption and code take their size from the category and are REJECTED here. Applied after the typeScale shift, so a pinned size is absolute and does not move when the scale changes — which is why changing typeScale with sizes pinned can collide, and is rejected rather than silently re-shifted. Modes then override on top of this customized baseline. Deep-validated by brandTheme() (the rung exists in this brand's set; the value is a ladder step; it clears the group floor; the merged ramp is strictly increasing). Omit for none (byte-identical).",
+          "properties": {
+            "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Display sizes by rung name (e.g. { \"3xl\": 144 }). Floor 32px." },
+            "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Title sizes by rung name (e.g. { \"2xl\": 56 }). Floor 16px." },
+            "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Eyebrow sizes by rung name (e.g. { \"lg\": 24 }). Floor 11px." }
+          }
+        },
         "responsive": {
           "type": "object",
           "additionalProperties": false,

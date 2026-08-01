@@ -686,6 +686,17 @@ export type TypographyInput = {
    *  operation into the monotonic dedupe and silently deleted a rung — `compact`
    *  lost `title.sm` (floor 18) or `title.xs` (floor 16), leaving a GAP mid-ramp. */
   titleFloor?: 16 | 18;
+  /** Per-size overrides for the heading groups, keyed group → rung → px. The BASELINE counterpart of
+   *  `modeLevers.<mode>.typeSizes`, and it exists because the asymmetry ran the wrong way: a size could
+   *  be pinned per mode but not at the brand level, so a single-mode brand — the common case — could
+   *  not tune its ramp while a multi-mode one could.
+   *
+   *  Applied AFTER the typeScale shift, so a pinned size is ABSOLUTE: it does not move when the scale
+   *  changes. That is deliberate and it is why changing `typeScale` with sizes pinned can collide —
+   *  the ramp check rejects it rather than silently re-shifting the value the author fixed.
+   *
+   *  Modes then override on top of the customized baseline, not the derived one. */
+  sizes?: Partial<Record<PerModeSizeGroup, Record<string, number>>>;
   /** Per-role weight set. Weight is an axis on every type role (every composite
    *  carries the weight in its name). Defaults: display/title `[strong]`, body
    *  `[default, strong]` (add `emphasis` for a 3rd), caption `[default, strong]`,
@@ -811,9 +822,9 @@ const mobileEndpoint = (ladder: number[], group: TypeGroup, desktopPx: number): 
  *  and both the schema and brandTheme REJECT them rather than silently ignoring the request.
  *  These floors are ABSOLUTE and deliberately not a cross-category rule (display ≥ title ≥ body):
  *  titleFloor 16 already overlaps body.md on purpose, so a relative rule would forbid a shipped brand. */
-const PER_MODE_SIZE_FLOOR = { display: 32, title: 16, eyebrow: 11 } as const;
-export type PerModeSizeGroup = keyof typeof PER_MODE_SIZE_FLOOR;
-export const PER_MODE_SIZE_GROUPS = Object.keys(PER_MODE_SIZE_FLOOR) as PerModeSizeGroup[];
+const HEADING_SIZE_FLOOR = { display: 32, title: 16, eyebrow: 11 } as const;
+export type PerModeSizeGroup = keyof typeof HEADING_SIZE_FLOOR;
+export const PER_MODE_SIZE_GROUPS = Object.keys(HEADING_SIZE_FLOOR) as PerModeSizeGroup[];
 // Bigger heading → tighter line-height (display tightest; small titles open up).
 const lineHeightFor = (group: TypeGroup, px: number): string => {
   if (group === 'display') return 'tight';
@@ -847,6 +858,29 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     if (i < 0) return px;
     return ladder[Math.max(0, Math.min(ladder.length - 1, i + shift))];
   };
+  // Brand-level per-size overrides. Until now a size could be pinned per MODE but not at the baseline,
+  // so a single-mode brand — the common case — could not tune its ramp at all while a multi-mode one
+  // could. The shape checks run here; ORDERING is enforced by the ramp check below, which sees the
+  // merged result and so catches an override colliding with a rung the author never touched.
+  const brandSizes: Partial<Record<PerModeSizeGroup, Record<string, number>>> = t.sizes ?? {};
+  const consumedSizes = new Set<string>();
+  // `group` below is a TypeGroup (all seven); the override map is heading-only by contract. A lookup
+  // for body/label/caption/code is legitimately undefined rather than a type error, so narrow here
+  // once instead of casting at each call site.
+  const brandSizeFor = (g: TypeGroup, v: string): number | undefined =>
+    (brandSizes as Record<string, Record<string, number> | undefined>)[g]?.[v];
+  const ladderSet = new Set(ladder);
+  for (const [g, rungs] of Object.entries(brandSizes)) {
+    if (!PER_MODE_SIZE_GROUPS.includes(g as PerModeSizeGroup))
+      throw new Error(`typography.sizes: '${g}' is not a heading group — per-size overrides cover ${PER_MODE_SIZE_GROUPS.join('/')} only. Reading and UI text takes its size from the category, not from a lever.`);
+    for (const [variant, px] of Object.entries(rungs ?? {})) {
+      if (!ladderSet.has(px))
+        throw new Error(`typography.sizes.${g}.${variant}: ${px}px is not a step on the size ladder (${ladder.join(', ')}).`);
+      const floor = HEADING_SIZE_FLOOR[g as PerModeSizeGroup];
+      if (px < floor)
+        throw new Error(`typography.sizes.${g}.${variant}: ${px}px is below the ${g} floor of ${floor}px — the smallest size this system emits for ${g} anywhere.`);
+    }
+  }
   const weightsMap = { ...TYPE_WEIGHTS_DEFAULT, ...(t.weights ?? {}) };
   const linkGroups = new Set(t.links ?? TYPE_LINK_DEFAULT);
   const italicGroups = new Set(t.italics ?? []);   // default none — italics are opt-in per role
@@ -899,25 +933,44 @@ const buildComposites = (ladder: number[], t: TypographyInput, fluid: boolean, f
     // title floor: a fixed 16px brand-font heading, PINNED (exempt from the
     // typeScale shift) so titleFloor:16 always delivers a literal 16px title that
     // overlaps body.md — the documented contract — regardless of typeScale.
-    if (group === 'title' && titleFloor === 16) { push('title', '2xs', 16); prev = 16; }
+    if (group === 'title' && titleFloor === 16) {
+      // The 2xs rung is pinned at 16 by the floor, but a brand override still applies to it — the
+      // floor decides that the rung EXISTS, never what it is worth (the set/size split, #328).
+      const px = brandSizes.title?.['2xs'] ?? 16;
+      if (brandSizes.title?.['2xs'] !== undefined) consumedSizes.add('title.2xs');
+      push('title', '2xs', px); prev = px;
+    }
     for (const [i, [variant, base]] of TYPE_VARIANTS[group].entries()) {
       // displayCeiling trims the top by RUNG POSITION, before any size is computed — set
       // membership, decided once here and never re-applied per mode (#328). Trimming from
       // the end is what keeps the surviving names stable: no rung is ever renumbered.
       if (group === 'display' && i > ceilingIdx) continue;
       // typeScale shifts the heading SYSTEM only (display + title + eyebrow); reading/UI text stays put.
-      const sizePx = isHeading ? shiftPx(base) : base;
+      const shifted = isHeading ? shiftPx(base) : base;
+      // A brand-level per-size override lands HERE — after the shift, before the ramp check. Absolute
+      // px, exactly like the per-mode one: it pins the size, so it does NOT move when typeScale changes
+      // (which is why changing the scale with sizes pinned can collide — and should, loudly).
+      const sizePx = brandSizeFor(group, variant) ?? shifted;
+      if (brandSizeFor(group, variant) !== undefined) consumedSizes.add(`${group}.${variant}`);
       // The ramp must be STRICTLY INCREASING. This used to `continue` — silently dropping
       // the colliding rung and leaving a gap mid-ramp (`compact` lost title.sm). Dropping a
       // rung is never the right answer: it changes the type SET, which is the one thing the
       // set/size split exists to keep stable. Reject instead. validateBrandInput catches the
       // one reachable combination (compact + titleFloor 16) with a friendlier message.
-      if (sizePx <= prev)
-        throw new Error(`typography: ${group}.${variant} resolves to ${sizePx}px, which is not larger than the previous rung (${prev}px) — the ramp must be strictly increasing. Check typeScale '${t.typeScale ?? 'default'}'${group === 'title' ? ` + titleFloor ${titleFloor}` : ''}.`);
+      if (sizePx <= prev) {
+        const pinned = brandSizeFor(group, variant) !== undefined;
+        throw new Error(`typography: ${group}.${variant} resolves to ${sizePx}px, which is not larger than the previous rung (${prev}px) — the ramp must be strictly increasing. ${pinned ? `typography.sizes.${group}.${variant} pins it to ${sizePx}px; a pinned size does not move when the scale does, so either release it or move its neighbor.` : `Check typeScale '${t.typeScale ?? 'default'}'${group === 'title' ? ` + titleFloor ${titleFloor}` : ''}.`}`);
+      }
       push(group, variant, sizePx);
       prev = sizePx;
     }
   }
+  for (const [g, rungs] of Object.entries(brandSizes))
+    for (const variant of Object.keys(rungs ?? {}))
+      if (!consumedSizes.has(`${g}.${variant}`)) {
+        const shipped = [...new Set(out.filter((c) => c.group === g).map((c) => c.variant))];
+        throw new Error(`typography.sizes.${g}.${variant}: that rung is not in this brand's ${g} set${shipped.length ? ` (${shipped.join('/')})` : ''} — it is trimmed by displayCeiling or not enabled by titleFloor. A size override re-sizes a rung that exists; it never adds one.`);
+      }
   return out;
 };
 
@@ -1792,7 +1845,7 @@ export const brandTheme = (input: BrandInput): Theme => {
           throw new Error(`modeLevers.${m}.typeSizes.${g}: rung '${variant}' does not exist — this brand ships ${g} ${known.join('/')}. A mode re-sizes the rungs it has; it can never add or remove one (the set is fixed at brand level by displayCeiling/titleFloor).`);
         if (!ladderSet.has(px))
           throw new Error(`modeLevers.${m}.typeSizes.${g}.${variant}: ${px}px is not a step on this brand's size ladder (${typography.sizesPx.join(', ')}).`);
-        const floor = PER_MODE_SIZE_FLOOR[g as PerModeSizeGroup];
+        const floor = HEADING_SIZE_FLOOR[g as PerModeSizeGroup];
         if (px < floor)
           throw new Error(`modeLevers.${m}.typeSizes.${g}.${variant}: ${px}px is below the ${g} floor of ${floor}px — the smallest size this system emits for ${g} anywhere.`);
       }
