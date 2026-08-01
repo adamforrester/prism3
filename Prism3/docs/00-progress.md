@@ -33,6 +33,17 @@ layout.
 - **Mode columns now scroll rather than compress.** 112 + 5×148 = 852 against a 798px pane, so the
   container scrolls at five modes and fits four. That is the threshold the owner asked for, and it
   falls out of the fixed widths rather than being hardcoded.
+- **Both toggle rows now read the same way, and the second instance of the same coupling is fixed.**
+  Range put its label INSIDE the toggle wrapper before the On/Off readout; Customize appended it
+  after — so one row read "switch · what it is · state" and the other "switch · state · what it is".
+  Alignment was off for a related reason: `.knob-body` carried `margin-top:8px`, spacing that belongs
+  to the KNOB layout (where the body follows a label), not to the body component. Scoped it to
+  `.knob > .knob-body`. Verified empirically rather than assumed: every `.knob-body` in the app is a
+  direct child (3/3 on Elevation, 4/4 on Size & radius) and still computes 8px, while the two outside
+  a knob now compute 0. Both rows measure 0px centre-offset on every sibling.
+  **That is the same bug as the toggle selector, one commit apart** — container styling baked into a
+  component, invisible until the component is used somewhere else. Worth watching for in the rest of
+  the kit before the next table conversion moves more components around.
 - **The two toggles had silently become native checkboxes — caused by the fix two bullets down.**
   The toggle styling was scoped `.knob input.toggle`, so `toggleField` renders as a plain checkbox
   anywhere outside a `.knob`. Moving this section from `knob` to `fieldBlock` (to get the description

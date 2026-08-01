@@ -2131,8 +2131,11 @@ const renderTypeSizes = (): HTMLElement => {
   const open = typeSizesOpen ?? pins > 0;
   if (open) computeWidestRows();
   const head = el('div', 'szt-head');
-  head.append(toggleField(open, (checked) => { typeSizesOpen = checked; renderWorkspace(); }));
-  head.append(el('span', 'szt-headlab', 'Edit individual sizes'));
+  const tf = toggleField(open, (checked) => { typeSizesOpen = checked; renderWorkspace(); });
+  const readout = tf.querySelector('.knob-val');
+  const headLab = el('span', 'szt-headlab', 'Edit individual sizes');
+  if (readout) tf.insertBefore(headLab, readout); else tf.append(headLab);
+  head.append(tf);
   if (pins) head.append(el('span', 'szt-badge', `${pins} customized`));
   sec.append(fieldBlock('Customize sizes', 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.', head));
   if (open) for (const g of PER_MODE_SIZE_GROUPS) { const t = renderSizeTable(g); if (t) sec.append(t); }
@@ -4569,7 +4572,8 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .knob{padding:14px 0;border-bottom:1px solid var(--line)}
 .knob:last-child{border-bottom:0}
 .knob-label{display:block;font-weight:600;font-size:13.5px}
-.knob-body{display:flex;align-items:center;gap:10px;margin-top:8px}
+.knob-body{display:flex;align-items:center;gap:10px}
+.knob > .knob-body{margin-top:8px}
 .knob input[type=range]{flex:1;accent-color:var(--ink)}
 /* Toggle rendered as a switch (pill track + sliding thumb), not a native checkbox. */
 input.toggle{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;margin:0;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;transition:background .15s ease}
@@ -5024,7 +5028,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .range-f > .pfk{line-height:1.2}
 .range-f .select{min-width:158px}
 .range-tg{display:flex;align-items:center;min-height:31px}
-.range-tg .knob-body{margin-top:0}
 .range-tglab{font-size:12.5px;color:var(--ink);white-space:nowrap}
 
 .szt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
