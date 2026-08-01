@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-08-01) — Foundations lands on one column grid (#363)
+
+**STATUS: web.** Leading & tracking and the typeface library both converted to the shared `.mtbl` format,
+in one pass — which is what #363's sequencing note asked for, so Foundations would not end up with one
+converted table beside unconverted card grids. All three tables now measure **exactly
+`112/148/148/390`**.
+
+- **`.mtbl` geometry, not `.mtbl` semantics.** These are mode-invariant primitives, so neither table gets
+  mode columns — that would assert a dimension the values do not have, the same rule that keeps Category
+  setup and Responsive out of this format. Columns are `Rung | Value | Used by | Specimen`.
+- **Pairing the two conversions caught a stale claim that neither issue mentioned.** The library's
+  standing copy read *"a face exists here exactly as long as a role below binds it… re-point the last
+  role that used it and it disappears."* **#367 made that false three commits earlier** — a staged face
+  now sits in the library bound to nothing. The copy is replaced, and `bindingOf()` distinguishes three
+  states where the old code had two: bound here, bound only in another mode, and the new *staged*. The
+  old fallback label for "no binding in this view" was `Bound by a mode override only`, which would have
+  confidently mislabelled every staged face.
+- **Three separate width failures, all the same root cause**, and none visible without measuring: an
+  element's **intrinsic contribution**, not its declared `width`, sizes an auto-layout table column.
+  `.mtbl-stick` declares `width:112px` with no `max-width`, so content wins.
+  1. The token pill forced the Face column **112 → 215px**. Moved to the fill column.
+  2. Long "Used by" text forced that column **148 → 166px**. `overflow:hidden` + `text-overflow` does
+     **not** reduce a `nowrap` block's min-content width — only an explicit `max-width` does.
+  3. Making the fallback list `nowrap` forced the fill column to **726px** and overflowed the table at
+     1057px. It wrapped before the conversion; letting it wrap again fixed it, because for wrapping text
+     min-content is the longest *word*.
+- **Then parity itself had to be paid for honestly.** Capping widths produced `JetBrains …` and
+  `Bound to Display +…` — an ellipsis through every row's primary identifier. Fixed by **wrapping rather
+  than ellipsizing** (min-content becomes the longest word, so the cap still holds) and by dropping the
+  `Bound to` prefix from cells sitting under a column already headed **Binding** — ~55px of a 124px
+  budget spent restating the header. Better copy and a fixed layout from the same change.
+- **The leading specimen is the one cell on the page that must WRAP** — leading is invisible on a single
+  line — so it deliberately does not take `.mtbl-spec-t`'s nowrap+ellipsis. Verified each rung's specimen
+  renders 2 lines at its own computed line-height.
+- **KNOWN, PRE-EXISTING, NOT FIXED HERE**: editing a rung value does not refresh its specimen until the
+  page re-renders — `apply()` rebuilds the theme but not the section. **Measured identically on `main`
+  with this change stashed**, so it is not a regression from the conversion. The fix is the control/paint
+  split #365 used for responsive sizing; it is a behavior change, not a format one, so it stays out of a
+  format PR.
+- **Verified**: all three tables `112/148/148/390`, `798/798` with no scroll overflow, no body scroll, no
+  page errors; the value inputs measure 92px in a 148px cell with zero clipped (`scrollWidth` is not a
+  usable clipping test here — #360); a staged face seeded through `localStorage` renders as the third row
+  labeled *Not bound — staged*, flips the section note to the union wording, adds **no** binding card, and
+  **is offered in all three role selects** — which is #287's own Verify criterion, confirmed end to end.
+
+---
+
 ## (2026-08-01) — apply-but-warn reaches the anchor (#331)
 
 **STATUS: engine + web.** **Zero artifact change** — `regen --check` 88/88. That is the load-bearing

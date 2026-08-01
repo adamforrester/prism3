@@ -2666,28 +2666,68 @@ const renderTypefaces = (): HTMLElement => {
     return ovName ?? base;
   };
 
-  // ---- TIER 1 — the library (read-out; the bindings below are what author it) ----
+  // ---- TIER 1 — the library ----
+  // Converted to the shared table format alongside leading & tracking (#363) so Foundations reads on
+  // ONE column grid rather than a card list beside two tables. Same three fixed-width columns as the
+  // rung tables, and no mode axis for the same reason: a typeface primitive is mode-invariant. WHICH
+  // face a role binds does vary by mode — but that is the bindings tier below, and it stays as it is.
   sec.append(subHead('The library — one primitive per face'));
-  const lib = el('div', 'tf-lib');
+  /** Where a face's binding lives. #287 made "in the library, bound to nothing" a REAL state — before
+   *  it, a face existed only while a role bound it, so the old copy could say the list was purely
+   *  derived. It no longer can, and an unbound face must not be mislabelled as a mode override. */
+  const bindingOf = (name: string): { label: string; unbound: boolean } => {
+    const here = FAMILY_ROLES.filter(([role]) => boundFace(role) === name).map(([, label]) => label);
+    if (here.length) return { label: here.join(' + '), unbound: false };
+    const inModes = rp.modes.filter((m) => (ty.familiesByMode?.[m] ?? []).some((f) => f.stack[0] === name))
+      .map((m) => MODE_LABEL[m] ?? m);
+    if (inModes.length) return { label: `Only in ${inModes.join(', ')}`, unbound: false };
+    if (ty.families.some((f) => f.stack[0] === name)) return { label: 'A role', unbound: false };
+    return { label: 'Not bound — staged', unbound: true };
+  };
+  const libBox = el('div', 'mtbl');
+  const libScroll = el('div', 'mtbl-scroll');
+  const libTbl = el('table', 'mtbl-tbl');
+  const libHead = el('thead'), libHtr = el('tr');
+  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', 'On this device'),
+    el('th', 'mtbl-mode', 'Binding'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  libHead.append(libHtr); libTbl.append(libHead);
+  const libBody = el('tbody');
+  let anyUnbound = false;
   for (const tf of ty.typefaces) {
-    const usedBy = FAMILY_ROLES.filter(([role]) => boundFace(role) === tf.name).map(([, label]) => label);
-    const row = el('div', 'tf-libro');
-    const idcol = el('div', 'tf-libid');
-    idcol.append(el('div', 'tf-libname', tf.name), tokenPill(`font.typeface.${tf.slug}`));
+    const bind = bindingOf(tf.name);
+    anyUnbound = anyUnbound || bind.unbound;
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    const nm = el('span', 'tf-libname', tf.name); nm.title = tf.name;
+    nc.append(nm);
+    if (tf.variable) nc.append(el('span', 'tf-vf', 'Variable'));
+    tr.append(nc);
     const ok = fontAvailable(tf.name);
-    const meta = el('div', 'tf-libmeta');
-    const stat = el('span', 'tf-stat ' + (ok ? 'ok' : 'no'), ok ? '✓ Installed here' : '⚠ Not installed — preview falls back');
-    meta.append(stat);
-    if (tf.variable) meta.append(el('span', 'tf-vf', 'Variable'));
-    meta.append(el('span', 'tf-usedby', usedBy.length ? `Bound to ${usedBy.join(' + ')}` : 'Bound by a mode override only'));
-    const fallback = el('div', 'tf-fall', tf.stack.length > 1 ? `Falls back to ${tf.stack.slice(1).join(', ')}` : 'No fallback stack');
-    const prev = el('div', 'tf-prev', 'Ag 123');
+    const sc = el('td', 'mtbl-mode');
+    sc.append(el('span', 'tf-stat ' + (ok ? 'ok' : 'no'), ok ? '✓ Installed' : '⚠ Not installed'));
+    sc.title = ok ? `${tf.name} resolves on this device` : `${tf.name} is not installed here — the preview falls back`;
+    tr.append(sc);
+    const bc = el('td', 'mtbl-mode');
+    bc.append(el('span', 'tf-usedby' + (bind.unbound ? ' unbound' : ''), bind.label));
+    tr.append(bc);
+    const pc = el('td', 'mtbl-fill mtbl-spec');
+    const prev = el('span', 'mtbl-spec-t tf-prev', 'Ag 123');
     prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
-    row.append(idcol, meta, fallback, prev);
-    lib.append(row);
+    pc.append(prev);
+    const meta = el('span', 'tf-fall');
+    meta.append(tokenPill(`font.typeface.${tf.slug}`));
+    meta.append(document.createTextNode(tf.stack.length > 1 ? ` Falls back to ${tf.stack.slice(1).join(', ')}` : ' No fallback stack'));
+    pc.append(meta);
+    tr.append(pc);
+    libBody.append(tr);
   }
-  sec.append(lib);
-  sec.append(el('p', 'tf-derivenote', 'This list is derived, not authored — a face exists here exactly as long as a role below binds it. Bind a new name and its primitive appears; re-point the last role that used it and it disappears. Slugs come from the face name, so there is no rename to cascade.'));
+  libTbl.append(libBody); libScroll.append(libTbl); libBox.append(libScroll);
+  sec.append(libBox);
+  // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
+  // role below binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
+  sec.append(el('p', 'tf-derivenote', anyUnbound
+    ? 'This list is a union: a face appears because a role below binds it, or because the brand input stages it in typography.typefaceLibrary. A staged face can sit here bound to nothing until you give it a job. Slugs come from the face name, so there is no rename to cascade.'
+    : 'Every face here is bound by a role below — bind a new name and its primitive appears. A brand can also stage a face with no role in typography.typefaceLibrary, in which case it sits here unbound until you give it a job. Slugs come from the face name, so there is no rename to cascade.'));
 
   // ---- TIER 2 — the bindings ----
   sec.append(subHead('The bindings — which face does each job'));
@@ -2827,30 +2867,53 @@ const renderSizeLadder = (): HTMLElement => {
 const renderLeadingTracking = (): HTMLElement => {
   const ty = theme.typography;
   const sec = palSection('Leading & tracking', 'Two fixed sets of named rungs, sitting alongside the size ladder. Re-anchor what a rung is worth here — one number each, shared by every mode. Which rung a category lands on is chosen for you from its size and role, nudged per category on the Styles tab, and re-pointed per mode there too.');
-  const ramp = (title: string, steps: { key: string; val: number }[],
+  // #363 — the shared `.mtbl` table format, but its GEOMETRY only, not its semantics. These rungs are
+  // mode-invariant primitives, so there is NO mode axis and the table gets no mode columns: adding them
+  // would assert a dimension these values do not have. Same rule that keeps Category setup and
+  // Responsive out of this format. The three fixed columns use the same width tokens as every other
+  // table on the page, which is the whole point — Foundations reads on one column grid.
+  const ramp = (caption: string, steps: { key: string; val: number }[],
     globalKey: string, modeField: 'lineHeights' | 'letterSpacings', min: number, max: number, step: number,
     preview: (host: HTMLElement, v: number) => void): void => {
-    sec.append(subHead(title));
-    const grid = el('div', 'lt-grid');
+    const box = el('div', 'mtbl');
+    box.append(el('p', 'mtbl-cap', caption));
+    const scroll = el('div', 'mtbl-scroll');
+    const tbl = el('table', 'mtbl-tbl');
+    const thead = el('thead'), htr = el('tr');
+    htr.append(el('th', 'mtbl-stick', 'Rung'), el('th', 'mtbl-mode', 'Value'),
+      el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+    thead.append(htr); tbl.append(thead);
+    const tb = el('tbody');
     for (const s of steps) {
-      const cell = el('div', 'lt-cell');
-      const top = el('div', 'lt-top');
-      top.append(el('span', 'lt-key mono', s.key));
-      const inp = numberField({ className: 'lt-in', min, max, step, value: s.val });
+      const tr = el('tr');
+      const nc = el('td', 'mtbl-stick');
+      nc.append(el('span', 'mtbl-name mono', s.key));
+      tr.append(nc);
+      const vc = el('td', 'mtbl-mode');
+      const inp = numberField({ className: 'ltbl-in', min, max, step, value: s.val });
+      inp.setAttribute('aria-label', `${caption} ${s.key}`);
       inp.onchange = () => {
         const n = Number(inp.value);
         if (n >= min && n <= max) { setPath(brandState, `${globalKey}.${s.key}`, n); apply(); } else inp.value = String(s.val);
       };
-      top.append(inp);
-      cell.append(top);
+      vc.append(inp);
+      tr.append(vc);
       const who = [...new Set(ty.composites.filter((c) => (modeField === 'lineHeights' ? c.lineHeight : c.tracking) === s.key).map((c) => c.group))];
-      cell.append(el('div', 'lt-who', who.length ? who.join(', ') : 'not currently used'));
-      const pv = el('div', 'lt-prev');
+      const wc = el('td', 'mtbl-mode');
+      wc.append(el('span', 'ltbl-who' + (who.length ? '' : ' none'), who.length ? who.join(', ') : 'not currently used'));
+      if (who.length) wc.title = who.join(', ');
+      tr.append(wc);
+      // The specimen must WRAP — a line-height rung is invisible on one line, so this is the one
+      // cell on the page that deliberately does not take `.mtbl-spec-t`'s nowrap+ellipsis.
+      const pc = el('td', 'mtbl-fill mtbl-spec');
+      const pv = el('div', 'ltbl-samp');
       preview(pv, s.val);
-      cell.append(pv);
-      grid.append(cell);
+      pc.append(pv);
+      tr.append(pc);
+      tb.append(tr);
     }
-    sec.append(grid);
+    tbl.append(tb); scroll.append(tbl); box.append(scroll);
+    sec.append(box);
   };
   ramp('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })),
     'typography.lineHeights', 'lineHeights', 0.8, 3, 0.05,
@@ -5384,18 +5447,16 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* Typeface library (#269) — the primitive tier as full-width rows: identity left, the
    derived facts in the middle, specimen right. Full-width rather than cards because the
    list grows with the brand and the fallback stack needs the horizontal room. */
-.tf-lib{display:flex;flex-direction:column;gap:10px}
-.tf-libro{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1fr) 190px;gap:16px;align-items:center;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
-.tf-libid{display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
-.tf-libname{font-size:14.5px;font-weight:650;color:var(--ink)}
-.tf-libmeta{display:flex;flex-direction:column;gap:4px;min-width:0}
-.tf-vf{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-.tf-usedby{font-size:11.5px;color:var(--faint)}
-.tf-fall{font-size:11.5px;color:var(--faint);line-height:1.45;min-width:0;overflow-wrap:anywhere}
-.tf-libro .tf-prev{border-top:0;padding-top:0;font-size:24px;text-align:right}
+/* The typeface library as a table (#363), on the same column grid as the rung tables above. */
+.tf-libname{display:block;font-size:12.5px;font-weight:650;color:var(--ink);max-width:88px;line-height:1.3;overflow-wrap:anywhere}
+.tf-vf{display:block;margin-top:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tf-usedby{font-size:11.5px;color:var(--ink2);display:block;max-width:124px;line-height:1.35;overflow-wrap:anywhere}
+/* An unbound face is a real state since #287, not an error — muted, never warning-colored. */
+.tf-usedby.unbound{color:var(--faint);font-style:italic}
+.tf-fall{display:block;margin-top:4px;font-size:11px;color:var(--faint);line-height:1.5;overflow-wrap:anywhere}
+.mtbl-spec .tf-prev{border-top:0;padding-top:0;font-size:22px;line-height:1.25}
 .tf-derivenote{font-size:12px;color:var(--faint);line-height:1.55;margin:11px 0 0}
 .tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
-@media(max-width:900px){.tf-libro{grid-template-columns:1fr 1fr}.tf-libro .tf-prev{text-align:left}}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
 /* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
    it — without it the open-on-first-in-use-rung scroll overshoots to the bottom. */
@@ -5422,13 +5483,14 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tpw-mark{font-size:12px;margin-right:7px}
 .tpw-mark.yes{color:var(--ink)}.tpw-mark.no{color:var(--faint)}.tpw-mark.unknown{color:var(--line2)}
 .tpw-samp{display:inline;font-size:15px}
-.lt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.lt-cell{border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 12px;min-width:0}
-.lt-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.lt-key{font-size:12px;font-weight:640;color:var(--ink2)}
-.lt-in{width:88px;text-align:right}
-.lt-who{font-size:10.5px;color:var(--faint);margin-top:4px}
-.lt-prev{margin-top:9px;font-size:13px;color:var(--ink2);max-width:52ch}
+/* Leading & tracking rungs in the shared table format (#363). The value input is width-BOUNDED, not
+   auto: a control that sizes to its content is what breaks column parity in an auto-layout table. */
+.ltbl-in{width:92px;text-align:right}
+.ltbl-who{font-size:11px;color:var(--ink2);display:block;max-width:124px;line-height:1.35}
+.ltbl-who.none{color:var(--faint);font-style:italic}
+/* The one specimen on the page that must WRAP — leading is invisible on a single line, so this
+   deliberately does not inherit .mtbl-spec-t's nowrap+ellipsis. */
+.ltbl-samp{font-size:13px;color:var(--ink2);line-height:inherit;max-width:52ch}
 .wr-row{display:grid;grid-template-columns:96px 168px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
 .wr-row:first-of-type{border-top:0}
 .wr-name{font-size:13px;font-weight:640}
@@ -5478,7 +5540,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tr-mode{min-width:0;border-left:1px solid var(--line);padding-left:11px}
 .tr-mode:first-child{border-left:0;padding-left:0}
 .tr-mode-n{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);margin-bottom:2px}
-@media(max-width:760px){.tf-grid{grid-template-columns:1fr}.lt-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.tf-grid{grid-template-columns:1fr}}
 /* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
    1fr track never clamps and the widest child drags the whole column past the viewport.
    The desktop rule above already uses the idiom; the collapse override had lost it (#144). */
