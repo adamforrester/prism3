@@ -37,6 +37,13 @@
   light held; badge and pin styling correct; Foundations left with the ladder and no shape cards;
   shape switch moves the live ramp 48→56; the blocked path engages and clears on release. Zero page
   errors throughout.
+- **Review follow-up.** The `as any` casts reaching `brandState.typography.sizes` /
+  `modeLevers.*.typeSizes` were not covering a real type gap — both fields are properly typed in the
+  engine. They were routing around `group`/`variant` being plain `string`. Narrowing the parameters to
+  `PerModeSizeGroup` removed **every** cast on the new surface and restored compile-time checking on
+  it for free. Also: this PR described itself as "web-only, no engine change" while the diff touches
+  `theme.ts` — a two-line `const` → `export const` on `HEADING_SIZE_FLOOR` so the web layer reads the
+  same floors rather than duplicating them. Behaviorally nothing, but the claim was imprecise.
 - **Still open:** contrast. `--faint` on `--paper` is 2.31:1 and `--muted` on `--paper` 4.36:1 against
   AA's 4.5 — that is the `.pfk` convention and every `.psec-d`, so it fails app-wide rather than here.
   Owner's call to fix globally; worth its own issue.

@@ -20,7 +20,7 @@
  * combination is caught and surfaced with the last-good render preserved.
  */
 import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS } from '../../Prism3/engine/theme';
-import type { BrandInput, Theme, GradientInput, TypeComposite } from '../../Prism3/engine/theme';
+import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
 import { leverManifest, leverGroups } from '../../Prism3/engine/levers';
@@ -1863,21 +1863,22 @@ const ladderStep = (px: number, by: number): number | undefined => {
   return j >= 0 && j < l.length ? l[j] : undefined;
 };
 /** Every heading rung this brand ships, largest first — the row order for the tables. */
-const headingRows = (group: string): Array<{ variant: string; px: number }> =>
+const headingRows = (group: PerModeSizeGroup): Array<{ variant: string; px: number }> =>
   theme.typography.composites.filter((c) => c.group === group)
     .reduce((acc: Array<{ variant: string; px: number }>, c) => (acc.some((a) => a.variant === c.variant) ? acc : [...acc, { variant: c.variant, px: c.sizePx }]), [])
     .sort((a, b) => b.px - a.px);
-const brandSizePin = (group: string, variant: string): number | undefined =>
-  (brandState.typography as any)?.sizes?.[group]?.[variant];
-const modeSizePin = (mode: string, group: string, variant: string): number | undefined =>
-  (brandState.modeLevers as any)?.[mode]?.typeSizes?.[group]?.[variant];
+const brandSizePin = (group: PerModeSizeGroup, variant: string): number | undefined =>
+  brandState.typography?.sizes?.[group]?.[variant];
+const modeSizePin = (mode: Mode, group: PerModeSizeGroup, variant: string): number | undefined =>
+  brandState.modeLevers?.[mode]?.typeSizes?.[group]?.[variant];
 /** Set or clear a BASELINE per-size override, pruning empties so an all-cleared brand stays byte-identical. */
-const setBrandSize = (group: string, variant: string, px: number | undefined): void => {
-  const ty: any = (brandState.typography ??= {} as any);
+const setBrandSize = (group: PerModeSizeGroup, variant: string, px: number | undefined): void => {
+  const ty = (brandState.typography ??= {});
   if (px === undefined) {
-    if (!ty.sizes?.[group]) return;
-    delete ty.sizes[group][variant];
-    if (!Object.keys(ty.sizes[group]).length) delete ty.sizes[group];
+    const g = ty.sizes?.[group];
+    if (!g || !ty.sizes) return;
+    delete g[variant];
+    if (!Object.keys(g).length) delete ty.sizes[group];
     if (!Object.keys(ty.sizes).length) delete ty.sizes;
     return;
   }
@@ -1886,23 +1887,23 @@ const setBrandSize = (group: string, variant: string, px: number | undefined): v
 /** How many sizes are pinned anywhere — drives the "customized" badge. */
 const pinnedSizeCount = (): number => {
   let n = 0;
-  const ty: any = (brandState.typography as any)?.sizes ?? {};
-  for (const g of Object.keys(ty)) n += Object.keys(ty[g] ?? {}).length;
-  for (const m of Object.keys(brandState.modeLevers ?? {})) {
-    const ms: any = (brandState.modeLevers as any)[m]?.typeSizes ?? {};
-    for (const g of Object.keys(ms)) n += Object.keys(ms[g] ?? {}).length;
+  const bs = brandState.typography?.sizes ?? {};
+  for (const g of Object.keys(bs) as PerModeSizeGroup[]) n += Object.keys(bs[g] ?? {}).length;
+  for (const m of Object.keys(brandState.modeLevers ?? {}) as Mode[]) {
+    const ms = brandState.modeLevers?.[m]?.typeSizes ?? {};
+    for (const g of Object.keys(ms) as PerModeSizeGroup[]) n += Object.keys(ms[g] ?? {}).length;
   }
   return n;
 };
 
 /** One editable size cell. The constraint lives IN the control: a disabled −/+ says this size has no
  *  room that way, where a filtered dropdown just omitted the option and never said why. */
-const sizeCell = (group: string, rows: Array<{ variant: string; px: number }>, i: number, mode: string | null, resolved: number[]): HTMLElement => {
+const sizeCell = (group: PerModeSizeGroup, rows: Array<{ variant: string; px: number }>, i: number, mode: Mode | null, resolved: number[]): HTMLElement => {
   const variant = rows[i].variant;
   const px = resolved[i];
   const upper = i > 0 ? resolved[i - 1] : undefined;         // the larger neighbour
   const lower = i + 1 < resolved.length ? resolved[i + 1] : undefined;
-  const floor = (HEADING_SIZE_FLOOR as Record<string, number>)[group];
+  const floor = HEADING_SIZE_FLOOR[group];
   const dn = ladderStep(px, -1), up = ladderStep(px, +1);
   const canDn = dn !== undefined && dn >= floor && (lower === undefined || dn > lower);
   const canUp = up !== undefined && (upper === undefined || up < upper);
@@ -1935,7 +1936,7 @@ const sizeCell = (group: string, rows: Array<{ variant: string; px: number }>, i
 };
 
 /** One table per heading group — rows are sizes largest-first, columns are modes. */
-const renderSizeTable = (group: string): HTMLElement | null => {
+const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
   const rows = headingRows(group);
   if (!rows.length) return null;
   const modes = rp.modes;
@@ -2021,7 +2022,7 @@ const renderTypeSizes = (): HTMLElement => {
     warn.append(el('span', undefined, 'Some shapes are unavailable while sizes are set individually — they would clash.'));
     const rel = el('button', 'shape-release', 'Release pinned sizes') as HTMLButtonElement;
     rel.onclick = () => {
-      delete (brandState.typography as any)?.sizes;
+      if (brandState.typography) delete brandState.typography.sizes;
       for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
       applyFull();
     };
