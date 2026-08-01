@@ -2205,6 +2205,57 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
 }
 
+// ---- the authored typeface library (#287) ----
+// A face used to exist only if a role bound it. The library lets a brand stage a face first and
+// decide its job later, so `deriveTypefaces` is now a UNION of role-bound faces and authored ones.
+{
+  const bare = tBrand('lib-none', { families: { text: 'Inter' } });
+  const staged = tBrand('lib-one', { families: { text: 'Inter' }, typefaceLibrary: ['Fraunces'] });
+  ok(!bare.typography.typefaces.some((t: any) => t.slug === 'fraunces'), 'no library ⇒ no staged primitive');
+  ok(staged.typography.typefaces.some((t: any) => t.slug === 'fraunces'), 'a library face with NO role bound still emits its typeface primitive');
+  ok(!staged.typography.families.some((f: any) => f.stack[0] === 'Fraunces'), 'a staged face binds no family role — staging is not binding');
+  ok(buildTree(staged).tree[Object.keys(buildTree(staged).tree)[0]] !== undefined, 'a brand with a staged face still builds a tree');
+  const stagedRoot = Object.keys(buildTree(staged).tree)[0];
+  ok(!!(buildTree(staged).tree[stagedRoot] as any).font.typeface.fraunces, 'the staged face reaches the emitted tree as font.typeface.fraunces');
+  ok(!(buildTree(staged).tree[stagedRoot] as any).font.family.fraunces, 'a staged face emits NO family role leaf (nothing binds it)');
+
+  // Existing brands must be untouched: same list, same ORDER, which is why the library appends last.
+  ok(JSON.stringify(bare.typography.typefaces) === JSON.stringify(tBrand('lib-none2', { families: { text: 'Inter' }, typefaceLibrary: [] }).typography.typefaces),
+    'an empty library derives a byte-identical typeface list (feature is additive)');
+
+  // Staged THEN bound is one primitive, not two — and the ROLE's stack wins the dedupe, which is the
+  // reason role sets are walked before the library rather than after.
+  const bound = tBrand('lib-bound', { families: { text: 'Inter', mono: 'Fira Code' }, typefaceLibrary: ['Fira Code'] });
+  const fira = bound.typography.typefaces.filter((t: any) => t.slug === 'fira-code');
+  ok(fira.length === 1, `a face both staged and bound yields ONE primitive (got ${fira.length})`);
+  ok(fira[0].stack[fira[0].stack.length - 1] === 'monospace', 'the bound role’s stack wins the dedupe — a staged+bound mono face keeps its MONO fallback tail');
+  const stagedOnlyMono = tBrand('lib-mono-unbound', { families: { text: 'Inter' }, typefaceLibrary: ['Fira Code'] });
+  const unboundFira = stagedOnlyMono.typography.typefaces.find((t: any) => t.slug === 'fira-code');
+  ok(unboundFira.stack[unboundFira.stack.length - 1] !== 'monospace', 'an UNBOUND face has no role to take a tail from, so it gets the sans one — self-corrects on binding');
+
+  // Removal semantics (owner decision, 2026-08-01: only UNBOUND entries are deletable). The engine
+  // needs no cascade for this, and that absence is the thing worth asserting: dropping a still-bound
+  // name from the library cannot make its primitive disappear, because the role keeps deriving it.
+  const droppedWhileBound = tBrand('lib-drop-bound', { families: { text: 'Inter', mono: 'Fira Code' }, typefaceLibrary: [] });
+  ok(droppedWhileBound.typography.typefaces.some((t: any) => t.slug === 'fira-code'),
+    'removing a still-BOUND face from the library does NOT drop its primitive — no cascade needed (#287)');
+  ok(!tBrand('lib-drop-unbound', { families: { text: 'Inter' }, typefaceLibrary: [] }).typography.typefaces.some((t: any) => t.slug === 'fraunces'),
+    'removing an UNBOUND face from the library drops its primitive cleanly');
+
+  // Typo guards — an empty entry would emit an empty slug; two spellings would silently swallow one.
+  const rejects = (lib: any, label: string) => {
+    let threw = false;
+    try { tBrand('lib-bad', { families: { text: 'Inter' }, typefaceLibrary: lib }); } catch { threw = true; }
+    ok(threw, label);
+  };
+  rejects([''], 'an empty typefaceLibrary entry throws');
+  rejects(['   '], 'a whitespace-only typefaceLibrary entry throws');
+  rejects(['Fraunces', 'fraunces'], 'the same face listed twice (differing only in case) throws');
+  let variantThrew = false;
+  try { tBrand('lib-ok', { families: { text: 'Inter' }, typefaceLibrary: ['Fraunces', 'Fira Code'] }); } catch { variantThrew = true; }
+  ok(!variantThrew, 'two DISTINCT faces in the library are accepted');
+}
+
 // ---- mono is optional (#269) ----
 // Most brands have no mono face. `mono: null` opts out, and `code` is the only category
 // binding mono, so it disappears with it.
