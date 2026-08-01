@@ -2130,69 +2130,30 @@ const renderTypeSizes = (): HTMLElement => {
   return sec;
 };
 
-const renderResponsiveEditor = (): HTMLElement => {
+/** Responsive sizing lives on Layout (#361): `minViewport`/`maxViewport` are viewport thresholds, the same
+ *  kind of number as the breakpoints they sit beside — not a semantic type decision. Split into the Layout
+ *  page's control/preview pair, because the "what fluid does" list IS the preview of what these controls do:
+ *  as a `paint` it repaints on every `apply()` while the number fields keep their DOM (and focus).
+ *  The #271 "shared across all modes" note did NOT come with it — it disclosed that one section on a
+ *  mode-scoped page wrote global state, and Layout is global throughout, so there is no anomaly left to
+ *  disclose. */
+const renderResponsiveControls = (): HTMLElement => {
   const ty = theme.typography;
-  const wrap = palSection('Responsive sizing', 'Headings interpolate between a mobile floor and a desktop ceiling across the viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.');
-  // #271 — there is no per-mode responsive lever, so these ALWAYS write global state. Say so
-  // before the controls: every other section on this page is mode-scoped, and silently
-  // changing all modes from inside a mode is the one thing this page used not to disclose.
-  if (currentMode !== 'light')
-    wrap.append(el('p', 'te-shared-note', 'Shared across all modes — unlike the faces and weights above, responsive sizing has no per-mode override, so editing here changes every mode.'));
+  const col = el('div', 'cs-ctl-stack');
   const cb = el('input') as HTMLInputElement;
   cb.type = 'checkbox'; cb.checked = brandState.typography?.responsive?.fluid ?? ty.fluid;
   cb.onchange = () => { setPath(brandState, 'typography.responsive.fluid', cb.checked); apply(); };
   const fl = el('label', 'adv-row'); fl.append(cb, el('span', 'adv-row-lab', 'Fluid heading sizing (clamp between viewports)'));
-  wrap.append(fl);
+  col.append(fl);
   const mk = (key: 'minViewport' | 'maxViewport', label: string, fallback: number): void => {
     const inp = numberField({ className: 'adv-num', value: String(getPath(brandState, `typography.responsive.${key}`) ?? fallback) });
     inp.onchange = () => { const n = Number(inp.value); if (Number.isFinite(n)) { setPath(brandState, `typography.responsive.${key}`, n); apply(); } };
     const row = el('div', 'adv-row'); row.append(el('span', 'adv-row-lab', label), inp, el('span', 'adv-unit', 'px'));
-    wrap.append(row);
+    col.append(row);
   };
   mk('minViewport', 'Min viewport', ty.minViewport);
   mk('maxViewport', 'Max viewport', ty.maxViewport);
-
-  // What fluid actually DOES — previously invisible: neither the mobile floor nor the
-  // generated clamp() was shown anywhere, so the toggle and the viewport pair changed
-  // nothing a designer could see.
-  const seen = new Set<string>();
-  const uniq = ty.composites.filter((c) => c.sizeMinPx !== c.sizePx)
-    .filter((c) => { const k = `${c.group}.${c.variant}`; if (seen.has(k)) return false; seen.add(k); return true; });
-  if (uniq.length) {
-    wrap.append(subHead(`What fluid does — ${uniq.length} scaling styles`));
-    const maxPx = Math.max(...uniq.map((c) => c.sizePx));
-    const list = el('div', 'fz-list');
-    for (const c of uniq) {
-      const row = el('div', 'fz-row');
-      row.append(el('span', 'fz-name mono', `${c.group}.${c.variant}`), el('span', 'fz-pair mono', `${c.sizeMinPx} → ${c.sizePx}px`));
-      const right = el('div', 'fz-right');
-      const bar = el('div', 'fz-bar');
-      const fill = el('div', 'fz-fill');
-      fill.style.left = `${(c.sizeMinPx / maxPx) * 100}%`;
-      fill.style.width = `${((c.sizePx - c.sizeMinPx) / maxPx) * 100}%`;
-      bar.append(fill);
-      const slope = (c.sizePx - c.sizeMinPx) / (ty.maxViewport - ty.minViewport);
-      const intercept = (c.sizeMinPx - slope * ty.minViewport) / 16;
-      const clamp = `clamp(${+(c.sizeMinPx / 16).toFixed(4)}rem, ${+intercept.toFixed(4)}rem + ${+(slope * 100).toFixed(4)}vw, ${+(c.sizePx / 16).toFixed(4)}rem)`;
-      const cl = el('div', 'fz-clamp mono', clamp); cl.title = clamp;
-      right.append(bar, cl);
-      row.append(right);
-      list.append(row);
-    }
-    wrap.append(list);
-    wrap.append(el('p', 'sl-note', 'The mobile floor is derived, not chosen: you set whether headings scale and the viewport range, but the floor comes from a fixed curve — titles drop about one rung, display converges hard so hero type stays usable on a phone.'));
-    // The convergence is deliberate but invisible: several desktop sizes can share one floor.
-    const byFloor = new Map<number, string[]>();
-    for (const c of uniq) { const k = c.sizeMinPx; byFloor.set(k, [...(byFloor.get(k) ?? []), `${c.group}.${c.variant}`]); }
-    const merged = [...byFloor.entries()].filter(([, v]) => v.length > 1);
-    if (merged.length) {
-      const w = el('p', 'fz-warn');
-      w.append(el('b', undefined, 'Sizes that merge on mobile. '));
-      w.append(document.createTextNode(`${merged.map(([px, v]) => `${v.join(' + ')} all land on ${px}px`).join('; ')} — distinct on desktop, identical on a phone. Fine if deliberate; a sign of more display steps than the mobile curve can express if not.`));
-      wrap.append(w);
-    }
-  }
-  return wrap;
+  return col;
 };
 
 /** The breakpoints controls (the editable px list + add/remove) — just the control node now, so the
@@ -2406,7 +2367,7 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
     h.append(renderTypeSizes(), renderWeightRoles());
     const repoints = renderRepoints();
     if (repoints) h.append(repoints);
-    h.append(renderCategorySetup(), renderResponsiveEditor());
+    h.append(renderCategorySetup());
   } else h.append(renderTypePreview());
   // No aside on any tab. The ramp used to sit in the Styles aside on the doc-26 rule that a section
   // carries its own specimen in context — but that rule is satisfied by the Preview tab now, and a
@@ -2520,6 +2481,9 @@ const renderLayoutPage = (host: HTMLElement): void => controlSplitPage(host, 'la
   );
   return [
     { title: 'Breakpoints', sub: 'Min-width floors (px, ascending) — names auto-assign sm / md / lg / xl / 2xl.', controls: renderBreakpointsControls(), paint: paintBreakpointsPreview },
+    // Beside breakpoints on purpose (#361): both are viewport thresholds in px, and the interpolation
+    // range only means something read against the floors it spans.
+    { title: 'Responsive type sizing', sub: 'Headings interpolate between a mobile floor and a desktop ceiling across this viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.', controls: renderResponsiveControls(), paint: paintFluidPreview },
     { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
     { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, paint: paintContainersPreview },
   ];
@@ -3763,8 +3727,9 @@ const paintSpacingPreview = (into: HTMLElement): void => {
  *  levers (breakpoints / columns / containers, all in the Advanced panel) have no other visible payoff.
  *  Reads `theme.layout` (not per-mode — layout composes with colour modes as a separate Figma axis). */
 // Layout previews, split so each can sit beside its own control (docs #264): the breakpoints ruler+table,
-// the base-column strip, and the container-cap bars. Each fills a caller-owned node so `apply()` repaints
-// it in place (the control next to it stays put — never rebuilt mid-drag).
+// the base-column strip, the container-cap bars, and the fluid-type scaling list (#361). Each fills a
+// caller-owned node so `apply()` repaints it in place (the control next to it stays put — never rebuilt
+// mid-drag).
 const paintBreakpointsPreview = (into: HTMLElement): void => {
   const ly = theme.layout;
   into.innerHTML = '';
@@ -3813,6 +3778,50 @@ const paintContainersPreview = (into: HTMLElement): void => {
   };
   cont.append(bar('container.max', ly.containerMax), bar('container.narrow', ly.containerNarrow));
   into.append(cont);
+};
+
+/** What fluid actually DOES — previously invisible: neither the mobile floor nor the generated clamp()
+ *  was shown anywhere, so the toggle and the viewport pair changed nothing a designer could see. */
+const paintFluidPreview = (into: HTMLElement): void => {
+  const ty = theme.typography;
+  into.innerHTML = '';
+  const seen = new Set<string>();
+  const uniq = ty.composites.filter((c) => c.sizeMinPx !== c.sizePx)
+    .filter((c) => { const k = `${c.group}.${c.variant}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  // Fluid off (or nothing scaling) is a real state, not an empty one — say why the panel is bare.
+  if (!uniq.length) { into.append(el('p', 'sl-note', 'Nothing is scaling right now — every style resolves to a single size across the whole viewport range. Turn on fluid heading sizing to see the mobile floor and the generated clamp() for each style that scales.')); return; }
+  into.append(subHead(`What fluid does — ${uniq.length} scaling styles`));
+  const maxPx = Math.max(...uniq.map((c) => c.sizePx));
+  const list = el('div', 'fz-list');
+  for (const c of uniq) {
+    const row = el('div', 'fz-row');
+    row.append(el('span', 'fz-name mono', `${c.group}.${c.variant}`), el('span', 'fz-pair mono', `${c.sizeMinPx} → ${c.sizePx}px`));
+    const right = el('div', 'fz-right');
+    const bar = el('div', 'fz-bar');
+    const fill = el('div', 'fz-fill');
+    fill.style.left = `${(c.sizeMinPx / maxPx) * 100}%`;
+    fill.style.width = `${((c.sizePx - c.sizeMinPx) / maxPx) * 100}%`;
+    bar.append(fill);
+    const slope = (c.sizePx - c.sizeMinPx) / (ty.maxViewport - ty.minViewport);
+    const intercept = (c.sizeMinPx - slope * ty.minViewport) / 16;
+    const clamp = `clamp(${+(c.sizeMinPx / 16).toFixed(4)}rem, ${+intercept.toFixed(4)}rem + ${+(slope * 100).toFixed(4)}vw, ${+(c.sizePx / 16).toFixed(4)}rem)`;
+    const cl = el('div', 'fz-clamp mono', clamp); cl.title = clamp;
+    right.append(bar, cl);
+    row.append(right);
+    list.append(row);
+  }
+  into.append(list);
+  into.append(el('p', 'sl-note', 'The mobile floor is derived, not chosen: you set whether headings scale and the viewport range, but the floor comes from a fixed curve — titles drop about one rung, display converges hard so hero type stays usable on a phone.'));
+  // The convergence is deliberate but invisible: several desktop sizes can share one floor.
+  const byFloor = new Map<number, string[]>();
+  for (const c of uniq) { const k = c.sizeMinPx; byFloor.set(k, [...(byFloor.get(k) ?? []), `${c.group}.${c.variant}`]); }
+  const merged = [...byFloor.entries()].filter(([, v]) => v.length > 1);
+  if (merged.length) {
+    const w = el('p', 'fz-warn');
+    w.append(el('b', undefined, 'Sizes that merge on mobile. '));
+    w.append(document.createTextNode(`${merged.map(([px, v]) => `${v.join(' + ')} all land on ${px}px`).join('; ')} — distinct on desktop, identical on a phone. Fine if deliberate; a sign of more display steps than the mobile curve can express if not.`));
+    into.append(w);
+  }
 };
 
 /** The motion specimen (#114, redesigned #292 "trace the curve"): one large stage per semantic
