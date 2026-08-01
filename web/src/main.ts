@@ -1939,35 +1939,23 @@ const sizeCell = (group: PerModeSizeGroup, rows: Array<{ variant: string; px: nu
   const upper = i > 0 ? resolved[i - 1] : undefined;         // the larger neighbour
   const lower = i + 1 < resolved.length ? resolved[i + 1] : undefined;
   const floor = HEADING_SIZE_FLOOR[group];
-  const dn = ladderStep(px, -1), up = ladderStep(px, +1);
-  const canDn = dn !== undefined && dn >= floor && (lower === undefined || dn > lower);
-  const canUp = up !== undefined && (upper === undefined || up < upper);
-  const pinned = mode ? modeSizePin(mode, group, variant) !== undefined : brandSizePin(group, variant) !== undefined;
-  const write = (v: number | undefined) => {
-    if (mode) setModeLever(mode, `typeSizes.${group}.${variant}`, v);
-    else setBrandSize(group, variant, v);
-    applyFull();
-  };
-  const wrap = el('div', 'szcell');
-  const mk = (label: string, delta: number, enabled: boolean) => {
-    const b = el('button', 'szstep', label) as HTMLButtonElement;
-    b.disabled = !enabled;
-    b.title = enabled ? `${px}px → ${ladderStep(px, delta)}px` : (delta < 0 ? 'No smaller step — the size below is next on the ladder' : 'No larger step — the size above is next on the ladder');
-    b.setAttribute('aria-label', `${group} ${variant}${mode ? ` in ${mode}` : ''} ${delta < 0 ? 'smaller' : 'larger'}`);
-    b.onclick = () => write(ladderStep(px, delta));
-    return b;
-  };
-  const val = el('span', 'szval mono' + (pinned ? ' pin' : ''), String(px));
-  val.title = pinned ? 'Set here' : 'Following the baseline';
-  wrap.append(mk('−', -1, canDn), val, mk('+', +1, canUp));
-  if (pinned) {
-    const r = el('button', 'szreset', '↺') as HTMLButtonElement;
-    r.title = mode ? 'Follow the baseline again' : 'Follow the shape again';
-    r.setAttribute('aria-label', `Reset ${group} ${variant}${mode ? ` in ${mode}` : ''}`);
-    r.onclick = () => write(undefined);
-    wrap.append(r);
-  } else wrap.append(el('span', 'szreset-sp'));
-  return wrap;
+  const step = (dir: -1 | 1) => ladderStep(px, dir);
+  const dn = step(-1), up = step(1);
+  return stepCell({
+    px,
+    // Sizes DO bound on their neighbours: the ramp must stay strictly increasing or the engine
+    // refuses to build. That is the difference from weight roles, which may cross.
+    canDown: dn !== undefined && dn >= floor && (lower === undefined || dn > lower),
+    canUp: up !== undefined && (upper === undefined || up < upper),
+    pinned: mode ? modeSizePin(mode, group, variant) !== undefined : brandSizePin(group, variant) !== undefined,
+    label: `${group} ${variant}${mode ? ` in ${mode}` : ''}`,
+    step,
+    write: (v) => {
+      if (mode) setModeLever(mode, `typeSizes.${group}.${variant}`, v);
+      else setBrandSize(group, variant, v);
+      applyFull();
+    },
+  });
 };
 
 /** One table per heading group — rows are sizes largest-first, columns are modes. */
@@ -1977,19 +1965,19 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
   if (!all.length) return null;
   const inRange = new Set(live.map((r) => r.variant));
   const modes = rp.modes;
-  const box = el('div', 'szt');
-  box.append(el('p', 'szt-cap', group));
-  const scroll = el('div', 'szt-scroll');
-  const tbl = el('table', 'szt-tbl');
+  const box = el('div', 'mtbl');
+  box.append(el('p', 'mtbl-cap', group));
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
   const thead = el('thead'), htr = el('tr');
-  htr.append(el('th', 'szt-stick', 'Size'));
+  htr.append(el('th', 'mtbl-stick', 'Size'));
   for (const m of modes) {
-    const th = el('th', 'szt-mode');
+    const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
-    if (m === 'light') th.append(el('span', 'szt-ro', ' baseline'));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
     htr.append(th);
   }
-  htr.append(el('th', 'szt-fill'));
+  htr.append(el('th', 'mtbl-fill'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
   // Resolve each mode's ramp once, over the IN-RANGE rows only — a cell's legal span depends on its
@@ -2002,27 +1990,27 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
     }));
   }
   for (const r of all) {
-    const tr = el('tr', inRange.has(r.variant) ? '' : 'szt-off');
-    const nameCell = el('td', 'szt-stick');
-    nameCell.append(el('span', 'szt-name mono', r.variant));
-    if (!inRange.has(r.variant)) nameCell.append(el('span', 'szt-ro', ' outside range'));
+    const tr = el('tr', inRange.has(r.variant) ? '' : 'mtbl-off');
+    const nameCell = el('td', 'mtbl-stick');
+    nameCell.append(el('span', 'mtbl-name mono', r.variant));
+    if (!inRange.has(r.variant)) nameCell.append(el('span', 'mtbl-ro', ' outside range'));
     tr.append(nameCell);
     if (inRange.has(r.variant)) {
       const i = live.findIndex((x) => x.variant === r.variant);
       for (const m of modes) {
-        const td = el('td', 'szt-mode');
+        const td = el('td', 'mtbl-mode');
         td.append(sizeCell(group, live, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
         tr.append(td);
       }
     } else {
       // What it WOULD be, so the row explains itself rather than just being greyed.
       for (const [mi, m] of modes.entries()) {
-        const td = el('td', 'szt-mode');
-        td.append(el('span', 'szt-offval mono', mi === 0 ? `${r.px}px` : '—'));
+        const td = el('td', 'mtbl-mode');
+        td.append(el('span', 'mtbl-offval mono', mi === 0 ? `${r.px}px` : '—'));
         tr.append(td);
       }
     }
-    tr.append(el('td', 'szt-fill'));
+    tr.append(el('td', 'mtbl-fill'));
     tb.append(tr);
   }
   tbl.append(tb); scroll.append(tbl); box.append(scroll);
@@ -2807,35 +2795,105 @@ const renderLeadingTracking = (): HTMLElement => {
 
 /** Weight roles → numeric. A named role aliasing a primitive: semantic, and global —
  *  `emphasis` is the same numeric in every category (#112). */
+/** One stepper cell. `canDown`/`canUp` come from the caller because the constraint is axis-specific:
+ *  a size ramp must stay strictly increasing and the engine REFUSES otherwise, while weight roles are
+ *  only warned about — so faking a hard bound on weights would invent a rule the engine does not have. */
+const stepCell = (o: {
+  px: number; canDown: boolean; canUp: boolean; pinned: boolean;
+  title?: (v: number) => string; label: string;
+  step: (dir: -1 | 1) => number | undefined; write: (v: number | undefined) => void;
+}): HTMLElement => {
+  const wrap = el('div', 'mcell');
+  const mk = (glyph: string, dir: -1 | 1, enabled: boolean) => {
+    const b = el('button', 'mstep', glyph) as HTMLButtonElement;
+    b.disabled = !enabled;
+    const to = o.step(dir);
+    b.title = enabled && to !== undefined ? `${o.px} → ${to}` : (dir < 0 ? 'Already at the lowest available' : 'Already at the highest available');
+    b.setAttribute('aria-label', `${o.label} ${dir < 0 ? 'down' : 'up'}`);
+    b.onclick = () => o.write(o.step(dir));
+    return b;
+  };
+  const val = el('span', 'mval mono' + (o.pinned ? ' pin' : ''), String(o.px));
+  val.title = o.title ? o.title(o.px) : (o.pinned ? 'Set here' : 'Following the baseline');
+  wrap.append(mk('−', -1, o.canDown), val, mk('+', 1, o.canUp));
+  if (o.pinned) {
+    const r = el('button', 'mreset', '↺') as HTMLButtonElement;
+    r.title = 'Follow the baseline again';
+    r.setAttribute('aria-label', `Reset ${o.label}`);
+    r.onclick = () => o.write(undefined);
+    wrap.append(r);
+  } else wrap.append(el('span', 'mreset-sp'));
+  return wrap;
+};
+
+/** The weight-role table — same shape and geometry as the size tables so they stack on one grid.
+ *  Rows are weight ROLES, not sizes: a role is one numeric shared by every category that uses it,
+ *  which is why this cannot be extra rows in the size table. */
+const WEIGHT_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+const renderWeightTable = (): HTMLElement => {
+  const ty = theme.typography;
+  const modes = rp.modes;
+  const box = el('div', 'mtbl');
+  box.append(el('p', 'mtbl-cap', 'weight roles'));
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', 'Role'));
+  for (const m of modes) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    htr.append(th);
+  }
+  htr.append(el('th', 'mtbl-fill'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  for (const w of ty.weightRoles) {
+    const tr = el('tr');
+    const nameCell = el('td', 'mtbl-stick');
+    nameCell.append(el('span', 'mtbl-name mono', w.role));
+    tr.append(nameCell);
+    for (const m of modes) {
+      const isBase = m === 'light';
+      const override = isBase
+        ? (getPath(brandState, `typography.weightRoles.${w.role}`) as number | undefined)
+        : (getModeLever(m, `weights.${w.role}`) as number | undefined);
+      const value = override ?? (ty.weightRolesByMode?.[m]?.find((x) => x.role === w.role)?.value ?? w.value);
+      const idx = WEIGHT_STEPS.indexOf(value);
+      const step = (dir: -1 | 1) => (idx >= 0 ? WEIGHT_STEPS[idx + dir] : undefined);
+      const td = el('td', 'mtbl-mode');
+      td.append(stepCell({
+        px: value,
+        // Ends of the scale only. Roles may cross each other — the engine allows it and the warning
+        // below says so — so a neighbour bound here would be a rule the system does not actually have.
+        canDown: step(-1) !== undefined,
+        canUp: step(1) !== undefined,
+        pinned: override !== undefined,
+        label: `${w.role} weight${isBase ? '' : ` in ${m}`}`,
+        title: (v) => `${v} — ${WEIGHT_NAME[v] ?? ''}`.trim(),
+        step,
+        write: (v) => {
+          if (isBase) setPath(brandState, `typography.weightRoles.${w.role}`, v);
+          else setModeLever(m, `weights.${w.role}`, v);
+          applyFull();
+        },
+      }));
+      tr.append(td);
+    }
+    tr.append(el('td', 'mtbl-fill'));
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  return box;
+};
+
 const renderWeightRoles = (): HTMLElement => {
   const ty = theme.typography;
-  const perMode = currentMode !== 'light';
-  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  const textStack = ty.families.find((f) => f.role === 'text')?.stack.join(', ') ?? 'inherit';
   const sec = palSection('Weight roles', 'Each role maps to one CSS numeric, shared by every category — a relative-emphasis ladder from subtle to max. Per category you choose which roles ship, not what they weigh.');
-  for (const w of ty.weightRoles) {
-    const row = el('div', 'wr-row');
-    row.append(el('div', 'wr-name', w.role));
-    const sel = selectEl('sm');
-    if (perMode) {
-      const ov = getModeLever(currentMode, `weights.${w.role}`) as number | undefined;
-      sel.append(optionEl('', `Auto — ${w.value} ${WEIGHT_NAME[w.value] ?? ''}`.trim(), ov === undefined));
-      for (const n of [100, 200, 300, 400, 500, 600, 700, 800, 900]) sel.append(optionEl(String(n), `${n} — ${WEIGHT_NAME[n]}`, ov === n));
-      sel.onchange = () => { setModeLever(currentMode, `weights.${w.role}`, sel.value ? Number(sel.value) : undefined); applyFull(); };
-    } else {
-      for (const n of [100, 200, 300, 400, 500, 600, 700, 800, 900]) sel.append(optionEl(String(n), `${n} — ${WEIGHT_NAME[n]}`, n === w.value));
-      sel.onchange = () => { setPath(brandState, `typography.weightRoles.${w.role}`, Number(sel.value)); apply(); };
-    }
-    row.append(sel);
-    const samp = el('div', 'wr-samp', 'The quick brown fox');
-    samp.style.fontWeight = String(w.value); samp.style.fontFamily = textStack;
-    row.append(samp, tokenPill(`font.weight-role.${w.role}`));
-    sec.append(row);
-  }
+  sec.append(renderWeightTable());
   const eff = ty.weightRoles.map((w) => w.value);
   if (eff.some((v, i) => i > 0 && v < eff[i - 1]))
     sec.append(el('p', 'te-order-warn', '⚠ A heavier role now resolves lighter than one below it — the names read as relative emphasis (subtle → strong), so keeping them in order stays honest. A warning, not a block.'));
-  if (perMode) sec.append(el('p', 'te-modenote', `Numerics shown are ${modeLabel}’s — “Auto” follows the global baseline.`));
   return sec;
 };
 
@@ -5033,44 +5091,44 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .szt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .szt-headlab{font-size:13px;font-weight:620;color:var(--ink)}
 .szt-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:100px;background:var(--paper);border:1px solid var(--line2);color:var(--ink2)}
-.szt{margin-top:18px}
-.szt-cap{margin:0 0 7px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.mtbl{margin-top:18px}
+.mtbl-cap{margin:0 0 7px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 /* Wide tables scroll in their own container so the page body never does (doc 26). The size column is
    pinned so the names survive that scroll. A trailing FILLER column absorbs any slack, which is what
    keeps the size column and every mode column at a fixed width whether the brand has one mode or six
    — without it width:100% hands all the spare width to the single-mode case. */
-.szt-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
-.szt-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
-.szt-tbl th,.szt-tbl td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
-.szt-tbl thead th{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
-.szt-tbl tbody tr:last-child td{border-bottom:0}
-.szt-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);width:var(--tbl-col-name);min-width:var(--tbl-col-name)}
-.szt-tbl thead .szt-stick{z-index:3;background:var(--paper)}
+.mtbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
+.mtbl-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.mtbl-tbl th,.mtbl-tbl td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.mtbl-tbl thead th{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
+.mtbl-tbl tbody tr:last-child td{border-bottom:0}
+.mtbl-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);width:var(--tbl-col-name);min-width:var(--tbl-col-name)}
+.mtbl-tbl thead .mtbl-stick{z-index:3;background:var(--paper)}
 /* Mode columns are equal and fixed: past roughly five modes the total exceeds the pane and the
    container scrolls, rather than the columns compressing until the steppers stop fitting. */
-.szt-mode{width:var(--tbl-col-mode);min-width:var(--tbl-col-mode)}
-.szt-fill{width:auto;padding:0 !important;border-bottom-color:var(--line)}
-.szt-name{font-size:12.5px;font-weight:600;color:var(--ink)}
+.mtbl-mode{width:var(--tbl-col-mode);min-width:var(--tbl-col-mode)}
+.mtbl-fill{width:auto;padding:0 !important;border-bottom-color:var(--line)}
+.mtbl-name{font-size:12.5px;font-weight:600;color:var(--ink)}
 /* Out-of-range rows stay VISIBLE rather than disappearing — a size the ramp could have is a fact
    worth showing, and its absence from the table was reading as "this brand has no lg display". */
-.szt-off td{background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(24,24,27,.028) 5px,rgba(24,24,27,.028) 10px)}
-.szt-off .szt-stick{background:var(--panel)}
-.szt-off .szt-name{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
-.szt-offval{font-size:12.5px;color:var(--faint)}
-.szt-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
+.mtbl-off td{background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(24,24,27,.028) 5px,rgba(24,24,27,.028) 10px)}
+.mtbl-off .mtbl-stick{background:var(--panel)}
+.mtbl-off .mtbl-name{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
+.mtbl-offval{font-size:12.5px;color:var(--faint)}
+.mtbl-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
 /* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
    filtered dropdown just omitted the option and never said why. */
-.szcell{display:inline-flex;align-items:center;gap:4px}
-.szstep{font:inherit;font-size:13px;line-height:1;width:22px;height:24px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;flex:none}
-.szstep:hover:not(:disabled){border-color:var(--muted)}
-.szstep:disabled{opacity:.32;cursor:not-allowed}
-.szstep:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
-.szval{font-size:12.5px;min-width:32px;text-align:center;color:var(--muted)}
-.szval.pin{color:var(--ink);font-weight:650}
-.szreset{font:inherit;font-size:12px;line-height:1;width:20px;height:24px;border:1px solid transparent;border-radius:var(--r-xs);background:none;color:var(--faint);cursor:pointer;flex:none}
-.szreset:hover{color:var(--ink2)}
-.szreset:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
-.szreset-sp{display:inline-block;width:20px;flex:none}
+.mcell{display:inline-flex;align-items:center;gap:4px}
+.mstep{font:inherit;font-size:13px;line-height:1;width:22px;height:24px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;flex:none}
+.mstep:hover:not(:disabled){border-color:var(--muted)}
+.mstep:disabled{opacity:.32;cursor:not-allowed}
+.mstep:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.mval{font-size:12.5px;min-width:32px;text-align:center;color:var(--muted)}
+.mval.pin{color:var(--ink);font-weight:650}
+.mreset{font:inherit;font-size:12px;line-height:1;width:20px;height:24px;border:1px solid transparent;border-radius:var(--r-xs);background:none;color:var(--faint);cursor:pointer;flex:none}
+.mreset:hover{color:var(--ink2)}
+.mreset:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.mreset-sp{display:inline-block;width:20px;flex:none}
 
 /* Typography — Foundations / Styles tabs (#272) */
 .tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}

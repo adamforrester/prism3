@@ -7,6 +7,39 @@
 
 ---
 
+## (2026-08-01) — Weight roles converted to the per-mode table
+
+**STATUS: web.** Second table in the format, and the first real test of whether it generalizes.
+
+- **The constraint is axis-specific, and pretending otherwise would have invented a rule.** Sizes must
+  stay strictly increasing — the engine *throws*. Weight roles need not: verified directly that
+  `weightRoles: { default: 700, strong: 300 }` builds fine, and crossing is only a UI **warning**. So
+  the weight steppers bound at the ends of the scale (100/900) and never on a neighbour, and the
+  existing order warning is now the only thing reporting a crossing. A neighbour bound here would have
+  looked consistent and been a lie about the system.
+- **One stepper implementation, not two.** `stepCell` takes `canDown`/`canUp` from its caller, so the
+  geometry is shared and only the rule differs. `sizeCell` now delegates to it — the alternative was
+  two implementations that look identical until one drifts.
+- **The `.szt-*` → `.mtbl-*` rename finally earned itself.** It was deferred deliberately when the
+  wireframe raised shared widths, on the grounds that a second table did not exist yet. It does now,
+  and reusing "size table" classes for weight roles would have been actively misleading. 51 renames,
+  mechanical. The Customize toggle row keeps its `szt-head` naming — it belongs to the sizes section,
+  not to the table.
+- **Shared geometry, measured across all four tables:** exactly one distinct sticky-column width
+  (112px) and one distinct mode-column width (148px) over display / title / eyebrow / weight roles.
+  That is the down-page consistency the owner asked for, and it holds because both tables read the
+  same `--tbl-col-*` custom properties.
+- **A weak assertion, caught and strengthened.** The first pass "proved" a pinned cell holds while the
+  baseline moves — but both landed on 200, so a *following* cell would have passed identically. Re-ran
+  with the pin two steps above the baseline: dark held at 500 while the baseline went 300→200, then
+  followed to 200 after reset. The `.pin` class was the only sound part of the original check.
+- **Dropped from the old editor:** the per-row `The quick brown fox` specimen. A weight number is
+  meaningless without seeing it, so this is a real loss — taken deliberately because row-height parity
+  across the tables is the point, and because the typography preview tab (next) is where a specimen
+  belongs. Worth re-checking once that lands.
+
+---
+
 ## (2026-08-01) — Type-size editor: fixes from the deployed build
 
 **STATUS: web.** Owner reviewed #354 running on the preview and logged seven issues. Worth recording
