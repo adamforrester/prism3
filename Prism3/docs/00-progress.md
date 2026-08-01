@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-01) — Leading & tracking split across the two tabs
+
+**STATUS: web.** Not a restyle — the section was doing two unrelated jobs and one of them had become
+unreachable. Stacked on the Preview tab (#358), which is still open and touches the same dispatch.
+
+- **The bug that made this urgent.** `renderLeadingTracking` swapped itself for a per-mode re-point
+  editor whenever `currentMode !== 'light'` (#296). #350 then hid the mode switcher on Foundations,
+  because Foundations is primitives and primitives do not vary by mode. Both decisions are right;
+  together they stranded the section. Measured on Foundations with the authoring context left in Dark:
+  `{ switcherVisibleOnFoundations: false, leadingShowsRepointSelects: 12, leadingShowsNumericInputs: 0 }`
+  — the numeric editor was unreachable without detouring to Styles, switching to Light, and coming
+  back, and the switcher that put you in Dark was gone. Now: 12 numeric inputs, 0 selects, regardless
+  of authoring context.
+- **The split follows the tab line already drawn.** Rung VALUES are mode-invariant primitives, so they
+  stay on Foundations and no longer branch at all. RE-POINTS are per-mode bindings, so they move to
+  Styles as two `.mtbl-*` tables (line height, letter spacing) where the mode axis actually exists.
+- **Selects, not steppers.** A re-point is an enum choice with an Auto state — doc 26 puts 3+ options
+  in a select. Steppers would imply the rungs are an ordered scale you nudge along, which is the
+  Foundations operation, not this one.
+- **Light's cell is text, and that asymmetry is deliberate.** In the size and weight tables Light is
+  editable because the table can write the brand-level field. Here it cannot: the value is a shared
+  primitive, so the cell shows the number and its title points at Foundations. Reading a row —
+  `tight | 1.05× | relaxed` — the baseline column is what the substitution is measured against.
+- **A select's intrinsic min-width is its widest OPTION, and that silently broke column parity.**
+  Measured 166px against the stepper tables' 148px token: the table is auto-layout, so `min-width` on
+  the `td` is a floor the content can exceed. Two fixes, both needed — clamp the control to
+  `calc(var(--tbl-col-mode) - 24px)` (24px being the cell padding), and cut the option labels down to
+  bare rung names. Labels alone were not enough: a closed select renders the same text it lists, so
+  `relaxed · 1.65×` ellipsised to `relaxed · 1...`, truncating the one thing a cell must always say.
+  The values live one column to the left on every row, so nothing is lost. Six tables now measure
+  `112/148/148/390` identically, asserted as a set-size-1 check rather than by eye.
+- **Verified end-to-end on the "Start blank" brand with Dark added**, not just structurally: re-pointing
+  `normal` → `loose` moved 21 of 38 ramp rows, and the diff is confined to the Dark column with Light
+  byte-identical — which is what a per-mode re-point means. Zero clipped selects, no horizontal body
+  scroll, no page errors.
+- **Still stranded, same shape, out of scope here:** `renderTypefaces` on Foundations keeps its own
+  `perMode` branch and its "Editing X's bindings" note. It is the next one, and it wants the families
+  table the wireframe already sketched — one concern per PR.
+
+---
+
 ## (2026-08-01) — Typography Preview tab
 
 **STATUS: web.** Third tab on Typography — everything the system generates, at size, in every mode.

@@ -2400,8 +2400,14 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
       ? 'Semantics — the named styles your product actually uses.'
       : 'Everything the system generates, at size, in every mode. Nothing here is editable.'));
   if (typeTab === 'foundations') h.append(renderTypefaces(), renderSizeLadder(), renderWeightScale(), renderLeadingTracking());
-  else if (typeTab === 'styles') h.append(renderTypeSizes(), renderWeightRoles(), renderCategorySetup(), renderResponsiveEditor());
-  else h.append(renderTypePreview());
+  else if (typeTab === 'styles') {
+    // Sizes → weights → leading/tracking: the three per-mode tables stack first, on one column grid,
+    // before the composite skeleton that consumes them.
+    h.append(renderTypeSizes(), renderWeightRoles());
+    const repoints = renderRepoints();
+    if (repoints) h.append(repoints);
+    h.append(renderCategorySetup(), renderResponsiveEditor());
+  } else h.append(renderTypePreview());
   // The ramp stays in the Styles aside as well — doc 26 wants a section to carry its own specimen in
   // context, and the tabs are exclusive, so it is never rendered twice at once.
 }, () => (typeTab === 'styles' ? [renderTypeRamp()] : []));
@@ -2817,13 +2823,16 @@ const renderWeightScale = (): HTMLElement => {
 
 /** Leading + tracking rungs. As of the brand-editable rung values these are real inputs in
  *  Light (they were read-only, with no global lever behind them at all). */
+/** The rung VALUES — mode-invariant primitives, so this section never varies by mode. It used to
+ *  swap itself for a per-mode re-point editor outside Light (#296), which the #350 decision to hide
+ *  the mode switcher on Foundations left stranded: the switcher that put you in Dark was gone, so
+ *  the numeric editor became unreachable without a detour through Styles. The re-point half now
+ *  lives on Styles (`renderRepoints`), where the mode axis actually exists. */
 const renderLeadingTracking = (): HTMLElement => {
   const ty = theme.typography;
-  const perMode = currentMode !== 'light';
-  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  const sec = palSection('Leading & tracking', 'Two fixed sets of named rungs, sitting alongside the size ladder. Re-anchor what a rung is worth here; which rung a category lands on is chosen for you from its size and role, and nudged per category on the Styles tab.');
-  const ramp = (title: string, steps: { key: string; val: number }[], fmt: (v: number) => string,
-    globalKey: string, modeField: string, min: number, max: number, step: number,
+  const sec = palSection('Leading & tracking', 'Two fixed sets of named rungs, sitting alongside the size ladder. Re-anchor what a rung is worth here — one number each, shared by every mode. Which rung a category lands on is chosen for you from its size and role, nudged per category on the Styles tab, and re-pointed per mode there too.');
+  const ramp = (title: string, steps: { key: string; val: number }[],
+    globalKey: string, modeField: 'lineHeights' | 'letterSpacings', min: number, max: number, step: number,
     preview: (host: HTMLElement, v: number) => void): void => {
     sec.append(subHead(title));
     const grid = el('div', 'lt-grid');
@@ -2831,27 +2840,12 @@ const renderLeadingTracking = (): HTMLElement => {
       const cell = el('div', 'lt-cell');
       const top = el('div', 'lt-top');
       top.append(el('span', 'lt-key mono', s.key));
-      // #296 — two DIFFERENT operations, so two different controls. In Light you edit the rung's VALUE
-      // (a brand-wide re-anchor of a mode-invariant primitive). In any other mode you pick a TARGET
-      // RUNG (a re-point for that mode) — never a number, because a mode may not redefine a primitive.
-      if (perMode) {
-        const ov = getModeLever(currentMode, `${modeField}.${s.key}`) as string | undefined;
-        const sel = selectEl('sm fill');
-        sel.append(optionEl('', `Auto — ${s.key} (${fmt(s.val)})`, !ov));
-        for (const t of steps) {
-          if (t.key === s.key) continue;                       // a self-map is a no-op; don't offer it
-          sel.append(optionEl(t.key, `${t.key} (${fmt(t.val)})`, ov === t.key));
-        }
-        sel.onchange = () => { setModeLever(currentMode, `${modeField}.${s.key}`, sel.value || undefined); applyFull(); };
-        top.append(sel);
-      } else {
-        const inp = numberField({ className: 'lt-in', min, max, step, value: s.val });
-        inp.onchange = () => {
-          const n = Number(inp.value);
-          if (n >= min && n <= max) { setPath(brandState, `${globalKey}.${s.key}`, n); apply(); } else inp.value = String(s.val);
-        };
-        top.append(inp);
-      }
+      const inp = numberField({ className: 'lt-in', min, max, step, value: s.val });
+      inp.onchange = () => {
+        const n = Number(inp.value);
+        if (n >= min && n <= max) { setPath(brandState, `${globalKey}.${s.key}`, n); apply(); } else inp.value = String(s.val);
+      };
+      top.append(inp);
       cell.append(top);
       const who = [...new Set(ty.composites.filter((c) => (modeField === 'lineHeights' ? c.lineHeight : c.tracking) === s.key).map((c) => c.group))];
       cell.append(el('div', 'lt-who', who.length ? who.join(', ') : 'not currently used'));
@@ -2862,13 +2856,12 @@ const renderLeadingTracking = (): HTMLElement => {
     }
     sec.append(grid);
   };
-  ramp('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`,
+  ramp('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })),
     'typography.lineHeights', 'lineHeights', 0.8, 3, 0.05,
     (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
-  ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`,
+  ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })),
     'typography.letterSpacings', 'letterSpacings', -0.5, 0.5, 0.005,
     (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
-  if (perMode) sec.append(el('p', 'te-modenote', `Each rung shows what ${modeLabel} SUBSTITUTES for it — “Auto” keeps the rung itself. The rung values are mode-invariant primitives, shared across every mode; to change what a rung is worth, edit it in Light.`));
   return sec;
 };
 
@@ -2982,6 +2975,83 @@ const renderWeightRoles = (): HTMLElement => {
   const eff = ty.weightRoles.map((w) => w.value);
   if (eff.some((v, i) => i > 0 && v < eff[i - 1]))
     sec.append(el('p', 'te-order-warn', '⚠ A heavier role now resolves lighter than one below it — the names read as relative emphasis (subtle → strong), so keeping them in order stays honest. A warning, not a block.'));
+  return sec;
+};
+
+/** One per-mode re-point table. Rows are RUNGS; a cell names the rung that mode substitutes — never
+ *  a number, because a mode may not redefine a primitive (the numbers are on Foundations). Selects,
+ *  not steppers: re-pointing is an enum choice with an Auto state, and doc 26 puts 3+ options in a
+ *  select. Same geometry tokens as the size and weight tables so all four line up on one grid. */
+const renderRepointTable = (
+  caption: string,
+  steps: { key: string; val: number }[],
+  fmt: (v: number) => string,
+  modeField: 'lineHeights' | 'letterSpacings',
+): HTMLElement => {
+  const modes = rp.modes;
+  const box = el('div', 'mtbl');
+  box.append(el('p', 'mtbl-cap', caption));
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', 'Rung'));
+  for (const m of modes) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    htr.append(th);
+  }
+  htr.append(el('th', 'mtbl-fill'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  for (const s of steps) {
+    const tr = el('tr');
+    const nameCell = el('td', 'mtbl-stick');
+    nameCell.append(el('span', 'mtbl-name mono', s.key));
+    tr.append(nameCell);
+    for (const m of modes) {
+      const td = el('td', 'mtbl-mode');
+      if (m === 'light') {
+        // Light IS the baseline, so its cell can only ever resolve to the row's own rung. Showing the
+        // VALUE rather than repeating the name earns the cell its width: it is the number every other
+        // cell in the row is a substitution for.
+        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
+        self.title = `The baseline. Change what ${s.key} is worth on the Foundations tab — it is one number, shared by every mode.`;
+        td.append(self);
+      } else {
+        const ov = getModeLever(m, `${modeField}.${s.key}`) as string | undefined;
+        // A set cell carries the same "pinned" weight the stepper tables give `.mval.pin`, so a scan
+        // down the column finds the overrides without reading every label.
+        const sel = selectEl(ov ? 'sm set' : 'sm');
+        // Rung NAMES only, no values. A closed select renders the same text it lists, and the shared
+        // column width ellipsised "relaxed · 1.65×" down to "relaxed · 1..." — truncating the one
+        // thing a cell must always say. The values are one column to the left, on every row.
+        sel.append(optionEl('', 'Auto', !ov));
+        for (const t of steps) {
+          if (t.key === s.key) continue;                       // a self-map is a no-op; don't offer it
+          sel.append(optionEl(t.key, t.key, ov === t.key));
+        }
+        sel.setAttribute('aria-label', `${s.key} in ${MODE_LABEL[m] ?? m}`);
+        sel.onchange = () => { setModeLever(m, `${modeField}.${s.key}`, sel.value || undefined); applyFull(); };
+        td.append(sel);
+      }
+      tr.append(td);
+    }
+    tr.append(el('td', 'mtbl-fill'));
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  return box;
+};
+
+/** Hidden entirely for a single-mode brand: with no second mode there is nothing to re-point to, and
+ *  every cell would be the read-only baseline. */
+const renderRepoints = (): HTMLElement | null => {
+  if (rp.modes.length < 2) return null;
+  const ty = theme.typography;
+  const sec = palSection('Leading & tracking per mode', 'A mode can swap one rung for another — a dark theme that wants everything a step looser, a compact mode that tightens. Rows are the rungs from Foundations, with what each is worth in the baseline column; every other column names the rung that mode substitutes. “Auto” keeps the rung itself.');
+  sec.append(renderRepointTable('line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`, 'lineHeights'));
+  sec.append(renderRepointTable('letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`, 'letterSpacings'));
   return sec;
 };
 
@@ -5207,6 +5277,14 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mtbl-off .mtbl-stick{background:var(--panel)}
 .mtbl-off .mtbl-name{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
 .mtbl-offval{font-size:12.5px;color:var(--faint)}
+/* Light's cell in a re-point table: it can only name itself, so it is text rather than a select. */
+.mtbl-selfval{font-size:12.5px;color:var(--muted);white-space:nowrap}
+/* A select's intrinsic min-width is its WIDEST OPTION, and the table is auto-layout, so a long rung
+   label silently pushed the mode column past the shared token (166px against the stepper tables'
+   148px) and broke the down-page column parity these tables exist to hold. Clamp the control to the
+   column and let the closed select ellipsis instead. 24px is the cell's horizontal padding. */
+.mtbl-mode .select{width:calc(var(--tbl-col-mode) - 24px);min-width:0;text-overflow:ellipsis}
+.mtbl-mode .select.set{font-weight:650;border-color:var(--ink2)}
 .mtbl-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
 /* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
    filtered dropdown just omitted the option and never said why. */
