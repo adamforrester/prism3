@@ -2315,20 +2315,77 @@ const renderTypePreview = (): HTMLElement => {
   ft.append(fb); fscroll.append(ft); ftbl.append(fscroll); fam.append(ftbl);
   wrap.append(fam);
 
-  // Weight roles — the specimen the numbers cannot carry.
-  const wsec = palSection('Weight roles', 'Each role at the numeric it resolves to. Set them on Styles.');
-  const wgrid = el('div', 'tp-wgrid');
-  const textStack = ty.families.find((x) => x.role === 'text')?.stack.join(', ') ?? 'inherit';
-  for (const w of ty.weightRoles) {
-    const row = el('div', 'tp-wrow');
-    row.append(el('span', 'tp-wkey mono', w.role), el('span', 'tp-wnum mono', `${w.value} ${WEIGHT_NAME[w.value] ?? ''}`.trim()));
-    const samp = el('span', 'tp-wsamp', 'The quick brown fox jumps over the lazy dog');
-    samp.style.fontWeight = String(w.value);
-    samp.style.fontFamily = textStack;
-    row.append(samp);
-    wgrid.append(row);
+  // Weight roles × faces (#362) — the availability matrix that used to sit on Foundations as a
+  // read-only table on an editing tab. Rows are the ROLES (what the system actually ships), columns
+  // are the FACES, so it survives a brand with many faces where a fixed per-family table did not:
+  // `.mtbl-scroll` takes the overflow. The specimen #356 dropped from the weights EDITOR comes back
+  // here, once per face rather than once overall — "600 in Inter" and "600 in a face that stops at
+  // 500" are different facts, and only a specimen per face shows it.
+  //
+  // MODE-BLIND BY DECISION (owner, 2026-08-01): a role's numeric can be re-pointed per mode
+  // (`weightRolesByMode`), but availability is a property of the FACE and does not vary by mode, so
+  // the table's core fact stays true. Base numerics + a flag naming any re-pointed role, rather than
+  // a third axis. The faces column set IS a union across modes though — a face bound only in Dark
+  // still ships (or doesn't ship) these weights, so hiding it would drop a real availability fact.
+  const wsec = palSection('Weight roles by face', 'Each role at the numeric it resolves to, and whether each face actually ships that weight. Availability is advisory — nothing here is ever blocked. Set the numerics on Styles.');
+  const faces: Array<{ name: string; stack: string; roles: string[] }> = [];
+  const addFace = (stackArr: string[] | undefined, role: string): void => {
+    if (!stackArr?.length) return;
+    const name = stackArr[0].replace(/["']/g, '').trim();
+    const found = faces.find((f) => f.name.toLowerCase() === name.toLowerCase());
+    if (found) { if (!found.roles.includes(role)) found.roles.push(role); return; }
+    faces.push({ name, stack: stackArr.join(', '), roles: [role] });
+  };
+  for (const f of ty.families) addFace(f.stack, f.role);
+  for (const m of rp.modes) for (const f of ty.familiesByMode?.[m] ?? []) addFace(f.stack, f.role);
+
+  const wtbl = el('div', 'mtbl');
+  const wscroll = el('div', 'mtbl-scroll');
+  const wt = el('table', 'mtbl-tbl');
+  const whead = el('thead'), whtr = el('tr');
+  whtr.append(el('th', 'mtbl-stick', 'Role'), el('th', 'mtbl-mode', 'Weight'));
+  for (const f of faces) {
+    const th = el('th', 'mtbl-fill mtbl-spec');
+    th.append(document.createTextNode(f.name));
+    th.append(el('span', 'mtbl-ro', ` ${f.roles.join(' · ')}`));
+    th.title = f.stack;
+    whtr.append(th);
   }
-  wsec.append(wgrid);
+  whead.append(whtr); wt.append(whead);
+  const wb = el('tbody');
+  for (const w of ty.weightRoles) {
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', w.role));
+    tr.append(nc);
+    tr.append(el('td', 'mtbl-mode', `${w.value} ${WEIGHT_NAME[w.value] ?? ''}`.trim()));
+    for (const f of faces) {
+      const known = knownWeightsOf(f.name);
+      const ships = !known ? null : known.includes(w.value);
+      const td = el('td', 'mtbl-fill mtbl-spec');
+      td.append(el('span', 'tpw-mark ' + (ships === null ? 'unknown' : ships ? 'yes' : 'no'), ships === null ? '?' : ships ? '●' : '○'));
+      const samp = el('span', 'mtbl-spec-t tpw-samp', 'The quick brown fox');
+      samp.style.fontWeight = String(w.value);
+      samp.style.fontFamily = f.stack;
+      td.append(samp);
+      td.title = ships === null ? `${f.name} — unknown family, availability cannot be asserted`
+        : ships ? `${f.name} ships ${w.value}` : `${f.name} may not ship ${w.value} — falls back to the nearest`;
+      tr.append(td);
+    }
+    wb.append(tr);
+  }
+  wt.append(wb); wscroll.append(wt); wtbl.append(wscroll); wsec.append(wtbl);
+  wsec.append(el('p', 'sl-note', '● ships it · ○ may not (falls back to the nearest) · ? unknown family, not flagged. A specimen that looks identical to the row above it is the fallback showing — that is what ○ predicts.'));
+  // The one fact the mode-blind shape would otherwise swallow: say which roles a mode re-points, and
+  // where to see it, rather than silently showing Light's numeric as if it were the only one.
+  const repointed = ty.weightRoles
+    .filter((w) => rp.modes.some((m) => {
+      const v = ty.weightRolesByMode?.[m]?.find((x) => x.role === w.role)?.value;
+      return v !== undefined && v !== w.value;
+    }))
+    .map((w) => w.role);
+  if (repointed.length)
+    wsec.append(el('p', 'sl-note', `Baseline numerics shown. ${repointed.length === 1 ? 'One role is' : `${repointed.length} roles are`} re-pointed in at least one mode (${repointed.join(', ')}) — see Weight roles on the Styles tab for the per-mode values. Availability itself does not vary by mode.`));
   wrap.append(wsec);
 
   // And the ramp itself, full width rather than squeezed into the aside.
@@ -2360,7 +2417,7 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
     : typeTab === 'styles'
       ? 'Semantics — the named styles your product actually uses.'
       : 'Everything the system generates, at size, in every mode. Nothing here is editable.'));
-  if (typeTab === 'foundations') h.append(renderTypefaces(), renderSizeLadder(), renderWeightScale(), renderLeadingTracking());
+  if (typeTab === 'foundations') h.append(renderTypefaces(), renderSizeLadder(), renderLeadingTracking());
   else if (typeTab === 'styles') {
     // Sizes → weights → leading/tracking: the three per-mode tables stack first, on one column grid,
     // before the composite skeleton that consumes them.
@@ -2755,35 +2812,6 @@ const renderSizeLadder = (): HTMLElement => {
   const kdot = (cls: string, text: string): HTMLElement => { const s = el('span', 'sl-keyi'); s.append(el('i', cls), document.createTextNode(text)); return s; };
   key.append(kdot('k-head', 'moves with these levers (display, title, eyebrow)'), kdot('k-fix', 'fixed — body, label, caption, code'), kdot('k-off', 'rung unused by any category'));
   sec.append(key);
-  return sec;
-};
-
-/** The nine weight numerics, with per-face availability. This is the right home for the
- *  KNOWN_WEIGHTS advisory — it is a fact about the FONT, not about a category. */
-const renderWeightScale = (): HTMLElement => {
-  const ty = theme.typography;
-  const sec = palSection('Weight scale', 'The nine CSS weight numerics. Whether a face actually ships a weight is advisory — an unknown or custom family is never flagged, and nothing here is ever blocked.');
-  const table = el('table', 'ws-table');
-  const head = el('tr');
-  head.append(el('th', undefined, 'Weight'));
-  for (const [role] of FAMILY_ROLES) head.append(el('th', 'ws-c', ty.families.find((f) => f.role === role)?.stack[0] ?? role));
-  table.append(head);
-  for (const n of [100, 200, 300, 400, 500, 600, 700, 800, 900]) {
-    const tr = el('tr');
-    const nameTd = el('td');
-    nameTd.append(el('span', 'ws-num mono', String(n)), el('span', 'ws-name', WEIGHT_NAME[n]));
-    tr.append(nameTd);
-    for (const [role] of FAMILY_ROLES) {
-      const known = knownWeightsOf(ty.families.find((f) => f.role === role)?.stack[0]);
-      const td = el('td', 'ws-c');
-      td.append(el('span', 'ws-mark ' + (!known ? 'unknown' : known.includes(n) ? 'yes' : 'no'), !known ? '?' : known.includes(n) ? '●' : '○'));
-      td.title = !known ? 'Unknown family — availability cannot be asserted' : known.includes(n) ? 'Ships this weight' : 'May not ship this weight — falls back to the nearest';
-      tr.append(td);
-    }
-    table.append(tr);
-  }
-  sec.append(table);
-  sec.append(el('p', 'sl-note', '● ships it · ○ may not (falls back to the nearest) · ? unknown family, not flagged. Which numeric each named role maps to is a semantic decision — see Weight roles on the Styles tab.'));
   return sec;
 };
 
@@ -5333,14 +5361,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
 
 /* Typography Preview tab — read-only specimens at size, in every mode. */
 .tp-fam{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-.tp-wgrid{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-.tp-wrow{display:flex;align-items:baseline;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
-.tp-wrow:last-child{border-bottom:0}
 /* Same 112px / 148px as the tables, from the shared tokens, so the page reads on one grid even
    where the content is a specimen rather than a control. */
-.tp-wkey{flex:none;width:var(--tbl-col-name);font-size:12.5px;font-weight:600;color:var(--ink)}
-.tp-wnum{flex:none;width:var(--tbl-col-mode);font-size:12px;color:var(--muted)}
-.tp-wsamp{flex:1;min-width:0;font-size:17px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* Typography — Foundations / Styles tabs (#272) */
 .tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
@@ -5391,14 +5413,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sl-keyi{display:inline-flex;align-items:center;gap:5px}
 .sl-keyi i{width:6px;height:6px;border-radius:50%;display:inline-block}
 .sl-keyi i.k-head{background:#3f6ae0}.sl-keyi i.k-fix{background:var(--ink)}.sl-keyi i.k-off{background:var(--line2)}
-.ws-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
-.ws-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:0 9px 10px;white-space:nowrap}
-.ws-table td{padding:8px 9px;border-top:1px solid var(--line)}
-.ws-table th.ws-c,.ws-table td.ws-c{text-align:center}
-.ws-num{font-size:12px;font-weight:640;margin-right:8px}
-.ws-name{color:var(--muted)}
-.ws-mark{font-size:12px}
-.ws-mark.yes{color:var(--ink)}.ws-mark.no{color:var(--faint)}.ws-mark.unknown{color:var(--line2)}
+/* The availability marks, carried over from the deleted Foundations weight scale (#362) — the mark
+   vocabulary is unchanged, only its home. tpw-samp overrides the shared specimen size down, since
+   this cell holds a mark beside it in a face column rather than owning a full-width row.
+   (No backticks in here — this whole block is a template literal.) */
+.tpw-mark{font-size:12px;margin-right:7px}
+.tpw-mark.yes{color:var(--ink)}.tpw-mark.no{color:var(--faint)}.tpw-mark.unknown{color:var(--line2)}
+.tpw-samp{display:inline;font-size:15px}
 .lt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .lt-cell{border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 12px;min-width:0}
 .lt-top{display:flex;align-items:center;justify-content:space-between;gap:10px}

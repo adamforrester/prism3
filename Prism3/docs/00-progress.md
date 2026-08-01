@@ -7,6 +7,48 @@
 
 ---
 
+## (2026-08-01) — Weight availability moves to Preview as roles × faces (#362)
+
+**STATUS: web.** Answers #328 Q2 ("delete or repurpose the Foundations weight scale?") from the direction
+the owner's walkthrough proposed: the information was right, the *tab* was wrong. `renderWeightScale` was
+#103 Phase B **advisory availability** — read-only information sitting on an editing tab — and it is gone
+from Foundations.
+
+- **It replaced a section rather than adding one.** Preview already had a "Weight roles" block
+  (`tp-wgrid`): every role at its numeric, with a specimen — but only ever in the **text** face. So the
+  work was not "build a new table on Preview", it was "give the existing one its missing axis". That
+  reframing is what kept the diff small and is why the old `.tp-w*` CSS went out with the `.ws-*` CSS.
+- **The axes flipped, deliberately.** Old: rows = the 9 CSS numerics, columns = the 3 fixed family roles.
+  New: rows = the **5 weight roles the system actually ships**, columns = the **faces**. The old shape
+  had a fixed column count and enumerated numerics nothing used; the new one puts the open-ended axis
+  (faces) where `.mtbl-scroll` can take the overflow, which is what makes it survive #287's typeface
+  library.
+- **Mode-blind by decision, not by omission** (owner-confirmed). A role's numeric can be re-pointed per
+  mode (`weightRolesByMode` — real, and emitted to Figma by `emit-figma-font.ts`), so role × face × mode
+  is three axes into a 2D table. Resolution: **availability is a property of the FACE and does not vary
+  by mode**, so the table's core fact stays true with base numerics, and a flag names any re-pointed role
+  rather than silently presenting Light's numeric as the only one. Both branches of that flag were driven
+  in the browser — two re-points → "2 roles are re-pointed … (emphasis, strong)", revert one → "One role
+  is re-pointed … (emphasis)".
+- **The face column set is a UNION across modes**, which is the one place mode-blindness would have lost
+  something real: a face bound only in Dark still ships (or doesn't ship) these weights. Deduped
+  case-insensitively on the primary family name, with the binding roles shown in the column header
+  (`Inter display · text`).
+- **The specimen #356 removed comes back here, once per face** — and it earns its place rather than
+  decorating. In the default brand the `max` row (900) renders **visually identical to `strong` (700) in
+  JetBrains Mono**, because mono stops at 800 and the browser falls back. That is the `○` mark being
+  *shown* rather than asserted, so the legend now says so explicitly: a specimen matching the row above
+  it is the fallback you were warned about.
+- **Trap**: the CSS block is a **template literal**. A comment containing backticks (I wrote
+  `` `tpw-samp` ``) silently terminates the string and produces two confusing `TS1005: ',' expected`
+  errors pointing at CSS, not at the quote. The comment there now says so.
+- **Verified**: Foundations is down to Typefaces / size ladder / Leading & tracking with zero `.ws-table`
+  and no "Weight scale" text; Preview's table measures `112/148/269/269` = **798px**, no scroll overflow,
+  no body scroll; every cell's computed `font-weight` and `font-family` match its row and column; no page
+  errors.
+
+---
+
 ## (2026-08-01) — Responsive type sizing moves to Layout (#361)
 
 **STATUS: web.** A relocation, not a behavior change: `minViewport`/`maxViewport` are viewport thresholds
