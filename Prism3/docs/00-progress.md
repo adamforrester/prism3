@@ -7,6 +7,38 @@
 
 ---
 
+## (2026-08-01) — Type-size editor: fixes from the deployed build
+
+**STATUS: web.** Owner reviewed #354 running on the preview and logged seven issues. Worth recording
+that these were found by *looking at the deployed page*, not by any gate — every one of them passed
+typecheck, tests and the browser assertions I wrote, because I asserted behavior and never measured
+layout.
+
+- **`[object Object]` in the display-ceiling select.** Lever `options` are `{value, label}` objects and
+  I stringified the object. The manifest labels are also internal jargon ("display.sm (1 rung)"), so
+  rather than use them the options are now priced — `2xl — 128px`. That needs ONE candidate build at
+  the largest ceiling, because the live ramp is trimmed by the current ceiling and cannot price the
+  options above it; the display base steps are not uniform on the ladder (48→64 spans two), so
+  extrapolating would have been wrong.
+- **Description stranded below the controls.** `knob` renders its description *after* the body, which
+  reads fine under a single field and badly under a card grid — you reach the explanation after making
+  the choice. A local `fieldBlock` puts label + description above the controls. Deliberately local:
+  changing `knob` would move the description on every control on every page.
+- **Toggle row read "switch · state · orphaned number".** The size now sits between the switch and its
+  On/Off readout, by inserting before `.knob-val` rather than appending.
+- **The baseline column was tinted** and the size column drifted right with one mode. Both came from
+  the same root cause: `width:100%` with few columns hands all the slack to the last one. A trailing
+  filler column absorbs it, so the size column (112px) and every mode column (148px) hold identical
+  widths at one mode and at five — measured, not eyeballed.
+- **Mode columns now scroll rather than compress.** 112 + 5×148 = 852 against a 798px pane, so the
+  container scrolls at five modes and fits four. That is the threshold the owner asked for, and it
+  falls out of the fixed widths rather than being hardcoded.
+- **Trap: backticks inside the CSS.** The stylesheet is a template literal, so a backtick in a CSS
+  comment terminates it. `tsc` caught it as a stray syntax error two thousand lines away from the
+  cause.
+
+---
+
 ## (2026-08-01) — The type-size editor (shape · range · per-size table)
 
 **STATUS: web.** The UI half of #353, designed across several wireframe rounds with the owner. Gives

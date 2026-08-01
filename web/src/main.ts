@@ -1847,6 +1847,15 @@ const renderGeneratedNote = (): HTMLElement => {
  *
  *  Two tiers, and the layout is what makes them legible: RANGE decides which rows exist and is shared
  *  by every mode; CELLS set sizes and are per-mode. */
+/** Label + description together, then the controls. `knob` puts the description AFTER the body,
+ *  which reads fine under a single field and badly under a card grid — by the time you reach the
+ *  explanation you have already made the choice. Local to this section rather than a change to
+ *  `knob`, which every other page depends on. */
+const fieldBlock = (label: string, desc: string, body: Node): HTMLElement => {
+  const w = el('div', 'tsz-field');
+  w.append(el('label', 'tsz-flabel', label), el('p', 'tsz-fdesc', desc), body);
+  return w;
+};
 const TYPE_SHAPES: Array<[string, string, string]> = [
   ['compact', 'Compact', 'Tighter steps. Denser screens and information-heavy products.'],
   ['default', 'Default', 'The balanced ramp. A safe starting point for most brands.'],
@@ -1947,11 +1956,12 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
   const thead = el('thead'), htr = el('tr');
   htr.append(el('th', 'szt-stick', 'Size'));
   for (const m of modes) {
-    const th = el('th');
+    const th = el('th', 'szt-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
     if (m === 'light') th.append(el('span', 'szt-ro', ' baseline'));
     htr.append(th);
   }
+  htr.append(el('th', 'szt-fill'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
   // Resolve each mode's full ramp once — a cell's legal range depends on its NEIGHBOURS in the same
@@ -1969,10 +1979,11 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
     nameCell.append(el('span', 'szt-name mono', r.variant));
     tr.append(nameCell);
     for (const m of modes) {
-      const td = el('td', m === 'light' ? 'szt-base' : '');
+      const td = el('td', 'szt-mode');
       td.append(sizeCell(group, rows, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
       tr.append(td);
     }
+    tr.append(el('td', 'szt-fill'));
     tb.append(tr);
   }
   tbl.append(tb); scroll.append(tbl); box.append(scroll);
@@ -2029,7 +2040,7 @@ const renderTypeSizes = (): HTMLElement => {
     warn.append(rel);
     cards.append(warn);
   }
-  sec.append(knob('Shape', cards, 'How the heading sizes step. Most brands never need more than this.'));
+  sec.append(fieldBlock('Shape', 'How the heading sizes step. Most brands never need more than this.', cards));
 
   // RANGE — the two set-membership levers together: different mechanisms, same action.
   const range = el('div', 'range-row');
@@ -2038,7 +2049,19 @@ const renderTypeSizes = (): HTMLElement => {
     const f = el('div', 'range-f');
     f.append(el('span', 'pfk', 'Largest display size'));
     const sel = selectEl('sm');
-    for (const o of ceil.options ?? []) sel.append(optionEl(String(o), String(o)));
+    // The live display ramp is TRIMMED by the current ceiling, so it cannot price the options above
+    // it. One candidate build at the largest ceiling gives every rung's px; the display base steps
+    // are not uniform on the ladder (48→64 spans two), so extrapolating would be wrong.
+    const opts = ceil.options ?? [];
+    let pxByVariant = new Map<string, number>();
+    try {
+      const full = brandTheme({ ...brandState, typography: { ...brandState.typography, displayCeiling: opts[opts.length - 1]?.value as any } } as BrandInput);
+      pxByVariant = new Map(full.typography.composites.filter((c) => c.group === 'display').map((c) => [c.variant, c.sizePx]));
+    } catch { /* fall back to bare rung names */ }
+    for (const o of opts) {
+      const px = pxByVariant.get(String(o.value));
+      sel.append(optionEl(String(o.value), px ? `${o.value} — ${px}px` : String(o.value)));
+    }
     sel.value = String(getPath(brandState, ceil.key) ?? ceil.default);
     sel.onchange = () => { setPath(brandState, ceil.key, sel.value); applyFull(); };
     f.append(sel);
@@ -2049,14 +2072,20 @@ const renderTypeSizes = (): HTMLElement => {
     f.append(el('span', 'pfk', 'Smallest title size'));
     const on = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
     const row = el('div', 'range-tg');
-    row.append(toggleField(on, (checked) => {
+    // toggleField returns [switch, On/Off readout]; the size belongs between them so the row reads
+    // "switch · what it is · whether it is on", not "switch · state · orphaned number".
+    const tf = toggleField(on, (checked) => {
       setPath(brandState, 'typography.titleFloor', checked ? 16 : undefined);
       applyFull();
-    }), el('span', 'range-tglab mono', '16px'));
+    });
+    const readout = tf.querySelector('.knob-val');
+    if (readout) tf.insertBefore(el('span', 'range-tglab mono', '16px'), readout);
+    else tf.append(el('span', 'range-tglab mono', '16px'));
+    row.append(tf);
     f.append(row);
     range.append(f);
   }
-  sec.append(knob('Range', range, 'Where the ramp starts and stops. Sizes outside it are not generated.'));
+  sec.append(fieldBlock('Range', 'Where the ramp starts and stops. Sizes outside it are not generated.', range));
 
   // CUSTOMIZE — hidden by default, but never hides the FACT that sizes are pinned.
   const pins = pinnedSizeCount();
@@ -2065,7 +2094,7 @@ const renderTypeSizes = (): HTMLElement => {
   head.append(toggleField(open, (checked) => { typeSizesOpen = checked; renderWorkspace(); }));
   head.append(el('span', 'szt-headlab', 'Customize individual sizes'));
   if (pins) head.append(el('span', 'szt-badge', `${pins} customized`));
-  sec.append(knob('Individual sizes', head, 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.'));
+  sec.append(fieldBlock('Individual sizes', 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.', head));
   if (open) for (const g of PER_MODE_SIZE_GROUPS) { const t = renderSizeTable(g); if (t) sec.append(t); }
   return sec;
 };
@@ -4918,43 +4947,61 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .tpill[data-sgtip]:hover::before{content:"";position:absolute;z-index:40;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#111417;pointer-events:none}
 @media(max-width:760px){.sg-g3,.sg-g5{grid-template-columns:repeat(2,1fr)}}
 /* Heading sizes — shape cards, range, and the per-size table (#328 follow-through) */
+/* Label + description, then controls. The gap under the description is what was missing: the cards
+   sat hard against the heading with the explanation stranded below them. */
+.tsz-field{margin-top:22px}
+.tsz-field:first-of-type{margin-top:6px}
+.tsz-flabel{display:block;font-weight:600;font-size:13.5px;color:var(--ink)}
+.tsz-fdesc{margin:3px 0 12px;font-size:12.5px;color:var(--muted);line-height:1.5;max-width:72ch}
+
 /* Option cards: a select cannot carry a sentence per option, and the shape is a foundational choice
    made once. Deviation from doc 26 (3+ options → select) — the rule that earns it is in doc 24. */
 .shape-cards{display:grid;gap:9px;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));width:100%}
-.shape-card{text-align:left;font:inherit;cursor:pointer;background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:11px 12px 12px;display:flex;flex-direction:column;gap:3px}
-.shape-card:hover{border-color:var(--muted)}
+.shape-card{text-align:left;font:inherit;cursor:pointer;background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:12px 13px 13px;display:flex;flex-direction:column;gap:3px}
+.shape-card:hover:not(:disabled){border-color:var(--muted)}
 .shape-card:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
 .shape-card.on{border-color:var(--ink);background:var(--panel);box-shadow:0 0 0 1px var(--ink)}
+.shape-card:disabled{opacity:.5;cursor:not-allowed}
 .shape-card b{font-size:13px;color:var(--ink)}
 .shape-card.on b::after{content:' ✓';font-size:11px}
 .shape-blurb{font-size:11.5px;color:var(--muted);line-height:1.4}
 .shape-nums{font-size:10.5px;color:var(--faint);margin-top:2px}
-.shape-card:disabled{opacity:.5;cursor:not-allowed}
-.shape-card:disabled:hover{border-color:var(--line2)}
 .shape-blocked{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:9px 11px}
 .shape-release{font:inherit;font-size:12px;padding:4px 10px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--panel);color:var(--ink);cursor:pointer}
 .shape-release:hover{border-color:var(--muted)}
 .shape-release:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
-.range-row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;width:100%}
-.range-f{display:flex;flex-direction:column;gap:5px}
-.range-tg{display:flex;align-items:center;gap:9px;height:31px}
-.range-tglab{font-size:12.5px;color:var(--ink2)}
+
+/* Range — the two fields align on their CONTROLS, not their labels, so the select and the toggle
+   sit on one line however tall the labels wrap. */
+.range-row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;width:100%}
+.range-f{display:flex;flex-direction:column;gap:6px}
+.range-f > .pfk{line-height:1.2}
+.range-f .select{min-width:158px}
+.range-tg{display:flex;align-items:center;min-height:31px}
+.range-tg .knob-body{margin-top:0}
+.range-tglab{font-size:12.5px;color:var(--ink);white-space:nowrap}
+
 .szt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .szt-headlab{font-size:13px;font-weight:620;color:var(--ink)}
 .szt-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:100px;background:var(--paper);border:1px solid var(--line2);color:var(--ink2)}
-.szt{margin-top:16px}
+.szt{margin-top:18px}
 .szt-cap{margin:0 0 7px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-/* Wide tables scroll in their own container so the page body never does (doc 26); the size column is
-   pinned because with several modes the names would otherwise scroll away from their own row. */
+/* Wide tables scroll in their own container so the page body never does (doc 26). The size column is
+   pinned so the names survive that scroll. A trailing FILLER column absorbs any slack, which is what
+   keeps the size column and every mode column at a fixed width whether the brand has one mode or six
+   — without it width:100% hands all the spare width to the single-mode case. */
 .szt-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
-.szt-tbl{border-collapse:separate;border-spacing:0;width:100%;min-width:520px;font-size:12.5px}
+.szt-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
 .szt-tbl th,.szt-tbl td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
 .szt-tbl thead th{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
 .szt-tbl tbody tr:last-child td{border-bottom:0}
-.szt-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);min-width:104px}
+.szt-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);width:112px;min-width:112px}
 .szt-tbl thead .szt-stick{z-index:3;background:var(--paper)}
+/* Mode columns are equal and fixed: past roughly five modes the total exceeds the pane and the
+   container scrolls, rather than the columns compressing until the steppers stop fitting. */
+.szt-mode{width:148px;min-width:148px}
+.szt-fill{width:auto;padding:0 !important;border-bottom-color:var(--line)}
 .szt-name{font-size:12.5px;font-weight:600;color:var(--ink)}
-.szt-base{background:var(--paper)}
 .szt-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
 /* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
    filtered dropdown just omitted the option and never said why. */
