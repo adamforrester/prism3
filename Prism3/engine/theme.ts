@@ -822,7 +822,7 @@ const mobileEndpoint = (ladder: number[], group: TypeGroup, desktopPx: number): 
  *  and both the schema and brandTheme REJECT them rather than silently ignoring the request.
  *  These floors are ABSOLUTE and deliberately not a cross-category rule (display ≥ title ≥ body):
  *  titleFloor 16 already overlaps body.md on purpose, so a relative rule would forbid a shipped brand. */
-const HEADING_SIZE_FLOOR = { display: 32, title: 16, eyebrow: 11 } as const;
+export const HEADING_SIZE_FLOOR = { display: 32, title: 16, eyebrow: 11 } as const;
 export type PerModeSizeGroup = keyof typeof HEADING_SIZE_FLOOR;
 export const PER_MODE_SIZE_GROUPS = Object.keys(HEADING_SIZE_FLOOR) as PerModeSizeGroup[];
 // Bigger heading → tighter line-height (display tightest; small titles open up).
