@@ -19,8 +19,8 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy } from '../../Prism3/engine/theme';
-import type { BrandInput, Theme, GradientInput, TypeComposite } from '../../Prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS } from '../../Prism3/engine/theme';
+import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
 import { leverManifest, leverGroups } from '../../Prism3/engine/levers';
@@ -1838,6 +1838,238 @@ const renderGeneratedNote = (): HTMLElement => {
 
 /** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
+
+// ---- Type sizes — shape · range · the per-size table (#328 follow-through) ------------------------
+/** Shape, range and the per-size table are one decision chain, so they live together on Styles rather
+ *  than split across tabs. This moves `typeScale` / `displayCeiling` / `titleFloor` off Foundations,
+ *  which leaves Foundations holding only the ladder — genuinely primitive, and consistent with #268's
+ *  rule that a primitive surface shows no mode switcher.
+ *
+ *  Two tiers, and the layout is what makes them legible: RANGE decides which rows exist and is shared
+ *  by every mode; CELLS set sizes and are per-mode. */
+const TYPE_SHAPES: Array<[string, string, string]> = [
+  ['compact', 'Compact', 'Tighter steps. Denser screens and information-heavy products.'],
+  ['default', 'Default', 'The balanced ramp. A safe starting point for most brands.'],
+  ['expressive', 'Expressive', 'Wider steps and a bigger jump into headings. Editorial and marketing.'],
+];
+const SHAPE_SHIFT: Record<string, number> = { compact: -1, default: 0, expressive: 1 };
+let typeSizesOpen: boolean | null = null;   // null ⇒ follow "is anything pinned"
+
+/** Step a px value along the ladder, clamped. Returns undefined when there is no such step. */
+const ladderStep = (px: number, by: number): number | undefined => {
+  const l = theme.typography.sizesPx, i = l.indexOf(px);
+  if (i < 0) return undefined;
+  const j = i + by;
+  return j >= 0 && j < l.length ? l[j] : undefined;
+};
+/** Every heading rung this brand ships, largest first — the row order for the tables. */
+const headingRows = (group: PerModeSizeGroup): Array<{ variant: string; px: number }> =>
+  theme.typography.composites.filter((c) => c.group === group)
+    .reduce((acc: Array<{ variant: string; px: number }>, c) => (acc.some((a) => a.variant === c.variant) ? acc : [...acc, { variant: c.variant, px: c.sizePx }]), [])
+    .sort((a, b) => b.px - a.px);
+const brandSizePin = (group: PerModeSizeGroup, variant: string): number | undefined =>
+  brandState.typography?.sizes?.[group]?.[variant];
+const modeSizePin = (mode: Mode, group: PerModeSizeGroup, variant: string): number | undefined =>
+  brandState.modeLevers?.[mode]?.typeSizes?.[group]?.[variant];
+/** Set or clear a BASELINE per-size override, pruning empties so an all-cleared brand stays byte-identical. */
+const setBrandSize = (group: PerModeSizeGroup, variant: string, px: number | undefined): void => {
+  const ty = (brandState.typography ??= {});
+  if (px === undefined) {
+    const g = ty.sizes?.[group];
+    if (!g || !ty.sizes) return;
+    delete g[variant];
+    if (!Object.keys(g).length) delete ty.sizes[group];
+    if (!Object.keys(ty.sizes).length) delete ty.sizes;
+    return;
+  }
+  ((ty.sizes ??= {})[group] ??= {})[variant] = px;
+};
+/** How many sizes are pinned anywhere — drives the "customized" badge. */
+const pinnedSizeCount = (): number => {
+  let n = 0;
+  const bs = brandState.typography?.sizes ?? {};
+  for (const g of Object.keys(bs) as PerModeSizeGroup[]) n += Object.keys(bs[g] ?? {}).length;
+  for (const m of Object.keys(brandState.modeLevers ?? {}) as Mode[]) {
+    const ms = brandState.modeLevers?.[m]?.typeSizes ?? {};
+    for (const g of Object.keys(ms) as PerModeSizeGroup[]) n += Object.keys(ms[g] ?? {}).length;
+  }
+  return n;
+};
+
+/** One editable size cell. The constraint lives IN the control: a disabled −/+ says this size has no
+ *  room that way, where a filtered dropdown just omitted the option and never said why. */
+const sizeCell = (group: PerModeSizeGroup, rows: Array<{ variant: string; px: number }>, i: number, mode: Mode | null, resolved: number[]): HTMLElement => {
+  const variant = rows[i].variant;
+  const px = resolved[i];
+  const upper = i > 0 ? resolved[i - 1] : undefined;         // the larger neighbour
+  const lower = i + 1 < resolved.length ? resolved[i + 1] : undefined;
+  const floor = HEADING_SIZE_FLOOR[group];
+  const dn = ladderStep(px, -1), up = ladderStep(px, +1);
+  const canDn = dn !== undefined && dn >= floor && (lower === undefined || dn > lower);
+  const canUp = up !== undefined && (upper === undefined || up < upper);
+  const pinned = mode ? modeSizePin(mode, group, variant) !== undefined : brandSizePin(group, variant) !== undefined;
+  const write = (v: number | undefined) => {
+    if (mode) setModeLever(mode, `typeSizes.${group}.${variant}`, v);
+    else setBrandSize(group, variant, v);
+    applyFull();
+  };
+  const wrap = el('div', 'szcell');
+  const mk = (label: string, delta: number, enabled: boolean) => {
+    const b = el('button', 'szstep', label) as HTMLButtonElement;
+    b.disabled = !enabled;
+    b.title = enabled ? `${px}px → ${ladderStep(px, delta)}px` : (delta < 0 ? 'No smaller step — the size below is next on the ladder' : 'No larger step — the size above is next on the ladder');
+    b.setAttribute('aria-label', `${group} ${variant}${mode ? ` in ${mode}` : ''} ${delta < 0 ? 'smaller' : 'larger'}`);
+    b.onclick = () => write(ladderStep(px, delta));
+    return b;
+  };
+  const val = el('span', 'szval mono' + (pinned ? ' pin' : ''), String(px));
+  val.title = pinned ? 'Set here' : 'Following the baseline';
+  wrap.append(mk('−', -1, canDn), val, mk('+', +1, canUp));
+  if (pinned) {
+    const r = el('button', 'szreset', '↺') as HTMLButtonElement;
+    r.title = mode ? 'Follow the baseline again' : 'Follow the shape again';
+    r.setAttribute('aria-label', `Reset ${group} ${variant}${mode ? ` in ${mode}` : ''}`);
+    r.onclick = () => write(undefined);
+    wrap.append(r);
+  } else wrap.append(el('span', 'szreset-sp'));
+  return wrap;
+};
+
+/** One table per heading group — rows are sizes largest-first, columns are modes. */
+const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
+  const rows = headingRows(group);
+  if (!rows.length) return null;
+  const modes = rp.modes;
+  const box = el('div', 'szt');
+  box.append(el('p', 'szt-cap', group));
+  const scroll = el('div', 'szt-scroll');
+  const tbl = el('table', 'szt-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'szt-stick', 'Size'));
+  for (const m of modes) {
+    const th = el('th');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'szt-ro', ' baseline'));
+    htr.append(th);
+  }
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  // Resolve each mode's full ramp once — a cell's legal range depends on its NEIGHBOURS in the same
+  // column, so per-cell resolution would need this anyway and would recompute it every time.
+  const resolvedByMode = new Map<string, number[]>();
+  for (const m of modes) {
+    resolvedByMode.set(m, rows.map((r) => {
+      const c = theme.typography.composites.find((x) => x.group === group && x.variant === r.variant)!;
+      return (m === 'light' ? undefined : c.sizeByMode?.[m]) ?? c.sizePx;
+    }));
+  }
+  for (const [i, r] of rows.entries()) {
+    const tr = el('tr');
+    const nameCell = el('td', 'szt-stick');
+    nameCell.append(el('span', 'szt-name mono', r.variant));
+    tr.append(nameCell);
+    for (const m of modes) {
+      const td = el('td', m === 'light' ? 'szt-base' : '');
+      td.append(sizeCell(group, rows, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
+      tr.append(td);
+    }
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  return box;
+};
+
+const renderTypeSizes = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Heading sizes', 'The shape of the heading system, how far the ramp runs, and — if you need it — every size set individually.');
+
+  // SHAPE — option cards. A select cannot carry a sentence per option, and this is a foundational
+  // choice made once. Deviation from doc 26 (3+ options → select); see doc 24 for the rule.
+  const cur = (getPath(brandState, 'typography.typeScale') ?? 'default') as string;
+  const cards = el('div', 'shape-cards');
+  let anyBlocked = false;
+  for (const [key, name, blurb] of TYPE_SHAPES) {
+    const b = el('button', 'shape-card' + (key === cur ? ' on' : '')) as HTMLButtonElement;
+    b.setAttribute('aria-pressed', String(key === cur));
+    // The px range previews what this card WOULD produce, by shifting the live title ramp along the
+    // ladder — cheaper and more honest than a hardcoded string, which would drift from the engine.
+    const titles = ty.composites.filter((c) => c.group === 'title').map((c) => c.sizePx);
+    const d = SHAPE_SHIFT[key] - SHAPE_SHIFT[cur];
+    const shifted = titles.map((p) => ladderStep(p, d) ?? p);
+    b.append(el('b', undefined, name), el('span', 'shape-blurb', blurb),
+      el('span', 'shape-nums mono', titles.length ? `title ${Math.min(...shifted)}px–${Math.max(...shifted)}px` : ''));
+    // A pinned size is ABSOLUTE and does not travel with the shape, so changing shape CAN collide and
+    // the engine then refuses to build (#353). Rather than a dialog after the click — the app uses no
+    // native dialogs — trial-build this shape with the pins in place and disable the card only when it
+    // would actually fail. Most pins do not collide, so blocking on "pins exist" would over-refuse.
+    let blocked = false;
+    if (key !== cur) {
+      try { brandTheme({ ...brandState, typography: { ...(brandState.typography as any), typeScale: key === 'default' ? undefined : key } } as any); }
+      catch { blocked = true; }
+    }
+    b.disabled = blocked;
+    if (blocked) b.title = 'Some sizes set below would clash at this shape. Release them to switch.';
+    b.onclick = () => {
+      if (key === cur || blocked) return;
+      setPath(brandState, 'typography.typeScale', key === 'default' ? undefined : key);
+      applyFull();
+    };
+    cards.append(b);
+    if (blocked) anyBlocked = true;
+  }
+  if (anyBlocked) {
+    const warn = el('div', 'shape-blocked');
+    warn.append(el('span', undefined, 'Some shapes are unavailable while sizes are set individually — they would clash.'));
+    const rel = el('button', 'shape-release', 'Release pinned sizes') as HTMLButtonElement;
+    rel.onclick = () => {
+      if (brandState.typography) delete brandState.typography.sizes;
+      for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
+      applyFull();
+    };
+    warn.append(rel);
+    cards.append(warn);
+  }
+  sec.append(knob('Shape', cards, 'How the heading sizes step. Most brands never need more than this.'));
+
+  // RANGE — the two set-membership levers together: different mechanisms, same action.
+  const range = el('div', 'range-row');
+  const ceil = leverByKey('typography.displayCeiling');
+  if (ceil) {
+    const f = el('div', 'range-f');
+    f.append(el('span', 'pfk', 'Largest display size'));
+    const sel = selectEl('sm');
+    for (const o of ceil.options ?? []) sel.append(optionEl(String(o), String(o)));
+    sel.value = String(getPath(brandState, ceil.key) ?? ceil.default);
+    sel.onchange = () => { setPath(brandState, ceil.key, sel.value); applyFull(); };
+    f.append(sel);
+    range.append(f);
+  }
+  {
+    const f = el('div', 'range-f');
+    f.append(el('span', 'pfk', 'Smallest title size'));
+    const on = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
+    const row = el('div', 'range-tg');
+    row.append(toggleField(on, (checked) => {
+      setPath(brandState, 'typography.titleFloor', checked ? 16 : undefined);
+      applyFull();
+    }), el('span', 'range-tglab mono', '16px'));
+    f.append(row);
+    range.append(f);
+  }
+  sec.append(knob('Range', range, 'Where the ramp starts and stops. Sizes outside it are not generated.'));
+
+  // CUSTOMIZE — hidden by default, but never hides the FACT that sizes are pinned.
+  const pins = pinnedSizeCount();
+  const open = typeSizesOpen ?? pins > 0;
+  const head = el('div', 'szt-head');
+  head.append(toggleField(open, (checked) => { typeSizesOpen = checked; renderWorkspace(); }));
+  head.append(el('span', 'szt-headlab', 'Customize individual sizes'));
+  if (pins) head.append(el('span', 'szt-badge', `${pins} customized`));
+  sec.append(knob('Individual sizes', head, 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.'));
+  if (open) for (const g of PER_MODE_SIZE_GROUPS) { const t = renderSizeTable(g); if (t) sec.append(t); }
+  return sec;
+};
+
 const renderResponsiveEditor = (): HTMLElement => {
   const ty = theme.typography;
   const wrap = palSection('Responsive sizing', 'Headings interpolate between a mobile floor and a desktop ceiling across the viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.');
@@ -2030,7 +2262,7 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
     ? 'Primitives — the raw material every style is built from.'
     : 'Semantics — the named styles your product actually uses.'));
   if (typeTab === 'foundations') h.append(renderTypefaces(), renderSizeLadder(), renderWeightScale(), renderLeadingTracking());
-  else h.append(renderWeightRoles(), renderCategorySetup(), renderResponsiveEditor());
+  else h.append(renderTypeSizes(), renderWeightRoles(), renderCategorySetup(), renderResponsiveEditor());
 }, () => (typeTab === 'styles' ? [renderTypeRamp()] : []));
 
 // Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
@@ -2372,14 +2604,10 @@ const renderTypefaces = (): HTMLElement => {
 const renderSizeLadder = (): HTMLElement => {
   const ty = theme.typography;
   const perMode = currentMode !== 'light';
-  const sec = palSection('Type scale', 'The size ladder is fixed and brand-invariant — 22 rem steps. These three levers decide which rungs the heading categories land on; body, label, caption and code never move.');
-  for (const key of ['typography.typeScale', 'typography.displayCeiling', 'typography.titleFloor']) {
-    const lever = leverByKey(key); if (!lever) continue;
-    if (perMode) {
-      const cur = getPath(brandState, lever.key) ?? lever.default;
-      sec.append(knob(lever.label, el('div', 'te-shared-ro', `${cur} · shared across modes — edit in Light`), lever.description));
-    } else sec.append(renderControl(lever));
-  }
+  // The ladder ALONE. Shape / range moved to Styles (#328 follow-through) to sit with the per-size
+  // table they govern — which also leaves this tab purely primitive, the condition #268's
+  // no-switcher rule turns on.
+  const sec = palSection('The size ladder', 'Fixed and brand-invariant — 22 rem steps, the raw material every heading size is chosen from. Which rungs the categories land on is set by Shape and Range, on Styles.');
   // No requested-vs-effective note any more: the ceiling names a RUNG, so what was asked for and
   // what ships cannot disagree (#328). The px ceiling could, because it was compared against sizes
   // typeScale had already shifted.
@@ -4689,6 +4917,59 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .tpill[data-sgtip]:hover::after{content:attr(data-sgtip);position:absolute;z-index:40;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);background:#111417;color:#f2f4f5;font-family:var(--mono);font-size:11px;font-weight:500;white-space:nowrap;padding:6px 9px;border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.28);pointer-events:none}
 .tpill[data-sgtip]:hover::before{content:"";position:absolute;z-index:40;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#111417;pointer-events:none}
 @media(max-width:760px){.sg-g3,.sg-g5{grid-template-columns:repeat(2,1fr)}}
+/* Heading sizes — shape cards, range, and the per-size table (#328 follow-through) */
+/* Option cards: a select cannot carry a sentence per option, and the shape is a foundational choice
+   made once. Deviation from doc 26 (3+ options → select) — the rule that earns it is in doc 24. */
+.shape-cards{display:grid;gap:9px;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));width:100%}
+.shape-card{text-align:left;font:inherit;cursor:pointer;background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:11px 12px 12px;display:flex;flex-direction:column;gap:3px}
+.shape-card:hover{border-color:var(--muted)}
+.shape-card:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.shape-card.on{border-color:var(--ink);background:var(--panel);box-shadow:0 0 0 1px var(--ink)}
+.shape-card b{font-size:13px;color:var(--ink)}
+.shape-card.on b::after{content:' ✓';font-size:11px}
+.shape-blurb{font-size:11.5px;color:var(--muted);line-height:1.4}
+.shape-nums{font-size:10.5px;color:var(--faint);margin-top:2px}
+.shape-card:disabled{opacity:.5;cursor:not-allowed}
+.shape-card:disabled:hover{border-color:var(--line2)}
+.shape-blocked{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:9px 11px}
+.shape-release{font:inherit;font-size:12px;padding:4px 10px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--panel);color:var(--ink);cursor:pointer}
+.shape-release:hover{border-color:var(--muted)}
+.shape-release:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.range-row{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-end;width:100%}
+.range-f{display:flex;flex-direction:column;gap:5px}
+.range-tg{display:flex;align-items:center;gap:9px;height:31px}
+.range-tglab{font-size:12.5px;color:var(--ink2)}
+.szt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.szt-headlab{font-size:13px;font-weight:620;color:var(--ink)}
+.szt-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:100px;background:var(--paper);border:1px solid var(--line2);color:var(--ink2)}
+.szt{margin-top:16px}
+.szt-cap{margin:0 0 7px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* Wide tables scroll in their own container so the page body never does (doc 26); the size column is
+   pinned because with several modes the names would otherwise scroll away from their own row. */
+.szt-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
+.szt-tbl{border-collapse:separate;border-spacing:0;width:100%;min-width:520px;font-size:12.5px}
+.szt-tbl th,.szt-tbl td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.szt-tbl thead th{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
+.szt-tbl tbody tr:last-child td{border-bottom:0}
+.szt-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);min-width:104px}
+.szt-tbl thead .szt-stick{z-index:3;background:var(--paper)}
+.szt-name{font-size:12.5px;font-weight:600;color:var(--ink)}
+.szt-base{background:var(--paper)}
+.szt-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
+/* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
+   filtered dropdown just omitted the option and never said why. */
+.szcell{display:inline-flex;align-items:center;gap:4px}
+.szstep{font:inherit;font-size:13px;line-height:1;width:22px;height:24px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;flex:none}
+.szstep:hover:not(:disabled){border-color:var(--muted)}
+.szstep:disabled{opacity:.32;cursor:not-allowed}
+.szstep:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.szval{font-size:12.5px;min-width:32px;text-align:center;color:var(--muted)}
+.szval.pin{color:var(--ink);font-weight:650}
+.szreset{font:inherit;font-size:12px;line-height:1;width:20px;height:24px;border:1px solid transparent;border-radius:var(--r-xs);background:none;color:var(--faint);cursor:pointer;flex:none}
+.szreset:hover{color:var(--ink2)}
+.szreset:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.szreset-sp{display:inline-block;width:20px;flex:none}
+
 /* Typography — Foundations / Styles tabs (#272) */
 .tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
 .tf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}

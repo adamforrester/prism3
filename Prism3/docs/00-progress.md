@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-01) — The type-size editor (shape · range · per-size table)
+
+**STATUS: web.** The UI half of #353, designed across several wireframe rounds with the owner. Gives
+`typography.sizes` and `modeLevers.*.typeSizes` their first editing surface.
+
+- **Shape / range moved from Foundations to Styles.** `typeScale`, `displayCeiling` and `titleFloor`
+  lived in `renderSizeLadder` on Foundations. They govern the table, so they moved to sit with it —
+  which leaves Foundations holding *only* the ladder. That is a strictly better fit for #268: the tab
+  is now genuinely primitive, which is the condition its no-switcher rule turns on.
+- **Steppers, not selects, and this was the owner's idea.** A filtered dropdown silently omitted
+  illegal values and never said why. `− 128 +` with the button disabled when the next ladder step
+  would breach the floor or collide with a neighbour puts the constraint **in the control**. It also
+  removed the need for the group-shift control that three rounds of wireframing could not make
+  legible — deleted rather than rescued.
+- **The claim that killed the shift was mine and it was wrong.** I argued cell-by-cell editing could
+  not move a whole ramp, so a shift was load-bearing. The owner asked whether you could bump the
+  bottom one and work up. You can: the smallest size has no lower neighbour, so each step opens the
+  gap for the next. Verified against the engine before conceding — every intermediate state is legal.
+- **Shape cards are trial-built, not blanket-blocked.** A pinned size is absolute (#353), so changing
+  shape *can* collide. Rather than a dialog after the click, each card builds a candidate theme with
+  the pins in place and disables **only** if it would actually throw. Verified: pinning title 2xl to
+  36 disables Expressive alone and leaves Compact available. Blocking on "pins exist" would have
+  over-refused in the common case.
+- **No native dialogs.** The first draft used `confirm()` — the only one in the entire app, so a new
+  pattern rather than an existing one. Replaced with the inline disabled-card + release affordance,
+  which also matches how the steppers state their own limits.
+- **Verified in a browser, every branch.** Tables hidden until toggled (0 → 3); dark 160→144 while
+  light held; badge and pin styling correct; Foundations left with the ladder and no shape cards;
+  shape switch moves the live ramp 48→56; the blocked path engages and clears on release. Zero page
+  errors throughout.
+- **Review follow-up.** The `as any` casts reaching `brandState.typography.sizes` /
+  `modeLevers.*.typeSizes` were not covering a real type gap — both fields are properly typed in the
+  engine. They were routing around `group`/`variant` being plain `string`. Narrowing the parameters to
+  `PerModeSizeGroup` removed **every** cast on the new surface and restored compile-time checking on
+  it for free. Also: this PR described itself as "web-only, no engine change" while the diff touches
+  `theme.ts` — a two-line `const` → `export const` on `HEADING_SIZE_FLOOR` so the web layer reads the
+  same floors rather than duplicating them. Behaviorally nothing, but the claim was imprecise.
+- **Still open:** contrast. `--faint` on `--paper` is 2.31:1 and `--muted` on `--paper` 4.36:1 against
+  AA's 4.5 — that is the `.pfk` convention and every `.psec-d`, so it fails app-wide rather than here.
+  Owner's call to fix globally; worth its own issue.
+
+---
+
 ## (2026-07-31) — Brand-level per-size overrides (`typography.sizes`)
 
 **STATUS: engine + schema.** Owner-directed, out of the type-editor design sessions. Prerequisite for
