@@ -4496,25 +4496,25 @@
                   "aliasOf": "prism.palette.primary.550",
                   "contrast": 5.73,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.primary.350}",
                       "contrast": 5.5,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.primary.700}",
                       "contrast": 9.41,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.primary.200}",
                       "contrast": 9.27,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -4540,25 +4540,25 @@
                   "aliasOf": "prism.palette.primary.600",
                   "contrast": 6.82,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.primary.300}",
                       "contrast": 6.59,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.primary.750}",
                       "contrast": 10.91,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.primary.150}",
                       "contrast": 10.84,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -4584,25 +4584,25 @@
                   "aliasOf": "prism.palette.primary.550",
                   "contrast": 5.73,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.primary.350}",
                       "contrast": 5.5,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.primary.700}",
                       "contrast": 9.41,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.primary.200}",
                       "contrast": 9.27,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -4628,25 +4628,25 @@
                   "aliasOf": "prism.palette.primary.600",
                   "contrast": 6.82,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.primary.300}",
                       "contrast": 6.59,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.primary.750}",
                       "contrast": 10.91,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.primary.150}",
                       "contrast": 10.84,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -5390,25 +5390,25 @@
                   "aliasOf": "prism.palette.danger.600",
                   "contrast": 5.57,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.danger.400}",
                       "contrast": 5.41,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.750}",
                       "contrast": 9.87,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.danger.250}",
                       "contrast": 8.61,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -5434,25 +5434,25 @@
                   "aliasOf": "prism.palette.danger.650",
                   "contrast": 6.77,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.danger.350}",
                       "contrast": 6.32,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.800}",
                       "contrast": 11.67,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.danger.200}",
                       "contrast": 9.93,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -5478,25 +5478,25 @@
                   "aliasOf": "prism.palette.danger.600",
                   "contrast": 5.57,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.danger.400}",
                       "contrast": 5.41,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.750}",
                       "contrast": 9.87,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.danger.250}",
                       "contrast": 8.61,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -5522,25 +5522,25 @@
                   "aliasOf": "prism.palette.danger.650",
                   "contrast": 6.77,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.danger.350}",
                       "contrast": 6.32,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.800}",
                       "contrast": 11.67,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.danger.200}",
                       "contrast": 9.93,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {

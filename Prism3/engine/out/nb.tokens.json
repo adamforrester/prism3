@@ -3290,25 +3290,25 @@
                   "aliasOf": "nbds.palette.red.600",
                   "contrast": 5.64,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.400}",
                       "contrast": 5.52,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.750}",
                       "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.250}",
                       "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -3334,25 +3334,25 @@
                   "aliasOf": "nbds.palette.red.650",
                   "contrast": 6.82,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.350}",
                       "contrast": 6.44,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.800}",
                       "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.200}",
                       "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -3378,25 +3378,25 @@
                   "aliasOf": "nbds.palette.red.600",
                   "contrast": 5.64,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.400}",
                       "contrast": 5.52,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.750}",
                       "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.250}",
                       "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -3422,25 +3422,25 @@
                   "aliasOf": "nbds.palette.red.650",
                   "contrast": 6.82,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.350}",
                       "contrast": 6.44,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.800}",
                       "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.200}",
                       "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -4184,25 +4184,25 @@
                   "aliasOf": "nbds.palette.red.600",
                   "contrast": 5.64,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.400}",
                       "contrast": 5.52,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.750}",
                       "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.250}",
                       "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -4228,25 +4228,25 @@
                   "aliasOf": "nbds.palette.red.650",
                   "contrast": 6.82,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.350}",
                       "contrast": 6.44,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.800}",
                       "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.200}",
                       "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -4272,25 +4272,25 @@
                   "aliasOf": "nbds.palette.red.600",
                   "contrast": 5.64,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.400}",
                       "contrast": 5.52,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.750}",
                       "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.250}",
                       "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {
@@ -4316,25 +4316,25 @@
                   "aliasOf": "nbds.palette.red.650",
                   "contrast": 6.82,
                   "against": "neutral.050",
-                  "min": 4.5,
+                  "min": 3,
                   "modes": {
                     "dark": {
                       "$value": "{nbds.palette.red.350}",
                       "contrast": 6.44,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 3
                     },
                     "hc-light": {
                       "$value": "{nbds.palette.red.800}",
                       "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 7
+                      "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{nbds.palette.red.200}",
                       "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 7
+                      "min": 4.5
                     }
                   },
                   "figma": {

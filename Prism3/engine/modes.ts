@@ -372,14 +372,24 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // via `interactivePalettes` (docs/20 §3). Slots: fill (+ its rest/hover/pressed/focused/selected states),
   // on-fill (ink), text (outline/text ink), border. Disabled is NOT per-colour here — it is
   // the cross-cutting disabled.* family below. This is what components bind (docs/20 §16.3).
-  const iFill = (name: string, rest: RatedNum, palette: string, fillMin: number) => {
+  // `stateMin` defaults to `fillMin` so callers that don't opt in are unchanged — notably the
+  // neutral fill, which passes 0 when it is a subtle grey and must NOT be pulled up to the non-text
+  // bar it was never asked to clear.
+  const iFill = (name: string, rest: RatedNum, palette: string, fillMin: number, stateMin = fillMin) => {
     for (const st of FILL_STATES) {
       const c = fillStateCand(rest, palette, st);
       // The interactive family leads with `rest` (docs/20 §2 — rest/hover/pressed);
       // the base-state key `default` is kept only on the non-interactive roles.
       const stKey = st === 'default' ? 'rest' : st;
+      // REST carries the text bar; the other states carry only the non-text bar (SC 1.4.11).
+      // Rest is the state the component is read in — it anchors the label, so it stays at 4.5:1.
+      // Hover/pressed/focused/selected exist to signal a CHANGE from rest; SC 1.4.11 asks that the
+      // state be identifiable, not that it re-clear a text floor it was never carrying alone. Both
+      // bars are measured against the floor surface, so this only moves what is ASSERTED — the walk
+      // itself is unchanged, and rest's own pick still resolves at `fillMin` before it gets here.
+      const stMin = stKey === 'rest' ? fillMin : stateMin;
       put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
-        `${name} interactive fill — ${stKey}`, cfg.floorName, fillMin);
+        `${name} interactive fill — ${stKey}`, cfg.floorName, stMin);
     }
     put(`interactive.${name}.on-fill`, onColor(rest.rgb), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
@@ -405,7 +415,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   };
 
   // primary — the action palette, contrast-verified.
-  iFill('primary', actionRest, r2p.action, cfg.actionMin);
+  iFill('primary', actionRest, r2p.action, cfg.actionMin, cfg.nonTextMin);
   iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true);
   put('interactive.primary.border', rated(chromatic(r2p.action, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Primary interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
@@ -415,7 +425,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const iDestructiveRest = daAnchor !== undefined
     ? chromatic(r2p.danger, daAnchor, floorRgb, cfg.actionMin, true)
     : paletteRole('danger', floorRgb, cfg.actionMin);
-  iFill('destructive', iDestructiveRest, r2p.danger, cfg.actionMin);
+  iFill('destructive', iDestructiveRest, r2p.danger, cfg.actionMin, cfg.nonTextMin);
   iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true);
   put('interactive.destructive.border', rated(chromatic(r2p.danger, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Destructive interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
@@ -442,7 +452,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
     const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
     const rest = chromatic(entry.palette, anchor, floorRgb, cfg.actionMin, pinned);
-    iFill(entry.name, rest, entry.palette, cfg.actionMin);
+    iFill(entry.name, rest, entry.palette, cfg.actionMin, cfg.nonTextMin);
     iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true);
     put(`interactive.${entry.name}.border`, rated(chromatic(entry.palette, 500, baseRgb, cfg.nonTextMin), baseRgb), `${entry.name} interactive border (outline)`, 'background.primary', cfg.nonTextMin);
   }

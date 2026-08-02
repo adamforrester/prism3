@@ -7,6 +7,75 @@
 
 ---
 
+## (2026-08-02) — interactive fill STATES drop to the non-text bar (#352, item 2 of 4)
+
+**STATUS: engine.** Three lines of behavior change. **No color moves in any artifact** — the only
+diff in `out/**` is `min` values on `interactive.<col>.fill.{hover,pressed,focused,selected}`
+(4.5 → 3, and 7 → 4.5 in HC). The walk is untouched; what changed is what we *assert*.
+
+**The rule.** `rest` carries the text bar; the other states carry only the non-text bar (SC 1.4.11).
+Rest is the state the component is read in and it anchors the label, so it stays at 4.5:1. The other
+states exist to signal a *change* from rest — 1.4.11 asks that a state be identifiable, not that it
+re-clear a text floor it was never carrying alone.
+
+**Owner call on the accessibility question, and it needs recording precisely, because half of it is
+a deliberate exemption rather than a derivation.** The question asked was whether text on a fill
+needs to meet contrast in the interactive states at all. The honest answer is that the two halves
+are governed by different criteria and only one of them transfers:
+
+- **The fills** — yes, exempt. SC 1.4.11 explicitly covers *"visual information required to identify
+  user interface components and **states**"* at 3:1. That is this change.
+- **The label on them** — no exemption exists. SC 1.4.3 applies to text and does not carve out
+  transient states; hover and pressed are reachable states with visible text.
+
+The owner's decision was to treat hover/pressed *text* as out of scope for 1.4.3 (option 3 of 3
+offered). **That decision is recorded but is currently inert** — with the corrected scope below,
+every example brand's `on-fill` clears 4.5 against all five fill states on its own. Nothing relies
+on the exemption today. If a future brand does start relying on it, this is the paragraph that says
+it was a deliberate product call and not an oversight.
+
+**The scope error, which is the part worth carrying.** I first relaxed the fill *picks* as well as
+the state contracts — `actionRest`, `iDestructiveRest`, and the bold semantic `foreground.*` fills
+all moved to the non-text bar. That is wrong twice over, and each failure taught something the diff
+cannot show:
+
+1. **`border.focus` derives from `actionRest`** (`modes.ts:684`). Relaxing the rest pick moved the
+   focus ring, which broke `fixtures/figma/nb` — the **New Balance regression target**, not a
+   snapshot to regenerate. A fixture diff on `color/border/focus` is the tell.
+2. **The bold semantic fills are ink-bearing surfaces.** Relaxing `foreground.danger`/`info` moved
+   them lighter, flipping `text.on-danger`/`on-info` to the dark side, where the ink fallback
+   escalated to **pure black** — violating the harshness invariant ("no pure black in standard
+   modes", `test.ts` ~2509). Capping the fallback at N950 instead just traded that for 19 contrast
+   failures. Neither is a fixable tension: those fills were never in scope.
+
+The owner's own framing had the answer in it — *"a change in state from the rest state which DOES
+need to meet contrast."* Rest pinned, states relaxed. Once scoped that way the NB regression, the
+harshness invariant, and the preview contracts all hold untouched.
+
+**Two traps for whoever edits `iFill`.**
+
+- **`fillMin` applies to `rest` too.** The loop covers all of `FILL_STATES` including `default`→
+  `rest`, so relaxing the parameter silently relaxes rest's own contract — the exact thing this
+  change exists to preserve. Hence `stateMin` as a separate argument.
+- **`stateMin` defaults to `fillMin`, and must.** `interactive.neutral` passes `neutralStrong ? … : 0`
+  because a subtle grey fill is not held to any floor. An earlier version hardcoded `cfg.nonTextMin`
+  for states and *raised* neutral's bar from 0 to 3, failing 27 contracts across the extreme brands.
+  Opt in per call site; never assume the non-text bar is a floor everyone wants.
+
+**A latent bug found here and deliberately NOT fixed** (one concern per PR — filing it so it is not
+re-discovered from scratch). `onColor`'s pure fallback compares the two *soft* candidates to choose a
+side, then escalates to the pure version **of that side**. Those are different questions: on the
+`sm` fixture's dark destructive fill, N950 measured 4.26, lost to nothing, and escalated to pure
+black at 4.60 — while legal pure white sat at 4.56. It reached for an ink the harshness invariant
+bans to gain 0.04:1. The fix is to re-open the choice at escalation across the inks standard modes
+actually permit (`pickMostExtreme([white, N950])`). It is currently unreachable — verified by
+reverting it with the final scope in place, tests stay 1205/0 — because it only fires when a fill
+pick moves. Anything that moves the interactive rest picks will wake it up.
+
+**Gates:** `regen` + `--check` clean, `test.ts` 1205/0, US-English gate clean (90 files).
+
+---
+
 ## (2026-08-02) — The add-face field was unstyled (owner-reported)
 
 **STATUS: web.** #370's "Font family name" input shipped with only `flex`/`min-width` — no border, padding,
