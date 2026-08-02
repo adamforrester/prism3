@@ -10536,10 +10536,10 @@
               "fontFamily": "{prism.font.family.display}",
               "fontSize": "{prism.font.size.40}",
               "fontWeight": "{prism.font.weight-role.strong}",
-              "lineHeight": "{prism.font.line-height.tight}",
+              "lineHeight": "{prism.font.line-height.snug}",
               "letterSpacing": "{prism.font.letter-spacing.tight}"
             },
-            "$description": "display sm strong — 32→40px fluid Inter (display role), tight line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display sm strong — 32→40px fluid Inter (display role), snug line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -10594,10 +10594,10 @@
               "fontFamily": "{prism.font.family.display}",
               "fontSize": "{prism.font.size.56}",
               "fontWeight": "{prism.font.weight-role.strong}",
-              "lineHeight": "{prism.font.line-height.tight}",
+              "lineHeight": "{prism.font.line-height.snug}",
               "letterSpacing": "{prism.font.letter-spacing.tight}"
             },
-            "$description": "display md strong — 40→56px fluid Inter (display role), tight line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display md strong — 40→56px fluid Inter (display role), snug line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
