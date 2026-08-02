@@ -7,6 +7,48 @@
 
 ---
 
+## (2026-08-02) — The dashboard's own chrome clears AA (#355)
+
+**STATUS: web.** `--faint` was **2.31:1** on `--paper` and `--muted` **4.36:1**, against AA's 4.5:1 — the
+tool failing the bar it enforces on generated brand output. Both moved down; `--ink2`/`--ink` were already
+fine and are untouched.
+
+```
+--faint  #a1a1aa → #6d6d74    2.31 → 4.63:1
+--muted  #71717a → #55555a    4.36 → 6.68:1
+--ink2   #3d3d44  unchanged          9.71:1
+--ink    #18181b  unchanged         15.97:1     (all against --paper, the worse of the two surfaces)
+```
+
+- **#355 offered two resolutions and the measurement killed one of them.** Its "Done when" allowed
+  re-scoping the convention "to only use these tokens where AA doesn't apply". Every one of the ~130
+  uses is **9–15px text**, and WCAG large text starts at 18.66px bold / 24px regular — so nothing
+  qualified for the 3:1 allowance and there was no escape hatch. Raising the values was the only
+  option actually on the table. (Same text-vs-non-text distinction #352 is drawing in the engine, SC
+  1.4.3 vs SC 1.4.11 — worth keeping the two consistent.)
+- **The trap: fixing each token independently deletes a tier.** The lightest legal gray on this paper is
+  ~4.5:1, which is roughly where `--muted` already sat. Darkening `--faint` to pass lands it on `#6d6d74`;
+  a minimal `--muted` fix lands on `#6e6e76` — **the same color**. The ramp is therefore *shifted*, not
+  patched: `--faint` parks on the AA floor and `--muted` moves clear of it, so four visually distinct
+  tiers survive. Owner picked this over collapsing to a single muted tier.
+- **Verified by walking the rendered DOM, not by reading CSS.** A static audit cannot see effective
+  backgrounds — a token's contrast depends on whichever ancestor actually paints. The audit walks every
+  element with a text node across 6 pages × 6 segments, resolves the real background by climbing until it
+  finds an opaque one, and applies the large-text rule per element. **Result: 1 failure app-wide**, and it
+  is not a `--faint`/`--muted` use.
+- **Checked and ruled out before editing**: no dark theme exists (single light `:root`), no
+  `--faint`/`--muted` text sits on a dark background (darkening would have *broken* those), the plugin
+  surface has no second copy of these tokens, and the one `background:var(--muted)` is a non-text
+  indicator box that only gains contrast.
+- **ADJACENT FIND, deliberately NOT fixed here** — belongs to #285, the broader dashboard WCAG audit:
+  `.mctx-mark.ok` (the green ✓ status glyph, 12px bold) is **3.46:1 on `--panel` / 3.12:1 on `--paper`**.
+  Left alone because it is a different token family from the one #355 names, and "just darken the green"
+  is really "re-derive the status pair": its partner `.mctx-mark.no` **passes** (5.23 / 4.71) and the
+  on-dark `.mctx-b.on .mctx-mark.ok` variant passes easily (11.10), so changing one of three needs a
+  balance judgment, not a mechanical edit. Measured fix for whoever takes it: `#1f9d63` → `#197f50`
+  (4.51 / 5.01) preserves the hue.
+
+---
 
 ## (2026-08-01) — link ink stops being the button fill (#352, item 1 of 4)
 
@@ -64,7 +106,6 @@ than pattern-matched: `interactive.*.overlay.*` looks non-text but is measured a
 
 **Verified:** 1199 → **1205** tests; nb-regression PASS; `regen --check` 88/88; web typecheck clean;
 US-English gate clean.
-
 
 ## (2026-08-01) — Staging a typeface from the UI (#287's deferred half)
 

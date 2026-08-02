@@ -4772,7 +4772,17 @@ const build = (): void => {
 // ---- inlined stylesheet (self-contained bundle) ----------------------------
 const STYLE = `
 :root{
-  --ink:#18181b; --ink2:#3d3d44; --muted:#71717a; --faint:#a1a1aa;
+  /* #355 — the two lightest tiers failed AA 4.5:1 on --paper (--faint 2.31:1, --muted 4.36:1), which is
+     the dashboard failing the same bar it enforces on generated brand output. Both moved DOWN rather than
+     the convention being re-scoped: every one of the ~130 uses is 9–15px text, and WCAG large text starts
+     at 18.66px bold / 24px regular, so nothing here qualified for the 3:1 large-text allowance (SC 1.4.3,
+     the same text-vs-non-text distinction #352 is drawing in the engine).
+     The ramp is SHIFTED, not collapsed: --faint parks on the AA floor (the lightest legal value on this
+     paper) and --muted moves clear of it, so four visually distinct tiers survive. Darkening --faint alone
+     to 4.63:1 would have landed it on #6d6d74 while a minimal --muted fix lands on #6e6e76 — the same
+     color, silently deleting a tier. Contrast is stated against --paper, the WORSE of the two surfaces
+     (--panel is lighter, so every pairing clears by more there). */
+  --ink:#18181b; --ink2:#3d3d44; --muted:#55555a; --faint:#6d6d74;
   --paper:#f2f3f6; --panel:#ffffff; --line:#e7e8ec; --line2:#dcdde2;
   --r:10px; --r-sm:7px; --r-xs:6px;
   /* Per-mode table geometry — shared so tables stack down the page on the same grid. The SIZE table
