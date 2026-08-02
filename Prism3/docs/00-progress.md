@@ -6,6 +6,56 @@
 > changes. Most recent entry first.
 
 ---
+
+## (2026-08-02) — the US-English gate could not see `grey` (#313 closed, and the gate was wrong)
+
+**STATUS: engine.** Went to close #313 as already-done and found the conversion it tracked was
+incomplete — because the gate that was supposed to have enforced it is structurally blind to a third
+of the rule.
+
+**What the gate scans:** `/\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation)|our)\b/`. CLAUDE.md states three
+rules — `color` not `colour`, `gray` not `grey`, `-ize` not `-ise`. Two fall out of that pattern:
+`colour`/`behaviour` end in `-our`, `-ise` is explicit. **`grey` ends in neither.** The pattern could
+never match it, so `greyscale` sat in a `description` field of the published `theme-schema.json`
+contract through 90-file scans, reported clean every time.
+
+**The arc had half-learned its own lesson.** #260→#302→#310 correctly established that *a fixed word
+list under-counts* — `colour|grey|behaviour` misses `generalised`. True. But the conclusion drawn was
+pattern **instead of** list, when the correct answer was pattern **plus** list: replacing one with
+the other just moves the blind spot, and it moved onto the one word in the original list with no
+productive suffix to match. `STEMS` is now a second substring scan alongside `PATTERN`.
+
+**Closing #313 needed the fix, not just the button.** Its checklist asked for four things; three were
+genuinely done (the file is gated, `theme-schema.example.json` is clean, CLAUDE.md's convention note
+was amended). The first — *19 sites converted* — was 18 of 19. Verified rather than assumed, which is
+the only reason it turned up: the check that found it was a raw `grey|colour|behaviour` grep run
+**independently of the gate**, precisely because trusting the gate is what the gate is for.
+
+**The gate now self-checks, which is the part worth keeping.** Deleting a scan previously made it go
+QUIET, not fail — a narrowed detector reports success forever and nothing downstream can distinguish
+"clean" from "not looking". There is now a fixture assertion ahead of the file walk: one sample per
+stated rule plus one false positive that must NOT trip. Tamper-tested — removing `STEMS` fails with
+*"the gate's own detection is broken: `a greyscale mode` should be flagged"* instead of passing.
+
+**`regen --check` stays at 88/88** — `theme-schema.json` is hand-authored, not emitted, so regen must
+not touch it either way. That was on #313's checklist and is the reason the file needed a direct
+source edit with no generator to re-run.
+
+**Gates:** `regen --check` 88/88, `test.ts` 1217/0, nb-regression exit 0, DTCG 899/899 aliases +
+432/432 contracts, US-English clean.
+
+**Follow-up (same PR, caught by CI): the PR's own "US-English clean" claim was checked against a
+stale local `web/dist/main.js`.** `STEMS` correctly caught two REAL hits once CI rebuilt web fresh —
+`grey`/`greyed` inside two CSS-in-JS comment strings in `main.ts` (`.sh-tintblock`'s tint note,
+`.mctx-opt.fixed`'s locked-row note). These are CSS comments living inside template-literal string
+content, not TS-level comments — the web build has no `--minify` step, so they survive into the
+shipped bundle and are correctly in scope (unlike genuine TS `//`/`/** */` comments, which the build
+strips and which stay exempt). Fixed to `gray`/`grayed`; a third occurrence (a `//` TS comment that
+doesn't reach the bundle) was fixed too for consistency, not because the gate required it. The
+trap for next time: **validate this gate against a freshly-built `web/dist/`, not whatever happens
+to be sitting in the working tree** — CI runs the gate *after* the web build for exactly this
+reason, and a local check that skips the rebuild can pass while CI fails on the identical commit.
+
 ## (2026-08-02) — field.border.hover becomes a step offset, not a second ratio (#352, item 4 — closes the issue)
 
 **STATUS: engine.** Last item on #352. `field.border.hover` targeted `cfg.secondaryMin` — a **text**
