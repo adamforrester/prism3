@@ -2553,13 +2553,13 @@
       "description": "Link icon — default",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/600"
+        "name": "palette/accent/500"
       }
     },
     {
@@ -2573,13 +2573,13 @@
       "description": "Link icon — hover",
       "value": {
         "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/650"
+        "name": "palette/accent/550"
       }
     },
     {
@@ -2593,13 +2593,13 @@
       "description": "Link icon — visited",
       "value": {
         "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/accent/600"
       }
     },
     {
@@ -2613,13 +2613,13 @@
       "description": "Link icon — focused",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/600"
+        "name": "palette/accent/500"
       }
     },
     {
