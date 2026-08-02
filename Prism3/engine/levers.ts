@@ -144,7 +144,7 @@ export const leverManifest: Lever[] = [
   // ---- ADVANCED (accessibility + opt-in) ----
   { key: 'iconContrast', group: 'advanced', label: 'Icon contrast floor', control: 'enum', default: 'text',
     options: enumOpts(['text', 'Match text (4.5:1)'], ['3:1', 'Non-text floor (3:1)']),
-    description: 'Whether icons mirror text contrast or run against the WCAG 1.4.11 non-text floor.' },
+    description: 'Whether icons mirror text contrast or run against the WCAG 1.4.11 non-text floor. Matching text is the default on purpose: icons usually sit beside text, and an icon that is lighter than the label next to it reads as a mistake even though 3:1 conforms. Choose the non-text floor when icons stand alone or you want them to recede.' },
   { key: 'disabledStrategy', group: 'advanced', label: 'Disabled contrast', control: 'enum', default: 'reduced',
     options: enumOpts(['full', 'Full contrast (4.5:1 — AA text)'], ['reduced', 'Reduced contrast (3:1 minimum)']),
     description: 'Full guarantees AA text on disabled controls — legibility is certain, but the disabled look then rests on fill / border / cursor rather than dimming. Reduced dims it to a floor you set, never below 3:1.' },

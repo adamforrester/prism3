@@ -864,6 +864,36 @@ for (const b of brands) {
   ok(threw, 'accent: accentPalette === actionPalette is rejected');
 }
 
+// ------------------------------------- the iconContrast DEFAULT is pinned, not merely documented
+// The default is 'text' (icons mirror text tier for tier) by OWNER DECISION, not by oversight:
+// icons sit next to text, and a conforming-but-lighter icon beside 4.5:1 body copy reads as a
+// rendering bug. WCAG's 3:1 for graphical objects is a minimum, not a target — which is exactly
+// what the lever is for.
+//
+// This is pinned rather than documented because documenting it already failed once. The decision
+// was recorded in 00-progress.md, and #352's own plan then listed "flip the iconContrast default
+// to '3:1'" as a work item — written after the decision, from the standards-correctness angle,
+// and nothing in the suite would have caught it. Flipping the default is a REVERSAL that needs a
+// new owner call; if that call is made, change this test deliberately rather than deleting it.
+{
+  const resolved = brandTheme({ id: 'icd', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } } as any);
+  ok((resolved as any).iconContrast === 'text', `#352: iconContrast defaults to 'text' (got '${(resolved as any).iconContrast}')`);
+  const lever = leverManifest.find((l: any) => l.key === 'iconContrast');
+  ok(lever?.default === 'text', `#352: the iconContrast LEVER default agrees with the engine ('${lever?.default}')`);
+
+  // ...and the default actually MEANS mirroring: every icon tier carries its text tier's bar.
+  // A default of 'text' that silently resolved icons somewhere else would pass the two checks
+  // above while shipping the thing the decision exists to prevent.
+  const roles = resolveAllModes(resolved).find((m: any) => m.mode === 'light')!.roles;
+  const unmirrored = ['primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info']
+    .filter((k) => roles[`text.${k}`] && roles[`icon.${k}`] && roles[`text.${k}`].min !== roles[`icon.${k}`].min);
+  ok(unmirrored.length === 0, `#352: with the default, every icon tier mirrors its text tier's bar (${unmirrored.join(', ') || 'all mirrored'})`);
+  // The ladder itself is NOT an inconsistency — secondary 4.5 over tertiary 3 is the tier ladder
+  // mirrored from text, and #352's audit misread it as drift inside the icon family.
+  ok(roles['icon.secondary'].min === 4.5 && roles['icon.tertiary'].min === 3,
+    `#352: the icon tier LADDER is intact (secondary ${roles['icon.secondary'].min} over tertiary ${roles['icon.tertiary'].min})`);
+}
+
 // ---------------------------------------------- link ink is INK, not the fill anchor (#352)
 // `text.link.*` used to BE `actionRest` — the literal button-fill object — so a text role's
 // legibility was an accident of how the FILL happened to be gated. Link ink now derives its own
