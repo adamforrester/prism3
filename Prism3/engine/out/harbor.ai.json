@@ -244,8 +244,8 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.550}",
-        "hc-light": "{prism.palette.primary.600}",
-        "hc-dark": "{prism.palette.primary.450}"
+        "hc-light": "{prism.palette.primary.700}",
+        "hc-dark": "{prism.palette.primary.300}"
       },
       "paired_with": [
         "text.on-brand",
@@ -267,8 +267,8 @@
       "mode_overrides": {
         "light": "{prism.palette.success.500}",
         "dark": "{prism.palette.success.500}",
-        "hc-light": "{prism.palette.success.600}",
-        "hc-dark": "{prism.palette.success.450}"
+        "hc-light": "{prism.palette.success.750}",
+        "hc-dark": "{prism.palette.success.300}"
       },
       "paired_with": [
         "text.on-success",
@@ -290,8 +290,8 @@
       "mode_overrides": {
         "light": "{prism.palette.warning.500}",
         "dark": "{prism.palette.warning.500}",
-        "hc-light": "{prism.palette.warning.600}",
-        "hc-dark": "{prism.palette.warning.450}"
+        "hc-light": "{prism.palette.warning.700}",
+        "hc-dark": "{prism.palette.warning.300}"
       },
       "paired_with": [
         "text.on-warning",
@@ -313,8 +313,8 @@
       "mode_overrides": {
         "light": "{prism.palette.info.500}",
         "dark": "{prism.palette.info.500}",
-        "hc-light": "{prism.palette.info.600}",
-        "hc-dark": "{prism.palette.info.450}"
+        "hc-light": "{prism.palette.info.700}",
+        "hc-dark": "{prism.palette.info.300}"
       },
       "paired_with": [
         "text.on-info",
@@ -416,8 +416,8 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.500}",
-        "hc-light": "{prism.palette.danger.600}",
-        "hc-dark": "{prism.palette.danger.450}"
+        "hc-light": "{prism.palette.danger.700}",
+        "hc-dark": "{prism.palette.danger.300}"
       },
       "paired_with": [
         "text.on-danger",
@@ -439,8 +439,8 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.550}",
-        "hc-light": "{prism.palette.primary.600}",
-        "hc-dark": "{prism.palette.primary.450}"
+        "hc-light": "{prism.palette.primary.700}",
+        "hc-dark": "{prism.palette.primary.300}"
       },
       "paired_with": [
         "interactive.primary.on-fill"
@@ -461,8 +461,8 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.650}",
         "dark": "{prism.palette.primary.500}",
-        "hc-light": "{prism.palette.primary.650}",
-        "hc-dark": "{prism.palette.primary.400}"
+        "hc-light": "{prism.palette.primary.750}",
+        "hc-dark": "{prism.palette.primary.250}"
       },
       "paired_with": [
         "interactive.primary.on-fill"
@@ -483,8 +483,8 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.700}",
         "dark": "{prism.palette.primary.450}",
-        "hc-light": "{prism.palette.primary.700}",
-        "hc-dark": "{prism.palette.primary.350}"
+        "hc-light": "{prism.palette.primary.800}",
+        "hc-dark": "{prism.palette.primary.200}"
       },
       "paired_with": [
         "interactive.primary.on-fill"
@@ -505,8 +505,8 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.650}",
         "dark": "{prism.palette.primary.500}",
-        "hc-light": "{prism.palette.primary.650}",
-        "hc-dark": "{prism.palette.primary.400}"
+        "hc-light": "{prism.palette.primary.750}",
+        "hc-dark": "{prism.palette.primary.250}"
       },
       "paired_with": [
         "interactive.primary.on-fill"
@@ -527,8 +527,8 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.700}",
         "dark": "{prism.palette.primary.450}",
-        "hc-light": "{prism.palette.primary.700}",
-        "hc-dark": "{prism.palette.primary.350}"
+        "hc-light": "{prism.palette.primary.800}",
+        "hc-dark": "{prism.palette.primary.200}"
       },
       "paired_with": [
         "interactive.primary.on-fill"
@@ -659,8 +659,8 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.500}",
-        "hc-light": "{prism.palette.danger.600}",
-        "hc-dark": "{prism.palette.danger.450}"
+        "hc-light": "{prism.palette.danger.700}",
+        "hc-dark": "{prism.palette.danger.300}"
       },
       "paired_with": [
         "interactive.destructive.on-fill"
@@ -681,8 +681,8 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.550}",
         "dark": "{prism.palette.danger.450}",
-        "hc-light": "{prism.palette.danger.650}",
-        "hc-dark": "{prism.palette.danger.400}"
+        "hc-light": "{prism.palette.danger.750}",
+        "hc-dark": "{prism.palette.danger.250}"
       },
       "paired_with": [
         "interactive.destructive.on-fill"
@@ -703,8 +703,8 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.400}",
-        "hc-light": "{prism.palette.danger.700}",
-        "hc-dark": "{prism.palette.danger.350}"
+        "hc-light": "{prism.palette.danger.800}",
+        "hc-dark": "{prism.palette.danger.200}"
       },
       "paired_with": [
         "interactive.destructive.on-fill"
@@ -725,8 +725,8 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.550}",
         "dark": "{prism.palette.danger.450}",
-        "hc-light": "{prism.palette.danger.650}",
-        "hc-dark": "{prism.palette.danger.400}"
+        "hc-light": "{prism.palette.danger.750}",
+        "hc-dark": "{prism.palette.danger.250}"
       },
       "paired_with": [
         "interactive.destructive.on-fill"
@@ -747,8 +747,8 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.400}",
-        "hc-light": "{prism.palette.danger.700}",
-        "hc-dark": "{prism.palette.danger.350}"
+        "hc-light": "{prism.palette.danger.800}",
+        "hc-dark": "{prism.palette.danger.200}"
       },
       "paired_with": [
         "interactive.destructive.on-fill"
@@ -2956,8 +2956,8 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.550}",
-        "hc-light": "{prism.palette.primary.600}",
-        "hc-dark": "{prism.palette.primary.450}"
+        "hc-light": "{prism.palette.primary.700}",
+        "hc-dark": "{prism.palette.primary.300}"
       },
       "paired_with": [
         "background.primary"
@@ -3682,6 +3682,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.visited",
+        "color.interactive.primary.fill.pressed",
+        "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.fill.pressed",
         "color.text.link.visited"
       ]
@@ -3694,6 +3696,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.interactive.primary.fill.focused",
+        "color.interactive.primary.fill.hover",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.text.pressed",
         "color.text.link.hover"
@@ -3706,9 +3710,12 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.focus",
+        "color.foreground.brand",
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.interactive.primary.fill.rest",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.brand",
@@ -3725,8 +3732,6 @@
       "aliased_by": [
         "color.icon.brand-subtle",
         "color.icon.link.visited",
-        "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.pressed",
@@ -3743,8 +3748,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
-        "color.interactive.primary.fill.focused",
-        "color.interactive.primary.fill.hover",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.link.hover"
@@ -3757,14 +3760,11 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.border.focus",
-        "color.foreground.brand",
         "color.icon.brand",
         "color.icon.brand-subtle",
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest",
@@ -3843,11 +3843,14 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.focus",
+        "color.foreground.brand",
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
+        "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.on-inverse.text.pressed",
@@ -3867,6 +3870,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.interactive.primary.fill.focused",
+        "color.interactive.primary.fill.hover",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.text.pressed",
         "color.text.link.hover"
@@ -3880,6 +3885,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.visited",
+        "color.interactive.primary.fill.pressed",
+        "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.fill.pressed",
         "color.text.link.visited"
       ]
@@ -4274,6 +4281,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.success",
         "color.icon.success",
         "color.text.success"
       ]
@@ -4303,7 +4311,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.success",
         "color.icon.success",
         "color.icon.success-subtle",
         "color.text.success",
@@ -4335,7 +4342,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.success",
         "color.icon.success",
         "color.text.success"
       ]
@@ -4361,6 +4367,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.success",
         "color.icon.success",
         "color.text.success"
       ]
@@ -4448,6 +4455,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.warning",
         "color.icon.warning",
         "color.text.warning"
       ]
@@ -4477,7 +4485,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.warning",
         "color.icon.warning",
         "color.icon.warning-subtle",
         "color.text.warning",
@@ -4509,7 +4516,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.warning",
         "color.icon.warning",
         "color.text.warning"
       ]
@@ -4528,6 +4534,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.warning",
         "color.icon.warning",
         "color.text.warning"
       ]
@@ -4622,6 +4629,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.info",
         "color.icon.info",
         "color.text.info"
       ]
@@ -4651,7 +4659,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info",
         "color.icon.info",
         "color.icon.info-subtle",
         "color.text.info",
@@ -4683,7 +4690,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info",
         "color.icon.info",
         "color.text.info"
       ]
@@ -4702,6 +4708,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.info",
         "color.icon.info",
         "color.text.info"
       ]
@@ -4783,6 +4790,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.fill.pressed",
+        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.fill.pressed"
       ]
     },
@@ -4793,6 +4802,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.text.pressed"
       ]
@@ -4804,7 +4815,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.danger",
         "color.icon.danger",
+        "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover",
         "color.text.danger"
@@ -4818,8 +4831,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.danger-subtle",
-        "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.pressed",
@@ -4834,8 +4845,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.text.hover",
@@ -4849,12 +4858,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.danger",
         "color.icon.danger",
         "color.icon.danger-subtle",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
-        "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.rest",
         "color.text.danger",
@@ -4894,10 +4901,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.danger",
         "color.icon.danger",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover",
@@ -4911,8 +4916,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.pressed",
@@ -4926,9 +4929,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.danger",
         "color.icon.danger",
-        "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover",
         "color.text.danger"
@@ -4941,6 +4944,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.text.pressed"
       ]
@@ -4952,6 +4957,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.fill.pressed",
+        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.fill.pressed"
       ]
     },

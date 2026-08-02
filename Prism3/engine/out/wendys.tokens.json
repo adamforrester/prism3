@@ -4021,7 +4021,7 @@
         "brand": {
           "$type": "color",
           "$value": "{prism.palette.primary.500}",
-          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4037,16 +4037,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 4.85,
+                  "$value": "{prism.palette.primary.650}",
+                  "contrast": 8.05,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{prism.palette.primary.400}",
-                  "contrast": 4.56,
+                  "$value": "{prism.palette.primary.250}",
+                  "contrast": 7.84,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -4065,7 +4065,7 @@
         "success": {
           "$type": "color",
           "$value": "{prism.palette.success.500}",
-          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4081,16 +4081,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.success.550}",
-                  "contrast": 4.54,
+                  "$value": "{prism.palette.success.700}",
+                  "contrast": 7.96,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{prism.palette.success.450}",
-                  "contrast": 4.66,
+                  "$value": "{prism.palette.success.300}",
+                  "contrast": 7.64,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -4109,7 +4109,7 @@
         "warning": {
           "$type": "color",
           "$value": "{prism.palette.warning.500}",
-          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4125,16 +4125,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.warning.550}",
-                  "contrast": 4.6,
+                  "$value": "{prism.palette.warning.700}",
+                  "contrast": 8.2,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{prism.palette.warning.450}",
-                  "contrast": 4.58,
+                  "$value": "{prism.palette.warning.300}",
+                  "contrast": 7.3,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -4153,7 +4153,7 @@
         "info": {
           "$type": "color",
           "$value": "{prism.palette.info.500}",
-          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4169,16 +4169,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.info.550}",
-                  "contrast": 4.56,
+                  "$value": "{prism.palette.info.700}",
+                  "contrast": 8.05,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{prism.palette.info.450}",
-                  "contrast": 4.64,
+                  "$value": "{prism.palette.info.300}",
+                  "contrast": 7.5,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -4397,7 +4397,7 @@
         "danger": {
           "$type": "color",
           "$value": "{prism.palette.danger.500}",
-          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -4413,16 +4413,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.danger.550}",
-                  "contrast": 4.57,
+                  "$value": "{prism.palette.danger.700}",
+                  "contrast": 8.23,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{prism.palette.danger.450}",
-                  "contrast": 4.57,
+                  "$value": "{prism.palette.danger.300}",
+                  "contrast": 7.43,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -4461,16 +4461,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.primary.500}",
-                      "contrast": 4.85,
+                      "$value": "{prism.palette.primary.650}",
+                      "contrast": 8.05,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.primary.400}",
-                      "contrast": 4.56,
+                      "$value": "{prism.palette.primary.250}",
+                      "contrast": 7.84,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4505,16 +4505,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.primary.550}",
-                      "contrast": 5.73,
+                      "$value": "{prism.palette.primary.700}",
+                      "contrast": 9.41,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.primary.350}",
-                      "contrast": 5.5,
+                      "$value": "{prism.palette.primary.200}",
+                      "contrast": 9.27,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4549,16 +4549,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.primary.600}",
-                      "contrast": 6.82,
+                      "$value": "{prism.palette.primary.750}",
+                      "contrast": 10.91,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.primary.300}",
-                      "contrast": 6.59,
+                      "$value": "{prism.palette.primary.150}",
+                      "contrast": 10.84,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4593,16 +4593,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.primary.550}",
-                      "contrast": 5.73,
+                      "$value": "{prism.palette.primary.700}",
+                      "contrast": 9.41,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.primary.350}",
-                      "contrast": 5.5,
+                      "$value": "{prism.palette.primary.200}",
+                      "contrast": 9.27,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4637,16 +4637,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.primary.600}",
-                      "contrast": 6.82,
+                      "$value": "{prism.palette.primary.750}",
+                      "contrast": 10.91,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.primary.300}",
-                      "contrast": 6.59,
+                      "$value": "{prism.palette.primary.150}",
+                      "contrast": 10.84,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4683,13 +4683,13 @@
                   },
                   "hc-light": {
                     "$value": "{prism.palette.white}",
-                    "contrast": 5.88,
+                    "contrast": 9.77,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{prism.palette.black}",
-                    "contrast": 5.34,
+                    "contrast": 9.19,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   }
@@ -5355,16 +5355,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.danger.550}",
-                      "contrast": 4.57,
+                      "$value": "{prism.palette.danger.700}",
+                      "contrast": 8.23,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.danger.450}",
-                      "contrast": 4.57,
+                      "$value": "{prism.palette.danger.300}",
+                      "contrast": 7.43,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -5399,16 +5399,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.danger.600}",
-                      "contrast": 5.57,
+                      "$value": "{prism.palette.danger.750}",
+                      "contrast": 9.87,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.danger.400}",
-                      "contrast": 5.41,
+                      "$value": "{prism.palette.danger.250}",
+                      "contrast": 8.61,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -5443,16 +5443,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.danger.650}",
-                      "contrast": 6.77,
+                      "$value": "{prism.palette.danger.800}",
+                      "contrast": 11.67,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.danger.350}",
-                      "contrast": 6.32,
+                      "$value": "{prism.palette.danger.200}",
+                      "contrast": 9.93,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -5487,16 +5487,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.danger.600}",
-                      "contrast": 5.57,
+                      "$value": "{prism.palette.danger.750}",
+                      "contrast": 9.87,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.danger.400}",
-                      "contrast": 5.41,
+                      "$value": "{prism.palette.danger.250}",
+                      "contrast": 8.61,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -5531,16 +5531,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{prism.palette.danger.650}",
-                      "contrast": 6.77,
+                      "$value": "{prism.palette.danger.800}",
+                      "contrast": 11.67,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{prism.palette.danger.350}",
-                      "contrast": 6.32,
+                      "$value": "{prism.palette.danger.200}",
+                      "contrast": 9.93,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -5577,13 +5577,13 @@
                   },
                   "hc-light": {
                     "$value": "{prism.palette.white}",
-                    "contrast": 5.55,
+                    "contrast": 9.99,
                     "against": "interactive.destructive.fill.rest",
                     "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{prism.palette.black}",
-                    "contrast": 5.35,
+                    "contrast": 8.71,
                     "against": "interactive.destructive.fill.rest",
                     "min": 4.5
                   }
@@ -8066,13 +8066,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.88,
+                  "contrast": 9.77,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.34,
+                  "contrast": 9.19,
                   "against": "foreground.brand",
                   "min": 4.5
                 }
@@ -8110,13 +8110,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.51,
+                  "contrast": 9.66,
                   "against": "foreground.success",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.47,
+                  "contrast": 8.96,
                   "against": "foreground.success",
                   "min": 4.5
                 }
@@ -8154,13 +8154,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.58,
+                  "contrast": 9.96,
                   "against": "foreground.warning",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.36,
+                  "contrast": 8.56,
                   "against": "foreground.warning",
                   "min": 4.5
                 }
@@ -8198,13 +8198,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.55,
+                  "contrast": 9.99,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.35,
+                  "contrast": 8.71,
                   "against": "foreground.danger",
                   "min": 4.5
                 }
@@ -8242,13 +8242,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.54,
+                  "contrast": 9.78,
                   "against": "foreground.info",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.43,
+                  "contrast": 8.8,
                   "against": "foreground.info",
                   "min": 4.5
                 }
@@ -9062,13 +9062,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.88,
+                  "contrast": 9.77,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.34,
+                  "contrast": 9.19,
                   "against": "foreground.brand",
                   "min": 4.5
                 }
@@ -9106,13 +9106,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.51,
+                  "contrast": 9.66,
                   "against": "foreground.success",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.47,
+                  "contrast": 8.96,
                   "against": "foreground.success",
                   "min": 4.5
                 }
@@ -9150,13 +9150,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.58,
+                  "contrast": 9.96,
                   "against": "foreground.warning",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.36,
+                  "contrast": 8.56,
                   "against": "foreground.warning",
                   "min": 4.5
                 }
@@ -9194,13 +9194,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.55,
+                  "contrast": 9.99,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.35,
+                  "contrast": 8.71,
                   "against": "foreground.danger",
                   "min": 4.5
                 }
@@ -9238,13 +9238,13 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 5.54,
+                  "contrast": 9.78,
                   "against": "foreground.info",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.black}",
-                  "contrast": 5.43,
+                  "contrast": 8.8,
                   "against": "foreground.info",
                   "min": 4.5
                 }
@@ -9845,14 +9845,14 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 5.88,
+                  "$value": "{prism.palette.primary.650}",
+                  "contrast": 9.77,
                   "against": "background.primary",
                   "min": 4.5
                 },
                 "hc-dark": {
-                  "$value": "{prism.palette.primary.400}",
-                  "contrast": 5.34,
+                  "$value": "{prism.palette.primary.250}",
+                  "contrast": 9.19,
                   "against": "background.primary",
                   "min": 4.5
                 }

@@ -3232,10 +3232,10 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 //      side FLIPS from NB's dark 950 to a light 025 (or to black, now permitted on a fill).
 //   3. `border/focus` — derives from `actionRest`, so it follows the primary fill by construction.
 //
-// NOTE for review: the `hc-*` rows are the ones worth a second look. Each mode has its own text and
-// non-text bars, so HC fills move from HC's text bar (7:1) to HC's non-text bar (4.5:1) — internally
-// consistent, and still stricter than standard mode's 3:1, but it does step HC's bold fills back
-// from the ramp extremes NB used (e.g. red/700 → red/550 in hc-light).
+// There are deliberately NO `hc-*` rows. HC is exempt from the relaxation (see `fillFloorMin` in
+// modes.ts) and so still reproduces NB exactly in both HC modes. Routing HC through the non-text bar
+// made hc-light's brand and danger fills resolve identically to STANDARD light, which is the mode
+// ceasing to be high-contrast on that axis; HC keeps its own 7:1 text bar for fills instead.
 const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: string }[] = [
   { mode: 'light', name: 'color/foreground/success', nb: 'palette/green/550', engine: 'palette/green/500' },
   { mode: 'light', name: 'color/foreground/warning', nb: 'palette/amber/600', engine: 'palette/amber/500' },
@@ -3256,18 +3256,6 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'dark', name: 'color/icon/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/border/focus', nb: 'palette/red/450', engine: 'palette/red/550' },
-  { mode: 'hc-light', name: 'color/foreground/brand', nb: 'palette/red/700', engine: 'palette/red/550' },
-  { mode: 'hc-light', name: 'color/foreground/success', nb: 'palette/green/700', engine: 'palette/green/550' },
-  { mode: 'hc-light', name: 'color/foreground/warning', nb: 'palette/amber/700', engine: 'palette/amber/600' },
-  { mode: 'hc-light', name: 'color/foreground/info', nb: 'palette/info/700', engine: 'palette/info/550' },
-  { mode: 'hc-light', name: 'color/foreground/danger', nb: 'palette/red/700', engine: 'palette/red/550' },
-  { mode: 'hc-light', name: 'color/border/focus', nb: 'palette/red/700', engine: 'palette/red/550' },
-  { mode: 'hc-dark', name: 'color/foreground/brand', nb: 'palette/red/300', engine: 'palette/red/450' },
-  { mode: 'hc-dark', name: 'color/foreground/success', nb: 'palette/green/300', engine: 'palette/green/400' },
-  { mode: 'hc-dark', name: 'color/foreground/warning', nb: 'palette/amber/300', engine: 'palette/amber/450' },
-  { mode: 'hc-dark', name: 'color/foreground/info', nb: 'palette/info/300', engine: 'palette/info/450' },
-  { mode: 'hc-dark', name: 'color/foreground/danger', nb: 'palette/red/300', engine: 'palette/red/450' },
-  { mode: 'hc-dark', name: 'color/border/focus', nb: 'palette/red/300', engine: 'palette/red/450' },
 ];
 
 // Token Press export (fixtures/figma/nb): same variable names per collection/mode, same

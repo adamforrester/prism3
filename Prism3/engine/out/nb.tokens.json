@@ -2815,7 +2815,7 @@
         "brand": {
           "$type": "color",
           "$value": "{nbds.palette.red.550}",
-          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2831,16 +2831,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{nbds.palette.red.550}",
-                  "contrast": 4.62,
+                  "$value": "{nbds.palette.red.700}",
+                  "contrast": 8.25,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{nbds.palette.red.450}",
-                  "contrast": 4.66,
+                  "$value": "{nbds.palette.red.300}",
+                  "contrast": 7.5,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -2859,7 +2859,7 @@
         "success": {
           "$type": "color",
           "$value": "{nbds.palette.green.500}",
-          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2875,16 +2875,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{nbds.palette.green.550}",
-                  "contrast": 4.84,
+                  "$value": "{nbds.palette.green.700}",
+                  "contrast": 8.28,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{nbds.palette.green.400}",
-                  "contrast": 5.17,
+                  "$value": "{nbds.palette.green.300}",
+                  "contrast": 7.19,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -2903,7 +2903,7 @@
         "warning": {
           "$type": "color",
           "$value": "{nbds.palette.amber.500}",
-          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2919,16 +2919,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{nbds.palette.amber.600}",
-                  "contrast": 5.46,
+                  "$value": "{nbds.palette.amber.700}",
+                  "contrast": 8.05,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{nbds.palette.amber.450}",
-                  "contrast": 4.74,
+                  "$value": "{nbds.palette.amber.300}",
+                  "contrast": 7.57,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -2947,7 +2947,7 @@
         "info": {
           "$type": "color",
           "$value": "{nbds.palette.info.500}",
-          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -2963,16 +2963,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{nbds.palette.info.550}",
-                  "contrast": 4.56,
+                  "$value": "{nbds.palette.info.700}",
+                  "contrast": 8.04,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{nbds.palette.info.450}",
-                  "contrast": 4.65,
+                  "$value": "{nbds.palette.info.300}",
+                  "contrast": 7.53,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -3191,7 +3191,7 @@
         "danger": {
           "$type": "color",
           "$value": "{nbds.palette.red.550}",
-          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
+          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -3207,16 +3207,16 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{nbds.palette.red.550}",
-                  "contrast": 4.62,
+                  "$value": "{nbds.palette.red.700}",
+                  "contrast": 8.25,
                   "against": "neutral.050",
-                  "min": 4.5
+                  "min": 7
                 },
                 "hc-dark": {
-                  "$value": "{nbds.palette.red.450}",
-                  "contrast": 4.66,
+                  "$value": "{nbds.palette.red.300}",
+                  "contrast": 7.5,
                   "against": "neutral.900",
-                  "min": 4.5
+                  "min": 7
                 }
               },
               "figma": {
@@ -3255,16 +3255,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.550}",
-                      "contrast": 4.62,
+                      "$value": "{nbds.palette.red.700}",
+                      "contrast": 8.25,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.450}",
-                      "contrast": 4.66,
+                      "$value": "{nbds.palette.red.300}",
+                      "contrast": 7.5,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -3299,16 +3299,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.600}",
-                      "contrast": 5.64,
+                      "$value": "{nbds.palette.red.750}",
+                      "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.400}",
-                      "contrast": 5.52,
+                      "$value": "{nbds.palette.red.250}",
+                      "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -3343,16 +3343,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.650}",
-                      "contrast": 6.82,
+                      "$value": "{nbds.palette.red.800}",
+                      "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.350}",
-                      "contrast": 6.44,
+                      "$value": "{nbds.palette.red.200}",
+                      "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -3387,16 +3387,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.600}",
-                      "contrast": 5.64,
+                      "$value": "{nbds.palette.red.750}",
+                      "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.400}",
-                      "contrast": 5.52,
+                      "$value": "{nbds.palette.red.250}",
+                      "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -3431,16 +3431,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.650}",
-                      "contrast": 6.82,
+                      "$value": "{nbds.palette.red.800}",
+                      "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.350}",
-                      "contrast": 6.44,
+                      "$value": "{nbds.palette.red.200}",
+                      "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -3477,13 +3477,13 @@
                   },
                   "hc-light": {
                     "$value": "{nbds.palette.white}",
-                    "contrast": 5.62,
+                    "contrast": 10.03,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{nbds.palette.black}",
-                    "contrast": 5.45,
+                    "contrast": 8.77,
                     "against": "interactive.primary.fill.rest",
                     "min": 4.5
                   }
@@ -4149,16 +4149,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.550}",
-                      "contrast": 4.62,
+                      "$value": "{nbds.palette.red.700}",
+                      "contrast": 8.25,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.450}",
-                      "contrast": 4.66,
+                      "$value": "{nbds.palette.red.300}",
+                      "contrast": 7.5,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4193,16 +4193,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.600}",
-                      "contrast": 5.64,
+                      "$value": "{nbds.palette.red.750}",
+                      "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.400}",
-                      "contrast": 5.52,
+                      "$value": "{nbds.palette.red.250}",
+                      "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4237,16 +4237,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.650}",
-                      "contrast": 6.82,
+                      "$value": "{nbds.palette.red.800}",
+                      "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.350}",
-                      "contrast": 6.44,
+                      "$value": "{nbds.palette.red.200}",
+                      "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4281,16 +4281,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.600}",
-                      "contrast": 5.64,
+                      "$value": "{nbds.palette.red.750}",
+                      "contrast": 9.94,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.400}",
-                      "contrast": 5.52,
+                      "$value": "{nbds.palette.red.250}",
+                      "contrast": 8.7,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4325,16 +4325,16 @@
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.palette.red.650}",
-                      "contrast": 6.82,
+                      "$value": "{nbds.palette.red.800}",
+                      "contrast": 11.66,
                       "against": "neutral.050",
-                      "min": 4.5
+                      "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.palette.red.350}",
-                      "contrast": 6.44,
+                      "$value": "{nbds.palette.red.200}",
+                      "contrast": 10.01,
                       "against": "neutral.900",
-                      "min": 4.5
+                      "min": 7
                     }
                   },
                   "figma": {
@@ -4371,13 +4371,13 @@
                   },
                   "hc-light": {
                     "$value": "{nbds.palette.white}",
-                    "contrast": 5.62,
+                    "contrast": 10.03,
                     "against": "interactive.destructive.fill.rest",
                     "min": 4.5
                   },
                   "hc-dark": {
                     "$value": "{nbds.palette.black}",
-                    "contrast": 5.45,
+                    "contrast": 8.77,
                     "against": "interactive.destructive.fill.rest",
                     "min": 4.5
                   }
@@ -6860,13 +6860,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.62,
+                  "contrast": 10.03,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.45,
+                  "contrast": 8.77,
                   "against": "foreground.brand",
                   "min": 4.5
                 }
@@ -6904,13 +6904,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.89,
+                  "contrast": 10.07,
                   "against": "foreground.success",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 6.05,
+                  "contrast": 8.41,
                   "against": "foreground.success",
                   "min": 4.5
                 }
@@ -6948,13 +6948,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 6.63,
+                  "contrast": 9.78,
                   "against": "foreground.warning",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.54,
+                  "contrast": 8.84,
                   "against": "foreground.warning",
                   "min": 4.5
                 }
@@ -6992,13 +6992,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.62,
+                  "contrast": 10.03,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.45,
+                  "contrast": 8.77,
                   "against": "foreground.danger",
                   "min": 4.5
                 }
@@ -7036,13 +7036,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.54,
+                  "contrast": 9.78,
                   "against": "foreground.info",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.43,
+                  "contrast": 8.8,
                   "against": "foreground.info",
                   "min": 4.5
                 }
@@ -7856,13 +7856,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.62,
+                  "contrast": 10.03,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.45,
+                  "contrast": 8.77,
                   "against": "foreground.brand",
                   "min": 4.5
                 }
@@ -7900,13 +7900,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.89,
+                  "contrast": 10.07,
                   "against": "foreground.success",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 6.05,
+                  "contrast": 8.41,
                   "against": "foreground.success",
                   "min": 4.5
                 }
@@ -7944,13 +7944,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 6.63,
+                  "contrast": 9.78,
                   "against": "foreground.warning",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.54,
+                  "contrast": 8.84,
                   "against": "foreground.warning",
                   "min": 4.5
                 }
@@ -7988,13 +7988,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.62,
+                  "contrast": 10.03,
                   "against": "foreground.danger",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.45,
+                  "contrast": 8.77,
                   "against": "foreground.danger",
                   "min": 4.5
                 }
@@ -8032,13 +8032,13 @@
                 },
                 "hc-light": {
                   "$value": "{nbds.palette.white}",
-                  "contrast": 5.54,
+                  "contrast": 9.78,
                   "against": "foreground.info",
                   "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{nbds.palette.black}",
-                  "contrast": 5.43,
+                  "contrast": 8.8,
                   "against": "foreground.info",
                   "min": 4.5
                 }
@@ -8639,14 +8639,14 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{nbds.palette.red.550}",
-                  "contrast": 5.62,
+                  "$value": "{nbds.palette.red.700}",
+                  "contrast": 10.03,
                   "against": "background.primary",
                   "min": 4.5
                 },
                 "hc-dark": {
-                  "$value": "{nbds.palette.red.450}",
-                  "contrast": 5.45,
+                  "$value": "{nbds.palette.red.300}",
+                  "contrast": 8.77,
                   "against": "background.primary",
                   "min": 4.5
                 }

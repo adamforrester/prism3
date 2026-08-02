@@ -44,7 +44,7 @@ instruction as literally written** ("re-baseline the NB fixture with a note on w
 *independent* target. Overwriting it with engine output makes it self-referential — it could never
 again catch a real-NB regression, and every future run would compare the engine to itself (the #281
 trap, in a new place). So the divergence is **enumerated** instead, following the `KNOWN_OUTLIERS`
-precedent in `nb-regression.ts`: 31 rows of `{mode, name, nb, engine}` in `NB_KNOWN_DIVERGENCES`.
+precedent in `nb-regression.ts`: 19 rows of `{mode, name, nb, engine}` in `NB_KNOWN_DIVERGENCES`.
 Same outcome — the divergence is accepted and explained — without destroying the target.
 
 **The waiver is exact, and tamper-tested in both directions.** A divergence that *changes* fails
@@ -52,16 +52,24 @@ Same outcome — the divergence is accepted and explained — without destroying
 stale. Verified by tampering, not by assuming: a waiver that silently covers everything is worse
 than no waiver.
 
-**The 31 divergences are three groups, and only the first is a decision** — the other two are
+**The 19 divergences are three groups, and only the first is a decision** — the other two are
 consequences: (1) `foreground/*`, the relaxed fills; (2) `text|icon/on-*` in dark, where the fill
 moved toward its anchor and got darker so the winning ink side FLIPS from NB's 950 to 025 or black;
 (3) `border/focus`, which derives from `actionRest` by construction.
 
-**Open for review — the `hc-*` rows.** Each mode has its own text and non-text bars, so HC fills move
-from HC's text bar (7:1) to HC's non-text bar (4.5:1). Internally consistent, and still stricter
-than standard's 3:1 — but it steps HC's bold fills back from the ramp extremes NB used
-(`red.700`→`red.550` in hc-light). Flagged rather than assumed: HC exists to exceed minimums, so
-"apply the same rule per-mode" is arguable rather than obviously right.
+**HC is EXEMPT, and the measurement is what decided it.** Applying the rule per-mode looked
+internally consistent — each mode reads its own non-text bar, and HC's 4.5 is still stricter than
+standard's 3. It is wrong anyway. Routing HC through `nonTextMin` made hc-light's `foreground.brand`
+and `foreground.danger` resolve to `red.550` at 4.62 — **byte-identical to standard light**. A
+high-contrast mode whose brand and danger fills are indistinguishable from the standard mode has
+stopped being high-contrast on that axis. HC exists to EXCEED minimums, so deriving its fills from a
+WCAG-floor rule erases the thing users switch to it for; `fillFloorMin` keeps `kind: 'hc'` on the
+7:1 text bar. Consequence worth noting: **HC still reproduces NB exactly in both HC modes**, so the
+12 `hc-*` waivers came back out and the table is 19 rows, not 31.
+
+The general lesson, since it nearly shipped: "the same rule, applied uniformly" is not automatically
+right when one of the things it applies to exists precisely to be an exception. Consistency was the
+argument FOR, and it was the wrong axis to optimise.
 
 **Decision #3 (hover/pressed label out of scope for 1.4.3) is now LOAD-BEARING.** It was recorded as
 inert in #375. With fills relaxed, harbor/dark measures 4.28 on hover and 3.62 on pressed, and no

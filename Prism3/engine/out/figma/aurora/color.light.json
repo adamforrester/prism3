@@ -263,7 +263,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold brand fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
+      "description": "Bold brand fill — clears 3:1 on the floor (neutral.100)",
       "value": {
         "r": 0.3686274588108063,
         "g": 0.29411765933036804,
@@ -283,7 +283,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold success fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
+      "description": "Bold success fill — clears 3:1 on the floor (neutral.100)",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -303,7 +303,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold warning fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
+      "description": "Bold warning fill — clears 3:1 on the floor (neutral.100)",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -323,7 +323,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold info fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
+      "description": "Bold info fill — clears 3:1 on the floor (neutral.100)",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -443,7 +443,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold danger fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
+      "description": "Bold danger fill — clears 3:1 on the floor (neutral.100)",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
