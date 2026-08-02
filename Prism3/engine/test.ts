@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, componentSizes } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
-import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS } from './theme';
+import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes } from './modes';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
@@ -1794,16 +1794,20 @@ for (const b of brands) {
   // (f) #296 — the two operations COMPOSE without colliding: a brand re-anchors what a rung is worth
   //     (numeric, mode-invariant), and a mode re-points which rung is used (a rung name). The mode's
   //     target therefore resolves through the brand's re-anchored value automatically.
+  // #377 — this used to re-anchor `relaxed` to 1.9, which is BOTH off-ladder and ABOVE `loose` (1.75).
+  // The test was asserting an inverted ramp: a rung named "relaxed" resolving looser than the one named
+  // "loose". That is precisely the defect #377 was filed for, encoded as an expectation. 1.6 is a real
+  // re-anchor (default 1.65), on the ladder, and keeps the ramp ordered.
   const both = brandTheme({ id: 'lhls2', primary: { l: 0.5, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
-    modes: ['light', 'dark'], typography: { lineHeights: { relaxed: 1.9 } },
+    modes: ['light', 'dark'], typography: { lineHeights: { relaxed: 1.6 } },
     modeLevers: { dark: { lineHeights: { normal: 'relaxed' } } } } as unknown as BrandInput);
-  ok(both.typography.lineHeights.find((l: any) => l.key === 'relaxed')?.value === 1.9,
+  ok(both.typography.lineHeights.find((l: any) => l.key === 'relaxed')?.value === 1.6,
     'type-ramp(f): the brand re-anchor of `relaxed` holds (one value, every mode)');
   ok(both.typography.lineHeightRepointByMode?.dark?.normal === 'relaxed',
     'type-ramp(f): the mode records a rung→rung re-point, not a ramp');
   const bodyC = both.typography.composites.find((c: any) => c.group === 'body' && c.lineHeight === 'normal');
   ok(bodyC?.lineHeightByMode?.dark === 'relaxed',
-    'type-ramp(f): a body composite using `normal` re-points to `relaxed` in dark — resolving to the brand value 1.9');
+    'type-ramp(f): a body composite using `normal` re-points to `relaxed` in dark — resolving to the brand value 1.6');
   // A rung the mode did NOT re-point keeps its own key everywhere — the re-point is per-rung, not global.
   const tightC = both.typography.composites.find((c: any) => c.lineHeight === 'tight');
   ok(!tightC || tightC.lineHeightByMode === undefined,
@@ -2332,6 +2336,42 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const textVar = figFam.find((v) => v.name === 'font/family/text')!;
   ok(textVar.value === 'Inter', 'Figma family variable binds the primary face as value');
   ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
+}
+
+// ---- the rung ladders: on-ladder + ordered (#377) ----
+// The defect this issue was filed for: `{ tight: 2.5, loose: 0.9 }` was ACCEPTED, resolving to
+// `2.5, 1.15, 1.25, 1.5, 1.65, 0.9` — a ramp whose "tight" renders looser than its "loose", silently,
+// across every composite. Font sizes already refused this shape; leading and tracking did nothing.
+{
+  const lh = (v: any) => () => tBrand('ladder-lh', { lineHeights: v });
+  const ls = (v: any) => () => tBrand('ladder-ls', { letterSpacings: v });
+  const throws = (fn: () => unknown) => { try { fn(); return false; } catch { return true; } };
+
+  ok(throws(lh({ tight: 2.5, loose: 0.9 })), 'a fully inverted leading ramp now THROWS (#377\'s founding defect)');
+  ok(throws(lh({ compact: 2.0 })), 'crossing one adjacent pair throws — compact above normal');
+  ok(throws(ls({ tighter: 0.05, wider: -0.05 })), 'an inverted tracking ramp throws');
+
+  ok(throws(lh({ normal: 1.52 })), 'an off-ladder leading value throws rather than snapping (#341: no silent quantisation)');
+  ok(throws(ls({ normal: 0.007 })), 'an off-ladder tracking value throws');
+  ok(!throws(lh({ normal: 1.55 })), '1.55 IS a ladder step — the body range brands actually need');
+  ok(!throws(lh({ normal: 1.4 })), '1.40 is a ladder step — the dense/expert end the old ladder could not express');
+
+  // The ladder must cover the ranges the KB's archetype guidance calls for, or brand voice is
+  // unexpressible. The old six offered ONE value across the whole 1.40–1.60 body range.
+  const inRange = (lo: number, hi: number) => LINE_HEIGHT_LADDER.filter((v) => v >= lo - 1e-9 && v <= hi + 1e-9).length;
+  ok(inRange(1.40, 1.60) >= 3, `body 1.40–1.60 offers ${inRange(1.40, 1.60)} steps (was 1 — every brand got 1.5)`);
+  ok(inRange(1.10, 1.30) >= 4, `display/title 1.10–1.30 offers ${inRange(1.10, 1.30)} steps`);
+  ok(LINE_HEIGHT_LADDER.includes(1.0 as any), 'the ladder reaches 1.0 — hero display had no rung below 1.05');
+  ok(LINE_HEIGHT_LADDER.every((v, i, a) => i === 0 || v > a[i - 1]), 'the leading ladder is strictly ascending');
+  ok(LETTER_SPACING_LADDER.every((v, i, a) => i === 0 || v > a[i - 1]), 'the tracking ladder is strictly ascending');
+  // Keys are the emitted primitive names, so collisions would silently merge two steps into one.
+  const lhKeys = LINE_HEIGHT_LADDER.map(lineHeightStepKey);
+  ok(new Set(lhKeys).size === lhKeys.length, 'every leading ladder step has a distinct emitted key');
+  const lsKeys = LETTER_SPACING_LADDER.map(letterSpacingStepKey);
+  ok(new Set(lsKeys).size === lsKeys.length, 'every tracking ladder step has a distinct emitted key');
+  ok(lineHeightStepKey(1.5) === '150' && lineHeightStepKey(1.05) === '105', 'leading keys follow Prism2 (value × 100)');
+  ok(letterSpacingStepKey(-0.015) === 'neg-15' && letterSpacingStepKey(0) === '0',
+    'tracking keys use a neg- prefix, since `-` reads as a path separator in a slug');
 }
 
 // ---- derivedRungFor: the nudge range must be COMPUTED, not guessed (#377) ----

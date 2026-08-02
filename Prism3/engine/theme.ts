@@ -650,6 +650,38 @@ export const LINE_HEIGHT_KEYS = ['tight', 'snug', 'compact', 'normal', 'relaxed'
 export type LineHeightKey = typeof LINE_HEIGHT_KEYS[number];
 export const LETTER_SPACING_KEYS = ['tighter', 'tight', 'snug', 'normal', 'wide', 'wider'] as const;
 export type LetterSpacingKey = typeof LETTER_SPACING_KEYS[number];
+/** The PRIMITIVE ladders (#377). Curated and locked: a brand binds a role to a step, it does not
+ *  re-anchor a step's value. That is the whole point of numeric keys — `line-height.150` must be 1.50
+ *  or the name lies, which is exactly why value-editing had to go.
+ *
+ *  Sized from field research, not taste. Both reference systems already ship this two-tier shape —
+ *  Prism2 (`lineheight.105…175` + `mostcompact/compact/default/relaxed` aliases) and NB
+ *  (`lineheight.1p1…1p5` + `xs/sm/md/lg/xl`) — and the engine's previous six values WERE Prism2's
+ *  ladder, flattened into one tier. The density comes from where brands actually need to move: the KB's
+ *  archetype guidance ("approachable → generous body 1.5–1.6; expert → controlled headings") was
+ *  unexpressible on the old ladder, which offered exactly ONE value (1.50) across the whole 1.40–1.60
+ *  body range. The 1.30→1.40 gap is deliberate — the heading/body boundary, where nothing sits.
+ *
+ *  Wider than any single reference system on purpose: Prism2 ships 6 because 6 is what Prism2 needed.
+ *  A white-label generator needs the union of what ANY brand might bind. */
+export const LINE_HEIGHT_LADDER = [
+  1.00, 1.05, 1.10,                      // hero display — Tailwind ships leading-none 1.0
+  1.15, 1.20, 1.25, 1.30,                // display text + title (KB: 1.1–1.3)
+  1.40, 1.45, 1.50, 1.55, 1.60,          // body (KB: 1.4–1.6) — dense → generous
+  1.65, 1.75,                            // long-form reading
+  2.00,                                  // deliberately generous / accessible reading
+] as const;
+export const LETTER_SPACING_LADDER = [
+  -0.05, -0.04, -0.03, -0.02, -0.015, -0.01, -0.005,   // negative: display/hero tightening
+  0,
+  0.005, 0.01, 0.02, 0.03, 0.05, 0.08, 0.10,           // positive: eyebrow/all-caps opening
+] as const;
+/** Ladder step → its emitted key. Leading is ×100 (Prism2's convention: 1.50 → `150`); tracking is
+ *  ×1000 with a `neg-` prefix rather than a minus sign, since `-` reads as a path separator in slugs
+ *  (Prism2 does the same: `neg-015`). */
+export const lineHeightStepKey = (v: number): string => String(Math.round(v * 100));
+export const letterSpacingStepKey = (em: number): string =>
+  (em < 0 ? 'neg-' : '') + String(Math.abs(Math.round(em * 1000)));
 const LINE_HEIGHTS: { key: LineHeightKey; value: number }[] = [
   { key: 'tight', value: 1.05 }, { key: 'snug', value: 1.15 }, { key: 'compact', value: 1.25 },
   { key: 'normal', value: 1.5 }, { key: 'relaxed', value: 1.65 }, { key: 'loose', value: 1.75 },
@@ -1090,12 +1122,36 @@ export const brandLetterSpacings = (t: TypographyInput = {}): { key: string; em:
 
 const buildTypography = (t: TypographyInput = {}): Typography => {
   // Same bounds as the per-mode levers — guard typos, not taste.
+  // #377 — a role BINDS a ladder step; it no longer re-anchors a free value. Two guards, and the second
+  // is the one this issue was filed for.
+  //
+  // (1) ON-LADDER. A range check accepted 1.52, which is not a step, so the emitted primitive key
+  //     (`line-height.152`) would name a value no other brand could reference — a private step invented
+  //     by a typo. Refusing beats snapping: #341 removed silent quantisation from the size ramp for the
+  //     same reason, and a per-brand leading that quietly became a different number is worse here,
+  //     because nothing downstream looks wrong.
+  // (2) ORDER. `tight` must stay tighter than `loose`. Previously UNGUARDED, and the engine accepted
+  //     `{ tight: 2.5, loose: 0.9 }` — resolving to `2.5, 1.15, 1.25, 1.5, 1.65, 0.9`, a ramp where the
+  //     rung named "tight" renders looser than the one named "loose", silently, across all 38
+  //     composites. The names ARE the contract (relative emphasis, tight → loose); an inverted ramp
+  //     makes every one of them lie. Font sizes already refuse this shape; weight roles warn. Leading
+  //     and tracking did neither.
+  const onLadder = (field: string, ladder: readonly number[], k: string, v: number): void => {
+    if (!Number.isFinite(v)) throw new Error(`typography.${field} '${k}' ${v} is not a finite number`);
+    if (!ladder.some((s) => Math.abs(s - v) < 1e-9))
+      throw new Error(`typography.${field} '${k}' ${v} is not a step on the ladder — bind a role to an existing primitive rather than inventing a value. Available: ${ladder.join(', ')}`);
+  };
   for (const [k, v] of Object.entries(t.lineHeights ?? {}))
-    if (v !== undefined && (!Number.isFinite(v) || v < 0.8 || v > 3))
-      throw new Error(`typography.lineHeights '${k}' ${v} is out of range — must be a finite multiplier in [0.8, 3]`);
+    if (v !== undefined) onLadder('lineHeights', LINE_HEIGHT_LADDER, k, v);
   for (const [k, v] of Object.entries(t.letterSpacings ?? {}))
-    if (v !== undefined && (!Number.isFinite(v) || v < -0.5 || v > 0.5))
-      throw new Error(`typography.letterSpacings '${k}' ${v} is out of range — must be a finite em in [-0.5, 0.5]`);
+    if (v !== undefined) onLadder('letterSpacings', LETTER_SPACING_LADDER, k, v);
+  const ordered = (field: string, keys: readonly string[], resolved: number[]): void => {
+    for (let i = 1; i < resolved.length; i++)
+      if (resolved[i] < resolved[i - 1])
+        throw new Error(`typography.${field}: '${keys[i]}' (${resolved[i]}) resolves below '${keys[i - 1]}' (${resolved[i - 1]}) — the rung names are a relative-emphasis ramp, so they must stay in order. Re-point the roles instead of crossing them.`);
+  };
+  ordered('lineHeights', LINE_HEIGHT_KEYS, LINE_HEIGHTS.map((l) => t.lineHeights?.[l.key] ?? l.value));
+  ordered('letterSpacings', LETTER_SPACING_KEYS, LETTER_SPACINGS.map((l) => t.letterSpacings?.[l.key] ?? l.em));
   // A nudge beyond ±5 rungs is meaningless (both ramps are 6 long) — almost certainly a typo.
   for (const [field, map] of [['leadingShift', t.leadingShift], ['trackingShift', t.trackingShift]] as const)
     for (const [g, n] of Object.entries(map ?? {}))
