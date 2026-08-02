@@ -7,6 +7,42 @@
 
 ---
 
+## (2026-08-02) — The dashboard's status colors become a set (#285)
+
+**STATUS: web.** #355 fixed the neutral greys; the audit that followed found every remaining chrome
+failure was a **semantic status color**, and that they had never been checked as a group. The root cause
+was structural: **there was no set.**
+
+```
+success   #1f9d63   #1a9c52   #1a7f4b      three greens for one concept
+danger    #c9342f   #dd3322   #b0341a      three reds for one concept
+warning   #b06a12
+```
+
+Nine literals, scattered, with no shared definition — which is exactly why two greens, one red and the
+amber all sat under AA without anyone noticing. Nothing held them to a common bar.
+
+Now `--ok` / `--warn` / `--danger` (plus `--ok-inv` / `--danger-inv`), defined once beside the neutrals,
+every value clearing **4.5:1 on `--paper`** — the worse of the two light surfaces.
+
+- **The fix is the set, not the values.** Patching each failing color would have left the same nine
+  literals free to drift apart again. One semantic → one token is what stops the next one appearing.
+- **`--ok-inv` / `--danger-inv` are measured against `--ink`, not `--paper`.** They sit on inverted
+  panels; darkening them would have *broken* contrast rather than fixed it. This is the trap the #285
+  method notes warn about — **and my own derivation script walked straight into it**, reporting
+  `.sg-st` (`#c9ccce`, 1.45:1) as a failure. It sits inside `.sg-btns.sg-inv`, a dark panel. Caught by
+  checking what the element was, not by trusting the number.
+- **Status DOTS were already compliant** and changed anyway: they are non-text (SC 1.4.11, 3:1) and
+  cleared that bar. They joined the set for consistency, because one status green should be one green —
+  recorded so a future reader does not mistake it for a compliance fix.
+- **Verified by walking the rendered DOM**, effective backgrounds resolved by climbing to the first opaque
+  ancestor, large-text rule applied per element: **zero chrome failures** across every page and segment.
+  The 22 remaining signatures are all `.sg-*` style-guide specimens rendering **brand-generated** colors,
+  which #285 already carries as a separate question — a specimen showing a brand color at its true value
+  is being honest, and flagging it as a dashboard defect would be a category error.
+- **Does not close #285.** The chrome portion is done; the generated-color question stays open there.
+
+---
 ## (2026-08-02) — Leading & tracking get their semantic tier (#377, PR 3b)
 
 **STATUS: engine.** The architectural half. Leading and tracking now carry the same two tiers every other
