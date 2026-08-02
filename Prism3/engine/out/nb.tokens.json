@@ -6200,32 +6200,32 @@
           "hover": {
             "$type": "color",
             "$value": "{nbds.palette.neutral.500}",
-            "$description": "Form field hover border — a subtly stronger boundary on pointer hover, 4.5:1 (never the sole state carrier — KB §4)",
+            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "nbds.palette.neutral.500",
                 "contrast": 4.59,
                 "against": "background.primary",
-                "min": 4.5,
+                "min": 3,
                 "modes": {
                   "dark": {
                     "$value": "{nbds.palette.neutral.450}",
                     "contrast": 5.06,
                     "against": "background.primary",
-                    "min": 4.5
+                    "min": 3
                   },
                   "hc-light": {
-                    "$value": "{nbds.palette.neutral.650}",
-                    "contrast": 8.15,
+                    "$value": "{nbds.palette.neutral.600}",
+                    "contrast": 6.69,
                     "against": "background.primary",
-                    "min": 7
+                    "min": 4.5
                   },
                   "hc-dark": {
-                    "$value": "{nbds.palette.neutral.350}",
-                    "contrast": 7.49,
+                    "$value": "{nbds.palette.neutral.400}",
+                    "contrast": 6.41,
                     "against": "background.primary",
-                    "min": 7
+                    "min": 4.5
                   }
                 },
                 "figma": {

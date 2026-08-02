@@ -629,8 +629,24 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // Rest is a perceivable boundary; hover is a subtly STRONGER boundary — never the sole state
   // carrier (KB §4). Focus swaps to border.focus, validation to border.<semantic>, disabled to
   // disabled.border — those compose from generic families, so only rest/hover live in field.*.
-  put('field.border.rest', pickMinPass(ramp, baseRgb, cfg.nonTextMin), `Form field resting border — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11) — better than a sub-3:1 resting border`, 'background.primary', cfg.nonTextMin);
-  put('field.border.hover', pickMinPass(ramp, baseRgb, cfg.secondaryMin), `Form field hover border — a subtly stronger boundary on pointer hover, ${cfg.secondaryMin}:1 (never the sole state carrier — KB §4)`, 'background.primary', cfg.secondaryMin);
+  const fieldRest = pickMinPass(ramp, baseRgb, cfg.nonTextMin);
+  put('field.border.rest', fieldRest, `Form field resting border — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11) — better than a sub-3:1 resting border`, 'background.primary', cfg.nonTextMin);
+  // Hover is a STATE DELTA expressed as a step offset from rest, not a second absolute ratio.
+  //
+  // It used to target `secondaryMin` — a TEXT constant — which is the same category error the bold
+  // fills had (#352): a border carries no text, so SC 1.4.11 governs it, and the hover state's job
+  // is to be perceptibly DIFFERENT from rest rather than to clear a higher bar. Chasing an absolute
+  // ratio also made the perceptual delta vary by mode, because it depends on wherever `rest` landed:
+  // 2 steps in light/dark but 3 in HC. A fixed offset is the same idiom `iFill` already uses for
+  // interactive fill states, and it makes the delta uniform.
+  //
+  // TWO is the offset because that is what light and dark already resolved to, so both are
+  // byte-identical to before; only HC changes, tightening 3 steps to 2. One step was the tempting
+  // choice for consistency with `iFill`'s hover, but a field border is a hairline — a single step is
+  // a far weaker cue on 1px of chrome than on a filled button, and this would have been a silent
+  // regression in the affordance.
+  const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2), baseRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.primary', cfg.nonTextMin);
   put('field.placeholder', pickMinPass(textCands, cfg.bg.secondary.rgb, cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the field fill (not a sub-AA placeholder)`, 'field.fill', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)

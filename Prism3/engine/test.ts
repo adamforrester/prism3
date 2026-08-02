@@ -540,12 +540,24 @@ for (const b of brands) {
     const b = m.roles['field.border.rest'], bh = m.roles['field.border.hover'], p = m.roles['field.placeholder'];
     // resting border is a perceivable boundary (SC 1.4.11) vs the page — NOT the sub-3:1 Prism2 shipped.
     if (b.against !== 'background.primary' || b.min < 3 || b.ratio < b.min) fails.push(`${m.mode}:border ${b.ratio.toFixed(2)}<${b.min}@${b.against}`);
-    // hover border is a STRONGER boundary than rest (gated ≥4.5), same page ground — a perceptible, not sole, state cue.
-    if (bh.against !== 'background.primary' || bh.min < 4.5 || bh.ratio < bh.min || bh.ratio < b.ratio) fails.push(`${m.mode}:border.hover ${bh.ratio.toFixed(2)}<${bh.min}@${bh.against}`);
+    // hover border is a STRONGER boundary than rest, on the same page ground — a perceptible, not
+    // sole, state cue. Gated at the NON-TEXT bar like rest (#352 item 4): a border carries no text,
+    // so the old `secondaryMin` target was a text constant doing a non-text job. The state cue is
+    // carried by a step OFFSET instead, so what is asserted here is "strictly stronger than rest",
+    // not a second absolute ratio.
+    if (bh.against !== 'background.primary' || bh.min < 3 || bh.ratio < bh.min || bh.ratio <= b.ratio) fails.push(`${m.mode}:border.hover ${bh.ratio.toFixed(2)}<${bh.min}@${bh.against}`);
     // placeholder is readable on the field fill — NOT a sub-AA hint.
     if (p.against !== 'field.fill' || p.min < 4.5 || p.ratio < p.min) fails.push(`${m.mode}:placeholder ${p.ratio.toFixed(2)}<${p.min}@${p.against}`);
   }
-  ok(fails.length === 0, 'field: rest border ≥3:1 + hover border ≥4.5 (≥rest) on the page + placeholder ≥4.5 on the fill, every mode' + (fails.length ? ` — ${fails.join(',')}` : ''));
+  ok(fails.length === 0, 'field: rest border ≥3:1 + hover border stronger than rest on the page + placeholder ≥4.5 on the fill, every mode' + (fails.length ? ` — ${fails.join(',')}` : ''));
+
+  // ...and the delta is UNIFORM across modes, which is the whole point of an offset over a ratio.
+  // Chasing an absolute ratio made the perceptual delta depend on wherever `rest` happened to land:
+  // 2 ramp steps in light/dark but 3 in HC, for the same nominal "hover" affordance.
+  const fbStep = (r: any) => Number(r.path.split('.').pop());
+  const fbDeltas = modes.map((m: any) => Math.abs(fbStep(m.roles['field.border.hover']) - fbStep(m.roles['field.border.rest'])));
+  ok(new Set(fbDeltas).size === 1 && fbDeltas[0] === 100,
+    `field: hover sits a uniform 2 ramp steps from rest in every mode (deltas ${fbDeltas.join(', ')})`);
 }
 
 // MATERIALISE-TO-FIGMA — the colour aliases MUST bind a distinct target per mode. This locks

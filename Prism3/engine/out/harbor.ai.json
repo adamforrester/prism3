@@ -1853,8 +1853,8 @@
       "mode_overrides": {
         "light": "{prism.palette.neutral.550}",
         "dark": "{prism.palette.neutral.450}",
-        "hc-light": "{prism.palette.neutral.650}",
-        "hc-dark": "{prism.palette.neutral.350}"
+        "hc-light": "{prism.palette.neutral.600}",
+        "hc-dark": "{prism.palette.neutral.400}"
       },
       "paired_with": [
         "field.fill",
@@ -1863,7 +1863,7 @@
       "contrast_with": [
         {
           "token": "background.primary",
-          "min": "4.5:1",
+          "min": "3:1",
           "ratio": 4.56
         }
       ]
@@ -4012,7 +4012,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.field.border.hover",
         "color.field.placeholder"
       ]
     },
@@ -4021,7 +4020,10 @@
       "meaning": "neutral ramp — raw step 400",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.field.border.hover"
+      ]
     },
     "palette.neutral.450": {
       "$description": "Neutral 450 — Mid-Tone band",
@@ -4088,6 +4090,7 @@
       "aliased_by": [
         "color.disabled.icon",
         "color.disabled.text",
+        "color.field.border.hover",
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
@@ -4103,7 +4106,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.disabled.on-fill",
-        "color.field.border.hover",
         "color.field.placeholder"
       ]
     },
