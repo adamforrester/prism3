@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS } from '../../Prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
@@ -157,10 +157,19 @@ const rebuild = (): void => {
 // input focus is never lost; applyFull() re-renders the whole workspace (structural
 // edits — add/remove color, Derive⇄Pin, stage switch); build() re-renders the shell.
 let paintVolatile: () => void = () => {};
+let globalErrHost: HTMLElement | null = null;
 // renderModeStrip repaints the persistent header mode-selector (#171 promoted to the global header,
 // docs/23 §7) — its per-mode contrast ✓/✗ marks track the theme, so every edit refreshes it too.
-const apply = (): void => { rebuild(); renderModeStrip(); paintVolatile(); };
-const applyFull = (): void => { rebuild(); renderModeStrip(); renderWorkspace(); };
+/** Keep the global error bar honest after every rebuild. `lastError` is set by `rebuild()`'s catch and
+ *  means "the live edit did not resolve; you are looking at the last good theme" — a state the user must
+ *  be told about wherever they are, not only on the page that happens to render it. */
+const syncErrorBar = (): void => {
+  if (!globalErrHost) return;
+  globalErrHost.style.display = lastError ? '' : 'none';
+  if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError}`;
+};
+const apply = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); paintVolatile(); };
+const applyFull = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); renderWorkspace(); };
 
 // ---- DOM helpers -----------------------------------------------------------
 const el = (tag: string, cls?: string, text?: string): HTMLElement => {
@@ -2929,7 +2938,8 @@ const renderLeadingTracking = (): HTMLElement => {
   // Responsive out of this format. The three fixed columns use the same width tokens as every other
   // table on the page, which is the whole point — Foundations reads on one column grid.
   const ramp = (caption: string, steps: { key: string; val: number }[],
-    globalKey: string, modeField: 'lineHeights' | 'letterSpacings', min: number, max: number, step: number,
+    globalKey: string, modeField: 'lineHeights' | 'letterSpacings',
+    ladder: readonly number[], fmt: (v: number) => string,
     preview: (host: HTMLElement, v: number) => void): void => {
     const box = el('div', 'mtbl');
     box.append(el('p', 'mtbl-cap', caption));
@@ -2940,19 +2950,35 @@ const renderLeadingTracking = (): HTMLElement => {
       el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
     thead.append(htr); tbl.append(thead);
     const tb = el('tbody');
-    for (const s of steps) {
+    steps.forEach((s, idx) => {
       const tr = el('tr');
       const nc = el('td', 'mtbl-stick');
       nc.append(el('span', 'mtbl-name mono', s.key));
       tr.append(nc);
+      // #388 — a SELECT of ladder steps, not a free number. #384 made the engine refuse off-ladder
+      // values, and this control had kept `step="0.05"` from `min="0.8"`, so arrow-keying from 1.30
+      // landed on 1.35 — inside the deliberate 1.30→1.40 gap. The engine threw, `rebuild()` caught it,
+      // and the user saw the field still showing the value the system had just rejected. Binding to an
+      // existing step is what a locked ladder means; typing was never the right verb.
+      //
+      // Steps that would CROSS a neighbor are rendered disabled rather than omitted: the ramp order is
+      // a real constraint, and showing it grayed teaches it, where hiding it would look like the ladder
+      // is shorter than it is.
       const vc = el('td', 'mtbl-mode');
-      const inp = numberField({ className: 'ltbl-in', min, max, step, value: s.val });
-      inp.setAttribute('aria-label', `${caption} ${s.key}`);
-      inp.onchange = () => {
-        const n = Number(inp.value);
-        if (n >= min && n <= max) { setPath(brandState, `${globalKey}.${s.key}`, n); apply(); } else inp.value = String(s.val);
-      };
-      vc.append(inp);
+      const sel = selectEl('sm ltbl-sel');
+      sel.setAttribute('aria-label', `${caption} ${s.key}`);
+      const lo = idx > 0 ? steps[idx - 1].val : -Infinity;
+      const hi = idx < steps.length - 1 ? steps[idx + 1].val : Infinity;
+      for (const v of ladder) {
+        const o = optionEl(String(v), fmt(v), Math.abs(v - s.val) < 1e-9) as HTMLOptionElement;
+        if (v < lo - 1e-9 || v > hi + 1e-9) {
+          o.disabled = true;
+          o.title = `Would cross ${v < lo ? steps[idx - 1].key : steps[idx + 1].key} — the rung names are a relative-emphasis ramp, so they stay in order`;
+        }
+        sel.append(o);
+      }
+      sel.onchange = () => { setPath(brandState, `${globalKey}.${s.key}`, Number(sel.value)); apply(); };
+      vc.append(sel);
       tr.append(vc);
       const who = [...new Set(ty.composites.filter((c) => (modeField === 'lineHeights' ? c.lineHeight : c.tracking) === s.key).map((c) => c.group))];
       const wc = el('td', 'mtbl-mode');
@@ -2967,15 +2993,15 @@ const renderLeadingTracking = (): HTMLElement => {
       pc.append(pv);
       tr.append(pc);
       tb.append(tr);
-    }
+    });
     tbl.append(tb); scroll.append(tbl); box.append(scroll);
     sec.append(box);
   };
   ramp('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })),
-    'typography.lineHeights', 'lineHeights', 0.8, 3, 0.05,
+    'typography.lineHeights', 'lineHeights', LINE_HEIGHT_LADDER, (v) => `${v.toFixed(2)}×`,
     (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
   ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })),
-    'typography.letterSpacings', 'letterSpacings', -0.5, 0.5, 0.005,
+    'typography.letterSpacings', 'letterSpacings', LETTER_SPACING_LADDER, (v) => `${v}em`,
     (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
   return sec;
 };
@@ -4761,6 +4787,17 @@ const build = (): void => {
   chrome.append(barHost);
   modeStripHost = el('div', 'modebar');
   chrome.append(modeStripHost);
+  // #388 — the error surface lives in the CHROME, not in a page. It used to be rendered only by
+  // `renderPrimitives`' paint closure, so an engine throw from any other page set `lastError` and showed
+  // nothing: on Typography an off-ladder rung silently kept the old value while the field displayed the
+  // rejected one. Per-page rendering is the shape that caused the hole — the next page added would have
+  // forgotten it too — so this is mounted once and refreshed by `syncErrorBar` on every apply.
+  // `syncErrorBar` — not a literal `display:none` — sets the initial state: page nav re-runs `build()`,
+  // so hardcoding "hidden" here would drop a live error the moment the user changed page, which is the
+  // very hole this bar closes. The host is minted fresh each build; its visibility is always derived.
+  globalErrHost = el('div', 'errbar errbar-global');
+  chrome.append(globalErrHost);
+  syncErrorBar();
   app.append(chrome);
   renderBar();
   renderModeStrip();
@@ -5391,6 +5428,11 @@ input.toggle:disabled{opacity:.5;cursor:default}
    consistency, not compliance. One status green should be one green. */
 .dot.ok{background:var(--ok)}.dot.no{background:var(--danger)}
 .ratio{font-variant-numeric:tabular-nums;color:var(--muted)}
+/* The global bar (#388) carries .errbar-global as a marker only — it deliberately has NO rules of its
+   own. A full-bleed variant was written first and was silently inert: it sat above .errbar at equal
+   specificity, so every declaration lost the source-order tiebreak. Rendered, the plain .errbar card
+   matches the mode bar it sits under, so the right fix was to delete the override, not to reorder it.
+   (No backticks in this stylesheet — it is a template literal; see #366.) */
 .errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
