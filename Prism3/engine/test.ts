@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, componentSizes } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
-import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin } from './theme';
+import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes } from './modes';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
@@ -2332,6 +2332,30 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const textVar = figFam.find((v) => v.name === 'font/family/text')!;
   ok(textVar.value === 'Inter', 'Figma family variable binds the primary face as value');
   ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
+}
+
+// ---- derivedRungFor: the nudge range must be COMPUTED, not guessed (#377) ----
+// `shiftRung` clamps, so a fixed ±2 was wrong in both directions at once — dead steps for categories
+// mid-ramp, hidden live steps for categories at an end. This is the export that lets the UI derive it.
+{
+  const dTheme = tBrand('nudge-range', { families: { text: 'Inter' } });
+  const idxOf = (field: 'leadingShift' | 'trackingShift', g: any, px: number) =>
+    (field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS).indexOf(derivedRungFor(field, g, px) as any);
+  // display sits at the TIGHT end of the leading ramp, which is why a ±2 cap made `loose` unreachable.
+  ok(idxOf('leadingShift', 'display', 160) === 0, 'display derives the tightest leading rung');
+  ok(LINE_HEIGHT_KEYS.length - 1 - idxOf('leadingShift', 'display', 160) === 5,
+    'display → loose needs +5, so any cap below 5 hides a reachable rung');
+  // eyebrow sits at the WIDE end of the tracking ramp — the opposite failure: +1/+2 were no-ops.
+  ok(idxOf('trackingShift', 'eyebrow', 12) === LETTER_SPACING_KEYS.length - 1,
+    'eyebrow derives the widest tracking rung, so every positive tracking nudge on it is a no-op');
+  // body sits mid-ramp: both directions live, neither reaching the engine's ±5 bound.
+  ok(idxOf('leadingShift', 'body', 16) === 3, 'body derives `normal`, mid-ramp');
+  // A category deriving several rungs (title bands by size) must span all of them.
+  const titleIdx = [18, 24, 28, 40].map((px) => idxOf('leadingShift', 'title', px));
+  ok(new Set(titleIdx).size > 1, 'title derives more than one leading rung across its size bands');
+  ok(Math.min(...titleIdx) >= 0 && Math.max(...titleIdx) < LINE_HEIGHT_KEYS.length, 'every derived title rung is on the ramp');
+  ok(dTheme.typography.composites.every((c: any) => LINE_HEIGHT_KEYS.includes(c.lineHeight as any)),
+    'every composite lands on a real leading rung after derivation + nudge');
 }
 
 // ---- the authored typeface library (#287) ----

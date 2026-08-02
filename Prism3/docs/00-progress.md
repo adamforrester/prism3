@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-08-02) — The category nudge range is derived, not guessed (#377, PR 2 of 3)
+
+**STATUS: web + engine.** The per-category leading/tracking nudge offered a fixed `±2`. That was wrong in
+**both directions at once**, and the same mistake caused both: guessing the range instead of computing it.
+
+- **It hid live steps.** `display` derives the *tightest* leading rung, so reaching `loose` needs **+5**.
+  The owner's own test case — *"one brand might want display snug, another loose"* — was half
+  unsupported: snug is +1 and worked, loose was unreachable through the UI.
+- **It offered dead ones.** `shiftRung` clamps. `eyebrow` derives the *widest* tracking rung, so its `+1`
+  and `+2` were silent no-ops. From `normal`, `+3/+4/+5` all render `loose`.
+- **Every one of the seven categories was affected**, on one axis or both. The ±2 comment reasoned "±2
+  still lands inside them from most starting points" — true for mid-ramp categories, false for every
+  category sitting at an end, which is exactly where the interesting nudges live.
+
+**Fix:** `derivedRungFor` is now exported from the engine, and the UI computes each category's reachable
+span from the rungs its composites actually derive. A category spanning several rungs (title bands by
+size) gets the union. Engine-bounded to ±5, which is what the validator already accepted.
+
+```
+display  leading   default … 5 looser      (no "tighter" — already at the tight end)
+title    leading   2 tighter … 4 looser
+body     leading   3 tighter … 2 looser
+eyebrow  tracking  5 tighter … default     (no "wider" — already at the wide end)
+```
+
+- **Why export the derivation rather than duplicate it.** The UI cannot offer an honest range without
+  knowing what each composite derives *before* the nudge. Reimplementing `lineHeightFor`/`trackingFor` in
+  the web layer would have created a second source of truth that silently rots the moment the engine's
+  bands change — and PR 1 changed them this same day. The export is the seam that keeps one answer.
+- **This composes with PR 1 automatically.** PR 2 branches from `main`, so display still derives only
+  `tight` here and computes `0..5`. Once PR 1's banding lands, display derives `tight`+`snug` and the
+  range recomputes to `-1..5` with no code change — the payoff of deriving rather than hardcoding.
+- **#360's select-width trap re-checked**, since the option lists got longer: a closed `<select>`'s
+  intrinsic width is its *widest option*, and "5 tighter" is the same width as "2 tighter", so the selects
+  measure 84–91px against the 92px cap. Table stays 800/800, no overflow.
+- **Verified**: 1224 tests (7 new asserting the derivation's ends and title's multi-rung span),
+  `regen --check` 88/88 (no emitted artifact moves — the export adds no output), NB regression PASS,
+  browser-checked across all seven categories on both axes, no page errors.
+
+---
 ## (2026-08-02) — Display leading gets size bands (#377, PR 1 of 3)
 
 **STATUS: engine.** `lineHeightFor` sent **every** display size to `tight` (1.05) — 48px through 160px, a
