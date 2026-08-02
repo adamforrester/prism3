@@ -1853,8 +1853,8 @@
       "mode_overrides": {
         "light": "{nbds.palette.neutral.500}",
         "dark": "{nbds.palette.neutral.450}",
-        "hc-light": "{nbds.palette.neutral.650}",
-        "hc-dark": "{nbds.palette.neutral.350}"
+        "hc-light": "{nbds.palette.neutral.600}",
+        "hc-dark": "{nbds.palette.neutral.400}"
       },
       "paired_with": [
         "field.fill",
@@ -1863,7 +1863,7 @@
       "contrast_with": [
         {
           "token": "background.primary",
-          "min": "4.5:1",
+          "min": "3:1",
           "ratio": 4.59
         }
       ]
@@ -4425,7 +4425,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.field.border.hover",
         "color.field.placeholder"
       ]
     },
@@ -4437,6 +4436,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.secondary",
+        "color.field.border.hover",
         "color.field.border.rest",
         "color.interactive.neutral.border"
       ]
@@ -4498,7 +4498,10 @@
       "meaning": "neutral ramp — raw step 600",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.field.border.hover"
+      ]
     },
     "palette.neutral.650": {
       "$description": "neutral 650 — Three-Quarter-Tone band",
@@ -4508,7 +4511,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.disabled.on-fill",
-        "color.field.border.hover",
         "color.field.placeholder"
       ]
     },

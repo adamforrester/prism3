@@ -6,6 +6,48 @@
 > changes. Most recent entry first.
 
 ---
+## (2026-08-02) — field.border.hover becomes a step offset, not a second ratio (#352, item 4 — closes the issue)
+
+**STATUS: engine.** Last item on #352. `field.border.hover` targeted `cfg.secondaryMin` — a **text**
+constant (4.5 light/dark, 7 HC) — while `field.border.rest` was already on `nonTextMin`. Same
+category error as the bold fills: a border carries no text, so SC 1.4.11 governs it.
+
+**Ratio or step offset — the call was offset, and the current output argued for it.** A hover state's
+job is to be perceptibly DIFFERENT from rest, which is a delta, not an absolute. Chasing an absolute
+ratio makes the delta depend on wherever `rest` happened to land, and it already had: **2 ramp steps
+in light/dark, 3 in HC**, for the same nominal affordance. An offset is also the idiom `iFill`
+already uses for interactive fill states, so this removes a second way of saying the same thing.
+
+**TWO steps, and the number was chosen from the data rather than for tidiness.** Light and dark
+already resolved to a 2-step delta, so both are **byte-identical** — only HC changes, tightening 3
+steps to 2. One step was tempting for symmetry with `iFill`'s hover offset, and would have been
+wrong: a field border is a hairline, and one step on 1px of chrome is a far weaker cue than one step
+on a filled button. That would have shipped as a silent regression in the affordance, gates green.
+
+**What the artifacts show, and it is worth reading precisely:** in light/dark the ONLY diff is the
+`description` and the `min` (4.5 → 3) — no color moves, because the pick was already where the
+offset puts it. HC is the only mode where a color moves (`neutral.650`→`600` in hc-light,
+`350`→`400` in hc-dark). So the change is mostly a correction to what the engine CLAIMS, which was
+the same shape as #375.
+
+**Pinned, because "uniform" is the property and nothing measured it.** The old test asserted
+`hover.min >= 4.5` — the rule being removed — and nothing anywhere checked that the delta was
+consistent across modes, which is why the 2-vs-3 split sat there unnoticed. There is now an
+assertion that hover sits a uniform 2 ramp steps from rest in EVERY mode. Tamper-tested: changing
+the offset to 1 fails it with `deltas 50, 50, 50, 50`.
+
+**Note the contract direction changed, not just the number.** `hover` is no longer gated at a higher
+bar than `rest`; both sit at `nonTextMin`, and what is asserted is that hover is *strictly stronger
+than rest*. A gate that says "hover ≥ 4.5" was checking the wrong thing — a hover border that
+happened to equal rest would have passed it.
+
+**#352 is now fully addressed:** item 1 link ink (#373), item 2 the fills (#375 + #378), item 3
+withdrawn as a reversal of a recorded decision (#379), item 4 here.
+
+**Gates:** `regen` + `--check` clean, `test.ts` **1206/0**, nb-regression exit 0, DTCG 899/899
+aliases + 432/432 contracts, US-English clean.
+
+---
 ## (2026-08-02) — bold fills relax to the non-text bar; NB divergence enumerated, not re-baselined (#352, item 2 completed)
 
 **STATUS: engine.** This finishes item 2. #375 did only the interactive fill *state contracts* and
