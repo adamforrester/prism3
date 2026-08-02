@@ -7,6 +7,42 @@
 
 ---
 
+## (2026-08-01) — Staging a typeface from the UI (#287's deferred half)
+
+**STATUS: web.** #287 shipped the engine field and explicitly deferred "the web UI for staging/removing
+library entries" to a follow-up, mirroring #269 (engine `#280` → UI `#282`). This is that follow-up: an
+add form under the library table, and a remove control on the rows that are allowed to have one.
+
+- **The decided semantics needed no new logic, only an affordance.** Owner call, recorded on #287: only
+  *unbound* entries are deletable. So the delete button's render condition is exactly `bind.unbound`,
+  which #369 already computes — no cascade, no guard, no new state. A bound entry gets **no button at
+  all** rather than a disabled one, because a disabled control invites the click it then refuses. The
+  known "why can't I delete this?" cost is answered on the cell that already names the roles in the way:
+  *"In the library and bound — re-point Display to something else to make this removable."*
+- **The remove control lives in the FILL column**, which looks like an odd home for a row action until
+  you try it anywhere else: a fifth column, or a button inside any fixed-width cell, pushes that cell
+  past its token and breaks the `112/148/148` parity #363 had just established. The fill column absorbs
+  slack, so the grid survives. Parity was re-measured in **all nine** UI states below, not just at rest.
+- **Validation mirrors the engine rather than duplicating it.** `typefaceSlug` is imported from
+  `theme.ts` instead of re-implemented, so the UI's duplicate check and the engine's throw agree by
+  construction — including case-insensitivity (`fraunces` is correctly refused against `Fraunces`).
+  The check runs against the **derived** list, not the authored array: a name already reachable through a
+  role binding would be absorbed by the union and its row would never appear, which reads as "the button
+  did nothing". Those two cases get *different* messages, because they are different facts — one is
+  already staged, the other is already bound.
+- **Harness caveat worth recording**: the Playwright pass selected `.tf-card` by `hasText: 'Mono'` and got
+  the **Display** card. The lifecycle assertions (bound ⇒ not removable, tooltip present; unbound ⇒
+  removable) hold regardless of which role is involved, so the run is still valid — but the face was bound
+  to Display, not Mono, and the docs should say so rather than describe an interaction that did not happen.
+- **Verified**, nine states, column parity `112/148/148/390` and zero scroll overflow in every one: add a
+  face → row appears *Not bound — staged* with a remove control; duplicate of a **bound** face → refused
+  with the "a role binds it" message; duplicate of a **staged** face, different case → refused with the
+  "already in the library" message; whitespace-only → refused; **survives a reload** (it is brand state);
+  bind it to a role → the control **disappears** and the explanatory tooltip appears; unbind → the control
+  returns; remove → the row is gone. No page errors in any state.
+
+---
+
 ## (2026-08-01) — Foundations lands on one column grid (#363)
 
 **STATUS: web.** Leading & tracking and the typeface library both converted to the shared `.mtbl` format,
