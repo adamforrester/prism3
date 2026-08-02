@@ -1704,7 +1704,7 @@ const renderModeSetMenu = (): HTMLElement => {
   const wireOn = modes.includes('wireframe');
   menu.append(el('div', 'mctx-mcap', 'Modes this brand generates'));
 
-  // #57 — Light is the forced base mode; render the row as clearly LOCKED (muted, greyed check, no hover)
+  // #57 — Light is the forced base mode; render the row as clearly LOCKED (muted, grayed check, no hover)
   // rather than a live checkbox that can't be unticked.
   const lightRow = el('div', 'mctx-opt on fixed');
   lightRow.title = 'Light is always generated — it’s the base mode, so it can’t be turned off.';
@@ -5034,7 +5034,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sh-auto.on{color:var(--ink2);cursor:pointer;text-decoration:underline}
 /* #305 tint read-out — the tint color at full opacity beside the same color at a mid-ramp 12%.
    The checkerboard under the 12% chip is what makes a translucent near-black legible as translucent;
-   on a flat panel it would just read as a slightly different flat grey. */
+   on a flat panel it would just read as a slightly different flat gray. */
 .sh-tintblock{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line2)}
 .sh-tintout{display:flex;gap:14px}
 .sh-tintcell{display:flex;flex-direction:column;gap:6px;min-width:0}
@@ -5202,7 +5202,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mctx-opt:hover{background:var(--paper)}
 .mctx-box{width:16px;height:16px;flex:none;border:1px solid var(--line2);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
 .mctx-opt.on .mctx-box{background:var(--ink);border-color:var(--ink)}
-/* #57 — Light row is locked (base mode): muted, greyed check, no hover — reads as non-interactive. */
+/* #57 — Light row is locked (base mode): muted, grayed check, no hover — reads as non-interactive. */
 .mctx-opt.fixed{cursor:default;opacity:.72}
 .mctx-opt.fixed:hover{background:none}
 .mctx-opt.fixed .mctx-box{background:var(--muted);border-color:var(--muted)}
