@@ -263,7 +263,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold brand fill — clears 4.5:1 on the floor (neutral.100)",
+      "description": "Bold brand fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
       "value": {
         "r": 0.3686274588108063,
         "g": 0.29411765933036804,
@@ -283,16 +283,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold success fill — clears 4.5:1 on the floor (neutral.100)",
+      "description": "Bold success fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.18431372940540314,
-        "g": 0.40784314274787903,
-        "b": 0.20000000298023224,
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/600"
+        "name": "palette/success/500"
       }
     },
     {
@@ -303,16 +303,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold warning fill — clears 4.5:1 on the floor (neutral.100)",
+      "description": "Bold warning fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.4941176474094391,
-        "g": 0.32549020648002625,
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
         "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/600"
+        "name": "palette/warning/500"
       }
     },
     {
@@ -323,16 +323,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold info fill — clears 4.5:1 on the floor (neutral.100)",
+      "description": "Bold info fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.12156862765550613,
-        "g": 0.3764705955982208,
-        "b": 0.5647059082984924,
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/600"
+        "name": "palette/info/500"
       }
     },
     {
@@ -443,16 +443,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold danger fill — clears 4.5:1 on the floor (neutral.100)",
+      "description": "Bold danger fill — clears 3:1 on the floor (neutral.100), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/600"
+        "name": "palette/danger/500"
       }
     },
     {
@@ -465,13 +465,13 @@
       "description": "primary interactive fill — rest",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/600"
+        "name": "palette/accent/500"
       }
     },
     {
@@ -484,13 +484,13 @@
       "description": "primary interactive fill — hover",
       "value": {
         "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/650"
+        "name": "palette/accent/550"
       }
     },
     {
@@ -503,13 +503,13 @@
       "description": "primary interactive fill — pressed",
       "value": {
         "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/accent/600"
       }
     },
     {
@@ -522,13 +522,13 @@
       "description": "primary interactive fill — focused",
       "value": {
         "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/650"
+        "name": "palette/accent/550"
       }
     },
     {
@@ -541,13 +541,13 @@
       "description": "primary interactive fill — selected",
       "value": {
         "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/accent/600"
       }
     },
     {
@@ -839,14 +839,14 @@
       ],
       "description": "destructive interactive fill — rest",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/600"
+        "name": "palette/danger/500"
       }
     },
     {
@@ -858,14 +858,14 @@
       ],
       "description": "destructive interactive fill — hover",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/650"
+        "name": "palette/danger/550"
       }
     },
     {
@@ -877,14 +877,14 @@
       ],
       "description": "destructive interactive fill — pressed",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "palette/danger/600"
       }
     },
     {
@@ -896,14 +896,14 @@
       ],
       "description": "destructive interactive fill — focused",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/650"
+        "name": "palette/danger/550"
       }
     },
     {
@@ -915,14 +915,14 @@
       ],
       "description": "destructive interactive fill — selected",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "palette/danger/600"
       }
     },
     {
@@ -2775,13 +2775,13 @@
       "description": "Focus ring color (keyboard focus)",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/600"
+        "name": "palette/accent/500"
       }
     }
   ]

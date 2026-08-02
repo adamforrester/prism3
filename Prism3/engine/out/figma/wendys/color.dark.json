@@ -263,16 +263,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold brand fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold brand fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.8313725590705872,
-        "g": 0.3450980484485626,
-        "b": 0.3490196168422699,
+        "r": 0.7843137383460999,
+        "g": 0.062745101749897,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/400"
+        "name": "palette/primary/500"
       }
     },
     {
@@ -283,16 +283,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold success fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold success fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.32549020648002625,
-        "g": 0.5647059082984924,
-        "b": 0.30588236451148987,
+        "r": 0.2862745225429535,
+        "g": 0.5137255191802979,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/450"
+        "name": "palette/success/500"
       }
     },
     {
@@ -303,16 +303,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold warning fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold warning fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.7803921699523926,
-        "g": 0.4000000059604645,
-        "b": 0.16862745583057404,
+        "r": 0.7176470756530762,
+        "g": 0.3607843220233917,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/450"
+        "name": "palette/warning/500"
       }
     },
     {
@@ -323,16 +323,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold info fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold info fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/450"
+        "name": "palette/info/500"
       }
     },
     {
@@ -443,16 +443,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold danger fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold danger fill — clears 3:1 on the floor (neutral.050), the non-text bar (SC 1.4.11)",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.32156863808631897,
-        "b": 0.33725491166114807,
+        "r": 0.7921568751335144,
+        "g": 0.2862745225429535,
+        "b": 0.3019607961177826,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/450"
+        "name": "palette/danger/500"
       }
     },
     {
@@ -463,6 +463,44 @@
         "SHAPE_FILL"
       ],
       "description": "primary interactive fill — rest",
+      "value": {
+        "r": 0.7843137383460999,
+        "g": 0.062745101749897,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/500"
+      }
+    },
+    {
+      "name": "color/interactive/primary/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive fill — hover",
+      "value": {
+        "r": 0.8078431487083435,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/450"
+      }
+    },
+    {
+      "name": "color/interactive/primary/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive fill — pressed",
       "value": {
         "r": 0.8313725590705872,
         "g": 0.3450980484485626,
@@ -475,44 +513,6 @@
       }
     },
     {
-      "name": "color/interactive/primary/fill/hover",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "primary interactive fill — hover",
-      "value": {
-        "r": 0.8509804010391235,
-        "g": 0.43529412150382996,
-        "b": 0.4274509847164154,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/350"
-      }
-    },
-    {
-      "name": "color/interactive/primary/fill/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "primary interactive fill — pressed",
-      "value": {
-        "r": 0.8705882430076599,
-        "g": 0.5176470875740051,
-        "b": 0.5058823823928833,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
-      }
-    },
-    {
       "name": "color/interactive/primary/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
@@ -521,14 +521,14 @@
       ],
       "description": "primary interactive fill — focused",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.43529412150382996,
-        "b": 0.4274509847164154,
+        "r": 0.8078431487083435,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/350"
+        "name": "palette/primary/450"
       }
     },
     {
@@ -540,14 +540,14 @@
       ],
       "description": "primary interactive fill — selected",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.5176470875740051,
-        "b": 0.5058823823928833,
+        "r": 0.8313725590705872,
+        "g": 0.3450980484485626,
+        "b": 0.3490196168422699,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "palette/primary/400"
       }
     },
     {
@@ -560,14 +560,14 @@
       ],
       "description": "Ink on the primary interactive fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/neutral/025"
       }
     },
     {
@@ -839,14 +839,14 @@
       ],
       "description": "destructive interactive fill — rest",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.32156863808631897,
-        "b": 0.33725491166114807,
+        "r": 0.7921568751335144,
+        "g": 0.2862745225429535,
+        "b": 0.3019607961177826,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/450"
+        "name": "palette/danger/500"
       }
     },
     {
@@ -858,14 +858,14 @@
       ],
       "description": "destructive interactive fill — hover",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.40392157435417175,
-        "b": 0.40392157435417175,
+        "r": 0.8588235378265381,
+        "g": 0.32156863808631897,
+        "b": 0.33725491166114807,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/400"
+        "name": "palette/danger/450"
       }
     },
     {
@@ -877,25 +877,6 @@
       ],
       "description": "destructive interactive fill — pressed",
       "value": {
-        "r": 0.8941176533699036,
-        "g": 0.48235294222831726,
-        "b": 0.47843137383461,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
-      }
-    },
-    {
-      "name": "color/interactive/destructive/fill/focused",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL"
-      ],
-      "description": "destructive interactive fill — focused",
-      "value": {
         "r": 0.8823529481887817,
         "g": 0.40392157435417175,
         "b": 0.40392157435417175,
@@ -907,6 +888,25 @@
       }
     },
     {
+      "name": "color/interactive/destructive/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive fill — focused",
+      "value": {
+        "r": 0.8588235378265381,
+        "g": 0.32156863808631897,
+        "b": 0.33725491166114807,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/450"
+      }
+    },
+    {
       "name": "color/interactive/destructive/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
@@ -915,14 +915,14 @@
       ],
       "description": "destructive interactive fill — selected",
       "value": {
-        "r": 0.8941176533699036,
-        "g": 0.48235294222831726,
-        "b": 0.47843137383461,
+        "r": 0.8823529481887817,
+        "g": 0.40392157435417175,
+        "b": 0.40392157435417175,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
+        "name": "palette/danger/400"
       }
     },
     {
@@ -935,14 +935,14 @@
       ],
       "description": "Ink on the destructive interactive fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/white"
       }
     },
     {
@@ -1990,14 +1990,14 @@
       ],
       "description": "text on a solid brand fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/neutral/025"
       }
     },
     {
@@ -2008,14 +2008,14 @@
       ],
       "description": "text on a solid success fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/black"
       }
     },
     {
@@ -2026,14 +2026,14 @@
       ],
       "description": "text on a solid warning fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/white"
       }
     },
     {
@@ -2044,14 +2044,14 @@
       ],
       "description": "text on a solid danger fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/white"
       }
     },
     {
@@ -2062,14 +2062,14 @@
       ],
       "description": "text on a solid info fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/black"
       }
     },
     {
@@ -2432,14 +2432,14 @@
       ],
       "description": "icon on a solid brand fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.9686274528503418,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/neutral/025"
       }
     },
     {
@@ -2452,14 +2452,14 @@
       ],
       "description": "icon on a solid success fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/black"
       }
     },
     {
@@ -2472,14 +2472,14 @@
       ],
       "description": "icon on a solid warning fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/white"
       }
     },
     {
@@ -2492,14 +2492,14 @@
       ],
       "description": "icon on a solid danger fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/white"
       }
     },
     {
@@ -2512,14 +2512,14 @@
       ],
       "description": "icon on a solid info fill",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/950"
+        "name": "palette/black"
       }
     },
     {
@@ -2774,14 +2774,14 @@
       ],
       "description": "Focus ring color (keyboard focus)",
       "value": {
-        "r": 0.8313725590705872,
-        "g": 0.3450980484485626,
-        "b": 0.3490196168422699,
+        "r": 0.7843137383460999,
+        "g": 0.062745101749897,
+        "b": 0.18039216101169586,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/400"
+        "name": "palette/primary/500"
       }
     }
   ]

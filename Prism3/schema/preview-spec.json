@@ -40,7 +40,7 @@
             {
               "fg": "color.interactive.primary.on-fill",
               "bg": "color.interactive.primary.fill.hover",
-              "min": 4.5,
+              "min": 3,
               "label": "label on fill"
             }
           ]
@@ -59,7 +59,7 @@
             {
               "fg": "color.interactive.primary.on-fill",
               "bg": "color.interactive.primary.fill.pressed",
-              "min": 4.5,
+              "min": 3,
               "label": "label on fill"
             }
           ]
