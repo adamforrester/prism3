@@ -5580,12 +5580,13 @@
         "font.weight-role.max"
       ]
     },
-    "font.line-height.tight": {
-      "$description": "line height tight — 1.05× (unitless multiplier)",
-      "meaning": "Line-height multiplier — tight (unitless)",
+    "font.line-height.105": {
+      "$description": "line height 1.05× — unitless multiplier (ladder step 105)",
+      "meaning": "Line-height multiplier — 105 (unitless)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.line-height-role.tight",
         "type.display.2xl.strong",
         "type.display.3xl.strong",
         "type.display.lg.strong",
@@ -5593,12 +5594,13 @@
         "type.display.xl.strong"
       ]
     },
-    "font.line-height.snug": {
-      "$description": "line height snug — 1.15× (unitless multiplier)",
-      "meaning": "Line-height multiplier — snug (unitless)",
+    "font.line-height.115": {
+      "$description": "line height 1.15× — unitless multiplier (ladder step 115)",
+      "meaning": "Line-height multiplier — 115 (unitless)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.line-height-role.snug",
         "type.display.sm.strong",
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
@@ -5610,23 +5612,25 @@
         "type.title.xl.strong"
       ]
     },
-    "font.line-height.compact": {
-      "$description": "line height compact — 1.25× (unitless multiplier)",
-      "meaning": "Line-height multiplier — compact (unitless)",
+    "font.line-height.125": {
+      "$description": "line height 1.25× — unitless multiplier (ladder step 125)",
+      "meaning": "Line-height multiplier — 125 (unitless)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.line-height-role.compact",
         "type.title.md.strong",
         "type.title.sm.strong",
         "type.title.xs.strong"
       ]
     },
-    "font.line-height.normal": {
-      "$description": "line height normal — 1.5× (unitless multiplier)",
-      "meaning": "Line-height multiplier — normal (unitless)",
+    "font.line-height.150": {
+      "$description": "line height 1.5× — unitless multiplier (ladder step 150)",
+      "meaning": "Line-height multiplier — 150 (unitless)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.line-height-role.normal",
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
@@ -5650,60 +5654,31 @@
         "type.code.inline.default"
       ]
     },
-    "font.line-height.relaxed": {
-      "$description": "line height relaxed — 1.65× (unitless multiplier)",
-      "meaning": "Line-height multiplier — relaxed (unitless)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
-    },
-    "font.line-height.loose": {
-      "$description": "line height loose — 1.75× (unitless multiplier)",
-      "meaning": "Line-height multiplier — loose (unitless)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
-    },
-    "font.letter-spacing.tighter": {
-      "$description": "letter spacing tighter — -0.03em",
-      "meaning": "Letter-spacing primitive — tighter (em)",
+    "font.line-height.165": {
+      "$description": "line height 1.65× — unitless multiplier (ladder step 165)",
+      "meaning": "Line-height multiplier — 165 (unitless)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
-        "type.display.2xl.strong",
-        "type.display.3xl.strong",
-        "type.display.xl.strong"
+        "font.line-height-role.relaxed"
       ]
     },
-    "font.letter-spacing.tight": {
-      "$description": "letter spacing tight — -0.02em",
-      "meaning": "Letter-spacing primitive — tight (em)",
+    "font.line-height.175": {
+      "$description": "line height 1.75× — unitless multiplier (ladder step 175)",
+      "meaning": "Line-height multiplier — 175 (unitless)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
-        "type.display.lg.strong",
-        "type.display.md.strong",
-        "type.display.sm.strong"
+        "font.line-height-role.loose"
       ]
     },
-    "font.letter-spacing.snug": {
-      "$description": "letter spacing snug — -0.01em",
-      "meaning": "Letter-spacing primitive — snug (em)",
+    "font.letter-spacing.0": {
+      "$description": "letter spacing 0em (ladder step 0)",
+      "meaning": "Letter-spacing primitive — 0 (em)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
-        "type.title.2xl.strong",
-        "type.title.lg.strong",
-        "type.title.md.strong",
-        "type.title.sm.strong",
-        "type.title.xl.strong",
-        "type.title.xs.strong"
-      ]
-    },
-    "font.letter-spacing.normal": {
-      "$description": "letter spacing normal — 0em",
-      "meaning": "Letter-spacing primitive — normal (em)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
-      "aliased_by": [
+        "font.letter-spacing-role.normal",
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
@@ -5729,21 +5704,64 @@
         "type.label.sm.emphasis"
       ]
     },
-    "font.letter-spacing.wide": {
-      "$description": "letter spacing wide — 0.02em",
-      "meaning": "Letter-spacing primitive — wide (em)",
-      "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
-    },
-    "font.letter-spacing.wider": {
-      "$description": "letter spacing wider — 0.05em",
-      "meaning": "Letter-spacing primitive — wider (em)",
+    "font.letter-spacing.20": {
+      "$description": "letter spacing 0.02em (ladder step 20)",
+      "meaning": "Letter-spacing primitive — 20 (em)",
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.letter-spacing-role.wide"
+      ]
+    },
+    "font.letter-spacing.50": {
+      "$description": "letter spacing 0.05em (ladder step 50)",
+      "meaning": "Letter-spacing primitive — 50 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "aliased_by": [
+        "font.letter-spacing-role.wider",
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis"
+      ]
+    },
+    "font.letter-spacing.neg-30": {
+      "$description": "letter spacing -0.03em (ladder step neg-30)",
+      "meaning": "Letter-spacing primitive — neg-30 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "aliased_by": [
+        "font.letter-spacing-role.tighter",
+        "type.display.2xl.strong",
+        "type.display.3xl.strong",
+        "type.display.xl.strong"
+      ]
+    },
+    "font.letter-spacing.neg-20": {
+      "$description": "letter spacing -0.02em (ladder step neg-20)",
+      "meaning": "Letter-spacing primitive — neg-20 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "aliased_by": [
+        "font.letter-spacing-role.tight",
+        "type.display.lg.strong",
+        "type.display.md.strong",
+        "type.display.sm.strong"
+      ]
+    },
+    "font.letter-spacing.neg-10": {
+      "$description": "letter spacing -0.01em (ladder step neg-10)",
+      "meaning": "Letter-spacing primitive — neg-10 (em)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "aliased_by": [
+        "font.letter-spacing-role.snug",
+        "type.title.2xl.strong",
+        "type.title.lg.strong",
+        "type.title.md.strong",
+        "type.title.sm.strong",
+        "type.title.xl.strong",
+        "type.title.xs.strong"
       ]
     },
     "shadow.xs": {
