@@ -7,6 +7,65 @@
 
 ---
 
+
+## (2026-08-01) — link ink stops being the button fill (#352, item 1 of 4)
+
+**STATUS: engine.** Prerequisite for relaxing the bold fills. `text.link.*` is **byte-identical**;
+the only artifact movement is aurora's `icon.link.*`, and it is a bug fix.
+
+**Owner call, and it reversed mine.** I had recommended documenting the 4.5:1 fill bar rather than
+changing it, on the grounds that relaxing it broke 35 assertions. That was wrong, and the reasoning
+is worth keeping: *"we shouldn't make fills meet 4.5:1 just because it's programmatically set up
+that way in our engine. If we need text to pass on fills, that's why we have `*.on-fill`."* The
+failures were never evidence the bar was right — they were **three separate defects the over-gating
+was masking**. I had let "this breaks tests" stand in for "this is correct."
+
+**This item fixes the first of the three.** `text.link.default` did not merely resemble the button
+fill — it **was** `actionRest`, the same object, then rated against the floor at the text bar. So a
+text role's legibility was an accident of how the FILL happened to be gated. Relax the fill toward
+its anchor and link text silently drops below AA in every brand and mode.
+
+Link ink now derives its own step on the action palette at its own bar. Same anchor, so a link
+still reads as the brand's action color; different floor, because ink and a fill are different
+contracts. **Clamped, not `exact`** — an authored `actionAnchorStep` pins a FILL, and inheriting
+that pin here would let a deliberate fill choice push link text below its floor.
+
+**A latent bug fell out, and it is the more interesting half.** `icon.link.*` shares this
+derivation, so with `iconContrast: '3:1'` the lever was moving the **reported minimum** while the
+ink stayed text-gated: aurora emitted `accent.600` at 4.95:1 under a stated `min: 3`. A gate that
+says 3 while showing you 4.5. Now `accent.500` at 3.3:1 — the lever governs the color. Aurora is the
+only example brand that ships the lever, which is why it is the only artifact that moved.
+
+**nb does NOT move, and that is correct rather than a miss** — its action anchor (550) already
+clears both bars, and `pickBrand` keeps a passing anchor. My first test asserted every brand would
+relax and failed on nb; the test's PREMISE was wrong, not the code. Rewritten to assert the
+universal property (a looser floor can only relax, never darken) plus the observable case on aurora.
+
+**The icon default stays 4.5:1 — deliberate, recorded so it is not "fixed" later.** Owner: icons
+sit next to text and should match it; the `iconContrast` lever is the escape hatch. Verified the
+lever is intact and comprehensive before relying on it: `icon.secondary` 550→450, `success` 550→500,
+`warning` 600→500, `info` 550→500, `link` moves, while `icon.on-*` correctly holds 4.5 (that is the
+on-fill contract) and `icon.*-subtle` stays ungated. `icon.brand`'s min drops to 3 but its step
+stays 550 — because 550 already clears 3:1, not because the lever missed it.
+
+**Tamper-tested:** restoring `linkBase = actionRest` reproduces the bug exactly — aurora's icon link
+returns to 600 at 4.95 under `min: 3`, and the artifact round-trip breaks.
+
+**Remaining (#352 items 2–4):** relax `foreground.*` + `interactive.*.fill.*` to `nonTextMin`, scope
+the no-pure-black rule to ink-on-background, re-baseline NB (owner: re-baseline and record why);
+then `field.border.hover`, a border sitting at a text bar while `field.border.rest` is already 3.
+
+**The audit that found them:** of 82 roles gated at 4.5:1, 56 are genuinely ink and **16 are
+non-text held to a text bar**. The evidence that this is drift rather than design sits inside one
+family — `interactive.neutral.fill.*` uses `nonTextMin`, `interactive.*.on-inverse.fill.*` uses 3,
+and `interactive.{primary,destructive}.fill.*` uses 4.5. Same concept, three bars. Classified rather
+than pattern-matched: `interactive.*.overlay.*` looks non-text but is measured against
+`text.primary`, so 4.5 is right there — its contract is "ink stays legible on me."
+
+**Verified:** 1199 → **1205** tests; nb-regression PASS; `regen --check` 88/88; web typecheck clean;
+US-English gate clean.
+
+
 ## (2026-08-01) — Staging a typeface from the UI (#287's deferred half)
 
 **STATUS: web.** #287 shipped the engine field and explicitly deferred "the web UI for staging/removing

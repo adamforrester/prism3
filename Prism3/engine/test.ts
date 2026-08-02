@@ -864,6 +864,54 @@ for (const b of brands) {
   ok(threw, 'accent: accentPalette === actionPalette is rejected');
 }
 
+// ---------------------------------------------- link ink is INK, not the fill anchor (#352)
+// `text.link.*` used to BE `actionRest` — the literal button-fill object — so a text role's
+// legibility was an accident of how the FILL happened to be gated. Link ink now derives its own
+// step on the action palette at its own bar. Two properties are locked here: the text bar is
+// unchanged (this decoupling is a no-op for `text.link.*`), and `iconContrast` now governs the
+// icon link's COLOUR rather than only the number reported beside it.
+{
+  const stepOf = (r: any) => Number(r.path.split('.').pop());
+  const linkRoles = (t: any, mode = 'light') => resolveAllModes(t).find((m: any) => m.mode === mode)!.roles;
+
+  // (a) With the lever OFF both families share a bar, so they must still agree — this is what
+  //     makes the change a no-op for every brand that hasn't opted into the looser icon floor.
+  const off = linkRoles(nbTheme());
+  ok(stepOf(off['text.link.default']) === stepOf(off['icon.link.default']),
+    `#352: with iconContrast='text' the link families agree (${off['text.link.default'].path.split('.').pop()})`);
+
+  // (b) With the lever ON they must DIVERGE — the icon link relaxes to its 3:1 floor while the
+  //     text link holds 4.5:1. Before the decoupling both rendered the text-gated step and only
+  //     the reported `min` moved, which is a gate that says 3 while showing you 4.5.
+  const on = linkRoles({ ...nbTheme(), iconContrast: '3:1' });
+  ok(stepOf(on['text.link.default']) === stepOf(off['text.link.default']),
+    '#352: the icon lever does not disturb text link ink');
+  // Never DARKER than the text link — a looser floor can only relax, never tighten.
+  ok(stepOf(on['icon.link.default']) <= stepOf(on['text.link.default']),
+    `#352: a looser icon floor never darkens the link (${on['icon.link.default'].path.split('.').pop()} <= ${on['text.link.default'].path.split('.').pop()})`);
+  // nb does NOT move, and that is correct rather than a miss: its action anchor (550) already
+  // clears BOTH bars, and `pickBrand` keeps a passing anchor. The relaxation is only observable
+  // where the anchor is actually constrained — aurora, the one example brand that ships the lever.
+  const au = linkRoles(brandTheme(exampleBrands()['aurora'] as BrandInput));
+  ok(stepOf(au['icon.link.default']) < stepOf(au['text.link.default']),
+    `#352: aurora's icon link genuinely LIGHTENS vs its text link (${au['icon.link.default'].path.split('.').pop()} < ${au['text.link.default'].path.split('.').pop()}) — the lever moves the COLOUR, not just the reported min`);
+  ok(au['icon.link.default'].ratio < 4.5 && au['icon.link.default'].ratio >= au['icon.link.default'].min,
+    `#352: ...landing genuinely below the text bar while clearing its own (${au['icon.link.default'].ratio.toFixed(2)}, min ${au['icon.link.default'].min})`);
+
+  // (c) The invariant that must survive relaxing the FILLS: every link state clears its own floor,
+  //     in every mode, for every example brand. This is the assertion the fill work is measured by.
+  const bad: string[] = [];
+  for (const [id, input] of Object.entries(exampleBrands())) {
+    for (const m of resolveAllModes(brandTheme(input as BrandInput))) {
+      for (const [k, r] of Object.entries(m.roles)) {
+        if (!/^(text|icon)\.link\./.test(k)) continue;
+        if ((r as any).min > 0 && (r as any).ratio < (r as any).min) bad.push(`${id}/${m.mode}.${k} ${(r as any).ratio.toFixed(2)}<${(r as any).min}`);
+      }
+    }
+  }
+  ok(bad.length === 0, `#352: every link state clears its own floor, every brand, every mode${bad.length ? ` — ${bad.slice(0, 3).join(', ')}` : ''}`);
+}
+
 // EXTENSIBLE interactive palettes (docs/20 §3) — N opt-in interactive.<name>.* columns, anchor-step
 // overrides for the built-ins, and back-compat with the single accentPalette lever.
 {

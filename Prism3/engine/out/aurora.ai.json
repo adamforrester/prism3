@@ -2744,16 +2744,16 @@
       "when_to_use": "Hyperlinks and interactive icon.",
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
       "mode_overrides": {
-        "light": "{prism.palette.accent.600}",
-        "dark": "{prism.palette.accent.400}",
-        "hc-light": "{prism.palette.accent.700}",
-        "hc-dark": "{prism.palette.accent.300}"
+        "light": "{prism.palette.accent.500}",
+        "dark": "{prism.palette.accent.500}",
+        "hc-light": "{prism.palette.accent.600}",
+        "hc-dark": "{prism.palette.accent.400}"
       },
       "contrast_with": [
         {
           "token": "neutral.100",
           "min": "3:1",
-          "ratio": 4.95
+          "ratio": 3.3
         }
       ]
     },
@@ -2763,16 +2763,16 @@
       "when_to_use": "Hyperlinks and interactive icon on pointer hover.",
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
       "mode_overrides": {
-        "light": "{prism.palette.accent.650}",
-        "dark": "{prism.palette.accent.350}",
-        "hc-light": "{prism.palette.accent.750}",
-        "hc-dark": "{prism.palette.accent.250}"
+        "light": "{prism.palette.accent.550}",
+        "dark": "{prism.palette.accent.450}",
+        "hc-light": "{prism.palette.accent.650}",
+        "hc-dark": "{prism.palette.accent.350}"
       },
       "contrast_with": [
         {
           "token": "neutral.100",
           "min": "3:1",
-          "ratio": 6
+          "ratio": 4.12
         }
       ]
     },
@@ -2780,25 +2780,6 @@
       "$description": "Link (interactive icon) (visited state).",
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited.",
-      "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
-      "mode_overrides": {
-        "light": "{prism.palette.accent.700}",
-        "dark": "{prism.palette.accent.300}",
-        "hc-light": "{prism.palette.accent.800}",
-        "hc-dark": "{prism.palette.accent.200}"
-      },
-      "contrast_with": [
-        {
-          "token": "neutral.100",
-          "min": "3:1",
-          "ratio": 7.26
-        }
-      ]
-    },
-    "icon.link.focused": {
-      "$description": "Link (interactive icon) (focused state).",
-      "meaning": "Interactivity / navigation",
-      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused.",
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
       "mode_overrides": {
         "light": "{prism.palette.accent.600}",
@@ -2811,6 +2792,25 @@
           "token": "neutral.100",
           "min": "3:1",
           "ratio": 4.95
+        }
+      ]
+    },
+    "icon.link.focused": {
+      "$description": "Link (interactive icon) (focused state).",
+      "meaning": "Interactivity / navigation",
+      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused.",
+      "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.500}",
+        "dark": "{prism.palette.accent.500}",
+        "hc-light": "{prism.palette.accent.600}",
+        "hc-dark": "{prism.palette.accent.400}"
+      },
+      "contrast_with": [
+        {
+          "token": "neutral.100",
+          "min": "3:1",
+          "ratio": 3.3
         }
       ]
     },
@@ -4197,7 +4197,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.fill.pressed",
@@ -4211,7 +4210,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.on-inverse.text.pressed",
@@ -4227,8 +4225,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.focus",
-        "color.icon.link.default",
-        "color.icon.link.focused",
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
@@ -4267,6 +4263,7 @@
         "color.border.focus",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.link.visited",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.text.hover",
@@ -4282,6 +4279,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.link.hover",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest"
       ]
@@ -4293,6 +4291,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.link.default",
+        "color.icon.link.focused",
         "color.interactive.primary.border",
         "gradient.brand"
       ]
@@ -4304,6 +4304,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.link.hover",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest"
       ]
@@ -4318,6 +4319,7 @@
         "color.border.focus",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.link.visited",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.text.hover",
@@ -4350,8 +4352,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.focus",
-        "color.icon.link.default",
-        "color.icon.link.focused",
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
@@ -4371,7 +4371,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.on-inverse.text.pressed",
@@ -4386,7 +4385,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.fill.pressed",

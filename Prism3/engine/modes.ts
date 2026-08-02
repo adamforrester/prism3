@@ -633,10 +633,24 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       T(`on-${r}`, onColor(fills[r]!.rgb), `${p.label} on a solid ${r} fill`, `foreground.${r}`, onMin);
     T('on-inverse', pickMostExtreme(textCands, invRgb), `${p.label} on an inverse surface`, 'background.inverse.primary', cfg.secondaryMin);
     // link (interactive text) + states — no disabled.
+    //
+    // Link ink derives its OWN step on the action palette at THIS profile's ink bar. It used to
+    // reuse `actionRest` — the literal button-fill object — which made a text role's legibility an
+    // accident of how the FILL happened to be gated (#352). Same anchor, so a link still reads as
+    // the brand's action colour; different floor, because ink and a fill are different contracts.
+    //
+    // Two consequences worth naming: relaxing the fill toward its anchor can no longer drag link
+    // text below AA, and `icon.link.*` now honours `iconContrast` for its COLOUR and not merely
+    // its reported min — previously the lever moved the number while the ink stayed text-gated.
+    //
+    // Clamped, not `exact`: an authored `actionAnchorStep` pins a FILL step, and inheriting that
+    // pin here would let a deliberate fill choice silently push link text below its floor. A link
+    // colour is overridable in its own right.
+    const linkBase = chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, floorRgb, p.semanticMin);
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
-      st === 'default' || st === 'focused' ? actionRest
-      : st === 'hover' ? walk(r2p.action, actionRest.num, 1)
-      : walk(r2p.action, actionRest.num, 2); // visited
+      st === 'default' || st === 'focused' ? linkBase
+      : st === 'hover' ? walk(r2p.action, linkBase.num, 1)
+      : walk(r2p.action, linkBase.num, 2); // visited
     for (const st of LINK_STATES)
       T(`link.${st}`, rated(linkStateCand(st), floorRgb), `Link ${p.label} — ${st}`, cfg.floorName, p.semanticMin);
     return out;

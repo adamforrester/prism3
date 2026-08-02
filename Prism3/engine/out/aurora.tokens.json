@@ -8907,31 +8907,31 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{prism.palette.accent.600}",
+            "$value": "{prism.palette.accent.500}",
             "$description": "Link icon — default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.accent.600",
-                "contrast": 4.95,
+                "aliasOf": "prism.palette.accent.500",
+                "contrast": 3.3,
                 "against": "neutral.100",
                 "min": 3,
                 "modes": {
                   "dark": {
-                    "$value": "{prism.palette.accent.400}",
-                    "contrast": 5.34,
+                    "$value": "{prism.palette.accent.500}",
+                    "contrast": 3.92,
                     "against": "neutral.900",
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{prism.palette.accent.700}",
-                    "contrast": 7.26,
+                    "$value": "{prism.palette.accent.600}",
+                    "contrast": 4.95,
                     "against": "neutral.100",
                     "min": 4.5
                   },
                   "hc-dark": {
-                    "$value": "{prism.palette.accent.300}",
-                    "contrast": 7.32,
+                    "$value": "{prism.palette.accent.400}",
+                    "contrast": 5.34,
                     "against": "neutral.900",
                     "min": 4.5
                   }
@@ -8951,31 +8951,31 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{prism.palette.accent.650}",
+            "$value": "{prism.palette.accent.550}",
             "$description": "Link icon — hover",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.accent.650",
-                "contrast": 6,
+                "aliasOf": "prism.palette.accent.550",
+                "contrast": 4.12,
                 "against": "neutral.100",
                 "min": 3,
                 "modes": {
                   "dark": {
-                    "$value": "{prism.palette.accent.350}",
-                    "contrast": 6.27,
+                    "$value": "{prism.palette.accent.450}",
+                    "contrast": 4.49,
                     "against": "neutral.900",
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{prism.palette.accent.750}",
-                    "contrast": 8.65,
+                    "$value": "{prism.palette.accent.650}",
+                    "contrast": 6,
                     "against": "neutral.100",
                     "min": 4.5
                   },
                   "hc-dark": {
-                    "$value": "{prism.palette.accent.250}",
-                    "contrast": 8.5,
+                    "$value": "{prism.palette.accent.350}",
+                    "contrast": 6.27,
                     "against": "neutral.900",
                     "min": 4.5
                   }
@@ -8995,52 +8995,8 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{prism.palette.accent.700}",
-            "$description": "Link icon — visited",
-            "$extensions": {
-              "prism3": {
-                "role": "semantic",
-                "aliasOf": "prism.palette.accent.700",
-                "contrast": 7.26,
-                "against": "neutral.100",
-                "min": 3,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.accent.300}",
-                    "contrast": 7.32,
-                    "against": "neutral.900",
-                    "min": 3
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.accent.800}",
-                    "contrast": 10.07,
-                    "against": "neutral.100",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.accent.200}",
-                    "contrast": 9.82,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  }
-                },
-                "figma": {
-                  "collection": "color",
-                  "modes": [
-                    "light",
-                    "dark",
-                    "hc-light",
-                    "hc-dark"
-                  ],
-                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                }
-              }
-            }
-          },
-          "focused": {
-            "$type": "color",
             "$value": "{prism.palette.accent.600}",
-            "$description": "Link icon — focused",
+            "$description": "Link icon — visited",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -9064,6 +9020,50 @@
                   "hc-dark": {
                     "$value": "{prism.palette.accent.300}",
                     "contrast": 7.32,
+                    "against": "neutral.900",
+                    "min": 4.5
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{prism.palette.accent.500}",
+            "$description": "Link icon — focused",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.accent.500",
+                "contrast": 3.3,
+                "against": "neutral.100",
+                "min": 3,
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.accent.500}",
+                    "contrast": 3.92,
+                    "against": "neutral.900",
+                    "min": 3
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.accent.600}",
+                    "contrast": 4.95,
+                    "against": "neutral.100",
+                    "min": 4.5
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.accent.400}",
+                    "contrast": 5.34,
                     "against": "neutral.900",
                     "min": 4.5
                   }
