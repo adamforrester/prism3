@@ -6,6 +6,51 @@
 > changes. Most recent entry first.
 
 ---
+## (2026-08-02) — the iconContrast default is pinned, and #352 item 3 is withdrawn (#352, item 3 reframed)
+
+**STATUS: engine.** No behavior change, no token moves. The only artifact diff is the lever
+description in `schema/lever-manifest.json`.
+
+**#352's item 3 said "flip the `iconContrast` default to `'3:1'`". That item is wrong and is
+withdrawn** — it reverses a decision this repo had already recorded. The default is `'text'`
+(icons mirror text tier for tier) by owner call, logged in the 2026-08-01 entry above: *icons sit
+next to text and should match it; the lever is the escape hatch.* WCAG's 3:1 for graphical objects
+is a **minimum, not a target**, which is exactly what the lever exists to expose.
+
+**The interesting part is how the drift happened, because it is a documentation failure, not a
+reasoning failure.** The decision WAS documented — but only in this log. The place a developer
+actually reads, the `iconContrast` declaration in `theme.ts`, described `'3:1'` as
+"standards-correct" and said nothing about `'text'` being deliberate. So the audit re-derived the
+standards argument from scratch, reached the defensible-looking conclusion, and wrote "flip the
+default" into the plan **on the same issue that carried the decision**. A later agent working the
+plan top-to-bottom would have reversed an owner call with every gate green.
+
+**Verified, not assumed: on `main`, flipping the default to `'3:1'` passes 1205/0.** Nothing caught
+it. The existing `iconContrast` test was blind by accident — it asserts on **nb**, and nb is the one
+brand whose action anchor (550) already clears both bars, so it does not move under the lever. A
+test that exercises a lever on the single brand immune to it proves nothing.
+
+**So the decision is now enforced rather than remembered**, matching the US-English gate's posture:
+- the rationale sits at the `theme.ts` declaration and in the shipped lever description, where it
+  gets read, framed so `'text'` reads as a choice;
+- `test.ts` pins the default, pins the LEVER manifest default alongside it, and — the part that
+  matters — asserts the default actually MEANS mirroring, tier by tier. A default of `'text'` that
+  silently resolved icons somewhere else would satisfy the first two checks while shipping the exact
+  thing the decision prevents.
+- Tamper-tested: flipping the default now fails three assertions instead of zero.
+
+**A second audit claim, checked and found FALSE.** #352 also reported *"`icon.tertiary` is already
+at 3 while `icon.secondary` is at 4.5 — the family is internally inconsistent too."* It is not.
+That is the **tier ladder** (primary 7 / secondary 4.5 / tertiary 3) mirrored faithfully from text;
+the audit compared two different tiers as though they should match. Measured across all eight tiers:
+icon mirrors text exactly under the default. No fix was needed and none was made — the ladder is now
+asserted so it is not "corrected" later either.
+
+**What is left of item 3: nothing.** No engine change was warranted. Recorded here rather than
+silently dropped, so the next reader does not re-open it a third time.
+
+**Gates:** `regen` + `--check` clean, `test.ts` **1209/0**, nb-regression exit 0, DTCG 899/899
+aliases + 432/432 contracts, US-English clean.
 
 ## (2026-08-02) — interactive fill STATES drop to the non-text bar (#352, item 2 of 4)
 

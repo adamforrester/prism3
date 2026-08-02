@@ -175,10 +175,22 @@ export type Theme = {
   // Both escalate to >=4.5:1 in high-contrast modes.
   disabledStrategy: 'full' | 'reduced';
   disabledMin: number;               // the 'reduced' floor (default 3:1, clamped 3–4.5; bumped in HC)
-  // Icon contrast floor. 'text' (default): icons mirror text (4.5:1). '3:1':
-  // icons resolve against the WCAG SC 1.4.11 non-text floor (3:1) — standards-
-  // correct (graphical objects), letting secondary/semantic icons run lighter
-  // than text. `icon.primary` stays strong either way.
+  // Icon contrast floor. 'text' (default): icons mirror text tier for tier. '3:1':
+  // icons resolve against the WCAG SC 1.4.11 non-text floor (3:1) — the minimum the
+  // standard requires of graphical objects — letting secondary/semantic icons run
+  // lighter than text. `icon.primary` stays strong either way.
+  //
+  // THE DEFAULT IS 'text' BY DECISION, NOT BY OVERSIGHT — do not "correct" it to '3:1'
+  // on the grounds that 3:1 is what WCAG requires. It is, and that is precisely why the
+  // lever exists. Owner's call (#352): icons sit NEXT TO text and should match it; a
+  // conforming-but-lighter icon beside 4.5:1 body copy reads as a rendering bug, and
+  // WCAG floors are minimums rather than targets. Brands that want the looser floor opt
+  // in via the lever. This has already been re-proposed once from the standards angle
+  // (#352's own plan listed "flip the default to '3:1'"), which is why it is written
+  // here at the type rather than only in the progress log — and why test.ts pins it.
+  //
+  // Note `icon.secondary` 4.5 vs `icon.tertiary` 3 is the TIER LADDER mirrored from text
+  // (primary 7 / secondary 4.5 / tertiary 3), not an inconsistency inside the family.
   iconContrast: 'text' | '3:1';
   // How an OUTLINE / TEXT interactive control expresses hover/pressed/selected
   // (docs/20 §10). 'overlay-neutral' (default): a translucent neutral wash that
@@ -346,8 +358,10 @@ export type BrandInput = {
    *  its contrast from the old ~2:1 exempt look — a deliberate breaking improvement. */
   disabledStrategy?: 'full' | 'reduced' | 'accessible' | 'conventional';
   disabledMin?: number;
-  /** Icon contrast floor. Default 'text' (icons mirror text, 4.5:1). '3:1'
-   *  resolves icons against the WCAG 1.4.11 non-text floor so they may diverge. */
+  /** Icon contrast floor. Default 'text' (icons mirror text, tier for tier). '3:1'
+   *  resolves icons against the WCAG 1.4.11 non-text floor so they may diverge.
+   *  The 'text' default is a deliberate decision, not an oversight — see the note on
+   *  `iconContrast` in the resolved-theme type above before changing it. */
   iconContrast?: 'text' | '3:1';
   /** How an outline/text interactive control expresses hover (docs/20 §10). Default
    *  'overlay-neutral' (generate translucent `interactive.<color>.overlay.*` washes);

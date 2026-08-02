@@ -445,7 +445,7 @@
           "label": "Non-text floor (3:1)"
         }
       ],
-      "description": "Whether icons mirror text contrast or run against the WCAG 1.4.11 non-text floor."
+      "description": "Whether icons mirror text contrast or run against the WCAG 1.4.11 non-text floor. Matching text is the default on purpose: icons usually sit beside text, and an icon that is lighter than the label next to it reads as a mistake even though 3:1 conforms. Choose the non-text floor when icons stand alone or you want them to recede."
     },
     {
       "key": "disabledStrategy",
