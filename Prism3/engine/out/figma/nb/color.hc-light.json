@@ -263,7 +263,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold brand fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.5411764979362488,
         "g": 0,
@@ -283,7 +283,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold success fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0,
         "g": 0.3019607961177826,
@@ -303,7 +303,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold warning fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.4117647111415863,
         "g": 0.21568627655506134,
@@ -323,7 +323,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold info fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.27843138575553894,
@@ -443,7 +443,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold danger fill — clears 4.5:1 on the floor (neutral.050)",
+      "description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.5411764979362488,
         "g": 0,

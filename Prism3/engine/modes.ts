@@ -203,6 +203,18 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const floorRgb = cfg.floor.rgb;
   const invRgb = cfg.inverseSurface;
   const onMin = 4.5; // text on a saturated fill targets AA (a vivid mid-tone is gamut-bounded)
+  // The bar a BOLD FILL clears against the floor surface. A fill carries no text of its own, so the
+  // governing criterion is SC 1.4.11 non-text, not 1.4.3 — the label's legibility is `on-fill`'s
+  // contract, measured against the fill (#352).
+  //
+  // HC IS EXEMPT, and deliberately so. Every other mode reads its own `nonTextMin`, but HC exists to
+  // EXCEED minimums, not to meet them; deriving its fills from a WCAG-floor rule erases the thing
+  // users switch to HC for. Measured, which is what settled it: routing HC through `nonTextMin`
+  // (4.5 in HC) made hc-light's `foreground.brand` and `foreground.danger` resolve to `red.550` at
+  // 4.62 — byte-identical to STANDARD light. A high-contrast mode whose brand and danger fills are
+  // indistinguishable from the standard mode has stopped being high-contrast on that axis. HC keeps
+  // its own text bar (7:1) for fills instead.
+  const fillFloorMin = cfg.kind === 'hc' ? cfg.actionMin : cfg.nonTextMin;
 
   const roles: Record<string, ResolvedRole> = {};
   // The resolved rgb behind each role key — the override post-pass (Phase A1) reads it to
@@ -235,7 +247,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const cL = rated(lightCand, fill), cD = rated(N950(), fill);
     const win = cL.ratio >= cD.ratio ? cL : cD;
     if (win.ratio >= onMin) return win;
-    return rated(win === cL ? cand(`${ns}.white`, WHITE) : cand(`${ns}.black`, BLACK), fill); // pure fallback
+    // Escalation re-opens the choice rather than committing to whichever SOFT candidate won — they
+    // are different questions. The soft pair can favour one side while the escalated OTHER side is
+    // what actually clears `onMin`: on a mid-tone danger fill, N950 measured 4.26 and won the soft
+    // round, but pure black (4.60) and pure white (4.56) both clear, and the old line could only
+    // reach the winner's side. Filed as latent in #375; reachable now that fills relax.
+    //
+    // Pure black is permitted HERE and only here. This is ink on a saturated FILL, where black on a
+    // bright amber is the legible, conventional answer; the no-pure-black rule is about ink on the
+    // page CANVAS, and is scoped to that in test.ts rather than applied to every role blindly.
+    return pickMostExtreme([cand(`${ns}.white`, WHITE), cand(`${ns}.black`, BLACK)], fill);
   };
   // Wireframe (docs/11 Pillar 1b): a mechanical greyscale. Every CHROMATIC role resolves on
   // the NEUTRAL ramp at the position its colour pick would land — then re-nudged to clear the
@@ -331,9 +352,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // bold semantic fills (filled badge / banner / button at rest) — static.
   const fills: Partial<Record<Role, RatedNum>> = {};
   for (const r of ['brand', 'success', 'warning', 'info'] as const) {
-    const f = paletteRole(r, floorRgb, cfg.actionMin);
+    const f = paletteRole(r, floorRgb, fillFloorMin);
     fills[r] = f;
-    put(`foreground.${r}`, f, `Bold ${r} fill — clears ${cfg.actionMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, cfg.actionMin);
+    put(`foreground.${r}`, f, `Bold ${r} fill — clears ${fillFloorMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, fillFloorMin);
   }
   // subtle semantic tint SURFACES (light banner/badge fills) — pair with text.{r}.
   for (const r of SEMANTICS)
@@ -342,9 +363,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // preserve its position + set fills.danger for the on-danger ink pairing). Its stateful /
   // interactive expression now lives in `interactive.destructive.*` (docs/20), so the fill
   // itself is static — there is no per-state danger fill.
-  const dangerRest = paletteRole('danger', floorRgb, cfg.actionMin);
+  const dangerRest = paletteRole('danger', floorRgb, fillFloorMin);
   fills.danger = dangerRest;
-  put('foreground.danger', dangerRest, `Bold danger fill — clears ${cfg.actionMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, cfg.actionMin);
+  put('foreground.danger', dangerRest, `Bold danger fill — clears ${fillFloorMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, fillFloorMin);
   // Interactive fill states walk the palette (rest → hover/focused +1 → pressed/selected +2).
   const fillStateCand = (rest: RatedNum, palette: string, st: typeof FILL_STATES[number]): Cand =>
     st === 'default' ? rest
@@ -362,8 +383,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const paAnchor = modeAnchor('primary') ?? theme.actionAnchorStep;
   // Authored pin → `exact` (#331): applied as picked, floor miss reported not corrected.
   const actionRest = paAnchor !== undefined
-    ? chromatic(r2p.action, paAnchor, floorRgb, cfg.actionMin, true)
-    : paletteRole('action', floorRgb, cfg.actionMin);
+    ? chromatic(r2p.action, paAnchor, floorRgb, fillFloorMin, true)
+    : paletteRole('action', floorRgb, fillFloorMin);
 
   // ------------------------------------------------------- interactive family
   // The coherent, generated, contrast-gated interactive colour family (docs/20) — the ONE
@@ -372,24 +393,19 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // via `interactivePalettes` (docs/20 §3). Slots: fill (+ its rest/hover/pressed/focused/selected states),
   // on-fill (ink), text (outline/text ink), border. Disabled is NOT per-colour here — it is
   // the cross-cutting disabled.* family below. This is what components bind (docs/20 §16.3).
-  // `stateMin` defaults to `fillMin` so callers that don't opt in are unchanged — notably the
-  // neutral fill, which passes 0 when it is a subtle grey and must NOT be pulled up to the non-text
-  // bar it was never asked to clear.
-  const iFill = (name: string, rest: RatedNum, palette: string, fillMin: number, stateMin = fillMin) => {
+  const iFill = (name: string, rest: RatedNum, palette: string, fillMin: number) => {
     for (const st of FILL_STATES) {
       const c = fillStateCand(rest, palette, st);
       // The interactive family leads with `rest` (docs/20 §2 — rest/hover/pressed);
       // the base-state key `default` is kept only on the non-interactive roles.
       const stKey = st === 'default' ? 'rest' : st;
-      // REST carries the text bar; the other states carry only the non-text bar (SC 1.4.11).
-      // Rest is the state the component is read in — it anchors the label, so it stays at 4.5:1.
-      // Hover/pressed/focused/selected exist to signal a CHANGE from rest; SC 1.4.11 asks that the
-      // state be identifiable, not that it re-clear a text floor it was never carrying alone. Both
-      // bars are measured against the floor surface, so this only moves what is ASSERTED — the walk
-      // itself is unchanged, and rest's own pick still resolves at `fillMin` before it gets here.
-      const stMin = stKey === 'rest' ? fillMin : stateMin;
+      // Every fill state — rest included — is measured against the floor at the NON-TEXT bar. A
+      // fill carries no text of its own; the label's legibility is `on-fill`'s contract, measured
+      // against the fill. #375 split rest (4.5) from the other states (3) only because relaxing
+      // rest then broke the NB fixture and forced a banned ink; both are handled deliberately here,
+      // so the split is degenerate and gone.
       put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
-        `${name} interactive fill — ${stKey}`, cfg.floorName, stMin);
+        `${name} interactive fill — ${stKey}`, cfg.floorName, fillMin);
     }
     put(`interactive.${name}.on-fill`, onColor(rest.rgb), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
@@ -415,7 +431,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   };
 
   // primary — the action palette, contrast-verified.
-  iFill('primary', actionRest, r2p.action, cfg.actionMin, cfg.nonTextMin);
+  iFill('primary', actionRest, r2p.action, fillFloorMin);
   iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true);
   put('interactive.primary.border', rated(chromatic(r2p.action, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Primary interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
@@ -423,9 +439,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
   const daAnchor = modeAnchor('destructive') ?? theme.destructiveAnchorStep;
   const iDestructiveRest = daAnchor !== undefined
-    ? chromatic(r2p.danger, daAnchor, floorRgb, cfg.actionMin, true)
-    : paletteRole('danger', floorRgb, cfg.actionMin);
-  iFill('destructive', iDestructiveRest, r2p.danger, cfg.actionMin, cfg.nonTextMin);
+    ? chromatic(r2p.danger, daAnchor, floorRgb, fillFloorMin, true)
+    : paletteRole('danger', floorRgb, fillFloorMin);
+  iFill('destructive', iDestructiveRest, r2p.danger, fillFloorMin);
   iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true);
   put('interactive.destructive.border', rated(chromatic(r2p.danger, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Destructive interactive border (outline)', 'background.primary', cfg.nonTextMin);
 
@@ -451,8 +467,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // so a derived default is indistinguishable from a pin by the time it arrives here.
     const anchor = modeAnchor(entry.name) ?? entry.anchorStep ?? 500;
     const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
-    const rest = chromatic(entry.palette, anchor, floorRgb, cfg.actionMin, pinned);
-    iFill(entry.name, rest, entry.palette, cfg.actionMin, cfg.nonTextMin);
+    const rest = chromatic(entry.palette, anchor, floorRgb, fillFloorMin, pinned);
+    iFill(entry.name, rest, entry.palette, fillFloorMin);
     iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true);
     put(`interactive.${entry.name}.border`, rated(chromatic(entry.palette, 500, baseRgb, cfg.nonTextMin), baseRgb), `${entry.name} interactive border (outline)`, 'background.primary', cfg.nonTextMin);
   }

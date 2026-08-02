@@ -243,7 +243,7 @@
       "avoid_when": "Do not use for brand ink (use text.brand) or as a subtle tint (use foreground.brand-subtle).",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
-        "dark": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.500}",
         "hc-light": "{prism.palette.primary.650}",
         "hc-dark": "{prism.palette.primary.250}"
       },
@@ -254,7 +254,7 @@
       "contrast_with": [
         {
           "token": "neutral.050",
-          "min": "4.5:1",
+          "min": "3:1",
           "ratio": 4.85
         }
       ]
@@ -265,8 +265,8 @@
       "when_to_use": "Filled success elements — badges, banners, status chips.",
       "avoid_when": "Do not use for success ink (use text.success) or as a subtle tint (use foreground.success-subtle).",
       "mode_overrides": {
-        "light": "{prism.palette.success.550}",
-        "dark": "{prism.palette.success.450}",
+        "light": "{prism.palette.success.500}",
+        "dark": "{prism.palette.success.500}",
         "hc-light": "{prism.palette.success.700}",
         "hc-dark": "{prism.palette.success.300}"
       },
@@ -277,8 +277,8 @@
       "contrast_with": [
         {
           "token": "neutral.050",
-          "min": "4.5:1",
-          "ratio": 4.54
+          "min": "3:1",
+          "ratio": 3.75
         }
       ]
     },
@@ -288,8 +288,8 @@
       "when_to_use": "Filled warning elements — badges, banners, status chips.",
       "avoid_when": "Do not use for warning ink (use text.warning) or as a subtle tint (use foreground.warning-subtle).",
       "mode_overrides": {
-        "light": "{prism.palette.warning.550}",
-        "dark": "{prism.palette.warning.450}",
+        "light": "{prism.palette.warning.500}",
+        "dark": "{prism.palette.warning.500}",
         "hc-light": "{prism.palette.warning.700}",
         "hc-dark": "{prism.palette.warning.300}"
       },
@@ -300,8 +300,8 @@
       "contrast_with": [
         {
           "token": "neutral.050",
-          "min": "4.5:1",
-          "ratio": 4.6
+          "min": "3:1",
+          "ratio": 3.79
         }
       ]
     },
@@ -311,8 +311,8 @@
       "when_to_use": "Filled info elements — badges, banners, status chips.",
       "avoid_when": "Do not use for info ink (use text.info) or as a subtle tint (use foreground.info-subtle).",
       "mode_overrides": {
-        "light": "{prism.palette.info.550}",
-        "dark": "{prism.palette.info.450}",
+        "light": "{prism.palette.info.500}",
+        "dark": "{prism.palette.info.500}",
         "hc-light": "{prism.palette.info.700}",
         "hc-dark": "{prism.palette.info.300}"
       },
@@ -323,8 +323,8 @@
       "contrast_with": [
         {
           "token": "neutral.050",
-          "min": "4.5:1",
-          "ratio": 4.56
+          "min": "3:1",
+          "ratio": 3.75
         }
       ]
     },
@@ -414,8 +414,8 @@
       "when_to_use": "Filled danger elements — badges, banners, status chips.",
       "avoid_when": "Do not use for danger ink (use text.danger) or as a subtle tint (use foreground.danger-subtle).",
       "mode_overrides": {
-        "light": "{prism.palette.danger.550}",
-        "dark": "{prism.palette.danger.450}",
+        "light": "{prism.palette.danger.500}",
+        "dark": "{prism.palette.danger.500}",
         "hc-light": "{prism.palette.danger.700}",
         "hc-dark": "{prism.palette.danger.300}"
       },
@@ -426,8 +426,8 @@
       "contrast_with": [
         {
           "token": "neutral.050",
-          "min": "4.5:1",
-          "ratio": 4.57
+          "min": "3:1",
+          "ratio": 3.78
         }
       ]
     },
@@ -438,7 +438,7 @@
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
-        "dark": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.500}",
         "hc-light": "{prism.palette.primary.650}",
         "hc-dark": "{prism.palette.primary.250}"
       },
@@ -448,7 +448,7 @@
       "contrast_with": [
         {
           "token": "neutral.050",
-          "min": "4.5:1",
+          "min": "3:1",
           "ratio": 4.85
         }
       ]
@@ -460,7 +460,7 @@
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
-        "dark": "{prism.palette.primary.350}",
+        "dark": "{prism.palette.primary.450}",
         "hc-light": "{prism.palette.primary.700}",
         "hc-dark": "{prism.palette.primary.200}"
       },
@@ -482,7 +482,7 @@
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
-        "dark": "{prism.palette.primary.300}",
+        "dark": "{prism.palette.primary.400}",
         "hc-light": "{prism.palette.primary.750}",
         "hc-dark": "{prism.palette.primary.150}"
       },
@@ -504,7 +504,7 @@
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
-        "dark": "{prism.palette.primary.350}",
+        "dark": "{prism.palette.primary.450}",
         "hc-light": "{prism.palette.primary.700}",
         "hc-dark": "{prism.palette.primary.200}"
       },
@@ -526,7 +526,7 @@
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
-        "dark": "{prism.palette.primary.300}",
+        "dark": "{prism.palette.primary.400}",
         "hc-light": "{prism.palette.primary.750}",
         "hc-dark": "{prism.palette.primary.150}"
       },
@@ -548,7 +548,7 @@
       "avoid_when": "Do not use on the page or on outline controls — use interactive.primary.text.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -657,8 +657,8 @@
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "mode_overrides": {
-        "light": "{prism.palette.danger.550}",
-        "dark": "{prism.palette.danger.450}",
+        "light": "{prism.palette.danger.500}",
+        "dark": "{prism.palette.danger.500}",
         "hc-light": "{prism.palette.danger.700}",
         "hc-dark": "{prism.palette.danger.300}"
       },
@@ -668,8 +668,8 @@
       "contrast_with": [
         {
           "token": "neutral.050",
-          "min": "4.5:1",
-          "ratio": 4.57
+          "min": "3:1",
+          "ratio": 3.78
         }
       ]
     },
@@ -679,8 +679,8 @@
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows on pointer hover.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "mode_overrides": {
-        "light": "{prism.palette.danger.600}",
-        "dark": "{prism.palette.danger.400}",
+        "light": "{prism.palette.danger.550}",
+        "dark": "{prism.palette.danger.450}",
         "hc-light": "{prism.palette.danger.750}",
         "hc-dark": "{prism.palette.danger.250}"
       },
@@ -691,7 +691,7 @@
         {
           "token": "neutral.050",
           "min": "3:1",
-          "ratio": 5.57
+          "ratio": 4.57
         }
       ]
     },
@@ -701,32 +701,10 @@
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows while pressed.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "mode_overrides": {
-        "light": "{prism.palette.danger.650}",
-        "dark": "{prism.palette.danger.350}",
-        "hc-light": "{prism.palette.danger.800}",
-        "hc-dark": "{prism.palette.danger.200}"
-      },
-      "paired_with": [
-        "interactive.destructive.on-fill"
-      ],
-      "contrast_with": [
-        {
-          "token": "neutral.050",
-          "min": "3:1",
-          "ratio": 6.77
-        }
-      ]
-    },
-    "interactive.destructive.fill.focused": {
-      "$description": "Destructive interactive fill (focused state).",
-      "meaning": "Interactivity / actions",
-      "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when keyboard-focused.",
-      "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
-      "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.400}",
-        "hc-light": "{prism.palette.danger.750}",
-        "hc-dark": "{prism.palette.danger.250}"
+        "hc-light": "{prism.palette.danger.800}",
+        "hc-dark": "{prism.palette.danger.200}"
       },
       "paired_with": [
         "interactive.destructive.on-fill"
@@ -739,14 +717,36 @@
         }
       ]
     },
+    "interactive.destructive.fill.focused": {
+      "$description": "Destructive interactive fill (focused state).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when keyboard-focused.",
+      "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.550}",
+        "dark": "{prism.palette.danger.450}",
+        "hc-light": "{prism.palette.danger.750}",
+        "hc-dark": "{prism.palette.danger.250}"
+      },
+      "paired_with": [
+        "interactive.destructive.on-fill"
+      ],
+      "contrast_with": [
+        {
+          "token": "neutral.050",
+          "min": "3:1",
+          "ratio": 4.57
+        }
+      ]
+    },
     "interactive.destructive.fill.selected": {
       "$description": "Destructive interactive fill (selected state).",
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when selected / active.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "mode_overrides": {
-        "light": "{prism.palette.danger.650}",
-        "dark": "{prism.palette.danger.350}",
+        "light": "{prism.palette.danger.600}",
+        "dark": "{prism.palette.danger.400}",
         "hc-light": "{prism.palette.danger.800}",
         "hc-dark": "{prism.palette.danger.200}"
       },
@@ -757,7 +757,7 @@
         {
           "token": "neutral.050",
           "min": "3:1",
-          "ratio": 6.77
+          "ratio": 5.57
         }
       ]
     },
@@ -768,7 +768,7 @@
       "avoid_when": "Do not use on the page or on outline controls — use interactive.destructive.text.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.white}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -779,7 +779,7 @@
         {
           "token": "interactive.destructive.fill.rest",
           "min": "4.5:1",
-          "ratio": 5.55
+          "ratio": 4.59
         }
       ]
     },
@@ -2151,7 +2151,7 @@
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2173,7 +2173,7 @@
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.black}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2184,7 +2184,7 @@
         {
           "token": "foreground.success",
           "min": "4.5:1",
-          "ratio": 5.51
+          "ratio": 4.55
         }
       ]
     },
@@ -2195,7 +2195,7 @@
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.white}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2206,7 +2206,7 @@
         {
           "token": "foreground.warning",
           "min": "4.5:1",
-          "ratio": 5.58
+          "ratio": 4.6
         }
       ]
     },
@@ -2217,7 +2217,7 @@
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.white}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2228,7 +2228,7 @@
         {
           "token": "foreground.danger",
           "min": "4.5:1",
-          "ratio": 5.55
+          "ratio": 4.59
         }
       ]
     },
@@ -2239,7 +2239,7 @@
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.black}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2250,7 +2250,7 @@
         {
           "token": "foreground.info",
           "min": "4.5:1",
-          "ratio": 5.54
+          "ratio": 4.56
         }
       ]
     },
@@ -2613,7 +2613,7 @@
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.neutral.025}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2635,7 +2635,7 @@
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.black}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2646,7 +2646,7 @@
         {
           "token": "foreground.success",
           "min": "4.5:1",
-          "ratio": 5.51
+          "ratio": 4.55
         }
       ]
     },
@@ -2657,7 +2657,7 @@
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.white}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2668,7 +2668,7 @@
         {
           "token": "foreground.warning",
           "min": "4.5:1",
-          "ratio": 5.58
+          "ratio": 4.6
         }
       ]
     },
@@ -2679,7 +2679,7 @@
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.white}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2690,7 +2690,7 @@
         {
           "token": "foreground.danger",
           "min": "4.5:1",
-          "ratio": 5.55
+          "ratio": 4.59
         }
       ]
     },
@@ -2701,7 +2701,7 @@
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
       "mode_overrides": {
         "light": "{prism.palette.white}",
-        "dark": "{prism.palette.neutral.950}",
+        "dark": "{prism.palette.black}",
         "hc-light": "{prism.palette.white}",
         "hc-dark": "{prism.palette.black}"
       },
@@ -2712,7 +2712,7 @@
         {
           "token": "foreground.info",
           "min": "4.5:1",
-          "ratio": 5.54
+          "ratio": 4.56
         }
       ]
     },
@@ -2955,7 +2955,7 @@
       "avoid_when": "Do not use as a decorative divider (use border.primary).",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
-        "dark": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.500}",
         "hc-light": "{prism.palette.primary.650}",
         "hc-dark": "{prism.palette.primary.250}"
       },
@@ -3724,8 +3724,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.visited",
-        "color.interactive.primary.fill.pressed",
-        "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.pressed",
@@ -3742,8 +3740,6 @@
       "aliased_by": [
         "color.icon.brand-subtle",
         "color.icon.link.hover",
-        "color.interactive.primary.fill.focused",
-        "color.interactive.primary.fill.hover",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.brand-subtle",
@@ -3758,13 +3754,12 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.brand",
-        "color.border.focus",
-        "color.foreground.brand",
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.primary.border",
-        "color.interactive.primary.fill.rest",
+        "color.interactive.primary.fill.pressed",
+        "color.interactive.primary.fill.selected",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest",
         "color.text.brand",
@@ -3780,6 +3775,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.brand-subtle",
+        "color.interactive.primary.fill.focused",
+        "color.interactive.primary.fill.hover",
         "color.text.brand-subtle"
       ]
     },
@@ -4179,14 +4176,8 @@
       "aliased_by": [
         "color.background.inverse.primary",
         "color.background.primary",
-        "color.icon.on-brand",
-        "color.icon.on-danger",
-        "color.icon.on-info",
         "color.icon.on-inverse",
-        "color.icon.on-success",
-        "color.icon.on-warning",
         "color.icon.primary",
-        "color.interactive.destructive.on-fill",
         "color.interactive.destructive.on-inverse.on-fill",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.on-inverse.fill.pressed",
@@ -4197,14 +4188,8 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
-        "color.interactive.primary.on-fill",
         "color.interactive.primary.on-inverse.on-fill",
-        "color.text.on-brand",
-        "color.text.on-danger",
-        "color.text.on-info",
         "color.text.on-inverse",
-        "color.text.on-success",
-        "color.text.on-warning",
         "color.text.primary"
       ]
     },
@@ -4216,6 +4201,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.background.inverse.primary",
+        "color.icon.on-brand",
         "color.icon.on-inverse",
         "color.icon.primary",
         "color.interactive.destructive.on-inverse.on-fill",
@@ -4227,7 +4213,9 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
+        "color.interactive.primary.on-fill",
         "color.interactive.primary.on-inverse.on-fill",
+        "color.text.on-brand",
         "color.text.on-inverse",
         "color.text.primary"
       ]
@@ -4595,7 +4583,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.success",
         "color.icon.success",
         "color.icon.success-subtle",
         "color.text.success",
@@ -4609,7 +4596,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.border.success"
+        "color.border.success",
+        "color.foreground.success"
       ]
     },
     "palette.success.550": {
@@ -4619,7 +4607,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.success",
         "color.icon.success",
         "color.text.success"
       ]
@@ -4770,7 +4757,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.warning",
         "color.icon.warning",
         "color.icon.warning-subtle",
         "color.text.warning",
@@ -4784,7 +4770,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.border.warning"
+        "color.border.warning",
+        "color.foreground.warning"
       ]
     },
     "palette.warning.550": {
@@ -4794,7 +4781,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.warning",
         "color.icon.warning",
         "color.text.warning"
       ]
@@ -4945,7 +4931,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info",
         "color.icon.info",
         "color.icon.info-subtle",
         "color.text.info",
@@ -4959,7 +4944,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.border.info"
+        "color.border.info",
+        "color.foreground.info"
       ]
     },
     "palette.info.550": {
@@ -4969,7 +4955,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info",
         "color.icon.info",
         "color.text.info"
       ]
@@ -5118,8 +5103,6 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.danger-subtle",
-        "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.pressed",
@@ -5134,8 +5117,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.fill.pressed",
+        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover"
       ]
@@ -5147,10 +5130,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.danger",
         "color.icon.danger",
         "color.icon.danger-subtle",
-        "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.rest",
         "color.text.danger",
@@ -5165,7 +5148,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.danger",
+        "color.foreground.danger",
         "color.interactive.destructive.border",
+        "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.text.rest"
       ]
     },
@@ -5176,9 +5161,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.danger",
         "color.icon.danger",
-        "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.fill.focused",
+        "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.hover",
         "color.text.danger"
@@ -5191,8 +5176,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.destructive.fill.focused",
-        "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.fill.pressed",
+        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.pressed"
       ]
@@ -5204,8 +5189,6 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.rest"

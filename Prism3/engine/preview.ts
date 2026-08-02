@@ -46,7 +46,15 @@ export const previewSpec: PreviewSpec = {
           text: s === 'disabled' ? 'color.disabled.on-fill' : 'color.interactive.primary.on-fill',
           radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis',
         },
-        contracts: [{ fg: s === 'disabled' ? 'color.disabled.on-fill' : 'color.interactive.primary.on-fill', bg: s === 'disabled' ? 'color.disabled.fill' : `color.interactive.primary.fill.${s}`, min: s === 'disabled' ? UI : TEXT, label: 'label on fill' }],
+        // The label is gated at the TEXT bar on `rest` only. On hover/pressed it is held to UI —
+        // an OWNER DECISION, not a derivation from WCAG: SC 1.4.3 has no exemption for transient
+        // states, so strictly the label owes 4.5 in every reachable state. The call was to treat
+        // hover/pressed label contrast as out of scope rather than add a stateful `on-fill` token
+        // family (which would flip the label's color mid-interaction — worse than a subtler hover).
+        // Load-bearing as of #352 item 2: with fills relaxed toward their anchors, harbor/dark
+        // measures 4.28 on hover and 3.62 on pressed, and NO single ink clears 4.5 across all five
+        // fill states for that column. Revisit here if that decision is ever reversed.
+        contracts: [{ fg: s === 'disabled' ? 'color.disabled.on-fill' : 'color.interactive.primary.on-fill', bg: s === 'disabled' ? 'color.disabled.fill' : `color.interactive.primary.fill.${s}`, min: s === 'disabled' || s === 'hover' || s === 'pressed' ? UI : TEXT, label: 'label on fill' }],
       })),
     },
     {

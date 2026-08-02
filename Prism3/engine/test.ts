@@ -2533,10 +2533,23 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const HCL = byMode['hc-light'];
   const isBlack = (path?: string) => /\.black$/.test(path ?? '');
   const isWhite = (path?: string) => /\.white$/.test(path ?? '');
+  // Harshness is a claim about ink on the page CANVAS — pure black on a near-white page is the
+  // complaint the rule exists for. Ink on a saturated FILL is a different relationship: black on a
+  // bright amber is the legible, conventional answer, and forcing it to a soft near-black instead is
+  // precisely what pushed `text.on-danger` / `on-info` below their 4.5 floor once the fills relaxed
+  // toward their anchors (#352 item 2). Scoped by each role's own `against` rather than by name, so
+  // a newly added `on-*` role inherits the carve-out without anyone remembering to list it.
+  const isOnFill = (r: any) => /^foreground\./.test(r.against ?? '') || /\.fill\./.test(r.against ?? '');
   for (const m of ['light', 'dark'] as const) {
     const roles = byMode[m];
-    const blacks = Object.entries(roles).filter(([, r]: any) => isBlack(r.path)).map(([k]) => k);
-    ok(blacks.length === 0, `${m}: no pure black in standard mode (found: ${blacks.join(', ') || 'none'})`);
+    const blacks = Object.entries(roles).filter(([, r]: any) => isBlack(r.path) && !isOnFill(r)).map(([k]) => k);
+    ok(blacks.length === 0, `${m}: no pure black on the canvas in standard mode (found: ${blacks.join(', ') || 'none'})`);
+    // ...and the carve-out is a carve-out, not a hole: anything that DID go black must be ink on a
+    // fill, and must actually be clearing its floor. A black that fails its own min is a bug either
+    // way, and would otherwise now pass silently.
+    const badBlacks = Object.entries(roles)
+      .filter(([, r]: any) => isBlack(r.path) && (!isOnFill(r) || r.ratio < r.min)).map(([k]) => k);
+    ok(badBlacks.length === 0, `${m}: every pure black is ink on a fill and clears its min (${badBlacks.join(', ') || 'none'})`);
   }
   ok(!isBlack(p(L, 'background.inverse.primary')), 'light inverse surface is near-black, not pure black');
   ok(!isWhite(p(D, 'background.inverse.primary')), 'dark inverse surface is near-white, not pure white');
@@ -3200,6 +3213,51 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 }
 
 // (11) EMIT-FIGMA COLOUR (docs/10) — buildFigmaColor(nbTheme) must reproduce the frozen
+// #352 item 2 — the enumerated, deliberate divergences from the frozen real-NB export.
+//
+// The fixture is NOT re-baselined. It is the real Token Press export, and its whole value is being
+// an INDEPENDENT target: overwriting it with engine output would make it self-referential and
+// unable to ever catch a real-NB regression again. So the divergence is recorded here instead,
+// following the `KNOWN_OUTLIERS` precedent in nb-regression.ts — listed exactly, with the from→to
+// pair, so a NEW or CHANGED divergence still fails rather than being waved through.
+//
+// Why these move: bold fills now gate against the floor at each mode's NON-TEXT bar (SC 1.4.11)
+// instead of its text bar. NB hand-authored them at the stricter bar, so the engine's fills now sit
+// CLOSER TO THEIR ANCHOR than NB shipped. Owner's call, recorded on #352: "NB fidelity is NB's own
+// conservatism showing up as a regression target, not a reason to keep the bar."
+//
+// Three groups, and the second two are consequences rather than independent decisions:
+//   1. `foreground/*` — the relaxed bold fills themselves.
+//   2. `text|icon/on-*` (dark) — the fill moved toward its anchor and got DARKER, so the winning ink
+//      side FLIPS from NB's dark 950 to a light 025 (or to black, now permitted on a fill).
+//   3. `border/focus` — derives from `actionRest`, so it follows the primary fill by construction.
+//
+// There are deliberately NO `hc-*` rows. HC is exempt from the relaxation (see `fillFloorMin` in
+// modes.ts) and so still reproduces NB exactly in both HC modes. Routing HC through the non-text bar
+// made hc-light's brand and danger fills resolve identically to STANDARD light, which is the mode
+// ceasing to be high-contrast on that axis; HC keeps its own 7:1 text bar for fills instead.
+const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: string }[] = [
+  { mode: 'light', name: 'color/foreground/success', nb: 'palette/green/550', engine: 'palette/green/500' },
+  { mode: 'light', name: 'color/foreground/warning', nb: 'palette/amber/600', engine: 'palette/amber/500' },
+  { mode: 'light', name: 'color/foreground/info', nb: 'palette/info/550', engine: 'palette/info/500' },
+  { mode: 'dark', name: 'color/foreground/brand', nb: 'palette/red/450', engine: 'palette/red/550' },
+  { mode: 'dark', name: 'color/foreground/success', nb: 'palette/green/400', engine: 'palette/green/500' },
+  { mode: 'dark', name: 'color/foreground/warning', nb: 'palette/amber/450', engine: 'palette/amber/500' },
+  { mode: 'dark', name: 'color/foreground/info', nb: 'palette/info/450', engine: 'palette/info/500' },
+  { mode: 'dark', name: 'color/foreground/danger', nb: 'palette/red/450', engine: 'palette/red/550' },
+  { mode: 'dark', name: 'color/text/on-brand', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
+  { mode: 'dark', name: 'color/text/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
+  { mode: 'dark', name: 'color/text/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/text/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
+  { mode: 'dark', name: 'color/text/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/icon/on-brand', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
+  { mode: 'dark', name: 'color/icon/on-success', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
+  { mode: 'dark', name: 'color/icon/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/icon/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
+  { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
+  { mode: 'dark', name: 'color/border/focus', nb: 'palette/red/450', engine: 'palette/red/550' },
+];
+
 // Token Press export (fixtures/figma/nb): same variable names per collection/mode, same
 // scopes, and — the load-bearing property — every semantic aliases the SAME palette
 // variable by name in every mode (0 broken/mismatched). Values compared to float32
@@ -3236,12 +3294,28 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(missing.length === 0 && extra.length === 0, `figma ${key}: variable names match fixture (${fix.variables.length})` + (missing.length ? ` — MISSING ${missing.slice(0, 3).join(',')}` : '') + (extra.length ? ` — EXTRA ${extra.slice(0, 3).join(',')}` : ''));
 
     const scopeBad: string[] = [], aliasBad: string[] = [], valBad: string[] = [];
+    const modeOf = key.startsWith('color.') ? key.slice('color.'.length) : '';
+    const hit = new Set<string>();
     for (const [name, fv] of fixByName) {
       const ov = outByName.get(name); if (!ov) continue;
       if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) scopeBad.push(name);
+      // A role may diverge from real NB only if it is enumerated below AND diverges EXACTLY as
+      // recorded. A changed divergence is a new finding, not a covered one, so it still fails.
+      const known = NB_KNOWN_DIVERGENCES.find((d) => d.mode === modeOf && d.name === name);
+      if (known) {
+        hit.add(`${known.mode}|${known.name}`);
+        if ((fv.alias?.name ?? null) !== known.nb || (ov.alias?.name ?? null) !== known.engine)
+          aliasBad.push(`${name} [divergence CHANGED: recorded ${known.nb}→${known.engine}, got ${fv.alias?.name}→${ov.alias?.name}]`);
+        continue; // the value differs *because* the alias does — one finding, not two
+      }
       if ((fv.alias?.name ?? null) !== (ov.alias?.name ?? null)) aliasBad.push(name);
       for (const ch of ['r', 'g', 'b', 'a']) if (Math.abs((fv.value?.[ch] ?? 0) - (ov.value?.[ch] ?? 0)) > 1e-5) valBad.push(`${name}.${ch}`);
     }
+    // Stale entries are as much a bug as missing ones: a waiver that no longer applies is a claim
+    // the engine still diverges where it doesn't, and it would silently cover a REAL future
+    // divergence at that role. Fail until it is removed.
+    const stale = NB_KNOWN_DIVERGENCES.filter((d) => d.mode === modeOf && !hit.has(`${d.mode}|${d.name}`)).map((d) => d.name);
+    ok(stale.length === 0, `figma ${key}: no stale NB divergence waivers` + (stale.length ? ` — ${stale.join(', ')} no longer diverge; remove them` : ''));
     ok(scopeBad.length === 0, `figma ${key}: scopes match fixture` + (scopeBad.length ? ` — ${scopeBad.slice(0, 3).join(',')}` : ''));
     ok(aliasBad.length === 0, `figma ${key}: every alias targets the same palette var as the fixture` + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join(',')}` : ''));
     ok(valBad.length === 0, `figma ${key}: resolved values match fixture (float32 tol)` + (valBad.length ? ` — ${valBad.slice(0, 3).join(',')}` : ''));
