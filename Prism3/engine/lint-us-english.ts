@@ -12,6 +12,11 @@
  *     `synthesising`. So this scans the `-is(e|ed|es|ing|ation)` and `-our` PATTERNS and subtracts a
  *     false-positive list (`otherwise`, `precise`, `source`, `hour`, …) — the inverse of a word list,
  *     and it fails toward reporting too much rather than too little.
+ *  1b. …BUT A PATTERN ALONE UNDER-COUNTS THE OTHER WAY, which is the correction this pass makes.
+ *     `grey` ends in neither `-ise` nor `-our`, so PATTERN could not see a third of the standard
+ *     CLAUDE.md says this gate enforces, and `greyscale` shipped in `theme-schema.json` past 90-file
+ *     scans. Stems with no productive suffix get their own substring scan (STEMS). Pattern PLUS
+ *     list — replacing one with the other just moves the blind spot.
  *  2. SOURCE GREPS MISS WHAT SHIPS. `engine/levers.ts` prose is inlined into `web/dist/main.js`, so
  *     the built bundle is scanned directly. A `.ts` grep would have called the bundle clean.
  *
@@ -34,6 +39,20 @@ const repo = resolve(here, '../..');
 
 // The pattern, not a word list. `[A-Za-z]{3,}` keeps `is`/`our` themselves out.
 const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation)|our)\b/g;
+// ...and a second scan, because ONE shape cannot cover both and the pattern alone was under-counting
+// in the opposite direction from the word list it replaced.
+//
+// CLAUDE.md states three rules: `color` not `colour`, `gray` not `grey`, `-ize` not `-ise`. Two of
+// them fall out of PATTERN — `colour`/`behaviour` end in `-our`, `-ise` is explicit. **`grey` ends in
+// neither**, so PATTERN was structurally blind to a third of the standard it claimed to enforce, and
+// nothing said so. `greyscale` sat in the published `theme-schema.json` contract through 90-file
+// scans (#313 — the very conversion that issue was tracking).
+//
+// The lesson the arc had half-learned: the fix for "a word list misses `generalised`" is pattern
+// PLUS list, not pattern INSTEAD OF list. Substring-matched so compounds are caught too
+// (`greyscale`, `greys`, `grey-500`). A false positive here is still fixed by adding to NOT_EN_GB,
+// never by narrowing either scan.
+const STEMS = /\b[A-Za-z]*grey[A-Za-z]*\b/gi;
 // Ordinary English that merely ENDS in those letters. Subtracting these is what makes a pattern scan
 // usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
 const NOT_EN_GB = new Set([
@@ -54,12 +73,14 @@ const scan = (abs: string): Hit[] => {
   let txt: string;
   try { txt = readFileSync(abs, 'utf8'); } catch { return []; }
   const hits: Hit[] = [];
-  for (const m of txt.matchAll(PATTERN)) {
-    const w = m[0];
-    if (NOT_EN_GB.has(w.toLowerCase())) continue;
-    const line = txt.slice(0, m.index).split('\n').length;
-    const from = Math.max(0, (m.index ?? 0) - 55);
-    hits.push({ file: relative(repo, abs), line, word: w, context: txt.slice(from, (m.index ?? 0) + 45).replace(/\s+/g, ' ') });
+  for (const re of [PATTERN, STEMS]) {
+    for (const m of txt.matchAll(re)) {
+      const w = m[0];
+      if (NOT_EN_GB.has(w.toLowerCase())) continue;
+      const line = txt.slice(0, m.index).split('\n').length;
+      const from = Math.max(0, (m.index ?? 0) - 55);
+      hits.push({ file: relative(repo, abs), line, word: w, context: txt.slice(from, (m.index ?? 0) + 45).replace(/\s+/g, ' ') });
+    }
   }
   return hits;
 };
@@ -85,6 +106,27 @@ const gated: string[] = [
   join(repo, 'Prism3/schema/theme-schema.json'),
   join(repo, 'Prism3/engine/README.md'),
 ];
+
+// ---- SELF-CHECK: does the scanner still detect what it claims to? ----
+// Without this, deleting a scan makes the gate go QUIET rather than fail — which is exactly how
+// `greyscale` survived here (#313). A gate whose detection silently narrows reports success forever,
+// and nothing downstream can tell the difference between "clean" and "not looking".
+// One sample per rule CLAUDE.md states, plus one false positive that must NOT trip.
+const SELF_CHECK: { sample: string; expect: boolean }[] = [
+  { sample: 'a generalised approach', expect: true },    // -ise pattern
+  { sample: 'the colour of it', expect: true },          // -our pattern
+  { sample: 'a greyscale mode', expect: true },          // STEMS — the one with no suffix to match
+  { sample: 'otherwise the source', expect: false },     // NOT_EN_GB must still subtract
+];
+const selfFails = SELF_CHECK.filter(({ sample, expect }) => {
+  const found = [PATTERN, STEMS].some((re) => [...sample.matchAll(re)].some((m) => !NOT_EN_GB.has(m[0].toLowerCase())));
+  return found !== expect;
+}).map((c) => `"${c.sample}" should${c.expect ? '' : ' NOT'} be flagged`);
+if (selfFails.length) {
+  console.error(`\n❌ the gate's own detection is broken — it cannot see what it claims to:\n`);
+  for (const f of selfFails) console.error(`    ${f}`);
+  process.exit(1);
+}
 
 const gatedHits = gated.flatMap(scan);
 const byFile = new Map<string, Hit[]>();
