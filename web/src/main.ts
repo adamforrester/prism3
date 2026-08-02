@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug } from '../../Prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
@@ -3197,10 +3197,27 @@ const renderCategorySetup = (): HTMLElement => {
   };
   // ±2 rungs, not ±1. The engine has always accepted `[-5, 5]` and `shiftRung` clamps at the ends of
   // the ramp, so widening the range is a UI change only — three options were under-offering what the
-  // system could already do. Both ramps are six rungs, so ±2 still lands inside them from most
-  // starting points; beyond that the clamp makes further steps a no-op, which is why 2 and not 5.
+  // system could already do. The range is now DERIVED per category rather than fixed at ±2 (#377): a
+  // flat cap was wrong in both directions at once — it offered dead steps for categories sitting
+  // mid-ramp (from `normal`, +3/+4/+5 all clamp to `loose`) while hiding live ones for categories
+  // sitting at an end (`display` derives `tight`/`snug`, so reaching `loose` needs +4 or +5 and was
+  // simply unreachable). Both are the same mistake: guessing the range instead of computing it.
   const NUDGE_ENDS = { leadingShift: ['tighter', 'looser'], trackingShift: ['tighter', 'wider'] } as const;
-  const NUDGE_STEPS = [-2, -1, 0, 1, 2];
+  /** Steps that actually MOVE at least one composite in this category. A category can derive several
+   *  rungs (title spans three size bands), so the range runs from "enough negative to floor the
+   *  highest-derived composite" to "enough positive to top out the lowest". Engine-bounded to ±5. */
+  const nudgeSteps = (group: string, field: 'leadingShift' | 'trackingShift'): number[] => {
+    const keys: readonly string[] = field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS;
+    const idx = ty.composites.filter((c) => c.group === group)
+      .map((c) => keys.indexOf(derivedRungFor(field, c.group as any, c.sizePx)))
+      .filter((i) => i >= 0);
+    if (!idx.length) return [0];
+    const lo = Math.max(-5, -Math.max(...idx));
+    const hi = Math.min(5, (keys.length - 1) - Math.min(...idx));
+    const out: number[] = [];
+    for (let v = lo; v <= hi; v++) out.push(v);
+    return out;
+  };
   // One formatter for every step, which is what lets an out-of-range value below reuse it instead of
   // needing a "(custom)" escape hatch: 3 reads as "3 looser", the same shape as "2 looser".
   const nudgeLabel = (v: number, down: string, up: string): string =>
@@ -3209,11 +3226,12 @@ const renderCategorySetup = (): HTMLElement => {
     const cur = (getPath(brandState, `typography.${field}.${group}`) as number | undefined) ?? 0;
     const [down, up] = NUDGE_ENDS[field];
     const sel = selectEl('sm cs-nudge');
-    for (const v of NUDGE_STEPS) sel.append(optionEl(String(v), nudgeLabel(v, down, up), v === cur));
+    const steps = nudgeSteps(group, field);
+    for (const v of steps) sel.append(optionEl(String(v), nudgeLabel(v, down, up), v === cur));
     // A hand-authored shift of ±3..±5 is legal in the engine and would otherwise match no option, so
     // the select would show the first one and rewrite the value on the next change. Same intent as
     // `renderPerModeSelect`'s "(custom)" fallback: surface it rather than silently losing it.
-    if (!NUDGE_STEPS.includes(cur)) sel.append(optionEl(String(cur), nudgeLabel(cur, down, up), true));
+    if (!steps.includes(cur)) sel.append(optionEl(String(cur), nudgeLabel(cur, down, up), true));
     sel.disabled = perMode;
     sel.onchange = () => { const n = Number(sel.value); setPath(brandState, `typography.${field}.${group}`, n === 0 ? undefined : n); apply(); };
     return sel;

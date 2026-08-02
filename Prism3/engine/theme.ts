@@ -875,6 +875,15 @@ const lineHeightFor = (group: TypeGroup, px: number): string => {
   return 'normal';                                       // body, caption, code
 };
 
+/** The rung a composite derives BEFORE any per-category nudge. Exported because the UI cannot offer an
+ *  honest nudge range without it (#377): `shiftRung` CLAMPS, so a step past the end of a ramp is a silent
+ *  no-op — from `normal`, +3/+4/+5 all render `loose`. A control that offers them is offering dead
+ *  options, and a control that caps at ±2 hides live ones (`display` starts at the end of its ramp, so
+ *  reaching `loose` genuinely needs more). Both failures come from guessing the range instead of
+ *  deriving it; this is the single source of truth that lets the UI do neither. */
+export const derivedRungFor = (field: 'leadingShift' | 'trackingShift', group: TypeGroup, px: number): string =>
+  field === 'leadingShift' ? lineHeightFor(group, px) : trackingFor(group, px);
+
 // Shift a named rung along its ordered key list, clamped at both ends. Both ramps
 // are ordered so that a POSITIVE shift is the more open direction (leading
 // tight→loose, tracking tighter→wider), which keeps `leadingShift`/`trackingShift`
