@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-08-02) — The add-face field was unstyled (owner-reported)
+
+**STATUS: web.** #370's "Font family name" input shipped with only `flex`/`min-width` — no border, padding,
+radius, background or font — so it rendered as a raw browser default beside styled controls. Owner spotted
+it on the preview.
+
+The field two tiers below it in the *same section* (`.tf-in`, the custom-face input on a binding card)
+already carried the shared treatment. So the fix is to wear that class rather than restate its six
+declarations: `tf-in tf-addin`, with `tf-addin` reduced to the width constraint alone. `tf-in` sets
+`width:100%`, so `tf-addin` now says `width:auto` explicitly instead of relying on declaration order to
+let the flex basis win.
+
+**The lesson is about how it escaped review**, not about the CSS: #370's verification was entirely
+behavioral — nine states, add / duplicate / reject / persist / bind / unbind / remove, all passing — and
+every one of those assertions is blind to whether the control has a border. This is the same trap recorded
+at #351 ("behavioral browser assertions miss visual regressions"), and it caught a new class of it: not a
+changed layout but a **missing style**, which no geometry measurement flags because the element is exactly
+where it should be. Cheap guard when adding a control: assert its computed border/padding/radius/font
+against an existing peer, which is how this fix was verified.
+
+---
+
 ## (2026-08-02) — Correcting the #355 audit count (my error, caught in review)
 
 **STATUS: docs.** #372's entry claimed the contrast audit found **1** remaining failure app-wide. That

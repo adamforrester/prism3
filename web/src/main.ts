@@ -2754,7 +2754,7 @@ const renderTypefaces = (): HTMLElement => {
   // name already reachable via a role binding would be silently absorbed by the union and the row would
   // never appear, which reads as "the button did nothing".
   const addRow = el('div', 'tf-add');
-  const addIn = el('input', 'tf-addin') as HTMLInputElement;
+  const addIn = el('input', 'tf-in tf-addin') as HTMLInputElement;   // tf-in carries the shared field treatment; tf-addin only constrains width
   addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
   addIn.setAttribute('aria-label', 'Add a face to the library');
   const addBtn = el('button', 'adv-add', '+ Add face') as HTMLButtonElement;
@@ -5527,7 +5527,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-rm{float:right;border:none;background:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;margin-left:8px}
 .tf-rm:hover{color:var(--ink)}
 .tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
-.tf-addin{flex:0 1 260px;min-width:0}
+.tf-addin{flex:0 1 260px;width:auto;min-width:0}
 .tf-adderr{font-size:12px;color:#b0341a;margin:8px 0 0}
 .tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
