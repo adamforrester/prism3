@@ -7,6 +7,45 @@
 
 ---
 
+## (2026-08-02) — Correcting the #355 audit count (my error, caught in review)
+
+**STATUS: docs.** #372's entry claimed the contrast audit found **1** remaining failure app-wide. That
+was wrong. The reviewer independently found **4**; a corrected re-run finds **23**. The `--faint`/`--muted`
+fix itself is unaffected and was independently confirmed — this corrects the *audit* claim beside it, which
+would otherwise be read as a baseline by whoever picks up #285.
+
+**Three causes, all worth avoiding next time:**
+
+- **Swallowed navigation errors.** Every click was `.catch(()=>{})`. Verified afterwards: 5 of 6 page
+  clicks worked and "Color" silently stayed on Preview — so an entire page went unaudited while the run
+  reported having visited it. **An audit that swallows navigation errors reports the pages it tried, not
+  the ones it saw**, and it cannot tell you which.
+- **Headline number came from a different set than the printed detail.** The script printed
+  `worst.slice(0, 14)` but reported `totalFailing` as the result. Nothing was hidden at n=1, but the shape
+  invites exactly this class of error.
+- **The count is not brand- or state-independent.** The reviewer ran `aurora`, I ran "Start blank".
+  `.mctx-mark.ok` only exists while the mode-context popup is open. Quoting a bare count without pinning
+  brand + interaction state produces a number nobody can reproduce, including me.
+
+**What the corrected audit actually shows** — and the split matters more than the total:
+
+- **Dashboard chrome (this repo's own CSS)**: `.tf-stat.no` 4.27/3.85 · `.mctx-mark.ok` 3.46/3.12 ·
+  `.cb-mark` ok 3.55/3.20 · `.cb-mark` no 4.59/4.14 · and `.tf-stat.ok` **passing** at 5.02/4.53. Every one
+  is a **semantic status color** (success / warning / danger). #355 moved only the neutral greys, so the
+  status palette has never been contrast-checked as a set — and one member passing by 0.03 says it sits on
+  the line by accident, not design. That is the real unit of work for #285, not five separate fixes.
+- **Style-guide specimens (`.sg-*`, 18 signatures)**: these render **brand-generated** colors, so the
+  numbers move per brand. A specimen showing a brand color at its true value is being honest, not broken —
+  counting them as dashboard defects is a category error. The live question underneath is that a generated
+  color used as *label text* carries a text obligation the swatch does not, which is the same SC 1.4.3 vs
+  1.4.11 line #352 is drawing in the engine. Flagged on #285 rather than silently classified.
+
+The lasting lesson is narrower than "test more": **assert your navigation**. A verification harness that
+cannot fail loudly will report success for pages it never reached, and every number downstream inherits
+that silence.
+
+---
+
 ## (2026-08-02) — The dashboard's own chrome clears AA (#355)
 
 **STATUS: web.** `--faint` was **2.31:1** on `--paper` and `--muted` **4.36:1**, against AA's 4.5:1 — the
@@ -33,9 +72,13 @@ fine and are untouched.
   tiers survive. Owner picked this over collapsing to a single muted tier.
 - **Verified by walking the rendered DOM, not by reading CSS.** A static audit cannot see effective
   backgrounds — a token's contrast depends on whichever ancestor actually paints. The audit walks every
-  element with a text node across 6 pages × 6 segments, resolves the real background by climbing until it
-  finds an opaque one, and applies the large-text rule per element. **Result: 1 failure app-wide**, and it
-  is not a `--faint`/`--muted` use.
+  element with a text node, resolves the real background by climbing until it finds an opaque one, and
+  applies the large-text rule per element. **Zero `--faint`/`--muted` uses fail after the change** — that
+  part held up under an independent re-run on a different brand.
+- **CORRECTED (see the entry below): the "1 failure app-wide" figure this entry originally carried was
+  wrong.** The audit under-counted; the real number is coverage- and brand-dependent, and the remaining
+  failures are semantic STATUS colors, not neutrals. Do not use that figure as a baseline for #285 — the
+  corrected list lives on #285 itself.
 - **Checked and ruled out before editing**: no dark theme exists (single light `:root`), no
   `--faint`/`--muted` text sits on a dark background (darkening would have *broken* those), the plugin
   surface has no second copy of these tokens, and the one `background:var(--muted)` is a non-text
