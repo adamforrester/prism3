@@ -98,7 +98,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 50.4
+            "value": 55.2
           }
         },
         "letterSpacing": {
@@ -2614,6 +2614,13 @@
           "value": "ORIGINAL"
         }
       }
+    }
+  ],
+  "revisions": [
+    {
+      "issue": "#377",
+      "change": "text/display/sm/strong lineHeight 50.4px -> 55.2px",
+      "why": "The engine's display leading was flat `tight` (1.05) across 48-160px while `title` banded by size; display.sm at 48px sat two rungs below title.2xl at 40px. Banding display sends 48px to `snug` (1.15), so 48 x 1.15 = 55.2. PREDICTED, not re-captured: a fresh figma.getLocalTextStylesAsync() import of the regenerated nb.tokens.json would report this value. Every other field in this file remains the original capture."
     }
   ]
 }

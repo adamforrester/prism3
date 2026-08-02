@@ -7,6 +7,41 @@
 
 ---
 
+## (2026-08-02) — Display leading gets size bands (#377, PR 1 of 3)
+
+**STATUS: engine.** `lineHeightFor` sent **every** display size to `tight` (1.05) — 48px through 160px, a
+3.3× span — while `title` banded across a 2.2× one. The function contradicted its own premise, and the
+seam showed at the tier boundary:
+
+```
+title.2xl    40px → snug   1.15
+display.sm   48px → tight  1.05     ← two rungs tighter for 8px more size
+```
+
+Now `display → px >= 64 ? 'tight' : 'snug'`. Largest rung jump between adjacent sizes drops from **2 to
+1**, matching how title moves.
+
+- **Deliberately coarse, and that is not the final answer.** With only six rungs there is nothing between
+  snug and tight, so 64–160px all take `tight`. #377's 15-value ladder adds **1.10 exactly here**; these
+  bands should be revisited when it lands. Recorded in the code comment so the next reader knows it is a
+  staged step, not a considered endpoint.
+- **The Figma round-trip fixture caught it, which is the system working.** `fixtures/figma/nb/text-styles.json`
+  is a **real capture** (`figma.getLocalTextStylesAsync()`, file key `Zrn9YDqrFiwjs2IfKInNY0`) of NB tokens
+  imported into Figma. The test reconstructs each style's multiplier from that capture's px and asserts the
+  engine reproduces it — so a deliberate leading change fails it by design. **Exactly one** of 38 styles
+  moved: `text/display/sm/strong`, 50.4 → 55.2px (48 × 1.15).
+- **The fixture edit is PREDICTED, not re-captured, and says so.** A `revisions` block now records the
+  change, the reasoning and that provenance, because every other field in that file is verbatim Figma
+  output and a silent hand-edit would quietly turn a capture into a fabrication. Precedent for editing
+  these fixtures on an intentional engine change is #337 (font.json, 39→35 vars).
+- **Trap for the next leading change**: that assertion pins the leading of all 38 NB text styles via a
+  captured artifact that cannot be re-generated locally — it needs a re-import into Figma. Expect to
+  update it by prediction and to justify each field, rather than regenerating.
+- **Verified**: seam closed (40px and 48px both 1.15), max adjacent jump 1 rung, `regen --check` 88/88,
+  `test.ts` 1217 passed, NB regression PASS, `tsc -p web`, US-English gate clean.
+
+---
+
 ## (2026-08-02) — the US-English gate could not see `grey` (#313 closed, and the gate was wrong)
 
 **STATUS: engine.** Went to close #313 as already-done and found the conversion it tracked was

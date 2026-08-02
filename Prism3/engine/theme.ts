@@ -857,8 +857,19 @@ export const HEADING_SIZE_FLOOR = { display: 32, title: 16, eyebrow: 11 } as con
 export type PerModeSizeGroup = keyof typeof HEADING_SIZE_FLOOR;
 export const PER_MODE_SIZE_GROUPS = Object.keys(HEADING_SIZE_FLOOR) as PerModeSizeGroup[];
 // Bigger heading → tighter line-height (display tightest; small titles open up).
+/** Size-sensitive leading. Bigger type carries more visual presence and reads better with tighter
+ *  leading, which is why `title` bands rather than taking one value — and why `display` now does too
+ *  (#377). Display was flat `tight` across its WHOLE 48→160px range, a 3.3× span, while title banded
+ *  across a 2.2× one: the function contradicted its own premise, and the seam showed at the tier
+ *  boundary, where `title.2xl` 40px sat at snug (1.15) and `display.sm` 48px dropped two rungs to
+ *  tight (1.05). Eight pixels of size bought two rungs of leading.
+ *
+ *  The 64px boundary keeps every step to at most ONE rung, matching how title moves. It is deliberately
+ *  coarse: with only six rungs there is nothing between snug and tight, so the mid display sizes take
+ *  the tighter of the two. #377's 15-value ladder adds 1.10 exactly here, and this band set should be
+ *  revisited when it lands — that is a refinement, not a correction. */
 const lineHeightFor = (group: TypeGroup, px: number): string => {
-  if (group === 'display') return 'tight';
+  if (group === 'display') return px >= 64 ? 'tight' : 'snug';
   if (group === 'title') return px >= 56 ? 'tight' : px >= 28 ? 'snug' : 'compact';
   if (group === 'label' || group === 'eyebrow') return 'snug';
   return 'normal';                                       // body, caption, code

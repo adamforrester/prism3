@@ -2981,7 +2981,7 @@
         "fontFamily": "{nbds.font.family.display}",
         "fontSize": "{nbds.font.size.48}",
         "fontWeight": "{nbds.font.weight-role.strong}",
-        "lineHeight": "{nbds.font.line-height.tight}",
+        "lineHeight": "{nbds.font.line-height.snug}",
         "letterSpacing": "{nbds.font.letter-spacing.tight}"
       }
     },
@@ -5590,7 +5590,6 @@
         "type.display.3xl.strong",
         "type.display.lg.strong",
         "type.display.md.strong",
-        "type.display.sm.strong",
         "type.display.xl.strong"
       ]
     },
@@ -5600,6 +5599,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "type.display.sm.strong",
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",

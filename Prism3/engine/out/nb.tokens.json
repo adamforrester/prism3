@@ -10134,10 +10134,10 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.48}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.tight}",
+              "lineHeight": "{nbds.font.line-height.snug}",
               "letterSpacing": "{nbds.font.letter-spacing.tight}"
             },
-            "$description": "display sm strong — 36→48px fluid Inter (display role), tight line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display sm strong — 36→48px fluid Inter (display role), snug line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",

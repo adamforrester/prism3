@@ -2981,7 +2981,7 @@
         "fontFamily": "{prism.font.family.display}",
         "fontSize": "{prism.font.size.48}",
         "fontWeight": "{prism.font.weight-role.strong}",
-        "lineHeight": "{prism.font.line-height.tight}",
+        "lineHeight": "{prism.font.line-height.snug}",
         "letterSpacing": "{prism.font.letter-spacing.tight}"
       }
     },
@@ -6048,7 +6048,6 @@
         "type.display.3xl.strong",
         "type.display.lg.strong",
         "type.display.md.strong",
-        "type.display.sm.strong",
         "type.display.xl.strong"
       ]
     },
@@ -6058,6 +6057,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "type.display.sm.strong",
         "type.eyebrow.lg.emphasis",
         "type.eyebrow.md.emphasis",
         "type.eyebrow.sm.emphasis",
