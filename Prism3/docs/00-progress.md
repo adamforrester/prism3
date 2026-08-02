@@ -44,6 +44,18 @@ source edit with no generator to re-run.
 **Gates:** `regen --check` 88/88, `test.ts` 1217/0, nb-regression exit 0, DTCG 899/899 aliases +
 432/432 contracts, US-English clean.
 
+**Follow-up (same PR, caught by CI): the PR's own "US-English clean" claim was checked against a
+stale local `web/dist/main.js`.** `STEMS` correctly caught two REAL hits once CI rebuilt web fresh —
+`grey`/`greyed` inside two CSS-in-JS comment strings in `main.ts` (`.sh-tintblock`'s tint note,
+`.mctx-opt.fixed`'s locked-row note). These are CSS comments living inside template-literal string
+content, not TS-level comments — the web build has no `--minify` step, so they survive into the
+shipped bundle and are correctly in scope (unlike genuine TS `//`/`/** */` comments, which the build
+strips and which stay exempt). Fixed to `gray`/`grayed`; a third occurrence (a `//` TS comment that
+doesn't reach the bundle) was fixed too for consistency, not because the gate required it. The
+trap for next time: **validate this gate against a freshly-built `web/dist/`, not whatever happens
+to be sitting in the working tree** — CI runs the gate *after* the web build for exactly this
+reason, and a local check that skips the rebuild can pass while CI fails on the identical commit.
+
 ## (2026-08-02) — field.border.hover becomes a step offset, not a second ratio (#352, item 4 — closes the issue)
 
 **STATUS: engine.** Last item on #352. `field.border.hover` targeted `cfg.secondaryMin` — a **text**
