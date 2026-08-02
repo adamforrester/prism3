@@ -5626,9 +5626,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tpw-mark{font-size:12px;margin-right:7px}
 .tpw-mark.yes{color:var(--ink)}.tpw-mark.no{color:var(--faint)}.tpw-mark.unknown{color:var(--line2)}
 .tpw-samp{display:inline;font-size:15px}
-/* Leading & tracking rungs in the shared table format (#363). The value input is width-BOUNDED, not
-   auto: a control that sizes to its content is what breaks column parity in an auto-layout table. */
-.ltbl-in{width:92px;text-align:right}
+/* Leading & tracking rungs in the shared table format (#363). The value control is width-BOUNDED, not
+   auto: a control that sizes to its content is what breaks column parity in an auto-layout table.
+   #388 swapped the number input for a ladder select and the bound has to come with it — a closed
+   select's intrinsic width is its WIDEST OPTION (#360's trap), so left auto it would be sized by
+   whichever label happens to be longest today (-0.015em) and would silently re-size the column the
+   day a ladder label grows. 124px is measured against that widest label, not picked. */
+.ltbl-sel{width:124px;max-width:100%}
 .ltbl-who{font-size:11px;color:var(--ink2);display:block;max-width:124px;line-height:1.35}
 .ltbl-who.none{color:var(--faint);font-style:italic}
 /* The one specimen on the page that must WRAP — leading is invisible on a single line, so this

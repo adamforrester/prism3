@@ -47,6 +47,14 @@ the mode bar it sits under, so the fix was to **delete the override, not reorder
 as a marker with no rules. Confirmed by reading computed style, not by reading the source:
 `radius 7px / border-left 1px / margin-bottom 16px`, all inherited.
 
+**The width bound had to travel with the control.** `.ltbl-in` carried `width:92px` with a comment
+saying exactly why — *a control that sizes to its content is what breaks column parity in an auto-layout
+table*. Swapping in a select dropped the rule on the floor and left `.ltbl-in` as dead CSS. A closed
+select's intrinsic width is its **widest option** (#360's trap), so the column was being sized by
+whichever ladder label happens to be longest today (`-0.015em`) and would have moved silently the day a
+label grew. `.ltbl-sel` now pins 124px, measured against that label. Parity re-measured at
+**112/148/148/390** across all three Foundations tables, zero overflow, no page-level horizontal scroll.
+
 Worth recording that **#366's trap fired again** while writing that comment: backticks around
 `.errbar-global` terminated the stylesheet template literal, and `tsc` reported it as
 `Property 'errbar' does not exist` at a line 300 below the edit. The comment now says so inline.
