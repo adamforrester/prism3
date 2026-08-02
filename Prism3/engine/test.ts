@@ -1355,38 +1355,46 @@ for (const b of brands) {
   const built = buildTree(brandTheme(perMode));
   const pmTree = built.tree[root];
 
-  // (a) #296 INVERTED CONTRACT: the rung PRIMITIVES are mode-invariant — no `modes` override, and the
-  //     value is identical to the no-per-mode build. Previously each rung carried a per-mode $value,
-  //     which redefined what `normal` MEANS for all 35 composite references.
-  ok(pmTree.font['line-height'].normal.$extensions.prism3.modes === undefined,
-    'D-lhls(a): line-height.normal carries NO per-mode override — it is a primitive (#296)');
-  ok(pmTree.font['line-height'].normal.$value === baseTree.font['line-height'].normal.$value,
-    `D-lhls(a): line-height.normal $value is mode-invariant (${pmTree.font['line-height'].normal.$value})`);
-  ok(pmTree.font['line-height'].relaxed.$value === baseTree.font['line-height'].relaxed.$value,
-    'D-lhls(a): the rung the mode re-points TO is also unchanged');
+  // (a) #296's INVERTED CONTRACT still holds, and #377 made it easier to state rather than weakening it:
+  //     the LADDER STEP is mode-invariant. Under the old single tier the adjective WAS the primitive, so
+  //     this assertion had to read `line-height.normal`; now the primitive is the numeric step and the
+  //     adjective is a semantic role above it. The rule is unchanged — a mode never re-values a step.
+  const lhStep = (v: number) => pmTree.font['line-height'][lineHeightStepKey(v)];
+  const lsStep = (v: number) => pmTree.font['letter-spacing'][letterSpacingStepKey(v)];
+  ok(Object.values(pmTree.font['line-height']).every((n: any) => n.$extensions.prism3.modes === undefined),
+    'D-lhls(a): NO line-height ladder step carries a per-mode override — every step is a primitive (#296)');
+  ok(lhStep(1.5).$value === baseTree.font['line-height'][lineHeightStepKey(1.5)].$value,
+    'D-lhls(a): the 1.5 step is mode-invariant');
+  ok(lhStep(1.65).$value === baseTree.font['line-height'][lineHeightStepKey(1.65)].$value,
+    'D-lhls(a): the step the mode re-points TO is also unchanged');
 
   // (b) same for letter-spacing.
-  ok(pmTree.font['letter-spacing'].normal.$extensions.prism3.modes === undefined,
-    'D-lhls(b): letter-spacing.normal carries NO per-mode override — it is a primitive (#296)');
-  ok(pmTree.font['letter-spacing'].normal.$value === baseTree.font['letter-spacing'].normal.$value,
-    'D-lhls(b): letter-spacing.normal $value is mode-invariant');
+  ok(Object.values(pmTree.font['letter-spacing']).every((n: any) => n.$extensions.prism3.modes === undefined),
+    'D-lhls(b): NO letter-spacing ladder step carries a per-mode override (#296)');
+  ok(lsStep(0).$value === baseTree.font['letter-spacing'][letterSpacingStepKey(0)].$value,
+    'D-lhls(b): the 0em step is mode-invariant');
 
-  // (c) the per-mode change now lives on the semantic COMPOSITE, which RE-POINTS its alias at a
-  //     different rung — the `radius.md → {dimension.N}` shape applied to typography.
+  // (c) #377 — the per-mode change now lives on the semantic ROLE, stated ONCE, instead of being fanned
+  //     onto all 38 composites. That is the whole reason the tier exists.
+  const lhRole = pmTree.font['line-height-role'].normal;
+  const roleDark = lhRole.$extensions.prism3.modes?.dark;
+  ok(!!roleDark, 'D-lhls(c): the line-height ROLE carries the modes.dark override (#377 — stated once)');
+  ok(roleDark?.$value === `{${root}.font.line-height.${lineHeightStepKey(1.65)}}`,
+    `D-lhls(c): dark re-points the role at the 1.65 step (got ${roleDark?.$value})`);
+  ok(lhRole.$value === `{${root}.font.line-height.${lineHeightStepKey(1.5)}}`,
+    'D-lhls(c): the role\'s light canonical value still points at the 1.5 step');
+  ok(pmTree.font['letter-spacing-role'].normal.$extensions.prism3.modes?.dark?.$value
+      === `{${root}.font.letter-spacing.${letterSpacingStepKey(0.02)}}`,
+    'D-lhls(c): the tracking role re-points at the 0.02em step in dark');
+
+  // (c2) …and the composite is now CLEAN: it aliases the role and carries no leading/tracking variant
+  //      of its own. This is the assertion that proves the fan-out is gone rather than duplicated.
   const bodyMd = pmTree.type.body.md.default;
+  ok(bodyMd.$value.lineHeight === `{${root}.font.line-height-role.normal}`,
+    'D-lhls(c2): the composite aliases the semantic ROLE, not the primitive');
   const cDark = bodyMd.$extensions.prism3.modes?.dark;
-  ok(!!cDark, 'D-lhls(c): body.md.default carries a modes.dark variant (the re-point lives on the semantic)');
-  ok(cDark?.$value?.lineHeight === `{${root}.font.line-height.relaxed}`,
-    `D-lhls(c): dark re-points lineHeight to the relaxed rung (got ${cDark?.$value?.lineHeight})`);
-  ok(cDark?.$value?.letterSpacing === `{${root}.font.letter-spacing.wide}`,
-    `D-lhls(c): dark re-points letterSpacing to the wide rung (got ${cDark?.$value?.letterSpacing})`);
-  ok(bodyMd.$value.lineHeight === `{${root}.font.line-height.normal}`,
-    'D-lhls(c): the light canonical $value still points at the normal rung');
-  // Every field the variant changed must be an ALIAS — never a baked value. This is the invariant
-  // #296's guard enforces globally; asserted here at the point of change too.
-  ok(Object.keys(cDark.$value).filter((k) => JSON.stringify(cDark.$value[k]) !== JSON.stringify((bodyMd.$value as any)[k]))
-      .every((k) => /^\{.+\}$/.test(String(cDark.$value[k]))),
-    'D-lhls(c): the mode variant changes ONLY alias fields (re-point, never re-value)');
+  ok(cDark?.$value?.lineHeight === undefined && cDark?.$value?.letterSpacing === undefined,
+    'D-lhls(c2): the composite carries NO per-mode leading/tracking — it inherits through the role');
 
   // (d) A NUMBER is the retired pre-#296 shape and must be REJECTED, not coerced — coercing it would
   //     quietly reintroduce the mode-varying-primitive bug. The message points at the brand-wide field.
@@ -1428,8 +1436,12 @@ for (const b of brands) {
   //     override (the primitive/composite tokens are byte-identical; only the decisions log records the
   //     lever was set — same as radius/weight when a lever matches the baseline).
   const equalTree = buildTree(brandTheme({ ...base, modeLevers: { dark: { lineHeights: { normal: 'normal' }, letterSpacings: { normal: 'normal' } } } } as unknown as BrandInput)).tree[root];
-  ok(equalTree.font['line-height'].normal.$extensions.prism3.modes === undefined && equalTree.font['letter-spacing'].normal.$extensions.prism3.modes === undefined,
-    'D-lhls(i): a per-mode LH/LS equal to the light value attaches no leaf override (no-diff suppression)');
+  // #377 — assert on the ROLE now, which is where a real override would land. Checking the step would
+  // pass vacuously (a step never carries modes), so this had to move with the tier or it would have
+  // become a test that cannot fail.
+  ok(equalTree.font['line-height-role'].normal.$extensions.prism3.modes === undefined
+      && equalTree.font['letter-spacing-role'].normal.$extensions.prism3.modes === undefined,
+    'D-lhls(i): a per-mode LH/LS equal to the light value attaches no role override (no-diff suppression)');
 
   // (j) byte-identical guard — a modeLevers entry with no LH/LS lever adds nothing at all (absent feature).
   ok(JSON.stringify(buildTree(brandTheme(base)).tree) === JSON.stringify(buildTree(brandTheme({ ...base, modeLevers: { dark: {} } } as unknown as BrandInput)).tree),
@@ -2182,11 +2194,24 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(btMode.stats.broken.length === 0, '[#328] a theme with per-mode sizes has no broken aliases');
     ok(btMode.stats.aliases - btBase.stats.aliases === 15,
       `[#328] per-mode sizes CONTRIBUTE aliases to the gate (+15 = 3 re-sized composites × the 5 alias fields of a per-mode $value, got +${btMode.stats.aliases - btBase.stats.aliases})`);
-    // A size re-point and a leading re-point on the same composite compose rather than clobber.
-    const both = brandTheme({ ...pmBase, typography: {}, modeLevers: { dark: { typeSizes: { title: { '2xl': 36 } }, lineHeights: { snug: 'relaxed' } } } } as any);
-    const bl = leaf(buildTree(both).tree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
-    ok(bl.$value.fontSize === '{prism.font.size.36}' && bl.$value.lineHeight === '{prism.font.line-height.relaxed}',
-      '[#328] a per-mode size and a per-mode leading re-point compose on one composite');
+    // A size re-point and a leading re-point compose — but #377 moved them to DIFFERENT tiers, and that
+    // separation is the point rather than a regression. Size is genuinely per-composite (#328 keys it by
+    // group AND rung), so it stays on the composite. Leading is rung-wide, so it now lives on the
+    // semantic role and every composite using that role inherits it. Asserting both on the composite
+    // would be asserting the fan-out this issue removed.
+    const bothT = brandTheme({ ...pmBase, typography: {}, modeLevers: { dark: { typeSizes: { title: { '2xl': 36 } }, lineHeights: { snug: 'relaxed' } } } } as any);
+    const bothTree = buildTree(bothT).tree;
+    const bl = leaf(bothTree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
+    ok(bl.$value.fontSize === '{prism.font.size.36}',
+      '[#328] the per-mode SIZE still re-points on the composite — size is per-composite by contract');
+    // A mode variant is a FULL-value snapshot (`{ ...value, ...parts }`), so `lineHeight` is present by
+    // spread. The real proof the fan-out is gone is that it is UNCHANGED from light — the composite was
+    // not re-pointed; the role beneath it was.
+    ok(bl.$value.lineHeight === '{prism.font.line-height-role.snug}',
+      '[#377] the composite\'s per-mode lineHeight is IDENTICAL to light — no fan-out, the role carries the change');
+    ok(leaf(bothTree, 'prism.font.line-height-role.snug').$extensions.prism3.modes.dark.$value
+        === `{prism.font.line-height.${lineHeightStepKey(1.65)}}`,
+      '[#377] the leading re-point lives on the role, stated once, and title.2xl inherits it');
 
     // Validation THROWS — never drops. A silently ignored per-mode request is only visible in one mode.
     ok(thr(() => mk({ body: { md: 18 } })), '[#328] per-mode sizing on body (reading text) throws — rejected, not ignored');

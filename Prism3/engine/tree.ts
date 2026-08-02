@@ -14,7 +14,7 @@
  */
 import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
-import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug } from './theme';
+import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { SizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
 
@@ -220,6 +220,15 @@ const weightRoleAlias = (path: string, numeric: number, description: string): To
   $type: 'fontWeight', $value: `{${path}}`, $description: description,
   $extensions: { prism3: { role: 'semantic', aliasOf: path, numeric } },
 });
+/** The leading/tracking SEMANTIC tier (#377) — the exact shape `weightRoleAlias` gives weights. The
+ *  role aliases a ladder step and is the only place a mode re-points; the step keeps one value in every
+ *  mode, which is the invariant #296 protected and this preserves rather than reopens. `$type` follows
+ *  the primitive it points at, so a consumer that resolves the alias sees a number / a dimension. */
+const rungRoleAlias = (path: string, value: number, description: string): Token => ({
+  $type: typeof value === 'number' && path.includes('line-height') ? 'number' : 'dimension',
+  $value: `{${path}}`, $description: description,
+  $extensions: { prism3: { role: 'semantic', aliasOf: path } },
+});
 // Line height: unitless multiplier in $value (DTCG-correct, CSS-correct). Figma
 // has no unitless line-height variable, but PERCENT (multiplier×100) is
 // mode/size-independent — the exporter bakes lineHeight as { unit: 'PERCENT' }
@@ -264,8 +273,8 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
     fontFamily: a(`family.${c.family}`),
     fontSize: a(`size.${c.sizePx}`),                            // canonical = desktop/max (fallback)
     fontWeight: a(`weight-role.${c.weightRole}`),
-    lineHeight: a(`line-height.${c.lineHeight}`),
-    letterSpacing: a(`letter-spacing.${c.tracking}`),
+    lineHeight: a(`line-height-role.${c.lineHeight}`),
+    letterSpacing: a(`letter-spacing-role.${c.tracking}`),
   };
   if (c.italic) value.fontStyle = 'italic';                        // weight-paired modifier — literal key on $value
                                                                   // (off-core-DTCG; the shared Token-Press contract)
@@ -286,9 +295,11 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
   // #296 — a per-mode leading/tracking change re-points THIS composite's alias at a different rung;
   // every rung primitive keeps one value across all modes. Mirrors `radius.md` → `{dimension.N}` and
   // `font.weight-role.default` → `{font.weight.N}`.
+  // #377 — leading/tracking per-mode variants are GONE from here. A mode re-points the semantic ROLE
+  // (`font.line-height-role.normal` carries `$extensions.prism3.modes.<mode>`), and every composite
+  // referencing that role inherits it. Previously the same intent was fanned onto all 38 composites,
+  // which is what made the Styles table read as a rung re-pointing into its own axis.
   const rungModes: Record<string, Record<string, string>> = {};
-  for (const [m, key] of Object.entries(c.lineHeightByMode ?? {})) (rungModes[m] ??= {}).lineHeight = a(`line-height.${key}`);
-  for (const [m, key] of Object.entries(c.trackingByMode ?? {})) (rungModes[m] ??= {}).letterSpacing = a(`letter-spacing.${key}`);
   // #328 — a per-mode SIZE re-points fontSize at a different ladder step, exactly as leading/tracking
   // re-point their rungs. Every step primitive keeps one value across all modes; only the alias moves.
   for (const [m, px] of Object.entries(c.sizeByMode ?? {})) (rungModes[m] ??= {}).fontSize = a(`size.${px}`);
@@ -641,13 +652,65 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // re-points its alias at a different rung. Previously each rung carried
   // `$extensions.prism3.modes.<mode>.$value`, which redefined what e.g. `normal` MEANS per mode for
   // all 35 composite references — the violation #296 was filed for.
+  // #377 — leading and tracking now carry the SAME two tiers every other typography axis already had.
+  // Before, the adjective WAS the primitive (`line-height.normal` = 1.5) and composites aliased it
+  // directly, so a mode had nowhere semantic to say "in dark, `normal` is looser" — the only expressible
+  // move was re-pointing every composite that used the rung. Hence #296's workaround, and hence the
+  // Styles table reading as "rung `tight` becomes rung `snug`", a rung re-pointing into its own axis.
+  //
+  //   font.line-height.150            PRIMITIVE  (value × 100 — Prism2's convention)
+  //   font.line-height-role.normal    SEMANTIC   → {font.line-height.150}, per-mode override HERE
+  //   type.body.md.lineHeight         COMPOSITE  → {font.line-height-role.normal}
+  //
+  // Exactly the shape of `font.weight.400` / `font.weight-role.default`, so the tier line now reads
+  // identically on every axis.
+  //
+  // MINTED FROM NEED, not the whole ladder (#328's rule for weights): emit only the steps some role
+  // actually binds, including per-mode role overrides. The ladder is 15 steps; a default brand binds 6,
+  // and the other 9 would be dead leaves nothing references.
+  const lhStepsUsed = new Map<string, number>();
+  const lsStepsUsed = new Map<string, number>();
+  for (const lh of ty.lineHeights) lhStepsUsed.set(lineHeightStepKey(lh.value), lh.value);
+  for (const ls of ty.letterSpacings) lsStepsUsed.set(letterSpacingStepKey(ls.em), ls.em);
+  for (const byMode of Object.values(ty.lineHeightRoleByMode ?? {}))
+    for (const v of Object.values(byMode)) lhStepsUsed.set(lineHeightStepKey(v), v);
+  for (const byMode of Object.values(ty.letterSpacingRoleByMode ?? {}))
+    for (const v of Object.values(byMode)) lsStepsUsed.set(letterSpacingStepKey(v), v);
+
   const lineHeight: Record<string, Token> = {};
-  for (const lh of ty.lineHeights)
-    lineHeight[lh.key] = lineHeightLeaf(lh.value, `line height ${lh.key} — ${lh.value}× (unitless multiplier)`);
+  for (const [key, value] of [...lhStepsUsed].sort((a, b) => a[1] - b[1]))
+    lineHeight[key] = lineHeightLeaf(value, `line height ${value}× — unitless multiplier (ladder step ${key})`);
   const letterSpacing: Record<string, Token> = {};
-  for (const ls of ty.letterSpacings)
-    letterSpacing[ls.key] = letterSpacingLeaf(ls.em, `letter spacing ${ls.key} — ${ls.em}em`);
-  const font = { typeface, family, size: fsize, weight: fweight, 'weight-role': weightRole, 'line-height': lineHeight, 'letter-spacing': letterSpacing };
+  for (const [key, em] of [...lsStepsUsed].sort((a, b) => a[1] - b[1]))
+    letterSpacing[key] = letterSpacingLeaf(em, `letter spacing ${em}em (ladder step ${key})`);
+
+  // The semantic tier. A mode override lives HERE — one statement — rather than being fanned onto every
+  // composite that referenced the rung, which is the whole point of the tier existing.
+  const lineHeightRole: Record<string, Token> = {};
+  for (const lh of ty.lineHeights) {
+    const leaf = rungRoleAlias(`${root}.font.line-height.${lineHeightStepKey(lh.value)}`, lh.value,
+      `line-height role '${lh.key}' → ${lh.value}× — a relative-emphasis name a mode may re-point; the step itself never changes`);
+    const modes: Record<string, any> = {};
+    for (const [m, byRole] of Object.entries(ty.lineHeightRoleByMode ?? {}))
+      if (byRole[lh.key] !== undefined)
+        modes[m] = { $value: `{${root}.font.line-height.${lineHeightStepKey(byRole[lh.key])}}` };
+    if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
+    lineHeightRole[lh.key] = leaf;
+  }
+  const letterSpacingRole: Record<string, Token> = {};
+  for (const ls of ty.letterSpacings) {
+    const leaf = rungRoleAlias(`${root}.font.letter-spacing.${letterSpacingStepKey(ls.em)}`, ls.em,
+      `letter-spacing role '${ls.key}' → ${ls.em}em — a relative-emphasis name a mode may re-point; the step itself never changes`);
+    const modes: Record<string, any> = {};
+    for (const [m, byRole] of Object.entries(ty.letterSpacingRoleByMode ?? {}))
+      if (byRole[ls.key] !== undefined)
+        modes[m] = { $value: `{${root}.font.letter-spacing.${letterSpacingStepKey(byRole[ls.key])}}` };
+    if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
+    letterSpacingRole[ls.key] = leaf;
+  }
+  const font = { typeface, family, size: fsize, weight: fweight, 'weight-role': weightRole,
+    'line-height': lineHeight, 'line-height-role': lineHeightRole,
+    'letter-spacing': letterSpacing, 'letter-spacing-role': letterSpacingRole };
 
   // ---- typography semantic composites (Phase 2) ----
   // Consumer-facing type styles under `type.*`. Two composites may share a size

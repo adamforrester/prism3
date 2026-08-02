@@ -18,7 +18,7 @@
  * helpers/types in the (also pure) `emit-figma-color`.
  */
 import { Theme } from './theme';
-import { buildTree, subNode } from './tree';
+import { buildTree, subNode, deref } from './tree';
 import { desc } from './emit-figma-color';
 import type { FigmaResolvedType, FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
@@ -285,11 +285,18 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     // Line-height: PERCENT = unitless × 100 (fix 3a). Unbound — Figma has no
     // unitless line-height primitive, but PERCENT is mode/size-independent so
     // this bake is invariant across desktop/mobile fluid modes.
-    const lhLeaf = subNode(tree, v.lineHeight);
+    // DEREF, not subNode (#377). The composite now aliases a semantic ROLE, which aliases the ladder
+    // step — two hops. `subNode` resolves exactly one, so it would land on the role node whose $value is
+    // the string "{…font.line-height.150}", fail the `typeof === 'number'` test below, and take the
+    // `: 1` fallback — baking EVERY text style at 100% line height. Silently: `?? 1` and `?? 0` are both
+    // plausible values, so nothing downstream looks wrong. An audit of all 23 `subNode` call sites found
+    // these two to be the only ones that read a resolved leaf's SHAPE rather than handing it to a helper
+    // that already derefs (pxOf / numOf / remPxOf / familyOf all do).
+    const lhLeaf = deref(tree, subNode(tree, v.lineHeight));
     const lhMult: number = typeof lhLeaf?.$value === 'number' ? lhLeaf.$value : 1;
     // Letter-spacing: PERCENT = em × 100 (fix 3b — partial: baked, not yet
     // bindable via a tracking var collection).
-    const lsLeaf = subNode(tree, v.letterSpacing);
+    const lsLeaf = deref(tree, subNode(tree, v.letterSpacing));   // same two-hop reason as lineHeight above
     const lsEm: number = lsLeaf?.$extensions?.prism3?.em ?? 0;
     const textCase = v.textCase === 'uppercase' ? 'UPPER' : v.textCase === 'lowercase' ? 'LOWER' : 'ORIGINAL';
     const textDecoration = v.textDecoration === 'underline' ? 'UNDERLINE' : 'NONE';

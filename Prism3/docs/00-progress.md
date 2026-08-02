@@ -7,6 +7,58 @@
 
 ---
 
+## (2026-08-02) — Leading & tracking get their semantic tier (#377, PR 3b)
+
+**STATUS: engine.** The architectural half. Leading and tracking now carry the same two tiers every other
+typography axis already had, and the per-mode override moves from 38 composites onto one role.
+
+```
+font.line-height.150          PRIMITIVE  1.5, no modes ever
+font.line-height-role.normal  SEMANTIC   → {font.line-height.150}
+                                         $extensions.prism3.modes.dark → {font.line-height.165}
+type.body.md.lineHeight       COMPOSITE  → {font.line-height-role.normal}
+```
+
+Exactly `font.weight.400` / `font.weight-role.default`, so the tier line finally reads identically on
+every axis. Verified end to end on a dark-mode brand: role carries the override, step carries none.
+
+- **#296 is preserved, not reopened.** Its contract was "a rung primitive is mode-invariant". Under one
+  tier the adjective WAS the primitive, so the only way to honor that was to re-point every composite —
+  the fan-out. Now the numeric STEP is the primitive and stays mode-invariant, while the adjective is a
+  role above it that a mode may re-point. The rule is unchanged; there is finally a place to put the
+  exception.
+- **Minted from need, per #328's rule for weights.** The ladder is 15 steps; a default brand binds 6, so
+  6 emit. The other 9 would be dead leaves nothing references. Per-mode role targets are unioned in, the
+  same way `weightsRef` unions per-mode numerics.
+- **The `deref` fix landed with the change that needs it.** `emit-figma-font.ts` read composite
+  sub-values through single-hop `subNode`. With the role inserted it would have hit the alias node, failed
+  its `typeof === 'number'` test, and taken the `: 1` fallback — **baking every Figma text style at 100%
+  line height, and all tracking at 0**, silently, because `?? 1` and `?? 0` are plausible values. The
+  earlier 23-site audit is why this was two lines rather than an expedition.
+- **Three tests had to move, and one of them would otherwise have become unfailable.** `D-lhls(i)`
+  asserted no-diff suppression on `line-height.normal`; after the split that path is a step, which never
+  carries modes, so the assertion would have passed vacuously forever. Moved to the role, where a real
+  override lands.
+- **My own new assertion was wrong and caught it.** I asserted the composite carries no per-mode
+  `lineHeight` at all — but a mode variant is a **full-value snapshot** (`{ ...value, ...parts }`), so the
+  field is present by spread. The real proof the fan-out is gone is that it is *identical to light*: the
+  composite was not re-pointed, the role beneath it was. That is the stronger assertion and the one now in
+  the suite.
+- **`#328`'s size/leading compose test was split across the two tiers deliberately.** Per-mode SIZE is
+  genuinely per-composite (keyed by group AND rung); leading is rung-wide. Asserting both on the composite
+  would have been asserting the fan-out this issue removes.
+- **Key ordering is a known cosmetic, and it matches the reference system.** Tracking steps emit as
+  `0, 20, 50, neg-30, neg-20, neg-10` — JS orders integer-like keys numerically first, then string keys by
+  insertion. Prism2's own file does exactly the same (`0, 3, 6, neg-03, neg-015`), so this follows the
+  convention rather than diverging from it.
+- **Still to come (3c, web)**: the Styles table should now offer VALUES rather than rung names — the
+  self-referential "rung `tight` becomes rung `snug`" reading is what the owner flagged, and the tier is
+  what makes the honest version expressible. Plus the Foundations → Primitives rename.
+- **Verified**: 1243 tests, `regen --check` 88/88, NB regression PASS, `tsc -p web`, US-English clean.
+  `out/*` moves for every brand — this is a token-PATH change, which is why it shipped alone.
+
+---
+
 ## (2026-08-02) — Leading & tracking get curated ladders, and the ramp can no longer invert (#377, PR 3a)
 
 **STATUS: engine.** The founding defect of #377, fixed: `{ tight: 2.5, loose: 0.9 }` was **accepted**,

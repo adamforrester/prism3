@@ -9905,10 +9905,10 @@
         }
       },
       "line-height": {
-        "tight": {
+        "105": {
           "$type": "number",
           "$value": 1.05,
-          "$description": "line height tight — 1.05× (unitless multiplier)",
+          "$description": "line height 1.05× — unitless multiplier (ladder step 105)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9923,10 +9923,10 @@
             }
           }
         },
-        "snug": {
+        "115": {
           "$type": "number",
           "$value": 1.15,
-          "$description": "line height snug — 1.15× (unitless multiplier)",
+          "$description": "line height 1.15× — unitless multiplier (ladder step 115)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9941,10 +9941,10 @@
             }
           }
         },
-        "compact": {
+        "125": {
           "$type": "number",
           "$value": 1.25,
-          "$description": "line height compact — 1.25× (unitless multiplier)",
+          "$description": "line height 1.25× — unitless multiplier (ladder step 125)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9959,10 +9959,10 @@
             }
           }
         },
-        "normal": {
+        "150": {
           "$type": "number",
           "$value": 1.5,
-          "$description": "line height normal — 1.5× (unitless multiplier)",
+          "$description": "line height 1.5× — unitless multiplier (ladder step 150)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9977,10 +9977,10 @@
             }
           }
         },
-        "relaxed": {
+        "165": {
           "$type": "number",
           "$value": 1.65,
-          "$description": "line height relaxed — 1.65× (unitless multiplier)",
+          "$description": "line height 1.65× — unitless multiplier (ladder step 165)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -9995,10 +9995,10 @@
             }
           }
         },
-        "loose": {
+        "175": {
           "$type": "number",
           "$value": 1.75,
-          "$description": "line height loose — 1.75× (unitless multiplier)",
+          "$description": "line height 1.75× — unitless multiplier (ladder step 175)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10014,65 +10014,79 @@
           }
         }
       },
-      "letter-spacing": {
-        "tighter": {
-          "$type": "dimension",
-          "$value": "-0.03em",
-          "$description": "letter spacing tighter — -0.03em",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "em": -0.03,
-              "figma": {
-                "kind": "style-part",
-                "field": "letterSpacing",
-                "unit": "PERCENT",
-                "percent": -3,
-                "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
-              }
-            }
-          }
-        },
+      "line-height-role": {
         "tight": {
-          "$type": "dimension",
-          "$value": "-0.02em",
-          "$description": "letter spacing tight — -0.02em",
+          "$type": "number",
+          "$value": "{nbds.font.line-height.105}",
+          "$description": "line-height role 'tight' → 1.05× — a relative-emphasis name a mode may re-point; the step itself never changes",
           "$extensions": {
             "prism3": {
-              "generated": true,
-              "em": -0.02,
-              "figma": {
-                "kind": "style-part",
-                "field": "letterSpacing",
-                "unit": "PERCENT",
-                "percent": -2,
-                "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
-              }
+              "role": "semantic",
+              "aliasOf": "nbds.font.line-height.105"
             }
           }
         },
         "snug": {
-          "$type": "dimension",
-          "$value": "-0.01em",
-          "$description": "letter spacing snug — -0.01em",
+          "$type": "number",
+          "$value": "{nbds.font.line-height.115}",
+          "$description": "line-height role 'snug' → 1.15× — a relative-emphasis name a mode may re-point; the step itself never changes",
           "$extensions": {
             "prism3": {
-              "generated": true,
-              "em": -0.01,
-              "figma": {
-                "kind": "style-part",
-                "field": "letterSpacing",
-                "unit": "PERCENT",
-                "percent": -1,
-                "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
-              }
+              "role": "semantic",
+              "aliasOf": "nbds.font.line-height.115"
+            }
+          }
+        },
+        "compact": {
+          "$type": "number",
+          "$value": "{nbds.font.line-height.125}",
+          "$description": "line-height role 'compact' → 1.25× — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.line-height.125"
             }
           }
         },
         "normal": {
+          "$type": "number",
+          "$value": "{nbds.font.line-height.150}",
+          "$description": "line-height role 'normal' → 1.5× — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.line-height.150"
+            }
+          }
+        },
+        "relaxed": {
+          "$type": "number",
+          "$value": "{nbds.font.line-height.165}",
+          "$description": "line-height role 'relaxed' → 1.65× — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.line-height.165"
+            }
+          }
+        },
+        "loose": {
+          "$type": "number",
+          "$value": "{nbds.font.line-height.175}",
+          "$description": "line-height role 'loose' → 1.75× — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.line-height.175"
+            }
+          }
+        }
+      },
+      "letter-spacing": {
+        "0": {
           "$type": "dimension",
           "$value": "0em",
-          "$description": "letter spacing normal — 0em",
+          "$description": "letter spacing 0em (ladder step 0)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10087,10 +10101,10 @@
             }
           }
         },
-        "wide": {
+        "20": {
           "$type": "dimension",
           "$value": "0.02em",
-          "$description": "letter spacing wide — 0.02em",
+          "$description": "letter spacing 0.02em (ladder step 20)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10105,10 +10119,10 @@
             }
           }
         },
-        "wider": {
+        "50": {
           "$type": "dimension",
           "$value": "0.05em",
-          "$description": "letter spacing wider — 0.05em",
+          "$description": "letter spacing 0.05em (ladder step 50)",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10120,6 +10134,128 @@
                 "percent": 5,
                 "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
               }
+            }
+          }
+        },
+        "neg-30": {
+          "$type": "dimension",
+          "$value": "-0.03em",
+          "$description": "letter spacing -0.03em (ladder step neg-30)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "em": -0.03,
+              "figma": {
+                "kind": "style-part",
+                "field": "letterSpacing",
+                "unit": "PERCENT",
+                "percent": -3,
+                "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+              }
+            }
+          }
+        },
+        "neg-20": {
+          "$type": "dimension",
+          "$value": "-0.02em",
+          "$description": "letter spacing -0.02em (ladder step neg-20)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "em": -0.02,
+              "figma": {
+                "kind": "style-part",
+                "field": "letterSpacing",
+                "unit": "PERCENT",
+                "percent": -2,
+                "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+              }
+            }
+          }
+        },
+        "neg-10": {
+          "$type": "dimension",
+          "$value": "-0.01em",
+          "$description": "letter spacing -0.01em (ladder step neg-10)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "em": -0.01,
+              "figma": {
+                "kind": "style-part",
+                "field": "letterSpacing",
+                "unit": "PERCENT",
+                "percent": -1,
+                "note": "Figma binds letter-spacing as PERCENT or PIXELS; the exporter bakes as PERCENT (em × 100) — mode/size-independent. A future pass ships FLOAT tracking variables so brands can retune tracking without style edits (§4 fix 3b bindable form)"
+              }
+            }
+          }
+        }
+      },
+      "letter-spacing-role": {
+        "tighter": {
+          "$type": "dimension",
+          "$value": "{nbds.font.letter-spacing.neg-30}",
+          "$description": "letter-spacing role 'tighter' → -0.03em — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.letter-spacing.neg-30"
+            }
+          }
+        },
+        "tight": {
+          "$type": "dimension",
+          "$value": "{nbds.font.letter-spacing.neg-20}",
+          "$description": "letter-spacing role 'tight' → -0.02em — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.letter-spacing.neg-20"
+            }
+          }
+        },
+        "snug": {
+          "$type": "dimension",
+          "$value": "{nbds.font.letter-spacing.neg-10}",
+          "$description": "letter-spacing role 'snug' → -0.01em — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.letter-spacing.neg-10"
+            }
+          }
+        },
+        "normal": {
+          "$type": "dimension",
+          "$value": "{nbds.font.letter-spacing.0}",
+          "$description": "letter-spacing role 'normal' → 0em — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.letter-spacing.0"
+            }
+          }
+        },
+        "wide": {
+          "$type": "dimension",
+          "$value": "{nbds.font.letter-spacing.20}",
+          "$description": "letter-spacing role 'wide' → 0.02em — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.letter-spacing.20"
+            }
+          }
+        },
+        "wider": {
+          "$type": "dimension",
+          "$value": "{nbds.font.letter-spacing.50}",
+          "$description": "letter-spacing role 'wider' → 0.05em — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.font.letter-spacing.50"
             }
           }
         }
@@ -10134,8 +10270,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.48}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.tight}"
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.tight}"
             },
             "$description": "display sm strong — 36→48px fluid Inter (display role), snug line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
@@ -10192,8 +10328,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.64}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.tight}",
-              "letterSpacing": "{nbds.font.letter-spacing.tight}"
+              "lineHeight": "{nbds.font.line-height-role.tight}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.tight}"
             },
             "$description": "display md strong — 40→64px fluid Inter (display role), tight line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
@@ -10250,8 +10386,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.80}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.tight}",
-              "letterSpacing": "{nbds.font.letter-spacing.tight}"
+              "lineHeight": "{nbds.font.line-height-role.tight}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.tight}"
             },
             "$description": "display lg strong — 40→80px fluid Inter (display role), tight line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
@@ -10308,8 +10444,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.96}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.tight}",
-              "letterSpacing": "{nbds.font.letter-spacing.tighter}"
+              "lineHeight": "{nbds.font.line-height-role.tight}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.tighter}"
             },
             "$description": "display xl strong — 48→96px fluid Inter (display role), tight line-height, strong weight, tighter tracking — consumer-facing type style",
             "$extensions": {
@@ -10366,8 +10502,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.128}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.tight}",
-              "letterSpacing": "{nbds.font.letter-spacing.tighter}"
+              "lineHeight": "{nbds.font.line-height-role.tight}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.tighter}"
             },
             "$description": "display 2xl strong — 48→128px fluid Inter (display role), tight line-height, strong weight, tighter tracking — consumer-facing type style",
             "$extensions": {
@@ -10424,8 +10560,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.160}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.tight}",
-              "letterSpacing": "{nbds.font.letter-spacing.tighter}"
+              "lineHeight": "{nbds.font.line-height-role.tight}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.tighter}"
             },
             "$description": "display 3xl strong — 48→160px fluid Inter (display role), tight line-height, strong weight, tighter tracking — consumer-facing type style",
             "$extensions": {
@@ -10484,8 +10620,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.18}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.compact}",
-              "letterSpacing": "{nbds.font.letter-spacing.snug}"
+              "lineHeight": "{nbds.font.line-height-role.compact}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.snug}"
             },
             "$description": "title xs strong — 18px Inter (display role), compact line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
@@ -10524,8 +10660,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.20}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.compact}",
-              "letterSpacing": "{nbds.font.letter-spacing.snug}"
+              "lineHeight": "{nbds.font.line-height-role.compact}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.snug}"
             },
             "$description": "title sm strong — 20px Inter (display role), compact line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
@@ -10564,8 +10700,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.24}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.compact}",
-              "letterSpacing": "{nbds.font.letter-spacing.snug}"
+              "lineHeight": "{nbds.font.line-height-role.compact}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.snug}"
             },
             "$description": "title md strong — 20→24px fluid Inter (display role), compact line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
@@ -10622,8 +10758,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.28}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.snug}"
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.snug}"
             },
             "$description": "title lg strong — 24→28px fluid Inter (display role), snug line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
@@ -10680,8 +10816,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.32}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.snug}"
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.snug}"
             },
             "$description": "title xl strong — 28→32px fluid Inter (display role), snug line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
@@ -10738,8 +10874,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.40}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.snug}"
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.snug}"
             },
             "$description": "title 2xl strong — 36→40px fluid Inter (display role), snug line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
@@ -10798,8 +10934,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.14}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "body sm default — 14px Inter (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -10836,8 +10972,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.14}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "body sm default link — 14px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -10877,8 +11013,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.14}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "body sm strong — 14px Inter (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -10915,8 +11051,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.14}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "body sm strong link — 14px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -10958,8 +11094,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.16}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "body md default — 16px Inter (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -10996,8 +11132,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.16}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "body md default link — 16px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11037,8 +11173,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.16}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "body md strong — 16px Inter (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11075,8 +11211,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.16}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "body md strong link — 16px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11118,8 +11254,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.18}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "body lg default — 18px Inter (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11156,8 +11292,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.18}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "body lg default link — 18px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11197,8 +11333,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.18}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "body lg strong — 18px Inter (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11235,8 +11371,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.18}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "body lg strong link — 18px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11280,8 +11416,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.12}",
               "fontWeight": "{nbds.font.weight-role.emphasis}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "label sm emphasis — 12px Inter (display role), snug line-height, emphasis weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11320,8 +11456,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.14}",
               "fontWeight": "{nbds.font.weight-role.emphasis}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "label md emphasis — 14px Inter (display role), snug line-height, emphasis weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11362,8 +11498,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.11}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "caption md default — 11px Inter (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11400,8 +11536,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.11}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "caption md default link — 11px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11441,8 +11577,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.11}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "caption md strong — 11px Inter (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11479,8 +11615,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.11}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "caption md strong link — 11px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11522,8 +11658,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.12}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "caption lg default — 12px Inter (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11560,8 +11696,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.12}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "caption lg default link — 12px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11601,8 +11737,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.12}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "caption lg strong — 12px Inter (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
@@ -11639,8 +11775,8 @@
               "fontFamily": "{nbds.font.family.text}",
               "fontSize": "{nbds.font.size.12}",
               "fontWeight": "{nbds.font.weight-role.strong}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}",
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
             "$description": "caption lg strong link — 12px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
@@ -11684,8 +11820,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.12}",
               "fontWeight": "{nbds.font.weight-role.emphasis}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.wider}",
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
             "$description": "eyebrow sm emphasis — 12px Inter (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
@@ -11727,8 +11863,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.14}",
               "fontWeight": "{nbds.font.weight-role.emphasis}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.wider}",
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
             "$description": "eyebrow md emphasis — 14px Inter (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
@@ -11770,8 +11906,8 @@
               "fontFamily": "{nbds.font.family.display}",
               "fontSize": "{nbds.font.size.20}",
               "fontWeight": "{nbds.font.weight-role.emphasis}",
-              "lineHeight": "{nbds.font.line-height.snug}",
-              "letterSpacing": "{nbds.font.letter-spacing.wider}",
+              "lineHeight": "{nbds.font.line-height-role.snug}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
             "$description": "eyebrow lg emphasis — 18→20px fluid Inter (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
@@ -11833,8 +11969,8 @@
               "fontFamily": "{nbds.font.family.mono}",
               "fontSize": "{nbds.font.size.14}",
               "fontWeight": "{nbds.font.weight-role.default}",
-              "lineHeight": "{nbds.font.line-height.normal}",
-              "letterSpacing": "{nbds.font.letter-spacing.normal}"
+              "lineHeight": "{nbds.font.line-height-role.normal}",
+              "letterSpacing": "{nbds.font.letter-spacing-role.normal}"
             },
             "$description": "code inline default — 14px JetBrains Mono (mono role), normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {

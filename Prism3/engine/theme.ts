@@ -631,6 +631,12 @@ export type Typography = {
   // mode-invariant primitives, so a mode records only which rung stands in for which.
   lineHeightRepointByMode?: Record<string, Record<string, string>>;
   letterSpacingRepointByMode?: Record<string, Record<string, string>>;
+  /** #377 — the EMISSION shape of the same intent: mode → role → the ladder VALUE that role resolves to
+   *  in that mode. Derived from the re-point maps above, not authored alongside them, so there is still
+   *  one source of truth; the re-point map stays the authoring/UI vocabulary (rung → rung) while this is
+   *  what `tree.ts` needs to hang `$extensions.prism3.modes` on the semantic role. */
+  lineHeightRoleByMode?: Record<string, Record<string, number>>;
+  letterSpacingRoleByMode?: Record<string, Record<string, number>>;
   /** #328 — mode → heading group → rung → px. Only DIFFERING rungs are recorded, so an inert
    *  declaration leaves this absent and the artifact byte-identical. */
   typeSizesByMode?: Record<string, Record<string, Record<string, number>>>;
@@ -1948,6 +1954,20 @@ export const brandTheme = (input: BrandInput): Theme => {
   }
   if (Object.keys(lineHeightRepointByMode).length) typography.lineHeightRepointByMode = lineHeightRepointByMode;
   if (Object.keys(letterSpacingRepointByMode).length) typography.letterSpacingRepointByMode = letterSpacingRepointByMode;
+  // #377 — resolve rung→rung into role→VALUE for emission. A mode re-points the semantic role at a
+  // different ladder step; the step itself is mode-invariant, which is the #296 contract preserved.
+  const lhValue = Object.fromEntries(typography.lineHeights.map((l) => [l.key, l.value]));
+  const lsValue = Object.fromEntries(typography.letterSpacings.map((l) => [l.key, l.em]));
+  const lhRoleByMode: Record<string, Record<string, number>> = {};
+  const lsRoleByMode: Record<string, Record<string, number>> = {};
+  for (const [m, map] of Object.entries(lineHeightRepointByMode))
+    for (const [role, target] of Object.entries(map))
+      if (lhValue[target] !== undefined) (lhRoleByMode[m] ??= {})[role] = lhValue[target];
+  for (const [m, map] of Object.entries(letterSpacingRepointByMode))
+    for (const [role, target] of Object.entries(map))
+      if (lsValue[target] !== undefined) (lsRoleByMode[m] ??= {})[role] = lsValue[target];
+  if (Object.keys(lhRoleByMode).length) typography.lineHeightRoleByMode = lhRoleByMode;
+  if (Object.keys(lsRoleByMode).length) typography.letterSpacingRoleByMode = lsRoleByMode;
   // Resolve onto each composite: if this mode re-points the rung the composite uses, record the target.
   // No snapping and no nearest-match, so a request can never be quantised away — it either names a
   // different rung (and applies) or is a self-map (dropped above).
