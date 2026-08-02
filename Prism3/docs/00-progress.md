@@ -7,6 +7,48 @@
 
 ---
 
+## (2026-08-02) — Leading & tracking get curated ladders, and the ramp can no longer invert (#377, PR 3a)
+
+**STATUS: engine.** The founding defect of #377, fixed: `{ tight: 2.5, loose: 0.9 }` was **accepted**,
+resolving to `2.5, 1.15, 1.25, 1.5, 1.65, 0.9` — a ramp whose rung named "tight" renders looser than the
+one named "loose", silently, across all 38 composites. Font sizes already refused that shape; weight roles
+warn; leading and tracking did neither.
+
+**Zero artifact churn** — `regen --check` stays 88/88 in sync. This lands the ladders and the guards
+*without* touching a single emitted token path. The semantic tier (which does change paths) is PR 3b, and
+splitting there is what keeps a breaking-path change reviewable on its own.
+
+- **Two guards, and the second is the one the issue exists for.** ON-LADDER: a range check accepted 1.52,
+  so a typo could mint a private `line-height.152` no other brand could reference. Refusing beats snapping
+  — #341 removed silent quantisation from the size ramp for exactly this reason. ORDERED: rung names are a
+  relative-emphasis contract (tight → loose); an inverted ramp makes all six of them lie.
+- **The ladders are sized from field research, not taste.** Both reference systems already ship the
+  two-tier shape — Prism2 (`lineheight.105…175` + adjective aliases) and NB (`1p1…1p5` + size aliases) —
+  and the engine's previous six values **were Prism2's ladder**, flattened. Density comes from where
+  brands need to move: the KB's archetype guidance ("approachable → generous body 1.5–1.6; expert →
+  controlled headings") was **unexpressible**, because the old set offered exactly ONE value (1.50) across
+  the entire 1.40–1.60 body range. Now 5. The 1.30→1.40 gap is deliberate: the heading/body boundary.
+- **Wider than any single reference system, on purpose.** Prism2 ships 6 because 6 is what Prism2 needed.
+  A white-label generator needs the union of what ANY brand might bind. That argument applies only to the
+  primitive tier — the semantic set stays at 6, matching the field.
+- **A test was asserting the bug.** `type-ramp(f)` re-anchored `relaxed` to **1.9** — off-ladder *and*
+  above `loose` (1.75). It had encoded an inverted ramp as an expectation, and only surfaced because the
+  new guard rejected it. Changed to 1.6 (a real re-anchor, ordered) with the reason recorded inline.
+- **The schema constraint is enforced, not decorative.** Swapped `minimum/maximum` for `enum` on all 12
+  rung properties. Deliberate echo of #367's trap, where `minLength` would have been silently ignored —
+  `enum` **is** implemented by the hand-rolled validator (CR-04 made it type-independent), and that was
+  verified by running it, not by reading it.
+- **Honest about the trade**: this NARROWS the input. A brand could previously author any value in
+  `[0.8, 3]`; now it binds one of 15 steps. What is bought is a ramp that cannot invert, a set the UI can
+  actually present, and no private per-brand steps. What is lost is arbitrary values — the decided
+  direction ("locked ladder", owner-confirmed), and the ladder covers every range the KB calls for with
+  3+ options where the old set had 1.
+- **Verified**: 1240 tests (16 new — both inversion shapes, off-ladder rejection, ladder coverage per KB
+  range, key-collision safety, and the Prism2 `×100` / `neg-` key conventions), `regen --check` 88/88,
+  NB regression PASS, schema validator exercised on four inputs.
+
+---
+
 ## (2026-08-02) — The category nudge range is derived, not guessed (#377, PR 2 of 3)
 
 **STATUS: web + engine.** The per-category leading/tracking nudge offered a fixed `±2`. That was wrong in
