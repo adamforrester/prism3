@@ -167,7 +167,7 @@ paused, which is the cheapest window there will be.
 remote session's repo scope and git proxy are pinned to the repo slug at session start.
 Merge what's in flight, rename, then start a fresh session.
 
-**Checklist (11 references outside the history log):**
+**Checklist (12 references outside the history log):**
 
 | File | What |
 |---|---|
@@ -179,6 +179,7 @@ Merge what's in flight, rename, then start a fresh session.
 | `docs/08-theming-interfaces.md` | one reference |
 | `docs/07-e2e-journey.md` | §11.6 "Built **here** (prism3-tokens)" — historical, safe to leave |
 | `docs/25-output-style-guide.md` | one reference |
+| `docs/13-inspirations.md` | one reference (line ~287, "promote when `prism3-tokens` has real external consumers") — missing from the original checklist, added 2026-07-30 |
 | `docs/00-progress.md` | 7 references — **leave alone**, it's an append-only history log and those statements were true when written |
 
 Also update after renaming: the local remote (`git remote set-url`), and any bookmark or

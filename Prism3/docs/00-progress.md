@@ -1503,6 +1503,32 @@ keeps the drive inside the `figma_execute` payload budget without splitting it i
 errors originated in the executors across every pass. This COMPLETES the plugin write scope (only
 variable-linked gradient stops #236 remains, a minor fast-follow).
 
+---
+
+## (2026-07-30) — CI gates the plugin surface too (#298 follow-up)
+
+**STATUS: CI only.** No engine, web, or plugin code changed.
+
+`ci.yml` (#298) turned the CLAUDE.md principle-4 gate sequence into an enforced PR check — but only
+covered engine + web; `Build plugin` was the only plugin step. CONTRIBUTING §3 documents three more
+plugin gates that #298 didn't wire in: two-context `typecheck` (main thread has no DOM, UI iframe has
+no `figma.*`), the shim test suite (write/readback/persist/float/styles against the in-memory Figma
+shim), and confirming `dist/main.js` carries 0 `node:` builtins — load-bearing because that file runs
+in Figma's sandboxed main thread, where a `node:` reference breaks the plugin at load, not at build.
+
+Added all three as new steps (typecheck + test before build, matching CONTRIBUTING's own order; the
+builtins check after build, since it inspects the built artifact). Verified against current `main`
+before wiring in: `typecheck` clean on both tsconfigs, shim tests all pass, `dist/main.js` has zero
+`node:` occurrences. Engine gates and the 85-artifact drift-coverage assertion are untouched.
+
+**Also noted, not fixed here:** #298 itself has no `00-progress.md` entry — the exact gap CLAUDE.md's
+"carry the entry in the feature PR" rule (added this same day, after #306/#312/#315 needed a catch-up)
+exists to prevent. Flagging rather than backfilling it myself: the PR's own commit messages already
+say why the work happened, and reconstructing that "why" as this log's voice risks putting words in
+someone else's mouth. Worth a short catch-up entry from whoever's positioned to write it accurately.
+
+---
+
 ## (2026-07-30) — The rail becomes a Pages menu below 900 (#144 follow-up)
 
 **STATUS: web-only.** Engine untouched. Owner-directed after reviewing the deploy on a phone; the
