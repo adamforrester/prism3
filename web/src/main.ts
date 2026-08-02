@@ -4801,6 +4801,14 @@ const STYLE = `
      color, silently deleting a tier. Contrast is stated against --paper, the WORSE of the two surfaces
      (--panel is lighter, so every pairing clears by more there). */
   --ink:#18181b; --ink2:#3d3d44; --muted:#55555a; --faint:#6d6d74;
+  /* #285 — the STATUS set. There was no set before this: three different greens (#1f9d63 / #1a9c52 /
+     #1a7f4b) and three different reds (#c9342f / #dd3322 / #b0341a) for two concepts, scattered as
+     literals. That is why nobody noticed two greens, one red and the amber were all under AA — nothing
+     held them to a shared bar. Every value below clears 4.5:1 on --paper, the worse of the two light
+     surfaces. The -inv pair is for INVERTED (dark) panels and is measured against --ink instead;
+     darkening those would break them, which is the trap this audit exists to avoid. */
+  --ok:#1a7f4b; --warn:#a35e00; --danger:#c9342f;
+  --ok-inv:#7fe0ac; --danger-inv:#ff9d97;
   --paper:#f2f3f6; --panel:#ffffff; --line:#e7e8ec; --line2:#dcdde2;
   --r:10px; --r-sm:7px; --r-xs:6px;
   /* Per-mode table geometry — shared so tables stack down the page on the same grid. The SIZE table
@@ -5207,10 +5215,10 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mctx-auto{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:1.5}
 .mctx-b.on .mctx-auto{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.4)}
 .mctx-mark{font-size:12px;font-weight:700}
-.mctx-mark.ok{color:#1f9d63}
-.mctx-mark.no{color:#c9342f}
-.mctx-b.on .mctx-mark.ok{color:#7fe0ac}
-.mctx-b.on .mctx-mark.no{color:#ff9d97}
+.mctx-mark.ok{color:var(--ok)}
+.mctx-mark.no{color:var(--danger)}
+.mctx-b.on .mctx-mark.ok{color:var(--ok-inv)}
+.mctx-b.on .mctx-mark.no{color:var(--danger-inv)}
 .mctx-edit-wrap{position:relative;flex:none}
 .mctx-edit{border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-sm);padding:6px 12px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap}
 .mctx-edit:hover,.mctx-edit.open{border-color:var(--ink);color:var(--ink)}
@@ -5259,7 +5267,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .cbadge.no{background:rgba(221,51,51,.09);border-color:rgba(221,51,51,.4)}
 .cb-lab{color:var(--muted)}
 .cb-ratio{font-variant-numeric:tabular-nums;font-weight:600}
-.cbadge.ok .cb-mark{color:#1a9c52}.cbadge.no .cb-mark{color:#d23}
+.cbadge.ok .cb-mark{color:var(--ok)}.cbadge.no .cb-mark{color:var(--danger)}
 .tpill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--line);color:var(--faint)}
 /* #289 — long paths elide rather than wrapping. Applied to .tpill itself, not to the two
    containers that happened to be reported: the pill is used in 17 places and any narrow one has the
@@ -5379,7 +5387,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tok-sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line2);flex:none}
 .tok-shadow{display:inline-block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;color:var(--muted)}
 .dot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-right:5px;vertical-align:middle}
-.dot.ok{background:#1a9c52}.dot.no{background:#d23}
+/* Status DOTS are non-text (SC 1.4.11, 3:1) and already cleared that bar — they join the set for
+   consistency, not compliance. One status green should be one green. */
+.dot.ok{background:var(--ok)}.dot.no{background:var(--danger)}
 .ratio{font-variant-numeric:tabular-nums;color:var(--muted)}
 .errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 
@@ -5521,7 +5531,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-desc{font-size:11.5px;color:var(--faint);line-height:1.45;min-height:32px}
 .tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
 .tf-stat{font-size:11px;font-weight:600}
-.tf-stat.ok{color:#1a7f4b}.tf-stat.no{color:#b06a12}
+.tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--warn)}
 /* line-height must exceed the font's em box (~1.2) or descenders clip */
 .tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
 .tf-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
@@ -5546,7 +5556,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-rm:hover{color:var(--ink)}
 .tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
 .tf-addin{flex:0 1 260px;width:auto;min-width:0}
-.tf-adderr{font-size:12px;color:#b0341a;margin:8px 0 0}
+.tf-adderr{font-size:12px;color:var(--danger);margin:8px 0 0}
 .tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
 /* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
