@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS } from '../../Prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
@@ -2684,6 +2684,11 @@ const renderTypefaces = (): HTMLElement => {
     if (ty.families.some((f) => f.stack[0] === name)) return { label: 'A role', unbound: false };
     return { label: 'Not bound — staged', unbound: true };
   };
+  /** The AUTHORED library (#287) — distinct from `ty.typefaces`, which is the derived union of authored
+   *  entries and role-bound faces. Only this array is editable: a face that exists purely because a role
+   *  binds it has no library entry to remove, which is the same reason a bound entry is not deletable. */
+  const library = (): string[] => (getPath(brandState, 'typography.typefaceLibrary') as string[] | undefined) ?? [];
+  const inLibrary = (name: string): boolean => library().some((n) => typefaceSlug(n) === typefaceSlug(name));
   const libBox = el('div', 'mtbl');
   const libScroll = el('div', 'mtbl-scroll');
   const libTbl = el('table', 'mtbl-tbl');
@@ -2709,11 +2714,30 @@ const renderTypefaces = (): HTMLElement => {
     tr.append(sc);
     const bc = el('td', 'mtbl-mode');
     bc.append(el('span', 'tf-usedby' + (bind.unbound ? ' unbound' : ''), bind.label));
+    // The decided removal semantics (#287): only UNBOUND entries are deletable, which needs no cascade
+    // logic anywhere. The known cost is a "why can't I delete this?" moment, and the answer is here —
+    // on the cell that already names the roles standing in the way — rather than as a disabled button,
+    // which would invite the click it then refuses.
+    if (!bind.unbound && inLibrary(tf.name))
+      bc.title = `In the library and bound — re-point ${bind.label} to something else to make this removable.`;
     tr.append(bc);
     const pc = el('td', 'mtbl-fill mtbl-spec');
     const prev = el('span', 'mtbl-spec-t tf-prev', 'Ag 123');
     prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
     pc.append(prev);
+    // Row action at the far right of the row — inside the FILL column on purpose. A fifth column, or a
+    // button in any fixed-width cell, would push that cell past its token and break the 112/148/148
+    // parity #363 just established; the fill column absorbs slack instead.
+    if (bind.unbound) {
+      const rm = el('button', 'tf-rm', '×') as HTMLButtonElement;
+      rm.title = `Remove ${tf.name} from the library`;
+      rm.setAttribute('aria-label', `Remove ${tf.name} from the library`);
+      rm.onclick = () => {
+        setPath(brandState, 'typography.typefaceLibrary', library().filter((n) => typefaceSlug(n) !== tf.slug));
+        applyFull();
+      };
+      pc.append(rm);
+    }
     const meta = el('span', 'tf-fall');
     meta.append(tokenPill(`font.typeface.${tf.slug}`));
     meta.append(document.createTextNode(tf.stack.length > 1 ? ` Falls back to ${tf.stack.slice(1).join(', ')}` : ' No fallback stack'));
@@ -2723,6 +2747,38 @@ const renderTypefaces = (): HTMLElement => {
   }
   libTbl.append(libBody); libScroll.append(libTbl); libBox.append(libScroll);
   sec.append(libBox);
+
+  // Staging a face — the authoring half #287 deferred to this follow-up. Validation MIRRORS the engine's
+  // (`buildTypography`: non-empty, no duplicate slug) so a typo is answered here instead of surfacing as
+  // a thrown build. The duplicate check runs against the DERIVED list, not just the authored array: a
+  // name already reachable via a role binding would be silently absorbed by the union and the row would
+  // never appear, which reads as "the button did nothing".
+  const addRow = el('div', 'tf-add');
+  const addIn = el('input', 'tf-addin') as HTMLInputElement;
+  addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
+  addIn.setAttribute('aria-label', 'Add a face to the library');
+  const addBtn = el('button', 'adv-add', '+ Add face') as HTMLButtonElement;
+  const addErr = el('p', 'tf-adderr');
+  addErr.hidden = true;
+  const submit = (): void => {
+    const name = addIn.value.trim();
+    addErr.hidden = true;
+    if (!name) { addErr.textContent = 'Give the face a name.'; addErr.hidden = false; addIn.focus(); return; }
+    const slug = typefaceSlug(name);
+    const clash = ty.typefaces.find((t) => t.slug === slug);
+    if (clash) {
+      addErr.textContent = inLibrary(clash.name)
+        ? `${clash.name} is already in the library.`
+        : `${clash.name} is already here — a role binds it, so it is in the library list already.`;
+      addErr.hidden = false; addIn.focus(); return;
+    }
+    setPath(brandState, 'typography.typefaceLibrary', [...library(), name]);
+    applyFull();
+  };
+  addBtn.onclick = submit;
+  addIn.onkeydown = (e) => { if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); submit(); } };
+  addRow.append(addIn, addBtn);
+  sec.append(addRow, addErr);
   // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
   // role below binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
   sec.append(el('p', 'tf-derivenote', anyUnbound
@@ -5456,6 +5512,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-fall{display:block;margin-top:4px;font-size:11px;color:var(--faint);line-height:1.5;overflow-wrap:anywhere}
 .mtbl-spec .tf-prev{border-top:0;padding-top:0;font-size:22px;line-height:1.25}
 .tf-derivenote{font-size:12px;color:var(--faint);line-height:1.55;margin:11px 0 0}
+/* Staging a face (#287 follow-up). The remove control sits in the FILL column so no fixed-width cell
+   grows past its token — that is what keeps the three Foundations tables on one 112/148/148 grid. */
+.tf-rm{float:right;border:none;background:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;margin-left:8px}
+.tf-rm:hover{color:var(--ink)}
+.tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
+.tf-addin{flex:0 1 260px;min-width:0}
+.tf-adderr{font-size:12px;color:#b0341a;margin:8px 0 0}
 .tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
 /* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
