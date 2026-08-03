@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-02) — The leading/tracking fields bind to the ladder, and errors stop hiding (#388)
+
+**STATUS: web.** #384 locked the leading/tracking ladders in the engine. The dashboard was never told.
+The Foundations fields kept `min="0.8" max="3" step="0.05"` from when any value was legal, so:
+
+```
+line-height  compact = 1.30   arrow-key up   →  1.35   (the deliberate 1.30→1.40 gap)
+engine       throws "not a step on the ladder"
+rebuild()    catches, keeps the last-good theme
+user         sees the field still showing 1.35
+```
+
+The value was rejected and the UI said nothing. **Two independent defects met here**, which is why one
+fix would not have been enough:
+
+- **The control was the wrong verb.** A locked ladder means *bind to an existing step*, not *type a
+  number*. The fields are now selects over `LINE_HEIGHT_LADDER` / `LETTER_SPACING_LADDER`, so an
+  off-ladder value is unreachable rather than caught. Steps that would **cross a neighboring rung** are
+  rendered `disabled` with a title, not omitted — the ramp order is a real constraint, and showing it
+  grayed teaches it, where hiding it would make the ladder look shorter than it is.
+- **The error surface was per-page.** It was rendered only inside `renderPrimitives`' paint closure, so
+  an engine throw from *any other page* set `lastError` and displayed nothing. That shape is the bug:
+  the next page added would have forgotten it too. The bar is now mounted once in the chrome and
+  refreshed by `syncErrorBar()` on every apply.
+
+**The trap this left, and how it was caught.** Mounting in the chrome is not sufficient on its own —
+`build()` re-runs on every page-nav click and mints a fresh host. The first version hardcoded
+`globalErrHost.style.display = 'none'` there, which meant **the bar vanished the moment the user changed
+page** — reintroducing the exact hole it exists to close, one layer down. Verified in-browser: with a
+live error, nav to Layout showed `h=0`. `build()` now calls `syncErrorBar()` instead of hardcoding
+hidden — visibility is always *derived*, never asserted. Re-verified across all eight pages: `h=62` on
+every one, cleared on undo, and still cleared after nav.
+
+**A second silent-inertness, same PR.** The `.errbar-global` rule was written full-bleed
+(`border-radius:0`, no side borders) and placed **above** `.errbar` at equal specificity, so every
+declaration lost the source-order tiebreak and did nothing. Rendered, the plain `.errbar` card matches
+the mode bar it sits under, so the fix was to **delete the override, not reorder it** — the class stays
+as a marker with no rules. Confirmed by reading computed style, not by reading the source:
+`radius 7px / border-left 1px / margin-bottom 16px`, all inherited.
+
+**The width bound had to travel with the control.** `.ltbl-in` carried `width:92px` with a comment
+saying exactly why — *a control that sizes to its content is what breaks column parity in an auto-layout
+table*. Swapping in a select dropped the rule on the floor and left `.ltbl-in` as dead CSS. A closed
+select's intrinsic width is its **widest option** (#360's trap), so the column was being sized by
+whichever ladder label happens to be longest today (`-0.015em`) and would have moved silently the day a
+label grew. `.ltbl-sel` now pins 124px, measured against that label. Parity re-measured at
+**112/148/148/390** across all three Foundations tables, zero overflow, no page-level horizontal scroll.
+
+Worth recording that **#366's trap fired again** while writing that comment: backticks around
+`.errbar-global` terminated the stylesheet template literal, and `tsc` reported it as
+`Property 'errbar' does not exist` at a line 300 below the edit. The comment now says so inline.
+
+Verification was end-to-end in a real browser, driving the actual controls rather than guessing at
+selectors — two earlier attempts to force an engine throw failed silently because they never reached
+one, which reads identically to "the bar is broken". The reliable route is Typography → **Styles** →
+shape `Compact` + the `titleFloor 16` toggle: the shape cards trial-build and self-disable when they
+would clash, but the toggle does not, so it is the one control that can still drive the engine into a
+throw. 12 selects, 0 leftover number fields, 0 page errors, and the picked step round-trips through
+`localStorage` across a reload.
+
+**Deferred to #388 part B** (needs #385 on `main`): the Styles table naming values rather than rungs,
+Foundations separating the ladder from the roles, the Foundations → **Primitives** rename, the
+specimen-refresh fix, and the caption leading band.
+
+---
+
 ## (2026-08-02) — The dashboard's status colors become a set (#285)
 
 **STATUS: web.** #355 fixed the neutral greys; the audit that followed found every remaining chrome
