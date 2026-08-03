@@ -7,6 +7,64 @@
 
 ---
 
+## (2026-08-03) — #411: the nudge is a signed delta, with the rung it lands on underneath
+
+**STATUS: web + a one-word engine export.** No emitted artifact moves — `regen --check` stays at 88.
+
+**The collision.** The nudge selects offered `2 tighter · tighter · default · looser · …`, and
+`tighter`/`wider` are literally `LETTER_SPACING_KEYS` entries. On Semantics `tighter` names THE
+TIGHTEST RUNG; on Text styles the same word meant "shift one rung tighter". Same word, two meanings,
+one tab apart.
+
+**Why rung names could not simply replace them.** The control is a SHIFT, and two categories derive
+TWO rungs (title: `compact` at 18–24px, `snug` at 28–40px). `cozy` on title would be ambiguous —
+`compact→cozy` (+1) or `snug→cozy` (+2)? — and binding the category to one rung would flatten the
+size-sensitivity the nudge exists to preserve.
+
+**The shape.** Signed delta in the select, resolved rung(s) on a line beneath, modelled on
+`.mtbl-worth` (the "what this resolves to" line #402 established for the per-mode table). The select
+now carries no word that is a rung name; the line carries the concreteness rung names would have had,
+and is honest for a two-band category in a way no single label can be.
+
+**The line is computed through the ENGINE's own `shiftRung`**, which is why `theme.ts` gained an
+`export`. A local copy of that clamp would be a second implementation of the thing the label claims to
+describe, and the two would drift — the label would eventually state a rung the build does not
+produce. One implementation makes them agree by construction. The export is pure and the artifacts are
+byte-identical.
+
+**Range ordering — a call the issue left open, and it disagrees with its own example.** #411's
+"Watch for" leans RAMP order (tightest first, matching how both ladders read on Primitives), but its
+worked example writes `compact–snug`, which is SIZE order. I took the stated lean, so title reads
+`snug–compact`. One `sort` if the example was the intent; flagged on the PR rather than silently
+picked.
+
+**Two things verified rather than assumed.**
+- **Column parity.** Measured `.cs-table` on `main` and on the branch: **800px both**, page overflow
+  false both. Row height grows 54→72 (the new line), and the two nudge columns actually get NARROWER
+  (103→94 and 103→98) because the labels are shorter — the rest of the row absorbs it. The issue asked
+  for this to be confirmed rather than assumed; it predicted height-not-width and was right.
+- **The out-of-range fallback still works.** A hand-authored `leadingShift.body: 4` (legal in the
+  engine, outside the derived option set) renders `+4` and resolves to `loose`. The line needs no
+  special case for it — it is computed from the shift rather than enumerated, which is the property
+  that makes the fallback free.
+
+**Widest option is now `default` at 44px against an 82.4px cell** — 38px of headroom, where the old
+labels fitted by 1.1px and would have overflowed on one more rung. In every compact form considered,
+the widest option is the word "default" itself; the deltas cost nothing.
+
+**A trap avoided by having hit it before.** The resolved line is written imperatively in the change
+handler AND re-derived on the next paint. `apply()` repaints only the volatile region, and a derived
+affordance that waits for a full paint lags the value it describes — measured in #415, where the
+`.set` class did exactly that. Also: `el()` escapes its text argument, so the sign-convention note
+sets `innerHTML` — passing markup to `el` would have printed the tags.
+
+**Verification.** `regen --check` (88) · 1275/0 · NB regression PASS · web + plugin
+typecheck/test/build · sandbox-clean · US-English clean. Chromium: every category's resolved line
+correct against its derived rungs, `title +1` → `compact–cozy` with `.set`, persisted as
+`typography.leadingShift.title`, zero overflow on any worth line.
+
+---
+
 ## (2026-08-03) — #423 + #422: derived-mode columns are readings, and the frozen specimen goes
 
 **STATUS: web only.** One file, no emitted artifact moves. Two owner-filed findings in the same

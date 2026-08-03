@@ -954,7 +954,10 @@ export const derivedRungFor = (field: 'leadingShift' | 'trackingShift', group: T
 // are ordered so that a POSITIVE shift is the more open direction (leading
 // tight→loose, tracking tighter→wider), which keeps `leadingShift`/`trackingShift`
 // reading the same way.
-const shiftRung = (keys: readonly string[], key: string, by: number): string => {
+// EXPORTED for the dashboard (#411): the nudge control prints the rung a category actually lands on,
+// and computing that with a second copy of this clamp is how the label and the build drift apart. One
+// implementation means the line cannot disagree with what the engine does.
+export const shiftRung = (keys: readonly string[], key: string, by: number): string => {
   if (!by) return key;
   const i = keys.indexOf(key);
   return i < 0 ? key : keys[Math.max(0, Math.min(keys.length - 1, i + by))];

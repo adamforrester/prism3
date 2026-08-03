@@ -19,7 +19,7 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '../../Prism3/engine/theme';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '../../Prism3/engine/theme';
 import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '../../Prism3/engine/theme';
 import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../Prism3/engine/color';
 import { autoPlaceStep } from '../../Prism3/engine/ramp';
@@ -3619,7 +3619,6 @@ const renderCategorySetup = (): HTMLElement => {
   // mid-ramp (from `normal`, +3/+4/+5 all clamp to `loose`) while hiding live ones for categories
   // sitting at an end (`display` derives `tight`/`snug`, so reaching `loose` needs +4 or +5 and was
   // simply unreachable). Both are the same mistake: guessing the range instead of computing it.
-  const NUDGE_ENDS = { leadingShift: ['tighter', 'looser'], trackingShift: ['tighter', 'wider'] } as const;
   /** Steps that actually MOVE at least one composite in this category. A category can derive several
    *  rungs (title spans three size bands), so the range runs from "enough negative to floor the
    *  highest-derived composite" to "enough positive to top out the lowest". Engine-bounded to ±5. */
@@ -3635,22 +3634,62 @@ const renderCategorySetup = (): HTMLElement => {
     for (let v = lo; v <= hi; v++) out.push(v);
     return out;
   };
-  // One formatter for every step, which is what lets an out-of-range value below reuse it instead of
-  // needing a "(custom)" escape hatch: 3 reads as "3 looser", the same shape as "2 looser".
-  const nudgeLabel = (v: number, down: string, up: string): string =>
-    v === 0 ? 'default' : `${Math.abs(v) > 1 ? `${Math.abs(v)} ` : ''}${v < 0 ? down : up}`;
-  const nudge = (group: string, field: 'leadingShift' | 'trackingShift'): HTMLSelectElement => {
+  /** #411 — a SIGNED DELTA, carrying no word that is also a rung name.
+   *
+   *  The old labels were `2 tighter · tighter · default · looser · …`, and `tighter`/`wider` are
+   *  literally `LETTER_SPACING_KEYS` entries: on Semantics `tighter` names THE TIGHTEST RUNG, on this
+   *  tab the same word meant "shift one rung tighter". Same word, two meanings, one tab apart.
+   *
+   *  Rung names cannot go in the select instead, because the control is a SHIFT and two categories
+   *  derive TWO rungs (title: compact at 18–24px, snug at 28–40px). `cozy` on title would be
+   *  ambiguous — `compact→cozy` (+1) or `snug→cozy` (+2)? — and binding the category to one rung
+   *  would flatten the size-sensitivity the nudge exists to preserve. */
+  const nudgeLabel = (v: number): string => (v === 0 ? 'default' : `${v < 0 ? '\u2212' : '+'}${Math.abs(v)}`);
+  /** What the delta RESOLVES TO — the concreteness the rung names would have given, and honest for a
+   *  two-band category in a way no single label can be. Computed through the engine's own `shiftRung`
+   *  rather than a local copy of its clamp, so this line cannot disagree with what the build does.
+   *
+   *  RAMP ORDER (tightest first), matching how both ladders read on Primitives and Semantics. Note
+   *  that #411's worked example wrote `compact–snug`, which is SIZE order — the same two rungs, listed
+   *  the other way. Ramp order is the issue's own stated lean and the one every other rung list on the
+   *  page already uses; it is a one-line change to `sort` if the example was the intent.
+   *
+   *  Values stay OFF this line: `compact 1.25×–snug 1.15×` measured 154.2px against a 91.3px cell.
+   *  They live on Semantics, where the per-mode table already shows them. */
+  const resolvedRungs = (group: string, field: 'leadingShift' | 'trackingShift', shift: number): string => {
+    const keys: readonly string[] = field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS;
+    const idx = [...new Set(ty.composites.filter((c) => c.group === group)
+      .map((c) => keys.indexOf(shiftRung(keys, derivedRungFor(field, c.group as any, c.sizePx), shift)))
+      .filter((i) => i >= 0))].sort((a, b) => a - b);
+    return idx.map((i) => keys[i]).join('\u2013');
+  };
+  const nudge = (group: string, field: 'leadingShift' | 'trackingShift'): HTMLElement => {
     const cur = (getPath(brandState, `typography.${field}.${group}`) as number | undefined) ?? 0;
-    const [down, up] = NUDGE_ENDS[field];
+    const wrap = el('div', 'cs-nudgew');
     const sel = selectEl('sm cs-nudge');
     const steps = nudgeSteps(group, field);
-    for (const v of steps) sel.append(optionEl(String(v), nudgeLabel(v, down, up), v === cur));
+    for (const v of steps) sel.append(optionEl(String(v), nudgeLabel(v), v === cur));
     // A hand-authored shift of ±3..±5 is legal in the engine and would otherwise match no option, so
     // the select would show the first one and rewrite the value on the next change. Same intent as
-    // `renderPerModeSelect`'s "(custom)" fallback: surface it rather than silently losing it.
-    if (!steps.includes(cur)) sel.append(optionEl(String(cur), nudgeLabel(cur, down, up), true));
-    sel.onchange = () => { const n = Number(sel.value); setPath(brandState, `typography.${field}.${group}`, n === 0 ? undefined : n); apply(); };
-    return sel;
+    // `renderPerModeSelect`'s "(custom)" fallback: surface it rather than silently losing it. The
+    // resolved line needs no such special case — it is computed from the shift, not enumerated.
+    if (!steps.includes(cur)) sel.append(optionEl(String(cur), nudgeLabel(cur), true));
+    // `.set` marks a category that has been moved off its derived curve, the same weight the per-mode
+    // tables give an override.
+    const worth = el('span', 'mtbl-worth mono' + (cur !== 0 ? ' set' : ''), resolvedRungs(group, field, cur));
+    sel.onchange = () => {
+      const n = Number(sel.value);
+      setPath(brandState, `typography.${field}.${group}`, n === 0 ? undefined : n);
+      // Written HERE as well as re-derived on the next paint. `apply()` repaints only the volatile
+      // region, and a derived affordance that waits for the next full paint lags the value it
+      // describes — measured in #415, where the `.set` class did exactly that. The sizes this reads
+      // are untouched by a nudge, so computing from the current theme is correct.
+      worth.textContent = resolvedRungs(group, field, n);
+      worth.classList.toggle('set', n !== 0);
+      apply();
+    };
+    wrap.append(sel, worth);
+    return wrap;
   };
   for (const g of TYPE_GROUP_ORDER) {
     const comps = ty.composites.filter((c) => c.group === g);
@@ -3705,7 +3744,11 @@ const renderCategorySetup = (): HTMLElement => {
   }
   wrap.append(table);
   sec.append(wrap);
-  sec.append(el('p', 'sl-note', 'The leading and tracking nudges shift that category’s whole curve by one or two rungs — bigger headings keep tightening, they just start from a different place.'));
+  // #411 — the sign convention has to be stated somewhere, since the labels are now bare deltas.
+  // `innerHTML`, not `el`'s text argument: `el` escapes, so the markup would render literally.
+  const nudgeNote = el('p', 'sl-note');
+  nudgeNote.innerHTML = 'The leading and tracking nudges shift that category’s whole curve: <b>+1 opens it by one rung, −1 tightens it</b>. Bigger headings keep tightening — they just start from a different place. The line under each control names the rung the category lands on, or both rungs where it spans two size bands.';
+  sec.append(nudgeNote);
   return sec;
 };
 // ---- object-value editors (#97) --------------------------------------------
