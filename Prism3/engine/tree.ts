@@ -267,7 +267,9 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
   const preferred = `${interceptRem}rem + ${slopeVw}vw`;
   return { clamp: `clamp(${round(minPx / 16, 4)}rem, ${preferred}, ${round(maxPx / 16, 4)}rem)`, preferred };
 };
-const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; family: string; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
+/** Human label per re-pointable field, for the mode-variant note. */
+const RE_POINT_LABEL: Record<string, string> = { fontSize: 'size', fontFamily: 'family' };
+const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; family: string; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number>; familyByMode?: Record<string, string> }, face: string, minVW: number, maxVW: number): Token => {
   const a = (seg: string) => `{${root}.font.${seg}}`;
   const value: Record<string, unknown> = {
     fontFamily: a(`family.${c.family}`),
@@ -303,6 +305,11 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
   // #328 — a per-mode SIZE re-points fontSize at a different ladder step, exactly as leading/tracking
   // re-point their rungs. Every step primitive keeps one value across all modes; only the alias moves.
   for (const [m, px] of Object.entries(c.sizeByMode ?? {})) (rungModes[m] ??= {}).fontSize = a(`size.${px}`);
+  // #390 — a per-mode FAMILY re-points fontFamily at a different family ROLE, on the same principle:
+  // the role primitives are untouched and only this composite's alias moves. Distinct from
+  // `families.<role>` (which changes the FACE a role binds, and so moves every category on that role);
+  // this is how one category diverges from its siblings in a single mode.
+  for (const [m, role] of Object.entries(c.familyByMode ?? {})) (rungModes[m] ??= {}).fontFamily = a(`family.${role}`);
   const modeVariants = Object.keys(rungModes).length
     ? { modes: Object.fromEntries(Object.entries(rungModes).map(([m, parts]) => [m, {
         $value: { ...value, ...parts },
@@ -318,7 +325,11 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
                   figma: { field: 'fontSize', scope: 'FONT_SIZE', modes: { mobile: c.sizeMinByMode[m], desktop: c.sizeByMode[m] } } }
               : { fluid: false, px: c.sizeByMode[m] } }
           : {}),
-        note: `${Object.keys(parts).includes('fontSize') ? 'size' : ''}${Object.keys(parts).some((k) => k !== 'fontSize') ? `${Object.keys(parts).includes('fontSize') ? ' + ' : ''}leading/tracking` : ''} re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})`,
+        // Labelled from the fields actually present. The previous expression hardcoded
+        // "size"/"leading/tracking" and its second branch was already dead (#377 moved leading and
+        // tracking onto the semantic role), so adding family would have mislabelled a family re-point
+        // as "leading/tracking". A fontSize-only note is byte-identical to before.
+        note: `${Object.keys(parts).map((f) => RE_POINT_LABEL[f] ?? f).join(' + ')} re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})`,
       }])) }
     : {};
   return {

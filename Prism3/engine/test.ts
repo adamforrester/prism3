@@ -2236,6 +2236,71 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(thr(() => mk({ title: { xl: 20 } })), '[#328] a per-mode size that inverts the ramp throws');
     ok(!thr(() => mk({ title: { xl: 36 } })), '[#328] a per-mode size that keeps the merged ramp increasing is accepted');
   }
+  // PER-MODE FAMILY MAP (#390). A mode re-points ONE CATEGORY at a different family role.
+  {
+    const fmBase = { id: 'fm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as any;
+    const thr = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
+    const mk = (familyMap: any, ty: any = {}) => brandTheme({ ...fmBase, typography: ty, modeLevers: { dark: { familyMap } } } as any);
+    const comp = (t: any, g: string, v: string) => t.typography.composites.find((c: any) => c.group === g && c.variant === v)!;
+    const leaf = (tree: any, path: string) => path.split('.').reduce((o: any, k: string) => o?.[k], tree);
+
+    // THE WHOLE POINT OF THE ISSUE: title and display both default to the `display` role, and the
+    // pre-existing per-mode lever (`families.<role>`) could only move BOTH. This moves one.
+    const t1 = mk({ title: 'text' });
+    ok(comp(t1, 'title', '2xl').familyByMode?.dark === 'text', '[#390] per-mode family: dark title re-points to the text role');
+    ok(comp(t1, 'title', '2xl').family === 'display', '[#390] per-mode family leaves the light/canonical role untouched');
+    ok(comp(t1, 'display', 'xl').familyByMode === undefined,
+      '[#390] the SIBLING on the same role does not move — display stays put while title diverges (the gap this closes)');
+    // The negative above is only worth something if display CAN be moved — otherwise it would pass for
+    // a structural reason rather than the behavioral one, which is how a test quietly stops testing.
+    ok(brandTheme({ ...fmBase, typography: {}, modeLevers: { dark: { familyMap: { title: 'text', display: 'text' } } } } as any)
+      .typography.composites.filter((c: any) => c.group === 'display').every((c: any) => c.familyByMode?.dark === 'text'),
+      '[#390] …and display DOES move when it is mapped — the sibling assertion above is behavioral, not vacuous');
+    // Every rung of the re-pointed category moves, not just the one probed: the map is per CATEGORY.
+    ok(t1.typography.composites.filter((c: any) => c.group === 'title').every((c: any) => c.familyByMode?.dark === 'text'),
+      '[#390] the re-point covers every rung of the category');
+
+    // Emission — the alias moves, the role primitives do not.
+    const em = leaf(buildTree(t1).tree, 'prism.type.title.2xl.strong');
+    ok(em.$value.fontFamily === '{prism.font.family.display}', '[#390] emitted canonical $value.fontFamily still aliases the light role');
+    ok(em.$extensions.prism3.modes.dark.$value.fontFamily === '{prism.font.family.text}', '[#390] emitted dark $value.fontFamily aliases the re-pointed role');
+    // The #385 trap, restated on a new axis: a mode variant is a FULL-value snapshot (`{ ...value,
+    // ...parts }`), so EVERY field is present in the dark block by spread. Asserting "absent" would be
+    // asserting something that can never be true; the honest assertion is "identical to light".
+    ok(em.$extensions.prism3.modes.dark.$value.fontSize === em.$value.fontSize
+      && em.$extensions.prism3.modes.dark.$value.lineHeight === em.$value.lineHeight,
+      '[#390] the dark snapshot carries size/leading IDENTICAL to light — only fontFamily moved');
+    ok(/^family re-point — dark/.test(em.$extensions.prism3.modes.dark.note),
+      '[#390] the mode note names the field that actually moved (not the hardcoded "leading/tracking" the old builder would have said)');
+    // Alias integrity — the re-pointed alias must resolve, and must be COUNTED. A walker that silently
+    // skipped it would also report zero broken, which is the #281 shape: clean because it never looked.
+    const btBase = buildTree(brandTheme({ ...fmBase, typography: {} } as any));
+    const btMode = buildTree(t1);
+    ok(btMode.stats.broken.length === 0, '[#390] a theme with a per-mode family has no broken aliases');
+    ok(btMode.stats.aliases > btBase.stats.aliases, '[#390] the per-mode family CONTRIBUTES aliases to the resolution gate');
+
+    // Composes with a size re-point on the same composite — both land in one mode block.
+    const both = brandTheme({ ...fmBase, typography: {}, modeLevers: { dark: { familyMap: { title: 'text' }, typeSizes: { title: { '2xl': 36 } } } } } as any);
+    const bem = leaf(buildTree(both).tree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
+    ok(bem.$value.fontFamily === '{prism.font.family.text}' && bem.$value.fontSize === '{prism.font.size.36}',
+      '[#390] a family re-point and a size re-point compose into ONE mode block');
+    ok(/^size \+ family re-point — dark/.test(bem.note), '[#390] the composed note names both fields, in field order');
+
+    // Inert declaration ⇒ no entry at all, so an artifact stays byte-identical.
+    const inert = mk({ title: 'display' });
+    ok(comp(inert, 'title', '2xl').familyByMode === undefined && inert.typography.familyMapByMode === undefined,
+      '[#390] a per-mode family equal to the brand role is dropped (no mode entry, byte-identical)');
+
+    // Validation THROWS — never drops, for the same reason as #328: a silently ignored per-mode request
+    // is only visible in one mode's output, which is where nobody is looking.
+    ok(thr(() => mk({ heading: 'text' } as any)), '[#390] a per-mode family on a category that does not exist throws');
+    ok(thr(() => mk({ title: 'brand' } as any)), '[#390] a per-mode family naming a role that does not exist throws');
+    // The live unbound case: `mono: null` opts out, so `code` ships no composites AND the mono role is
+    // unbound. Both guards must fire — pointing at mono would emit a dangling alias.
+    ok(thr(() => mk({ body: 'mono' }, { families: { mono: null } })), '[#390] pointing a category at an UNBOUND role throws rather than emitting a dangling alias');
+    ok(thr(() => mk({ code: 'text' }, { families: { mono: null } })), '[#390] a per-mode family on a category the brand dropped (code, via mono:null) throws');
+    ok(!thr(() => mk({ code: 'text' })), '[#390] …and is accepted when the brand does ship code');
+  }
   // #349 review — a module imported for its EXPORTS must not run its CLI as a side effect. `regen.ts`
   // shipped its dispatch unguarded at top level, so `import { SCHEMA_ARTIFACTS } from './regen'` ran a
   // full regenerate(): the linter silently rewrote every committed artifact, discarding local edits,
