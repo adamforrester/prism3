@@ -840,6 +840,10 @@ const tokTierOf = (node: TreeNode): TokTier =>
   node.$type === 'typography' ? 'semantic'
     : (typeof node.$value === 'string' && TOK_ALIAS.test(node.$value)) ? 'semantic' : 'primitive';
 
+/** A typography composite's parts, in composite order, labelled for the stacked alias cell. */
+const COMPOSITE_PART: Record<string, string> = {
+  fontFamily: 'Family', fontSize: 'Size', fontWeight: 'Weight', lineHeight: 'Leading', letterSpacing: 'Tracking',
+};
 const renderPreviewTokens = (host: HTMLElement): void => {
   const tree = buildTree(theme).tree;
   const root = (tree.$extensions?.prism3?.root as string) ?? Object.keys(tree).find((k) => !k.startsWith('$'))!;
@@ -865,6 +869,15 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   };
   /** …and the fully resolved node, which is what the value read-out wants. */
   const targetAt = (node: TreeNode, m: Mode): TreeNode => deref(tree, hopAt(node, m) ?? node);
+  /** A typography COMPOSITE has no single alias: its `$value` is FIVE aliases at once (family, size,
+   *  weight, leading, tracking). Returned in composite order so the cell can stack them; `[]` for
+   *  everything else, which is what keeps the normal single-alias path untouched. */
+  const compositeParts = (node: TreeNode): Array<{ label: string; path: string }> =>
+    node.$type !== 'typography' || !node.$value || typeof node.$value !== 'object' ? []
+      : Object.entries(node.$value as Record<string, unknown>)
+        .filter(([, v]) => typeof v === 'string' && TOK_ALIAS.test(v as string))
+        .map(([k, v]) => ({ label: COMPOSITE_PART[k] ?? k, path: String(v).replace(/[{}]/g, '').replace(rootRe, '') }));
+
   /** The resolved value as text, by `$type` — the payload for a primitive, the second line for a semantic. */
   const valueText = (node: TreeNode, m: Mode): string => {
     if (node.$type === 'typography') return typeComposite(tree, node);
@@ -882,10 +895,23 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   /** One cell. `both` is the two-line form (alias over value); the Show control collapses it. */
   const tokCell = (node: TreeNode, m: Mode, canShort: boolean): HTMLElement => {
     const alias = aliasAt(node, m);
-    const wantAlias = tokShow !== 'value' && alias !== undefined;
-    const wantValue = tokShow !== 'alias' || alias === undefined;   // never render an empty cell
+    const parts = compositeParts(node);
+    const hasAlias = alias !== undefined || parts.length > 0;
+    const wantAlias = tokShow !== 'value' && hasAlias;
+    const wantValue = tokShow !== 'alias' || !hasAlias;             // never render an empty cell
     const wrap = el('div', wantAlias && wantValue ? 'tok-two' : undefined);
-    if (wantAlias && alias) {
+    if (wantAlias && parts.length) {
+      // STACKED, one labelled row per part. Chosen over an inline join because the five paths run
+      // ~123 characters — about 775px at this size, i.e. the whole 850px content column, so every
+      // one of the 38 composites would scroll sideways. Stacking costs height in one section only;
+      // `type.*` is the only shape in the system with more than one alias.
+      const g = el('div', 'tok-stack');
+      for (const part of parts) {
+        g.append(el('span', 'pfk', part.label));   // the shared micro-label (doc 26), not a new variant
+        g.append(el('span', 'mono tok-alias', tokPath === 'short' && canShort ? part.path.split('.').slice(1).join('.') : part.path));
+      }
+      wrap.append(g);
+    } else if (wantAlias && alias) {
       const a = el('span', 'mono tok-alias', tokPath === 'short' && canShort ? alias.split('.').slice(1).join('.') : alias);
       // A semantic that aliases another SEMANTIC (30 of them: grid → space → dimension). The one-hop
       // target is the editable relationship, so that is what shows; the chain is on the marker.
@@ -918,7 +944,10 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     collectLeaves(brand[category], '', all);
     const leaves = all.filter((l) => tokTierOf(l.node) === tokTier);
     if (!leaves.length) continue;
-    const ns = [...new Set(leaves.flatMap((l) => modes.map((m) => aliasAt(l.node, m)).filter(Boolean).map((a) => a!.split('.')[0])))].sort();
+    // Composite parts count toward the table's alias namespaces — without them `type.*` reports none
+    // and never earns the shared-prefix callout that makes its stacked paths readable.
+    const ns = [...new Set(leaves.flatMap((l) => [...modes.map((m) => aliasAt(l.node, m)), ...compositeParts(l.node).map((cp) => cp.path)]
+      .filter(Boolean).map((a) => a!.split('.')[0])))].sort();
     sections.push({ cat: category, leaves, hasModes: leaves.some((l) => l.node.$extensions?.prism3?.modes), ns });
   }
 
@@ -5630,6 +5659,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tok-seg{margin:2px 0 0}
 .tok-ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:16px 0 4px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
 .tok-two{display:flex;flex-direction:column;gap:3px}
+.tok-stack{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
 .tok-alias{color:var(--ink2);font-size:11.5px;white-space:nowrap}
 .tok-chain{color:var(--faint);cursor:help}
 .tok-hexv{color:var(--faint);font-size:11.5px;white-space:nowrap;display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
