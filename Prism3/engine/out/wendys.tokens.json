@@ -10524,7 +10524,7 @@
         "display": {
           "$type": "fontFamily",
           "$value": "{prism.font.typeface.wendysfresh}",
-          "$description": "font family role — display → wendysFresh",
+          "$description": "font family — display → wendysFresh",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10539,10 +10539,28 @@
             }
           }
         },
-        "text": {
+        "title": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.wendysfresh}",
+          "$description": "font family — title → wendysFresh",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.wendysfresh",
+              "face": "wendysFresh",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "body": {
           "$type": "fontFamily",
           "$value": "{prism.font.typeface.roboto}",
-          "$description": "font family role — text → Roboto",
+          "$description": "font family — body → Roboto",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -10557,10 +10575,64 @@
             }
           }
         },
-        "mono": {
+        "label": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.wendysfresh}",
+          "$description": "font family — label → wendysFresh",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.wendysfresh",
+              "face": "wendysFresh",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "caption": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.roboto}",
+          "$description": "font family — caption → Roboto",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.roboto",
+              "face": "Roboto",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "eyebrow": {
+          "$type": "fontFamily",
+          "$value": "{prism.font.typeface.wendysfresh}",
+          "$description": "font family — eyebrow → wendysFresh",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "role": "semantic",
+              "aliasOf": "prism.font.typeface.wendysfresh",
+              "face": "wendysFresh",
+              "figma": {
+                "kind": "style-part",
+                "field": "fontFamily",
+                "scope": "FONT_FAMILY"
+              }
+            }
+          }
+        },
+        "code": {
           "$type": "fontFamily",
           "$value": "{prism.font.typeface.jetbrains-mono}",
-          "$description": "font family role — mono → JetBrains Mono",
+          "$description": "font family — code → JetBrains Mono",
           "$extensions": {
             "prism3": {
               "generated": true,
@@ -11533,7 +11605,7 @@
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.tight}"
             },
-            "$description": "display sm strong — 36→48px fluid wendysFresh (display role), snug line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display sm strong — 36→48px fluid wendysFresh, snug line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11591,7 +11663,7 @@
               "lineHeight": "{prism.font.line-height-role.tight}",
               "letterSpacing": "{prism.font.letter-spacing-role.tight}"
             },
-            "$description": "display md strong — 40→64px fluid wendysFresh (display role), tight line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display md strong — 40→64px fluid wendysFresh, tight line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11649,7 +11721,7 @@
               "lineHeight": "{prism.font.line-height-role.tight}",
               "letterSpacing": "{prism.font.letter-spacing-role.tight}"
             },
-            "$description": "display lg strong — 40→80px fluid wendysFresh (display role), tight line-height, strong weight, tight tracking — consumer-facing type style",
+            "$description": "display lg strong — 40→80px fluid wendysFresh, tight line-height, strong weight, tight tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11707,7 +11779,7 @@
               "lineHeight": "{prism.font.line-height-role.tight}",
               "letterSpacing": "{prism.font.letter-spacing-role.tighter}"
             },
-            "$description": "display xl strong — 48→96px fluid wendysFresh (display role), tight line-height, strong weight, tighter tracking — consumer-facing type style",
+            "$description": "display xl strong — 48→96px fluid wendysFresh, tight line-height, strong weight, tighter tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11765,7 +11837,7 @@
               "lineHeight": "{prism.font.line-height-role.tight}",
               "letterSpacing": "{prism.font.letter-spacing-role.tighter}"
             },
-            "$description": "display 2xl strong — 48→128px fluid wendysFresh (display role), tight line-height, strong weight, tighter tracking — consumer-facing type style",
+            "$description": "display 2xl strong — 48→128px fluid wendysFresh, tight line-height, strong weight, tighter tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11823,7 +11895,7 @@
               "lineHeight": "{prism.font.line-height-role.tight}",
               "letterSpacing": "{prism.font.letter-spacing-role.tighter}"
             },
-            "$description": "display 3xl strong — 48→160px fluid wendysFresh (display role), tight line-height, strong weight, tighter tracking — consumer-facing type style",
+            "$description": "display 3xl strong — 48→160px fluid wendysFresh, tight line-height, strong weight, tighter tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11877,13 +11949,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.title}",
               "fontSize": "{prism.font.size.18}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.compact}",
               "letterSpacing": "{prism.font.letter-spacing-role.snug}"
             },
-            "$description": "title xs strong — 18px wendysFresh (display role), compact line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title xs strong — 18px wendysFresh, compact line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11917,13 +11989,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.title}",
               "fontSize": "{prism.font.size.20}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.compact}",
               "letterSpacing": "{prism.font.letter-spacing-role.snug}"
             },
-            "$description": "title sm strong — 20px wendysFresh (display role), compact line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title sm strong — 20px wendysFresh, compact line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11957,13 +12029,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.title}",
               "fontSize": "{prism.font.size.24}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.compact}",
               "letterSpacing": "{prism.font.letter-spacing-role.snug}"
             },
-            "$description": "title md strong — 20→24px fluid wendysFresh (display role), compact line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title md strong — 20→24px fluid wendysFresh, compact line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12015,13 +12087,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.title}",
               "fontSize": "{prism.font.size.28}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.snug}"
             },
-            "$description": "title lg strong — 24→28px fluid wendysFresh (display role), snug line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title lg strong — 24→28px fluid wendysFresh, snug line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12073,13 +12145,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.title}",
               "fontSize": "{prism.font.size.32}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.snug}"
             },
-            "$description": "title xl strong — 28→32px fluid wendysFresh (display role), snug line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title xl strong — 28→32px fluid wendysFresh, snug line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12131,13 +12203,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.title}",
               "fontSize": "{prism.font.size.40}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.snug}"
             },
-            "$description": "title 2xl strong — 36→40px fluid wendysFresh (display role), snug line-height, strong weight, snug tracking — consumer-facing type style",
+            "$description": "title 2xl strong — 36→40px fluid wendysFresh, snug line-height, strong weight, snug tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12191,13 +12263,13 @@
           "default": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.14}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "body sm default — 14px Roboto (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "body sm default — 14px Roboto, normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12229,14 +12301,14 @@
           "default-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.14}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm default link — 14px Roboto (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body sm default link — 14px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12270,13 +12342,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.14}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "body sm strong — 14px Roboto (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "body sm strong — 14px Roboto, normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12308,14 +12380,14 @@
           "strong-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.14}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body sm strong link — 14px Roboto (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body sm strong link — 14px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12351,13 +12423,13 @@
           "default": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.16}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "body md default — 16px Roboto (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "body md default — 16px Roboto, normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12389,14 +12461,14 @@
           "default-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.16}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md default link — 16px Roboto (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body md default link — 16px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12430,13 +12502,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.16}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "body md strong — 16px Roboto (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "body md strong — 16px Roboto, normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12468,14 +12540,14 @@
           "strong-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.16}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body md strong link — 16px Roboto (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body md strong link — 16px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12511,13 +12583,13 @@
           "default": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.18}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "body lg default — 18px Roboto (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "body lg default — 18px Roboto, normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12549,14 +12621,14 @@
           "default-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.18}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg default link — 18px Roboto (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body lg default link — 18px Roboto, normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12590,13 +12662,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.18}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "body lg strong — 18px Roboto (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "body lg strong — 18px Roboto, normal line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12628,14 +12700,14 @@
           "strong-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.body}",
               "fontSize": "{prism.font.size.18}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "body lg strong link — 18px Roboto (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "body lg strong link — 18px Roboto, normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12673,13 +12745,13 @@
           "emphasis": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.label}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.emphasis}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "label sm emphasis — 12px wendysFresh (display role), snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$description": "label sm emphasis — 12px wendysFresh, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12713,13 +12785,13 @@
           "emphasis": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.label}",
               "fontSize": "{prism.font.size.14}",
               "fontWeight": "{prism.font.weight-role.emphasis}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "label md emphasis — 14px wendysFresh (display role), snug line-height, emphasis weight, normal tracking — consumer-facing type style",
+            "$description": "label md emphasis — 14px wendysFresh, snug line-height, emphasis weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12755,13 +12827,13 @@
           "default": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption md default — 11px Roboto (text role), cozy line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "caption md default — 11px Roboto, cozy line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12793,14 +12865,14 @@
           "default-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md default link — 11px Roboto (text role), cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption md default link — 11px Roboto, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12834,13 +12906,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption md strong — 11px Roboto (text role), cozy line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "caption md strong — 11px Roboto, cozy line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12872,14 +12944,14 @@
           "strong-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md strong link — 11px Roboto (text role), cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption md strong link — 11px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12915,13 +12987,13 @@
           "default": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption lg default — 12px Roboto (text role), cozy line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "caption lg default — 12px Roboto, cozy line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12953,14 +13025,14 @@
           "default-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg default link — 12px Roboto (text role), cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption lg default link — 12px Roboto, cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12994,13 +13066,13 @@
           "strong": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption lg strong — 12px Roboto (text role), cozy line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "caption lg strong — 12px Roboto, cozy line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -13032,14 +13104,14 @@
           "strong-link": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.text}",
+              "fontFamily": "{prism.font.family.caption}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.strong}",
               "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg strong link — 12px Roboto (text role), cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption lg strong link — 12px Roboto, cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -13077,14 +13149,14 @@
           "emphasis": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.eyebrow}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.emphasis}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow sm emphasis — 12px wendysFresh (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$description": "eyebrow sm emphasis — 12px wendysFresh, snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -13120,14 +13192,14 @@
           "emphasis": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.eyebrow}",
               "fontSize": "{prism.font.size.14}",
               "fontWeight": "{prism.font.weight-role.emphasis}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow md emphasis — 14px wendysFresh (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$description": "eyebrow md emphasis — 14px wendysFresh, snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -13163,14 +13235,14 @@
           "emphasis": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.display}",
+              "fontFamily": "{prism.font.family.eyebrow}",
               "fontSize": "{prism.font.size.20}",
               "fontWeight": "{prism.font.weight-role.emphasis}",
               "lineHeight": "{prism.font.line-height-role.snug}",
               "letterSpacing": "{prism.font.letter-spacing-role.wider}",
               "textCase": "uppercase"
             },
-            "$description": "eyebrow lg emphasis — 18→20px fluid wendysFresh (display role), snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
+            "$description": "eyebrow lg emphasis — 18→20px fluid wendysFresh, snug line-height, emphasis weight, wider tracking, uppercase — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -13226,13 +13298,13 @@
           "default": {
             "$type": "typography",
             "$value": {
-              "fontFamily": "{prism.font.family.mono}",
+              "fontFamily": "{prism.font.family.code}",
               "fontSize": "{prism.font.size.14}",
               "fontWeight": "{prism.font.weight-role.default}",
               "lineHeight": "{prism.font.line-height-role.normal}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "code inline default — 14px JetBrains Mono (mono role), normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "code inline default — 14px JetBrains Mono, normal line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -15220,7 +15292,7 @@
         "shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness 1; tinted base (hue 249.14, amount 0.15). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.",
         "gradient: none (opt-in axis; brand declared no gradients — the field-common default).",
         "layout: 5 breakpoints (sm 0, md 768, lg 1024, xl 1440, 2xl 1920); grid base 12 cols (ladder 4/8/12/12/12); gutter/margin alias the spacing scale (16/16/24/24/32 · 16/24/24/32/48); container max 1440px + narrow 720px (fluid-first + cap). Breakpoints → a separate Figma layout collection (modes), composing with color light/dark.",
-        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, text=Roboto, mono=JetBrains Mono; typeScale 'default'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
+        "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900; families display=wendysFresh, title=wendysFresh, body=Roboto, label=wendysFresh, caption=Roboto, eyebrow=wendysFresh, code=JetBrains Mono; typeScale 'default'. 38 semantic composites (title/display sizes shifted by typeScale; display capped at rung '3xl' (160px); title tier omits title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 375–1280px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.",
         "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.on-inverse generated)"

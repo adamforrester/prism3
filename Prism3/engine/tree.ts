@@ -195,11 +195,12 @@ const fontFamilyLeaf = (stack: string[], variable: boolean, description: string)
   $type: 'fontFamily', $value: stack[0], $description: description,
   $extensions: { prism3: { generated: true, variable, fallbackStack: stack.slice(1), figma: { kind: 'style-part', field: 'fontFamily', scope: 'FONT_FAMILY' } } },
 });
-// A family ROLE is a semantic alias onto a typeface primitive — the same shape as
-// `weight-role.<role> → {font.weight.N}`. The role is the brand-invariant handle a shared
-// codebase binds to: swapping the face behind it leaves every consumer reference intact,
-// which a direct `font.typeface.*` reference would not.
-const familyRoleAlias = (ref: string, face: string, description: string): Token => ({
+// `font.family.<category>` is a semantic alias onto a typeface primitive — the same shape as
+// `weight-role.<role> → {font.weight.N}`. It is the brand-invariant handle a shared codebase binds
+// to: swapping the face behind it leaves every consumer reference intact, which a direct
+// `font.typeface.*` reference would not. Keyed by CATEGORY since #415 (was an abstract
+// display/text/mono role), which is also how Prism2's brand-theme binds its four families.
+const familySemanticAlias = (ref: string, face: string, description: string): Token => ({
   $type: 'fontFamily', $value: `{${ref}}`, $description: description,
   $extensions: { prism3: { generated: true, role: 'semantic', aliasOf: ref, face, figma: { kind: 'style-part', field: 'fontFamily', scope: 'FONT_FAMILY' } } },
 });
@@ -267,12 +268,14 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
   const preferred = `${interceptRem}rem + ${slopeVw}vw`;
   return { clamp: `clamp(${round(minPx / 16, 4)}rem, ${preferred}, ${round(maxPx / 16, 4)}rem)`, preferred };
 };
-/** Human label per re-pointable field, for the mode-variant note. */
-const RE_POINT_LABEL: Record<string, string> = { fontSize: 'size', fontFamily: 'family' };
-const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; family: string; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number>; familyByMode?: Record<string, string> }, face: string, minVW: number, maxVW: number): Token => {
+/** Human label per re-pointable field, for the mode-variant note. `fontFamily` is not among them
+ *  since #415: a per-mode face change re-points the `font.family.<category>` SEMANTIC, which every
+ *  composite in that category inherits — the same seam leading and tracking use (#377). */
+const RE_POINT_LABEL: Record<string, string> = { fontSize: 'size' };
+const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
   const a = (seg: string) => `{${root}.font.${seg}}`;
   const value: Record<string, unknown> = {
-    fontFamily: a(`family.${c.family}`),
+    fontFamily: a(`family.${c.group}`),      // #415 — a composite's family IS its category
     fontSize: a(`size.${c.sizePx}`),                            // canonical = desktop/max (fallback)
     fontWeight: a(`weight-role.${c.weightRole}`),
     lineHeight: a(`line-height-role.${c.lineHeight}`),
@@ -305,11 +308,10 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
   // #328 — a per-mode SIZE re-points fontSize at a different ladder step, exactly as leading/tracking
   // re-point their rungs. Every step primitive keeps one value across all modes; only the alias moves.
   for (const [m, px] of Object.entries(c.sizeByMode ?? {})) (rungModes[m] ??= {}).fontSize = a(`size.${px}`);
-  // #390 — a per-mode FAMILY re-points fontFamily at a different family ROLE, on the same principle:
-  // the role primitives are untouched and only this composite's alias moves. Distinct from
-  // `families.<role>` (which changes the FACE a role binds, and so moves every category on that role);
-  // this is how one category diverges from its siblings in a single mode.
-  for (const [m, role] of Object.entries(c.familyByMode ?? {})) (rungModes[m] ??= {}).fontFamily = a(`family.${role}`);
+  // #415 — no per-mode FAMILY re-point here. `modeLevers.<m>.families.<category>` re-points the
+  // `font.family.<category>` semantic instead, and every composite in the category inherits it — the
+  // seam #377 established for leading and tracking. The #390 per-composite variant existed only
+  // because two categories shared one role and had no other way to diverge.
   const modeVariants = Object.keys(rungModes).length
     ? { modes: Object.fromEntries(Object.entries(rungModes).map(([m, parts]) => [m, {
         $value: { ...value, ...parts },
@@ -328,13 +330,14 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
         // Labelled from the fields actually present. The previous expression hardcoded
         // "size"/"leading/tracking" and its second branch was already dead (#377 moved leading and
         // tracking onto the semantic role), so adding family would have mislabelled a family re-point
-        // as "leading/tracking". A fontSize-only note is byte-identical to before.
+        // as "leading/tracking". Only fontSize reaches here now (#415 moved family onto the semantic
+        // too), but the label table keeps the note honest if another field ever does.
         note: `${Object.keys(parts).map((f) => RE_POINT_LABEL[f] ?? f).join(' + ')} re-point — ${m} (${Object.entries(parts).map(([f, v]) => `${f} → ${v}`).join(', ')})`,
       }])) }
     : {};
   return {
     $type: 'typography', $value: value,
-    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face} (${c.family} role), ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* color)' : ''} — consumer-facing type style`,
+    $description: `${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} — ${isFluid ? `${c.sizeMinPx}→${c.sizePx}px fluid` : `${c.sizePx}px`} ${face}, ${c.lineHeight} line-height, ${c.weightRole} weight${c.italic ? ', italic' : ''}, ${c.tracking} tracking${c.textCase !== 'none' ? `, ${c.textCase}` : ''}${c.link ? ', underlined (link — pair with text.link.* color)' : ''} — consumer-facing type style`,
     $extensions: { prism3: { role: 'composite', ...modeVariants, group: c.group, variant: c.variant, weightRole: c.weightRole, sizePx: c.sizePx, ...(c.italic ? { italic: true } : {}), ...(c.link ? { link: true } : {}), ...(c.textCase !== 'none' ? { textCase: c.textCase } : {}), responsive, figma: { kind: 'text-style', styleType: 'TEXT', binds: ['fontFamily', 'fontSize', 'fontWeight'], baked: ['lineHeight', 'letterSpacing', ...(c.italic ? ['fontStyle'] : []), ...(c.textCase !== 'none' ? ['textCase'] : []), ...(c.link ? ['textDecoration'] : [])], note: 'Figma Text Style; fontFamily/fontSize/fontWeight bind their primitives (fontSize can bind a font-fluid var with desktop/mobile modes — see responsive.figma.modes); lineHeight + letterSpacing baked as PERCENT (mode/size-independent); textCase/underline baked (not bindable). fontStyle: when $value carries fontStyle:italic (weight-paired italic variant) the Figma style is the weight’s italic named-instance (e.g. Bold Italic); otherwise it is derived from the bound fontWeight at import via a weight→style-name table.' } } },
   };
 };
@@ -607,34 +610,36 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // label-safe weight model); unitless line-height multipliers; em letter-spacing.
   const ty = theme.typography;
   // Typography is MODE-VARYING on two PRIMITIVE leaves (Phase D — same seam as radius): a customizable
-  // mode may override the font FAMILY (family.<role>) and/or the font WEIGHT (weight-role.<role>). Light
+  // mode may override the font FAMILY (family.<category>) and/or the font WEIGHT (weight-role.<role>). Light
   // stays the canonical `$value`; a mode whose re-derived value DIFFERS from light attaches a
   // `$extensions.prism3.modes.<mode>` override. Every composite inherits via its family/weight alias, so
   // the composite SET is untouched. Absent maps ⇒ byte-identical.
   const familiesByMode = ty.familiesByMode ?? {};
   const weightRolesByMode = ty.weightRolesByMode ?? {};
   const stackKey = (s: string[]): string => s.join('\u0000');
-  // Tier 1 - the typeface PRIMITIVES, named after the face itself. Two roles bound to one
-  // face share a single primitive (NB binds display and text to Inter).
+  // Tier 1 - the typeface PRIMITIVES, named after the face itself. Categories bound to one
+  // face share a single primitive (NB binds every category to Inter).
   const typeface: Record<string, Token> = {};
   for (const tf of ty.typefaces)
     typeface[tf.slug] = fontFamilyLeaf(tf.stack, tf.variable, `typeface \u2014 ${tf.name}${tf.variable ? ' [variable font]' : ''}`);
-  // Tier 2 - the family ROLES, each aliasing a typeface. A per-mode override RE-POINTS the
-  // alias rather than re-valuing the primitive, so a mode swaps which face the role uses
-  // while every composite keeps its `family.<role>` reference.
+  // Tier 2 - one semantic per CATEGORY (#415), each aliasing a typeface. A per-mode override RE-POINTS
+  // the alias rather than re-valuing the primitive, so a mode swaps which face the category uses while
+  // every composite keeps its `family.<category>` reference. Category-keyed, this is also the whole of
+  // the per-mode family story: `title` moving to a different face in Dark no longer drags `display`
+  // with it, which is the coupling #390's per-composite familyMap existed to work around.
   const family: Record<string, Token> = {};
   for (const f of ty.families) {
     const slug = typefaceSlug(f.stack[0]);
-    const leaf = familyRoleAlias(`${root}.font.typeface.${slug}`, f.stack[0], `font family role \u2014 ${f.role} \u2192 ${f.stack[0]}`);
+    const leaf = familySemanticAlias(`${root}.font.typeface.${slug}`, f.stack[0], `font family \u2014 ${f.group} \u2192 ${f.stack[0]}`);
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, fams] of Object.entries(familiesByMode)) {
-      const mf = fams.find((x) => x.role === f.role);
+      const mf = fams.find((x) => x.group === f.group);
       if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack -> no diff -> no override
       const mslug = typefaceSlug(mf.stack[0]);
-      modeOverrides[mode] = { $value: `{${root}.font.typeface.${mslug}}`, aliasOf: `${root}.font.typeface.${mslug}`, face: mf.stack[0], note: `font family role override \u2014 ${mode} (\u2192 ${mf.stack[0]})` };
+      modeOverrides[mode] = { $value: `{${root}.font.typeface.${mslug}}`, aliasOf: `${root}.font.typeface.${mslug}`, face: mf.stack[0], note: `font family override \u2014 ${mode} (\u2192 ${mf.stack[0]})` };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
-    family[f.role] = leaf;
+    family[f.group] = leaf;
   }
   const fsize: Record<string, Token> = {};
   for (const px of ty.sizesPx) fsize[String(px)] = fontSizeLeaf(px, `font size ${px}px (${round(px / 16, 4)}rem) — curated ladder primitive`);
@@ -725,13 +730,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
 
   // ---- typography semantic composites (Phase 2) ----
   // Consumer-facing type styles under `type.*`. Two composites may share a size
-  // primitive (title.xs and body.lg at 18px) — distinct by family/line-height/
+  // primitive (title.xs and body.lg at 18px) — distinct by category/line-height/
   // weight, resolved via the composite, not the size. The shared ladder stays
   // single-source; font.size.* aliased_by then shows the overlap explicitly.
-  const faceOf: Record<string, string> = Object.fromEntries(ty.families.map((f) => [f.role, f.stack[0]]));
+  const faceOf: Record<string, string> = Object.fromEntries(ty.families.map((f) => [f.group, f.stack[0]]));
   const typeGroup: Record<string, any> = {};
   for (const c of ty.composites) {
-    const leaf = typographyLeaf(root, c, faceOf[c.family], ty.minViewport, ty.maxViewport);
+    const leaf = typographyLeaf(root, c, faceOf[c.group], ty.minViewport, ty.maxViewport);
     // Nest by the full composite path (group / size? / weight / link?).
     const parts = c.path.split('.');
     let node: Record<string, any> = typeGroup;

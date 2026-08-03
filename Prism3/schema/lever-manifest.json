@@ -200,7 +200,7 @@
       "group": "type",
       "label": "Font families",
       "control": "object",
-      "description": "Display / text / mono faces (+ a variable-font flag). A single name auto-pads a system fallback stack."
+      "description": "The face each text category draws from (+ a variable-font flag). A single name auto-pads a system fallback stack; `code: null` opts out of code styles."
     },
     {
       "key": "typography.weightRoles",
@@ -279,14 +279,6 @@
       "control": "object",
       "advanced": true,
       "description": "Which weights each type role ships (weight is an axis on every role; adding one is additive)."
-    },
-    {
-      "key": "typography.familyMap",
-      "group": "type",
-      "label": "Role → family map",
-      "control": "object",
-      "advanced": true,
-      "description": "Which family role each semantic group consumes (e.g. neutral buttons: label → text)."
     },
     {
       "key": "typography.links",

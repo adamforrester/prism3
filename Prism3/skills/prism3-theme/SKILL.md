@@ -61,7 +61,7 @@ minimal — read both, they are the reference):
 | `radiusScale` | number (`1` sharp-ish, `2` soft) | corner softness |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
-| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, familyMap, displayCeiling, titleFloor, responsive: { fluid, minViewport, maxViewport } }` | custom faces / weight remap / fluid type; **omit `families` → a system-font stack** |
+| `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, responsive: { fluid, minViewport, maxViewport } }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **omitting it → a system-font stack** |
 | `shadow` | `{ softness, tint: { hue, amount } }` | softer marketing elevation, tinted to the brand |
 | `layout` | `{ breakpoints: [...], containerMax }` | a non-default breakpoint ladder / content cap |
 | `gradients` | `[{ name, kind: linear\|radial, angle/center/shape, stops: [{ palette, step, position }] }]` | opt-in brand gradients (most systems ship none — omit) |

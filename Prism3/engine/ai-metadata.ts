@@ -314,7 +314,7 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
   for (const c of theme.typography.composites) {
     const d = TYPE_DESC[c.group];
     const resolves: Record<string, string> = {
-      fontFamily: `{${root}.font.family.${c.family}}`,
+      fontFamily: `{${root}.font.family.${c.group}}`,   // #415 — a composite's family IS its category
       fontSize: `{${root}.font.size.${c.sizePx}}`,
       fontWeight: `{${root}.font.weight-role.${c.weightRole}}`,
       lineHeight: `{${root}.font.line-height.${c.lineHeight}}`,
@@ -326,7 +326,7 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
     // Key by the real tree path (`type.<path>`) so aliased_by references resolve.
     typography[`type.${c.path}`] = {
       $description: `${cap(d.desc)}${c.italic ? ' (italic variant)' : ''}${c.link ? ' (underlined link variant)' : ''}.`,
-      meaning: `Type style — ${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} (${c.sizePx}px, ${c.family} face${c.textCase !== 'none' ? `, ${c.textCase}` : ''})`,
+      meaning: `Type style — ${c.group}${c.variant ? ' ' + c.variant : ''} ${c.weightRole}${c.italic ? ' italic' : ''}${c.link ? ' link' : ''} (${c.sizePx}px, ${c.group} face${c.textCase !== 'none' ? `, ${c.textCase}` : ''})`,
       when_to_use: c.link ? `${d.when} The underlined link variant — pair with the text.link.* color.` : d.when,
       avoid_when: c.link ? `Do not use for non-link text (use ${c.group}.${c.variant || c.weightRole} without -link).` : d.avoid,
       resolves_to: resolves,

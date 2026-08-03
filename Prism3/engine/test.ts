@@ -1295,7 +1295,7 @@ for (const b of brands) {
   // #391 — schema-valued `additionalProperties`. `validate()` implemented only the `false` form (the
   // unknown-key guard) and not the OBJECT form (a sub-schema applied to every value `properties` does
   // not cover). `modeLevers` is exactly that shape, so its ENTIRE subtree was walked into and dropped:
-  // radius range, density enum, typeSizes floors and familyMap roles were all unenforced by the
+  // radius range, density enum, typeSizes floors and per-mode family keys were all unenforced by the
   // published contract. `brandTheme()` still threw at resolve time, so the ENGINE was never at risk —
   // what was inert was the contract external authors read before they ever reach the engine.
   //
@@ -1313,15 +1313,15 @@ for (const b of brands) {
     rejects('a typeSizes group that is not a heading group', { dark: { typeSizes: { body: { md: 18 } } } });
     rejects('a typeSizes value below the group floor', { dark: { typeSizes: { display: { '3xl': 8 } } } });
     rejects('an unknown lever key inside a mode', { dark: { nonsenseKey: 1 } });
-    rejects('a familyMap role that does not exist', { dark: { familyMap: { title: 'brand' } } });
-    rejects('a familyMap category that does not exist', { dark: { familyMap: { heading: 'text' } } });
+    rejects('a per-mode families key that is not a category', { dark: { families: { heading: 'Georgia' } } });
+    rejects('a per-mode families value that is neither a name nor a stack', { dark: { families: { title: 7 } } });
     rejects('a radius outside [0, 2]', { dark: { radius: 5 } });
     // The pre-#296 shape: a NUMBER where the re-point map wants a rung name.
     rejects('a lineHeights re-point naming a number instead of a rung', { dark: { lineHeights: { normal: 1.6 } } });
     // The other half — the fix must not start rejecting legal input. `true`/absent
     // `additionalProperties` stay permissive; only the object form applies a sub-schema.
     accepts('a valid density', { dark: { density: 'compact' } });
-    accepts('a valid familyMap', { dark: { familyMap: { title: 'text' } } });
+    accepts('a valid per-mode families override', { dark: { families: { title: 'Georgia' } } });
     accepts('a valid typeSizes override', { dark: { typeSizes: { title: { '2xl': 36 } } } });
     accepts('a valid radius', { dark: { radius: 1.5 } });
     accepts('a valid lineHeights re-point', { dark: { lineHeights: { normal: 'relaxed' } } });
@@ -1365,7 +1365,12 @@ for (const b of brands) {
   ok(!!pmTree.font.typeface.georgia, 'D-typo(a): a per-mode-only face is unioned into the typeface primitives so its alias resolves');
   ok(pmTree.font.family.display.$value === baseTree.font.family.display.$value,
     `D-typo(a): light canonical family.display $value is unchanged by the dark lever (${pmTree.font.family.display.$value})`);
-  ok(pmTree.font.family.text.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden family (text) carries no modes override');
+  ok(pmTree.font.family.body.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden category (body) carries no modes override');
+  // #415 — the sibling that USED to move with it. display/title/label/eyebrow all sat on the old
+  // `display` family role, so a per-mode `families.display` dragged all four; category-keyed, it moves
+  // exactly the one named. This is the whole reason the per-mode familyMap lever (#390) could retire.
+  ok(pmTree.font.family.title.$extensions.prism3.modes === undefined,
+    '[#415] a per-mode families.display moves ONLY display — title, its old role-mate, is untouched');
 
   // (b) weight-role.strong carries a modes.dark override aliasing font.weight.500; light stays 700.
   const wrDark = pmTree.font['weight-role'].strong.$extensions.prism3.modes?.dark;
@@ -2051,7 +2056,6 @@ for (const b of brands) {
 // resolve to a real primitive, sizes stay on the ladder, no duplicate size within
 // a group, monotonic per group, count inside the KB's 15–25 (12 floor when a brand
 // caps display), and the floor/ceiling levers behave.
-const FAM = new Set(['display', 'text', 'mono']);
 const tBrand = (id: string, ty: any) => brandTheme({ id, primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 }, typography: ty });
 const typeCases: [string, any][] = [
   ['default', {}],
@@ -2060,7 +2064,7 @@ const typeCases: [string, any][] = [
   ['default+floor16', { titleFloor: 16 }],
   ['ceiling-xl', { displayCeiling: 'xl' }],
   ['ceiling-sm', { displayCeiling: 'sm' }],
-  ['familyMap+singleface', { families: { text: 'Foo' }, familyMap: { label: 'text', title: 'text' } }],
+  ['singleface', { families: { display: 'Foo', title: 'Foo', body: 'Foo', label: 'Foo', caption: 'Foo', eyebrow: 'Foo' } }],
 ];
 for (const [label, ty] of typeCases) {
   const t = tBrand('ty-' + label, ty);
@@ -2069,6 +2073,11 @@ for (const [label, ty] of typeCases) {
   const lh = new Set(t.typography.lineHeights.map((x) => x.key));
   const ls = new Set(t.typography.letterSpacings.map((x) => x.key));
   const wr = new Set(t.typography.weightRoles.map((x) => x.role));
+  // #415 — a composite's family is its CATEGORY, so the check that used to read `c.family` against a
+  // fixed role set now reads the category against the faces THIS brand binds. Stronger, not weaker: it
+  // catches a composite built for a category with no face, which is the state `families.code: null`
+  // creates and the only way a composite can reach a dangling `font.family.*` alias.
+  const fam = new Set(t.typography.families.map((f) => f.group));
   // base "style slots" = unique (group, variant); each fans out to weights (× link).
   const slots = new Set(comps.map((c) => `${c.group}.${c.variant}`));
   ok(slots.size >= 12 && slots.size <= 30, `[type/${label}] ${slots.size} style slots in 12..30 (×weights×link = ${comps.length} composites)`);
@@ -2078,7 +2087,7 @@ for (const [label, ty] of typeCases) {
   for (const c of comps) {
     (byGroup[c.group] ??= []).push(c.sizePx);
     if (!ladder.has(c.sizePx)) bad ||= `${c.path} off-ladder ${c.sizePx}`;
-    if (!FAM.has(c.family)) bad ||= `${c.path} bad family ${c.family}`;
+    if (!fam.has(c.group)) bad ||= `${c.path} category ${c.group} has no bound family`;
     if (!wr.has(c.weightRole)) bad ||= `${c.path} bad weight ${c.weightRole}`;
     if (!lh.has(c.lineHeight)) bad ||= `${c.path} bad line-height ${c.lineHeight}`;
     if (!ls.has(c.tracking)) bad ||= `${c.path} bad tracking ${c.tracking}`;
@@ -2319,70 +2328,70 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(thr(() => mk({ title: { xl: 20 } })), '[#328] a per-mode size that inverts the ramp throws');
     ok(!thr(() => mk({ title: { xl: 36 } })), '[#328] a per-mode size that keeps the merged ramp increasing is accepted');
   }
-  // PER-MODE FAMILY MAP (#390). A mode re-points ONE CATEGORY at a different family role.
+  // PER-MODE FAMILIES (#390, re-founded by #415). A mode gives ONE CATEGORY a different face.
+  //
+  // #390 solved this with a separate per-mode `familyMap` lever, because the family tier was keyed by
+  // an abstract display|text|mono ROLE: title and display both sat on `display`, so the only per-mode
+  // family lever moved both, and re-pointing one category needed a second mechanism that fanned a
+  // fontFamily override onto every composite in the category. #415 keys the tier by category, so the
+  // divergence is the base case — `modeLevers.<m>.families.title` is the whole feature, and it lands
+  // on ONE semantic leaf instead of N composites. These assertions carry #390's intent onto the shape
+  // that replaced it; the ones that no longer have a subject (an unbound ROLE, a self-map to a role)
+  // are gone because the states they guarded are unrepresentable.
   {
     const fmBase = { id: 'fm', modes: ['light', 'dark'], primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as any;
     const thr = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
-    const mk = (familyMap: any, ty: any = {}) => brandTheme({ ...fmBase, typography: ty, modeLevers: { dark: { familyMap } } } as any);
-    const comp = (t: any, g: string, v: string) => t.typography.composites.find((c: any) => c.group === g && c.variant === v)!;
+    const mk = (families: any, ty: any = {}) => brandTheme({ ...fmBase, typography: ty, modeLevers: { dark: { families } } } as any);
     const leaf = (tree: any, path: string) => path.split('.').reduce((o: any, k: string) => o?.[k], tree);
+    const modesOf = (t: any, cat: string) => leaf(buildTree(t).tree, `prism.font.family.${cat}`).$extensions.prism3.modes;
 
-    // THE WHOLE POINT OF THE ISSUE: title and display both default to the `display` role, and the
-    // pre-existing per-mode lever (`families.<role>`) could only move BOTH. This moves one.
-    const t1 = mk({ title: 'text' });
-    ok(comp(t1, 'title', '2xl').familyByMode?.dark === 'text', '[#390] per-mode family: dark title re-points to the text role');
-    ok(comp(t1, 'title', '2xl').family === 'display', '[#390] per-mode family leaves the light/canonical role untouched');
-    ok(comp(t1, 'display', 'xl').familyByMode === undefined,
-      '[#390] the SIBLING on the same role does not move — display stays put while title diverges (the gap this closes)');
-    // The negative above is only worth something if display CAN be moved — otherwise it would pass for
-    // a structural reason rather than the behavioral one, which is how a test quietly stops testing.
-    ok(brandTheme({ ...fmBase, typography: {}, modeLevers: { dark: { familyMap: { title: 'text', display: 'text' } } } } as any)
-      .typography.composites.filter((c: any) => c.group === 'display').every((c: any) => c.familyByMode?.dark === 'text'),
-      '[#390] …and display DOES move when it is mapped — the sibling assertion above is behavioral, not vacuous');
-    // Every rung of the re-pointed category moves, not just the one probed: the map is per CATEGORY.
-    ok(t1.typography.composites.filter((c: any) => c.group === 'title').every((c: any) => c.familyByMode?.dark === 'text'),
-      '[#390] the re-point covers every rung of the category');
+    // THE WHOLE POINT: dark moves title onto Georgia and NOTHING else moves.
+    const t1 = mk({ title: 'Georgia' });
+    ok(modesOf(t1, 'title')?.dark?.$value === '{prism.font.typeface.georgia}',
+      `[#415] per-mode families: dark title RE-POINTS to the georgia typeface (got ${modesOf(t1, 'title')?.dark?.$value})`);
+    ok(leaf(buildTree(t1).tree, 'prism.font.family.title').$value === '{prism.font.typeface.inter}',
+      '[#415] the light/canonical binding is untouched — a mode re-points the alias, it never re-values it');
+    ok(modesOf(t1, 'display') === undefined,
+      '[#415] display — title’s mate on the old `display` role — does NOT move (the coupling that made #390 necessary)');
+    // The negative above is only worth something if display CAN be moved from here; otherwise it would
+    // pass structurally rather than behaviorally, which is how a test quietly stops testing.
+    ok(modesOf(mk({ title: 'Georgia', display: 'Georgia' }), 'display')?.dark?.$value === '{prism.font.typeface.georgia}',
+      '[#415] …and display DOES move when it is named — the sibling assertion above is behavioral, not vacuous');
+    ok(!!leaf(buildTree(t1).tree, 'prism.font.typeface.georgia'),
+      '[#415] a per-mode-only face is unioned into the typeface primitives so its alias lands on a real leaf');
 
-    // Emission — the alias moves, the role primitives do not.
-    const em = leaf(buildTree(t1).tree, 'prism.type.title.2xl.strong');
-    ok(em.$value.fontFamily === '{prism.font.family.display}', '[#390] emitted canonical $value.fontFamily still aliases the light role');
-    ok(em.$extensions.prism3.modes.dark.$value.fontFamily === '{prism.font.family.text}', '[#390] emitted dark $value.fontFamily aliases the re-pointed role');
-    // The #385 trap, restated on a new axis: a mode variant is a FULL-value snapshot (`{ ...value,
-    // ...parts }`), so EVERY field is present in the dark block by spread. Asserting "absent" would be
-    // asserting something that can never be true; the honest assertion is "identical to light".
-    ok(em.$extensions.prism3.modes.dark.$value.fontSize === em.$value.fontSize
-      && em.$extensions.prism3.modes.dark.$value.lineHeight === em.$value.lineHeight,
-      '[#390] the dark snapshot carries size/leading IDENTICAL to light — only fontFamily moved');
-    ok(/^family re-point — dark/.test(em.$extensions.prism3.modes.dark.note),
-      '[#390] the mode note names the field that actually moved (not the hardcoded "leading/tracking" the old builder would have said)');
-    // Alias integrity — the re-pointed alias must resolve, and must be COUNTED. A walker that silently
-    // skipped it would also report zero broken, which is the #281 shape: clean because it never looked.
+    // Emission — #415’s real dividend over #390. The COMPOSITES are byte-identical to a brand with
+    // no per-mode families at all: they alias `font.family.<category>` and inherit through it. #390 had
+    // to stamp a `modes.dark` block on every composite in the category, which is what made the Styles
+    // table read as a re-point into its own axis (the same complaint #377 fixed for leading/tracking).
     const btBase = buildTree(brandTheme({ ...fmBase, typography: {} } as any));
     const btMode = buildTree(t1);
-    ok(btMode.stats.broken.length === 0, '[#390] a theme with a per-mode family has no broken aliases');
-    ok(btMode.stats.aliases > btBase.stats.aliases, '[#390] the per-mode family CONTRIBUTES aliases to the resolution gate');
+    ok(JSON.stringify(btMode.tree.prism.type) === JSON.stringify(btBase.tree.prism.type),
+      '[#415] the ENTIRE composite tree is unchanged by a per-mode family — inheritance happens at the semantic, not on 38 composites');
+    // Alias integrity — the re-pointed alias must resolve, and must be COUNTED. A walker that silently
+    // skipped it would also report zero broken, which is the #281 shape: clean because it never looked.
+    ok(btMode.stats.broken.length === 0, '[#415] a theme with a per-mode family has no broken aliases');
+    ok(btMode.stats.aliases > btBase.stats.aliases, '[#415] the per-mode family CONTRIBUTES aliases to the resolution gate');
 
-    // Composes with a size re-point on the same composite — both land in one mode block.
-    const both = brandTheme({ ...fmBase, typography: {}, modeLevers: { dark: { familyMap: { title: 'text' }, typeSizes: { title: { '2xl': 36 } } } } } as any);
-    const bem = leaf(buildTree(both).tree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
-    ok(bem.$value.fontFamily === '{prism.font.family.text}' && bem.$value.fontSize === '{prism.font.size.36}',
-      '[#390] a family re-point and a size re-point compose into ONE mode block');
-    ok(/^size \+ family re-point — dark/.test(bem.note), '[#390] the composed note names both fields, in field order');
-
-    // Inert declaration ⇒ no entry at all, so an artifact stays byte-identical.
-    const inert = mk({ title: 'display' });
-    ok(comp(inert, 'title', '2xl').familyByMode === undefined && inert.typography.familyMapByMode === undefined,
-      '[#390] a per-mode family equal to the brand role is dropped (no mode entry, byte-identical)');
+    // Inert declaration ⇒ no entry at all, so the TOKENS stay byte-identical. Scoped to `font` + `type`
+    // rather than the whole tree on purpose: declaring ANY modeLevers entry adds a line to the root
+    // `$extensions.prism3.decisions` prose whether or not it resolved to a diff — pre-existing, and
+    // true of every lever. Claiming whole-tree identity here would claim something this feature
+    // neither owns nor can deliver.
+    const inert = mk({ title: 'Inter' });
+    ok(inert.typography.familiesByMode === undefined
+      && JSON.stringify(buildTree(inert).tree.prism.font) === JSON.stringify(btBase.tree.prism.font)
+      && JSON.stringify(buildTree(inert).tree.prism.type) === JSON.stringify(btBase.tree.prism.type),
+      '[#415] a per-mode face equal to the brand’s is dropped (no mode entry, byte-identical tokens)');
 
     // Validation THROWS — never drops, for the same reason as #328: a silently ignored per-mode request
-    // is only visible in one mode's output, which is where nobody is looking.
-    ok(thr(() => mk({ heading: 'text' } as any)), '[#390] a per-mode family on a category that does not exist throws');
-    ok(thr(() => mk({ title: 'brand' } as any)), '[#390] a per-mode family naming a role that does not exist throws');
-    // The live unbound case: `mono: null` opts out, so `code` ships no composites AND the mono role is
-    // unbound. Both guards must fire — pointing at mono would emit a dangling alias.
-    ok(thr(() => mk({ body: 'mono' }, { families: { mono: null } })), '[#390] pointing a category at an UNBOUND role throws rather than emitting a dangling alias');
-    ok(thr(() => mk({ code: 'text' }, { families: { mono: null } })), '[#390] a per-mode family on a category the brand dropped (code, via mono:null) throws');
-    ok(!thr(() => mk({ code: 'text' })), '[#390] …and is accepted when the brand does ship code');
+    // is only visible in one mode’s output, which is where nobody is looking.
+    ok(thr(() => mk({ heading: 'Georgia' } as any)), '[#415] a per-mode family on a category that does not exist throws');
+    // The live case: `families.code: null` drops the category, so a dark override for it would derive a
+    // binding the light build has no counterpart for — and the emitter walks the LIGHT bindings, so it
+    // would vanish rather than fail.
+    ok(thr(() => mk({ code: 'Georgia' }, { families: { code: null } })), '[#415] a per-mode family on a category the brand opted out of (code: null) throws');
+    ok(!thr(() => mk({ code: 'Georgia' })), '[#415] …and is accepted when the brand does ship code');
   }
   // #349 review — a module imported for its EXPORTS must not run its CLI as a side effect. `regen.ts`
   // shipped its dispatch unguarded at top level, so `import { SCHEMA_ARTIFACTS } from './regen'` ran a
@@ -2468,7 +2477,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const root = Object.keys(tree)[0];
   ok((tree[root] as any).type.body.md['default-italic'].$value.fontStyle === 'italic', 'italic composite carries fontStyle:italic on $value');
   ok((tree[root] as any).type.body.md.default.$value.fontStyle === undefined, 'roman composite omits fontStyle');
-  ok(fontStyleName('text', 700, true) === 'Bold Italic' && fontStyleName('text', 400, true) === 'Italic', 'Figma style name: 700→Bold Italic, 400→Italic (not Regular Italic)');
+  ok(fontStyleName('body', 700, true) === 'Bold Italic' && fontStyleName('body', 400, true) === 'Italic', 'Figma style name: 700→Bold Italic, 400→Italic (not Regular Italic)');
 }
 
 // ---- font families: typeface PRIMITIVES + family-ROLE semantics (#269) ----
@@ -2476,7 +2485,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // and carries the fallback stack; the role is named after the job (`family.text`) and
 // aliases it. The role is the brand-invariant handle a consumer binds to.
 {
-  const t = tBrand('fam', { families: { display: 'Poppins', text: 'Inter', mono: 'Fira Code' } });
+  const t = tBrand('fam', { families: { display: 'Poppins', body: 'Inter', code: 'Fira Code' } });
   const { tree } = buildTree(t);
   const root = Object.keys(tree)[0];
   const fam = (tree[root] as any).font.family;
@@ -2488,25 +2497,29 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const fb = tf.inter.$extensions.prism3.fallbackStack;
   ok(Array.isArray(fb) && fb.length > 0 && !fb.includes('Inter'), 'the fallback tail lives on the TYPEFACE, primary excluded');
 
-  // tier 2 — roles alias the primitives; no role carries a literal face any more.
-  ok(fam.text.$value === `{${root}.font.typeface.inter}`, 'family role aliases its typeface primitive');
-  ok(fam.display.$value === `{${root}.font.typeface.poppins}`, 'each role aliases the face it binds');
-  ok(fam.text.$extensions.prism3.aliasOf === `${root}.font.typeface.inter`, 'the role records aliasOf, like every other semantic');
+  // tier 2 — one semantic per CATEGORY (#415), each aliasing a primitive; none carries a literal face.
+  ok(fam.body.$value === `{${root}.font.typeface.inter}`, 'a category semantic aliases its typeface primitive');
+  ok(fam.display.$value === `{${root}.font.typeface.poppins}`, 'each category aliases the face it binds');
+  ok(fam.body.$extensions.prism3.aliasOf === `${root}.font.typeface.inter`, 'the semantic records aliasOf, like every other semantic');
+  // Unset categories take the default face rather than disappearing — the tier is complete by
+  // construction, so every composite has a `font.family.<its group>` to point at.
+  ok(Object.keys(fam).length === 7 && fam.caption.$value === `{${root}.font.typeface.inter}`,
+    `[#415] every category gets a semantic; an unset one (caption) takes the default face (${Object.keys(fam).join('/')})`);
 
   // the invariant that matters downstream: resolution is unchanged.
-  const full = familyOf(tree, fam.text);
+  const full = familyOf(tree, fam.body);
   ok(full.startsWith('Inter, ') && full === ['Inter', ...fb].join(', '), 'familyOf follows the alias and reassembles [primary, ...fallbackStack]');
 
-  // two roles on ONE face share a single primitive (variable ORs across them).
-  const shared = buildTree(tBrand('shared', { families: { display: 'Inter', text: 'Inter' } })).tree;
+  // two categories on ONE face share a single primitive (variable ORs across them).
+  const shared = buildTree(tBrand('shared', { families: { display: 'Inter', body: 'Inter' } })).tree;
   const sroot = Object.keys(shared)[0];
   const stf = (shared[sroot] as any).font.typeface;
-  ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).font.family.display.$value === (shared[sroot] as any).font.family.text.$value,
-    'two roles bound to the same face share one typeface primitive');
+  ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).font.family.display.$value === (shared[sroot] as any).font.family.body.$value,
+    'two categories bound to the same face share one typeface primitive');
 
   // Figma family variable: value = primary, description still leads with the FULL stack.
   const figFam = buildFigmaFont(t)[0].variables.filter((v) => v.name.startsWith('font/family/'));
-  const textVar = figFam.find((v) => v.name === 'font/family/text')!;
+  const textVar = figFam.find((v) => v.name === 'font/family/body')!;
   ok(textVar.value === 'Inter', 'Figma family variable binds the primary face as value');
   ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
 }
@@ -2608,60 +2621,65 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(buildTree(staged).tree[Object.keys(buildTree(staged).tree)[0]] !== undefined, 'a brand with a staged face still builds a tree');
   const stagedRoot = Object.keys(buildTree(staged).tree)[0];
   ok(!!(buildTree(staged).tree[stagedRoot] as any).font.typeface.fraunces, 'the staged face reaches the emitted tree as font.typeface.fraunces');
-  ok(!(buildTree(staged).tree[stagedRoot] as any).font.family.fraunces, 'a staged face emits NO family role leaf (nothing binds it)');
+  ok(!(buildTree(staged).tree[stagedRoot] as any).font.family.fraunces, 'a staged face emits NO family semantic leaf (nothing binds it)');
 
   // Existing brands must be untouched: same list, same ORDER, which is why the library appends last.
-  ok(JSON.stringify(bare.typography.typefaces) === JSON.stringify(tBrand('lib-none2', { families: { text: 'Inter' }, typefaceLibrary: [] }).typography.typefaces),
+  ok(JSON.stringify(bare.typography.typefaces) === JSON.stringify(tBrand('lib-none2', { families: { body: 'Inter' }, typefaceLibrary: [] }).typography.typefaces),
     'an empty library derives a byte-identical typeface list (feature is additive)');
 
-  // Staged THEN bound is one primitive, not two — and the ROLE's stack wins the dedupe, which is the
-  // reason role sets are walked before the library rather than after.
-  const bound = tBrand('lib-bound', { families: { text: 'Inter', mono: 'Fira Code' }, typefaceLibrary: ['Fira Code'] });
+  // Staged THEN bound is one primitive, not two — and the BINDING's stack wins the dedupe, which is the
+  // reason binding sets are walked before the library rather than after.
+  const bound = tBrand('lib-bound', { families: { body: 'Inter', code: 'Fira Code' }, typefaceLibrary: ['Fira Code'] });
   const fira = bound.typography.typefaces.filter((t: any) => t.slug === 'fira-code');
   ok(fira.length === 1, `a face both staged and bound yields ONE primitive (got ${fira.length})`);
-  ok(fira[0].stack[fira[0].stack.length - 1] === 'monospace', 'the bound role’s stack wins the dedupe — a staged+bound mono face keeps its MONO fallback tail');
-  const stagedOnlyMono = tBrand('lib-mono-unbound', { families: { text: 'Inter' }, typefaceLibrary: ['Fira Code'] });
+  ok(fira[0].stack[fira[0].stack.length - 1] === 'monospace', 'the bound category’s stack wins the dedupe — a staged+bound code face keeps its MONO fallback tail');
+  const stagedOnlyMono = tBrand('lib-mono-unbound', { families: { body: 'Inter' }, typefaceLibrary: ['Fira Code'] });
   const unboundFira = stagedOnlyMono.typography.typefaces.find((t: any) => t.slug === 'fira-code');
-  ok(unboundFira.stack[unboundFira.stack.length - 1] !== 'monospace', 'an UNBOUND face has no role to take a tail from, so it gets the sans one — self-corrects on binding');
+  ok(unboundFira.stack[unboundFira.stack.length - 1] !== 'monospace', 'an UNBOUND face has no binding to take a tail from, so it gets the sans one — self-corrects on binding');
 
   // Removal semantics (owner decision, 2026-08-01: only UNBOUND entries are deletable). The engine
   // needs no cascade for this, and that absence is the thing worth asserting: dropping a still-bound
-  // name from the library cannot make its primitive disappear, because the role keeps deriving it.
-  const droppedWhileBound = tBrand('lib-drop-bound', { families: { text: 'Inter', mono: 'Fira Code' }, typefaceLibrary: [] });
+  // name from the library cannot make its primitive disappear, because the binding keeps deriving it.
+  const droppedWhileBound = tBrand('lib-drop-bound', { families: { body: 'Inter', code: 'Fira Code' }, typefaceLibrary: [] });
   ok(droppedWhileBound.typography.typefaces.some((t: any) => t.slug === 'fira-code'),
     'removing a still-BOUND face from the library does NOT drop its primitive — no cascade needed (#287)');
-  ok(!tBrand('lib-drop-unbound', { families: { text: 'Inter' }, typefaceLibrary: [] }).typography.typefaces.some((t: any) => t.slug === 'fraunces'),
+  ok(!tBrand('lib-drop-unbound', { families: { body: 'Inter' }, typefaceLibrary: [] }).typography.typefaces.some((t: any) => t.slug === 'fraunces'),
     'removing an UNBOUND face from the library drops its primitive cleanly');
 
   // Typo guards — an empty entry would emit an empty slug; two spellings would silently swallow one.
   const rejects = (lib: any, label: string) => {
     let threw = false;
-    try { tBrand('lib-bad', { families: { text: 'Inter' }, typefaceLibrary: lib }); } catch { threw = true; }
+    try { tBrand('lib-bad', { families: { body: 'Inter' }, typefaceLibrary: lib }); } catch { threw = true; }
     ok(threw, label);
   };
   rejects([''], 'an empty typefaceLibrary entry throws');
   rejects(['   '], 'a whitespace-only typefaceLibrary entry throws');
   rejects(['Fraunces', 'fraunces'], 'the same face listed twice (differing only in case) throws');
   let variantThrew = false;
-  try { tBrand('lib-ok', { families: { text: 'Inter' }, typefaceLibrary: ['Fraunces', 'Fira Code'] }); } catch { variantThrew = true; }
+  try { tBrand('lib-ok', { families: { body: 'Inter' }, typefaceLibrary: ['Fraunces', 'Fira Code'] }); } catch { variantThrew = true; }
   ok(!variantThrew, 'two DISTINCT faces in the library are accepted');
 }
 
-// ---- mono is optional (#269) ----
-// Most brands have no mono face. `mono: null` opts out, and `code` is the only category
-// binding mono, so it disappears with it.
+// ---- code is optional (#269, re-keyed by #415) ----
+// Most brands have no mono face. `families.code: null` opts the category out; it used to be
+// `families.mono: null`, saying the same thing one tier up. `code` is the ONLY category that may opt
+// out — nulling any other would silently delete a tier of the type system, so it is refused.
 {
-  const withMono = tBrand('mono-on', { families: { text: 'Inter' } });
-  const noMono = tBrand('mono-off', { families: { text: 'Inter', mono: null } });
-  ok(withMono.typography.families.some((f: any) => f.role === 'mono'), 'omitted mono keeps the default face (existing brands unaffected)');
-  ok(!noMono.typography.families.some((f: any) => f.role === 'mono'), 'mono: null drops the mono family role');
-  ok(withMono.typography.composites.some((c: any) => c.group === 'code'), 'a brand with mono ships the code category');
-  ok(!noMono.typography.composites.some((c: any) => c.group === 'code'), 'a brand without mono ships NO code category');
-  ok(!noMono.typography.typefaces.some((t: any) => t.slug === 'jetbrains-mono'), 'no mono role ⇒ no orphan mono typeface primitive');
-  const noMonoTree = buildTree(noMono).tree;
-  const nmRoot = Object.keys(noMonoTree)[0];
-  ok(!(noMonoTree[nmRoot] as any).font.family.mono, 'no mono role emits no font.family.mono leaf');
-  ok(!(noMonoTree[nmRoot] as any).type?.code, 'no mono role emits no type.code composites');
+  const withCode = tBrand('code-on', { families: { body: 'Inter' } });
+  const noCode = tBrand('code-off', { families: { body: 'Inter', code: null } });
+  ok(withCode.typography.families.some((f: any) => f.group === 'code'), 'omitted code keeps the default mono face (existing brands unaffected)');
+  ok(!noCode.typography.families.some((f: any) => f.group === 'code'), 'code: null drops the code family binding');
+  ok(withCode.typography.composites.some((c: any) => c.group === 'code'), 'a brand with a code face ships the code category');
+  ok(!noCode.typography.composites.some((c: any) => c.group === 'code'), 'a brand without one ships NO code category');
+  ok(!noCode.typography.typefaces.some((t: any) => t.slug === 'jetbrains-mono'), 'no code binding ⇒ no orphan mono typeface primitive');
+  const noCodeTree = buildTree(noCode).tree;
+  const nmRoot = Object.keys(noCodeTree)[0];
+  ok(!(noCodeTree[nmRoot] as any).font.family.code, 'no code binding emits no font.family.code leaf');
+  ok(!(noCodeTree[nmRoot] as any).type?.code, 'no code binding emits no type.code composites');
+  // The carve-out is deliberate and enforced, not a happy accident of `code` being last in the list.
+  const thrN = (g: string) => { try { tBrand('null-' + g, { families: { [g]: null } }); return false; } catch { return true; } };
+  ok(['display', 'title', 'body', 'label', 'caption', 'eyebrow'].every(thrN),
+    '[#415] nulling any category OTHER than code throws — the opt-out is a carve-out for code, not a general delete');
 }
 
 // ------------------------------------------------- shadow / elevation invariants
@@ -3608,9 +3626,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const FIXDIR = resolve(HERE, '../fixtures/figma/nb');
   const theme = nbTheme();
 
-  // (a) font.json — byte-reproduce (35 vars: 3 family + 22 size + 5 weight + 5 weight-role).
+  // (a) font.json — byte-reproduce (39 vars: 7 family + 22 size + 5 weight + 5 weight-role).
   // Was 9 weight until #328: weight numerics are minted from the roles that reference them,
   // so 100/200/500/800 — which no role pointed at and nothing aliased — are no longer emitted.
+  // Was 3 family until #415: the display|text|mono ROLE tier is gone and each text CATEGORY binds a
+  // typeface directly, so `font/family/*` is one variable per category. The fixture moved with it —
+  // the same stance #328 took when the weight list shrank, and for the same reason: the typography
+  // half of `fixtures/figma/nb` is an ENGINE snapshot (the color/palette half is the frozen real
+  // export). Here the real-world evidence points the same way — Prism2's own brand-theme binds
+  // `pds/font/family/{display,title,body,detail}`, category names, no role tier. `display` and the two
+  // faces NB binds keep their variable IDs; only the four genuinely-new variables get fresh ones.
   const font = buildFigmaFont(theme)[0];
   const fontFix = JSON.parse(readFileSync(resolve(FIXDIR, 'font.json'), 'utf8'));
   const fontByName = new Map<string, any>(fontFix.variables.map((v: any) => [v.name, v]));
@@ -3726,7 +3751,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if ((p.textDecoration as any).value !== fx.properties.textDecoration.value) decoMismatch.push(`${s.name}: ${(p.textDecoration as any).value} ≠ ${fx.properties.textDecoration.value}`);
   }
   ok(collBad.length === 0, 'figma text-styles: fix #2 — every bound property uses the prescribed collection (core-font / type-sets)' + (collBad.length ? ` — ${collBad.slice(0, 3).join(', ')}` : ''));
-  ok(famBad.length === 0, 'figma text-styles: fix #4 — fontFamily binds font/family/<role> (primary face; full stack in variable description)' + (famBad.length ? ` — ${famBad.slice(0, 3).join('; ')}` : ''));
+  ok(famBad.length === 0, 'figma text-styles: fix #4 — fontFamily binds font/family/<category> (primary face; full stack in variable description)' + (famBad.length ? ` — ${famBad.slice(0, 3).join('; ')}` : ''));
   ok(sizeBind.length === 0, 'figma text-styles: fontSize binds the same var as the fixture (font/<size> or font-fluid/<path>)' + (sizeBind.length ? ` — ${sizeBind.slice(0, 3).join('; ')}` : ''));
   ok(weightBind.length === 0, 'figma text-styles: fontWeight binds font/weight-role/<role>' + (weightBind.length ? ` — ${weightBind.slice(0, 3).join('; ')}` : ''));
   ok(lhWrong.length === 0, 'figma text-styles: fix #3a — lineHeight baked as PERCENT (unit=PERCENT, value = round(multiplier×100))' + (lhWrong.length ? ` — ${lhWrong.slice(0, 3).join('; ')}` : ''));
@@ -3736,8 +3761,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(decoMismatch.length === 0, 'figma text-styles: textDecoration preserved (-link → UNDERLINE, else NONE)' + (decoMismatch.length ? ` — ${decoMismatch.slice(0, 3).join('; ')}` : ''));
 
   // fontStyleName table sanity — mono collapses 600 to Medium (JetBrains Mono has no Semi Bold).
-  ok(fontStyleName('text', 700) === 'Bold' && fontStyleName('display', 600) === 'Semi Bold', 'figma fontStyleName: sans/display weight → real style name (700=Bold, 600=Semi Bold)');
-  ok(fontStyleName('mono', 600) === 'Medium' && fontStyleName('mono', 400) === 'Regular', 'figma fontStyleName: mono collapses 600→Medium (JetBrains Mono lacks Semi Bold)');
+  ok(fontStyleName('body', 700) === 'Bold' && fontStyleName('display', 600) === 'Semi Bold', 'figma fontStyleName: sans/display weight → real style name (700=Bold, 600=Semi Bold)');
+  // #415 — keyed by the `code` CATEGORY now, not the retired `mono` role. Same composites, same table.
+  ok(fontStyleName('code', 600) === 'Medium' && fontStyleName('code', 400) === 'Regular', 'figma fontStyleName: code collapses 600→Medium (JetBrains Mono lacks Semi Bold)');
 }
 // (13) EMIT-FIGMA DIMS (docs/10 §7 item 2) — the geometric axis has NO fixtures
 // (§2 freezes only colour + typography). Gate structurally: variable counts vs

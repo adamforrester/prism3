@@ -3052,11 +3052,11 @@
     },
     "type.title.xs.strong": {
       "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
-      "meaning": "Type style — title xs strong (16px, display face)",
+      "meaning": "Type style — title xs strong (16px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.title}",
         "fontSize": "{prism.font.size.16}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.compact}",
@@ -3065,11 +3065,11 @@
     },
     "type.title.sm.strong": {
       "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
-      "meaning": "Type style — title sm strong (18px, display face)",
+      "meaning": "Type style — title sm strong (18px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.title}",
         "fontSize": "{prism.font.size.18}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.compact}",
@@ -3078,11 +3078,11 @@
     },
     "type.title.md.strong": {
       "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
-      "meaning": "Type style — title md strong (20px, display face)",
+      "meaning": "Type style — title md strong (20px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.title}",
         "fontSize": "{prism.font.size.20}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.compact}",
@@ -3091,11 +3091,11 @@
     },
     "type.title.lg.strong": {
       "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
-      "meaning": "Type style — title lg strong (24px, display face)",
+      "meaning": "Type style — title lg strong (24px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.title}",
         "fontSize": "{prism.font.size.24}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.compact}",
@@ -3104,11 +3104,11 @@
     },
     "type.title.xl.strong": {
       "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
-      "meaning": "Type style — title xl strong (28px, display face)",
+      "meaning": "Type style — title xl strong (28px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.title}",
         "fontSize": "{prism.font.size.28}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.snug}",
@@ -3117,11 +3117,11 @@
     },
     "type.title.2xl.strong": {
       "$description": "Heading type — visual hierarchy, decoupled from DOM level.",
-      "meaning": "Type style — title 2xl strong (36px, display face)",
+      "meaning": "Type style — title 2xl strong (36px, title face)",
       "when_to_use": "Section and page headings; pick the size for visual prominence and set the DOM level (h1–h6) by document structure independently.",
       "avoid_when": "Do not bind the size to a heading level; do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.title}",
         "fontSize": "{prism.font.size.36}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.snug}",
@@ -3130,11 +3130,11 @@
     },
     "type.body.sm.default": {
       "$description": "Running text / default UI copy.",
-      "meaning": "Type style — body sm default (14px, text face)",
+      "meaning": "Type style — body sm default (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text.",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.14}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3143,11 +3143,11 @@
     },
     "type.body.sm.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
-      "meaning": "Type style — body sm default link (14px, text face)",
+      "meaning": "Type style — body sm default link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.sm without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.14}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3157,11 +3157,11 @@
     },
     "type.body.sm.strong": {
       "$description": "Running text / default UI copy.",
-      "meaning": "Type style — body sm strong (14px, text face)",
+      "meaning": "Type style — body sm strong (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text.",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.14}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3170,11 +3170,11 @@
     },
     "type.body.sm.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
-      "meaning": "Type style — body sm strong link (14px, text face)",
+      "meaning": "Type style — body sm strong link (14px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.sm without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.14}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3184,11 +3184,11 @@
     },
     "type.body.md.default": {
       "$description": "Running text / default UI copy.",
-      "meaning": "Type style — body md default (16px, text face)",
+      "meaning": "Type style — body md default (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text.",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.16}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3197,11 +3197,11 @@
     },
     "type.body.md.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
-      "meaning": "Type style — body md default link (16px, text face)",
+      "meaning": "Type style — body md default link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.md without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.16}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3211,11 +3211,11 @@
     },
     "type.body.md.strong": {
       "$description": "Running text / default UI copy.",
-      "meaning": "Type style — body md strong (16px, text face)",
+      "meaning": "Type style — body md strong (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text.",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.16}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3224,11 +3224,11 @@
     },
     "type.body.md.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
-      "meaning": "Type style — body md strong link (16px, text face)",
+      "meaning": "Type style — body md strong link (16px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.md without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.16}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3238,11 +3238,11 @@
     },
     "type.body.lg.default": {
       "$description": "Running text / default UI copy.",
-      "meaning": "Type style — body lg default (18px, text face)",
+      "meaning": "Type style — body lg default (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text.",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.18}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3251,11 +3251,11 @@
     },
     "type.body.lg.default-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
-      "meaning": "Type style — body lg default link (18px, text face)",
+      "meaning": "Type style — body lg default link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.lg without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.18}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3265,11 +3265,11 @@
     },
     "type.body.lg.strong": {
       "$description": "Running text / default UI copy.",
-      "meaning": "Type style — body lg strong (18px, text face)",
+      "meaning": "Type style — body lg strong (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text.",
       "avoid_when": "Do not use for headings (use title/display) or dense control labels (use label).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.18}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3278,11 +3278,11 @@
     },
     "type.body.lg.strong-link": {
       "$description": "Running text / default UI copy (underlined link variant).",
-      "meaning": "Type style — body lg strong link (18px, text face)",
+      "meaning": "Type style — body lg strong link (18px, body face)",
       "when_to_use": "Paragraphs, descriptions, and default interface text. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use body.lg without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.body}",
         "fontSize": "{prism.font.size.18}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -3292,11 +3292,11 @@
     },
     "type.label.sm.emphasis": {
       "$description": "UI label type — buttons, form labels, tabs, chips.",
-      "meaning": "Type style — label sm emphasis (12px, display face)",
+      "meaning": "Type style — label sm emphasis (12px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.label}",
         "fontSize": "{prism.font.size.12}",
         "fontWeight": "{prism.font.weight-role.emphasis}",
         "lineHeight": "{prism.font.line-height.snug}",
@@ -3305,11 +3305,11 @@
     },
     "type.label.md.emphasis": {
       "$description": "UI label type — buttons, form labels, tabs, chips.",
-      "meaning": "Type style — label md emphasis (14px, display face)",
+      "meaning": "Type style — label md emphasis (14px, label face)",
       "when_to_use": "Control and form labels, button text, tabs, chips, badges.",
       "avoid_when": "Do not use for running text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.label}",
         "fontSize": "{prism.font.size.14}",
         "fontWeight": "{prism.font.weight-role.emphasis}",
         "lineHeight": "{prism.font.line-height.snug}",
@@ -3318,11 +3318,11 @@
     },
     "type.caption.md.default": {
       "$description": "Caption / secondary small text.",
-      "meaning": "Type style — caption md default (11px, text face)",
+      "meaning": "Type style — caption md default (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes.",
       "avoid_when": "Do not use for primary reading text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.11}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3331,11 +3331,11 @@
     },
     "type.caption.md.default-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
-      "meaning": "Type style — caption md default link (11px, text face)",
+      "meaning": "Type style — caption md default link (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.md without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.11}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3345,11 +3345,11 @@
     },
     "type.caption.md.strong": {
       "$description": "Caption / secondary small text.",
-      "meaning": "Type style — caption md strong (11px, text face)",
+      "meaning": "Type style — caption md strong (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes.",
       "avoid_when": "Do not use for primary reading text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.11}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3358,11 +3358,11 @@
     },
     "type.caption.md.strong-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
-      "meaning": "Type style — caption md strong link (11px, text face)",
+      "meaning": "Type style — caption md strong link (11px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.md without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.11}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3372,11 +3372,11 @@
     },
     "type.caption.lg.default": {
       "$description": "Caption / secondary small text.",
-      "meaning": "Type style — caption lg default (12px, text face)",
+      "meaning": "Type style — caption lg default (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes.",
       "avoid_when": "Do not use for primary reading text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.12}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3385,11 +3385,11 @@
     },
     "type.caption.lg.default-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
-      "meaning": "Type style — caption lg default link (12px, text face)",
+      "meaning": "Type style — caption lg default link (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.lg without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.12}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3399,11 +3399,11 @@
     },
     "type.caption.lg.strong": {
       "$description": "Caption / secondary small text.",
-      "meaning": "Type style — caption lg strong (12px, text face)",
+      "meaning": "Type style — caption lg strong (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes.",
       "avoid_when": "Do not use for primary reading text (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.12}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3412,11 +3412,11 @@
     },
     "type.caption.lg.strong-link": {
       "$description": "Caption / secondary small text (underlined link variant).",
-      "meaning": "Type style — caption lg strong link (12px, text face)",
+      "meaning": "Type style — caption lg strong link (12px, caption face)",
       "when_to_use": "Image captions, helper text, metadata, footnotes. The underlined link variant — pair with the text.link.* color.",
       "avoid_when": "Do not use for non-link text (use caption.lg without -link).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.text}",
+        "fontFamily": "{prism.font.family.caption}",
         "fontSize": "{prism.font.size.12}",
         "fontWeight": "{prism.font.weight-role.strong}",
         "lineHeight": "{prism.font.line-height.cozy}",
@@ -3426,11 +3426,11 @@
     },
     "type.eyebrow.sm.emphasis": {
       "$description": "Eyebrow / kicker — small uppercase label above a heading.",
-      "meaning": "Type style — eyebrow sm emphasis (11px, display face, uppercase)",
+      "meaning": "Type style — eyebrow sm emphasis (11px, eyebrow face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.eyebrow}",
         "fontSize": "{prism.font.size.11}",
         "fontWeight": "{prism.font.weight-role.emphasis}",
         "lineHeight": "{prism.font.line-height.snug}",
@@ -3440,11 +3440,11 @@
     },
     "type.eyebrow.md.emphasis": {
       "$description": "Eyebrow / kicker — small uppercase label above a heading.",
-      "meaning": "Type style — eyebrow md emphasis (12px, display face, uppercase)",
+      "meaning": "Type style — eyebrow md emphasis (12px, eyebrow face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.eyebrow}",
         "fontSize": "{prism.font.size.12}",
         "fontWeight": "{prism.font.weight-role.emphasis}",
         "lineHeight": "{prism.font.line-height.snug}",
@@ -3454,11 +3454,11 @@
     },
     "type.eyebrow.lg.emphasis": {
       "$description": "Eyebrow / kicker — small uppercase label above a heading.",
-      "meaning": "Type style — eyebrow lg emphasis (18px, display face, uppercase)",
+      "meaning": "Type style — eyebrow lg emphasis (18px, eyebrow face, uppercase)",
       "when_to_use": "A short label sitting above a title or hero (a \"kicker\").",
       "avoid_when": "Do not use as the heading itself (use title) or for body copy.",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.display}",
+        "fontFamily": "{prism.font.family.eyebrow}",
         "fontSize": "{prism.font.size.18}",
         "fontWeight": "{prism.font.weight-role.emphasis}",
         "lineHeight": "{prism.font.line-height.snug}",
@@ -3468,11 +3468,11 @@
     },
     "type.code.inline.default": {
       "$description": "Monospace / code type.",
-      "meaning": "Type style — code inline default (14px, mono face)",
+      "meaning": "Type style — code inline default (14px, code face)",
       "when_to_use": "Inline code, code blocks, and column-aligned values.",
       "avoid_when": "Do not use for prose (use body).",
       "resolves_to": {
-        "fontFamily": "{prism.font.family.mono}",
+        "fontFamily": "{prism.font.family.code}",
         "fontSize": "{prism.font.size.14}",
         "fontWeight": "{prism.font.weight-role.default}",
         "lineHeight": "{prism.font.line-height.normal}",
@@ -5409,8 +5409,12 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
+        "font.family.body",
+        "font.family.caption",
         "font.family.display",
-        "font.family.text",
+        "font.family.eyebrow",
+        "font.family.label",
+        "font.family.title",
         "type.body.lg.default",
         "type.body.lg.default-link",
         "type.body.lg.strong",
@@ -5456,7 +5460,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
       "aliased_by": [
-        "font.family.mono",
+        "font.family.code",
         "type.code.inline.default"
       ]
     },

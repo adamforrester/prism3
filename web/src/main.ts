@@ -2436,11 +2436,11 @@ const renderTypePreview = (): HTMLElement => {
   for (const f of ty.families) {
     const tr = el('tr');
     const nc = el('td', 'mtbl-stick');
-    nc.append(el('span', 'mtbl-name mono', f.role));
+    nc.append(el('span', 'mtbl-name mono', f.group));
     tr.append(nc);
     let stack = f.stack.join(', ');
     for (const m of rp.modes) {
-      const per = ty.familiesByMode?.[m]?.find((x) => x.role === f.role)?.stack.join(', ');
+      const per = ty.familiesByMode?.[m]?.find((x) => x.group === f.group)?.stack.join(', ');
       const resolved = per ?? f.stack.join(', ');
       if (m === 'light') stack = resolved;
       const td = el('td', 'mtbl-mode');
@@ -2473,15 +2473,15 @@ const renderTypePreview = (): HTMLElement => {
   // still ships (or doesn't ship) these weights, so hiding it would drop a real availability fact.
   const wsec = palSection('Weight roles by face', 'Each role at the numeric it resolves to, and whether each face actually ships that weight. Availability is advisory — nothing here is ever blocked. Set the numerics on Semantics.');
   const faces: Array<{ name: string; stack: string; roles: string[] }> = [];
-  const addFace = (stackArr: string[] | undefined, role: string): void => {
+  const addFace = (stackArr: string[] | undefined, cat: string): void => {
     if (!stackArr?.length) return;
     const name = stackArr[0].replace(/["']/g, '').trim();
     const found = faces.find((f) => f.name.toLowerCase() === name.toLowerCase());
-    if (found) { if (!found.roles.includes(role)) found.roles.push(role); return; }
-    faces.push({ name, stack: stackArr.join(', '), roles: [role] });
+    if (found) { if (!found.roles.includes(cat)) found.roles.push(cat); return; }
+    faces.push({ name, stack: stackArr.join(', '), roles: [cat] });
   };
-  for (const f of ty.families) addFace(f.stack, f.role);
-  for (const m of rp.modes) for (const f of ty.familiesByMode?.[m] ?? []) addFace(f.stack, f.role);
+  for (const f of ty.families) addFace(f.stack, f.group);
+  for (const m of rp.modes) for (const f of ty.familiesByMode?.[m] ?? []) addFace(f.stack, f.group);
 
   const wtbl = el('div', 'mtbl');
   const wscroll = el('div', 'mtbl-scroll');
@@ -2803,11 +2803,6 @@ const WEIGHT_NAME: Record<number, string> = {
   100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium',
   600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
 };
-const FAMILY_ROLES: Array<['display' | 'text' | 'mono', string, string]> = [
-  ['display', 'Display', 'Headings & hero type.'],
-  ['text', 'Text', 'Reading & UI copy.'],
-  ['mono', 'Mono', 'Code & column-aligned figures.'],
-];
 
 // ---- FOUNDATIONS (primitives) ----------------------------------------------
 
@@ -2819,13 +2814,15 @@ const FAMILY_ROLES: Array<['display' | 'text' | 'mono', string, string]> = [
  *  role bindings (and any per-mode overrides) actually name, so a face exists exactly as long as
  *  something binds it. That is also why removal needs no cascade — unbind it and it stops emitting.
  *
- *  TIER 2, the bindings: `font.family.<role>` — display / text / mono, the brand-invariant handles a
- *  shared codebase references. Each aliases one library face. The role set is fixed by design (#269
- *  rejected extensible roles): the typeface library is shared ACROSS brands and each brand binds its
- *  own members, so N faces exist system-wide while any one brand binds at most three.
+ *  TIER 2, the bindings: `font.family.<category>` — one per text category, the brand-invariant handles
+ *  a shared codebase references. Each aliases one library face. #415 retired the display/text/mono
+ *  ROLE tier that used to sit here: #269's argument was for a NAMED tier-2 (so a face swap leaves
+ *  consumer references intact), which category names satisfy just as well, and role-keying cost a
+ *  coupling — two categories on one role could not be moved apart without a second mechanism. The
+ *  typeface library is still shared ACROSS brands with each brand binding its own members.
  *
- *  Categories stay absent here — which category draws on which face is a composite concern, and lives
- *  on Text styles. */
+ *  The bindings live on Semantics, not here: `font.family.*` is a semantic token, and this tab is
+ *  primitives only. */
 /** Tier 1 — the faces this brand has (Primitives tab). Split from the bindings (#388 part B): they
  *  were one section because they were one tab, and that section straddled the primitive/semantic line
  *  the tabs are now named for. */
@@ -2834,11 +2831,11 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const perMode = currentMode !== 'light';
   const sec = palSection('Typefaces', 'The faces this brand has, independent of what any of them does. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim. This is the only primitive on this tab you can edit.');
 
-  // Effective face per role, honouring a per-mode override.
-  const boundFace = (role: 'display' | 'text' | 'mono'): string => {
-    const base = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
+  // Effective face per category, honouring a per-mode override.
+  const boundFace = (cat: string): string => {
+    const base = ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
     if (!perMode) return base;
-    const ov = getModeLever(currentMode, `families.${role}`);
+    const ov = getModeLever(currentMode, `families.${cat}`);
     const ovName = Array.isArray(ov) ? ov[0] : (ov as string | undefined);
     return ovName ?? base;
   };
@@ -2847,22 +2844,26 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // Converted to the shared table format alongside leading & tracking (#363) so the tab reads on ONE
   // column grid rather than a card list beside two tables. Same three fixed-width columns as the rung
   // tables, and no mode axis for the same reason: a typeface primitive is mode-invariant. WHICH face a
-  // role binds does vary by mode — but that is the bindings tier, now on Semantics.
+  // category binds does vary by mode — but that is the bindings tier, now on Semantics.
   sec.append(subHead('The library — one primitive per face'));
   /** Where a face's binding lives. #287 made "in the library, bound to nothing" a REAL state — before
-   *  it, a face existed only while a role bound it, so the old copy could say the list was purely
+   *  it, a face existed only while a category bound it, so the old copy could say the list was purely
    *  derived. It no longer can, and an unbound face must not be mislabelled as a mode override. */
   const bindingOf = (name: string): { label: string; unbound: boolean } => {
-    const here = FAMILY_ROLES.filter(([role]) => boundFace(role) === name).map(([, label]) => label);
+    // #415 — categories, not roles. A face bound by all of them says so once rather than listing
+    // seven names in a 148px cell, which is the shape the collapse would otherwise produce for the
+    // ordinary single-face brand.
+    const here = TYPE_GROUP_ORDER.filter((cat) => boundFace(cat) === name);
+    if (here.length === TYPE_GROUP_ORDER.length) return { label: 'Every category', unbound: false };
     if (here.length) return { label: here.join(' + '), unbound: false };
     const inModes = rp.modes.filter((m) => (ty.familiesByMode?.[m] ?? []).some((f) => f.stack[0] === name))
       .map((m) => MODE_LABEL[m] ?? m);
     if (inModes.length) return { label: `Only in ${inModes.join(', ')}`, unbound: false };
-    if (ty.families.some((f) => f.stack[0] === name)) return { label: 'A role', unbound: false };
+    if (ty.families.some((f) => f.stack[0] === name)) return { label: 'A category', unbound: false };
     return { label: 'Not bound — staged', unbound: true };
   };
   /** The AUTHORED library (#287) — distinct from `ty.typefaces`, which is the derived union of authored
-   *  entries and role-bound faces. Only this array is editable: a face that exists purely because a role
+   *  entries and bound faces. Only this array is editable: a face that exists purely because a category
    *  binds it has no library entry to remove, which is the same reason a bound entry is not deletable. */
   const library = (): string[] => (getPath(brandState, 'typography.typefaceLibrary') as string[] | undefined) ?? [];
   const inLibrary = (name: string): boolean => library().some((n) => typefaceSlug(n) === typefaceSlug(name));
@@ -2893,7 +2894,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
     bc.append(el('span', 'tf-usedby' + (bind.unbound ? ' unbound' : ''), bind.label));
     // The decided removal semantics (#287): only UNBOUND entries are deletable, which needs no cascade
     // logic anywhere. The known cost is a "why can't I delete this?" moment, and the answer is here —
-    // on the cell that already names the roles standing in the way — rather than as a disabled button,
+    // on the cell that already names the categories standing in the way — rather than as a disabled button,
     // which would invite the click it then refuses.
     if (!bind.unbound && inLibrary(tf.name))
       bc.title = `In the library and bound — re-point ${bind.label} to something else to make this removable.`;
@@ -2928,7 +2929,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // Staging a face — the authoring half #287 deferred to this follow-up. Validation MIRRORS the engine's
   // (`buildTypography`: non-empty, no duplicate slug) so a typo is answered here instead of surfacing as
   // a thrown build. The duplicate check runs against the DERIVED list, not just the authored array: a
-  // name already reachable via a role binding would be silently absorbed by the union and the row would
+  // name already reachable via a category binding would be silently absorbed by the union and the row would
   // never appear, which reads as "the button did nothing".
   const addRow = el('div', 'tf-add');
   const addIn = el('input', 'tf-in tf-addin') as HTMLInputElement;   // tf-in carries the shared field treatment; tf-addin only constrains width
@@ -2952,7 +2953,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
     if (clash) {
       addErr.textContent = inLibrary(clash.name)
         ? `${clash.name} is already in the library.`
-        : `${clash.name} is already here — a role binds it, so it is in the library list already.`;
+        : `${clash.name} is already here — a category binds it, so it is in the library list already.`;
       addErr.hidden = false; addIn.focus(); return;
     }
     setPath(brandState, 'typography.typefaceLibrary', [...library(), name]);
@@ -2965,105 +2966,155 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
   // role binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
   sec.append(el('p', 'tf-derivenote', anyUnbound
-    ? 'This list is a union: a face appears because a role on Semantics binds it, or because the brand input stages it in typography.typefaceLibrary. A staged face can sit here bound to nothing until you give it a job. Slugs come from the face name, so there is no rename to cascade.'
-    : 'Every face here is bound by a role on Semantics — add a name and its primitive appears here, ready to bind. A brand can also stage a face with no role in typography.typefaceLibrary, in which case it sits here unbound until you give it a job. Slugs come from the face name, so there is no rename to cascade.'));
+    ? 'This list is a union: a face appears because a category on Semantics binds it, or because the brand input stages it in typography.typefaceLibrary. A staged face can sit here bound to nothing until you give it a job. Slugs come from the face name, so there is no rename to cascade.'
+    : 'Every face here is bound by a category on Semantics — add a name and its primitive appears here, ready to bind. A brand can also stage a face with no category in typography.typefaceLibrary, in which case it sits here unbound until you give it a job. Slugs come from the face name, so there is no rename to cascade.'));
 
   return sec;
 };
 
-/** Tier 2 — which face does each job (Semantics tab). Split from the library (#388 part B): the two
- *  tiers were one section because they were one tab. `boundFace` is passed in rather than re-derived
- *  so both tiers read a per-mode binding exactly the same way. */
+/** Tier 2 — which face does each CATEGORY draw from (Semantics tab). Split from the library (#388
+ *  part B): the two tiers were one section because they were one tab.
+ *
+ *  #415 re-keyed this from three abstract ROLES (display / text / mono) to the seven categories. Two
+ *  things follow. The list is longer, so it moves onto the shared table grid the rest of the tab uses
+ *  rather than staying a three-card row that only ever fit three. And a single-face brand would
+ *  otherwise have to state the same name seven times, so the bulk control above the table exists to
+ *  make the common case one action. */
 const renderTypefaceBindings = (): HTMLElement => {
   const ty = theme.typography;
   const perMode = currentMode !== 'light';
   const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  const sec = palSection('Typefaces', 'Which face does each job. The role is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a category never names a face directly.');
-  const boundFace = (role: 'display' | 'text' | 'mono'): string => {
-    const base = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
-    if (!perMode) return base;
-    const ov = getModeLever(currentMode, `families.${role}`);
-    const ovName = Array.isArray(ov) ? ov[0] : (ov as string | undefined);
-    return ovName ?? base;
+  const sec = palSection('Typefaces', 'Which face each category draws from. `font.family.<category>` is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a text style never names a face directly.');
+  const baseFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
+  const modeOverride = (cat: string): string | undefined => {
+    const ov = getModeLever(currentMode, `families.${cat}`);
+    return Array.isArray(ov) ? ov[0] : (ov as string | undefined);
   };
-  sec.append(subHead('The bindings — which face does each job'));
-  const grid = el('div', 'tf-grid');
-  for (const [role, label, desc] of FAMILY_ROLES) {
-    const globalPrimary = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
-    const ov = perMode ? (Array.isArray(getModeLever(currentMode, `families.${role}`)) ? (getModeLever(currentMode, `families.${role}`) as string[])[0] : getModeLever(currentMode, `families.${role}`) as string | undefined) : undefined;
-    const shown = perMode ? (ov ?? globalPrimary) : globalPrimary;
-    // mono alone is nullable — `families.mono: null` opts out, and `code` is the only category that
-    // binds mono, so the category goes with it (#269).
-    const unbound = role === 'mono' && !perMode && getPath(brandState, 'typography.families.mono') === null;
-    const card = el('div', 'tf-card');
-    card.append(el('div', 'tf-role', label), el('div', 'tf-desc', desc));
+  sec.append(subHead('The bindings — which face each category draws from'));
 
-    // Pick from the library, author a new face, or (mono) bind nothing at all.
-    // Sentinels rather than plain words: the value is compared against real face names, so it
-    // must be something no font family can be called.
+  // The bulk control. `code` is deliberately OUT of its reach: it is the one category whose default is
+  // a different KIND of face, so sweeping a text face across it is nearly always the wrong outcome and
+  // would be silent. Stated on the control rather than enforced invisibly.
+  const bulk = el('div', 'tf-bulk');
+  const bulkSel = selectEl('sm');
+  bulkSel.append(optionEl('', 'Choose a face…', true));
+  for (const t of ty.typefaces) bulkSel.append(optionEl(t.name, t.name, false));
+  const bulkBtn = el('button', 'tf-addbtn', 'Apply to all') as HTMLButtonElement;
+  const BULK_CATS = TYPE_GROUP_ORDER.filter((g) => g !== 'code');
+  bulkBtn.onclick = () => {
+    if (!bulkSel.value) return;
+    for (const g of BULK_CATS) {
+      if (perMode) setModeLever(currentMode, `families.${g}`, bulkSel.value);
+      else setPath(brandState, `typography.families.${g}`, bulkSel.value);
+    }
+    applyFull();
+  };
+  bulk.append(el('span', 'tf-bulklab', 'Set every text category to'), bulkSel, bulkBtn);
+  sec.append(bulk, el('p', 'tf-derivenote', 'Code keeps whatever face it has — a monospace choice is a different decision, so it is set on its own row below.'));
+
+  const box = el('div', 'mtbl');
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  // Column three is the PRIMITIVE this binding aliases, not an availability flag. Availability is a
+  // property of the FACE and the library on Primitives already reports it per face, so a per-category
+  // copy would print the same answer up to seven times — and for a single-face brand the column would
+  // be seven identical ticks. The alias target is the fact this tier actually owns.
+  htr.append(el('th', 'mtbl-stick', 'Category'), el('th', 'mtbl-mode', 'Face'),
+    el('th', 'mtbl-mode', 'Aliases'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  for (const cat of TYPE_GROUP_ORDER) {
+    const globalPrimary = baseFace(cat);
+    const ov = perMode ? modeOverride(cat) : undefined;
+    const shown = perMode ? (ov ?? globalPrimary) : globalPrimary;
+    // `code` alone is nullable — `families.code: null` opts out, and the code category goes with it
+    // (#269, re-keyed by #415). Nulling any other category is refused by the engine.
+    const unbound = cat === 'code' && !perMode && getPath(brandState, 'typography.families.code') === null;
+
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', cat));
+    nc.append(el('div', 'cs-count', TYPE_GROUP_BLURB[cat] ?? ''));
+    tr.append(nc);
+
+    // Pick from the library, author a new face, or (code) bind nothing at all. Sentinels rather than
+    // plain words: the value is compared against real face names, so it must be something no font
+    // family can be called.
     const CUSTOM = '__custom__';
     const NONE = '__none__';
     const opts: Array<[string, string]> = ty.typefaces.map((t) => [t.name, t.name] as [string, string]);
     if (!opts.some(([v]) => v === shown) && shown) opts.push([shown, shown]);
     opts.push([CUSTOM, 'Custom face…']);
-    if (role === 'mono' && !perMode) opts.push([NONE, 'None — no mono face']);
+    if (cat === 'code' && !perMode) opts.push([NONE, 'None — no code styles']);
 
     const input = el('input', 'tf-in') as HTMLInputElement;
     input.type = 'text'; input.spellcheck = false;
     input.value = perMode ? (ov ?? '') : (unbound ? '' : globalPrimary);
     input.placeholder = perMode ? `Auto — ${globalPrimary}` : 'Font family name';
-    const stat = el('div', 'tf-stat');
-    const prev = el('div', 'tf-prev', 'Ag 123');
+    input.setAttribute('aria-label', `Font family for ${cat}`);
+    const stat = el('span', 'tf-stat');
+    const prev = el('span', 'mtbl-spec-t tf-prev', 'The quick brown fox jumps');
     const paint = (face: string): void => {
-      const ok = fontAvailable(face);
-      stat.className = 'tf-stat ' + (ok ? 'ok' : 'no');
-      stat.textContent = ok ? '✓ Rendering on this device' : (face ? '⚠ Not installed — preview falls back' : '⚠ Using the default face');
-      prev.style.fontFamily = face ? `"${face}", ${role === 'mono' ? 'monospace' : 'sans-serif'}` : 'inherit';
+      const okFace = fontAvailable(face);
+      stat.className = 'tf-stat ' + (okFace ? 'ok' : 'no');
+      stat.textContent = okFace ? '✓ Installed' : (face ? '⚠ Not installed' : '⚠ Default face');
+      prev.style.fontFamily = face ? `"${face}", ${cat === 'code' ? 'monospace' : 'sans-serif'}` : 'inherit';
     };
-
     const commit = (v: string | null | undefined): void => {
-      if (perMode) { setModeLever(currentMode, `families.${role}`, v ?? undefined); applyFull(); }
-      else { setPath(brandState, `typography.families.${role}`, v); applyFull(); }
+      if (perMode) { setModeLever(currentMode, `families.${cat}`, v ?? undefined); applyFull(); }
+      else { setPath(brandState, `typography.families.${cat}`, v); applyFull(); }
     };
 
     const cur = unbound ? NONE : (shown || CUSTOM);
     const sel = selectEl('sm fill');
     for (const [v, label] of opts) sel.append(optionEl(v, label, v === cur));
     sel.onchange = () => {
-      if (sel.value === CUSTOM) { input.hidden = false; syncStat(); input.value = ''; paint(''); input.focus(); return; }
+      if (sel.value === CUSTOM) { input.hidden = false; stat.hidden = false; input.value = ''; paint(''); input.focus(); return; }
       if (sel.value === NONE) { commit(null); return; }
+      // An empty value means the assignment matched no option — which happens when the option list
+      // shrinks under a stale reference. Writing it through would store `families.<cat>: ""`, a key
+      // that means nothing and that the engine only survives because it reads empty as unset.
+      if (!sel.value) return;
       commit(sel.value);
     };
     // The free-text field is the authoring path for a face not yet in the library; picking an
     // existing one hides it, so there are never two live inputs for the same value (doc 26).
-    input.hidden = !(unbound ? false : (!shown || !ty.typefaces.some((t) => t.name === shown)));
-    if (unbound) input.hidden = true;
+    input.hidden = unbound ? true : !(!shown || !ty.typefaces.some((t) => t.name === shown));
     input.oninput = () => paint(input.value.trim() || globalPrimary);
     input.onchange = () => commit(input.value.trim() || (perMode ? undefined : null));
-
     paint(unbound ? '' : shown);
-    // Availability is a property of the FACE, and the library above already reports it per face.
-    // Repeating it on every binding just triples the same warning — so it shows here only while the
-    // custom field is live, which is the one moment you are naming a face and need the answer now.
+
+    sel.title = shown || '';
+    const fc = el('td', 'mtbl-mode');
+    // Both the input and the stat are ALWAYS appended and toggled with `hidden` — appending only when
+    // visible would leave "Custom face…" with nothing to reveal, since the handler that unhides them
+    // runs long after this cell is built.
+    // The availability warning rides WITH the custom field rather than living in its own column: it is
+    // only news at the moment you are naming a face by hand, and the library on Primitives is where it
+    // belongs the rest of the time.
     stat.hidden = input.hidden;
-    const syncStat = (): void => { stat.hidden = input.hidden; };
-    card.append(sel, input, stat);
-    if (unbound) {
-      card.append(el('div', 'tf-unbound', 'No mono face — the code category is not generated.'));
-    } else {
-      card.append(prev);
-    }
-    card.append(tokenPill(`font.family.${role}`));
-    grid.append(card);
+    fc.append(sel, input, stat);
+    tr.append(fc);
+    const sc = el('td', 'mtbl-mode');
+    if (unbound) sc.append(el('span', 'cs-count', '—'));
+    else sc.append(tokenPill(`font.typeface.${typefaceSlug(shown || '')}`));
+    tr.append(sc);
+    const pc = el('td', 'mtbl-fill mtbl-spec');
+    if (unbound) pc.append(el('span', 'tf-unbound', 'No code face — the code category is not generated.'));
+    else pc.append(prev);
+    pc.append(tokenPill(`font.family.${cat}`));
+    tr.append(pc);
+    tb.append(tr);
   }
-  sec.append(grid);
+  tbl.append(tb); scroll.append(tbl); box.append(scroll); sec.append(box);
 
   const spell = el('p', 'tf-note');
   spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
   const local = el('p', 'tf-note warn');
   local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback — the ⚠ above tells you when that is happening. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(spell, local);
-  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s bindings — blank follows the global baseline. The library above shows every face any mode names.`));
+  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s bindings — blank follows the global baseline. The library on Primitives shows every face any mode names.`));
   return sec;
 };
 
@@ -3083,7 +3134,7 @@ const renderSizeLadder = (): HTMLElement => {
   sec.append(subHead('The ladder — largest first'));
   const used = new Set(ty.composites.map((c) => c.sizePx));
   const minUsed = new Set(ty.composites.map((c) => c.sizeMinPx));
-  const displayStack = ty.families.find((f) => f.role === 'display')?.stack.join(', ') ?? 'inherit';
+  const displayStack = ty.families.find((f) => f.group === 'display')?.stack.join(', ') ?? 'inherit';
   // #404 — the SHARED table shape, on the same 112/148/148/390 grid as the leading/tracking ladders
   // below it. It was the one bespoke row layout left on the tab, and it also dimmed unbound rungs and
   // carried a three-key legend, so the two ladder tables on one tab taught opposite things: this one
@@ -3332,7 +3383,7 @@ const WEIGHT_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 const renderWeightTable = (): HTMLElement => {
   const ty = theme.typography;
   const modes = rp.modes;
-  const textStack = ty.families.find((f) => f.role === 'text')?.stack.join(', ') ?? 'inherit';
+  const textStack = ty.families.find((f) => f.group === 'body')?.stack.join(', ') ?? 'inherit';
   const box = el('div', 'mtbl');
   box.append(el('p', 'mtbl-cap', 'weight roles'));
   const scroll = el('div', 'mtbl-scroll');
@@ -3496,7 +3547,7 @@ const renderCategorySetup = (): HTMLElement => {
   const perMode = currentMode !== 'light';
   const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
   const roleOrder = ty.weightRoles.map((w) => w.role);
-  const sec = palSection('What each category is made of', 'Give every category the face it draws from and the weight roles it ships, nudge its leading and tracking, and choose whether it gets italic and underlined-link variants. Each ticked weight multiplies out into a real style at every size in that category.');
+  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants. Each ticked weight multiplies out into a real style at every size in that category. The face is shown for context and set on Semantics.');
   if (perMode) sec.append(el('p', 'te-shared-note', `Shared across all modes — the composite skeleton is authored in Light; ${modeLabel} only overrides the face and weight VALUES.`));
   const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
   const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
@@ -3560,36 +3611,30 @@ const renderCategorySetup = (): HTMLElement => {
     const nameTd = el('td');
     nameTd.append(el('div', 'cs-name mono', g), el('div', 'cs-count', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`));
     tr.append(nameTd);
-    // #390 — this select used to be DISABLED outside Light, and that was never a UI choice: there was
-    // no per-mode field to write into. `familyMap` was brand-wide, and `modeLevers.<mode>.families.<role>`
-    // swaps the FACE a role binds, so a mode could only move every category on that role together —
-    // Dark could not move `title` without also moving `display`. With the per-mode familyMap the control
-    // is live in every mode and writes the category → role re-point.
+    // #415 — READ-ONLY. This was a select over the display/text/mono ROLES, and it is the control that
+    // exposed the tier as a mistake: with every role on one face it rendered several options all
+    // labelled "Inter" (the values were roles, the labels were faces), so picking one was guesswork.
+    // Collapsing the tier removes the choice from here rather than relabelling it — the category now
+    // binds a face directly, and `font.family.<category>` is a SEMANTIC token, so its editor belongs on
+    // Semantics next to the other semantics. Two live editors for one value is the state the mode-bar
+    // overlap already put this page in (#416); this does not add a third.
     //
-    // Outside Light the baseline option is "Auto", not a role name: a mode that named its own baseline
-    // role would store an inert self-map (the engine drops it), so "Auto" is the honest label for
-    // "follow the brand" and keeps clearing an override reachable.
-    const fsel = selectEl('sm');
-    // `composite.family` is the LIGHT role by construction — #390 puts the per-mode value on
-    // `familyByMode`, never on `family` — so this stays the baseline even while a mode overrides it.
-    const curFam = comps[0]?.family ?? 'text';
-    const faceOfRole = (role: string): string => ty.families.find((f) => f.role === role)?.stack[0] ?? role;
-    if (perMode) {
-      const ov = getModeLever(currentMode, `familyMap.${g}`) as string | undefined;
-      fsel.append(optionEl('', `Auto — ${faceOfRole(curFam)}`, !ov));
-      for (const [role] of FAMILY_ROLES) fsel.append(optionEl(role, faceOfRole(role), role === ov));
-      if (ov) fsel.classList.add('set');
-      // `applyFull`, not `apply`, and only on this branch: `.set` is DERIVED state (does this mode carry
-      // an override?), and `apply()` repaints only the volatile region, so the class lagged a repaint
-      // behind the value — measured, with the write and the persisted state already correct while the
-      // affordance still read unset. The Light branch needs no repaint: the only thing it changes on
-      // screen is the select's own value, which the DOM already holds.
-      fsel.onchange = () => { setModeLever(currentMode, `familyMap.${g}`, fsel.value || undefined); applyFull(); };
-    } else {
-      for (const [role] of FAMILY_ROLES) fsel.append(optionEl(role, faceOfRole(role), role === curFam));
-      fsel.onchange = () => { setPath(brandState, `typography.familyMap.${g}`, fsel.value); apply(); };
-    }
-    const ftd = el('td'); ftd.append(fsel); tr.append(ftd);
+    // It stays as a resolved READING because it is real context for the row — the weight set and the
+    // leading nudge beside it are choices you make knowing which face they land on — and because the
+    // per-mode value is genuinely different information from the baseline.
+    const faceOf = (cat: string): string => {
+      const base = ty.families.find((f) => f.group === cat)?.stack[0] ?? '—';
+      if (!perMode) return base;
+      const ov = getModeLever(currentMode, `families.${cat}`);
+      const ovName = Array.isArray(ov) ? ov[0] : (ov as string | undefined);
+      return ovName ?? base;
+    };
+    const ftd = el('td');
+    const fname = el('div', 'cs-face', faceOf(g));
+    fname.title = ty.families.find((f) => f.group === g)?.stack.join(', ') ?? '';
+    ftd.append(fname);
+    ftd.append(el('div', 'cs-count', 'Set on Semantics'));
+    tr.append(ftd);
     const has = new Set(comps.map((c) => c.weightRole));
     for (const r of roleOrder) {
       const td = el('td', 'cs-c');
@@ -4084,7 +4129,7 @@ const renderTypeRamp = (): HTMLElement => {
     const sizeMinPx = c.sizeMinByMode?.[m] ?? (c.sizeByMode?.[m] !== undefined ? sizePx : c.sizeMinPx);
     return {
       sizePx, sizeMinPx, lhKey, lsKey,
-      stack: fams.find((f) => f.role === c.family)?.stack.join(', ') ?? 'inherit',
+      stack: fams.find((f) => f.group === c.group)?.stack.join(', ') ?? 'inherit',
       weight: wrs.find((w) => w.role === c.weightRole)?.value ?? 400,
     };
   };
@@ -4106,7 +4151,7 @@ const renderTypeRamp = (): HTMLElement => {
       const row = el('div', 'tr-row');
       const meta = el('div', 'tr-meta');
       meta.append(tokenPill(`type.${c.path}`));
-      meta.append(el('span', 'tr-attr mono', `${c.weightRole} · ${c.family}`));
+      meta.append(el('span', 'tr-attr mono', `${c.weightRole} · ${c.group}`));
       row.append(meta);
       // One column per mode. Scrolls horizontally rather than wrapping: a wrapped column would read as
       // a new row, which is precisely the confusion a side-by-side table exists to remove.
@@ -5915,15 +5960,32 @@ input.toggle:disabled{opacity:.5;cursor:default}
 
 /* Typography — the four tier tabs (#272, resplit in #388 part B) */
 .tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
-.tf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.tf-card{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:9px;min-width:0}
-.tf-role{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2)}
-.tf-desc{font-size:11.5px;color:var(--faint);line-height:1.45;min-height:32px}
+/* #415 — the three-card binding grid (.tf-grid/.tf-card/.tf-role/.tf-desc) is gone with the three
+   family roles it was sized for; seven categories read as a table on the tab's shared grid. Deleted
+   rather than left inert, which is the .errbar-global lesson from #388. */
+/* The bulk-set: one action for the single-face brand, which the collapse would otherwise make a
+   seven-field chore. flex:none on the button keeps its intrinsic width out of the row's sizing —
+   the trap #369/#388 kept hitting. */
+.tf-bulk{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:2px 0 0}
+.tf-bulklab{font-size:12.5px;color:var(--ink2);font-weight:560}
 .tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
 .tf-stat{font-size:11px;font-weight:600}
+.mtbl-mode .tf-in{margin-top:6px;font-size:12.5px;padding:5px 7px}
+/* The hidden attribute must still win: an author display:block here outranks the UA sheet's hidden
+   rule, which is how the availability line ended up printed on all seven rows at once. */
+.mtbl-mode .tf-stat{display:block;margin-top:4px;line-height:1.35}
+.mtbl-mode .tf-stat[hidden],.mtbl-mode .tf-in[hidden]{display:none}
+/* A token pill is white-space:nowrap, so its full single-line width is its MIN-CONTENT contribution
+   and the 148px column width property is only a hint it happily blows past — the intrinsic-width trap
+   #360/#369/#388, measured again here at 829px vs the shared 798px grid. An explicit px cap clamps
+   the intrinsic contribution; the pill already ellipsizes and carries the full path in its title attribute. */
+.mtbl-mode .tpill{max-width:124px}
 .tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--warn)}
 /* line-height must exceed the font's em box (~1.2) or descenders clip */
 .tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
+/* #415 — the resolved face per category on Text styles: a READING, not a control. Same type
+   treatment as .cs-name so the row's two identity cells sit on one baseline. */
+.cs-face{font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}
 .tf-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
 .tf-note b{color:var(--ink2)}
 .tf-note.warn{background:#fff8ed;border-color:#f0d9b5;color:#7a5320}
@@ -6038,7 +6100,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tr-mode{min-width:0;border-left:1px solid var(--line);padding-left:11px}
 .tr-mode:first-child{border-left:0;padding-left:0}
 .tr-mode-n{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);margin-bottom:2px}
-@media(max-width:760px){.tf-grid{grid-template-columns:1fr}}
+@media(max-width:760px){.tf-bulk{align-items:stretch;flex-direction:column}}
 /* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
    1fr track never clamps and the widest child drags the whole column past the viewport.
    The desktop rule above already uses the idiom; the collapse override had lost it (#144). */

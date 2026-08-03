@@ -34,16 +34,18 @@ iconContrast: "3:1"
 # A snappy tempo compresses the duration ramp vs NB's standard.
 motionPersonality: { tempo: snappy }
 
-# A distinct variable display face, a remapped emphasis weight (500, not the
-# default 600), the expressive type scale, a hero cap at the display.xl rung, a 16px brand-font
-# title (overlaps body.md), labels on the text face, and a wider clamp window.
+# A distinct variable display face on the heading categories, a remapped emphasis weight (500, not
+# the default 600), the expressive type scale, a hero cap at the display.xl rung, a 16px brand-font
+# title (overlaps body.md), labels on the workhorse face, and a wider clamp window.
+# Families are stated per CATEGORY (#415): there is no display/text/mono role tier to route through,
+# so a brand names the face each category draws from directly — the same way Prism2's brand-theme
+# binds font/family/{display,title,body,detail}.
 typography:
-  families: { display: Clash Display, text: Inter, mono: JetBrains Mono, variable: { display: true, text: true } }
+  families: { display: Clash Display, title: Clash Display, eyebrow: Clash Display, body: Inter, caption: Inter, label: Inter, code: JetBrains Mono, variable: { display: true, title: true, eyebrow: true, body: true, caption: true, label: true } }
   weightRoles: { subtle: 300, default: 400, emphasis: 500, strong: 700 }
   typeScale: expressive
   displayCeiling: xl
   titleFloor: 16
-  familyMap: { label: text }
   responsive: { fluid: true, minViewport: 360, maxViewport: 1440 }
 
 # Softer (marketing) shadows, tinted toward the violet brand hue.

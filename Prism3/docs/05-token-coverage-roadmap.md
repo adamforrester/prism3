@@ -21,7 +21,7 @@
 | **Motion** | NB `core-motion`, `motion` | ✅ Done | `motionPersonality.tempo` → duration ramp; easing roles + springs + composites + derived reduce-motion | — |
 | **Layout** | NB `layout` | ✅ Done | breakpoints + grid (12-col design ladder) + containers; gutter/margin alias the spacing scale; Figma breakpoint-modes | — |
 | **Shadow** | NB `shadows` | ✅ Done | 6-step 2-layer shadow ramp + inset (`softness`+`tint` levers, mode-aware lift-primary, Figma Effect Style). Elevation = a foreground tier + a shadow at the component layer (no `elevation.*` colour group — removed in the docs/06 rework) | — |
-| **Typography** | NB `core-typography`, `typography` | ✅ Done (primitives + composites + fluid + weight axis + links) | curated rem ladder + weight roles + family triad; semantic composites (display/title/body/label/caption/eyebrow/code), each `type.<group>.<size>.<weight>` with a **per-role weight axis** (display/title `[strong]`, body/caption `[default,strong]`, … — all expandable) + a `-link` underline variant for body+caption; levers typeScale/displayCeiling/titleFloor/familyMap/responsive/**weights**/**links**; fluid clamp() + Figma desktop/mobile modes from one min/max pair | — |
+| **Typography** | NB `core-typography`, `typography` | ✅ Done (primitives + composites + fluid + weight axis + links) | curated rem ladder + weight roles + a family per category; semantic composites (display/title/body/label/caption/eyebrow/code), each `type.<group>.<size>.<weight>` with a **per-role weight axis** (display/title `[strong]`, body/caption `[default,strong]`, … — all expandable) + a `-link` underline variant for body+caption; levers typeScale/displayCeiling/titleFloor/responsive/**weights**/**links**; fluid clamp() + Figma desktop/mobile modes from one min/max pair | — |
 | **Gradients** | Prism2 `color/gradient/*` | ✅ Done (opt-in) | OFF by default (field abstains); `gradients: true` ships one default brand gradient, or an explicit list. DTCG `gradient` composite, stops alias the ramp; kind/angle/interpolation in `$extensions` (DTCG omits them); OKLCH interpolation + N-stop sRGB pre-sample for Figma; Figma Paint Style (only stop colours bind); worst-case-stop contrast for text-on-gradient | — |
 
 ---
@@ -76,9 +76,10 @@
   **`link` deliberately omitted** (colour/decoration, not a type role). Levers:
   `typeScale` (shifts heading sizes ±1 rung), `displayCeiling` (caps the hero tier —
   "not everyone needs the high end"), `titleFloor` (opt-in 16px brand-font title),
-  `familyMap` (per-group family role — family is a property of the group, not the
-  size, so `title.xs`@18 and `body.lg`@18 share a size primitive but stay distinct
-  tokens; the overlap is visible in `font.size.18.aliased_by`). 511/511 aliases,
+  and `families` keyed per CATEGORY (#415 retired the display/text/mono role tier —
+  family is a property of the group, not the size, so `title.xs`@18 and `body.lg`@18
+  share a size primitive but stay distinct tokens; the overlap is visible in
+  `font.size.18.aliased_by`). 511/511 aliases,
   268/268 contracts. **Phase 3 (responsive) SHIPPED (2026-06-28):** each heading
   composite (display + title) gets a **mobile endpoint**
   via a **research-validated size-dependent curve** (not a flat factor): body/UI

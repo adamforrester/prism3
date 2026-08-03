@@ -15,8 +15,56 @@
       "codeSyntax": {}
     },
     {
+      "id": "VariableID:6:52",
+      "name": "font/family/title",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+      "value": "Inter",
+      "alias": null,
+      "codeSyntax": {}
+    },
+    {
       "id": "VariableID:6:4",
-      "name": "font/family/text",
+      "name": "font/family/body",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+      "value": "Inter",
+      "alias": null,
+      "codeSyntax": {}
+    },
+    {
+      "id": "VariableID:6:53",
+      "name": "font/family/label",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+      "value": "Inter",
+      "alias": null,
+      "codeSyntax": {}
+    },
+    {
+      "id": "VariableID:6:54",
+      "name": "font/family/caption",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif",
+      "value": "Inter",
+      "alias": null,
+      "codeSyntax": {}
+    },
+    {
+      "id": "VariableID:6:55",
+      "name": "font/family/eyebrow",
       "resolvedType": "STRING",
       "scopes": [
         "FONT_FAMILY"
@@ -28,7 +76,7 @@
     },
     {
       "id": "VariableID:6:5",
-      "name": "font/family/mono",
+      "name": "font/family/code",
       "resolvedType": "STRING",
       "scopes": [
         "FONT_FAMILY"
