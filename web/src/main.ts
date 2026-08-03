@@ -5719,7 +5719,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sf-ex-fill{color:#fff;font-weight:600;font-size:13.5px}
 .sf-ex-text{font-size:14.5px}
 .sf-railnote{font-size:10.5px;color:var(--faint)}
-@media(max-width:900px){.sf-row{grid-template-columns:56px 1fr;gap:14px}.sf-row .sf-ctl,.sf-right{grid-column:1/-1;align-items:flex-start}.sf-ex{width:100%}}
+/* Collapses at 1120px, not 900px. The five-column layout has a HARD floor: four of its tracks are
+   fixed (56+168+172+228) and the gaps add 80, so it needs 704px of row box and cannot shrink an
+   inch below that. The row box runs viewport-400, so 704 is not available until ~1104px — every
+   width between the old 900px breakpoint and there rendered a layout that could not fit, pushing
+   .sf-ex past the panel edge and scrolling the document. 1120 leaves the spacer track a little
+   width at the boundary rather than exactly zero. */
+@media(max-width:1120px){.sf-row{grid-template-columns:56px 1fr;gap:14px}.sf-row .sf-ctl,.sf-right{grid-column:1/-1;align-items:flex-start}.sf-ex{width:100%}}
 .contracts{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:18px 20px}
 .contracts-sum{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px}
 .contracts-sum::-webkit-details-marker{display:none}

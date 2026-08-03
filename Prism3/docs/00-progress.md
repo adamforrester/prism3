@@ -7,6 +7,57 @@
 
 ---
 
+## (2026-08-03) — Surfaces & fills overflowed 900–1104px; the filed root cause was wrong (#395)
+
+**STATUS: web.** One CSS line. `out/*` untouched.
+
+**The report reproduced exactly** — horizontal scroll at 940/959/1000px, clean at ≤900 and ≥1100.
+**The diagnosis in the issue did not survive measurement.** #395 attributed it to `.sf-row`'s bare
+`1fr` being `minmax(auto,1fr)` and proposed clamping it to `minmax(0,1fr)`, citing `.arow-main` as
+the proven precedent. Applied and rebuilt: the track resolved to **`0px`** — the clamp worked
+perfectly — and **the overflow did not move by a pixel**.
+
+**Why it could never have been the cause.** The fourth track is not content, it is the *whitespace*
+the layout comment describes ("controls LEFT · whitespace · example RIGHT"). Its child is an empty
+spacer div, so its min-content is already 0 and `1fr`/`minmax(0,1fr)` are identical there. The
+proposed fix was a no-op by construction.
+
+**The real constraint is the tracks that cannot move.** Four of the five are fixed —
+`56+168+172+228` — and four gaps add 80, so the row needs **704px and cannot shrink an inch below
+it**. Measured, the row box runs `viewport − 400`:
+
+```
+viewport   940   1000   1050   1100   1120
+row box    540    600    650    700    720   ← needs 704
+```
+
+So 704px is not available until **~1104px**, while the collapse breakpoint sat at **900px**. Every
+width in that 200px band rendered a layout that could not fit; `.sf-ex` (the last fixed track) is
+simply what got pushed past the panel edge first.
+
+**Fix: raise the breakpoint to 1120px, and revert the ineffective clamp.** The page already owns a
+designed narrow layout — the two-column collapse — it was just being handed 200px of widths it was
+never given. 1120 rather than 1104 so the spacer has a little width at the boundary instead of
+exactly zero (measured: 17px at 1121, 96px at 1440).
+
+**Reverting the `minmax` was deliberate.** Keeping a no-op change with a comment claiming it prevents
+blowout would leave a false explanation in the file, and the next person would trust it. The spacer
+has no content; it was never the cause and cannot become one without someone putting content there.
+
+**Verified across 12 widths** (720→1440, including 1119/1121 either side of the new boundary) in
+**both Light and Dark**: zero horizontal scroll, zero child overhang, no page errors. Below the
+breakpoint the existing collapse is unchanged.
+
+**Method note worth keeping:** the before-measurement is what caught this. Applying a plausible fix
+and seeing the symptom persist is only possible if the symptom was quantified first — had I measured
+only after, `minmax(0,1fr)` would have shipped as the fix with the bug still in it, since the visual
+difference between "clamped and still broken" and "unclamped and broken" is nil.
+
+**Trap for the next CSS edit here:** the stylesheet is a TS template literal, so a backtick inside a
+CSS comment terminates the string. Cost one confusing `TS1351` before I spotted it.
+
+---
+
 ## (2026-08-03) — A target-size floor, and the mode-editing pattern split logged
 
 **STATUS: engine (test-only) + docs.** No emitted artifact moves — `MIN_TARGET_PX` is a constant and
@@ -53,6 +104,7 @@ with.
 Gates: `test.ts` **1277 → 1279**, `regen --check` 88 byte-match, NB regression exit 0, US-English
 clean, web typecheck + build clean.
 
+---
 
 ## (2026-08-03) — "+ Add face" becomes a submit CTA (#405)
 
