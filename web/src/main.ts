@@ -818,72 +818,166 @@ const typeComposite = (tree: TreeNode, node: TreeNode): string => {
 const shadowCss = (layers: unknown): string => Array.isArray(layers)
   ? layers.map((l: any) => `${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
   : '';
+// ── Preview → Token list, split on the primitive/semantic tier line (#267 pattern) ──────────────
+// Typography carried this split first (#272, via `.pvseg`); this generalises it. Two defects forced
+// it, and each is invisible until the tiers are apart: PRIMITIVES HAVE NO MODES, so the four mode
+// columns rendered four identical cells for all 142 palette steps; and a semantic's resolved value is
+// only half of it — which token it ALIASES is the editable relationship, and only 6 of 147 colour
+// roles alias the same target in every mode, so the alias has to live INSIDE each mode cell rather
+// than in one shared column.
+type TokTier = 'primitive' | 'semantic';
+let tokTier: TokTier = 'primitive';
+let tokShow: 'both' | 'alias' | 'value' = 'both';
+let tokPath: 'full' | 'short' = 'full';
+let tokCat = '';
+
+const TOK_ALIAS = /^\{.+\}$/;
+/** Tier by SHAPE, not a hardcoded category list — a token added later lands in the right tab on its
+ *  own. One carve-out: a typography COMPOSITE holds an object of aliases rather than an alias string,
+ *  so the shape rule alone would file it as primitive. Doc 26 puts the full type ramp under
+ *  Typography's *Styles* tier, and a composed style is the least primitive thing in the system. */
+const tokTierOf = (node: TreeNode): TokTier =>
+  node.$type === 'typography' ? 'semantic'
+    : (typeof node.$value === 'string' && TOK_ALIAS.test(node.$value)) ? 'semantic' : 'primitive';
+
 const renderPreviewTokens = (host: HTMLElement): void => {
   const tree = buildTree(theme).tree;
   const root = (tree.$extensions?.prism3?.root as string) ?? Object.keys(tree).find((k) => !k.startsWith('$'))!;
   const brand = tree[root] as TreeNode;
   const modes = rp.modes;
-  const baseMode = modes[0];   // the base `$value` is the first/canonical mode (light); the rest are overrides
+  const baseMode = modes[0];   // the base `$value` is the first/canonical mode; the rest are overrides
   const modeLabels = modes.map((m) => MODE_LABEL[m] ?? m);
+  const rootRe = new RegExp('^' + root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.');
 
-  type TokRow = { name: string; cells: Array<HTMLElement | string> };
-  // A category `.psec`: sub-group leaves by their top-level segment (a `subHead` per group when >1), each
-  // group's table in its own overflow-x scroller — same doc-26 presentation as before (#262).
-  const tokenSection = (title: string, sub: string, rows: TokRow[], cols: string[]): void => {
-    if (!rows.length) return;
-    const sec = palSection(title, sub);
-    // Sub-group by first path segment ONLY when the leaves actually nest (some name has a dot) — else a
-    // flat category (opacity.0, shadow.md, …) would emit a `subHead` per single-segment leaf. One flat
-    // table in that case; a `subHead`-per-group mini-table (doc-26, #262) when there's real nesting.
-    const nested = rows.some((r) => r.name.includes('.'));
-    if (!nested) {
-      const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(rows, cols)); sec.append(scroll);
-      host.append(sec); return;
+  /** What a leaf points at in a mode — root-relative — or undefined when it carries a value itself. */
+  const aliasAt = (node: TreeNode, m: Mode): string | undefined => {
+    const ov = node.$extensions?.prism3?.modes?.[m];
+    const v = (m !== baseMode && ov) ? ov.$value : node.$value;
+    return typeof v === 'string' && TOK_ALIAS.test(v) ? v.replace(/[{}]/g, '').replace(rootRe, '') : undefined;
+  };
+  /** The node a leaf points at in ONE hop — undefined when it carries a value itself. Deliberately
+   *  NOT `deref`, which follows the chain all the way to the terminal primitive: the chain marker
+   *  exists to say "this points at another semantic", and a fully-resolved node can never be one. */
+  const hopAt = (node: TreeNode, m: Mode): TreeNode | undefined => {
+    const ov = node.$extensions?.prism3?.modes?.[m];
+    const v = (m !== baseMode && ov) ? ov.$value : node.$value;
+    return (typeof v === 'string' && TOK_ALIAS.test(v)) ? subNode(tree, v) : undefined;
+  };
+  /** …and the fully resolved node, which is what the value read-out wants. */
+  const targetAt = (node: TreeNode, m: Mode): TreeNode => deref(tree, hopAt(node, m) ?? node);
+  /** The resolved value as text, by `$type` — the payload for a primitive, the second line for a semantic. */
+  const valueText = (node: TreeNode, m: Mode): string => {
+    if (node.$type === 'typography') return typeComposite(tree, node);
+    if (node.$type === 'shadow') {
+      const arr = m === baseMode ? node.$value : (node.$extensions?.prism3?.modes?.[m] ?? node.$value);
+      return shadowCss(arr) || '—';
     }
-    const groups = new Map<string, TokRow[]>();
-    for (const r of rows) { const g = r.name.split('.')[0]; (groups.get(g) ?? groups.set(g, []).get(g)!).push(r); }
-    for (const [g, grows] of groups) {
-      sec.append(subHead(g));
-      const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(grows, cols)); sec.append(scroll);
-    }
-    host.append(sec);
+    const n = targetAt(node, m);
+    const px = n?.$extensions?.prism3?.px;
+    if (px != null) return `${px}px`;
+    const val = n?.$value;
+    return typeof val === 'number' ? String(val) : String(val ?? '—');
   };
 
-  // One category per top-level group under the brand root (insertion order — the generator's own order).
-  for (const category of Object.keys(brand).filter((k) => !k.startsWith('$'))) {
-    const leaves: TokLeaf[] = [];
-    collectLeaves(brand[category], '', leaves);
-    if (!leaves.length) continue;
-    const kind = leaves[0].node.$type as string;   // a category is homogeneous by $type
-    const catLabel = category.charAt(0).toUpperCase() + category.slice(1);
-
-    if (kind === 'color') {
-      tokenSection(catLabel, `${leaves.length} ${category} tokens — resolved hex per mode, from the exported tree (1:1 with a downloaded tokens.json).`,
-        leaves.map((l) => ({ name: l.path, cells: modes.map((m) => swatchCell(colorHexAt(tree, l.node, m, baseMode))) })), modeLabels);
-    } else if (kind === 'typography') {
-      tokenSection(catLabel, `${leaves.length} composites — family, weight, size, line-height, tracking (primary face; mode-invariant).`,
-        leaves.map((l) => ({ name: l.path, cells: [typeComposite(tree, l.node)] })), ['Resolved']);
-    } else if (kind === 'shadow') {
-      tokenSection(catLabel, `${leaves.length} elevation steps — CSS box-shadow per mode (dark = the reduced set).`,
-        leaves.map((l) => ({ name: l.path, cells: modes.map((m) => {
-          const arr = m === baseMode ? l.node.$value : (l.node.$extensions?.prism3?.modes?.[m] ?? l.node.$value);
-          const css = shadowCss(arr); if (!css) return '—';
-          const sp = el('span', 'tok-shadow mono', css); sp.title = css; return sp;
-        }) })), modeLabels);
-    } else {
-      const hasModes = leaves.some((l) => l.node.$extensions?.prism3?.modes);
-      const cols = hasModes ? modeLabels : ['Resolved'];
-      const valAt = (l: TokLeaf, m: Mode): string => {
-        const ov = l.node.$extensions?.prism3?.modes?.[m];
-        const n = (m !== baseMode && ov) ? deref(tree, subNode(tree, ov.$value)) : deref(tree, l.node);
-        const px = n?.$extensions?.prism3?.px;
-        if (px != null) return `${px}px`;
-        const val = n?.$value;
-        return typeof val === 'number' ? String(val) : String(val ?? '—');
-      };
-      tokenSection(catLabel, `${leaves.length} ${category} tokens — resolved from the exported tree.`,
-        leaves.map((l) => ({ name: l.path, cells: (hasModes ? modes : [baseMode]).map((m) => valAt(l, m)) })), cols);
+  /** One cell. `both` is the two-line form (alias over value); the Show control collapses it. */
+  const tokCell = (node: TreeNode, m: Mode, canShort: boolean): HTMLElement => {
+    const alias = aliasAt(node, m);
+    const wantAlias = tokShow !== 'value' && alias !== undefined;
+    const wantValue = tokShow !== 'alias' || alias === undefined;   // never render an empty cell
+    const wrap = el('div', wantAlias && wantValue ? 'tok-two' : undefined);
+    if (wantAlias && alias) {
+      const a = el('span', 'mono tok-alias', tokPath === 'short' && canShort ? alias.split('.').slice(1).join('.') : alias);
+      // A semantic that aliases another SEMANTIC (30 of them: grid → space → dimension). The one-hop
+      // target is the editable relationship, so that is what shows; the chain is on the marker.
+      const hop = hopAt(node, m);
+      if (hop && tokTierOf(hop) === 'semantic') {
+        const c = el('span', 'tok-chain', ' ›');
+        c.title = `Aliases another semantic — resolves through to ${valueText(node, m)}`;
+        a.append(c);
+      }
+      wrap.append(a);
     }
+    if (wantValue) {
+      const v = el('span', 'tok-val');
+      const hx = node.$type === 'color' ? colorHexAt(tree, node, m, baseMode) : undefined;
+      if (hx) v.append((() => { const s = el('span', 'tok-sw'); s.style.background = hx; return s; })());
+      const txt = node.$type === 'color' ? (hx ?? '—') : valueText(node, m);
+      const t = el('span', 'mono tok-hexv', txt);
+      if (node.$type === 'shadow' || node.$type === 'typography') t.title = txt;
+      v.append(t);
+      wrap.append(v);
+    }
+    return wrap;
+  };
+
+  // Categories for the ACTIVE tier, in the generator's own order.
+  type TokSec = { cat: string; leaves: TokLeaf[]; hasModes: boolean; ns: string[] };
+  const sections: TokSec[] = [];
+  for (const category of Object.keys(brand).filter((k) => !k.startsWith('$'))) {
+    const all: TokLeaf[] = [];
+    collectLeaves(brand[category], '', all);
+    const leaves = all.filter((l) => tokTierOf(l.node) === tokTier);
+    if (!leaves.length) continue;
+    const ns = [...new Set(leaves.flatMap((l) => modes.map((m) => aliasAt(l.node, m)).filter(Boolean).map((a) => a!.split('.')[0])))].sort();
+    sections.push({ cat: category, leaves, hasModes: leaves.some((l) => l.node.$extensions?.prism3?.modes), ns });
+  }
+
+  // ---- controls: a header ABOVE the content (doc 26), every field labelled via `pfield`. ----
+  const seg = el('div', 'pvseg tok-seg');
+  for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
+    const b = el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label) as HTMLButtonElement;
+    b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; paintVolatile(); } };
+    seg.append(b);
+  }
+  host.append(seg);
+
+  const bar = el('div', 'tok-ctrls');
+  if (tokTier === 'semantic') {
+    const showSel = selectEl();
+    for (const [v, label] of [['both', 'Alias and value'], ['alias', 'Alias only'], ['value', 'Value only']])
+      showSel.append(new Option(label, v));
+    showSel.value = tokShow;
+    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; paintVolatile(); };
+    bar.append(pfield('Show', showSel));
+
+    const pseg = el('div', 'seg');
+    for (const [k, label] of [['full', 'Full'], ['short', 'Short']] as Array<['full' | 'short', string]>) {
+      const b = el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label) as HTMLButtonElement;
+      b.onclick = () => { if (tokPath !== k) { tokPath = k; paintVolatile(); } };
+      pseg.append(b);
+    }
+    bar.append(pfield('Alias path', pseg));
+  }
+  const catSel = selectEl();
+  catSel.append(new Option('All categories', ''));
+  for (const s of sections) catSel.append(new Option(`${s.cat} (${s.leaves.length})`, s.cat));
+  catSel.value = sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = '');
+  catSel.onchange = () => { tokCat = catSel.value; paintVolatile(); };
+  bar.append(pfield('Category', catSel));
+  host.append(bar);
+
+  // ---- sections ----
+  const shown = sections.filter((s) => !tokCat || s.cat === tokCat);
+  if (!shown.length) { host.append(el('p', 'tok-empty', 'No categories match this filter.')); return; }
+  for (const s of shown) {
+    const canShort = s.ns.length === 1;
+    const cols = s.hasModes ? modeLabels : ['Value'];
+    const sec = palSection(s.cat.charAt(0).toUpperCase() + s.cat.slice(1),
+      tokTier === 'primitive'
+        ? `${s.leaves.length} primitives — one value, no modes. The ramps are shared; a mode re-points a semantic at a different primitive, it never redefines one.`
+        : `${s.leaves.length} semantics — ${s.hasModes ? 'each mode aliases its own target' : 'mode-invariant, one value'}.`);
+    const rows = s.leaves.map((l) => ({ name: l.path, cells: (s.hasModes ? modes : [baseMode]).map((m) => tokCell(l.node, m, canShort)) }));
+    const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(rows, cols)); sec.append(scroll);
+    // Short paths are only honest when ONE namespace covers the table. `size.*` aliases both
+    // `dimension.*` and `space.*`, so a single shared-prefix note there would be a lie.
+    if (tokTier === 'semantic' && tokPath === 'short' && s.ns.length) {
+      const note = el('p', 'tok-callout');
+      note.textContent = canShort
+        ? `All aliases in this table resolve under ${s.ns[0]}.* — prefix hidden.`
+        : `Full paths kept: this table aliases into ${s.ns.join(' and ')}, so one shared prefix would be wrong here.`;
+      sec.append(note);
+    }
+    host.append(sec);
   }
 };
 
@@ -5423,6 +5517,15 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tok-val{display:inline-flex;align-items:center;gap:7px}
 .tok-sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line2);flex:none}
 .tok-shadow{display:inline-block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;color:var(--muted)}
+/* Token list, tier split (#390). The two-line cell is the both-Show state: alias over value. */
+.tok-seg{margin:2px 0 0}
+.tok-ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:16px 0 4px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.tok-two{display:flex;flex-direction:column;gap:3px}
+.tok-alias{color:var(--ink2);font-size:11.5px;white-space:nowrap}
+.tok-chain{color:var(--faint);cursor:help}
+.tok-hexv{color:var(--faint);font-size:11.5px;white-space:nowrap;display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.tok-callout{margin:10px 0 0;padding:7px 10px;background:var(--paper);border-radius:var(--r-xs);color:var(--muted);font-size:11.5px;line-height:1.5}
+.tok-empty{color:var(--faint);font-size:13px;padding:16px 2px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-right:5px;vertical-align:middle}
 /* Status DOTS are non-text (SC 1.4.11, 3:1) and already cleared that bar — they join the set for
    consistency, not compliance. One status green should be one green. */
