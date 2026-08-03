@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-03) — The Preview token list shows per-mode COMPOSITE re-points (#397 review finding)
+
+**STATUS: web.** Found in review of #398, fixed here. Two readers of a node's value consulted the base
+`$value` and never `$extensions.prism3.modes[m]`, so a composite with a per-mode re-point rendered
+**four identical mode columns** on the one page whose entire purpose is showing per-mode divergence.
+
+```
+aliasAt      modes[m] ✓        hopAt        modes[m] ✓        shadow branch  modes[m] ✓
+compositeParts  ✗ base only    typeComposite  ✗ base only
+```
+
+**It was latent until the same day it wasn't.** The gap was flagged during #397's review as
+hand-edit-only — no UI control could create a per-mode composite re-point. **#398 shipped exactly that
+control**, so the defect became reachable through the shipped app within hours of being called
+theoretical. Worth recording as a pattern: "unreachable today" is a statement about the current UI, and
+it expires the moment someone builds the missing control.
+
+**Fixed at the root, not per call site.** The two-line "which `$value` applies in this mode" expression
+was already open-coded in three places and missing from two. It is now one `valueAt(node, m)` accessor
+that all five use — so a sixth reader cannot forget, which is the actual failure mode here. Threading
+`m` into `compositeParts` also fixed the short-path scan, which was enumerating alias paths per mode
+for `aliasAt` but only once for composites.
+
+`typeComposite` takes an optional explicit `value`: a composite's mode override is a full `$value`
+snapshot (`{ ...value, ...parts }`, #385/#390), so it carries all five aliases and reads identically —
+no special-casing needed at the call site.
+
+**Verified with a negative control**, because "it renders differently now" is not proof the probe
+works. On a brand carrying BOTH a per-mode family (#390) and a per-mode size (#328) on
+`title.2xl.strong`, the probe counts distinct rendered mode cells:
+
+```
+before the fix   1 distinct cell   font.family.display · font.size.40 · Clash Display · 40px  (all modes)
+after the fix    2 distinct cells  light  → font.family.display · font.size.40 · Clash Display · 40px
+                                   dark   → font.family.text    · font.size.36 · Inter · 36px
+```
+
+Both the alias cell (#397's code) and the resolved-value cell (#393's) diverge, on both mechanisms.
+
+---
+
 ## (2026-08-03) — Caption gets its own leading band: a 7th rung, `cozy` at 1.40 (#388)
 
 **STATUS: engine.** `out/*` **regenerated** — this changes emitted output for every brand. Owner-approved.
