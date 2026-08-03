@@ -7,6 +7,42 @@
 
 ---
 
+## (2026-08-03) — The per-mode family control goes live (#388 part B2, #390)
+
+**STATUS: web.** `out/*` unchanged — this exposes the #390 engine field, it does not change generation.
+
+The Family select in the category table carried `fsel.disabled = perMode`. That was never a UI
+decision: **there was no per-mode field to write into.** `familyMap` was brand-wide, and
+`modeLevers.<mode>.families.<role>` swaps the FACE a role binds — so a mode could only move every
+category on that role at once. #390 added the missing field; this makes the control live in every mode.
+
+- **I had this on the wrong tab.** The #388 comment said the *Semantics* tab would need #390's field.
+  Wrong: `familyMap` is category → role, and categories are composites, so it belongs on **Text
+  styles** — where the control already existed, greyed out. The work turned out to be enabling an
+  existing select rather than building a new section.
+- **Outside Light the baseline option is "Auto", not a role name.** A mode naming its own baseline role
+  would store an inert self-map, which the engine drops (#390's suppression contract) — so a role-named
+  baseline would look like an override that vanishes on reload. "Auto" is the honest label, and it
+  keeps *clearing* an override reachable.
+- **`applyFull` on the per-mode branch only.** `.set` is DERIVED state (does this mode carry an
+  override?) and `apply()` repaints only the volatile region, so the class lagged a repaint behind the
+  value. Caught by measuring: the write and the persisted state were already correct while the
+  affordance still read unset. The Light branch keeps `apply()` — the only thing it changes on screen
+  is the select's own value, which the DOM already holds.
+
+**A verification trap worth recording.** My first probe clicked the mode chip *before* switching to the
+Text styles tab, and read a Light-mode row while believing it was Dark — the values looked plausible
+(`display`, unset) so nothing announced the mistake. The mode strip is hidden on Primitives by design
+(#388 part B1), so there was no chip to click. **Ordering matters in these probes: reach the tab that
+has the mode axis first.** Same family of error as #365's wrong-control read.
+
+Verified end to end on a seeded two-mode brand: the select is enabled in Dark with an Auto option;
+picking `text` writes `modeLevers.dark.familyMap.title` and marks `.set` immediately; the sibling
+`display` stays on Auto; Light's baseline is untouched; and choosing Auto prunes `modeLevers` back to
+absent. 0 page errors.
+
+---
+
 ## (2026-08-03) — type.* composites get a stacked, labeled alias cell (closes #393's open gap)
 
 **STATUS: web.** The gap #393 shipped with, closed. A typography composite has **no single alias** —
