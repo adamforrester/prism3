@@ -7,6 +7,84 @@
 
 ---
 
+## (2026-08-03) — #416: one rule for editing a mode-varying value, and it was already the rule
+
+**STATUS: web only.** One file, no emitted artifact moves. **Owner decision: columns on Typography,
+mode bar leaves.**
+
+**The issue asked for a decision between three mechanisms. The useful finding was that the codebase
+had already converged on a rule and never written it down.**
+
+- Every COLUMN-PER-MODE table edits a value with **many parallel instances** — 7 leading rungs, 6
+  tracking rungs, 5 weight roles, the per-size pins (`renderSizeTable`'s own comment already said
+  "rows are sizes, columns are modes").
+- Every MODE-BAR control in the app — `renderPerModeSelect`, used by radius, tempo and density — edits
+  a **single lever**, and each of those carries `Auto` + a `.set` indicator.
+
+Typefaces bindings was seven categories sitting on the single-lever side. That is why it felt wrong,
+and it is the whole explanation for the affordance gap the #419 review found: it was the one
+many-instance control on the wrong side of the line, so it alone lacked the `Auto`/`.set` its
+neighbours have. **The gap was never a missing feature — it was a misplaced control.**
+
+**Because every mode-varying value on Typography is a many-instance value, the mode bar has no editing
+job left there and is gone from the page.** Same conclusion #350/#268 reached for Primitives, from the
+other end: those have no per-mode values, this one shows them all at once.
+
+**What changed.**
+- `renderTypefaceBindings` → `Category | Light baseline | <mode>… | Specimen`. The Light column stays
+  EDITABLE (unlike the leading/tracking re-point table, whose baseline is set in the table above it) —
+  this is the only place the family baseline is authored. Other modes get `Auto — <base>` plus the
+  library faces, and `.set` when overridden. A single-mode brand keeps a plain `Face` column and is
+  visually unchanged, measured at the same 798px.
+- **The `Aliases` column went.** It was added in #415 only to stop the third column reading as empty;
+  the mode columns now occupy that space and its removal buys back width.
+- `renderCategorySetup` stops disabling everything outside Light. Those values are mode-invariant by
+  contract (#296) — which the old UI stated correctly but illegibly, as greyed controls with the
+  reason in a note above them. **This was also load-bearing for removing the bar**: `currentMode` is
+  global, so a user who left another page in Dark would have found this table permanently dead with no
+  switcher to escape it.
+- `renderTypefaceLibrary`'s `boundFace` reads the BASELINE, not `currentMode`. A primitive is
+  mode-invariant; a face bound only in a non-light mode is still reported via `bindingOf`'s
+  "Only in <mode>" branch, which reads `familiesByMode` directly.
+- `.te-modenote` deleted — its last user was the per-mode note a column table has no need for.
+
+**A correctness detail worth keeping.** An override stored equal to the baseline is INERT (`diffAssign`
+drops it, so it produces no token and no mode entry). Rendering it as "set" would style a cell that
+changes nothing, so it is normalized to `undefined` and the cell reads Auto — which is what it
+actually is. The baseline face is also removed from the non-light option lists entirely: binding it IS
+Auto, and offering both would give one outcome two controls, the second of which writes an inert entry.
+
+**The accepted cost, measured.** At four modes the table is **1059px and scrolls horizontally**. The
+owner was shown this before deciding. It is not new behavior on the page — Weight roles already
+measured 888px and scrolled — and `.mtbl-scroll` handles it. A single-mode brand, the common case, is
+unaffected at 798px.
+
+**A regression this PR created and caught before merge — the reason to test the columns you ADD, not
+just the one you were thinking about.** Moving Typefaces to a column table made it the fifth instance
+of #423: every column iterated `rp.modes` and wired `setModeLever(m, …)` with no check that `m` is
+customizable, so picking a face in the HC Light/Dark column threw the engine's internal string at the
+user — `mode 'hc-dark' is generate-only and not customizable`. The mode-bar version was never exposed
+to this, because the one-mode-at-a-time pages gate on `DERIVED_MODES.has(currentMode)` and swap in
+`renderGeneratedNote`; a column table has no such gate and each column must check for itself. My own
+verification pass missed it because I exercised the Dark column and assumed the rest followed.
+
+Derived columns are now READ-ONLY, showing the resolved face rather than an empty or disabled control
+— a derived mode holds no levers, so it resolves to the canonical baseline, and that is a real fact
+worth a cell. The header carries the same `auto` marker the mode chips already use. The shared
+`modeIsEditable()` helper lands here with its first user; #423 applies it to the four pre-existing
+tables (`renderWeightTable`, `renderSizeTable`, and both `renderRepointTable` call sites).
+
+**Verification.** `regen --check` (88) · 1275/0 · NB regression PASS · web + plugin
+typecheck/test/build · sandbox-clean · US-English clean. Driven in Chromium on a four-mode brand: mode
+bar absent from both tabs, **zero interactive controls in the two derived columns and no error bar
+where the raw engine string used to appear**, `Auto — <base>` on inherited cells, `.set` present on exactly the
+overridden one, the sibling category untouched, the write persisted as
+`modeLevers.dark.families.title`, **clearing to Auto removes the entry entirely** (`modeLevers` → null,
+which is the #419 finding closed), zero disabled controls on Text styles, and a single-mode brand
+rendering `Category | Face | Specimen` at 798px with no scroll.
+
+---
+
 ## (2026-08-03) — #414: Semantics stops offering Primitives-tier authoring
 
 **STATUS: web only.** One file, no emitted artifact moves.

@@ -1832,6 +1832,13 @@ let outsideBoundMode = false;
 let addModeOpen = false;         // C2 — the "+ Add mode" inline form is expanded
 let addModeName = '';            // C2 — survives popover re-renders
 const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
+/** #423 — a DERIVED mode is generated from light/dark (accessibility floors for HC, mechanical
+ *  grayscale for wireframe) and the engine REFUSES per-mode levers on it: `CUSTOMIZABLE_MODES` is
+ *  `['light', 'dark', ...customNames]`, and anything else throws "is generate-only and not
+ *  customizable". The one-mode-at-a-time pages already gate on this via `renderGeneratedNote`, but a
+ *  table that shows every mode AS COLUMNS has no such gate — each column must check for itself, or the
+ *  click reaches the engine and the user reads a raw internal error string. */
+const modeIsEditable = (m: string): boolean => !DERIVED_MODES.has(m);
 const RESERVED_MODE_NAMES = new Set<string>(['light', 'dark', 'hc-light', 'hc-dark', 'wireframe']);
 const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[m] || ct.byMode[m]!.pass);
 
@@ -2828,17 +2835,13 @@ const WEIGHT_NAME: Record<number, string> = {
  *  the tabs are now named for. */
 const renderTypefaceLibrary = (): HTMLElement => {
   const ty = theme.typography;
-  const perMode = currentMode !== 'light';
   const sec = palSection('Typefaces', 'The faces this brand has, independent of what any of them does. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim. This is the only primitive on this tab you can edit.');
 
-  // Effective face per category, honouring a per-mode override.
-  const boundFace = (cat: string): string => {
-    const base = ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
-    if (!perMode) return base;
-    const ov = getModeLever(currentMode, `families.${cat}`);
-    const ovName = Array.isArray(ov) ? ov[0] : (ov as string | undefined);
-    return ovName ?? base;
-  };
+  // #416 — the BASELINE binding, full stop. This used to follow `currentMode`, which only made sense
+  // while the mode bar was an editing context on this page; a primitive is mode-invariant, and the
+  // per-mode faces are shown as columns on Semantics. A face bound only in some non-light mode is
+  // still reported — `bindingOf`'s "Only in <mode>" branch reads `familiesByMode` directly.
+  const boundFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
 
   // ---- TIER 1 — the library (Primitives tab) ----
   // Converted to the shared table format alongside leading & tracking (#363) so the tab reads on ONE
@@ -2978,28 +2981,30 @@ const renderTypefaceLibrary = (): HTMLElement => {
 };
 
 /** Tier 2 — which face does each CATEGORY draw from (Semantics tab). Split from the library (#388
- *  part B): the two tiers were one section because they were one tab.
+ *  part B); re-keyed from three abstract roles to the seven categories by #415.
  *
- *  #415 re-keyed this from three abstract ROLES (display / text / mono) to the seven categories. Two
- *  things follow. The list is longer, so it moves onto the shared table grid the rest of the tab uses
- *  rather than staying a three-card row that only ever fit three. And a single-face brand would
- *  otherwise have to state the same name seven times, so the bulk control above the table exists to
- *  make the common case one action. */
+ *  #416 — ONE COLUMN PER MODE, which is the stated rule for editing a mode-varying value on this page.
+ *  The rule was already what the codebase did; it had just never been written down. Every column-table
+ *  here (weight roles, the leading/tracking re-points, the per-size pins) edits a value with MANY
+ *  parallel instances, and every mode-bar control in the app (`renderPerModeSelect` — radius, tempo,
+ *  density) edits a SINGLE lever. This control was seven categories sitting on the single-lever side,
+ *  which is why it felt wrong and why it alone lacked the `Auto` + `.set` affordance its neighbours
+ *  have: an override and an inherited value rendered identically, with no way to clear one.
+ *
+ *  Since every mode-varying value on Typography is a many-instance value, the mode bar has no editing
+ *  job left on this page and is gone from it — the same conclusion #350/#268 reached for Primitives,
+ *  arrived at from the other end. */
 const renderTypefaceBindings = (): HTMLElement => {
   const ty = theme.typography;
-  const perMode = currentMode !== 'light';
-  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
+  const modes = rp.modes;
+  const multi = modes.length > 1;
   const sec = palSection('Typefaces', 'Which face each category draws from. `font.family.<category>` is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a text style never names a face directly.');
   const baseFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
-  const modeOverride = (cat: string): string | undefined => {
-    const ov = getModeLever(currentMode, `families.${cat}`);
-    return Array.isArray(ov) ? ov[0] : (ov as string | undefined);
-  };
-  sec.append(subHead('The bindings — which face each category draws from'));
+  const isUnbound = (cat: string): boolean => cat === 'code' && getPath(brandState, 'typography.families.code') === null;
 
-  // The bulk control. `code` is deliberately OUT of its reach: it is the one category whose default is
-  // a different KIND of face, so sweeping a text face across it is nearly always the wrong outcome and
-  // would be silent. Stated on the control rather than enforced invisibly.
+  // The bulk control writes the BASELINE only — it is a brand-level statement ("this brand is one
+  // face"), not a per-mode one. `code` is deliberately out of its reach: its default is a different
+  // KIND of face, so sweeping a text face across it is nearly always wrong and would be silent.
   const bulk = el('div', 'tf-bulk');
   const bulkSel = selectEl('sm');
   bulkSel.append(optionEl('', 'Choose a face…', true));
@@ -3008,102 +3013,122 @@ const renderTypefaceBindings = (): HTMLElement => {
   const BULK_CATS = TYPE_GROUP_ORDER.filter((g) => g !== 'code');
   bulkBtn.onclick = () => {
     if (!bulkSel.value) return;
-    for (const g of BULK_CATS) {
-      if (perMode) setModeLever(currentMode, `families.${g}`, bulkSel.value);
-      else setPath(brandState, `typography.families.${g}`, bulkSel.value);
-    }
+    for (const g of BULK_CATS) setPath(brandState, `typography.families.${g}`, bulkSel.value);
     applyFull();
   };
-  bulk.append(el('span', 'tf-bulklab', 'Set every text category to'), bulkSel, bulkBtn);
+  bulk.append(el('span', 'tf-bulklab', `Set every text category to`), bulkSel, bulkBtn);
   sec.append(bulk, el('p', 'tf-derivenote', 'Code keeps whatever face it has — a monospace choice is a different decision, so it is set on its own row below.'));
 
   const box = el('div', 'mtbl');
   const scroll = el('div', 'mtbl-scroll');
   const tbl = el('table', 'mtbl-tbl');
   const thead = el('thead'), htr = el('tr');
-  // Column three is the PRIMITIVE this binding aliases, not an availability flag. Availability is a
-  // property of the FACE and the library on Primitives already reports it per face, so a per-category
-  // copy would print the same answer up to seven times — and for a single-face brand the column would
-  // be seven identical ticks. The alias target is the fact this tier actually owns.
-  htr.append(el('th', 'mtbl-stick', 'Category'), el('th', 'mtbl-mode', 'Face'),
-    el('th', 'mtbl-mode', 'Aliases'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  htr.append(el('th', 'mtbl-stick', 'Category'));
+  if (multi) {
+    for (const m of modes) {
+      const th = el('th', 'mtbl-mode');
+      th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+      if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+      // Same `auto` marker the mode chips carry, so a derived column is identifiable before you click.
+      else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));
+      htr.append(th);
+    }
+  } else {
+    // A single-mode brand has no mode axis to show, so the column keeps its plain name rather than
+    // being labelled "Light" — there is nothing for that label to contrast with.
+    htr.append(el('th', 'mtbl-mode', 'Face'));
+  }
+  htr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
   for (const cat of TYPE_GROUP_ORDER) {
-    const globalPrimary = baseFace(cat);
-    const ov = perMode ? modeOverride(cat) : undefined;
-    const shown = perMode ? (ov ?? globalPrimary) : globalPrimary;
-    // `code` alone is nullable — `families.code: null` opts out, and the code category goes with it
-    // (#269, re-keyed by #415). Nulling any other category is refused by the engine.
-    const unbound = cat === 'code' && !perMode && getPath(brandState, 'typography.families.code') === null;
-
+    const base = baseFace(cat);
+    const unbound = isUnbound(cat);
     const tr = el('tr');
     const nc = el('td', 'mtbl-stick');
     nc.append(el('span', 'mtbl-name mono', cat));
     nc.append(el('div', 'cs-count', TYPE_GROUP_BLURB[cat] ?? ''));
     tr.append(nc);
 
-    // #414 — the select offers ONLY faces the library already holds, plus `code`'s opt-out. The
-    // `Custom face…` escape hatch that used to sit here reopened AUTHORING at the semantic tier, which
-    // is the exact conflation the four-tab split removed: Primitives owns the library (add / remove a
-    // face), Semantics owns which face does each job. Adding a face is one action in one place again.
-    //
-    // The free-text input went with it, and that is safe rather than merely tidy: `ty.typefaces` is
-    // the DERIVED union of the library and every bound face (including per-mode ones), so a bound face
-    // is always already in the option list. The one case where it might not be — two categories naming
-    // the same face with different casing, which dedupes to a single primitive under the first
-    // spelling — is covered by the `opts.push([shown, shown])` line below, not by the input.
     const NONE = '__none__';                    // a sentinel no font family can be called
-    const opts: Array<[string, string]> = ty.typefaces.map((t) => [t.name, t.name] as [string, string]);
-    if (!opts.some(([v]) => v === shown) && shown) opts.push([shown, shown]);
-    if (cat === 'code' && !perMode) opts.push([NONE, 'None — no code styles']);
+    for (const m of (multi ? modes : ['light'])) {
+      const td = el('td', 'mtbl-mode');
+      if (unbound && m !== 'light') {
+        // Nothing to override: the category ships no styles at all in any mode.
+        td.append(el('span', 'cs-count', '—'));
+        tr.append(td);
+        continue;
+      }
+      if (m === 'light') {
+        // The baseline is the brand-level binding, and it stays EDITABLE here — unlike the
+        // leading/tracking re-point table, whose baseline is set in the table above it. This is the
+        // only place the family baseline is authored, so its column is a control, not a reading.
+        const sel = selectEl('sm fill');
+        const opts: Array<[string, string]> = ty.typefaces.map((t) => [t.name, t.name] as [string, string]);
+        if (!opts.some(([v]) => v === base) && base) opts.push([base, base]);
+        if (cat === 'code') opts.push([NONE, 'None — no code styles']);
+        for (const [v, label] of opts) sel.append(optionEl(v, label, v === (unbound ? NONE : base)));
+        sel.title = base || '';
+        sel.onchange = () => {
+          if (sel.value === NONE) { setPath(brandState, 'typography.families.code', null); applyFull(); return; }
+          if (!sel.value) return;               // matched no option — never write an empty face
+          setPath(brandState, `typography.families.${cat}`, sel.value);
+          applyFull();
+        };
+        td.append(sel);
+      } else if (!modeIsEditable(m)) {
+        // #423 — READ-ONLY, and showing the resolved face rather than an empty or disabled control.
+        // A derived mode carries no `familiesByMode` entry (it can hold no levers), so it resolves to
+        // the canonical baseline; that is a real fact about the mode and worth a cell. Rendering an
+        // interactive select here is what let a click reach the engine and surface
+        // "mode 'hc-dark' is generate-only and not customizable" verbatim.
+        const self = el('span', 'mtbl-selfval mono', base || '—');
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in Edit modes if you don't want it generated.`;
+        td.append(self);
+      } else {
+        const ovRaw = getModeLever(m, `families.${cat}`);
+        const ovStr = Array.isArray(ovRaw) ? ovRaw[0] : (ovRaw as string | undefined);
+        // An override equal to the baseline is INERT — `diffAssign` drops it, so it produces no token
+        // and no mode entry. Reading it as "set" would style a cell that changes nothing, so it is
+        // normalized away here and the cell renders as Auto, which is what it actually is. A brand
+        // input can carry one (hand-authored, or written by the old control before this rule).
+        const ovName = ovStr && ovStr !== base ? ovStr : undefined;
+        // `.set` carries the same "pinned" weight the stepper tables give `.mval.pin`, so a scan down
+        // the column finds the overrides without reading every label. This is the affordance the
+        // review of #419 found missing — structural here rather than bolted on, because an inherited
+        // cell and an overridden one are now different by construction.
+        const sel = selectEl(ovName ? 'sm fill set' : 'sm fill');
+        sel.append(optionEl('', `Auto — ${base}`, !ovName));
+        for (const t of ty.typefaces) {
+          if (t.name === base) continue;   // binding the baseline IS Auto — offering both would give
+                                           // one outcome two controls, and the second writes an inert entry
+          sel.append(optionEl(t.name, t.name, ovName === t.name));
+        }
+        if (ovName && !ty.typefaces.some((t) => t.name === ovName)) sel.append(optionEl(ovName, ovName, true));
+        sel.title = ovName ? `${MODE_LABEL[m] ?? m} overrides ${cat} to ${ovName}` : `${cat} follows the baseline (${base}) in ${MODE_LABEL[m] ?? m}`;
+        sel.onchange = () => { setModeLever(m, `families.${cat}`, sel.value || undefined); applyFull(); };
+        td.append(sel);
+      }
+      tr.append(td);
+    }
 
-    const prev = el('span', 'mtbl-spec-t tf-prev', 'The quick brown fox jumps');
-    prev.style.fontFamily = unbound || !shown ? 'inherit' : `"${shown}", ${cat === 'code' ? 'monospace' : 'sans-serif'}`;
-    const commit = (v: string | null | undefined): void => {
-      if (perMode) { setModeLever(currentMode, `families.${cat}`, v ?? undefined); applyFull(); }
-      else { setPath(brandState, `typography.families.${cat}`, v); applyFull(); }
-    };
-
-    const sel = selectEl('sm fill');
-    for (const [v, label] of opts) sel.append(optionEl(v, label, v === (unbound ? NONE : shown)));
-    sel.onchange = () => {
-      if (sel.value === NONE) { commit(null); return; }
-      // An empty value means the assignment matched no option — which happens when the option list
-      // shrinks under a stale reference. Writing it through would store `families.<cat>: ""`, a key
-      // that means nothing and that the engine only survives because it reads empty as unset.
-      if (!sel.value) return;
-      commit(sel.value);
-    };
-    sel.title = shown || '';
-    const fc = el('td', 'mtbl-mode');
-    fc.append(sel);
-    tr.append(fc);
-    const sc = el('td', 'mtbl-mode');
-    if (unbound) sc.append(el('span', 'cs-count', '—'));
-    else sc.append(tokenPill(`font.typeface.${typefaceSlug(shown || '')}`));
-    tr.append(sc);
     const pc = el('td', 'mtbl-fill mtbl-spec');
-    if (unbound) pc.append(el('span', 'tf-unbound', 'No code face — the code category is not generated.'));
-    else pc.append(prev);
+    if (unbound) {
+      pc.append(el('span', 'tf-unbound', 'No code face — the code category is not generated.'));
+    } else {
+      const prev = el('span', 'mtbl-spec-t tf-prev', 'The quick brown fox jumps');
+      prev.style.fontFamily = base ? `"${base}", ${cat === 'code' ? 'monospace' : 'sans-serif'}` : 'inherit';
+      pc.append(prev);
+    }
     pc.append(tokenPill(`font.family.${cat}`));
     tr.append(pc);
     tb.append(tr);
   }
   tbl.append(tb); scroll.append(tbl); box.append(scroll); sec.append(box);
 
-  // #414 — the "exact spelling" note moved to Primitives, where the only text field that types a face
-  // name now lives. It was advice about typing, sitting on a tab where nothing is typed.
-  //
-  // This one stays, because seven specimens render here and a fallback needs explaining where it is
-  // seen. Its "the ⚠ above" pointer went stale the moment the per-binding availability flag was
-  // removed above, so it now points at the column that still carries that fact.
   const local = el('p', 'tf-note warn');
   local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(local);
-  // The old note said "the library above" — the library moved to Primitives in the four-tab split, so
-  // it pointed at an adjacency that no longer existed, and read as the mode bar having regressed.
-  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s bindings — blank follows the global baseline. The Typefaces library on Primitives lists every face that any mode names.`));
   return sec;
 };
 
@@ -3111,7 +3136,6 @@ const renderTypefaceBindings = (): HTMLElement => {
  *  rendered nowhere, and displayCeiling / titleFloor were unreachable from the dashboard. */
 const renderSizeLadder = (): HTMLElement => {
   const ty = theme.typography;
-  const perMode = currentMode !== 'light';
   // The ladder ALONE. Shape / range moved to Styles (#328 follow-through) to sit with the per-size
   // table they govern — which also leaves this tab purely primitive, the condition #268's
   // no-switcher rule turns on.
@@ -3533,11 +3557,16 @@ const renderRepoints = (): HTMLElement | null => {
  *  for that category rather than flattening it to one value. */
 const renderCategorySetup = (): HTMLElement => {
   const ty = theme.typography;
-  const perMode = currentMode !== 'light';
-  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
   const roleOrder = ty.weightRoles.map((w) => w.role);
   const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants. Each ticked weight multiplies out into a real style at every size in that category. The face is shown for context and set on Semantics.');
-  if (perMode) sec.append(el('p', 'te-shared-note', `Shared across all modes — the composite skeleton is authored in Light; ${modeLabel} only overrides the face and weight VALUES.`));
+  // #416 — everything in this table is MODE-INVARIANT by contract (#296): which weights a category
+  // ships and whether it gets italic/link decide which styles EXIST, and a mode never adds or removes
+  // a token. The nudges are brand-level too. It used to disable every control outside Light, which
+  // stated that correctly but illegibly — a greyed checkbox with the reason in a note above it. The
+  // rule is now stated positively and the controls are always live, which is also what stops them
+  // being stranded now that the mode bar has left this page (`currentMode` is global and can still be
+  // Dark from another page, which would have left this table permanently dead).
+  sec.append(el('p', 'te-shared-note', 'Shared across every mode. These choices decide which styles exist, and a mode never adds or removes one — it only overrides values (face, weight numerics, sizes, rungs), which is done on Semantics and above.'));
   const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
   const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
   const wrap = el('div', 'cs-wrap');
@@ -3549,7 +3578,7 @@ const renderCategorySetup = (): HTMLElement => {
   table.append(head);
   const cb = (checked: boolean, onChange: (v: boolean) => void): HTMLInputElement => {
     const c = el('input') as HTMLInputElement;
-    c.type = 'checkbox'; c.checked = checked; c.disabled = perMode;
+    c.type = 'checkbox'; c.checked = checked;
     c.onchange = () => onChange(c.checked);
     return c;
   };
@@ -3590,7 +3619,6 @@ const renderCategorySetup = (): HTMLElement => {
     // the select would show the first one and rewrite the value on the next change. Same intent as
     // `renderPerModeSelect`'s "(custom)" fallback: surface it rather than silently losing it.
     if (!steps.includes(cur)) sel.append(optionEl(String(cur), nudgeLabel(cur, down, up), true));
-    sel.disabled = perMode;
     sel.onchange = () => { const n = Number(sel.value); setPath(brandState, `typography.${field}.${group}`, n === 0 ? undefined : n); apply(); };
     return sel;
   };
@@ -3611,13 +3639,9 @@ const renderCategorySetup = (): HTMLElement => {
     // It stays as a resolved READING because it is real context for the row — the weight set and the
     // leading nudge beside it are choices you make knowing which face they land on — and because the
     // per-mode value is genuinely different information from the baseline.
-    const faceOf = (cat: string): string => {
-      const base = ty.families.find((f) => f.group === cat)?.stack[0] ?? '—';
-      if (!perMode) return base;
-      const ov = getModeLever(currentMode, `families.${cat}`);
-      const ovName = Array.isArray(ov) ? ov[0] : (ov as string | undefined);
-      return ovName ?? base;
-    };
+    // The BASELINE face. Per-mode faces are a column axis on Semantics now (#416), so resolving this
+    // against `currentMode` would report a value this page no longer has a mode context for.
+    const faceOf = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '—';
     const ftd = el('td');
     const fname = el('div', 'cs-face', faceOf(g));
     fname.title = ty.families.find((f) => f.group === g)?.stack.join(', ') ?? '';
@@ -4686,7 +4710,11 @@ const pageHasModeVaryingControl = (): boolean => {
   if (page === 'layout') return false;
   // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
   //  do — the same reasoning that hides it on Primitives, reached from the other direction.
-  if (page === 'typography') return typeTab === 'semantics' || typeTab === 'styles';
+  // #416 — Typography edits every mode-varying value it has (families, weight roles, leading and
+  // tracking re-points, per-size pins) as a COLUMN PER MODE, so there is nothing left for a switcher
+  // to drive. Same conclusion as Primitives and Preview, reached from the other end: those have no
+  // per-mode values, this one shows them all at once.
+  if (page === 'typography') return false;
   return true;
 };
 
@@ -5433,7 +5461,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .te-cat td.unavail{background:repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(120,120,130,.06) 4px,rgba(120,120,130,.06) 5px)}
 .te-cat-note{margin:10px 2px 0;font-size:11.5px;line-height:1.5;color:var(--faint)}
 /* D (typography) — per-mode notes + shared read-only markers. */
-.te-modenote{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.55;padding:10px 13px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm)}
 .te-order-warn{margin:10px 2px 0;font-size:12px;color:#a12;line-height:1.5}
 .te-shared-note{margin:4px 2px 10px;font-size:12px;color:var(--faint);line-height:1.5}
 .te-shared-ro{margin:6px 0 0;font-size:13.5px;font-weight:560;color:var(--ink2)}
