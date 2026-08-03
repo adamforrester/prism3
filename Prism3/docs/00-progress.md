@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-08-03) — A target-size floor, and the mode-editing pattern split logged
+
+**STATUS: engine (test-only) + docs.** No emitted artifact moves — `MIN_TARGET_PX` is a constant and
+a gate, not a value in the tree.
+
+**The engine gated contrast everywhere and target size nowhere.** WCAG 2.2 SC 2.5.8 Target Size
+(Minimum), AA, asks 24×24 CSS px; nothing in 1277 tests checked a control height against it. This
+was reachable until an hour ago: at the old `spaceBase 4`, `compact` put xs/sm/md at 16/16/20px and
+shipped clean.
+
+**Height, not area.** A control's width grows with its label, so height is the dimension that can
+actually be too small — gating it is the conservative, checkable half.
+
+**24, not 44.** SC 2.5.5 (AAA) asks 44 and mainstream systems ship 32–40px controls; a 44px gate
+would fail every real design system including this one. 24 is the line below which a control is a
+*conformance failure* rather than a tight-but-defensible choice.
+
+**The reachable set is now finite, so the gate is exhaustive rather than a sample.** With the rhythm
+fixed and density an enum of three, `3 × 5 = 15` heights is the entire space a brand can produce, and
+the gate enumerates all of it. Worth stating because it will stop being true the moment someone
+re-introduces a dimension lever — that is when this needs revisiting, not before.
+
+**A second assertion pins the floor as LOAD-BEARING.** `compact` xs is exactly 24px, so the gate is
+one rung from firing. Asserting only "≥ 24" would pass just as happily if the ladder drifted upward
+and the threshold were quietly wrong; asserting the minimum *equals* the floor keeps the check honest
+about what it is measuring.
+
+**Verified by injecting the regression it exists for** rather than by observing it pass: adding one
+rung below the ladder floor and widening the density window fires both assertions with
+`UNDER: compact/xs: 16px`. Reverted, 1279/0. A gate never seen red is a gate never seen work — and
+this one guards a floor currently held by arithmetic, not by construction.
+
+**Also logged: discussion-backlog item 7 — mode editing has two patterns.** Typography introduced
+side-by-side mode columns; every other page uses the global mode switcher. The owner returned to
+Size & radius, expected the typography pattern, and concluded per-mode radius/density/shadow were
+unbuilt — all three have existed since Phase D (#184/#188/#329), and `modeLevers` carries ten
+per-mode fields. **The capability is complete; the affordance is invisible from Light.** The split
+itself is defensible (read surfaces went multi-mode, write surfaces stayed single-mode — different
+jobs), but nothing signposts it. The datum worth keeping is *who* it fooled: if the person building
+it mis-reads the capability after a few weeks on an adjacent surface, documenting the convention
+will not save a new user. Resolution deferred to the mode-switcher-on-page work, which it composes
+with.
+
+Gates: `test.ts` **1277 → 1279**, `regen --check` 88 byte-match, NB regression exit 0, US-English
+clean, web typecheck + build clean.
+
+
 ## (2026-08-03) — "+ Add face" becomes a submit CTA (#405)
 
 **STATUS: web.** `out/*` unchanged. Owner-raised; closes #405.
@@ -5572,6 +5619,32 @@ here or a merged PR. Test count is **542/542** as of the sweep close.
    `prism3-consume` (a) — measured by the eval's with-skill arm (100% compliance, see the decisions log +
    docs/17 §5); `prism3-theme` (b) — verified by the cold-agent compile loop (two fresh briefs compiled
    first-try clean, all 248 contracts holding). Skill placement (this repo vs. distributable) remains open.**
+
+7. **Mode editing has two patterns, and the author of both was fooled by it (owner-raised, 2026-08-03).**
+   The typography work introduced **on-page, side-by-side mode columns** (the rung/composite tables show
+   every mode at once). Every other page keeps the original model: the **global mode switcher** selects a
+   mode and the controls edit *that* mode. Coming back to Size & radius after the typography arc, the owner
+   expected the typography pattern, read the single set of controls as mode-invariant, and concluded that
+   per-mode radius/density/shadow were **unbuilt** — they have all existed since Phase D (#184/#188/#329),
+   and `modeLevers` carries ten per-mode fields today. Verified live: switching off Light turns Corner
+   softness, Density and the shadow softness/tint sliders into "Auto — follows global" per-mode selects.
+   **Nothing is missing; the affordance is invisible from the mode you land on.**
+
+   The split is not arbitrary — **read surfaces went multi-mode, write surfaces stayed single-mode**, and
+   those are genuinely different jobs (comparing wants every mode at once; editing wants one). The defect
+   is that nothing signposts it: in Light, a per-mode axis and a mode-invariant one look identical. The
+   Interactive page already prints a mode note (`.ic-modenote`); the geometry/elevation pages do not.
+
+   **The most useful datum is who it fooled.** If the person building it mis-reads the capability after a
+   few weeks on an adjacent surface, no note in a doc will save a new user — which argues for fixing the
+   affordance rather than documenting the convention.
+
+   **Not a proposal to unify by making everything side-by-side** — that multiplies every control by the
+   mode count. The likely resolution is to make the mode context unmistakable at the point of *editing*,
+   which composes with the owner's plan to move the mode switcher down onto the page rather than being
+   thrown away by it. **Open:** whether the disclosure is a per-page note, a per-control marker, or falls
+   out of the switcher move; and the mode editor rework the owner wants to resolve soon. Deferred once
+   already when typography took priority.
 
 ---
 

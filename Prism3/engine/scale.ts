@@ -36,6 +36,20 @@
 export const SPACE_BASE = 8;
 export const GRID_BASE = 4;
 
+/** The minimum interactive control height, in CSS px — **WCAG 2.2 SC 2.5.8 Target Size (Minimum), AA**.
+ *
+ *  Height is the right thing to gate: a control's width grows with its label, so height is the
+ *  dimension that can actually be too small. This is a FLOOR, not a target — the enhanced criterion
+ *  (SC 2.5.5, AAA) asks 44px and mainstream systems ship 32–40px controls, so gating 44 would fail
+ *  every real design system including this one. 24 is the line below which a control is a
+ *  conformance failure rather than a tight-but-defensible choice.
+ *
+ *  Nothing enforces this by construction — `compact` xs lands on exactly 24px, so the floor is
+ *  currently held by arithmetic rather than by contract. That is precisely why it is asserted:
+ *  adding a rung below the ladder's floor, or widening the density window by one more step, would
+ *  drop the smallest control under the criterion silently. */
+export const MIN_TARGET_PX = 24;
+
 export type Density = 'comfortable' | 'compact' | 'spacious';
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };
