@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-08-03) — Preview token list splits on the tier line (#390)
+
+**STATUS: web.** No engine change, no token movement — `regen --check` 88/88 untouched. The Preview
+token list now carries the primitive/semantic split via `.pvseg`, the same mechanism Typography took
+first (#272) and doc 26 called "the pattern #267 generalises".
+
+**Two defects, and neither is visible until the tiers are apart.** Primitives have no modes, so the
+four mode columns were rendering **four identical cells** for all 142 palette steps — the non-color
+branch already guarded this (`hasModes ? modeLabels : ['Resolved']`), the color branch never did. And
+a semantic's resolved hex is only half of it: which token it **aliases** is the editable relationship.
+
+**The alias has to live inside the mode cell, and that is measured rather than assumed.** Of harbor's
+147 color roles, only **6** alias the same target in all four modes; 97 keep the palette family and
+change step; **44 change family outright** (`background.primary`: white → neutral.950 → white →
+black). A single "aliases to" column would have been wrong for 141 of 147 rows.
+
+**Tier by SHAPE, not a category list** — `$value` is an alias string ⇒ semantic — so a token added
+later files itself. **One carve-out, and the mock got it wrong before this landed:** a typography
+composite holds an *object* of aliases rather than an alias string, so the shape rule filed all 38
+`type.*` composites under Primitives. Doc 26 puts the full type ramp under Typography's **Styles**
+tier, and a composed style is the least primitive thing in the system. `$type === 'typography'` is
+therefore an explicit semantic override.
+
+**`color` is the ONLY semantic category with modes.** `size`, `font`, `space`, `motion`, `grid`,
+`icon`, `radius`, `border-width` and `focus` are all mode-invariant, so the Semantics tab is one
+four-column table and nine single-column ones — not a uniform grid with exceptions.
+
+**Short alias paths are decided per TABLE, because a blanket rule would lie.** Stripping the shared
+prefix only works where one namespace covers the table. `color` is all `palette.*` (safe);
+**`size` aliases both `dimension.*` and `space.*`**, so it keeps full paths and says why. The callout
+is computed from the table's actual alias namespaces, never assumed.
+
+**A bug worth recording, because it was invisible and the fix is one word.** The chain marker (a
+semantic aliasing another semantic — `grid.sm.gutter → space.200 → dimension.16`, 30 of them) never
+rendered. It tested the tier of `deref(...)`, and **`deref` follows the chain all the way to the
+terminal primitive**, which can never be semantic — so the condition was structurally unreachable.
+`subNode` is the single hop. Caught by driving the real UI in Chromium, not by the typecheck, which
+was perfectly happy.
+
+**Verified in a browser, not by inference.** Playwright against the built bundle: Primitives shows one
+`Value` column across 10 categories; Semantics shows Color at four mode columns with 691 two-line
+cells; Short mode yields `neutral.050` plus the right callout; `size` keeps full paths with the
+two-namespace explanation; `type` appears under Semantics; 10 chain markers on `grid`. No console or
+page errors.
+
+**Known gap, deliberately not closed here.** With **Show → Alias only**, a `type.*` composite still
+renders its resolved value, because it has no single alias to show — its `$value` is five aliases at
+once. The cell falls back rather than going empty. Listing all five is possible but long, and the
+approved mock never covered composites (it had them on the wrong tier), so this wants a look before
+it is built.
+
+**Gates:** web typecheck + build clean, `regen --check` 88/88, `test.ts` 1243/0, nb-regression exit 0,
+DTCG 911/911 aliases + 432/432 contracts, US-English clean over **91** files — the 91st being the
+freshly built bundle, which is the #387 coverage gap showing its face in the count.
+
+---
 ## (2026-08-03) — A mode can move one category to a different family role (#390)
 
 **STATUS: engine.** `out/*` **unchanged** — NB sets no per-mode `familyMap`, so every committed artifact
