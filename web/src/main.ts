@@ -804,8 +804,12 @@ const colorHexAt = (tree: TreeNode, node: TreeNode, mode: Mode, baseMode: Mode):
   return ov?.$value ? hexOfNode(tree, deref(tree, subNode(tree, ov.$value))) : hexOfNode(tree, node);
 };
 /** A typography composite → family · weight · size · line-height · tracking (primary face only). */
-const typeComposite = (tree: TreeNode, node: TreeNode): string => {
-  const v = node.$value ?? {};
+/** `value` defaults to the node's own `$value`, but a caller that has resolved a PER-MODE snapshot
+ *  passes it instead — a composite's mode override is a full `$value` (`{ ...value, ...parts }`), so it
+ *  carries all five aliases and reads exactly the same way. Without this seam the read-out was pinned
+ *  to light for every mode. */
+const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown): string => {
+  const v = (value ?? node.$value ?? {}) as any;
   const parts: string[] = [];
   if (v.fontFamily) parts.push(familyOf(tree, subNode(tree, v.fontFamily)).split(',')[0].trim());
   if (v.fontWeight) parts.push(String(numOf(tree, subNode(tree, v.fontWeight))));
@@ -853,18 +857,25 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   const modeLabels = modes.map((m) => MODE_LABEL[m] ?? m);
   const rootRe = new RegExp('^' + root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.');
 
+  /** The `$value` a node presents IN A MODE — the per-mode snapshot where there is one, else the base.
+   *  Extracted because three readers had already open-coded these two lines and a fourth (`compositeParts`)
+   *  and a fifth (the typography branch of `valueText`) had NOT, which is the whole defect: a per-mode
+   *  composite re-point rendered four identical mode columns on the one page built to show divergence.
+   *  One accessor means the next reader cannot forget. */
+  const valueAt = (node: TreeNode, m: Mode): unknown => {
+    const ov = node.$extensions?.prism3?.modes?.[m];
+    return (m !== baseMode && ov) ? ov.$value : node.$value;
+  };
   /** What a leaf points at in a mode — root-relative — or undefined when it carries a value itself. */
   const aliasAt = (node: TreeNode, m: Mode): string | undefined => {
-    const ov = node.$extensions?.prism3?.modes?.[m];
-    const v = (m !== baseMode && ov) ? ov.$value : node.$value;
+    const v = valueAt(node, m);
     return typeof v === 'string' && TOK_ALIAS.test(v) ? v.replace(/[{}]/g, '').replace(rootRe, '') : undefined;
   };
   /** The node a leaf points at in ONE hop — undefined when it carries a value itself. Deliberately
    *  NOT `deref`, which follows the chain all the way to the terminal primitive: the chain marker
    *  exists to say "this points at another semantic", and a fully-resolved node can never be one. */
   const hopAt = (node: TreeNode, m: Mode): TreeNode | undefined => {
-    const ov = node.$extensions?.prism3?.modes?.[m];
-    const v = (m !== baseMode && ov) ? ov.$value : node.$value;
+    const v = valueAt(node, m);
     return (typeof v === 'string' && TOK_ALIAS.test(v)) ? subNode(tree, v) : undefined;
   };
   /** …and the fully resolved node, which is what the value read-out wants. */
@@ -872,19 +883,18 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   /** A typography COMPOSITE has no single alias: its `$value` is FIVE aliases at once (family, size,
    *  weight, leading, tracking). Returned in composite order so the cell can stack them; `[]` for
    *  everything else, which is what keeps the normal single-alias path untouched. */
-  const compositeParts = (node: TreeNode): Array<{ label: string; path: string }> =>
-    node.$type !== 'typography' || !node.$value || typeof node.$value !== 'object' ? []
-      : Object.entries(node.$value as Record<string, unknown>)
-        .filter(([, v]) => typeof v === 'string' && TOK_ALIAS.test(v as string))
-        .map(([k, v]) => ({ label: COMPOSITE_PART[k] ?? k, path: String(v).replace(/[{}]/g, '').replace(rootRe, '') }));
+  const compositeParts = (node: TreeNode, m: Mode): Array<{ label: string; path: string }> => {
+    const v = valueAt(node, m);
+    return node.$type !== 'typography' || !v || typeof v !== 'object' ? []
+      : Object.entries(v as Record<string, unknown>)
+        .filter(([, x]) => typeof x === 'string' && TOK_ALIAS.test(x as string))
+        .map(([k, x]) => ({ label: COMPOSITE_PART[k] ?? k, path: String(x).replace(/[{}]/g, '').replace(rootRe, '') }));
+  };
 
   /** The resolved value as text, by `$type` — the payload for a primitive, the second line for a semantic. */
   const valueText = (node: TreeNode, m: Mode): string => {
-    if (node.$type === 'typography') return typeComposite(tree, node);
-    if (node.$type === 'shadow') {
-      const arr = m === baseMode ? node.$value : (node.$extensions?.prism3?.modes?.[m] ?? node.$value);
-      return shadowCss(arr) || '—';
-    }
+    if (node.$type === 'typography') return typeComposite(tree, node, valueAt(node, m));
+    if (node.$type === 'shadow') return shadowCss(valueAt(node, m)) || '—';
     const n = targetAt(node, m);
     const px = n?.$extensions?.prism3?.px;
     if (px != null) return `${px}px`;
@@ -895,7 +905,7 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   /** One cell. `both` is the two-line form (alias over value); the Show control collapses it. */
   const tokCell = (node: TreeNode, m: Mode, canShort: boolean): HTMLElement => {
     const alias = aliasAt(node, m);
-    const parts = compositeParts(node);
+    const parts = compositeParts(node, m);
     const hasAlias = alias !== undefined || parts.length > 0;
     const wantAlias = tokShow !== 'value' && hasAlias;
     const wantValue = tokShow !== 'alias' || !hasAlias;             // never render an empty cell
@@ -946,7 +956,7 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     if (!leaves.length) continue;
     // Composite parts count toward the table's alias namespaces — without them `type.*` reports none
     // and never earns the shared-prefix callout that makes its stacked paths readable.
-    const ns = [...new Set(leaves.flatMap((l) => [...modes.map((m) => aliasAt(l.node, m)), ...compositeParts(l.node).map((cp) => cp.path)]
+    const ns = [...new Set(leaves.flatMap((l) => [...modes.map((m) => aliasAt(l.node, m)), ...modes.flatMap((m) => compositeParts(l.node, m)).map((cp) => cp.path)]
       .filter(Boolean).map((a) => a!.split('.')[0])))].sort();
     sections.push({ cat: category, leaves, hasModes: leaves.some((l) => l.node.$extensions?.prism3?.modes), ns });
   }
