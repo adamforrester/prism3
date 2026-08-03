@@ -7,6 +7,65 @@
 
 ---
 
+## (2026-08-03) — The spacing rhythm and fine grid base stop being brand levers (owner decision)
+
+**STATUS: engine + web.** `out/*` unchanged — no committed brand ever set either, which is itself
+part of the argument. Removes `spaceBase` and `baseUnit` from the BrandInput contract, the lever
+manifest, and the UI; both are now fixed constants in `scale.ts`.
+
+**`spaceBase` → locked at 8, on measured grounds rather than taste.** Generating the two scales and
+diffing the reachable px settled it: switching to base 4 does **not unlock spacing values, it renames
+them and truncates the scale.**
+
+```
+base 8  0 2 4 6 8 12 16 20 24 32 40 48 56 64 72 80 88 96
+base 4  0 1 2 3 4  6  8 10 12 16 20 24 28 32 36 40 44 48
+        gains 1/3/10/28/36/44 (1 and 3 are hairlines, not spacing)
+        loses 56/64/72/80/88/96 — the entire layout end
+```
+
+And `12px` stops being `space.150` and becomes `space.300`. The numbered-multiplier taxonomy's whole
+claim (KB 02/22/24) is that the number means "n× base" **invariantly across brands** — which is only
+true if the base is invariant. A per-brand base makes the one thing the scale was chosen to buy
+untrue. 4px spacing is still offered as `space.050`; it just is not the multiplier.
+
+**`baseUnit` → locked at 4, because it moved no design value.** Generating one brand at 4 vs 8:
+
+| axis | @4 | @8 | differing leaves |
+|---|---|---|---|
+| `dimension` | 36 | 23 | **13** |
+| `radius` / `border` / `space` / `size` | — | — | **0** |
+
+Every consuming axis feeds its own px into the grid as `extras`, so the rungs it needs exist
+regardless of the setting. It was a control that looked consequential and changed nothing but the
+size of a vocabulary nothing was required to use.
+
+**The trigger was a real defect, and it is fixed separately.** The owner found these levers by
+setting `spaceBase 4` + `spacious` and getting components far too small with `lg` and `xl` both at
+32px. The duplicate was the density clamp bug (its own entry), not the rhythm. Worth separating: the
+rhythm produced *small* components, which is what a 4px rhythm means; only the *collision* was wrong.
+
+**Removal is loud, not silent.** The schema is `additionalProperties: false`, so a `design.md` that
+still sets either now fails validation with `spaceBase: unknown property (not in contract)` and exits
+1 — verified. Preferred over accepting-and-ignoring, which would leave an author believing a setting
+applied. Nothing to migrate: no committed brand set either, and neither is part of the `x-prism3`
+surface, so `brand-skills` needs no matching change (checked, not assumed).
+
+**Two tests were retargeted, not deleted.** Both configured the removed fields through `brandTheme`,
+so after the change they silently became duplicate default-brand runs — passing while asserting
+nothing. They now call the pure scale functions directly, which keeps the #274 `extras` mechanism
+under test at bases a *brand* can no longer request while being honest that it is no longer brand
+config. Deleting them would have left that mechanism live and unguarded. Engine **1269 → 1261**
+(the `baseUnit-6` fixture and the four-base loop collapse into targeted assertions).
+
+**Web:** the Spacing grid section keeps its specimen and loses its controls, with a note saying why.
+An empty control column reads as a rendering bug; a vanished section loses a scale worth reading.
+
+Gates: `regen --check` 88 byte-match, NB regression exit 0, US-English clean, web typecheck + build
+clean, and a stale brand input rejected with exit 1.
+
+---
+
 ## (2026-08-03) — Density collapsed a size step, in shipped output (owner-reported)
 
 **STATUS: engine.** Owner set `spaceBase 4` + `spacious` and saw component sizes that were far too

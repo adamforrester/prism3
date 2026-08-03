@@ -465,8 +465,6 @@
       ],
       "description": "OPTIONAL, OPT-IN (off by default — most systems abstain). `true` ships one default brand gradient (primary.600→primary.350, linear); an array ships exactly the listed gradients. Stop colors alias the color ramp; OKLCH interpolation by default; materializes as a Figma Paint Style (only stop colors bind)."
     },
-    "baseUnit": { "type": "number", "default": 4, "description": "OPTIONAL. Fine dimension-grid base (px). Default 4." },
-    "spaceBase": { "type": "number", "default": 8, "description": "OPTIONAL. Spacing rhythm (px) for the numbered-multiplier space scale. Default 8." },
     "density": {
       "type": "string",
       "enum": ["comfortable", "compact", "spacious"],
