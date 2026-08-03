@@ -1270,6 +1270,45 @@ for (const b of brands) {
   const accept = { id: 'd-schema', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modes: ['light', 'dark'], modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput;
   ok(validateBrandInput(accept).length === 0, `D(e): validateBrandInput accepts modeLevers (errors: ${JSON.stringify(validateBrandInput(accept))})`);
 
+  // #391 — schema-valued `additionalProperties`. `validate()` implemented only the `false` form (the
+  // unknown-key guard) and not the OBJECT form (a sub-schema applied to every value `properties` does
+  // not cover). `modeLevers` is exactly that shape, so its ENTIRE subtree was walked into and dropped:
+  // radius range, density enum, typeSizes floors and familyMap roles were all unenforced by the
+  // published contract. `brandTheme()` still threw at resolve time, so the ENGINE was never at risk —
+  // what was inert was the contract external authors read before they ever reach the engine.
+  //
+  // These RUN the validator rather than reading the schema. That distinction is the whole lesson: the
+  // gap survived the entire life of the `modeLevers` contract and two passes of adding fields to it
+  // (#367, #390), both of which inspected the schema and concluded it was covered.
+  {
+    const mlBase = { id: 'ap', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 }, modes: ['light', 'dark'] };
+    const v = (ml: unknown) => validateBrandInput({ ...mlBase, modeLevers: ml } as unknown as BrandInput);
+    const rejects = (label: string, ml: unknown) => ok(v(ml).length > 0, `[#391] REJECTS ${label}`);
+    const accepts = (label: string, ml: unknown) => ok(v(ml).length === 0, `[#391] accepts ${label} (errors: ${JSON.stringify(v(ml))})`);
+    // One per affected node kind: enum, nested unknown-key, nested numeric bound, top-level unknown
+    // key, and both halves of the newest field (#390) — the one that exposed this.
+    rejects('a bad density enum inside modeLevers', { dark: { density: 'nope' } });
+    rejects('a typeSizes group that is not a heading group', { dark: { typeSizes: { body: { md: 18 } } } });
+    rejects('a typeSizes value below the group floor', { dark: { typeSizes: { display: { '3xl': 8 } } } });
+    rejects('an unknown lever key inside a mode', { dark: { nonsenseKey: 1 } });
+    rejects('a familyMap role that does not exist', { dark: { familyMap: { title: 'brand' } } });
+    rejects('a familyMap category that does not exist', { dark: { familyMap: { heading: 'text' } } });
+    rejects('a radius outside [0, 2]', { dark: { radius: 5 } });
+    // The pre-#296 shape: a NUMBER where the re-point map wants a rung name.
+    rejects('a lineHeights re-point naming a number instead of a rung', { dark: { lineHeights: { normal: 1.6 } } });
+    // The other half — the fix must not start rejecting legal input. `true`/absent
+    // `additionalProperties` stay permissive; only the object form applies a sub-schema.
+    accepts('a valid density', { dark: { density: 'compact' } });
+    accepts('a valid familyMap', { dark: { familyMap: { title: 'text' } } });
+    accepts('a valid typeSizes override', { dark: { typeSizes: { title: { '2xl': 36 } } } });
+    accepts('a valid radius', { dark: { radius: 1.5 } });
+    accepts('a valid lineHeights re-point', { dark: { lineHeights: { normal: 'relaxed' } } });
+    // The error must NAME the path — a sub-schema applied at the wrong depth would still reject, but
+    // point at `modeLevers` and leave the author hunting.
+    ok(/modeLevers\.dark\.density/.test(v({ dark: { density: 'nope' } })[0] ?? ''),
+      `[#391] the error names the full path, not just the map (got: ${v({ dark: { density: 'nope' } })[0]})`);
+  }
+
   // (f) byte-identical guard — a brand with no modeLevers (or {}) matches the field-absent build.
   ok(JSON.stringify(buildTree(brandTheme(base)).tree) === JSON.stringify(buildTree(brandTheme({ ...base, modeLevers: {} } as unknown as BrandInput)).tree),
     'D(f): an empty modeLevers map produces byte-identical output (the primary guard)');

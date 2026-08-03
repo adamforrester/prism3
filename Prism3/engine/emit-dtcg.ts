@@ -73,8 +73,23 @@ const validate = (data: any, schema: any, defs: any, path = ''): string[] => {
     if (typeof data !== 'object' || data === null || Array.isArray(data)) return [`${at}: expected object`];
     const props = schema.properties ?? {};
     for (const req of schema.required ?? []) if (!(req in data)) e.push(`${at}: missing required '${req}'`);
-    if (schema.additionalProperties === false) for (const k of Object.keys(data)) if (!(k in props)) e.push(`${path ? path + '.' : ''}${k}: unknown property (not in contract)`);
-    for (const [k, v] of Object.entries(data)) if (props[k]) e.push(...validate(v, props[k], defs, path ? `${path}.${k}` : k));
+    // `additionalProperties` has TWO forms and only the first was implemented (#391):
+    //   false   → the unknown-key guard below
+    //   {schema}→ a sub-schema applied to every value `properties` does not cover, which is how you
+    //             type a map with open keys. `modeLevers` is exactly that shape, so its ENTIRE subtree
+    //             — radius range, density enum, typeSizes floors — was walked into and dropped on the
+    //             floor. Seven nodes across the contract. `brandTheme()` still threw at resolve time,
+    //             so the engine was never at risk; what was unenforced is the PUBLISHED contract, which
+    //             is what design.md authors and the plugin/web hosts read first. The #281 shape one
+    //             level up: a gate reporting clean because it never looked.
+    const ap = schema.additionalProperties;
+    const apSchema = ap && typeof ap === 'object' && !Array.isArray(ap) ? ap : undefined;
+    if (ap === false) for (const k of Object.keys(data)) if (!(k in props)) e.push(`${path ? path + '.' : ''}${k}: unknown property (not in contract)`);
+    // `true` and absent stay permissive — only the object form carries a sub-schema to apply.
+    for (const [k, v] of Object.entries(data)) {
+      const sub = props[k] ?? apSchema;
+      if (sub) e.push(...validate(v, sub, defs, path ? `${path}.${k}` : k));
+    }
   } else if (t === 'array') {
     if (!Array.isArray(data)) return [`${at}: expected array`];
     if (schema.minItems !== undefined && data.length < schema.minItems) e.push(`${at}: ${data.length} item(s) < minItems ${schema.minItems}`);
