@@ -5452,7 +5452,11 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sh-card{width:64px;height:64px;border-radius:10px;background:#fff}
 .sh-lab{font-size:11.5px;color:#5b6472}
 .motion-spec{margin-bottom:8px}
-.mo-toolbar{display:flex;justify-content:flex-end;margin:-4px 0 4px}
+/* Top clearance as PADDING, matching .prow's padding:20px 0 6px — the convention every other
+   palSection follows, since .psec-d carries no bottom margin and the next element owns the gap.
+   The old margin:-4px pulled the row UP by more than .psec-d's entire 4px top margin, so the
+   select sat tighter to the description than a plain 0-margin element would have. */
+.mo-toolbar{display:flex;justify-content:flex-end;margin:0 0 4px;padding-top:20px}
 .mo-slowmo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--faint)}
 .mo-slowmo-sel{font:inherit;font-size:12px;color:var(--ink2);background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-xs);padding:4px 8px;cursor:pointer}
 .mo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:14px 0 2px}
@@ -5501,7 +5505,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .adv-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px}
 .adv-x:hover{color:#a12}
 .adv-add{border:1px dashed var(--line2);background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px;border-radius:var(--r-xs);padding:5px 10px}
-.adv-bez{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+/* Same 20px top clearance — this row was appended straight after palSection's head with no top
+   spacing at all, so the bezier inputs sat flush against the description. */
+.adv-bez{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding-top:20px}
 .adv-bez-lab{font-size:11px;color:var(--faint)}
 /* Layout specimen — breakpoint/grid table + column preview + container bars. */
 .layout-spec{margin-bottom:8px}
