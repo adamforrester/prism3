@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-03) — #414: Semantics stops offering Primitives-tier authoring
+
+**STATUS: web only.** One file, no emitted artifact moves.
+
+**Three leftovers from the four-tab split (#388 B1), all on Typography → Semantics → Typefaces.**
+
+**1. `Custom face…` reopened authoring at the semantic tier.** The binding select offered it, revealing
+a free-text field for naming a face. That is the exact conflation the tab split removed: Primitives
+owns the library (add / remove a face), Semantics owns which face does each job. The select now offers
+library faces plus `code`'s `None` opt-out, and adding a face is one action in one place again.
+
+**Deleting the input was safe rather than merely tidy, and the issue flagged this as the thing to
+check.** `ty.typefaces` is the DERIVED union of the authored library and every bound face (including
+per-mode ones), so a bound face is always already in the option list — the input could only ever be
+reached by choosing `Custom face…`. The one case where a bound face might be missing from the list is
+two categories naming the same face under different casing, which dedupes to one primitive under the
+first spelling; that is covered by the existing `opts.push([shown, shown])` line, not by the input.
+**Per-mode overrides do not need it either** — verified in the browser, not reasoned about: switching
+to Dark and picking a face from the select alone writes
+`modeLevers.dark.families.title`. The staging round-trip works end to end too: a face added on
+Primitives (`typefaceLibrary: ['Fraunces']`) appears as a bindable option on Semantics.
+
+**2. The "exact spelling matters" note moved to Primitives.** It is advice about typing a face name,
+and after item 1 the add-face field is the only place a name is typed. It now sits directly under that
+field.
+
+**3. The per-mode note pointed at an adjacency that no longer existed.** "The library **above**" — the
+library moved to Primitives in the split. #419 had already re-pointed it; this fixes the missing word
+("every face **that** any mode names") and states the location. Worth keeping in mind that the owner
+read this stale note as *the mode bar having regressed*: the bar is hidden exactly where #350/#268 hid
+it, and a note claiming a false adjacency is what made a correct rule look broken.
+
+**A stray effect of #415 reverted in passing.** `.mtbl-mode .tf-stat{display:block;margin-top:4px}`
+was added in #415 for the Semantics availability line, but the Primitives library's own "On this
+device" cell is *also* a `.tf-stat` inside a `.mtbl-mode` td — so that rule had been silently
+restyling it. Removing the Semantics stat takes the rule with it, and the library cell measures back
+at `display:inline` / `margin-top:0`. Deleted rather than left inert, per the `.errbar-global` lesson
+from #388.
+
+**A probe failure worth recording, because it is the same trap twice.** The first verification run
+reported the Dark override writing nothing. The app was fine; the probe clicked the mode chip and then
+re-navigated to the tab, which resets the mode — so the write landed on the Light path. This is the
+"mode-chip clicked before tab switch" mistake from the #390 work, in a new costume. **Switch modes
+AFTER arriving at the tab, never before.**
+
+**Verification.** `regen --check` (88) · 1275/0 · NB regression PASS · web + plugin
+typecheck/test/build · sandbox-clean · US-English clean. UI checked in Chromium: no `Custom face…` on
+any of the seven selects, zero inputs and zero availability spans left in the bindings table, both
+tables still on the shared 798px grid, and the per-mode write confirmed against the persisted input.
+
+**Left for #416, deliberately.** Removing the input also removes the last (if unreachable) way to
+*clear* a per-mode override, which sharpens the affordance gap the #419 review found: an inherited
+value and an explicit override still render identically. That belongs with #416's "one stated rule for
+editing a mode-varying value", not here — see the note on #416.
+
+---
+
 ## (2026-08-03) — #415: the family ROLE tier is gone; categories bind typefaces directly
 
 **STATUS: engine + schema + web + fixtures.** The tier changes shape, so every artifact moves — but
