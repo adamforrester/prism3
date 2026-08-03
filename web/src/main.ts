@@ -2963,6 +2963,11 @@ const renderTypefaceLibrary = (): HTMLElement => {
   addIn.onkeydown = (e) => { if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); submit(); } };
   addRow.append(addIn, addBtn);
   sec.append(addRow, addErr);
+  // #414 — the spelling guidance sits with the field it describes. It lived on Semantics, which after
+  // the four-tab split types nothing: this is the only place a face name is entered by hand.
+  const spell = el('p', 'tf-note');
+  spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
+  sec.append(spell);
   // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
   // role binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
   sec.append(el('p', 'tf-derivenote', anyUnbound
@@ -3038,39 +3043,31 @@ const renderTypefaceBindings = (): HTMLElement => {
     nc.append(el('div', 'cs-count', TYPE_GROUP_BLURB[cat] ?? ''));
     tr.append(nc);
 
-    // Pick from the library, author a new face, or (code) bind nothing at all. Sentinels rather than
-    // plain words: the value is compared against real face names, so it must be something no font
-    // family can be called.
-    const CUSTOM = '__custom__';
-    const NONE = '__none__';
+    // #414 — the select offers ONLY faces the library already holds, plus `code`'s opt-out. The
+    // `Custom face…` escape hatch that used to sit here reopened AUTHORING at the semantic tier, which
+    // is the exact conflation the four-tab split removed: Primitives owns the library (add / remove a
+    // face), Semantics owns which face does each job. Adding a face is one action in one place again.
+    //
+    // The free-text input went with it, and that is safe rather than merely tidy: `ty.typefaces` is
+    // the DERIVED union of the library and every bound face (including per-mode ones), so a bound face
+    // is always already in the option list. The one case where it might not be — two categories naming
+    // the same face with different casing, which dedupes to a single primitive under the first
+    // spelling — is covered by the `opts.push([shown, shown])` line below, not by the input.
+    const NONE = '__none__';                    // a sentinel no font family can be called
     const opts: Array<[string, string]> = ty.typefaces.map((t) => [t.name, t.name] as [string, string]);
     if (!opts.some(([v]) => v === shown) && shown) opts.push([shown, shown]);
-    opts.push([CUSTOM, 'Custom face…']);
     if (cat === 'code' && !perMode) opts.push([NONE, 'None — no code styles']);
 
-    const input = el('input', 'tf-in') as HTMLInputElement;
-    input.type = 'text'; input.spellcheck = false;
-    input.value = perMode ? (ov ?? '') : (unbound ? '' : globalPrimary);
-    input.placeholder = perMode ? `Auto — ${globalPrimary}` : 'Font family name';
-    input.setAttribute('aria-label', `Font family for ${cat}`);
-    const stat = el('span', 'tf-stat');
     const prev = el('span', 'mtbl-spec-t tf-prev', 'The quick brown fox jumps');
-    const paint = (face: string): void => {
-      const okFace = fontAvailable(face);
-      stat.className = 'tf-stat ' + (okFace ? 'ok' : 'no');
-      stat.textContent = okFace ? '✓ Installed' : (face ? '⚠ Not installed' : '⚠ Default face');
-      prev.style.fontFamily = face ? `"${face}", ${cat === 'code' ? 'monospace' : 'sans-serif'}` : 'inherit';
-    };
+    prev.style.fontFamily = unbound || !shown ? 'inherit' : `"${shown}", ${cat === 'code' ? 'monospace' : 'sans-serif'}`;
     const commit = (v: string | null | undefined): void => {
       if (perMode) { setModeLever(currentMode, `families.${cat}`, v ?? undefined); applyFull(); }
       else { setPath(brandState, `typography.families.${cat}`, v); applyFull(); }
     };
 
-    const cur = unbound ? NONE : (shown || CUSTOM);
     const sel = selectEl('sm fill');
-    for (const [v, label] of opts) sel.append(optionEl(v, label, v === cur));
+    for (const [v, label] of opts) sel.append(optionEl(v, label, v === (unbound ? NONE : shown)));
     sel.onchange = () => {
-      if (sel.value === CUSTOM) { input.hidden = false; stat.hidden = false; input.value = ''; paint(''); input.focus(); return; }
       if (sel.value === NONE) { commit(null); return; }
       // An empty value means the assignment matched no option — which happens when the option list
       // shrinks under a stale reference. Writing it through would store `families.<cat>: ""`, a key
@@ -3078,23 +3075,9 @@ const renderTypefaceBindings = (): HTMLElement => {
       if (!sel.value) return;
       commit(sel.value);
     };
-    // The free-text field is the authoring path for a face not yet in the library; picking an
-    // existing one hides it, so there are never two live inputs for the same value (doc 26).
-    input.hidden = unbound ? true : !(!shown || !ty.typefaces.some((t) => t.name === shown));
-    input.oninput = () => paint(input.value.trim() || globalPrimary);
-    input.onchange = () => commit(input.value.trim() || (perMode ? undefined : null));
-    paint(unbound ? '' : shown);
-
     sel.title = shown || '';
     const fc = el('td', 'mtbl-mode');
-    // Both the input and the stat are ALWAYS appended and toggled with `hidden` — appending only when
-    // visible would leave "Custom face…" with nothing to reveal, since the handler that unhides them
-    // runs long after this cell is built.
-    // The availability warning rides WITH the custom field rather than living in its own column: it is
-    // only news at the moment you are naming a face by hand, and the library on Primitives is where it
-    // belongs the rest of the time.
-    stat.hidden = input.hidden;
-    fc.append(sel, input, stat);
+    fc.append(sel);
     tr.append(fc);
     const sc = el('td', 'mtbl-mode');
     if (unbound) sc.append(el('span', 'cs-count', '—'));
@@ -3109,12 +3092,18 @@ const renderTypefaceBindings = (): HTMLElement => {
   }
   tbl.append(tb); scroll.append(tbl); box.append(scroll); sec.append(box);
 
-  const spell = el('p', 'tf-note');
-  spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
+  // #414 — the "exact spelling" note moved to Primitives, where the only text field that types a face
+  // name now lives. It was advice about typing, sitting on a tab where nothing is typed.
+  //
+  // This one stays, because seven specimens render here and a fallback needs explaining where it is
+  // seen. Its "the ⚠ above" pointer went stale the moment the per-binding availability flag was
+  // removed above, so it now points at the column that still carries that fact.
   const local = el('p', 'tf-note warn');
-  local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback — the ⚠ above tells you when that is happening. Your emitted tokens are unaffected; they carry the name you typed.';
-  sec.append(spell, local);
-  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s bindings — blank follows the global baseline. The library on Primitives shows every face any mode names.`));
+  local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
+  sec.append(local);
+  // The old note said "the library above" — the library moved to Primitives in the four-tab split, so
+  // it pointed at an adjacency that no longer existed, and read as the mode bar having regressed.
+  if (perMode) sec.append(el('p', 'te-modenote', `Editing ${modeLabel}’s bindings — blank follows the global baseline. The Typefaces library on Primitives lists every face that any mode names.`));
   return sec;
 };
 
@@ -5970,11 +5959,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-bulklab{font-size:12.5px;color:var(--ink2);font-weight:560}
 .tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
 .tf-stat{font-size:11px;font-weight:600}
-.mtbl-mode .tf-in{margin-top:6px;font-size:12.5px;padding:5px 7px}
-/* The hidden attribute must still win: an author display:block here outranks the UA sheet's hidden
-   rule, which is how the availability line ended up printed on all seven rows at once. */
-.mtbl-mode .tf-stat{display:block;margin-top:4px;line-height:1.35}
-.mtbl-mode .tf-stat[hidden],.mtbl-mode .tf-in[hidden]{display:none}
 /* A token pill is white-space:nowrap, so its full single-line width is its MIN-CONTENT contribution
    and the 148px column width property is only a hint it happily blows past — the intrinsic-width trap
    #360/#369/#388, measured again here at 829px vs the shared 798px grid. An explicit px cap clamps
