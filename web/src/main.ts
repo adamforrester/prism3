@@ -3075,35 +3075,58 @@ const renderSizeLadder = (): HTMLElement => {
   // typeScale had already shifted.
 
   sec.append(subHead('The ladder — largest first'));
-  const headRungs = new Set(ty.composites.filter((c) => c.group === 'display' || c.group === 'title').map((c) => c.sizePx));
   const used = new Set(ty.composites.map((c) => c.sizePx));
   const minUsed = new Set(ty.composites.map((c) => c.sizeMinPx));
   const displayStack = ty.families.find((f) => f.role === 'display')?.stack.join(', ') ?? 'inherit';
-  const ladder = el('div', 'sl-ladder');
-  // Largest-first: every lever acts on the heading end, so the rungs that change must be
-  // the ones in view. The scroll then opens on the first rung actually in use.
+  // #404 — the SHARED table shape, on the same 112/148/148/390 grid as the leading/tracking ladders
+  // below it. It was the one bespoke row layout left on the tab, and it also dimmed unbound rungs and
+  // carried a three-key legend, so the two ladder tables on one tab taught opposite things: this one
+  // said "unbound means faded", its sibling said "unbound is the ordinary case, stated in a column".
+  //
+  // Dimming is gone. On a READ-ONLY primitive table a faded row implies unavailable or wrong, and
+  // neither is true — 22 steps exist, which ones are bound changes the moment Shape or Range moves.
+  // The legend went with it: two of its three keys described which rungs travel with those levers,
+  // which is a Text styles concern rather than a property of the raw material, and the third existed
+  // only to explain the dimming. The blue `head` dot went too — it was the levered-rung marker those
+  // keys explained, and an unexplained colour-coded dot is worse than no dot.
+  const box = el('div', 'mtbl');
+  const scroll = el('div', 'mtbl-scroll sl-tall');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'rem'),
+    el('th', 'mtbl-mode', 'Bound by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  let firstBound: HTMLElement | null = null;
+  // Largest-first: every lever acts on the heading end, so the rungs that change must be the ones in
+  // view. The scroll still opens on the first BOUND rung — the top of the ladder is 160px and most
+  // brands never reach it — but it now finds that row by capturing it here rather than by querying
+  // `:not(.unused)`, which is the class #404 removed.
   for (const px of [...ty.sizesPx].reverse()) {
     const inUse = used.has(px);
-    const row = el('div', 'sl-row' + (inUse ? '' : ' unused') + (headRungs.has(px) ? ' head' : ''));
-    const meta = el('div', 'sl-meta');
-    meta.append(el('span', 'sl-dot'), el('span', 'sl-px mono', `${px}px`), el('span', 'sl-rem mono', `${+(px / 16).toFixed(4)}rem`));
-    const right = el('div', 'sl-right');
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', `${px}px`));
+    tr.append(nc);
+    const rc = el('td', 'mtbl-mode');
+    rc.append(el('span', 'mtbl-selfval mono', `${+(px / 16).toFixed(4)}rem`));
+    tr.append(rc);
+    const who = [...new Set(ty.composites.filter((c) => c.sizePx === px).map((c) => c.group))];
+    const wc = el('td', 'mtbl-mode');
+    wc.append(el('span', 'ltbl-who' + (inUse ? '' : ' none'),
+      inUse ? who.join(', ') : (minUsed.has(px) ? 'fluid floor only' : 'not bound')));
+    tr.append(wc);
+    const pc = el('td', 'mtbl-fill mtbl-spec');
     const samp = el('div', 'sl-samp', 'Ag');
     samp.style.fontSize = `${px}px`; samp.style.fontFamily = displayStack;
-    const who = [...new Set(ty.composites.filter((c) => c.sizePx === px).map((c) => c.group))];
-    right.append(samp, el('div', 'sl-who mono', inUse ? who.join(' · ') : (minUsed.has(px) ? 'fluid floor only' : '—')));
-    row.append(meta, right);
-    ladder.append(row);
+    pc.append(samp);
+    tr.append(pc);
+    if (inUse && !firstBound) firstBound = tr;
+    tb.append(tr);
   }
-  sec.append(ladder);
-  requestAnimationFrame(() => {
-    const first = ladder.querySelector('.sl-row:not(.unused)') as HTMLElement | null;
-    if (first) ladder.scrollTop = Math.max(0, first.offsetTop - 4);
-  });
-  const key = el('div', 'sl-key');
-  const kdot = (cls: string, text: string): HTMLElement => { const s = el('span', 'sl-keyi'); s.append(el('i', cls), document.createTextNode(text)); return s; };
-  key.append(kdot('k-head', 'moves with these levers (display, title, eyebrow)'), kdot('k-fix', 'fixed — body, label, caption, code'), kdot('k-off', 'rung unused by any category'));
-  sec.append(key);
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  sec.append(box);
+  requestAnimationFrame(() => { if (firstBound) scroll.scrollTop = Math.max(0, firstBound.offsetTop - 4); });
   return sec;
 };
 
@@ -5910,22 +5933,19 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
 /* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
    it — without it the open-on-first-in-use-rung scroll overshoots to the bottom. */
-.sl-ladder{position:relative;max-height:460px;overflow-y:auto;border:1px solid var(--line);border-radius:var(--r);margin-top:4px}
-.sl-row{display:grid;grid-template-columns:118px 1fr;gap:14px;align-items:center;padding:7px 13px;border-top:1px solid var(--line)}
-.sl-row:first-child{border-top:0}
-.sl-row.unused{opacity:.42}
-.sl-meta{display:flex;align-items:center;gap:7px}
-.sl-dot{width:5px;height:5px;border-radius:50%;background:var(--ink);flex:none}
-.sl-row.head .sl-dot{background:#3f6ae0}
-.sl-row.unused .sl-dot{background:var(--line2)}
-.sl-px{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.sl-rem{font-size:11px;color:var(--faint)}
+/* #404 — the size ladder moved onto the shared table, so the bespoke row grid, the dimming, the
+   levered-rung dot and the three-key legend are all gone. Everything they styled went with them
+   rather than being left as dead rules (the .errbar-global lesson from #388). Two survive:
+   .sl-samp is the big Ag specimen, and .sl-tall keeps the 460px scroll box the 22 full-size rows
+   still need — .mtbl-scroll only handles the horizontal axis. */
 .sl-samp{line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sl-who{font-size:10.5px;color:var(--faint);margin-top:3px}
-.sl-key{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--faint);margin-top:10px}
-.sl-keyi{display:inline-flex;align-items:center;gap:5px}
-.sl-keyi i{width:6px;height:6px;border-radius:50%;display:inline-block}
-.sl-keyi i.k-head{background:#3f6ae0}.sl-keyi i.k-fix{background:var(--ink)}.sl-keyi i.k-off{background:var(--line2)}
+.sl-tall{max-height:460px;overflow-y:auto}
+/* The header has to STICK here and nowhere else: this is the only tier table that scrolls
+   vertically, and 22 rows of full-size specimens scroll the column labels away within one row.
+   The corner cell outranks the rest because .mtbl-stick is already sticky on the left axis —
+   without the bump it slides under its own row headers at the intersection. */
+.sl-tall thead th{position:sticky;top:0;z-index:2}
+.sl-tall thead .mtbl-stick{z-index:4}
 /* The availability marks, carried over from the deleted primitive weight scale (#362) — the mark
    vocabulary is unchanged, only its home. tpw-samp overrides the shared specimen size down, since
    this cell holds a mark beside it in a face column rather than owning a full-width row.

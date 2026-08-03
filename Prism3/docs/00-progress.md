@@ -7,6 +7,51 @@
 
 ---
 
+## (2026-08-03) — The size ladder reads equally: no dimming, no legend, on the shared grid (#404)
+
+**STATUS: web.** `out/*` unchanged. Owner-raised; closes #404.
+
+Primitives carried two ladder tables that taught **opposite** lessons about the same idea. The
+leading/tracking ladders (#388 part B1) deliberately do not dim unbound steps — the code says why:
+
+> an unbound step is the **common** case here (15 steps, ~6 rungs), so dimming most of the table would
+> read as an error state.
+
+The size ladder, directly above them, did the opposite: `.sl-row.unused` at `opacity:.42` plus a
+three-key legend. Owner's framing is the right one — *"the user cannot change the ladder, but these
+are all the available font sizes and should read equally."* On a **read-only primitive** table a faded
+row implies unavailable or wrong, and neither is true: 22 steps exist, and which are bound changes the
+moment Shape or Range moves.
+
+**This was a gap I left, not a pre-existing one.** B1 established the non-dimming convention on the
+tables it added and never carried it back to the one sitting above them.
+
+- **The legend went with the dimming.** Two of its three keys described which rungs travel with the
+  levers — a **Text styles** concern, not a property of the raw material — and the third existed only
+  to explain the fade. The blue `head` dot went too: it was the levered-rung marker those keys
+  explained, and an unexplained color-coded dot is worse than no dot.
+- **Converted to the shared table** (`112/148/148/390`), which it was the last bespoke row layout on
+  the tab to resist. "Bound by" now carries what the dimming encoded, in the same vocabulary and the
+  same faint tier as its sibling — `not bound` / `fluid floor only` as ordinary text.
+- **All the orphaned CSS was deleted**, not left behind: the row grid, the dot, the legend, the
+  opacity rule, the px/rem/who spans. #388's inert `.errbar-global` is the lesson — a rule that no
+  longer applies is worse than no rule, because the next reader trusts it.
+
+**Two things the measurements alone would have missed.**
+
+The scroll-to-first-bound behavior keyed off `.unused` (`querySelector('.sl-row:not(.unused)')`), so
+removing the class would have silently killed it — the ladder would open at 160px, which most brands
+never reach. It now captures the first bound row during the build loop instead. Flagged on the issue
+before the work started, which is why it survived.
+
+And the **sticky header**, which only the screenshot caught: this is the one tier table that scrolls
+vertically, and 22 rows of full-size specimens scroll the column labels away within a single row. The
+siblings never needed it. The corner cell needs a higher `z-index` than the rest because `.mtbl-stick`
+is already sticky on the left axis and slides under its own row headers at the intersection.
+**Behavioral checks were green before this fix and after it** — the same blind spot as #374.
+
+---
+
 ## (2026-08-03) — The schema validator learns schema-valued `additionalProperties` (#391)
 
 **STATUS: engine.** `out/*` unchanged — this enforces a contract, it does not change generation.
