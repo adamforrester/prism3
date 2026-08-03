@@ -87,10 +87,6 @@ export const leverManifest: Lever[] = [
     description: 'Drives component sizes (control height + paired padding). The name stays stable; the metrics shift.' },
   { key: 'baseMd', group: 'form', label: 'Radius anchor', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
     description: 'The radius.md value (px) at scale 1.' },
-  { key: 'spaceBase', group: 'form', label: 'Spacing rhythm', control: 'slider', advanced: true, default: 8, min: 4, max: 12, step: 1, unit: 'px',
-    description: 'Base of the numbered-multiplier space scale (space.100 = 1×).' },
-  { key: 'baseUnit', group: 'form', label: 'Fine grid base', control: 'slider', advanced: true, default: 4, min: 2, max: 8, step: 1, unit: 'px',
-    description: 'Fine dimension-grid base backing radius/borders.' },
 
   // ---- TYPE ----
   { key: 'typography.typeScale', group: 'type', label: 'Type scale', control: 'enum', default: 'default',

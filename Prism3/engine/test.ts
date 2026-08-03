@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, componentSizes } from './scale';
+import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -359,9 +359,6 @@ for (const b of brands) {
     ['nb', nbTheme()],
     ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/aurora.design.md'), 'utf8')).input)],
     ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, '../examples/harbor.design.md'), 'utf8')).input)],
-    // A coarse baseUnit is the case that would dangle: the fixed icon ladder is NOT a multiple of 6,
-    // so without buildDims feeding icon px into the grid extras these aliases would break (#274's shape).
-    ['baseUnit-6', brandTheme({ id: 'b6', root: 'prism', baseUnit: 6, primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true } } as any)],
   ];
   for (const [id, t] of brands) {
     const built = buildTree(t);
@@ -1727,25 +1724,25 @@ for (const b of brands) {
     'D-density(i): a modeLevers entry with no density lever produces byte-identical output');
 }
 
-// #274 — space.* aliases must resolve at ANY spaceBase. Space is `mult × spaceBase`; the dimension grid is
-// `baseUnit`-stepped, so a non-default spaceBase pushes the half-steps (1.5×/0.25×/0.75×) OFF the grid
-// (spaceBase 12 → space.150 = 18px, not a baseUnit-4 multiple) and the `space.<k> → {dimension.<px>}` alias
-// would dangle. buildDims feeds every space px into the grid as extras, so they resolve by construction.
+// #274 — every `space.<k> → {dimension.<px>}` alias must resolve. The rhythm and the grid base are now
+// FIXED (SPACE_BASE 8 / GRID_BASE 4), so the off-grid case a brand could once configure is unreachable;
+// what remains reachable is the invariant itself, asserted against the real constants rather than through
+// a brand that can no longer differ. The `extras` feeding in buildDims is what makes it true, so the
+// second assertion keeps that mechanism under test at bases a brand can no longer request — deleting it
+// would leave the mechanism live and unguarded.
 {
-  const root = 'prism';
-  const mk = (spaceBase: number) => buildTree(brandTheme({ id: 'sb', primary: { l: 0.5, c: 0.15, h: 260 }, neutral: { hue: 260, chroma: 0.008 }, spaceBase } as unknown as BrandInput));
-  // Off-grid bases (whose half-steps miss the baseUnit-4 grid) + the default: all must be dangle-free.
-  for (const sb of [8, 12, 5, 10]) {
-    const built = mk(sb);
-    ok(built.stats.broken.length === 0, `#274: spaceBase ${sb} — 0 dangling aliases` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 4).map((b: any) => b.ref).join(',')}` : ''));
-    const data = built.tree[root];
-    const s150 = at(data, 'space.150');
-    const target = String(s150.$value).replace(/^\{|\}$/g, '');
-    ok(at(built.tree, target) !== undefined, `#274: spaceBase ${sb} — space.150 (${Math.round(1.5 * sb)}px) target ${target} exists`);
+  const gridPx = new Set(dimensionGrid(GRID_BASE, 128, spaceScale(SPACE_BASE).map((sp) => sp.px)));
+  const offGrid = spaceScale(SPACE_BASE).map((sp) => sp.px).filter((px) => !gridPx.has(px));
+  ok(offGrid.length === 0, `#274: every space px lands on the dimension grid at the fixed bases (${SPACE_BASE}/${GRID_BASE})`
+    + (offGrid.length ? ` — OFF-GRID: ${offGrid.join(',')}` : ''));
+
+  // The mechanism, at bases only the pure functions can now be handed: without extras these would dangle.
+  for (const [sb, gb] of [[12, 4], [5, 4], [10, 4], [8, 6]] as const) {
+    const g = new Set(dimensionGrid(gb, 128, spaceScale(sb).map((sp) => sp.px)));
+    const miss = spaceScale(sb).map((sp) => sp.px).filter((px) => !g.has(px));
+    ok(miss.length === 0, `#274: extras keep every space px on the grid at base ${sb}/${gb}`
+      + (miss.length ? ` — MISSING: ${miss.join(',')}` : ''));
   }
-  // Guard the byte-identity claim explicitly: at the default spaceBase 8, space px already land on the grid,
-  // so feeding them as extras changes nothing — a default brand's tree is unaffected by the fix.
-  ok(mk(8).stats.broken.length === 0, '#274: default spaceBase 8 stays dangle-free (committed fixtures unaffected)');
 }
 
 // PHASE D — ENGINE REVIEW FIXES. Correctness + consistency findings from the engine code review.

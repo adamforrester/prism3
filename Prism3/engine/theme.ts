@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, iconSizes, IconSizeStep } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, iconSizes, IconSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 
@@ -432,8 +432,6 @@ export type BrandInput = {
   gradients?: boolean | GradientInput[];
   /** Dimension axis levers (schema-required #4/#5). Defaults reproduce a
    *  conventional 4px-grid / 8px-rhythm, sharp-corner system. */
-  baseUnit?: number;                 // fine dimension grid base (px), default 4
-  spaceBase?: number;                // spacing rhythm (px), default 8
   density?: Density;                 // default 'comfortable' (drives component sizes)
   radiusScale?: number;              // 0=sharp … 1=default … 2=soft, default 1
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
@@ -1839,8 +1837,9 @@ export const brandTheme = (input: BrandInput): Theme => {
     }
   }
 
-  const baseUnit = input.baseUnit ?? 4;
-  const spaceBase = input.spaceBase ?? 8;
+  // Fixed, not brand levers — see SPACE_BASE / GRID_BASE in scale.ts for why each was locked.
+  const baseUnit = GRID_BASE;
+  const spaceBase = SPACE_BASE;
   const density = input.density ?? 'comfortable';
   const rScale = input.radiusScale ?? 1;
   const baseMd = input.baseMd ?? 4;

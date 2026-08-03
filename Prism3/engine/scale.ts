@@ -18,6 +18,24 @@
  * grid still backs radius/borders.
  */
 
+/** The spacing rhythm and the fine dimension-grid base are FIXED, not brand levers.
+ *
+ *  `SPACE_BASE` is locked at 8 because changing it does not unlock spacing VALUES — it renames
+ *  them and truncates the scale. A base-4 brand gains 1/3/10/28/36/44px (1 and 3 are hairlines,
+ *  not spacing) and LOSES 56/64/72/80/88/96 — the whole layout end — while `12px` stops being
+ *  `space.150` and becomes `space.300`. The numbered-multiplier taxonomy's promise is that the
+ *  number means "n× base" invariantly ACROSS brands, which is only true if the base is invariant;
+ *  a per-brand base makes the one thing the scale was chosen to buy untrue. 4px spacing is still
+ *  offered (`space.050`) — it is simply not the multiplier.
+ *
+ *  `GRID_BASE` is locked at 4 because it moved no design value: generating the same brand at 4 vs
+ *  8 changed only the primitive `dimension` ladder (36 leaves vs 23) while radius, border, space
+ *  and size came out byte-identical — every consuming axis feeds its own px into the grid as
+ *  extras, so the rungs it needs exist regardless. It was a control that looked consequential and
+ *  changed nothing but the size of a vocabulary nothing was required to use. */
+export const SPACE_BASE = 8;
+export const GRID_BASE = 4;
+
 export type Density = 'comfortable' | 'compact' | 'spacious';
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };

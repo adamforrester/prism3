@@ -2629,12 +2629,22 @@ const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
   for (const k of keys) { const c = leverControl(k, perMode); if (c) stack.append(c); }
   return stack;
 };
+/** The Spacing grid section has no controls by design — both its levers were removed. Says why, rather
+ *  than leaving an empty control column that reads as a rendering bug. */
+const spacingFixedNote = (): HTMLElement => el('p', 'ic-modenote',
+  'The 8px rhythm is fixed for every brand. Changing the base would rename spacing values rather than '
+  + 'unlock them — 4px is still available as space.050 — and the numbered scale only means “n× base” '
+  + 'across brands if the base is the same across brands.');
+
 const renderSizeRadiusPage = (host: HTMLElement): void => controlSplitPage(host, 'sizeRadius', () => {
   const perMode = currentMode !== 'light';
   return [
     { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', controls: csLeverStack(['baseMd', 'radiusScale'], perMode), paint: paintRadiusPreview },
     { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
-    { title: 'Spacing grid', sub: 'The spacing rhythm (space.100 = 1×) and the fine dimension-grid base backing radius & borders.', controls: csLeverStack(['spaceBase', 'baseUnit'], perMode), paint: paintSpacingPreview },
+    // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
+    // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
+    // which is more use than a section that quietly vanished.
+    { title: 'Spacing grid', sub: 'The spacing rhythm — space.100 = 1× an 8px base, fixed for every brand.', controls: spacingFixedNote(), paint: paintSpacingPreview },
   ];
 });
 
