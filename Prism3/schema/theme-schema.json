@@ -56,11 +56,15 @@
           "families": {
             "type": "object",
             "additionalProperties": false,
-            "description": "OPTIONAL. Per-mode font FAMILY per family-role — a different font stack for this mode. Same shape as `typography.families` minus `variable` (the variable flag stays from light). Only a role whose stack differs from light carries a per-mode override on the `font.family.<role>` primitive; every composite inherits via its alias (the composite set is untouched).",
+            "description": "OPTIONAL. Per-mode font FAMILY per text CATEGORY — a different font stack for this mode. Same shape as `typography.families` minus `variable` (the variable flag stays from light) and minus the `null` opt-out (a mode re-points the categories the brand ships; it never adds or drops one). Only a category whose stack differs from light carries a per-mode override on the `font.family.<category>` semantic; every composite in that category inherits via its alias (the composite set is untouched). Category-keyed, this is the whole per-mode family mechanism: moving `title` to another face in this mode leaves `display` alone.",
             "properties": {
-              "display": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Display-role font stack for this mode (single face or full fallback array)." },
-              "text": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Text-role font stack for this mode." },
-              "mono": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Mono-role font stack for this mode." }
+              "display": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack display draws from in this mode (single face or full fallback array)." },
+              "title": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack title draws from in this mode (single face or full fallback array)." },
+              "body": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack body draws from in this mode (single face or full fallback array)." },
+              "label": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack label draws from in this mode (single face or full fallback array)." },
+              "caption": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack caption draws from in this mode (single face or full fallback array)." },
+              "eyebrow": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack eyebrow draws from in this mode (single face or full fallback array)." },
+              "code": { "oneOf": [ { "type": "string" }, { "type": "array", "items": { "type": "string" } } ], "description": "OPTIONAL. Font stack code draws from in this mode (single face or full fallback array)." }
             }
           },
           "weights": {
@@ -129,20 +133,6 @@
               "display": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 32 }, "description": "OPTIONAL. Per-mode display rung sizes, keyed by rung name (e.g. { \"3xl\": 96 }). Floor 32px — the smallest size this system emits for display anywhere." },
               "title": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 16 }, "description": "OPTIONAL. Per-mode title rung sizes, keyed by rung name (e.g. { \"2xl\": 32 }). Floor 16px — titleFloor's minimum." },
               "eyebrow": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 11 }, "description": "OPTIONAL. Per-mode eyebrow rung sizes, keyed by rung name (e.g. { \"lg\": 16 }). Floor 11px — what typeScale 'compact' already shifts eyebrow.sm to." }
-            }
-          },
-          "familyMap": {
-            "type": "object",
-            "additionalProperties": false,
-            "description": "OPTIONAL (#390). Per-mode FAMILY ROLE per category — { \"title\": \"text\" } reads 'in this mode, title consumes the text role'. Re-points the CATEGORY at a different existing role, exactly as typeSizes re-points a category at a different ladder step; the role primitives are untouched and only the composite's alias moves. This is the ONLY way one category diverges from its siblings in a single mode: modeLevers.<mode>.families.<role> changes the FACE a role binds, so it moves every category on that role together (display and title both default to the display role). Names a ROLE, never a face — pointing a category straight at font.typeface.* is what the two-tier family model rejects, because the role is the brand-invariant handle a shared codebase binds to. A brand needing a FOURTH simultaneous face needs a fourth role, not this lever. Deep-validated by brandTheme() at resolve time (the category is one this brand ships; the role is one this brand binds). A category mapped to its own brand role is inert and dropped, so the artifact stays byte-identical. Omit for none.",
-            "properties": {
-              "display": { "type": "string", "enum": ["display", "text", "mono"], "description": "OPTIONAL. The family role display consumes in this mode." },
-              "title": { "type": "string", "enum": ["display", "text", "mono"], "description": "OPTIONAL. The family role title consumes in this mode." },
-              "body": { "type": "string", "enum": ["display", "text", "mono"], "description": "OPTIONAL. The family role body consumes in this mode." },
-              "label": { "type": "string", "enum": ["display", "text", "mono"], "description": "OPTIONAL. The family role label consumes in this mode." },
-              "caption": { "type": "string", "enum": ["display", "text", "mono"], "description": "OPTIONAL. The family role caption consumes in this mode." },
-              "eyebrow": { "type": "string", "enum": ["display", "text", "mono"], "description": "OPTIONAL. The family role eyebrow consumes in this mode." },
-              "code": { "type": "string", "enum": ["display", "text", "mono"], "description": "OPTIONAL. The family role code consumes in this mode. Rejected when families.mono is null — that brand ships no code category." }
             }
           }
         }
@@ -303,18 +293,22 @@
         "families": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Display / text / mono faces. A single face name is auto-padded with a system fallback stack; a full array is trusted as-is. `variable` flags variable-font usage.",
+          "description": "The face each text CATEGORY draws from. A single face name is auto-padded with a system fallback stack; a full array is trusted as-is. An omitted category takes the engine default (Inter, or JetBrains Mono for `code`), so a brand states only what it chooses. `variable` flags variable-font usage. Keyed by category rather than by an abstract display/text/mono role: the role tier was a middle layer that forced two categories sharing a role to move together.",
           "properties": {
-            "display": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Display/hero face (defaults to the text face if omitted)." },
-            "text": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Body/UI workhorse face." },
-            "mono": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }, { "type": "null" }], "description": "Monospace/code face. `null` OPTS OUT \u2014 a brand with no mono face ships no `code` category either. Omitted keeps the default mono, so existing brands are unaffected." },
-            "variable": { "oneOf": [{ "type": "boolean" }, { "type": "object", "additionalProperties": false, "properties": { "display": { "type": "boolean" }, "text": { "type": "boolean" }, "mono": { "type": "boolean" } } }], "default": false, "description": "Variable-font usage. A single boolean applies to all faces; a per-face object (e.g. { display: true, text: true }) flags each of display/text/mono independently (engine BrandInput: boolean | Partial<Record<'display'|'text'|'mono', boolean>>)." }
+            "display": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Face display draws from (single name or full fallback array)." },
+            "title": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Face title draws from (single name or full fallback array)." },
+            "body": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Face body draws from (single name or full fallback array)." },
+            "label": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Face label draws from (single name or full fallback array)." },
+            "caption": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Face caption draws from (single name or full fallback array)." },
+            "eyebrow": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "Face eyebrow draws from (single name or full fallback array)." },
+            "code": { "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }, { "type": "null" }], "description": "Face for code styles. `null` OPTS OUT \u2014 a brand with no mono face ships no `code` category either, and `code` is the only category that may opt out. Omitted keeps the default mono face." },
+            "variable": { "oneOf": [{ "type": "boolean" }, { "type": "object", "additionalProperties": false, "properties": { "display": { "type": "boolean" }, "title": { "type": "boolean" }, "body": { "type": "boolean" }, "label": { "type": "boolean" }, "caption": { "type": "boolean" }, "eyebrow": { "type": "boolean" }, "code": { "type": "boolean" } } }], "default": false, "description": "Variable-font usage. A single boolean applies to every category; a per-category object (e.g. { display: true, body: true }) flags each independently (engine BrandInput: boolean | Partial<Record<TypeGroup, boolean>>)." }
           }
         },
         "typefaceLibrary": {
           "type": "array",
           "items": { "type": "string", "pattern": "\\S" },
-          "description": "OPTIONAL. Faces the brand HAS, independent of which job any of them does. A typeface used to exist only if a family role bound it, so \"add a typeface\" and \"bind a typeface to a role\" were one action, with nowhere to stage a face while deciding. Each entry emits a `font.typeface.<slug>` primitive exactly like a bound face, so pointing a role at one later changes no token shape. A face that is both listed here and bound to a role appears once, keeping the role's fallback stack; a library-only face gets the sans fallback tail. Listing one face twice is rejected."
+          "description": "OPTIONAL. Faces the brand HAS, independent of which job any of them does. A typeface used to exist only if a category bound it, so \"add a typeface\" and \"bind a typeface to a category\" were one action, with nowhere to stage a face while deciding. Each entry emits a `font.typeface.<slug>` primitive exactly like a bound face, so pointing a category at one later changes no token shape. A face that is both listed here and bound appears once, keeping the binding's fallback stack; a library-only face gets the sans fallback tail. Listing one face twice is rejected."
         },
         "weightRoles": {
           "type": "object",
@@ -333,20 +327,6 @@
           "enum": ["compact", "default", "expressive"],
           "default": "default",
           "description": "Shifts heading sizes (display, title and eyebrow) up/down the ladder: expressive → one rung higher, compact → one lower. Body/label/caption/code stay put."
-        },
-        "familyMap": {
-          "type": "object",
-          "additionalProperties": false,
-          "description": "Which family role each semantic group consumes. Defaults: display/title/label/eyebrow → display (brand); body/caption → text; code → mono. Override per group (e.g. neutral buttons: { label: 'text' }). Family is a property of the group, not the size.",
-          "properties": {
-            "display": { "type": "string", "enum": ["display", "text", "mono"] },
-            "title": { "type": "string", "enum": ["display", "text", "mono"] },
-            "body": { "type": "string", "enum": ["display", "text", "mono"] },
-            "label": { "type": "string", "enum": ["display", "text", "mono"] },
-            "caption": { "type": "string", "enum": ["display", "text", "mono"] },
-            "eyebrow": { "type": "string", "enum": ["display", "text", "mono"] },
-            "code": { "type": "string", "enum": ["display", "text", "mono"] }
-          }
         },
         "displayCeiling": {
           "type": "string",

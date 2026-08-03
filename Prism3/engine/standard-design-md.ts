@@ -106,17 +106,27 @@ export const parseStandardDesignMd = (text: string): StandardDesignMd => {
 export const idFromName = (name: string): string =>
   name.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'brand';
 
-/** The family used by body/caption tokens is the TEXT face; the family used by
- *  the display/heading tokens is the DISPLAY face. */
-export const deriveFamilies = (typography: StandardDesignMd['typography']): { display?: string; text?: string } => {
+/** Which face each Prism3 CATEGORY draws from, read off a standard spec's per-token `fontFamily`.
+ *
+ *  A standard spec names its own typesets (`mega`, `button`, `paragraph`…), not Prism3 categories, so
+ *  this stays a two-bucket read — headings vs running text — and then fans each bucket onto the
+ *  categories it covers. Before #415 those two buckets WERE the output shape (the `display`/`text`
+ *  family roles); the fan-out is the same mapping the engine used to apply downstream, moved here now
+ *  that categories bind faces directly. The heading face falls back to the text face, which is what
+ *  keeps a spec that only styles body copy from jumping to the engine's default face. */
+export const deriveFamilies = (typography: StandardDesignMd['typography']): Record<string, string> => {
   const firstFamilyFor = (pred: (name: string) => boolean): string | undefined => {
     for (const [name, tok] of Object.entries(typography)) if (pred(name.toLowerCase()) && tok.fontFamily) return tok.fontFamily;
     return undefined;
   };
-  return {
-    display: firstFamilyFor((n) => /^(mega|display|title|button|label|eyebrow)/.test(n)),
-    text: firstFamilyFor((n) => /^(body|caption|paragraph)/.test(n)),
-  };
+  const text = firstFamilyFor((n) => /^(body|caption|paragraph)/.test(n));
+  const heading = firstFamilyFor((n) => /^(mega|display|title|button|label|eyebrow)/.test(n)) ?? text;
+  const out: Record<string, string> = {};
+  for (const g of ['display', 'title', 'label', 'eyebrow']) if (heading) out[g] = heading;
+  for (const g of ['body', 'caption']) if (text) out[g] = text;
+  // `code` is deliberately unset: a standard spec rarely declares a mono face, and an unset category
+  // takes the engine default — the same outcome the mono role had.
+  return out;
 };
 
 /** Map the optional namespaced `x-prism3` block (docs/07 §11.4) onto a BrandInput.

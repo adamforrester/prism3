@@ -150,7 +150,7 @@ if (isMain) {
     console.log(`    radius (scale ${theme.dims.radiusScaleValue}): ${theme.dims.radius.map((r) => `${r.name}=${r.px}`).join(' ')}`);
     console.log(`    sizes (${theme.dims.density}): ${theme.dims.sizes.map((z) => `${z.name}=${z.height}h/${z.padX}×${z.padY}pad`).join(' ')}`);
     console.log(`  typography: ${stats.fontSizes} size primitives (${theme.typography.sizesPx[0]}–${theme.typography.sizesPx[theme.typography.sizesPx.length - 1]}px, rem), ${stats.fontWeights} weights + ${theme.typography.weightRoles.length} roles (${theme.typography.weightRoles.map((w) => `${w.role}=${w.value}`).join(' ')}), ${theme.typography.lineHeights.length} line-heights, ${theme.typography.letterSpacings.length} tracking`);
-    console.log(`    families: ${theme.typography.families.map((f) => `${f.role}=${f.stack[0]}`).join(' ')}${theme.typography.families[0].variable ? ' [variable]' : ''} · scale '${theme.typography.typeScale}'`);
+    console.log(`    families: ${theme.typography.families.map((f) => `${f.group}=${f.stack[0]}`).join(' ')}${theme.typography.families[0].variable ? ' [variable]' : ''} · scale '${theme.typography.typeScale}'`);
     {
       // one line per group: sizes (unique) × the weight set it ships (+link marker).
       const byGroup: Record<string, { sizes: Set<string>; weights: Set<string>; link: boolean }> = {};

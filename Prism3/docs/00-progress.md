@@ -7,6 +7,100 @@
 
 ---
 
+## (2026-08-03) — #415: the family ROLE tier is gone; categories bind typefaces directly
+
+**STATUS: engine + schema + web + fixtures.** The tier changes shape, so every artifact moves — but
+no composite changes the face it resolves to. Verified explicitly rather than assumed: for nb, aurora
+and wendys, each composite's `fontFamily` was walked through the semantic to the typeface primitive
+before and after, and all three brands report **0 composites with a changed resolved face** at an
+unchanged composite count. What changed is the tier between them.
+
+**What was there.** `font.family.{display,text,mono}` — three abstract ROLES, each aliasing a
+typeface primitive, with a brand-level `familyMap` saying which category consumed which role. #269
+introduced it and argued the case on brand-invariance: a codebase binds a NAMED tier-2 handle, so
+swapping the face behind it leaves every consumer reference intact.
+
+**Why it went.** That argument is sound and it does not pick roles. It holds for any *named* tier-2,
+and category names satisfy it exactly as well — `font.family.title` survives a face swap the same way
+`font.family.display` did. What role-keying additionally bought was a COUPLING: `display`, `title`,
+`label` and `eyebrow` all defaulted to the one `display` role, so any per-mode family change moved
+all four together. #390 could not fix that from inside the tier; it added a second, parallel mechanism
+(a per-mode `familyMap`) whose entire job was letting two categories that shared a role come apart —
+and it paid for it by stamping a `modes.<m>` block onto every composite in the category, which is the
+exact shape #377 had just finished removing from leading and tracking.
+
+**The evidence that settled it was Prism2's own file.** `Tokens/Prism2/tokens/raw-figma/` binds
+`pds/font/family/{display,title,body,detail}` straight onto `pds/font/family/{inter,roboto,poppins}`.
+Category names, one tier, no roles. The display/text/mono triad is a real idea about brand identity —
+it just belongs to the brand's font *choices*, not to a layer of tokens.
+
+**What the collapse deletes.** `familyMap` (brand-level and per-mode), `TypeComposite.family`,
+`familyByMode`, `familyMapByMode`, `FontFamilyRole`/`FamilyRoleName`, and the whole per-composite
+family re-point path in `tree.ts`. A composite's family IS its group, so it aliases
+`font.family.<group>` and carries no family field. **`Typography.familiesByMode` is now the complete
+per-mode family story** — the test that proves it asserts the ENTIRE composite tree is byte-identical
+between a brand with a per-mode face and one without, because inheritance happens at the semantic.
+
+**Two sub-decisions, both owner-confirmed.**
+- **`families.code: null` replaces `families.mono: null`.** Same opt-out, one tier down. `code` is the
+  ONLY category that may be nulled — every other one is load-bearing, so nulling it would silently
+  delete a tier of the type system. Refused in `deriveFamilies`, which is the single choke point both
+  the brand build and the per-mode re-derivation pass through, so a mode cannot reach a state a brand
+  cannot. A test sweeps all six other categories to prove the carve-out is enforced rather than an
+  accident of `code` being last in the list.
+- **A bulk-set in the UI.** Seven categories instead of three roles means a single-face brand would
+  otherwise state the same name seven times. `code` is deliberately outside the bulk control's reach
+  and the label says so: a monospace choice is a different decision, and sweeping a text face across
+  it would be silent.
+
+**A new validation the collapse made necessary.** A per-mode `families` entry may only name a category
+the brand BINDS. `code: null` is the live case — a dark override for a dropped category derives a
+binding the light build has no counterpart for, and the emitter walks the LIGHT bindings, so it would
+vanish rather than fail. Throws, on the same reasoning as the #328 per-mode size guard: a per-mode
+request that is quietly ignored is only wrong in one mode's output, which is where nobody is looking.
+
+**The UI change, and why the editor moved rather than duplicating.** The Text styles FACE select is
+the control that exposed the tier as a mistake — with every role on one face it rendered several
+options all labelled "Inter" (the values were roles, the labels were faces), so picking one was
+guesswork. That is now a READ-ONLY resolved reading. The one editor lives on Semantics, because
+`font.family.*` is a semantic token and that is what the tab split (#388) is for. Two live editors for
+one value is the state the mode-bar overlap already put this page in (#416); this does not add a third.
+The three-card grid became a table on the tab's shared 112/148/148/390 grid — deleted, not left inert
+(the `.errbar-global` lesson from #388).
+
+**Fixture stance, restated.** `fixtures/figma/nb/font.json` gains four `font/family/*` variables and
+`text-styles.json` rebinds 32 styles. This is the same call #328 made when the weight list shrank: the
+COLOR/palette fixtures are the frozen real Token Press export, the TYPOGRAPHY half is an engine
+snapshot and moves with the engine. Here the real-world evidence points the same way, which the weight
+case could not claim. `display` and the two faces NB actually binds keep their variable IDs; only the
+four genuinely-new variables get fresh ones, past the font/font-fluid high-water mark.
+
+**Traps hit on the way, all previously logged and all fired again.**
+- **The #366 backtick trap, three more times.** Backticks in a CSS comment terminate the stylesheet
+  template literal, and esbuild reports the failure dozens of lines away from the edit.
+- **The intrinsic-width trap (#360/#369/#388).** A `nowrap` token pill contributes its full
+  single-line width as min-content, so a 148px column `width` is a hint it blows straight past —
+  measured at 829px against the shared 798px grid. An explicit px cap clamps it.
+- **A new one worth recording: `[hidden]` loses to an author `display:block`.** The availability line
+  was `hidden` on all seven rows and printed on all seven anyway, because a new
+  `.mtbl-mode .tf-stat{display:block}` rule outranks the UA sheet's `[hidden]` rule. Only visible in a
+  screenshot — the DOM property was correct the whole time.
+- **Appending a control only when visible.** The custom-face input was appended `if (!input.hidden)`,
+  so "Custom face…" had nothing to reveal. The handler that unhides it runs long after the cell is
+  built. Always append, toggle with `hidden`.
+
+**Verification.** `regen` → `regen --check` (88 artifacts, unchanged count) → 1275/0 tests → NB
+regression PASS (ΔE00 1.95, 11/11 contrast, 23/23 dimensions) → web + plugin typecheck, test and
+build → plugin main.js sandbox-clean → US-English gate 91 files clean. The UI was exercised in a
+headless browser, not just typechecked: bulk-set, per-row change, custom-face reveal, `code → None`,
+and a Dark per-mode override each verified against the persisted brand input.
+
+**Unblocked by this.** #414 (Semantics cleanup — the `Custom face…` affordance, the spelling note's
+home) and #416 (the three competing per-mode typography mechanisms) were both parked behind #415 and
+can now proceed. #411 (nudge labels) is independent and still ready.
+
+---
+
 ## (2026-08-03) — Motion's Playback select and the bezier row get their section clearance (#401)
 
 **STATUS: web.** Two CSS rules. `out/*` untouched.

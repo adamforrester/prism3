@@ -104,20 +104,20 @@ export const buildFidelityReport = (std: StandardDesignMd, cls: ColorClassificat
     `\`label\` / \`caption\` / \`eyebrow\` / \`code\`) — \`mega-*\`→\`display\` (top rungs), \`button-*\`→\`label\` (§11.5).`, '',
     '| observed token | family · size · weight | → engine group | nearest engine composite | Δsize |', '|---|---|---|---|---|');
   const comps = theme.typography.composites;
-  const famStack = (role: string) => theme.typography.families.find((f) => f.role === role)?.stack[0] ?? role;
+  const famStack = (group: string) => theme.typography.families.find((f) => f.group === group)?.stack[0] ?? group;
   for (const [token, tok] of Object.entries(std.typography)) {
     const group = TIER_TO_GROUP[tierOf(token)] ?? '—';
     const size = pxNum(tok.fontSize);
     const cands = comps.filter((c) => c.group === group);
     let near = cands[0], best = Infinity;
     for (const c of cands) { const d = size != null ? Math.abs(c.sizePx - size) : 0; if (d < best) { best = d; near = c; } }
-    const engFam = near ? famStack(near.family) : '—';
+    const engFam = near ? famStack(near.group) : '—';
     const dSize = near && size != null ? near.sizePx - size : null;
     P(`| \`${token}\` | ${tok.fontFamily} · ${tok.fontSize} · ${tok.fontWeight} | \`${group}\` | ${near ? `\`${near.path}\` (${near.sizePx}px, ${engFam}, w:${near.weightRole})` : '—'} | ${dSize == null ? '—' : (dSize > 0 ? '+' : '') + dSize + 'px'} |`);
   }
   P('',
     `- **Weight naming differs:** observed uses numerics (e.g. 900/700/400); the engine uses function-named weight roles (subtle/default/emphasis/strong) over a numeric reference tier — a mapping, not a conflict.`,
-    `- **Size ladder differs by design:** the engine ships a curated rem ladder, not the brand's exact px, so Δsize is expected; the families (\`${famStack('display')}\` / \`${famStack('text')}\`) round-trip.`, '');
+    `- **Size ladder differs by design:** the engine ships a curated rem ladder, not the brand's exact px, so Δsize is expected; the families (\`${famStack('display')}\` / \`${famStack('body')}\`) round-trip.`, '');
 
   // §3 spacing
   P(`## 3. Spacing parity`, '',

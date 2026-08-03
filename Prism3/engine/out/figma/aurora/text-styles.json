@@ -207,7 +207,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/title",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -257,7 +257,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/title",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -307,7 +307,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/title",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -357,7 +357,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/title",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -407,7 +407,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/title",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -457,7 +457,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/title",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -507,7 +507,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/title",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -557,7 +557,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -607,7 +607,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -657,7 +657,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -707,7 +707,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -757,7 +757,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -807,7 +807,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -857,7 +857,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -907,7 +907,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -957,7 +957,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1007,7 +1007,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1057,7 +1057,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1107,7 +1107,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/body",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1157,7 +1157,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/label",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1207,7 +1207,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/label",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1257,7 +1257,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1307,7 +1307,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1357,7 +1357,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1407,7 +1407,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1457,7 +1457,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1507,7 +1507,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1557,7 +1557,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1607,7 +1607,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/text",
+          "variable": "font/family/caption",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1657,7 +1657,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/eyebrow",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1707,7 +1707,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/eyebrow",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1757,7 +1757,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
+          "variable": "font/family/eyebrow",
           "collection": "core-font",
           "resolvedType": "STRING"
         },
@@ -1807,7 +1807,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/mono",
+          "variable": "font/family/code",
           "collection": "core-font",
           "resolvedType": "STRING"
         },

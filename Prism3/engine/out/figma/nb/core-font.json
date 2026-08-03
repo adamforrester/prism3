@@ -8,29 +8,73 @@
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family role — display → Inter",
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — display → Inter",
       "value": "Inter",
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "font/family/text",
+      "name": "font/family/title",
       "resolvedType": "STRING",
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family role — text → Inter",
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — title → Inter",
       "value": "Inter",
       "alias": null,
       "hiddenFromPublishing": true
     },
     {
-      "name": "font/family/mono",
+      "name": "font/family/body",
       "resolvedType": "STRING",
       "scopes": [
         "FONT_FAMILY"
       ],
-      "description": "stack: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace — font family role — mono → JetBrains Mono",
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — body → Inter",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "font/family/label",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — label → Inter",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "font/family/caption",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — caption → Inter",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "font/family/eyebrow",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif — font family — eyebrow → Inter",
+      "value": "Inter",
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "font/family/code",
+      "resolvedType": "STRING",
+      "scopes": [
+        "FONT_FAMILY"
+      ],
+      "description": "stack: JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, Liberation Mono, monospace — font family — code → JetBrains Mono",
       "value": "JetBrains Mono",
       "alias": null,
       "hiddenFromPublishing": true

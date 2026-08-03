@@ -35,11 +35,19 @@
     "typography": {
       "families": {
         "display": "Clash Display",
-        "text": "Inter",
-        "mono": "JetBrains Mono",
+        "title": "Clash Display",
+        "eyebrow": "Clash Display",
+        "body": "Inter",
+        "caption": "Inter",
+        "label": "Inter",
+        "code": "JetBrains Mono",
         "variable": {
           "display": true,
-          "text": true
+          "title": true,
+          "eyebrow": true,
+          "body": true,
+          "caption": true,
+          "label": true
         }
       },
       "weightRoles": {
@@ -51,9 +59,6 @@
       "typeScale": "expressive",
       "displayCeiling": "xl",
       "titleFloor": 16,
-      "familyMap": {
-        "label": "text"
-      },
       "responsive": {
         "fluid": true,
         "minViewport": 360,
