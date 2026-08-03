@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-08-03) — The per-mode table says what a rung is WORTH, and the rung table stops going stale (#388 part B, final)
+
+**STATUS: web.** The last two part-B items. `out/*` unchanged.
+
+**1. Values, not just rung names.** The complaint that opened #377 was that a per-mode cell reading
+*"rung `tight` → rung `snug`"* re-points a rung into its own axis and never says what it MEANS. Each
+mode cell now carries a second line with the value that rung is worth in that mode — *"in Dark,
+`tight` = 1.15×"*, which is the reading #377 asked for and #385's tier made expressible.
+
+It is a second **LINE**, not richer option text, and that is forced rather than chosen: a previous pass
+put `relaxed · 1.65×` in the options, and since a closed select renders exactly what it lists, the
+shared column width ellipsised it to `relaxed · 1...` — truncating the one thing the cell must always
+say. **Height is the affordable axis here; width is not.** Re-measured: `112/148/148/390` across all
+five tables, zero page overflow.
+
+Shown on every row including `Auto`, not only on overrides. It costs a faint line and buys a column
+that reads top-to-bottom as that mode's actual leading ramp, with no cross-referencing to the baseline
+column; the `.set` tier distinguishes inherited from overridden at a glance.
+
+**2. The rung table was stale after every edit — in two places, and the invisible one was worse.**
+Measured first: change `tight` from 1.05 to 1.00 and the select reads 1.00 while its specimen still
+renders at 1.05. That is the defect #369 noted and #388 carried forward.
+
+But the specimen is only the half you can see. `lo`/`hi` for each select's **disabled** options come
+from `steps[idx ± 1]`, so moving one rung re-derives what its NEIGHBOURS may legally select — and
+`apply()` repaints neither. Left stale, a now-illegal option stays clickable and the engine throws on
+it: a select whose entire purpose (#388 part A) is making off-ladder values *unreachable* instead of
+merely rejected.
+
+So the fix is `applyFull()`, not the surgical specimen repaint the issue proposed. **A control/paint
+split would have fixed the visible half and left the live one** — which is the trap worth recording,
+because the issue text pointed straight at it. Verified both: specimen tracks (`1.05 → 1.00`), and
+`snug`'s enabled set grows from `1.05…1.25` to `1.00…1.25` the moment `tight` moves.
+
+**#366's backtick trap fired a third time** this session, writing the comment for the new CSS rule.
+Same signature every time: `tsc` reports `TS1005: ',' expected` pointing at a line far from the edit.
+The rule now carries the same inline warning its neighbours do.
+
+---
+
 ## (2026-08-03) — The Preview token list shows per-mode COMPOSITE re-points (#397 review finding)
 
 **STATUS: web.** Found in review of #398, fixed here. Two readers of a node's value consulted the base
