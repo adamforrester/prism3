@@ -7,6 +7,61 @@
 
 ---
 
+## (2026-08-03) — Density collapsed a size step, in shipped output (owner-reported)
+
+**STATUS: engine.** Owner set `spaceBase 4` + `spacious` and saw component sizes that were far too
+small, with `lg` and `xl` both at 32px. The small sizes were the rhythm doing what it says; **the
+duplicate was a real defect, and it was never about `spaceBase`.**
+
+**`componentSizes` shifted an index into a five-rung ladder and CLAMPED at the ends.** So the end
+step resolved to its neighbour's metrics: `compact` collapsed xs+sm, `spacious` collapsed lg+xl.
+Five names, four values, at **every** rhythm including the default 8:
+
+```
+base 8  compact      xs:32  sm:32 ←   md:40  lg:48  xl:56
+        comfortable  xs:32  sm:40  md:48  lg:56  xl:64
+        spacious     xs:40  sm:48  md:56  lg:64  xl:64 ←
+```
+
+**This was committed, not hypothetical.** `examples/aurora.design.md` is `density: compact`, so
+`out/aurora.tokens.json` shipped `size.xs.height` and `size.sm.height` both aliasing
+`{prism.dimension.32}`. It had been that way since compact existed.
+
+**Why 1269 tests missed it.** The tier gates its PADDING contract hard — `gap < padXVisual < padX`
+asserted across every density × spaceBase × size, deliberately as an ordering rather than literals —
+and **never once asserted a height**. The one property that makes a size ladder a ladder was the
+one property with no test. Worth keeping in mind as a shape: the thoroughly-gated axis is where an
+untested neighbour hides best.
+
+**Fixed by reframing, not by special-casing the ends.** The ladder is now **seven rungs of which a
+density NAMES five** — `comfortable` takes the middle five, `compact` slides the window down one,
+`spacious` up one. No clamp, so no collision is reachable; the two outer rungs exist purely so the
+window has somewhere to go. Rejected the alternative of clamping-with-a-nudge (detect the collision
+and adjust): it treats the symptom, and leaves the next person to rediscover why an end step is
+special. A window has no ends to special-case.
+
+**Blast radius is exactly one brand.** `comfortable` is rungs 1–5 — the historical ladder,
+byte-identical — so nb / harbor / wendys do not move and the NB regression target is untouched.
+Aurora moves by the fix: `size.xs.height` 32→24px, `size.xs.padding-y` 4→2px. `spacious` xl now
+reaches its own rung (72px, padX 32) instead of borrowing lg's, which is why the `#326` padding
+expectation for spacious changed `…,24` → `…,32` — the old value recorded the clamp.
+
+**Two gates added**, both of which fail on the old code: heights strictly increasing across xs…xl at
+every density × spaceBase, and `comfortable @ base 8` pinned at `32/40/48/56/64` so the reframing is
+provably a fix to the ENDS and not a quiet re-baseline of the middle.
+
+**Verified in the browser** on all three densities: 5/5 distinct and increasing in each, no page
+errors. Gates: `test.ts` **1269 → 1271**, `regen --check` 88 byte-match, NB regression exit 0,
+US-English clean, web typecheck + build clean.
+
+**Follow-ups from the same conversation** (separate PRs): no target-size floor exists anywhere in the
+engine — at `spaceBase 4` controls fall under WCAG 2.2 SC 2.5.8's 24px minimum with nothing to catch
+it; and the owner has decided to **lock `spaceBase` at 8** and **remove `baseUnit`** (a diff at
+baseUnit 4 vs 8 showed it changes only the primitive `dimension` ladder — 36 leaves vs 23 — while
+radius / border / space / size are byte-identical, i.e. it moves no semantic value).
+
+---
+
 ## (2026-08-03) — The per-mode table says what a rung is WORTH, and the rung table stops going stale (#388 part B, final)
 
 **STATUS: web.** The last two part-B items. `out/*` unchanged.

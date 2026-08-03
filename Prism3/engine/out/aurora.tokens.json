@@ -14653,13 +14653,13 @@
       "xs": {
         "height": {
           "$type": "dimension",
-          "$value": "{prism.dimension.32}",
-          "$description": "size.xs control height — 32px (density: compact)",
+          "$value": "{prism.dimension.24}",
+          "$description": "size.xs control height — 24px (density: compact)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.dimension.32",
-              "px": 32,
+              "aliasOf": "prism.dimension.24",
+              "px": 24,
               "density": "compact"
             }
           }
@@ -14690,13 +14690,13 @@
         },
         "padding-y": {
           "$type": "dimension",
-          "$value": "{prism.space.050}",
-          "$description": "size.xs vertical inset — 4px (density: compact)",
+          "$value": "{prism.space.025}",
+          "$description": "size.xs vertical inset — 2px (density: compact)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.space.050",
-              "px": 4
+              "aliasOf": "prism.space.025",
+              "px": 2
             }
           }
         },

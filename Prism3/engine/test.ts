@@ -433,6 +433,28 @@ for (const b of brands) {
   ok(violations.length === 0, '#325 gap is always tighter than padding-x, at every size / density / spaceBase (proximity)'
     + (violations.length ? ` — VIOLATIONS: ${violations.slice(0, 4).join(', ')}` : ''));
 
+  // THE GATE THIS TIER LACKED: five names must be five DISTINCT, INCREASING heights, at every
+  // density and every rhythm. The tier asserted its PADDING contract thoroughly and never once
+  // checked the heights, so a clamped density shift published `compact` xs==sm and `spacious`
+  // lg==xl for as long as those densities have existed — visible in committed output (aurora is
+  // compact) and invisible to 1269 passing tests. A size step whose height equals its neighbour's
+  // is not a smaller size, it is the same size under a second name.
+  const heightBreaks: string[] = [];
+  for (const d of ['compact', 'comfortable', 'spacious'] as const) {
+    for (const base of [4, 8, 12]) {
+      const hs = componentSizes(d, base).map((z) => z.height);
+      for (let i = 1; i < hs.length; i++)
+        if (!(hs[i] > hs[i - 1])) heightBreaks.push(`${d}/base${base}: ${hs.join('/')} — step ${i} does not increase`);
+    }
+  }
+  ok(heightBreaks.length === 0, 'size heights are strictly increasing across xs…xl, at every density / spaceBase'
+    + (heightBreaks.length ? ` — BROKEN: ${heightBreaks.slice(0, 4).join(' | ')}` : ''));
+
+  // `comfortable` is the historical ladder and must not have moved — the window reframing is a fix
+  // for the ENDS, so the untouched middle is the proof it changed only what was broken.
+  ok(componentSizes('comfortable', 8).map((z) => z.height).join('/') === '32/40/48/56/64',
+    'comfortable @ base 8 is unchanged by the window reframing (32/40/48/56/64)');
+
   // #326 — the THREE-WAY ordering, which is the whole optical model in one assertion:
   //     gap  <  padXVisual  <  padX
   // tightest inside the group; looser where a glyph's own bounding box already contributes apparent
@@ -456,7 +478,7 @@ for (const b of brands) {
   for (const d of ['compact', 'comfortable', 'spacious'] as const) {
     const sizes = componentSizes(d, 8);
     const padXs = sizes.map((z) => z.padX).join(',');
-    const expected = { compact: '8,8,16,16,24', comfortable: '8,16,16,24,24', spacious: '16,16,24,24,24' }[d];
+    const expected = { compact: '8,8,16,16,24', comfortable: '8,16,16,24,24', spacious: '16,16,24,24,32' }[d];
     ok(padXs === expected, `#326 ${d}: padding-x is unchanged by the split (${padXs})`);
   }
 

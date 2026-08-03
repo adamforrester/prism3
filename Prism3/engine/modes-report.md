@@ -1338,7 +1338,7 @@ Component sizes — t-shirt, density `compact` (height + paired padding from the
 
 | size | height | padding-x | padding-y |
 |---|---|---|---|
-| size.xs | 32px | 8px | 4px |
+| size.xs | 24px | 8px | 2px |
 | size.sm | 32px | 8px | 4px |
 | size.md | 40px | 16px | 6px |
 | size.lg | 48px | 16px | 8px |

@@ -6296,6 +6296,7 @@
         "border-width.thick",
         "focus.ring.offset",
         "focus.ring.width",
+        "size.xs.padding-y",
         "space.025"
       ]
     },
@@ -6310,7 +6311,6 @@
         "size.sm.gap",
         "size.sm.padding-y",
         "size.xs.gap",
-        "size.xs.padding-y",
         "space.050"
       ]
     },
@@ -6393,6 +6393,7 @@
         "grid.sm.margin",
         "icon.size.md",
         "size.xl.padding-x",
+        "size.xs.height",
         "space.300"
       ]
     },
@@ -6413,7 +6414,6 @@
         "grid.xl.gutter",
         "icon.size.lg",
         "size.sm.height",
-        "size.xs.height",
         "space.400"
       ]
     },

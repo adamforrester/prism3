@@ -46,27 +46,42 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
     return { key: k, mult, px: Math.round(mult * spaceBase) };
   });
 
-// Component-size ladder (comfortable), expressed in spaceBase multiples so a
-// "size" is a CONTRACT (height + horizontal/vertical padding) every component
-// opts into — guaranteeing a `md` button, input and select agree. Heights and
-// paddings both land on the shared scales.
-const SIZE_LADDER: { name: string; h: number; x: number; y: number }[] = [
-  { name: 'xs', h: 4, x: 1, y: 0.5 },
-  { name: 'sm', h: 5, x: 2, y: 0.75 },
-  { name: 'md', h: 6, x: 2, y: 1 },
-  { name: 'lg', h: 7, x: 3, y: 1 },
-  { name: 'xl', h: 8, x: 3, y: 2 },
+// Component-size ladder, expressed in spaceBase multiples so a "size" is a CONTRACT
+// (height + horizontal/vertical padding) every component opts into — guaranteeing a `md`
+// button, input and select agree. Heights and paddings both land on the shared scales.
+//
+// SEVEN rungs, of which a density NAMES five. `comfortable` takes the middle five (1–5, the
+// historical ladder, so its output is unchanged); `compact` slides the window down one rung,
+// `spacious` up one. The window is what keeps five names five DISTINCT sizes. The previous
+// shape shifted an index into a five-rung ladder and CLAMPED at the ends, so the end step
+// resolved to its neighbour's metrics: `compact` collapsed xs+sm onto one height and
+// `spacious` collapsed lg+xl — five names, four values. That shipped (aurora is `compact`:
+// `size.xs.height` and `size.sm.height` both resolved to `dimension.32`), and it was live at
+// the DEFAULT spaceBase, not only at an unusual one. The two outer rungs exist so the window
+// has somewhere to go; they are named only at the density that reaches them.
+const SIZE_RUNGS: { h: number; x: number; y: number }[] = [
+  { h: 3, x: 1, y: 0.25 },   // compact floor — named `xs` only at compact
+  { h: 4, x: 1, y: 0.5 },    // comfortable `xs`
+  { h: 5, x: 2, y: 0.75 },
+  { h: 6, x: 2, y: 1 },
+  { h: 7, x: 3, y: 1 },
+  { h: 8, x: 3, y: 2 },      // comfortable `xl`
+  { h: 9, x: 4, y: 2 },      // spacious ceiling — named `xl` only at spacious
 ];
+const SIZE_NAMES = ['xs', 'sm', 'md', 'lg', 'xl'];
+/** Where each density's five-name window starts in SIZE_RUNGS. */
+const DENSITY_START: Record<Density, number> = { compact: 0, comfortable: 1, spacious: 2 };
 
 /** Component sizes for a density. DENSITY lives here, not on the space scale:
  *  'compact' resolves each step to the next-smaller rung's metrics while keeping
- *  the name — so `size.md` stays `md` but renders tighter. */
+ *  the name — so `size.md` stays `md` but renders tighter. The window (not a clamped
+ *  shift) is what guarantees the five names stay five distinct, increasing heights. */
 export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
-  const shift = density === 'compact' ? -1 : density === 'spacious' ? 1 : 0;
+  const start = DENSITY_START[density];
   const space = spaceScale(spaceBase).map((sp) => sp.px);
   const snapToSpace = (v: number): number => space.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
-  return SIZE_LADDER.map((s, i) => {
-    const src = SIZE_LADDER[Math.min(SIZE_LADDER.length - 1, Math.max(0, i + shift))];
+  return SIZE_NAMES.map((name, i) => {
+    const src = SIZE_RUNGS[start + i];
     const padX = Math.round(src.x * spaceBase);
     // The horizontal model, left edge inward: [padXVisual][icon][gap][label][padX].
     //
@@ -95,7 +110,7 @@ export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
     //     token aliases `space.*` like its siblings instead of minting an off-scale literal.
     //     At lg/comfortable this lands on 24/16 — Material's pair exactly, arrived at independently.
     return {
-      name: s.name,
+      name,
       height: Math.round(src.h * spaceBase),
       padX,
       padXVisual: snapToSpace((padX * 2) / 3),
