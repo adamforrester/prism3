@@ -7,6 +7,37 @@
 
 ---
 
+## (2026-08-03) — "+ Add face" becomes a submit CTA (#405)
+
+**STATUS: web.** `out/*` unchanged. Owner-raised; closes #405.
+
+The add-face button wore `.adv-add` — the **dashed reveal** affordance. That class means one of two
+things elsewhere in the app: on Palettes, *"tap this and the fields appear"*; in the breakpoint editor,
+*"append an empty row"*. Here the field is **already exposed**, so the dashed form promised "this will
+show you something" while meaning "commit what I typed". Two different actions wearing one look.
+
+Owner settled the shape: keep the field exposed — *"99% of the time someone is going to need to enter
+a custom font family for their brand"* — which makes the reveal treatment actively wrong rather than
+merely redundant.
+
+**I filed the issue claiming Enter-to-submit was missing. It wasn't.** Probing the running app before
+changing anything: Enter submits, click submits, the empty-name error fires, and a duplicate is
+rejected with the engine's own vocabulary (*"Fraunces is already in the library"* vs *"a role binds it,
+so it is in the library list already"*). All four already worked. **The only real defect was the
+visual treatment**, so that is all that changed — 13 lines. Reading the handler would have told me the
+same thing, and I wrote the issue without doing either.
+
+- **`.adv-add` was left alone**, not restyled. Its breakpoint use is a genuine add-a-row, where the
+  dashed slot look is right. The add-face button gets its own `.tf-addbtn`, modelled on `.bm-load` —
+  the app's existing inline solid CTA — rather than a new invented treatment.
+- **The `+` went with it.** A leading plus belongs to the same add-a-row vocabulary as the dashed
+  border; a submit CTA reads better as just "Add face".
+- **`flex:none`** so the button's intrinsic width stays out of the row's sizing — the trap #369 and
+  #388 both hit. Re-measured: input 260px, button 98px, row 800px, zero page overflow.
+- White on `--ink` is **17.72:1**.
+
+---
+
 ## (2026-08-03) — The size ladder reads equally: no dimming, no legend, on the shared grid (#404)
 
 **STATUS: web.** `out/*` unchanged. Owner-raised; closes #404.

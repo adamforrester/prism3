@@ -2934,7 +2934,13 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const addIn = el('input', 'tf-in tf-addin') as HTMLInputElement;   // tf-in carries the shared field treatment; tf-addin only constrains width
   addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
   addIn.setAttribute('aria-label', 'Add a face to the library');
-  const addBtn = el('button', 'adv-add', '+ Add face') as HTMLButtonElement;
+  // #405 — a SUBMIT CTA, not `.adv-add`. That class is the dashed REVEAL/add-a-row affordance (the
+  // breakpoint editor's "+ Add" appends an empty slot with it, and on Palettes the same look means
+  // "tap to expose fields"). Here the field is already exposed, so the dashed form promised "this will
+  // show you something" while meaning "commit what I typed" — two different actions wearing one look.
+  // Left `.adv-add` alone rather than restyling it: the breakpoint use is a genuine add-a-row.
+  // The `+` goes with it — a leading plus is part of that same add-a-row vocabulary.
+  const addBtn = el('button', 'tf-addbtn', 'Add face') as HTMLButtonElement;
   const addErr = el('p', 'tf-adderr');
   addErr.hidden = true;
   const submit = (): void => {
@@ -5929,6 +5935,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
 .tf-addin{flex:0 1 260px;width:auto;min-width:0}
 .tf-adderr{font-size:12px;color:var(--danger);margin:8px 0 0}
+/* #405 — the add-face SUBMIT CTA, modelled on .bm-load (the app's existing inline solid button) so it
+   reads as "commit this" rather than borrowing .adv-add's dashed reveal look. flex:none keeps its
+   intrinsic width out of the row's sizing, the trap #369/#388 kept hitting. White on --ink is
+   17.72:1. */
+.tf-addbtn{flex:none;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:7px 16px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
+.tf-addbtn:hover{background:#000;border-color:#000}
 .tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
 .sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
 /* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
