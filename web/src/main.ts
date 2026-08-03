@@ -3215,7 +3215,14 @@ const renderLeadingTracking = (): HTMLElement => {
         }
         sel.append(o);
       }
-      sel.onchange = () => { setPath(brandState, `${globalKey}.${s.key}`, Number(sel.value)); apply(); };
+      // `applyFull`, not `apply`: TWO things in this table are derived from the rung values and neither
+      // survives a volatile-only repaint. The obvious one is this row's SPECIMEN — measured stale, the
+      // select read 1.00 while the sample still rendered at 1.05. The one that actually matters is the
+      // NEIGHBOURS' option ranges: `lo`/`hi` above come from `steps[idx±1]`, so moving `tight` re-derives
+      // what `snug` may legally select. Left stale, a now-illegal option stays clickable and the engine
+      // throws on it — a select whose whole purpose is making off-ladder values unreachable (#388).
+      // A surgical paint of just the specimen would have fixed the visible half and left the live one.
+      sel.onchange = () => { setPath(brandState, `${globalKey}.${s.key}`, Number(sel.value)); applyFull(); };
       vc.append(sel);
       tr.append(vc);
       const who = [...new Set(ty.composites.filter((c) => (modeField === 'lineHeights' ? c.lineHeight : c.tracking) === s.key).map((c) => c.group))];
@@ -3413,6 +3420,14 @@ const renderRepointTable = (
         sel.setAttribute('aria-label', `${s.key} in ${MODE_LABEL[m] ?? m}`);
         sel.onchange = () => { setModeLever(m, `${modeField}.${s.key}`, sel.value || undefined); applyFull(); };
         td.append(sel);
+        // #388 — the VALUE this rung is worth in this mode, under the select. The complaint that opened
+        // #377 was that a cell reading "rung tight → rung snug" re-points a rung into its own axis and
+        // never says what it MEANS; the honest reading is "in Dark, tight = 1.15". It goes on a second
+        // LINE rather than into the option text because a closed select renders exactly what it lists,
+        // and "relaxed · 1.65×" ellipsised to "relaxed · 1..." at this column width — truncating the one
+        // thing the cell must always say. Height is the affordable axis here; width is not.
+        const worth = steps.find((t) => t.key === (ov ?? s.key));
+        if (worth) td.append(el('span', 'mtbl-worth mono' + (ov ? ' set' : ''), fmt(worth.val)));
       }
       tr.append(td);
     }
@@ -5815,6 +5830,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mtbl-offval{font-size:12.5px;color:var(--faint)}
 /* Light's cell in a re-point table: it can only name itself, so it is text rather than a select. */
 .mtbl-selfval{font-size:12.5px;color:var(--muted);white-space:nowrap}
+/* What a rung is WORTH in this mode (#388) — a second line under the per-mode select, not option text.
+   display:block is what keeps it off the select's line, so the column width is untouched; the .set tier
+   matches the select's own set-state so a scan down a column finds the overrides in one pass.
+   (No backticks in this stylesheet — it is a template literal; see #366.) */
+.mtbl-worth{display:block;margin-top:3px;font-size:11px;color:var(--faint);white-space:nowrap}
+.mtbl-worth.set{color:var(--ink2);font-weight:600}
 /* A select's intrinsic min-width is its WIDEST OPTION, and the table is auto-layout, so a long rung
    label silently pushed the mode column past the shared token (166px against the stepper tables'
    148px) and broke the down-page column parity these tables exist to hold. Clamp the control to the
