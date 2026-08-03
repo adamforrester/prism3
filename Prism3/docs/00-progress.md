@@ -7,6 +7,65 @@
 
 ---
 
+## (2026-08-03) — The schema validator learns schema-valued `additionalProperties` (#391)
+
+**STATUS: engine.** `out/*` unchanged — this enforces a contract, it does not change generation.
+Closes #391.
+
+`validate()` implemented `additionalProperties` in **one** of its two forms:
+
+```
+false      → the unknown-key guard          IMPLEMENTED
+{ schema } → applied to every value          NOT implemented — silently dropped
+             `properties` does not cover
+```
+
+The second form is how you type a **map with open keys**, and `modeLevers` (`{ [modeName]: {levers} }`)
+is exactly that shape — so the validator walked into its entire subtree and dropped it on the floor.
+**Seven nodes** across the contract, including every per-mode lever. Measured before the fix:
+
+```
+density bad enum              accepted
+typeSizes body (not heading)  accepted
+typeSizes below group floor   accepted
+unknown lever key             accepted
+```
+
+- **The engine was never at risk.** `brandTheme()` deep-validates all of this at resolve time and
+  throws with good messages — which is exactly what the schema descriptions themselves promise. What
+  was inert is the **published contract**, which is what `design.md` authors and the plugin/web hosts
+  read *before* they ever reach `brandTheme()`. A malformed brand got "valid" from the validator and
+  then threw later, further from the mistake. The #281 shape one level up: a gate reporting clean
+  because it never looked.
+- **The fix is four lines**; finding it was the work. It surfaced only because #390 added a field to
+  `modeLevers` and I probed the validator by **running** it instead of reading the schema — the same
+  step that caught #367's inert `minLength`. Two passes had previously added fields to this exact
+  subtree and concluded from inspection that they were covered.
+- **`true` and absent stay permissive.** Only the object form carries a sub-schema, so the change
+  cannot start rejecting input that was legal by omission.
+
+**No fixture was out of contract.** The issue warned that switching this on might surface existing
+invalid fixtures — it didn't. `regen` (which runs `validateOrExit` on every example through its real
+CLI path) exits 0, and `--check` shows zero drift.
+
+**A harness error worth recording**, because it briefly looked like a real failure: my first sweep fed
+`parseDesignMd(...).input` straight to `validateBrandInput` for all three examples and Wendy's came
+back *"missing required id/primary/neutral"*. Wendy's is the **plain-spec** path — `parseDesignMd`
+returns `{version, name, colors, …}`, not a `BrandInput`, and `cli.ts` compiles it before validating.
+The authoritative check was never my hand-rolled loop; it is `regen`, which already exercises every
+example through its real path. **When a bespoke probe disagrees with the shipped pipeline, suspect the
+probe.**
+
+**14 assertions, all of which RUN the validator** rather than reading the schema — one per affected
+node kind (enum, nested unknown key, nested numeric bound, top-level unknown key, both halves of
+#390's field, radius range, and the pre-#296 number-instead-of-rung shape), plus five legal inputs
+that must still be accepted, plus one asserting the error names the **full path** (a sub-schema
+applied at the wrong depth would still reject, but point at `modeLevers` and leave the author hunting).
+**Tamper-tested**: reverting the one-line lookup turns exactly those 9 red and leaves the 5 accepts
+green.
+
+---
+
 ## (2026-08-03) — The spacing rhythm and fine grid base stop being brand levers (owner decision)
 
 **STATUS: engine + web.** `out/*` unchanged — no committed brand ever set either, which is itself
