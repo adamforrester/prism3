@@ -2126,6 +2126,7 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
     const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
     if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));   // #423
     htr.append(th);
   }
   htr.append(el('th', 'mtbl-fill'));
@@ -2150,7 +2151,16 @@ const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
       const i = live.findIndex((x) => x.variant === r.variant);
       for (const m of modes) {
         const td = el('td', 'mtbl-mode');
-        td.append(sizeCell(group, live, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
+        // #423 — a derived mode accepts no levers, so its column reads the resolved px rather than
+        // offering a stepper whose click would surface the engine's generate-only error.
+        if (m !== 'light' && !modeIsEditable(m)) {
+          const px = resolvedByMode.get(m)![i];
+          const self = el('span', 'mtbl-selfval mono', `${px}px`);
+          self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it resolves to ${px}px and accepts no per-mode override.`;
+          td.append(self);
+        } else {
+          td.append(sizeCell(group, live, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
+        }
         tr.append(td);
       }
     } else {
@@ -3396,7 +3406,6 @@ const WEIGHT_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 const renderWeightTable = (): HTMLElement => {
   const ty = theme.typography;
   const modes = rp.modes;
-  const textStack = ty.families.find((f) => f.group === 'body')?.stack.join(', ') ?? 'inherit';
   const box = el('div', 'mtbl');
   box.append(el('p', 'mtbl-cap', 'weight roles'));
   const scroll = el('div', 'mtbl-scroll');
@@ -3407,9 +3416,17 @@ const renderWeightTable = (): HTMLElement => {
     const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
     if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));
     htr.append(th);
   }
-  htr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  // #422 — no Specimen column. It was wired to `w.value`, the STATIC baseline, so it never moved for
+  // any edit in any mode; it only varied row-to-row, which is what made it look like it worked. The
+  // fix is not to re-wire it: this table answers "what NUMBER does each role resolve to per mode", and
+  // rendering that number is a question `Weight roles by face` below already owns and answers better,
+  // per FACE — "600 in a face that stops at 500" is the fact that matters, and that table was
+  // deliberately made mode-blind (owner, 2026-08-01). Dropping the column also takes the table from
+  // 888px (overflowing) to ~704px, inside the container at four modes.
+  htr.append(el('th', 'mtbl-fill'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
   for (const w of ty.weightRoles) {
@@ -3423,6 +3440,17 @@ const renderWeightTable = (): HTMLElement => {
         ? (getPath(brandState, `typography.weightRoles.${w.role}`) as number | undefined)
         : (getModeLever(m, `weights.${w.role}`) as number | undefined);
       const value = override ?? (ty.weightRolesByMode?.[m]?.find((x) => x.role === w.role)?.value ?? w.value);
+      // #423 — a derived mode accepts no levers, so its column is a READING of the resolved numeric,
+      // never a stepper. Rendering the stepper is what let a click reach the engine and print
+      // "mode 'hc-dark' is generate-only and not customizable" at the user.
+      if (!isBase && !modeIsEditable(m)) {
+        const td = el('td', 'mtbl-mode');
+        const self = el('span', 'mtbl-selfval mono', String(value));
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it resolves to ${value} and accepts no per-mode override.`;
+        td.append(self);
+        tr.append(td);
+        continue;
+      }
       const idx = WEIGHT_STEPS.indexOf(value);
       const step = (dir: -1 | 1) => (idx >= 0 ? WEIGHT_STEPS[idx + dir] : undefined);
       const td = el('td', 'mtbl-mode');
@@ -3444,13 +3472,7 @@ const renderWeightTable = (): HTMLElement => {
       }));
       tr.append(td);
     }
-    // A weight NUMBER is meaningless without seeing it — 400 against 500 is invisible as digits.
-    const spec = el('td', 'mtbl-fill mtbl-spec');
-    const samp = el('span', 'mtbl-spec-t', 'The quick brown fox');
-    samp.style.fontWeight = String(w.value);
-    samp.style.fontFamily = textStack;
-    spec.append(samp);
-    tr.append(spec);
+    tr.append(el('td', 'mtbl-fill'));
     tb.append(tr);
   }
   tbl.append(tb); scroll.append(tbl); box.append(scroll);
@@ -3488,6 +3510,7 @@ const renderRepointTable = (
     const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
     if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));   // #423
     htr.append(th);
   }
   htr.append(el('th', 'mtbl-fill'));
@@ -3506,6 +3529,13 @@ const renderRepointTable = (
         // cell in the row is a substitution for.
         const self = el('span', 'mtbl-selfval mono', fmt(s.val));
         self.title = `The baseline. Change which ladder step ${s.key} binds in the table above — it is one binding, shared by every mode.`;
+        td.append(self);
+      } else if (!modeIsEditable(m)) {
+        // #423 — a derived mode holds no levers, so it can only ever resolve to the rung itself.
+        // Reading, not a select: the select's write reached the engine and printed its internal
+        // "generate-only and not customizable" string at the user.
+        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it keeps the ${s.key} rung and accepts no per-mode re-point.`;
         td.append(self);
       } else {
         const ov = getModeLever(m, `${modeField}.${s.key}`) as string | undefined;
