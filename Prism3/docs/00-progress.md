@@ -59,9 +59,25 @@ owner was shown this before deciding. It is not new behavior on the page — Wei
 measured 888px and scrolled — and `.mtbl-scroll` handles it. A single-mode brand, the common case, is
 unaffected at 798px.
 
+**A regression this PR created and caught before merge — the reason to test the columns you ADD, not
+just the one you were thinking about.** Moving Typefaces to a column table made it the fifth instance
+of #423: every column iterated `rp.modes` and wired `setModeLever(m, …)` with no check that `m` is
+customizable, so picking a face in the HC Light/Dark column threw the engine's internal string at the
+user — `mode 'hc-dark' is generate-only and not customizable`. The mode-bar version was never exposed
+to this, because the one-mode-at-a-time pages gate on `DERIVED_MODES.has(currentMode)` and swap in
+`renderGeneratedNote`; a column table has no such gate and each column must check for itself. My own
+verification pass missed it because I exercised the Dark column and assumed the rest followed.
+
+Derived columns are now READ-ONLY, showing the resolved face rather than an empty or disabled control
+— a derived mode holds no levers, so it resolves to the canonical baseline, and that is a real fact
+worth a cell. The header carries the same `auto` marker the mode chips already use. The shared
+`modeIsEditable()` helper lands here with its first user; #423 applies it to the four pre-existing
+tables (`renderWeightTable`, `renderSizeTable`, and both `renderRepointTable` call sites).
+
 **Verification.** `regen --check` (88) · 1275/0 · NB regression PASS · web + plugin
 typecheck/test/build · sandbox-clean · US-English clean. Driven in Chromium on a four-mode brand: mode
-bar absent from both tabs, `Auto — <base>` on inherited cells, `.set` present on exactly the
+bar absent from both tabs, **zero interactive controls in the two derived columns and no error bar
+where the raw engine string used to appear**, `Auto — <base>` on inherited cells, `.set` present on exactly the
 overridden one, the sibling category untouched, the write persisted as
 `modeLevers.dark.families.title`, **clearing to Auto removes the entry entirely** (`modeLevers` → null,
 which is the #419 finding closed), zero disabled controls on Text styles, and a single-mode brand

@@ -1832,6 +1832,13 @@ let outsideBoundMode = false;
 let addModeOpen = false;         // C2 — the "+ Add mode" inline form is expanded
 let addModeName = '';            // C2 — survives popover re-renders
 const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
+/** #423 — a DERIVED mode is generated from light/dark (accessibility floors for HC, mechanical
+ *  grayscale for wireframe) and the engine REFUSES per-mode levers on it: `CUSTOMIZABLE_MODES` is
+ *  `['light', 'dark', ...customNames]`, and anything else throws "is generate-only and not
+ *  customizable". The one-mode-at-a-time pages already gate on this via `renderGeneratedNote`, but a
+ *  table that shows every mode AS COLUMNS has no such gate — each column must check for itself, or the
+ *  click reaches the engine and the user reads a raw internal error string. */
+const modeIsEditable = (m: string): boolean => !DERIVED_MODES.has(m);
 const RESERVED_MODE_NAMES = new Set<string>(['light', 'dark', 'hc-light', 'hc-dark', 'wireframe']);
 const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[m] || ct.byMode[m]!.pass);
 
@@ -3022,6 +3029,8 @@ const renderTypefaceBindings = (): HTMLElement => {
       const th = el('th', 'mtbl-mode');
       th.append(document.createTextNode(MODE_LABEL[m] ?? m));
       if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+      // Same `auto` marker the mode chips carry, so a derived column is identifiable before you click.
+      else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));
       htr.append(th);
     }
   } else {
@@ -3067,6 +3076,15 @@ const renderTypefaceBindings = (): HTMLElement => {
           applyFull();
         };
         td.append(sel);
+      } else if (!modeIsEditable(m)) {
+        // #423 — READ-ONLY, and showing the resolved face rather than an empty or disabled control.
+        // A derived mode carries no `familiesByMode` entry (it can hold no levers), so it resolves to
+        // the canonical baseline; that is a real fact about the mode and worth a cell. Rendering an
+        // interactive select here is what let a click reach the engine and surface
+        // "mode 'hc-dark' is generate-only and not customizable" verbatim.
+        const self = el('span', 'mtbl-selfval mono', base || '—');
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in Edit modes if you don't want it generated.`;
+        td.append(self);
       } else {
         const ovRaw = getModeLever(m, `families.${cat}`);
         const ovStr = Array.isArray(ovRaw) ? ovRaw[0] : (ovRaw as string | undefined);
