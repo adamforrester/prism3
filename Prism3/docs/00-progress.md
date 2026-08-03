@@ -7,6 +7,44 @@
 
 ---
 
+## (2026-08-03) — Motion's Playback select and the bezier row get their section clearance (#401)
+
+**STATUS: web.** Two CSS rules. `out/*` untouched.
+
+**The convention this page broke.** `.psec-d` (the section description) deliberately carries **no
+bottom margin** — in a `palSection`, the *next* element owns the gap. `.prow` is the reference
+implementation: `padding:20px 0 6px`. Two elements never joined in: `.mo-toolbar` carried
+`margin:-4px`, which pulls it up by *more* than `.psec-d`'s entire 4px top margin gives, so the
+Playback select sat tighter than a plain zero-margin element would; `.adv-bez` had no top spacing at
+all and sat flush.
+
+**Measured, and the first metric was wrong.** Box-top minus description-bottom read `-4 / 0` for the
+two offenders — but it also read **0 for `.prow`**, the element they were supposed to match. `.prow`
+spends its clearance as *padding*, so its box is flush and its **content** is inset 20px. Comparing
+box edges would have "proven" the reference was equally broken and sent the fix at `.psec-d`
+instead. Re-measured at content top:
+
+```
+            before        after
+.mo-toolbar   -4px   →     20px
+.adv-bez       0px   →     20px
+.prow         20px   →     20px  (reference, untouched)
+```
+
+**Fixed at the two offenders, not at `.psec-d`.** Giving the description a bottom margin would have
+been one line instead of two, but it changes the gap under *every* `palSection` on every page — a
+site-wide reflow to fix two elements, and it would have double-counted everywhere `.prow` already
+pays for its own clearance. Clearance stays where the convention puts it: on the element below.
+
+**Paid as `padding-top`, not `margin-top`**, so it matches `.prow` exactly rather than being a second
+mechanism that happens to produce the same number — margins collapse and combine with siblings,
+padding does not.
+
+Verified in **Light and Dark**: both rows at exactly 20px, matching the reference; no horizontal
+scroll, no page errors. Screenshot reviewed.
+
+---
+
 ## (2026-08-03) — Surfaces & fills overflowed 900–1104px; the filed root cause was wrong (#395)
 
 **STATUS: web.** One CSS line. `out/*` untouched.
