@@ -672,7 +672,12 @@ const MONO_FALLBACK = ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'L
 // different rung instead. What follows describes the BRAND-level ramp, which a brand may re-anchor
 // freely (mode-invariantly); the per-mode path snaps to whichever rung it lands nearest. Was: every
 // composite that uses it — the same seam as weight-role.
-export const LINE_HEIGHT_KEYS = ['tight', 'snug', 'compact', 'normal', 'relaxed', 'loose'] as const;
+// #388 — `cozy` (1.40) sits between `compact` and `normal` so CAPTION can have its own band. Captions
+// are the smallest running text the system emits, and small text is where leading carries the most
+// legibility weight, but caption shared `normal` (1.50) with body — long-form body leading on a short,
+// small run. 1.40 is the first BODY step on the ladder (KB body range 1.4–1.6), so this is the tightest
+// value that is still a reading leading rather than a heading one.
+export const LINE_HEIGHT_KEYS = ['tight', 'snug', 'compact', 'cozy', 'normal', 'relaxed', 'loose'] as const;
 export type LineHeightKey = typeof LINE_HEIGHT_KEYS[number];
 export const LETTER_SPACING_KEYS = ['tighter', 'tight', 'snug', 'normal', 'wide', 'wider'] as const;
 export type LetterSpacingKey = typeof LETTER_SPACING_KEYS[number];
@@ -710,6 +715,7 @@ export const letterSpacingStepKey = (em: number): string =>
   (em < 0 ? 'neg-' : '') + String(Math.abs(Math.round(em * 1000)));
 const LINE_HEIGHTS: { key: LineHeightKey; value: number }[] = [
   { key: 'tight', value: 1.05 }, { key: 'snug', value: 1.15 }, { key: 'compact', value: 1.25 },
+  { key: 'cozy', value: 1.4 },
   { key: 'normal', value: 1.5 }, { key: 'relaxed', value: 1.65 }, { key: 'loose', value: 1.75 },
 ];
 const LETTER_SPACINGS: { key: LetterSpacingKey; em: number }[] = [
@@ -934,7 +940,8 @@ const lineHeightFor = (group: TypeGroup, px: number): string => {
   if (group === 'display') return px >= 64 ? 'tight' : 'snug';
   if (group === 'title') return px >= 56 ? 'tight' : px >= 28 ? 'snug' : 'compact';
   if (group === 'label' || group === 'eyebrow') return 'snug';
-  return 'normal';                                       // body, caption, code
+  if (group === 'caption') return 'cozy';                // #388 — small running text, tighter than body
+  return 'normal';                                       // body, code
 };
 
 /** The rung a composite derives BEFORE any per-category nudge. Exported because the UI cannot offer an

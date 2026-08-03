@@ -7,6 +7,58 @@
 
 ---
 
+## (2026-08-03) — Caption gets its own leading band: a 7th rung, `cozy` at 1.40 (#388)
+
+**STATUS: engine.** `out/*` **regenerated** — this changes emitted output for every brand. Owner-approved.
+
+Caption shared the `normal` rung (1.50) with body and code, so the **smallest running text the system
+emits carried long-form body leading**. Captions are where leading does the most legibility work, and
+they are short runs, not paragraphs.
+
+**"Caption at 1.4" turned out not to be a one-line change, and that is the finding.** `lineHeightFor`
+returns a rung NAME, and no rung was worth 1.40:
+
+```
+tight 1.05 · snug 1.15 · compact 1.25 · normal 1.50 · relaxed 1.65 · loose 1.75
+```
+
+1.40 existed on the *ladder* (it is the first body step) but nothing bound it, so honoring the value
+required a **7th rung** — a public contract change, not a default tweak. Surfaced to the owner rather
+than either silently growing `LineHeightKey` or quietly rounding caption to `compact` (1.25). Approved
+as `cozy`, inserted between `compact` and `normal`.
+
+- **1.40 is the tightest value that is still a READING leading.** It is the bottom of the KB's body
+  range (1.4–1.6), so caption lands tighter than body without dropping into heading leading. Picking
+  1.30 would have crossed the deliberate 1.30→1.40 ladder gap that separates the two.
+- **Deliberate divergence from NB, recorded not hidden.** NB ships all 8 caption styles at 1.5. The
+  engine now emits 1.4 on purpose — "better than the examples" is the standard — so the Figma capture
+  carries a **`revisions` entry** marking the change **PREDICTED, not re-captured**, exactly as #377's
+  display-banding entry does. The fixture is a real `getLocalTextStylesAsync()` capture; the discipline
+  is that every deviation from it is explicit.
+
+**Three tests went red for the right reason, and I fixed the tests rather than renumbering them.** Each
+asserted an INDEX or a COUNT where the claim was really about a name or a relationship:
+
+```
+lineHeights.length === 6                        → === LINE_HEIGHT_KEYS.length
+LINE_HEIGHT_KEYS.length - 1 - idx === 5         → === LINE_HEIGHT_KEYS.length - 1
+idxOf('body') === 3                             → LINE_HEIGHT_KEYS[idxOf('body')] === 'normal'
+```
+
+"body derives `normal`" was always the claim; `3` was incidental and broke the moment a rung was
+inserted above it. Renumbering would have left the same landmine for the next insert.
+
+Six new assertions pin the band itself: caption derives `cozy`; caption is **tighter than body** *and*
+**looser than title** (the band is only meaningful bracketed on both sides); `cozy` resolves to 1.40;
+the default ramp is still **strictly increasing** with the insert — worth pinning because the ordering
+guard runs on *authored* brands, so a badly placed default would ship a permanently inverted ramp no
+brand input could fix; and `cozy` binds a real ladder step rather than an invented value.
+
+Aliases went 911 → 912 in the Wendy's fidelity report (the new role), all resolving, 432/432 contrast
+contracts still hold.
+
+---
+
 ## (2026-08-03) — The per-mode family control goes live (#388 part B2, #390)
 
 **STATUS: web.** `out/*` unchanged — this exposes the #390 engine field, it does not change generation.
