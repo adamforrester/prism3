@@ -3325,7 +3325,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.11}",
         "fontWeight": "{nbds.font.weight-role.default}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}"
       }
     },
@@ -3338,7 +3338,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.11}",
         "fontWeight": "{nbds.font.weight-role.default}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}",
         "textDecoration": "underline"
       }
@@ -3352,7 +3352,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.11}",
         "fontWeight": "{nbds.font.weight-role.strong}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}"
       }
     },
@@ -3365,7 +3365,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.11}",
         "fontWeight": "{nbds.font.weight-role.strong}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}",
         "textDecoration": "underline"
       }
@@ -3379,7 +3379,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.12}",
         "fontWeight": "{nbds.font.weight-role.default}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}"
       }
     },
@@ -3392,7 +3392,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.12}",
         "fontWeight": "{nbds.font.weight-role.default}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}",
         "textDecoration": "underline"
       }
@@ -3406,7 +3406,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.12}",
         "fontWeight": "{nbds.font.weight-role.strong}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}"
       }
     },
@@ -3419,7 +3419,7 @@
         "fontFamily": "{nbds.font.family.text}",
         "fontSize": "{nbds.font.size.12}",
         "fontWeight": "{nbds.font.weight-role.strong}",
-        "lineHeight": "{nbds.font.line-height.normal}",
+        "lineHeight": "{nbds.font.line-height.cozy}",
         "letterSpacing": "{nbds.font.letter-spacing.normal}",
         "textDecoration": "underline"
       }
@@ -5624,6 +5624,23 @@
         "type.title.xs.strong"
       ]
     },
+    "font.line-height.140": {
+      "$description": "line height 1.4× — unitless multiplier (ladder step 140)",
+      "meaning": "Line-height multiplier — 140 (unitless)",
+      "tier": "primitive",
+      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "aliased_by": [
+        "font.line-height-role.cozy",
+        "type.caption.lg.default",
+        "type.caption.lg.default-link",
+        "type.caption.lg.strong",
+        "type.caption.lg.strong-link",
+        "type.caption.md.default",
+        "type.caption.md.default-link",
+        "type.caption.md.strong",
+        "type.caption.md.strong-link"
+      ]
+    },
     "font.line-height.150": {
       "$description": "line height 1.5× — unitless multiplier (ladder step 150)",
       "meaning": "Line-height multiplier — 150 (unitless)",
@@ -5643,14 +5660,6 @@
         "type.body.sm.default-link",
         "type.body.sm.strong",
         "type.body.sm.strong-link",
-        "type.caption.lg.default",
-        "type.caption.lg.default-link",
-        "type.caption.lg.strong",
-        "type.caption.lg.strong-link",
-        "type.caption.md.default",
-        "type.caption.md.default-link",
-        "type.caption.md.strong",
-        "type.caption.md.strong-link",
         "type.code.inline.default"
       ]
     },

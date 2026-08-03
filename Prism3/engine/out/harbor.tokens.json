@@ -10361,6 +10361,24 @@
             }
           }
         },
+        "140": {
+          "$type": "number",
+          "$value": 1.4,
+          "$description": "line height 1.4× — unitless multiplier (ladder step 140)",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "unitless": true,
+              "figma": {
+                "kind": "style-part",
+                "field": "lineHeight",
+                "unit": "PERCENT",
+                "percent": 140,
+                "note": "Figma has no unitless line-height variable; the exporter bakes lineHeight as PERCENT (multiplier × 100) — mode/size-independent, so one bake covers desktop + mobile fluid modes"
+              }
+            }
+          }
+        },
         "150": {
           "$type": "number",
           "$value": 1.5,
@@ -10447,6 +10465,17 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.font.line-height.125"
+            }
+          }
+        },
+        "cozy": {
+          "$type": "number",
+          "$value": "{prism.font.line-height.140}",
+          "$description": "line-height role 'cozy' → 1.4× — a relative-emphasis name a mode may re-point; the step itself never changes",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.font.line-height.140"
             }
           }
         },
@@ -11882,10 +11911,10 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.default}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption md default — 11px Inter (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "caption md default — 11px Inter (text role), cozy line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11920,11 +11949,11 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.default}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md default link — 11px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption md default link — 11px Inter (text role), cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11961,10 +11990,10 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.strong}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption md strong — 11px Inter (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "caption md strong — 11px Inter (text role), cozy line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -11999,11 +12028,11 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.11}",
               "fontWeight": "{prism.font.weight-role.strong}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption md strong link — 11px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption md strong link — 11px Inter (text role), cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12042,10 +12071,10 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.default}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption lg default — 12px Inter (text role), normal line-height, default weight, normal tracking — consumer-facing type style",
+            "$description": "caption lg default — 12px Inter (text role), cozy line-height, default weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12080,11 +12109,11 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.default}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg default link — 12px Inter (text role), normal line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption lg default link — 12px Inter (text role), cozy line-height, default weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12121,10 +12150,10 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.strong}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}"
             },
-            "$description": "caption lg strong — 12px Inter (text role), normal line-height, strong weight, normal tracking — consumer-facing type style",
+            "$description": "caption lg strong — 12px Inter (text role), cozy line-height, strong weight, normal tracking — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",
@@ -12159,11 +12188,11 @@
               "fontFamily": "{prism.font.family.text}",
               "fontSize": "{prism.font.size.12}",
               "fontWeight": "{prism.font.weight-role.strong}",
-              "lineHeight": "{prism.font.line-height-role.normal}",
+              "lineHeight": "{prism.font.line-height-role.cozy}",
               "letterSpacing": "{prism.font.letter-spacing-role.normal}",
               "textDecoration": "underline"
             },
-            "$description": "caption lg strong link — 12px Inter (text role), normal line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
+            "$description": "caption lg strong link — 12px Inter (text role), cozy line-height, strong weight, normal tracking, underlined (link — pair with text.link.* color) — consumer-facing type style",
             "$extensions": {
               "prism3": {
                 "role": "composite",

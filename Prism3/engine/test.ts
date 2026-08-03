@@ -1780,7 +1780,10 @@ for (const b of brands) {
   ok(lhOf(re, 'normal') === 1.4 && lsOf(re, 'wider') === 0.08, 'type-ramp(b): brand re-anchors a named rung value');
   ok(re.typography.composites.find((c: any) => c.group === 'body').lineHeight === 'normal',
     'type-ramp(b): a re-anchored rung does not change which key a composite references');
-  ok(re.typography.lineHeights.length === 6 && re.typography.letterSpacings.length === 6,
+  // Against the canonical key lists, not literals: the intent is "the resolved set matches the contract",
+  // and a literal 6 asserts the count of the day — it went red for the RIGHT reason when #388 added `cozy`,
+  // but a count is not what this test is about.
+  ok(re.typography.lineHeights.length === LINE_HEIGHT_KEYS.length && re.typography.letterSpacings.length === LETTER_SPACING_KEYS.length,
     'type-ramp(b): re-anchoring never adds or drops a rung — the set is fixed');
 
   // (c) the per-group nudge SHIFTS the derived curve; it must stay size-sensitive, not flatten.
@@ -2473,13 +2476,38 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     (field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS).indexOf(derivedRungFor(field, g, px) as any);
   // display sits at the TIGHT end of the leading ramp, which is why a ±2 cap made `loose` unreachable.
   ok(idxOf('leadingShift', 'display', 160) === 0, 'display derives the tightest leading rung');
-  ok(LINE_HEIGHT_KEYS.length - 1 - idxOf('leadingShift', 'display', 160) === 5,
-    'display → loose needs +5, so any cap below 5 hides a reachable rung');
+  // The DISTANCE display must travel to reach `loose`, whatever the ramp length — the point is that a
+  // fixed ±2 cap hides reachable steps, not that the number is 5 (it became 6 when #388 added `cozy`).
+  ok(LINE_HEIGHT_KEYS.length - 1 - idxOf('leadingShift', 'display', 160) === LINE_HEIGHT_KEYS.length - 1,
+    `display → loose needs +${LINE_HEIGHT_KEYS.length - 1}, so any smaller cap hides a reachable rung`);
   // eyebrow sits at the WIDE end of the tracking ramp — the opposite failure: +1/+2 were no-ops.
   ok(idxOf('trackingShift', 'eyebrow', 12) === LETTER_SPACING_KEYS.length - 1,
     'eyebrow derives the widest tracking rung, so every positive tracking nudge on it is a no-op');
   // body sits mid-ramp: both directions live, neither reaching the engine's ±5 bound.
-  ok(idxOf('leadingShift', 'body', 16) === 3, 'body derives `normal`, mid-ramp');
+  // By NAME plus a mid-ramp check, not by index: the index moved when #388 inserted `cozy` above it,
+  // and "body derives normal" was always the claim — the number was incidental.
+  ok(LINE_HEIGHT_KEYS[idxOf('leadingShift', 'body', 16)] === 'normal', 'body derives `normal`');
+  ok(idxOf('leadingShift', 'body', 16) > 0 && idxOf('leadingShift', 'body', 16) < LINE_HEIGHT_KEYS.length - 1,
+    'body sits mid-ramp — both nudge directions live');
+  // #388 — CAPTION has its own band. It shared `normal` (1.50) with body, so the smallest running text
+  // the system emits carried long-form body leading. `cozy` (1.40) is the first BODY step on the ladder,
+  // so caption lands tighter than body while staying a reading leading rather than a heading one.
+  ok(LINE_HEIGHT_KEYS[idxOf('leadingShift', 'caption', 11)] === 'cozy', '[#388] caption derives `cozy`, its own band');
+  ok(idxOf('leadingShift', 'caption', 11) < idxOf('leadingShift', 'body', 16),
+    '[#388] caption is TIGHTER than body — the whole point of giving it a band');
+  ok(idxOf('leadingShift', 'caption', 11) > idxOf('leadingShift', 'title', 18),
+    '[#388] …and still looser than title, so it did not fall into heading leading');
+  {
+    const lh = dTheme.typography.lineHeights;
+    ok(lh.find((l: any) => l.key === 'cozy')?.value === 1.4, '[#388] `cozy` resolves to 1.40');
+    // The ramp must stay monotonic with the insert — the ordering guard runs on AUTHORED brands, and a
+    // badly placed default would ship a permanently inverted ramp that no brand input could fix.
+    const vals = lh.map((l: any) => l.value);
+    ok(vals.every((v: number, i: number) => i === 0 || v > vals[i - 1]),
+      `[#388] the default leading ramp is still strictly increasing (${vals.join(' < ')})`);
+    ok(LINE_HEIGHT_LADDER.includes(1.4), '[#388] `cozy` binds a real ladder step, not an invented value');
+  }
+
   // A category deriving several rungs (title bands by size) must span all of them.
   const titleIdx = [18, 24, 28, 40].map((px) => idxOf('leadingShift', 'title', px));
   ok(new Set(titleIdx).size > 1, 'title derives more than one leading rung across its size bands');

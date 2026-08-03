@@ -1849,7 +1849,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 16.5
+            "value": 15.4
           }
         },
         "letterSpacing": {
@@ -1916,7 +1916,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 16.5
+            "value": 15.4
           }
         },
         "letterSpacing": {
@@ -1983,7 +1983,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 16.5
+            "value": 15.4
           }
         },
         "letterSpacing": {
@@ -2050,7 +2050,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 16.5
+            "value": 15.4
           }
         },
         "letterSpacing": {
@@ -2117,7 +2117,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 18
+            "value": 16.8
           }
         },
         "letterSpacing": {
@@ -2184,7 +2184,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 18
+            "value": 16.8
           }
         },
         "letterSpacing": {
@@ -2251,7 +2251,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 18
+            "value": 16.8
           }
         },
         "letterSpacing": {
@@ -2318,7 +2318,7 @@
           "bound": false,
           "value": {
             "unit": "PIXELS",
-            "value": 18
+            "value": 16.8
           }
         },
         "letterSpacing": {
@@ -2617,6 +2617,11 @@
     }
   ],
   "revisions": [
+    {
+      "issue": "#388",
+      "change": "all 8 text/caption/* lineHeight 1.5 -> 1.4 (md 16.5px -> 15.4px at 11px; lg 18px -> 16.8px at 12px)",
+      "why": "Caption shared the `normal` rung (1.50) with body, so the smallest running text the system emits carried long-form body leading. #388 adds a `cozy` rung at 1.40 -- the first BODY step on the ladder (KB body range 1.4-1.6) -- and binds caption to it, so caption is tighter than body without dropping into heading leading. This is a DELIBERATE divergence from the NB source: NB ships caption at 1.5, and the engine now emits 1.4 on purpose. PREDICTED, not re-captured: a fresh figma.getLocalTextStylesAsync() import of the regenerated nb.tokens.json would report these values. Every other field in this file remains the original capture."
+    },
     {
       "issue": "#377",
       "change": "text/display/sm/strong lineHeight 50.4px -> 55.2px",
