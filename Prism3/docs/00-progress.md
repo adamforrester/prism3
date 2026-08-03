@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-03) — type.* composites get a stacked, labeled alias cell (closes #393's open gap)
+
+**STATUS: web.** The gap #393 shipped with, closed. A typography composite has **no single alias** —
+its `$value` is five aliases at once (family, size, weight, leading, tracking) — so `Show → Alias
+only` fell back to rendering the resolved value and the control looked broken on those 38 rows.
+
+**Owner picked the stacked form from four mocked options, and the width is why.** Joined inline the
+five paths run **~123 characters** — about 775px at 11.5px mono, i.e. the entire 850px content
+column before the Token column is drawn, so all 38 rows would scroll sideways. Stacking spends
+height instead, and spends it in exactly one section: `type.*` is the only shape in the system with
+more than one alias, so the cost cannot spread.
+
+**Options considered and rejected**, recorded so they are not re-derived: inline full paths (~123
+chars, scrolls every row); inline short paths (~98, still scrolls); leaf names only (~35, the only
+one that comfortably fits, but it stops being a path — you would go to Foundations to act on it, and
+it cannot be copied).
+
+**The short-path machinery from #393 applied unchanged, which is the useful part.** All five parts
+resolve under `font.*` — a single namespace — so the per-table callout rule already shipped is
+truthful here without special-casing. One real fix was needed: the section's namespace set was built
+from `aliasAt` alone, which returns nothing for a composite, so `type.*` reported **no** namespaces
+and never earned its callout. Composite part paths now feed that set.
+
+**Reused `.pfk` for the part labels rather than adding a near-duplicate class** — doc 26's "reuse
+the component kit, don't hand-roll a one-off variant". It is nominally the *control* micro-label, and
+these are data labels; the stretch is deliberate and noted here rather than silently forked.
+
+**Verified in Chromium, including the regression.** `Show=both` and `Show=alias` both render 38
+stacks; `Show=value` renders 0 and falls back to the resolved composite; labels read Family / Size /
+Weight / Leading / Tracking; Short yields `family.display` plus "All aliases in this table resolve
+under font.* — prefix hidden." **And the single-alias tables are untouched** — `color` still renders
+`neutral.050` with zero stacks, which is the check that matters, since the new branch sits in the
+shared cell renderer. No console or page errors.
+
+**Note for whoever reads the old issue:** #384/#385 renamed these parts, so the real paths are
+`font.line-height-role.snug` / `font.letter-spacing-role.tight`, not the `leading.*` / `tracking.*`
+#377 proposed. They are noticeably longer, and are part of why the inline forms did not fit.
+
+**Gates:** web typecheck + build clean, `regen --check` 88/88, `test.ts` 1262/0, nb-regression exit 0,
+US-English clean over 91 files.
+
+---
+
 ## (2026-08-03) — Typography splits into four tabs, one tier each (#388 part B1)
 
 **STATUS: web** (+ two engine doc corrections). `out/*` unchanged.
@@ -72,6 +115,7 @@ per-category per-mode family control on Semantics, the specimen-refresh fix, and
 band.
 
 ---
+
 ## (2026-08-03) — Preview token list splits on the tier line (#390)
 
 **STATUS: web.** No engine change, no token movement — `regen --check` 88/88 untouched. The Preview
