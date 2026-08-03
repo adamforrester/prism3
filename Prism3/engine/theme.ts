@@ -96,6 +96,19 @@ export type ModeLevers = {
   // weights, #337). Heading groups only, and it changes SIZES within a mode-invariant SET: the rung set
   // is fixed once at brand level by displayCeiling/titleFloor and is never re-derived per mode.
   typeSizes?: Partial<Record<PerModeSizeGroup, Record<string, number>>>;
+  // Per-mode FAMILY MAP (#390) — `{ title: 'text' }` reads "in this mode, title consumes the text role".
+  // Re-points the CATEGORY at a different existing role, exactly as `typeSizes` re-points a category at
+  // a different ladder step. It exists because the two family mechanisms compose into a gap: the brand
+  // `familyMap` is mode-invariant and `families.<role>` swaps the FACE A ROLE BINDS, so a mode swap
+  // moved every category on that role together — Dark could not move `title` without also moving
+  // `display`, since both default to the `display` role.
+  //
+  // Names a ROLE, not a face: pointing a category straight at `font.typeface.*` is what #269 rejected —
+  // the role is the brand-invariant handle a shared codebase binds to, and a base that resolves to
+  // `family.display` beside a Dark that resolves to `typeface.poppins` is incoherent tiering even
+  // where it resolves. A brand that needs a FOURTH simultaneous face needs a fourth role (#269
+  // deferred that until one really does); this lever is for redistributing the roles it already has.
+  familyMap?: Partial<Record<TypeGroup, FamilyRoleName>>;
 };  // per-mode lever overrides; extensible (tempo/density later — NOT typeScale, see ModeLevers)
 
 /** The non-color (dimension) axis: a primitive grid + space/radius/size scales. */
@@ -593,6 +606,9 @@ export type TypeComposite = {
   // `sizeMinPx` would pair a re-sized desktop value with a floor derived from the size it replaced.
   sizeByMode?: Record<string, number>;
   sizeMinByMode?: Record<string, number>;
+  // #390 — per-mode FAMILY ROLE. Same re-point shape as the rungs above: the role key this composite
+  // binds in a given mode, when it differs from the light key. Absent ⇒ one role across every mode.
+  familyByMode?: Record<string, FamilyRoleName>;
   textCase: 'none' | 'uppercase' | 'lowercase';   // baked style (not Figma-bindable; code/style-side)
   link: boolean;                                   // underlined link variant (textDecoration baked)
   italic: boolean;                                 // italic variant — orthogonal modifier PAIRED with the weight
@@ -640,6 +656,10 @@ export type Typography = {
   /** #328 — mode → heading group → rung → px. Only DIFFERING rungs are recorded, so an inert
    *  declaration leaves this absent and the artifact byte-identical. */
   typeSizesByMode?: Record<string, Record<string, Record<string, number>>>;
+  /** #390 — mode → category → the family ROLE that category consumes in that mode. Same suppression
+   *  contract as `typeSizesByMode`: only DIFFERING categories are recorded, so re-declaring the
+   *  category's own role is inert and leaves the artifact byte-identical. */
+  familyMapByMode?: Record<string, Record<string, FamilyRoleName>>;
 };
 
 const SANS_FALLBACK = ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'];
@@ -2019,6 +2039,35 @@ export const brandTheme = (input: BrandInput): Theme => {
     }
   }
   if (Object.keys(typeSizesByMode).length) typography.typeSizesByMode = typeSizesByMode;
+  // #390 — per-mode FAMILY MAP. Same shape as typeSizes above: validate against what this brand actually
+  // ships, drop inert self-maps, then fan the survivors onto the composites.
+  const familyMapByMode: Record<string, Record<string, FamilyRoleName>> = {};
+  const shippedGroups = new Set(typography.composites.map((c) => c.group));
+  const boundFamilyRoles = new Set(typography.families.map((f) => f.role));
+  for (const [m, lev] of Object.entries(modeLevers)) {
+    const map = lev?.familyMap;
+    if (!map) continue;
+    for (const [g, role] of Object.entries(map)) {
+      if (role === undefined) continue;
+      // A category the brand doesn't ship. Checked against COMPOSITES, not the TypeGroup union: `code`
+      // is a real group that disappears with `families.mono: null`, and silently accepting a map for it
+      // would be a per-mode declaration with no output — the failure mode #341 removed from the ramp.
+      if (!shippedGroups.has(g as TypeGroup))
+        throw new Error(`modeLevers.${m}.familyMap: '${g}' is not a category this brand ships (${[...shippedGroups].join('/')}) — a mode re-points the categories it has; it can never add one.`);
+      // An unbound role would alias to a leaf that is never emitted. `mono: null` is the live case:
+      // opting out of mono and then pointing `code` at it in Dark would emit a dangling reference.
+      if (!boundFamilyRoles.has(role))
+        throw new Error(`modeLevers.${m}.familyMap.${g}: '${role}' is not a family role this brand binds (${[...boundFamilyRoles].join('/')}) — bind the role at brand level first, or point the category at one that exists. To give a mode a face NO role binds, the brand needs a fourth role (#269), not a per-mode map.`);
+      const base = typography.composites.find((c) => c.group === g)!.family;
+      if (role !== base) ((familyMapByMode[m] ??= {})[g] = role);   // drop self-maps: inert, same as typeSizes
+    }
+  }
+  if (Object.keys(familyMapByMode).length) typography.familyMapByMode = familyMapByMode;
+  for (const c of typography.composites)
+    for (const [m, groups] of Object.entries(familyMapByMode)) {
+      const role = groups[c.group];
+      if (role !== undefined) (c.familyByMode ??= {})[m] = role;
+    }
   for (const c of typography.composites)
     for (const [m, groups] of Object.entries(typeSizesByMode)) {
       const px = groups[c.group]?.[c.variant];

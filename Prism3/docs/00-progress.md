@@ -7,6 +7,56 @@
 
 ---
 
+## (2026-08-03) — A mode can move one category to a different family role (#390)
+
+**STATUS: engine.** `out/*` **unchanged** — NB sets no per-mode `familyMap`, so every committed artifact
+byte-matches. Closes #390.
+
+Two family mechanisms were each correct and composed into a gap:
+
+```
+familyMap                            category → role    brand-wide, mode-invariant
+modeLevers.<mode>.families.<role>    role → face        per mode
+```
+
+Nothing re-pointed a **category** per mode. Since `display`/`title`/`label`/`eyebrow` all default to the
+`display` role, a mode swap moved every one of them together — Dark could not move `title` without also
+moving `display`. Now `modeLevers.dark.familyMap = { title: 'text' }` does exactly that, and the sibling
+stays put.
+
+- **It names a ROLE, not a face.** Pointing a category straight at `font.typeface.*` is what #269
+  rejected — the role is the brand-invariant handle a shared codebase binds to — and a base resolving to
+  `family.display` beside a Dark resolving to `typeface.poppins` is incoherent tiering even where it
+  resolves. A brand wanting a **fourth simultaneous face** still needs a fourth role; #269 deferred that
+  and this does not change it. The two are orthogonal, which is why this shipped and that did not.
+- **Modeled on #328, deliberately.** Per-mode size already re-points a category at a different ladder
+  step; this re-points it at a different role. Same suppression contract (a self-map is inert and
+  dropped, so a no-diff declaration cannot create a mode entry), same throw-never-drop validation, same
+  `rungModes` emission path. Reusing the shape meant the emit was three lines.
+- **The mode-note builder was quietly wrong before this.** It hardcoded `size` / `leading/tracking`, and
+  its second branch had been **dead since #377** moved leading and tracking onto the semantic role. Add
+  `fontFamily` and a family re-point would have been labelled "leading/tracking". Rebuilt from the
+  fields actually present; a `fontSize`-only note is byte-identical, which is why `--check` stayed green.
+
+**A test that would have passed for the wrong reason.** The core assertion is a *negative* — display does
+**not** move while title does — and `comp(...)!.familyByMode` on a composite that didn't exist would read
+`undefined` and pass vacuously, as would `.every()` over an empty array. Measured first: 6 title
+composites, 6 display, `display.xl` real. Then pinned the complement — display **does** move when mapped
+— so the negative can never rot into a structural impossibility. A negative assertion needs its positive
+control or it stops testing without ever going red.
+
+**The schema addition is documentation, not enforcement — and I only know that because I ran it.** Adding
+`familyMap` to the contract and probing the live validator returned `accepted` for a bad role, an unknown
+category, and a number where a string belongs. The root cause is **pre-existing and much wider than this
+field**: `validate()` implements `additionalProperties: false` (the unknown-key guard) but not
+schema-valued `additionalProperties` (a sub-schema applied to every value). `modeLevers` is exactly that
+shape, so its whole subtree — `radius` range, `density` enum, `typeSizes` floors — has never been
+validated either. **7 nodes** affected; filed as **#391** rather than fixed here, because switching it on
+lights up four levers at once across every fixture. Real enforcement for this field is `brandTheme()`,
+covered by unit tests. This is the second time the "read the schema, assume it validates" step would have
+shipped an inert contract (#367 was the first) — the rule that caught both is *run the validator*.
+
+---
 ## (2026-08-02) — The leading/tracking fields bind to the ladder, and errors stop hiding (#388)
 
 **STATUS: web.** #384 locked the leading/tracking ladders in the engine. The dashboard was never told.
