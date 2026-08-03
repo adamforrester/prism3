@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE } from './scale';
+import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -446,6 +446,28 @@ for (const b of brands) {
   }
   ok(heightBreaks.length === 0, 'size heights are strictly increasing across xs…xl, at every density / spaceBase'
     + (heightBreaks.length ? ` — BROKEN: ${heightBreaks.slice(0, 4).join(' | ')}` : ''));
+
+  // WCAG 2.2 SC 2.5.8 Target Size (Minimum), AA — no reachable control may be under 24 CSS px.
+  //
+  // The reachable set is now FINITE and small: the spacing rhythm is fixed and density is an enum of
+  // three, so `3 densities × 5 steps` is the whole space a brand can produce — this enumerates 100%
+  // of it rather than sampling. (Before the rhythm was locked, `spaceBase 4` put compact xs/sm/md at
+  // 16/16/20px with nothing to catch it; that is unreachable now, and this is what keeps it so.)
+  //
+  // `compact` xs sits on exactly 24 — the floor is held by arithmetic, not by construction, which is
+  // the reason to pin it: one more rung below the ladder, or a wider density window, drops it under
+  // the criterion silently.
+  const tooSmall: string[] = [];
+  for (const d of ['compact', 'comfortable', 'spacious'] as const)
+    for (const z of componentSizes(d, SPACE_BASE))
+      if (z.height < MIN_TARGET_PX) tooSmall.push(`${d}/${z.name}: ${z.height}px`);
+  ok(tooSmall.length === 0, `WCAG 2.2 SC 2.5.8 — every reachable control height is >= ${MIN_TARGET_PX}px`
+    + (tooSmall.length ? ` — UNDER: ${tooSmall.join(', ')}` : ''));
+
+  // And the floor is actually EXERCISED — a gate that only ever runs far above its threshold would
+  // pass just as happily if the threshold were wrong. The smallest reachable control must sit ON it.
+  ok(Math.min(...componentSizes('compact', SPACE_BASE).map((z) => z.height)) === MIN_TARGET_PX,
+    `the smallest reachable control is exactly the ${MIN_TARGET_PX}px floor (the gate is load-bearing, not slack)`);
 
   // `comfortable` is the historical ladder and must not have moved — the window reframing is a fix
   // for the ENDS, so the untouched middle is the proof it changed only what was broken.
