@@ -7,6 +7,71 @@
 
 ---
 
+## (2026-08-03) — Typography splits into four tabs, one tier each (#388 part B1)
+
+**STATUS: web** (+ two engine doc corrections). `out/*` unchanged.
+
+The Foundations/Styles split (#272) was drawn one line short. Typography has **three** tiers where every
+other axis has two, so a two-way split had to put a line through the middle of something:
+
+```
+Foundations   size ladder (primitive)   +   leading/tracking rungs (semantic)
+Styles        weight roles (semantic)   +   categories (composite)
+```
+
+Both tabs straddled the line they were named for, which is what made the rung tables read as
+"conflicting with the Styles tab" — the complaint that opened #377. Now: **Primitives · Semantics ·
+Text styles · Preview**, one tier each.
+
+**The argument that settled it was not tidiness.** Separating the tiers makes Semantics *uniform* — four
+sections that are all the same shape (a named role, the primitive it binds, who uses it, what each mode
+substitutes), where before they were scattered across two tabs with weight roles and rung values never
+visibly related. That regularity is invisible while the tiers are mixed, and it is what makes the tab
+teach the model instead of just listing controls.
+
+- **The typeface library is the ONLY editable primitive in typography.** Walked the tiers rather than
+  assuming: the size ladder (22 steps), the line-height ladder and the letter-spacing ladder are all
+  fixed and brand-invariant. What reads as "editing sizes" is Shape / Range / per-rung pins — all
+  composite levers. So Primitives is one editable list plus three reference tables, and that is the
+  honest shape, not a thin tab.
+- **The ladders are SHOWN, read-only.** Otherwise they are visible nowhere in the app and you only ever
+  see the handful of steps some rung happens to bind — you cannot see that 1.30→1.40 is a deliberate
+  gap, only that neither 1.35 nor anything else appears.
+- **SIZE has no Semantics row, and that is load-bearing.** A size role would duplicate the composite
+  name — `body.md` IS the size role — where `tight` is not implied by `caption`. Recorded in the tab
+  doc block so nobody "fixes" the asymmetry later by inventing one.
+- **The mode-switcher rule is now a POSITIVE list** (`semantics || styles`), not `!== 'primitives'`.
+  The negative form silently grants the switcher to any tab added later — which is exactly how Preview
+  would have got one the moment a fourth tab appeared.
+
+**Three bugs in my own new code, all found by measuring rather than reading.**
+
+1. `el('tr' + (who.length ? '' : ' unused'))` — `el`'s first argument is the **tag**, so this built an
+   element named `"tr unused"`. Dropped the class entirely rather than fixing it: an unbound step is the
+   *common* case (15 steps, ~6 rungs), so dimming most of the table would read as an error state.
+2. The new table wore `mtbl-t`; the class is **`mtbl-tbl`**. A near-miss class name is invisible in
+   source and silent at runtime — the table simply lost `width:100%` and sat at 657px inside a 798px
+   container, off the shared grid.
+3. The specimen wore `.mtbl-spec-t` (nowrap + ellipsis) instead of `.ltbl-samp`. A nowrap block
+   contributes its full single-line width as min-content, so the long leading specimen forced the fill
+   column to **590px** while the short tracking one sat at **239px** — #369's trap, reproduced exactly.
+   `.ltbl-samp` wraps and caps at `52ch`, which bounds the contribution.
+
+All three produced a page that *rendered*. Only the measured column widths (`112/148/148/390` across
+all three tables, checked per table) showed them.
+
+**Folded in, per owner: the stale leading/tracking range docs.** `TypographyInput.lineHeights` still
+documented `[0.8, 3]` and `letterSpacings` `[-0.5, 0.5]` — continuous ranges that #384 superseded when
+it locked the ladders. A stale range reads as "any number in here is fine", which is precisely what the
+UI believed until #388 shipped `step="0.05"` and landed on 1.35 inside the 1.30→1.40 gap. The schema's
+per-property descriptions were already correct; only the two parent descriptions carried the old
+framing, and they now match.
+
+**Still to come in part B:** the Text styles per-mode table naming values rather than rungs, the #390
+per-category per-mode family control on Semantics, the specimen-refresh fix, and the caption leading
+band.
+
+---
 ## (2026-08-03) — Preview token list splits on the tier line (#390)
 
 **STATUS: web.** No engine change, no token movement — `regen --check` 88/88 untouched. The Preview

@@ -1945,9 +1945,9 @@ const renderGeneratedNote = (): HTMLElement => {
  *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
 
 // ---- Type sizes — shape · range · the per-size table (#328 follow-through) ------------------------
-/** Shape, range and the per-size table are one decision chain, so they live together on Styles rather
- *  than split across tabs. This moves `typeScale` / `displayCeiling` / `titleFloor` off Foundations,
- *  which leaves Foundations holding only the ladder — genuinely primitive, and consistent with #268's
+/** Shape, range and the per-size table are one decision chain, so they live together on Text styles rather
+ *  than split across tabs. This moves `typeScale` / `displayCeiling` / `titleFloor` onto Text styles,
+ *  which leaves the size ladder alone on Primitives — genuinely primitive, and consistent with #268's
  *  rule that a primitive surface shows no mode switcher.
  *
  *  Two tiers, and the layout is what makes them legible: RANGE decides which rows exist and is shared
@@ -2367,7 +2367,7 @@ const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'i
 
 /** The typography PREVIEW tab — everything the system generates, at size, in every mode.
  *
- *  Read-only by design: the editors live on Styles, and giving the same value two homes is how they
+ *  Read-only by design: the editors live on Semantics/Text styles, and giving the same value two homes is how they
  *  drift. It exists because the ramp was squeezed into the Styles aside, where a 160px display line
  *  and five mode columns have nowhere to go.
  *
@@ -2420,7 +2420,7 @@ const renderTypePreview = (): HTMLElement => {
   ft.append(fb); fscroll.append(ft); ftbl.append(fscroll); fam.append(ftbl);
   wrap.append(fam);
 
-  // Weight roles × faces (#362) — the availability matrix that used to sit on Foundations as a
+  // Weight roles × faces (#362) — the availability matrix that used to sit on the primitive tab as a
   // read-only table on an editing tab. Rows are the ROLES (what the system actually ships), columns
   // are the FACES, so it survives a brand with many faces where a fixed per-family table did not:
   // `.mtbl-scroll` takes the overflow. The specimen #356 dropped from the weights EDITOR comes back
@@ -2432,7 +2432,7 @@ const renderTypePreview = (): HTMLElement => {
   // the table's core fact stays true. Base numerics + a flag naming any re-pointed role, rather than
   // a third axis. The faces column set IS a union across modes though — a face bound only in Dark
   // still ships (or doesn't ship) these weights, so hiding it would drop a real availability fact.
-  const wsec = palSection('Weight roles by face', 'Each role at the numeric it resolves to, and whether each face actually ships that weight. Availability is advisory — nothing here is ever blocked. Set the numerics on Styles.');
+  const wsec = palSection('Weight roles by face', 'Each role at the numeric it resolves to, and whether each face actually ships that weight. Availability is advisory — nothing here is ever blocked. Set the numerics on Semantics.');
   const faces: Array<{ name: string; stack: string; roles: string[] }> = [];
   const addFace = (stackArr: string[] | undefined, role: string): void => {
     if (!stackArr?.length) return;
@@ -2490,7 +2490,7 @@ const renderTypePreview = (): HTMLElement => {
     }))
     .map((w) => w.role);
   if (repointed.length)
-    wsec.append(el('p', 'sl-note', `Baseline numerics shown. ${repointed.length === 1 ? 'One role is' : `${repointed.length} roles are`} re-pointed in at least one mode (${repointed.join(', ')}) — see Weight roles on the Styles tab for the per-mode values. Availability itself does not vary by mode.`));
+    wsec.append(el('p', 'sl-note', `Baseline numerics shown. ${repointed.length === 1 ? 'One role is' : `${repointed.length} roles are`} re-pointed in at least one mode (${repointed.join(', ')}) — see Weight roles on the Semantics tab for the per-mode values. Availability itself does not vary by mode.`));
   wrap.append(wsec);
 
   // And the ramp itself, full width rather than squeezed into the aside.
@@ -2499,38 +2499,60 @@ const renderTypePreview = (): HTMLElement => {
 };
 
 // Typography — type scale (shared, read-only outside Light) + the family/weight/leading editor.
-/** Typography splits along the tier line (docs/26): FOUNDATIONS is the primitive raw material
- *  — the faces, the size ladder, the weight numerics, the leading/tracking rungs — and STYLES is
- *  the semantic layer built from it: which numeric each weight role means, what each category is
- *  made of, and the full generated ramp. Categories never appear on Foundations. */
-type TypeTab = 'foundations' | 'styles' | 'preview';
-let typeTab: TypeTab = 'foundations';
-const TYPE_TABS: Array<[TypeTab, string]> = [['foundations', 'Foundations'], ['styles', 'Styles'], ['preview', 'Preview']];
+/** Typography splits along the tier line (docs/26). The old two-way Foundations/Styles split (#272)
+ *  conflated two different lines, because typography has THREE tiers where every other axis has two:
+ *  primitives, semantic roles, and composites. "Foundations" held the size ladder (a primitive) next
+ *  to the leading/tracking rung bindings (semantics), and "Styles" held the weight roles (semantics)
+ *  next to the categories (composites). Both tabs straddled the line they were named for.
+ *
+ *  Four tabs, one tier each:
+ *   • PRIMITIVES — the raw material. The typeface library is the ONLY editable primitive in the whole
+ *     axis; the size / leading / tracking ladders are fixed and brand-invariant, shown read-only
+ *     because otherwise they are visible nowhere in the app and you only ever see the steps some role
+ *     happens to bind.
+ *   • SEMANTICS — every row is the same shape: a named role and the primitive it binds, re-pointable
+ *     per mode. Faces, weights, leading and tracking all four fit it. That regularity is the argument
+ *     for the split — it is invisible while the tiers are mixed, and it is what makes this tab teach
+ *     the model rather than just list controls.
+ *   • TEXT STYLES — the composites and the levers that shape them (shape, range, per-size pins,
+ *     which role each category consumes, weights, links, italics).
+ *   • PREVIEW — everything generated, at size, in every mode. Read-only.
+ *
+ *  SIZE has no Semantics row, and that is load-bearing rather than an omission: a size role would
+ *  duplicate the composite name — `body.md` IS the size role — where `tight` is not implied by
+ *  `caption`. So size runs ladder → composite and lives wholly in Text Styles. Don't "fix" it by
+ *  inventing one. */
+type TypeTab = 'primitives' | 'semantics' | 'styles' | 'preview';
+let typeTab: TypeTab = 'primitives';
+const TYPE_TABS: Array<[TypeTab, string]> = [['primitives', 'Primitives'], ['semantics', 'Semantics'], ['styles', 'Text styles'], ['preview', 'Preview']];
 const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'typography', (h) => {
   const seg = el('div', 'pvseg');
   for (const [k, label] of TYPE_TABS) {
     const b = el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement;
-    // Repaints the mode strip too: the Foundations/Styles line IS the primitive/semantic line the
-    // switcher's visibility turns on (#268), so the tab switch changes header chrome, not just body.
-    // Page nav gets this free via build(); this tab lives below it and would otherwise go stale.
+    // Repaints the mode strip too: the tier a tab shows IS what the switcher's visibility turns on
+    // (#268) — primitives are mode-invariant and semantics/composites are not — so the tab switch
+    // changes header chrome, not just body. Page nav gets this free via build(); this tab lives below
+    // it and would otherwise go stale.
     b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); renderModeStrip(); } };
     seg.append(b);
   }
   h.append(seg);
-  h.append(el('p', 'tabnote', typeTab === 'foundations'
-    ? 'Primitives — the raw material every style is built from.'
-    : typeTab === 'styles'
-      ? 'Semantics — the named styles your product actually uses.'
-      : 'Everything the system generates, at size, in every mode. Nothing here is editable.'));
-  if (typeTab === 'foundations') h.append(renderTypefaces(), renderSizeLadder(), renderLeadingTracking());
-  else if (typeTab === 'styles') {
-    // Sizes → weights → leading/tracking: the three per-mode tables stack first, on one column grid,
-    // before the composite skeleton that consumes them.
-    h.append(renderTypeSizes(), renderWeightRoles());
+  h.append(el('p', 'tabnote', typeTab === 'primitives'
+    ? 'The raw material. Only the typeface library is yours to edit — the ladders below it are fixed and brand-invariant, shown so you can see what every style is chosen from.'
+    : typeTab === 'semantics'
+      ? 'Named roles, each bound to one primitive. A mode can re-point any of them without touching the primitive underneath.'
+      : typeTab === 'styles'
+        ? 'The styles your product actually uses, and the levers that shape them.'
+        : 'Everything the system generates, at size, in every mode. Nothing here is editable.'));
+  if (typeTab === 'primitives') h.append(renderTypefaceLibrary(), renderSizeLadder(), renderRungLadders());
+  else if (typeTab === 'semantics') {
+    // Faces → weights → leading/tracking. One shape repeated four times: role, the primitive it binds,
+    // who uses it, and (below) what each mode substitutes.
+    h.append(renderTypefaceBindings(), renderWeightRoles(), renderLeadingTracking());
     const repoints = renderRepoints();
     if (repoints) h.append(repoints);
-    h.append(renderCategorySetup());
-  } else h.append(renderTypePreview());
+  } else if (typeTab === 'styles') h.append(renderTypeSizes(), renderCategorySetup());
+  else h.append(renderTypePreview());
   // No aside on any tab. The ramp used to sit in the Styles aside on the doc-26 rule that a section
   // carries its own specimen in context — but that rule is satisfied by the Preview tab now, and a
   // ~220px column was never an honest place to show a 160px display line beside five mode columns.
@@ -2753,12 +2775,15 @@ const FAMILY_ROLES: Array<['display' | 'text' | 'mono', string, string]> = [
  *  rejected extensible roles): the typeface library is shared ACROSS brands and each brand binds its
  *  own members, so N faces exist system-wide while any one brand binds at most three.
  *
- *  Categories stay absent here — which category draws on which face is semantic, and lives on Styles. */
-const renderTypefaces = (): HTMLElement => {
+ *  Categories stay absent here — which category draws on which face is a composite concern, and lives
+ *  on Text styles. */
+/** Tier 1 — the faces this brand has (Primitives tab). Split from the bindings (#388 part B): they
+ *  were one section because they were one tab, and that section straddled the primitive/semantic line
+ *  the tabs are now named for. */
+const renderTypefaceLibrary = (): HTMLElement => {
   const ty = theme.typography;
   const perMode = currentMode !== 'light';
-  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
-  const sec = palSection('Typefaces', 'Two tiers: the faces themselves, and which face does each job. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim.');
+  const sec = palSection('Typefaces', 'The faces this brand has, independent of what any of them does. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim. This is the only primitive on this tab you can edit.');
 
   // Effective face per role, honouring a per-mode override.
   const boundFace = (role: 'display' | 'text' | 'mono'): string => {
@@ -2769,11 +2794,11 @@ const renderTypefaces = (): HTMLElement => {
     return ovName ?? base;
   };
 
-  // ---- TIER 1 — the library ----
-  // Converted to the shared table format alongside leading & tracking (#363) so Foundations reads on
-  // ONE column grid rather than a card list beside two tables. Same three fixed-width columns as the
-  // rung tables, and no mode axis for the same reason: a typeface primitive is mode-invariant. WHICH
-  // face a role binds does vary by mode — but that is the bindings tier below, and it stays as it is.
+  // ---- TIER 1 — the library (Primitives tab) ----
+  // Converted to the shared table format alongside leading & tracking (#363) so the tab reads on ONE
+  // column grid rather than a card list beside two tables. Same three fixed-width columns as the rung
+  // tables, and no mode axis for the same reason: a typeface primitive is mode-invariant. WHICH face a
+  // role binds does vary by mode — but that is the bindings tier, now on Semantics.
   sec.append(subHead('The library — one primitive per face'));
   /** Where a face's binding lives. #287 made "in the library, bound to nothing" a REAL state — before
    *  it, a face existed only while a role bound it, so the old copy could say the list was purely
@@ -2883,12 +2908,29 @@ const renderTypefaces = (): HTMLElement => {
   addRow.append(addIn, addBtn);
   sec.append(addRow, addErr);
   // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
-  // role below binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
+  // role binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
   sec.append(el('p', 'tf-derivenote', anyUnbound
-    ? 'This list is a union: a face appears because a role below binds it, or because the brand input stages it in typography.typefaceLibrary. A staged face can sit here bound to nothing until you give it a job. Slugs come from the face name, so there is no rename to cascade.'
-    : 'Every face here is bound by a role below — bind a new name and its primitive appears. A brand can also stage a face with no role in typography.typefaceLibrary, in which case it sits here unbound until you give it a job. Slugs come from the face name, so there is no rename to cascade.'));
+    ? 'This list is a union: a face appears because a role on Semantics binds it, or because the brand input stages it in typography.typefaceLibrary. A staged face can sit here bound to nothing until you give it a job. Slugs come from the face name, so there is no rename to cascade.'
+    : 'Every face here is bound by a role on Semantics — add a name and its primitive appears here, ready to bind. A brand can also stage a face with no role in typography.typefaceLibrary, in which case it sits here unbound until you give it a job. Slugs come from the face name, so there is no rename to cascade.'));
 
-  // ---- TIER 2 — the bindings ----
+  return sec;
+};
+
+/** Tier 2 — which face does each job (Semantics tab). Split from the library (#388 part B): the two
+ *  tiers were one section because they were one tab. `boundFace` is passed in rather than re-derived
+ *  so both tiers read a per-mode binding exactly the same way. */
+const renderTypefaceBindings = (): HTMLElement => {
+  const ty = theme.typography;
+  const perMode = currentMode !== 'light';
+  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
+  const sec = palSection('Typefaces', 'Which face does each job. The role is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a category never names a face directly.');
+  const boundFace = (role: 'display' | 'text' | 'mono'): string => {
+    const base = ty.families.find((f) => f.role === role)?.stack[0] ?? '';
+    if (!perMode) return base;
+    const ov = getModeLever(currentMode, `families.${role}`);
+    const ovName = Array.isArray(ov) ? ov[0] : (ov as string | undefined);
+    return ovName ?? base;
+  };
   sec.append(subHead('The bindings — which face does each job'));
   const grid = el('div', 'tf-grid');
   for (const [role, label, desc] of FAMILY_ROLES) {
@@ -2978,7 +3020,7 @@ const renderSizeLadder = (): HTMLElement => {
   // The ladder ALONE. Shape / range moved to Styles (#328 follow-through) to sit with the per-size
   // table they govern — which also leaves this tab purely primitive, the condition #268's
   // no-switcher rule turns on.
-  const sec = palSection('The size ladder', 'Fixed and brand-invariant — 22 rem steps, the raw material every heading size is chosen from. Which rungs the categories land on is set by Shape and Range, on Styles.');
+  const sec = palSection('The size ladder', 'Fixed and brand-invariant — 22 rem steps, the raw material every heading size is chosen from. Which rungs the categories land on is set by Shape and Range, on Text styles.');
   // No requested-vs-effective note any more: the ceiling names a RUNG, so what was asked for and
   // what ships cannot disagree (#328). The px ceiling could, because it was compared against sizes
   // typeScale had already shifted.
@@ -3016,21 +3058,84 @@ const renderSizeLadder = (): HTMLElement => {
   return sec;
 };
 
-/** Leading + tracking rungs. As of the brand-editable rung values these are real inputs in
- *  Light (they were read-only, with no global lever behind them at all). */
-/** The rung VALUES — mode-invariant primitives, so this section never varies by mode. It used to
- *  swap itself for a per-mode re-point editor outside Light (#296), which the #350 decision to hide
- *  the mode switcher on Foundations left stranded: the switcher that put you in Dark was gone, so
- *  the numeric editor became unreachable without a detour through Styles. The re-point half now
- *  lives on Styles (`renderRepoints`), where the mode axis actually exists. */
+/** The leading + tracking LADDERS — the primitives themselves (#388 part B). Read-only, and shown at
+ *  all for the reason the size ladder is: these are the steps every rung is chosen from, and without
+ *  this table they are visible nowhere in the app — you would only ever see the handful of values some
+ *  rung happens to bind. #384 locked both ladders, so there is nothing here to edit; what IS editable
+ *  is which step each rung binds, one tier up on Semantics. */
+const renderRungLadders = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Leading & tracking ladders', 'The steps every leading and tracking rung is chosen from. Fixed and brand-invariant, like the size ladder — the gaps are deliberate, so a value between two steps is not a value this system emits. Binding a rung to one of these is on Semantics.');
+  const ladderTable = (caption: string, ladder: readonly number[], fmt: (v: number) => string,
+    boundBy: (v: number) => string[], preview: (host: HTMLElement, v: number) => void): void => {
+    const box = el('div', 'mtbl');
+    box.append(el('p', 'mtbl-cap', caption));
+    const scroll = el('div', 'mtbl-scroll');
+    const tbl = el('table', 'mtbl-tbl');
+    const thead = el('thead');
+    const htr = el('tr');
+    // Four columns on the same 112/148/148/390 grid every other tier table uses (#363) — a 2-column
+    // table here would have broken the one-grid rule the tab is built on. The 3rd column is what makes
+    // a read-only ladder worth showing at all: 15 bare numbers teach nothing, 15 rendered steps show
+    // you what the gaps between them actually cost.
+    htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'Bound by'),
+      el('th', 'mtbl-mode', ''), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+    thead.append(htr); tbl.append(thead);
+    const tb = el('tbody');
+    for (const v of ladder) {
+      const who = boundBy(v);
+      // No row-level "unused" class: an unbound step is the COMMON case here (15 steps, ~6 rungs), so
+      // dimming the majority of the table would read as an error state. The faint "not bound" cell
+      // below carries it. (`el`'s 1st arg is the TAG — a class concatenated into it silently produces
+      // an invalid element name, which is exactly what the first draft of this line did.)
+      const tr = el('tr');
+      const nc = el('td', 'mtbl-stick');
+      nc.append(el('span', 'mtbl-name mono', fmt(v)));
+      tr.append(nc);
+      const wc = el('td', 'mtbl-mode');
+      // An unbound step is the COMMON case (15 steps, ~6 rungs), so it must read as ordinary rather
+      // than as a warning — "not used" in the faint tier, never a ✗ or an amber flag.
+      wc.append(el('span', 'ltbl-who' + (who.length ? '' : ' none'), who.length ? who.join(', ') : 'not bound'));
+      tr.append(wc);
+      tr.append(el('td', 'mtbl-mode'));
+      // `.ltbl-samp`, exactly as the rung table uses — NOT `.mtbl-spec-t`. That class is nowrap +
+      // ellipsis, and a nowrap block contributes its full single-line width as min-content, so the
+      // line-height specimen forced the fill column to 590px while the short tracking one sat at 239
+      // (#369's trap, reproduced). `.ltbl-samp` wraps and caps at 52ch, which bounds the contribution
+      // and lets both tables settle on the same grid.
+      const pc = el('td', 'mtbl-fill mtbl-spec');
+      const pv = el('div', 'ltbl-samp');
+      preview(pv, v);
+      pc.append(pv);
+      tr.append(pc);
+      tb.append(tr);
+    }
+    tbl.append(tb); scroll.append(tbl); box.append(scroll);
+    sec.append(box);
+  };
+  // Same specimen strings the rung table uses, so a step reads identically whether you are looking at
+  // the ladder or at the rung bound to it.
+  ladderTable('Line height', LINE_HEIGHT_LADDER, (v) => `${v.toFixed(2)}×`,
+    (v) => ty.lineHeights.filter((l) => Math.abs(l.value - v) < 1e-9).map((l) => l.key),
+    (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
+  ladderTable('Letter spacing', LETTER_SPACING_LADDER, (v) => `${v}em`,
+    (v) => ty.letterSpacings.filter((l) => Math.abs(l.em - v) < 1e-9).map((l) => l.key),
+    (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
+  return sec;
+};
+
+/** The rung → ladder-step BINDINGS (Semantics tab). Mode-invariant values, so this section never
+ *  varies by mode; the per-mode re-point half is `renderRepoints`, below it on the same tab. Moved
+ *  off the primitives tab in #388 part B — a rung is a named role, not raw material, and sitting it
+ *  beside the ladder was what made the two read as one conflated thing. */
 const renderLeadingTracking = (): HTMLElement => {
   const ty = theme.typography;
-  const sec = palSection('Leading & tracking', 'Two fixed sets of named rungs, sitting alongside the size ladder. Re-anchor what a rung is worth here — one number each, shared by every mode. Which rung a category lands on is chosen for you from its size and role, nudged per category on the Styles tab, and re-pointed per mode there too.');
+  const sec = palSection('Leading & tracking', 'Each named rung binds one step of the fixed ladders on Primitives. Re-point a rung here and every style using it reflows — one binding each, shared by every mode unless a mode re-points it below. Which rung a category lands on is chosen for you from its size and role, and nudged per category on Text styles.');
   // #363 — the shared `.mtbl` table format, but its GEOMETRY only, not its semantics. These rungs are
   // mode-invariant primitives, so there is NO mode axis and the table gets no mode columns: adding them
   // would assert a dimension these values do not have. Same rule that keeps Category setup and
   // Responsive out of this format. The three fixed columns use the same width tokens as every other
-  // table on the page, which is the whole point — Foundations reads on one column grid.
+  // table on the page, which is the whole point — each tier tab reads on one column grid.
   const ramp = (caption: string, steps: { key: string; val: number }[],
     globalKey: string, modeField: 'lineHeights' | 'letterSpacings',
     ladder: readonly number[], fmt: (v: number) => string,
@@ -3214,7 +3319,7 @@ const renderWeightRoles = (): HTMLElement => {
 };
 
 /** One per-mode re-point table. Rows are RUNGS; a cell names the rung that mode substitutes — never
- *  a number, because a mode may not redefine a primitive (the numbers are on Foundations). Selects,
+ *  a number, because a mode may not redefine a primitive (the ladders are on Primitives). Selects,
  *  not steppers: re-pointing is an enum choice with an Auto state, and doc 26 puts 3+ options in a
  *  select. Same geometry tokens as the size and weight tables so all four line up on one grid. */
 const renderRepointTable = (
@@ -3251,7 +3356,7 @@ const renderRepointTable = (
         // VALUE rather than repeating the name earns the cell its width: it is the number every other
         // cell in the row is a substitution for.
         const self = el('span', 'mtbl-selfval mono', fmt(s.val));
-        self.title = `The baseline. Change what ${s.key} is worth on the Foundations tab — it is one number, shared by every mode.`;
+        self.title = `The baseline. Change which ladder step ${s.key} binds in the table above — it is one binding, shared by every mode.`;
         td.append(self);
       } else {
         const ov = getModeLever(m, `${modeField}.${s.key}`) as string | undefined;
@@ -3284,7 +3389,7 @@ const renderRepointTable = (
 const renderRepoints = (): HTMLElement | null => {
   if (rp.modes.length < 2) return null;
   const ty = theme.typography;
-  const sec = palSection('Leading & tracking per mode', 'A mode can swap one rung for another — a dark theme that wants everything a step looser, a compact mode that tightens. Rows are the rungs from Foundations, with what each is worth in the baseline column; every other column names the rung that mode substitutes. “Auto” keeps the rung itself.');
+  const sec = palSection('Leading & tracking per mode', 'A mode can swap one rung for another — a dark theme that wants everything a step looser, a compact mode that tightens. Rows are the rungs bound above, with what each is worth in the baseline column; every other column names the rung that mode substitutes. “Auto” keeps the rung itself.');
   sec.append(renderRepointTable('line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`, 'lineHeights'));
   sec.append(renderRepointTable('letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`, 'letterSpacings'));
   return sec;
@@ -3839,7 +3944,7 @@ const RAMP_SAMPLE = 'The quick brown fox';
  *  everywhere" is usually the thing you actually want, and a table whose shape shifts as you edit is
  *  harder to read than a wider one that doesn't.
  *
- *  This does NOT retire the mode switcher on Styles: the editors above still resolve against
+ *  This does NOT retire the mode switcher on Semantics/Text styles: the editors above still resolve against
  *  `currentMode` and WRITE per-mode overrides. Seeing every mode removes the need to switch for
  *  READING, never for EDITING (#268). */
 const renderTypeRamp = (): HTMLElement => {
@@ -4414,19 +4519,23 @@ let modeStripHost: HTMLElement;   // tier 2 of the global header — the persist
  *  The two surfaces that fail it today, from the audit #268 was waiting on:
  *   • `layout` — nothing layout-related exists in `ModeLevers` or carries a `*ByMode` field. It is
  *     mode-invariant outright, not merely primitive.
- *   • `typography → Foundations` — the size ladder, faces, weight numerics and leading/tracking rungs
- *     are all primitives. The Foundations/Styles split (#272) already draws exactly this line, which
- *     is why the rule needs no new taxonomy.
+ *   • `typography → Primitives` — the typeface library, the size ladder and the leading/tracking
+ *     ladders are all primitives, and #296 fixed them as mode-INVARIANT. The four-tab split (#388
+ *     part B) draws this line exactly, which is why the rule needs no new taxonomy.
  *
- *  Typography → STYLES keeps it, and that is not an inconsistency: the weight-role, category and
- *  responsive editors all resolve against `currentMode` and WRITE per-mode overrides. Showing every
- *  mode at once (the side-by-side ramp) makes the switcher redundant for READING, never for editing —
- *  an editor still needs one mode to write into. */
+ *  Typography → SEMANTICS and → TEXT STYLES both keep it, and that is not an inconsistency: family
+ *  roles, weight roles, rung bindings, per-size pins and the category editors all resolve against
+ *  `currentMode` and WRITE per-mode overrides. Showing every mode at once (the side-by-side ramp)
+ *  makes the switcher redundant for READING, never for editing — an editor still needs one mode to
+ *  write into.
+ *
+ *  Stated as a POSITIVE list of the tabs that have the axis, not `!== 'primitives'`: the negative
+ *  form silently grants the switcher to any tab added later, which is how Preview would have got one. */
 const pageHasModeVaryingControl = (): boolean => {
   if (page === 'layout') return false;
   // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
-  //  do — the same reasoning that hides it on Foundations, reached from the other direction.
-  if (page === 'typography' && typeTab !== 'styles') return false;
+  //  do — the same reasoning that hides it on Primitives, reached from the other direction.
+  if (page === 'typography') return typeTab === 'semantics' || typeTab === 'styles';
   return true;
 };
 
@@ -5668,7 +5777,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* Same 112px / 148px as the tables, from the shared tokens, so the page reads on one grid even
    where the content is a specimen rather than a control. */
 
-/* Typography — Foundations / Styles tabs (#272) */
+/* Typography — the four tier tabs (#272, resplit in #388 part B) */
 .tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
 .tf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .tf-card{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:9px;min-width:0}
@@ -5696,7 +5805,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mtbl-spec .tf-prev{border-top:0;padding-top:0;font-size:22px;line-height:1.25}
 .tf-derivenote{font-size:12px;color:var(--faint);line-height:1.55;margin:11px 0 0}
 /* Staging a face (#287 follow-up). The remove control sits in the FILL column so no fixed-width cell
-   grows past its token — that is what keeps the three Foundations tables on one 112/148/148 grid. */
+   grows past its token — that is what keeps the tier tables on one 112/148/148 grid. */
 .tf-rm{float:right;border:none;background:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;margin-left:8px}
 .tf-rm:hover{color:var(--ink)}
 .tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
@@ -5722,7 +5831,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sl-keyi{display:inline-flex;align-items:center;gap:5px}
 .sl-keyi i{width:6px;height:6px;border-radius:50%;display:inline-block}
 .sl-keyi i.k-head{background:#3f6ae0}.sl-keyi i.k-fix{background:var(--ink)}.sl-keyi i.k-off{background:var(--line2)}
-/* The availability marks, carried over from the deleted Foundations weight scale (#362) — the mark
+/* The availability marks, carried over from the deleted primitive weight scale (#362) — the mark
    vocabulary is unchanged, only its home. tpw-samp overrides the shared specimen size down, since
    this cell holds a mark beside it in a face column rather than owning a full-width row.
    (No backticks in here — this whole block is a template literal.) */

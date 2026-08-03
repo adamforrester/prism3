@@ -810,13 +810,17 @@ export type TypographyInput = {
    *  Reading/UI text stays static. `minViewport`/`maxViewport` (px, default
    *  375/1280) bound the clamp interpolation. */
   responsive?: { fluid?: boolean; minViewport?: number; maxViewport?: number };
-  /** Re-anchor a named LEADING rung for the whole brand (unitless multiplier,
-   *  [0.8, 3]). The rung SET is fixed (tight…loose) — this changes what a rung is
-   *  worth, not which rung a composite lands on, so every composite aliasing it
-   *  reflows. Omitted rungs keep the curated default. */
+  /** BIND a named LEADING rung to a step of `LINE_HEIGHT_LADDER` (unitless multiplier). The rung SET
+   *  is fixed (tight…loose) — this changes which step a rung binds, not which rung a composite lands
+   *  on, so every composite aliasing it reflows. Omitted rungs keep the curated default.
+   *
+   *  The value must be a LADDER STEP and the merged ramp must stay ordered; both are enforced. This
+   *  used to document a continuous range of `[0.8, 3]`, which #384 superseded when it locked the
+   *  ladder — a stale range reads as "any number in here is fine" and is exactly what the UI believed
+   *  until #388 (it shipped `step="0.05"`, landing on 1.35 inside the deliberate 1.30→1.40 gap). */
   lineHeights?: Partial<Record<LineHeightKey, number>>;
-  /** Re-anchor a named TRACKING rung for the whole brand (em, [-0.5, 0.5]). Same
-   *  contract as `lineHeights`. */
+  /** BIND a named TRACKING rung to a step of `LETTER_SPACING_LADDER` (em). Same contract as
+   *  `lineHeights`, including the on-ladder and ordering checks (was documented as `[-0.5, 0.5]`). */
   letterSpacings?: Partial<Record<LetterSpacingKey, number>>;
   /** Per-group LEADING nudge, in rungs (typically -1 / 0 / +1). The engine derives
    *  a size-sensitive rung per composite (`lineHeightFor` — bigger headings get
