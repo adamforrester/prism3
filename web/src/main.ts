@@ -3496,11 +3496,35 @@ const renderCategorySetup = (): HTMLElement => {
     const nameTd = el('td');
     nameTd.append(el('div', 'cs-name mono', g), el('div', 'cs-count', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`));
     tr.append(nameTd);
+    // #390 — this select used to be DISABLED outside Light, and that was never a UI choice: there was
+    // no per-mode field to write into. `familyMap` was brand-wide, and `modeLevers.<mode>.families.<role>`
+    // swaps the FACE a role binds, so a mode could only move every category on that role together —
+    // Dark could not move `title` without also moving `display`. With the per-mode familyMap the control
+    // is live in every mode and writes the category → role re-point.
+    //
+    // Outside Light the baseline option is "Auto", not a role name: a mode that named its own baseline
+    // role would store an inert self-map (the engine drops it), so "Auto" is the honest label for
+    // "follow the brand" and keeps clearing an override reachable.
     const fsel = selectEl('sm');
+    // `composite.family` is the LIGHT role by construction — #390 puts the per-mode value on
+    // `familyByMode`, never on `family` — so this stays the baseline even while a mode overrides it.
     const curFam = comps[0]?.family ?? 'text';
-    for (const [role] of FAMILY_ROLES) fsel.append(optionEl(role, ty.families.find((f) => f.role === role)?.stack[0] ?? role, role === curFam));
-    fsel.disabled = perMode;
-    fsel.onchange = () => { setPath(brandState, `typography.familyMap.${g}`, fsel.value); apply(); };
+    const faceOfRole = (role: string): string => ty.families.find((f) => f.role === role)?.stack[0] ?? role;
+    if (perMode) {
+      const ov = getModeLever(currentMode, `familyMap.${g}`) as string | undefined;
+      fsel.append(optionEl('', `Auto — ${faceOfRole(curFam)}`, !ov));
+      for (const [role] of FAMILY_ROLES) fsel.append(optionEl(role, faceOfRole(role), role === ov));
+      if (ov) fsel.classList.add('set');
+      // `applyFull`, not `apply`, and only on this branch: `.set` is DERIVED state (does this mode carry
+      // an override?), and `apply()` repaints only the volatile region, so the class lagged a repaint
+      // behind the value — measured, with the write and the persisted state already correct while the
+      // affordance still read unset. The Light branch needs no repaint: the only thing it changes on
+      // screen is the select's own value, which the DOM already holds.
+      fsel.onchange = () => { setModeLever(currentMode, `familyMap.${g}`, fsel.value || undefined); applyFull(); };
+    } else {
+      for (const [role] of FAMILY_ROLES) fsel.append(optionEl(role, faceOfRole(role), role === curFam));
+      fsel.onchange = () => { setPath(brandState, `typography.familyMap.${g}`, fsel.value); apply(); };
+    }
     const ftd = el('td'); ftd.append(fsel); tr.append(ftd);
     const has = new Set(comps.map((c) => c.weightRole));
     for (const r of roleOrder) {
