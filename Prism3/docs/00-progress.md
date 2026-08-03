@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-08-03) — #423 + #422: derived-mode columns are readings, and the frozen specimen goes
+
+**STATUS: web only.** One file, no emitted artifact moves. Two owner-filed findings in the same
+region — the typography per-mode tables — and they overlap inside `renderWeightTable`, which is why
+they ship together rather than as two conflicting PRs.
+
+### #423 — a raw engine error was reaching the user
+
+Clicking a stepper in an **HC Light / HC Dark** column printed the engine's internal string verbatim:
+`modeLevers: mode 'hc-dark' is generate-only and not customizable`.
+
+**The structural cause is worth stating, because it will recur.** The engine refuses per-mode levers on
+derived modes (`CUSTOMIZABLE_MODES = ['light', 'dark', ...customNames]`). The one-mode-at-a-time pages
+already gate on it — `DERIVED_MODES.has(currentMode)` swaps in `renderGeneratedNote`. **A table that
+shows every mode AS COLUMNS has no such gate**, so each column has to check for itself. Converting any
+control to columns re-opens this hole, which is exactly what #416 did on its way in (caught in review,
+fixed before merge).
+
+Derived columns are now READINGS, not disabled controls: they show the resolved value — the weight,
+the px, the rung — with a title saying the mode is auto-derived. A derived mode holds no levers, so it
+always resolves to the baseline, and that is a real fact worth the cell. Empty or greyed cells would
+have thrown away information to fix a crash.
+
+Covered: `renderWeightTable`, `renderSizeTable`, both `renderRepointTable` call sites (line height +
+letter spacing), and the Typefaces table #416 added. Headers carry the same `auto` marker the mode
+chips already use, so a derived column is identifiable before you click it.
+
+**The verification is the part to keep.** A one-cell probe is what let this ship in #416 in the first
+place — I drove the Dark column and assumed the rest followed. The check now SWEEPS: for every
+`.mtbl-tbl` on the page, find the columns whose header carries `auto` and assert they contain zero
+`select`/`input`/`button`. It asks the structural question of every table rather than probing one
+cell, and it reports **6 tables, 12 derived columns, 0 interactive controls, 68 readings**. A new
+per-mode table is covered by it automatically.
+
+### #422 — the specimen was frozen at the baseline
+
+`renderWeightTable` built its specimen from `w.value`, the STATIC baseline from `ty.weightRoles`,
+outside the per-mode loop. It never moved for any edit in any mode. It *did* vary row to row (each
+role has a different baseline), which is what made it look like it worked.
+
+**Owner decision: drop the column rather than re-wire it.** Re-wiring only raises "which mode's value
+should it show", and the honest answer is that this table's job is *which NUMBER each role resolves to
+per mode* — rendering that number is a question `Weight roles by face` below already owns and answers
+better, per FACE. "600 in a face that stops at 500" is the fact that matters, and that table was
+deliberately made mode-blind (owner, 2026-08-01), so the two do not contradict each other.
+
+**It also fixes the overflow.** The table measured 888px and scrolled at four modes; without the
+specimen it measures **798px and does not scroll** — predicted at `112 + 4×148 = 704` plus the fill
+column, confirmed by measurement.
+
+**Verification.** `regen --check` (88) · 1275/0 · NB regression PASS · web + plugin
+typecheck/test/build · sandbox-clean · US-English clean. Chromium, four-mode brand: the sweep above,
+plus the Dark weight stepper still writing `modeLevers.dark.weights.subtle` and no error bar anywhere.
+
+---
+
 ## (2026-08-03) — #416: one rule for editing a mode-varying value, and it was already the rule
 
 **STATUS: web only.** One file, no emitted artifact moves. **Owner decision: columns on Typography,
