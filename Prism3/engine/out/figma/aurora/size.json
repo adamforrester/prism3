@@ -8,11 +8,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.xs control height — 32px (density: compact)",
-      "value": 32,
+      "description": "size.xs control height — 24px (density: compact)",
+      "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/32"
+        "name": "dimension/24"
       }
     },
     {
@@ -47,11 +47,11 @@
       "scopes": [
         "GAP"
       ],
-      "description": "size.xs vertical inset — 4px (density: compact)",
-      "value": 4,
+      "description": "size.xs vertical inset — 2px (density: compact)",
+      "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/050"
+        "name": "space/025"
       }
     },
     {
