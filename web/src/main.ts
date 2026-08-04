@@ -260,6 +260,24 @@ const tokenPill = (path: string): HTMLElement => {
   p.title = path;
   return p;
 };
+/** A token pill that WRAPS on path boundaries, for card grids whose column width is fixed by the
+ *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.emphasized`).
+ *
+ *  Deliberately NOT folded into `tokenPill`: `<wbr>` is not inert under `white-space: nowrap` in
+ *  Chromium. Putting it in the shared helper took Layout's breakpoint pills from 0 wrapped to 5 and
+ *  turned Surfaces' 3 elided pills into 3 wrapped ones — measured against `main` with the same sweep,
+ *  which is the only reason it was caught. A shared component is exactly where an "obviously harmless"
+ *  addition does damage out of sight of the page you are working on.
+ *
+ *  `<wbr>` rather than a zero-width space: it contributes nothing to `textContent`, so a path copied
+ *  out of the pill is still the path. Pair with the wrap CSS on the container. */
+const tokenPillWrapping = (path: string): HTMLElement => {
+  const p = tokenPill(path);
+  p.textContent = '';
+  const segs = path.split('.');
+  segs.forEach((seg, i) => { p.append(i < segs.length - 1 ? `${seg}.` : seg); if (i < segs.length - 1) p.append(el('wbr')); });
+  return p;
+};
 /** A dashed "+ add" button (doc 24 C4). `.addbtn` owns the styling; pass context classes (width/margin)
  *  via `cls`. */
 const addButton = (label: string, onClick: () => void, cls = ''): HTMLButtonElement => {
@@ -2414,17 +2432,118 @@ const renderBreakpointsControls = (): HTMLElement => {
 };
 
 const renderEasingEditor = (): HTMLElement => {
-  const wrap = palSection('Easing', 'The expressive cubic-bezier curve for the emphasized transition — see the Motion specimen’s emphasized bar.');
+  // "the Motion specimen's emphasized BAR" was a stale reference — the specimen was rebuilt as curve
+  // cards and has had no bars since; the copy outlived the rendering it pointed at.
+  // No backticks in visible copy — el() escapes its text, so markdown ships literally (doc 26).
+  const wrap = palSection('Easing', 'Six curves. Only “emphasized” is authored — the rest are generated and fixed. Its four control points are below, and the Motion specimen traces it on the emphasized card.');
   const cur = (brandState.motionPersonality?.easingEmphasized ?? theme.motion.easing.emphasized) as number[];
   const row = el('div', 'adv-bez');
   const inputs: HTMLInputElement[] = [];
   const commit = (): void => { const vals = inputs.map((x) => Number(x.value)); if (vals.length === 4 && vals.every((v) => Number.isFinite(v))) { setPath(brandState, 'motionPersonality.easingEmphasized', vals); apply(); } };
+  row.append(tokenPill('motion.easing.emphasized'));
   ['x1', 'y1', 'x2', 'y2'].forEach((lab, i) => {
     const inp = numberField({ className: 'adv-num', step: '0.01', value: String(cur[i] ?? [0.4, 0.14, 0.3, 1][i]) });
     inp.onchange = commit; inputs.push(inp);
     row.append(el('span', 'adv-bez-lab mono', lab), inp);
   });
   wrap.append(row);
+  // Every curve, drawn. `linear` and `calm` appeared NOWHERE in the app before this — the section was
+  // titled "Easing" and showed one of six. `calm` in particular is an accessibility role (soft onset
+  // for long/involuntary motion), which is not a thing to leave undiscoverable.
+  wrap.append(subHead('The curve set'));
+  const strip = el('div', 'mo-ez-strip');
+  for (const [name, bez] of Object.entries(theme.motion.easing)) {
+    const card = el('div', 'mo-ez-card');
+    const stage = el('div', 'mo-ez-stage'); stage.append(motionStageSvg(bez as number[]));
+    card.append(stage, el('div', 'mo-ez-name', name), tokenPillWrapping(`motion.easing.${name}`),
+      el('div', 'mo-ez-bez mono', `${(bez as number[]).join(', ')}`));
+    strip.append(card);
+  }
+  wrap.append(strip);
+  return wrap;
+};
+
+/** The duration ramp, read-only — what Tempo actually scales.
+ *
+ *  Tempo's whole job is to move this ramp and the page never showed it: 3 of the 6 semantic steps
+ *  appeared only as pills inside the transitions specimen, the 8 `duration-ms` primitives they alias
+ *  appeared nowhere, and the reduced ramp appeared nowhere at all — while two separate lines of copy
+ *  claimed "reduce-motion is derived". A promise made twice and evidenced zero times.
+ *
+ *  Reads the CURRENT MODE's re-derived ramp (`motionByMode[mode]`) the same way the specimen does. A
+ *  mode can run its own tempo, so reading `theme.motion` directly would print Light's numbers under a
+ *  Dark mode bar — the #158 lesson, and the reason this is not simply `theme.motion.duration`. */
+const renderDurationRamp = (): HTMLElement => {
+  const mo = theme.motion;
+  const byMode = mo.motionByMode?.[currentMode];
+  const dur = byMode?.duration ?? mo.duration;
+  const reduced = byMode?.durationReduced ?? mo.durationReduced;
+  const stagger = byMode?.stagger ?? mo.stagger;
+  const tempoLabel = byMode?.tempo ?? mo.tempo;
+  const wrap = palSection('Duration ramp',
+    `The six semantic durations at tempo '${tempoLabel}', each aliasing a literal ms primitive, beside the reduce-motion ramp the engine derives from it. Read-only — Tempo above scales the whole ladder.`);
+  const table = el('table', 'ctable mo-ramp');
+  const head = el('tr');
+  // Four columns, each header true of its cell. The first cut had two columns both headed "Aliases",
+  // and the second of them held `motion.duration-reduced.<name>` — which is the reduced token's OWN
+  // path, not something it aliases. A header that is nearly right is worse than a missing one.
+  for (const h of ['Step', 'Duration', 'Aliases', 'Reduce-motion']) head.append(el('th', undefined, h));
+  table.append(head);
+  for (const name of Object.keys(dur)) {
+    const ms = dur[name], rms = reduced[name];
+    const tr = el('tr');
+    const nameCell = el('td'); nameCell.append(el('span', 'mo-ramp-name', name), tokenPill(`motion.duration.${name}`));
+    const aliasCell = el('td'); aliasCell.append(tokenPill(`motion.duration-ms.${ms}`));
+    const redCell = el('td'); redCell.append(el('span', 'mo-ramp-ms mono', `${rms}ms`));
+    // 0ms is the eliminated case, not a fast one — say so rather than leaving a bare 0.
+    if (rms === 0) redCell.append(el('span', 'mo-ramp-note', 'eliminated'));
+    redCell.append(tokenPill(`motion.duration-reduced.${name}`));
+    tr.append(nameCell, el('td', 'mono', `${ms}ms`), aliasCell, redCell);
+    table.append(tr);
+  }
+  wrap.append(table);
+  const foot = el('div', 'mo-ramp-foot');
+  foot.append(el('span', 'mo-ramp-name', 'stagger'), tokenPill('motion.stagger'), el('span', 'mono', `${stagger}ms`),
+    el('span', 'mo-ramp-note', 'between staggered siblings'));
+  wrap.append(foot);
+  // The primitive tier is a UNION across the base tempo and every mode's tempo (tree.ts builds it that
+  // way so an alias always lands on a real leaf), so this lists the union — not the current mode's six.
+  const msValues = new Set<number>();
+  const collect = (m: { duration?: Record<string, number>; durationReduced?: Record<string, number>; stagger?: number } | undefined): void => {
+    if (!m) return;
+    for (const v of Object.values(m.duration ?? {})) msValues.add(v);
+    for (const v of Object.values(m.durationReduced ?? {})) msValues.add(v);
+    if (m.stagger !== undefined) msValues.add(m.stagger);
+  };
+  collect(mo);
+  for (const mm of Object.values(mo.motionByMode ?? {})) collect(mm);
+  wrap.append(subHead(`Millisecond primitives — ${msValues.size} values`));
+  wrap.append(el('p', 'sl-note', 'Literal, not semantic: one invariant leaf per reachable value across every mode’s tempo. A per-mode tempo re-points the alias above; it never re-values one of these.'));
+  const prims = el('div', 'mo-ms-strip');
+  for (const v of [...msValues].sort((a, b) => a - b)) {
+    const chip = el('div', 'mo-ms-chip');
+    chip.append(el('span', 'mo-ms-val mono', `${v}ms`), tokenPillWrapping(`motion.duration-ms.${v}`));
+    prims.append(chip);
+  }
+  wrap.append(prims);
+  return wrap;
+};
+
+/** Springs — three generated presets, shown because they are real emitted tokens with no other home.
+ *  Not editable (the engine fixes them), and deliberately not animated: a spring is damping+stiffness,
+ *  and faking one with a cubic-bezier trace would be showing a different curve than the token names. */
+const renderSpringsSection = (): HTMLElement => {
+  const wrap = palSection('Springs', 'Three generated spring presets for platforms that animate with physics rather than a duration + curve. Read-only — stated as damping and stiffness, the two numbers a consumer needs.');
+  const grid = el('div', 'mo-spring-grid');
+  for (const [name, s] of Object.entries(theme.motion.spring)) {
+    const card = el('div', 'mo-spring-card');
+    card.append(el('div', 'mo-ez-name', name), tokenPillWrapping(`motion.spring.${name}`));
+    const nums = el('div', 'mo-spring-nums mono');
+    nums.append(el('span', undefined, `damping ${(s as { damping: number }).damping}`), el('span', undefined, `stiffness ${(s as { stiffness: number }).stiffness}`));
+    card.append(nums);
+    grid.append(card);
+  }
+  wrap.append(grid);
   return wrap;
 };
 
@@ -2894,9 +3013,14 @@ const renderLayoutPage = (host: HTMLElement): void => controlSplitPage(host, 'la
 // Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
 const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion', (h) => {
   const perMode = currentMode !== 'light';
-  const tempo = leverSection('Tempo', 'The overall motion speed — scales the whole duration ramp (snappy → relaxed). Per-mode outside Light; reduce-motion is derived.', leversFor('motion').map((l) => l.key), perMode);
+  // The section head no longer restates the knob's own description verbatim — both said "scales the
+  // duration ramp" and "reduce-motion is derived", three lines apart. The head says what the section
+  // governs; the knob keeps the multipliers.
+  const tempo = leverSection('Tempo', 'The overall motion speed for this brand. Per-mode outside Light.', leversFor('motion').map((l) => l.key), perMode);
   if (tempo) h.append(tempo);
+  h.append(renderDurationRamp());
   h.append(renderEasingEditor());
+  h.append(renderSpringsSection());
 }, () => [renderMotionSpecimen()]);
 
 /** The Preview destination (docs/23 §7) — the resolved system for the mode picked in the global header,
@@ -4769,7 +4893,9 @@ const renderMotionSpecimen = (): HTMLElement => {
     const meta = el('div', 'mo-colmeta');
     meta.append(el('div', 'mo-colname', t.name));
     const metaRow = el('div', 'spec-metarow');
-    metaRow.append(el('span', 'mo-meta mono', `${ms}ms · ${t.easing}`), tokenPill(`motion.duration.${t.duration}`), tokenPill(`motion.easing.${t.easing}`));
+    // The card IS `motion.transition.<name>` and showed only its two PARTS — the composite that binds
+    // them was the one token on the card without a pill. Named first, then what it resolves to.
+    metaRow.append(tokenPillWrapping(`motion.transition.${t.name}`), el('span', 'mo-meta mono', `${ms}ms · ${t.easing}`), tokenPill(`motion.duration.${t.duration}`), tokenPill(`motion.easing.${t.easing}`));
     meta.append(metaRow);
     if (motionSlowmo > 1) meta.append(el('div', 'mo-playnote mono', `playing at ${playMs}ms (1/${motionSlowmo}×)`));
     meta.append(el('div', 'mo-coldesc', t.desc));
@@ -5853,6 +5979,34 @@ input.toggle:disabled{opacity:.5;cursor:default}
    palSection follows, since .psec-d carries no bottom margin and the next element owns the gap.
    The old margin:-4px pulled the row UP by more than .psec-d's entire 4px top margin, so the
    select sat tighter to the description than a plain 0-margin element would have. */
+/* Duration ramp / easing set / springs — read-only tiers. Reuse .ctable (the dense read-only table
+   component) rather than minting a fourth table style; the Layout pass just retired a third one. */
+.mo-ramp{margin-top:10px}
+.mo-ramp td:nth-child(2),.mo-ramp td:nth-child(4){white-space:nowrap}
+.mo-ramp-name{font-size:12.5px;font-weight:640;color:var(--ink);margin-right:8px}
+.mo-ramp-ms{margin-right:8px}
+.mo-ramp-note{font-size:11px;color:var(--faint)}
+.mo-ramp-foot{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:12px}
+.mo-ms-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.mo-ms-chip{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel)}
+.mo-ms-val{font-size:13px;font-weight:640;color:var(--ink)}
+.mo-ez-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:12px;margin-top:8px}
+.mo-ez-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+/* position:relative is LOAD-BEARING. .mo-stage-svg is absolutely positioned (the specimen's .mo-stage
+   is relative and contains it); a static parent lets it escape to the viewport, and six curves then
+   render at 1500x1500 as giant diagonal strokes across the whole page. overflow:hidden does not save
+   you — an abspos descendant whose containing block is outside the element is not clipped by it.
+   Every DOM assertion passed while this was happening; only a screenshot showed it. */
+.mo-ez-stage{position:relative;width:100%;height:82px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel);overflow:hidden}
+/* Card pills WRAP rather than elide. Six curves in one row makes a ~123px card, and
+   motion.easing.emphasized needs ~225px — no column width fixes that, so the label takes a second
+   line. tokenPill's <wbr> keeps the break on a dot. (Same call as the Preview gallery's card pills.) */
+.mo-ez-card .tpill,.mo-spring-card .tpill,.mo-ms-chip .tpill,.mo-colmeta .tpill{white-space:normal;overflow:visible;direction:ltr;word-break:break-word;max-width:100%}
+.mo-ez-name{font-size:13px;font-weight:640;color:var(--ink)}
+.mo-ez-bez{font-size:10.5px;color:var(--faint)}
+.mo-spring-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:8px}
+.mo-spring-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel)}
+.mo-spring-nums{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--muted)}
 .mo-toolbar{display:flex;justify-content:flex-end;margin:0 0 4px;padding-top:20px}
 .mo-slowmo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--faint)}
 .mo-slowmo-sel{font:inherit;font-size:12px;color:var(--ink2);background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-xs);padding:4px 8px;cursor:pointer}

@@ -140,6 +140,15 @@ ordered, and step 3 is the one that decides whether the findings are real.
 - **Never normalise a specimen by the value its own control sets.** `maxW = max(containerMax, …)`
   made `container.max` 100% at every value, so the slider beside it moved nothing. Scale against an
   independent reference (there, the widest breakpoint) or the control reads as inert.
+- **An absolutely-positioned specimen needs a positioned parent, or it escapes to the viewport.**
+  `.mo-stage-svg` is abspos; giving it a `static` wrapper rendered six easing curves at 1500×1500
+  across the whole page. `overflow:hidden` on that wrapper does NOT clip it — an abspos descendant
+  whose containing block is elsewhere is not clipped by it. Copy the parent's `position:relative`,
+  not just its size.
+- **`<wbr>` is not inert under `white-space: nowrap` in Chromium** — so it cannot be added to a
+  shared component "harmlessly". In `tokenPill` it took Layout from 0 wrapped pills to 5 and turned
+  Surfaces' elided pills into wrapped ones. Keep it in a separate wrapping variant for the card
+  grids that want it, and diff any shared-component change against `main` across every page.
 - **The intrinsic-width trap.** A `nowrap` element contributes its full single-line width as
   min-content, and a column `width` is only a hint it will blow past (measured three times: #360, #369,
   #388, and again at 829px on a token pill). Cap with an explicit px `max-width`.
@@ -251,6 +260,11 @@ reason too.
 The method is not scored on volume — resist manufacturing work to look thorough, and say plainly when
 a page is in good shape.
 
+**Prose can outlive the thing it describes, and no gate catches it.** Motion's Easing section pointed
+at "the specimen's emphasized *bar*" long after the specimen was rebuilt as curve cards. Cross-
+references to other sections are the most rot-prone copy on a page — re-read them against what is
+actually rendered, because nothing else will.
+
 **Report findings you got wrong, in the log.** Two of mine were self-inflicted (the casing false
 positive, and a pill whose trailing `*` reordered under `direction: rtl`). Both are recorded in
 `00-progress.md` rather than quietly dropped — the next reviewer inherits the trap, not just the fix.
@@ -268,7 +282,7 @@ positive, and a pill whose trailing `*` reordered under `direction: rtl`). Both 
 | Elevation | ✅ | ✅ | ✅ `shadow.*` | #72 — Shadow editor + Elevation-ramp specimen as `.psec`; `shadow.xs…2xl` pills |
 | Size & radius | ✅ | ✅ | ✅ `radius.*` / `size.*` | #72 — regrouped by **concept** (Corner radius · Density & size · Spacing grid), not advanced/not; Radius-ramp + Control-size specimens carry `radius.*` / `size.*.height` pills |
 | Layout | ✅ | ✅ | ✅ `breakpoint.*` / `container.*` | #72 — Breakpoints + Grid & containers as `.psec`; the Layout-grid specimen table adds a `breakpoint.*` token column and the container bars carry `container.max` / `container.narrow` pills. Reviewed 2026-08-04: the container specimen was **overstating every ratio by ~1.5×** (bar percentages resolved against the whole row, including the 150px label — only the 100% bar overflowed and got shrunk back) **and** normalising `container.max` by its own value, so that slider could never move its own bar; both fixed and pinned by measured wanted-vs-got. `container.fluid` gained a row (dashed = no cap). `.ly-table` headers aligned to `.ctable` — they were the app's only `text-transform: lowercase`. The table was 500px in a 492px pane on `main` with all six headers wrapped and scrolled the document at 1100px; now fits, and scrolls in its own pane below that |
-| Motion | ✅ | ✅ | ✅ `motion.*` | #72 — Tempo + Easing as `.psec` (easing promoted out of "advanced"); the Motion specimen rows carry `motion.duration.*` + `motion.easing.*` pills |
+| Motion | ✅ | ✅ | ✅ `motion.*` | #72 — Tempo + Easing as `.psec` (easing promoted out of "advanced"); the Motion specimen rows carry `motion.duration.*` + `motion.easing.*` pills. Reviewed 2026-08-04 — coverage was **7 of 34**, the thinnest of any page. Added a read-only **Duration ramp** (six steps + the ms primitives they alias + the reduce-motion ramp, which two lines of copy promised and nothing showed), the full **curve set** (the section was titled Easing and showed one of six; `linear` and `calm` existed nowhere), **Springs**, `motion.stagger`, and a `motion.transition.*` pill on each specimen card. Now **34/34** |
 | Preview | ✅ | ✅ | ✅ full `color.*` (#232) | token-list categories (Color / Dimension / Typography / Shadow) now `.psec` sections with tables scrolling in an `overflow-x` container; pills + master table already conformed. **Whole dashboard now on the doc-26 language.** Adds a **Style guide** sub-view (`renderPreviewStyleGuide`) — the resolved system in situ (Background / Foreground / Text color / Border / Icon / Disabled / Interactive) in `.psec` shells, driven live off the global mode picker; every full-role pill carries the resolvable `color.*` path (`sgPill` prefixes it; short leaf labels like `fill.rest` stay contextual under a namespaced block header). **Coverage audited 2026-08-04** against the resolver rather than by eye: the gallery showed **49 of 55** surfaces-vocabulary roles and now shows all 55 — Background gains a **Scrim** row, Foreground gains the **Inverse** tier (Background split Base/Inverse; Foreground had only Base), `text.on-inverse` gets a pill on the card it was already inking, and **Links** gains `focused` (the callout had enumerated three when `LINK_STATES` has four). Gallery pills wrap at `<wbr>` path boundaries rather than eliding — a 5-column status grid can never fit `color.foreground.warning`. |
 
 Update this table as each page lands.
