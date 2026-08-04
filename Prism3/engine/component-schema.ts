@@ -133,6 +133,43 @@ export type AnatomyDef = {
   codeOnly: string[];
 };
 
+/**
+ * How a component projects into Figma COMPONENT PROPERTIES (#487 §5).
+ *
+ * DECLARED, never inferred. `PropDef.type` is free-form prose by design (docs/28 §15, "keys locked,
+ * values prose") — `"enum: 'primary' | 'neutral' | 'destructive'"` is a sentence, not a type. Parsing
+ * it to decide a Figma property type would be exactly the fragility the token tier refuses, so the
+ * projection is stated separately and cross-checked against `variants` / `states` / `anatomy.parts`.
+ *
+ * The separation of concerns is the point, because Figma's four property kinds are not
+ * interchangeable and only one of them can carry a layout consequence:
+ *
+ *  - VARIANT        — a real axis; each combination is its own component. The only kind that can
+ *                     change padding, which is why slot PRESENCE has to be a variant (#487 §4).
+ *  - INSTANCE_SWAP  — what goes in a slot, not whether the slot is there.
+ *  - TEXT           — a string on one text node.
+ *  - BOOLEAN        — drives one node's `visible`, and nothing else. It cannot touch an ancestor's
+ *                     `paddingLeft`, which is the whole reason #326's split inline padding cannot
+ *                     ride on a boolean.
+ */
+export type FigmaProperties = {
+  /** Which `variants` axes become VARIANT properties, in the order Figma should show them. An axis
+   *  present in `variants` but absent here is deliberately NOT a Figma variant, and the reason must
+   *  appear in `anatomy.codeOnly` — validated, so the omission is an admission rather than a gap. */
+  variantAxes: string[];
+  /** `states` projects as one MORE variant axis, under this name, over these values. Separate from
+   *  `variantAxes` because `states` is its own top-level field, not a member of `variants`. */
+  stateAxis?: { name: string; values: string[] };
+  /** prop name → part name. BOOLEAN property; drives that one part's `visible`. An empty object is
+   *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
+   *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
+  booleans?: Record<string, string>;
+  /** prop name → `kind: 'text'` part. TEXT property. */
+  texts?: Record<string, string>;
+  /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT. */
+  swaps?: Record<string, string>;
+};
+
 export type ComponentDef = {
   // ---- identity (§15) + specs-schema Component.id/name ----
   id: string;
@@ -165,6 +202,10 @@ export type ComponentDef = {
   /** The STRUCTURAL layer (#327). Optional while the catalogue is mid-migration — a def without
    *  it is semantically complete but not materializable. */
   anatomy?: AnatomyDef;
+
+  /** The Figma COMPONENT-PROPERTY projection (#487 §5). Optional, like `anatomy`, and meaningless
+   *  without it — the part-targeting maps resolve against `anatomy.parts`. */
+  figmaProperties?: FigmaProperties;
 
   // ---- accessibility (§15) ----
   accessibility: {
@@ -274,7 +315,92 @@ export const validateComponentDef = (
   // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
   if (def.anatomy) errors.push(...anatomyErrors(def));
 
+  // Figma component properties (#487 §5). Optional; when present, every cross-reference must land.
+  if (def.figmaProperties) errors.push(...figmaPropertyErrors(def));
+
   return { errors, warnings };
+};
+
+/**
+ * Cross-reference checks for `figmaProperties` (#487 §5). Kept out of `validateComponentDef`'s body
+ * for the same reason `anatomyErrors` is: this block's invariants are all RELATIONAL — every name it
+ * uses must resolve somewhere else in the def — where the rest of the validator is field-by-field.
+ *
+ * This is the whole point of declaring the projection instead of inferring it. A `swaps` entry
+ * pointing at a text node, or a variant axis that no longer exists, produces a Figma component that
+ * fails at creation time in someone's file. Caught here, it is a failing unit test with no Figma
+ * account involved.
+ */
+export const figmaPropertyErrors = (def: ComponentDef): string[] => {
+  const fp = def.figmaProperties;
+  if (!fp) return [];
+  const e: string[] = [];
+  const parts = def.anatomy?.parts ?? {};
+  if (!def.anatomy) e.push('figmaProperties requires `anatomy` — its property maps target anatomy parts');
+
+  // ---- variant axes ----
+  if (!Array.isArray(fp.variantAxes) || fp.variantAxes.length === 0) {
+    e.push('figmaProperties.variantAxes must be a non-empty array');
+  } else {
+    const seen = new Set<string>();
+    for (const axis of fp.variantAxes) {
+      if (!(axis in (def.variants ?? {}))) e.push(`figmaProperties.variantAxes: '${axis}' is not an axis in variants [${Object.keys(def.variants ?? {}).join(', ')}]`);
+      if (seen.has(axis)) e.push(`figmaProperties.variantAxes: '${axis}' listed twice`);
+      seen.add(axis);
+    }
+    // An axis the def declares but Figma will not carry is a real loss of fidelity. #487 §5 says the
+    // reason belongs in codeOnly, and `codeOnly` already exists as the place a def ADMITS what the
+    // Figma leg drops — so this makes the admission mandatory rather than merely encouraged. Without
+    // it, an axis can quietly vanish from the projection and the def still reads complete.
+    const codeOnly = (def.anatomy?.codeOnly ?? []).join(' ');
+    for (const axis of Object.keys(def.variants ?? {})) {
+      if (!seen.has(axis) && !codeOnly.includes(axis)) {
+        e.push(`variants.${axis} is not projected as a Figma variant and is not explained in anatomy.codeOnly — record why, or add it to variantAxes`);
+      }
+    }
+  }
+
+  // ---- the state axis ----
+  if (fp.stateAxis) {
+    const { name, values } = fp.stateAxis;
+    if (!name) e.push('figmaProperties.stateAxis.name is required');
+    if (name && name in (def.variants ?? {})) e.push(`figmaProperties.stateAxis.name '${name}' collides with a variants axis of the same name`);
+    if (!Array.isArray(values) || values.length === 0) e.push('figmaProperties.stateAxis.values must be a non-empty array');
+    // Values come from `states`, the single source (#487 §0.4) — NOT from a legacy sheet's names.
+    for (const v of values ?? []) {
+      if (!(def.states ?? []).includes(v)) e.push(`figmaProperties.stateAxis: '${v}' is not one of states [${(def.states ?? []).join(', ')}]`);
+    }
+    const missing = (def.states ?? []).filter((s) => !(values ?? []).includes(s));
+    const codeOnly = (def.anatomy?.codeOnly ?? []).join(' ');
+    for (const s of missing) {
+      if (!codeOnly.includes(s)) e.push(`state '${s}' is not in the Figma state axis and is not explained in anatomy.codeOnly — a silently dropped state under-represents the def`);
+    }
+  }
+
+  // ---- the part-targeting maps ----
+  const propNames = new Set((def.props ?? []).map((p) => p.name));
+  const claimed = new Map<string, string>();
+  const checkMap = (label: string, map: Record<string, string> | undefined, kind?: PartKind, requireOptional = false): void => {
+    for (const [prop, part] of Object.entries(map ?? {})) {
+      if (!propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
+      const p = parts[part];
+      if (!p) { e.push(`figmaProperties.${label}.${prop} → part '${part}' does not exist in anatomy.parts`); continue; }
+      if (kind && p.kind !== kind) e.push(`figmaProperties.${label}.${prop} → part '${part}' is kind '${p.kind}', expected '${kind}'`);
+      // A BOOLEAN drives `visible`, so its target must be a part the anatomy already says may be
+      // absent. Toggling a required part off produces a component whose own anatomy forbids it.
+      if (requireOptional && !p.optional) e.push(`figmaProperties.${label}.${prop} → part '${part}' is not optional; a BOOLEAN toggles visibility, so the anatomy must allow the part to be absent`);
+      const owner = claimed.get(part);
+      // One node, one property kind. A part driven as both a TEXT and an INSTANCE_SWAP is two
+      // different Figma property types pointed at the same node — unresolvable at creation.
+      if (owner) e.push(`part '${part}' is targeted by both ${owner} and ${label}.${prop} — a node carries at most one property kind`);
+      claimed.set(part, `${label}.${prop}`);
+    }
+  };
+  checkMap('texts', fp.texts, 'text');
+  checkMap('swaps', fp.swaps, 'slot');
+  checkMap('booleans', fp.booleans, undefined, true);
+
+  return e;
 };
 
 /** Expand a binding key's `{size}` placeholder across a def's declared sizes. A key with no

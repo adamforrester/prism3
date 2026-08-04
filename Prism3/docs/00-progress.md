@@ -7,6 +7,68 @@
 
 ---
 
+## (2026-08-04) — The Figma component-property projection (#487 step 1)
+
+**STATUS: engine (`component-schema.ts` + `components/button.ts` + `test.ts`).** No emitted artifact
+changed — this tier has none yet.
+
+#487 step 1, and it comes first for the reason the issue gives: **it is the whole design decision and
+it is gateable with no Figma file.** `component-schema.ts` modelled no Figma component properties at
+all — zero occurrences of `BOOLEAN`, `INSTANCE_SWAP` or `componentProperty` across 366 lines. `props`
+and `variants` carried the information; nothing declared its Figma shape.
+
+`figmaProperties` is **declared, never inferred.** `PropDef.type` is prose by design (docs/28 §15) —
+`"enum: 'primary' | 'neutral' | 'destructive'"` is a sentence. Parsing it to pick a Figma property
+type is precisely the fragility the token tier refuses. So the projection is stated, and every name
+in it is cross-checked against `variants` / `states` / `anatomy.parts`.
+
+### Two corrections to the spec, both found by checking it against the code
+
+**The state list contradicted itself, and it moves the headline number.** §0.1 lists six state values
+(`active`, `focused`, `loading`) — but those are the *legacy sheet's* names, which §0.4 explicitly
+forbids codifying ("names come from `ComponentDef` — the single source"). `button.ts` declares
+**seven**: `rest, hover, focus-visible, pressed, pending, inactive, disabled`. §0.4 wins on its own
+terms, so the full-set count is `3×3×3×7×4` = **756, not 648**, and the projection is 189 today.
+This is now mechanical rather than argued: a mutation putting §0.1's six values back **fails the
+gate**, naming `active` / `focused` / `loading` as not in `states` and `pressed` / `inactive` as
+silently dropped.
+
+**Two def-tier facts §4 assumes but does not state.** `width: [auto, full]` is *currently* in
+`variants`, so "should not be a variant" means moving it to `codeOnly`, not leaving it alone. And
+there is **no slot axis** — there is `modifiers: [leading-visual, trailing-visual, pending]`, a
+different shape whose `pending` duplicates a state value. Per the owner's call, step 1 declares
+intent only: `variantAxes` names the three axes that exist and should project, and the slot-presence
+axis §4 needs is left absent rather than stubbed, because naming an axis the def does not have would
+correctly fail validation.
+
+### The rule that does real work on its first use
+
+An axis a def declares but Figma will not carry is a loss of fidelity, and `codeOnly` already exists
+as the place a def ADMITS what the Figma leg drops. So an omitted axis with no `codeOnly` mention is
+an **error**, not a nudge — which forced Button's two omissions (`width`, `modifiers`) to be written
+down with reasons instead of quietly disappearing. Same for a dropped state.
+
+`booleans: {}` ships **empty and present**, which is a different statement from omitting the field:
+"considered, and none survive". A Figma BOOLEAN drives one node's `visible` and nothing else, and
+none of `fullWidth` / `isPending` / `isInactive` / `isDisabled` is that — the first is layout, the
+rest collapse into the state axis. A test asserts the field is present and empty, so a later edit
+cannot turn a deliberate "none" back into an accidental silence.
+
+### Also worth recording: the MCP surface has no component tier
+
+Checked while answering whether MCP work remained. `mcp.ts` has **zero** mentions of `component` or
+`anatomy` — the server exposes the token tier only. #483's goal is "build the complete Button from
+data via **both** MCP and the plugin API", but an agent talking to our server today cannot obtain an
+`AnatomyPlan` at all; it would have to read files off disk. `figmaAnatomyPlan`, `planToPluginJs` and
+`planBindingErrors` are exported and pure — just unreachable. That is #487 step 4's real
+precondition, and it is not listed as one.
+
+**Verification.** regen --check 88 · **1340/0** unit (+23) · MCP 49/0 · NB PASS · typecheck/build ·
+sandbox-clean · US-English clean. Mutation-tested: gutting the validator fails 14 assertions;
+omitting `booleans` fails the explicit-empty check; the legacy six states fail four.
+
+---
+
 ## (2026-08-04) — The segmented control stood 6px taller than the selects beside it
 
 **STATUS: web (`main.ts` CSS only).** No engine change, `out/*` byte-identical.

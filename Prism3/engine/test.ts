@@ -38,7 +38,7 @@ import { aliasRows, floatCollections, fontCollections, passJs, passOrder } from 
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
-import { validateComponentDef, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planToPluginJs, figmaVarName } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -5294,6 +5294,65 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const unreachable = wanted.filter((v) => !dimsCreate.includes(`"${v}"`));
     ok(unreachable.length === 0, `anatomy: every variable the plan binds is in the dims-create payload${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${wanted.length} vars)`}`);
     ok(passOrder().indexOf('dims-create') < passOrder().indexOf('dims-aliases'), 'materialise: dims-create is pasted before dims-aliases (a target must exist before it can be bound)');
+  }
+
+  // ---- the Figma COMPONENT-PROPERTY projection (#487 §5) ------------------------------------
+  // Step 1 of #487, and the reason it comes first: this is the whole design decision, and it is
+  // gateable with no Figma file. Every rule below is a cross-reference — a name in the projection
+  // that must resolve elsewhere in the def — because the alternative to declaring the projection is
+  // PARSING `props[].type`, which is prose ("enum: 'primary' | 'neutral' | 'destructive'").
+  {
+    const fp = button.figmaProperties!;
+    ok(figmaPropertyErrors(button).length === 0, `figmaProperties: Button's projection is internally consistent${figmaPropertyErrors(button).length ? ' — ' + figmaPropertyErrors(button).join('; ') : ''}`);
+
+    // The state axis comes from `states`, the def's own list — NOT the legacy sheet's names. #487
+    // §0.1 lists six (`active`, `focused`, `loading`); §0.4 forbids codifying exactly those, and the
+    // def declares seven. This asserts the def won, which also moves the eventual full-set count.
+    ok(JSON.stringify(fp.stateAxis?.values) === JSON.stringify(button.states),
+      `figmaProperties: the state axis is the def's own ${button.states.length} states, verbatim — no legacy renaming, nothing silently dropped`);
+    ok(!fp.stateAxis?.values.some((v) => ['active', 'focused', 'loading'].includes(v)),
+      "figmaProperties: the legacy sheet's names (active / focused / loading) are NOT codified — they are that sheet's words for pressed / focus-visible / pending");
+
+    // Every projected axis is real, and every UNPROJECTED axis is admitted rather than merely absent.
+    for (const axis of fp.variantAxes) ok(axis in button.variants, `figmaProperties: projected axis '${axis}' exists in variants`);
+    const omitted = Object.keys(button.variants).filter((a) => !fp.variantAxes.includes(a));
+    ok(omitted.length > 0 && omitted.every((a) => button.anatomy!.codeOnly.join(' ').includes(a)),
+      `figmaProperties: every axis Figma will not carry is explained in codeOnly (${omitted.join(', ')}) — a dropped axis must be an admission, not a gap`);
+
+    // The count, stated so a change to any axis has to move a number a reviewer can see. 189 today;
+    // ×4 once the slot-presence axis §4 calls for exists, which is the 756 the issue should carry
+    // (its 648 assumed six states).
+    const projected = fp.variantAxes.reduce((n, a) => n * button.variants[a].length, 1) * (fp.stateAxis?.values.length ?? 1);
+    ok(projected === 189, `figmaProperties: Button projects ${projected} variants today (3 intent × 3 appearance × 3 size × 7 state); ×4 slots later = ${projected * 4}`);
+
+    // BOOLEAN is stated-empty on purpose. #487 §5: a schema listing booleans it cannot honor is
+    // worse than one admitting there are none — and a Figma BOOLEAN drives one node's `visible`,
+    // which none of fullWidth / isPending / isInactive / isDisabled actually is.
+    ok(fp.booleans !== undefined && Object.keys(fp.booleans).length === 0,
+      'figmaProperties: booleans is present and EMPTY — "considered, none survive" is a different statement from omitting the field');
+
+    // A projection that is internally wrong must FAIL, not warn. Each of these is a real authoring
+    // mistake that would otherwise surface as a component that fails at creation in someone's file.
+    const withFp = (patch: Partial<typeof fp>): ComponentDef => ({ ...button, figmaProperties: { ...fp, ...patch } });
+    const brokeFp = (label: string, re: RegExp, patch: Partial<typeof fp>) => {
+      const errs = figmaPropertyErrors(withFp(patch));
+      ok(errs.some((x) => re.test(x)), `figmaProperties gate: ${label}${errs.some((x) => re.test(x)) ? '' : ` — got [${errs.join('; ')}]`}`);
+    };
+    brokeFp('an axis that does not exist in variants fails', /is not an axis in variants/, { variantAxes: ['intent', 'nope'] });
+    brokeFp('the same axis twice fails', /listed twice/, { variantAxes: ['intent', 'intent'] });
+    brokeFp('an empty axis list fails', /non-empty/, { variantAxes: [] });
+    brokeFp('dropping an axis with no codeOnly explanation fails', /not explained in anatomy.codeOnly/, { variantAxes: ['intent'] });
+    brokeFp("a legacy state name fails (it is not in the def's states)", /is not one of states/, { stateAxis: { name: 'state', values: ['rest', 'active'] } });
+    brokeFp('silently dropping a state fails', /under-represents the def/, { stateAxis: { name: 'state', values: button.states.filter((s) => s !== 'inactive') } });
+    brokeFp('a state axis named like a variant axis fails', /collides with a variants axis/, { stateAxis: { name: 'size', values: button.states } });
+    brokeFp('an INSTANCE_SWAP pointed at a text node fails', /is kind 'text', expected 'slot'/, { swaps: { leadingVisual: 'label' } });
+    brokeFp('a TEXT property pointed at a slot fails', /is kind 'slot', expected 'text'/, { texts: { children: 'leadingVisual' } });
+    brokeFp('a property pointed at a part that does not exist fails', /does not exist in anatomy.parts/, { texts: { children: 'ghost' } });
+    brokeFp('a property keyed on an undeclared prop fails', /is not a declared prop/, { texts: { notAProp: 'label' } });
+    brokeFp('a BOOLEAN toggling a REQUIRED part fails', /anatomy must allow the part to be absent/, { booleans: { fullWidth: 'label' } });
+    brokeFp('two property kinds on one node fails', /carries at most one property kind/, { texts: { children: 'label' }, booleans: { fullWidth: 'label' } });
+    ok(figmaPropertyErrors({ ...button, anatomy: undefined }).some((x) => /requires `anatomy`/.test(x)),
+      'figmaProperties gate: a projection without anatomy fails (its maps target anatomy parts)');
   }
 }
 
