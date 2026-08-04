@@ -5719,6 +5719,21 @@ const STYLE = `
      darkening those would break them, which is the trap this audit exists to avoid. */
   --ok:#1a7f4b; --warn:#a35e00; --danger:#c9342f;
   --ok-inv:#7fe0ac; --danger-inv:#ff9d97;
+  /* #446 — the TINT grounds. Two verdict badges each invented their own tinted background with its
+     own hardcoded darker green/red, because #285 audited the status set against --paper and --panel
+     and never against a tint of the status color itself. Measured: on --paper a tint of --ok fails
+     AA at EVERY percentage (5% is already 4.24), because --ok on plain --paper is 4.53 — at the
+     floor, so any darkening of the ground goes under. Both badges in fact sit inside a white
+     --panel, where 6% clears with margin: --ok 4.63, --danger 4.79.
+     6% is therefore a CEILING, not a preference, and these tokens are only safe on --panel.
+     Darkening --ok/--danger instead was rejected: #285 chose them deliberately and the -inv pair is
+     measured against --ink, which the comment above warns darkening would break.
+     Hex first, color-mix second: if an engine lacks color-mix the first declaration stands, so the
+     shared plugin webview degrades to the same value rather than to no background. */
+  --ok-tint:#f1f7f4;      --ok-tint:color-mix(in srgb, var(--ok) 6%, #fff);
+  --ok-edge:#bfdbcd;      --ok-edge:color-mix(in srgb, var(--ok) 28%, #fff);
+  --danger-tint:#fcf3f3;  --danger-tint:color-mix(in srgb, var(--danger) 6%, #fff);
+  --danger-edge:#f0c6c5;  --danger-edge:color-mix(in srgb, var(--danger) 28%, #fff);
   --paper:#f2f3f6; --panel:#ffffff; --line:#e7e8ec; --line2:#dcdde2;
   --r:10px; --r-sm:7px; --r-xs:6px;
   /* Per-mode table geometry — shared so tables stack down the page on the same grid. The SIZE table
@@ -6277,13 +6292,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .genview-t{margin:0;font-size:16px;font-weight:640;letter-spacing:-0.01em}
 .genview-d{margin:10px 0 0;color:var(--muted);font-size:14px;line-height:1.6;max-width:64ch}
 .genview-chip{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:7px 12px;border-radius:var(--r-sm);font-size:13px;font-weight:540}
-.genview-chip.ok{background:#eaf7f0;color:#1f7a4d;border:1px solid #bfe6d0}
-.genview-chip.no{background:#fdecec;color:#a12;border:1px solid #f2c6c6}
+.genview-chip.ok{background:var(--ok-tint);color:var(--ok);border:1px solid var(--ok-edge)}
+.genview-chip.no{background:var(--danger-tint);color:var(--danger);border:1px solid var(--danger-edge)}
 .gv-mark{font-weight:700}
 .genview-hint{margin:14px 0 0;color:var(--faint);font-size:12.5px;line-height:1.55}
 .cbadge{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line2)}
-.cbadge.ok{background:rgba(26,156,82,.09);border-color:rgba(26,156,82,.35)}
-.cbadge.no{background:rgba(221,51,51,.09);border-color:rgba(221,51,51,.4)}
+.cbadge.ok{background:var(--ok-tint);border-color:var(--ok-edge)}
+.cbadge.no{background:var(--danger-tint);border-color:var(--danger-edge)}
 .cb-lab{color:var(--muted)}
 .cb-ratio{font-variant-numeric:tabular-nums;font-weight:600}
 .cbadge.ok .cb-mark{color:var(--ok)}.cbadge.no .cb-mark{color:var(--danger)}
@@ -6305,9 +6320,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* A2c — per-mode foreground/text override rows. */
 .fg-row{display:flex;align-items:center;gap:12px;margin-top:10px}
 .fg-sw{width:34px;height:34px;flex:none;border-radius:var(--r-xs);border:1px solid var(--line2)}
-.fg-badge{margin-left:auto;font-size:12.5px;font-weight:560;padding:5px 10px;border-radius:var(--r-sm)}
-.fg-badge.ok{background:#eaf7f0;color:#1f7a4d}
-.fg-badge.no{background:#fdecec;color:#a12}
 .ic-add{display:flex;align-items:center;gap:12px;margin-top:14px}
 .ic-addbtn{width:auto;margin-top:0;flex:none}
 .ic-addhint{font-size:13px;color:var(--muted)}
@@ -6430,7 +6442,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .dot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-right:5px;vertical-align:middle}
 /* Status DOTS are non-text (SC 1.4.11, 3:1) and already cleared that bar — they join the set for
    consistency, not compliance. One status green should be one green. */
-.dot.ok{background:var(--ok)}.dot.no{background:var(--danger)}
 .ratio{font-variant-numeric:tabular-nums;color:var(--muted)}
 /* The global bar (#388) carries .errbar-global as a marker only — it deliberately has NO rules of its
    own. A full-bleed variant was written first and was silently inert: it sat above .errbar at equal
@@ -6608,6 +6619,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
    #360/#369/#388, measured again here at 829px vs the shared 798px grid. An explicit px cap clamps
    the intrinsic contribution; the pill already ellipsizes and carries the full path in its title attribute. */
 .mtbl-mode .tpill{max-width:124px}
+/* NOT a contrast verdict, despite the ok/no class names — this renders "✓ Installed" /
+   "⚠ Not installed" for a font face. A face the machine lacks is a WARNING (the preview falls
+   back), not a failure, so --warn is deliberate. Do not fold it into the verdict palette. */
 .tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--warn)}
 /* line-height must exceed the font's em box (~1.2) or descenders clip */
 .tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
@@ -6665,7 +6679,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
    this cell holds a mark beside it in a face column rather than owning a full-width row.
    (No backticks in here — this whole block is a template literal.) */
 .tpw-mark{font-size:12px;margin-right:7px}
-.tpw-mark.yes{color:var(--ink)}.tpw-mark.no{color:var(--faint)}.tpw-mark.unknown{color:var(--line2)}
+.tpw-mark.yes{color:var(--ink)}/* Also not a verdict: ● / ○ / ? for whether a typeface SHIPS a weight. "no" is absence, not
+   failure, so --faint is right — coloring it --danger would read as an error the user caused. */
+.tpw-mark.no{color:var(--faint)}.tpw-mark.unknown{color:var(--line2)}
 .tpw-samp{display:inline;font-size:15px}
 /* Leading & tracking rungs in the shared table format (#363). The value control is width-BOUNDED, not
    auto: a control that sizes to its content is what breaks column parity in an auto-layout table.

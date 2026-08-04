@@ -7,6 +7,66 @@
 
 ---
 
+## (2026-08-04) — The verdict badges resolve through tokens, and three of my own claims were wrong (#446)
+
+**STATUS: web.** `out/*` untouched. Prerequisite for #439's mode badges — one verdict palette before a
+new badge family lands beside it.
+
+**I filed #446 by grepping `.ok` / `.no` class names without reading what each component renders.**
+Doing that first shrank the finding from "seven components, three color systems" to something much
+smaller and more precise. Recorded because the wrong version was plausible and had a table.
+
+- **`.tf-stat` and `.tpw-mark` are not verdicts.** `.tf-stat` renders *"✓ Installed / ⚠ Not
+  installed"* for a font face — a missing face is a **warning** (the preview falls back), so
+  `var(--warn)` was correct. `.tpw-mark` renders **● / ○ / ?** for whether a typeface ships a weight —
+  "no" is **absence**, so `var(--faint)` was correct; `--danger` would read as an error the user
+  caused. Both now carry a comment, because the class names invite exactly the fix I nearly made.
+- **`.fg-badge` and `.dot.ok`/`.dot.no` were dead** — no TS emits those class combinations. Deleted,
+  not consolidated. `.dot` is only ever a plain brand swatch.
+- **The tokens were a deliberate decision, not a third competing system.** #285 had already run this
+  audit, chose `--ok`/`--danger`, verified them against `--paper` and `--panel`, and left an explicit
+  warning that darkening them breaks the `-inv` pair (measured against `--ink`). The hardcoded values
+  were the deviation *from* a sound decision. I had it backwards, and my first instinct — adopt the
+  darker hardcoded pair as the token values — would have reversed #285 and broken exactly what its
+  comment warns about.
+
+**The actual gap, and it is a good one: #285 audited the status set against the two page surfaces and
+never against a tint of the status color itself** — which is precisely the ground both offending
+badges invented. Measured with the engine's own `contrast()`:
+
+```
+--ok on --panel (#fff)            5.02  AA
+--ok on --paper (#f2f3f6)         4.53  AA — but AT the floor
+--ok on a 5% tint over --paper    4.24  FAIL
+--ok on a 10% tint over --paper   3.97  FAIL
+```
+
+**On `--paper`, a tint of `--ok` fails at every percentage**, because 4.53 leaves no headroom for
+darkening the ground. That is *why* those badges hardcoded darker colors — the tokens genuinely could
+not do the job on the ground their authors assumed. Measuring where they actually sit (both inside a
+white `--panel`) 6% clears with margin.
+
+**Shipped:** `--ok-tint` / `--ok-edge` / `--danger-tint` / `--danger-edge`, **hex fallback declared
+first and `color-mix` second** — this CSS is shared verbatim with the Figma plugin webview (`plugin/
+build.mjs`: "the UI IS the shared `web/src/main.ts`"), so an engine without `color-mix` keeps the
+first declaration instead of losing the background entirely. Chromium resolves the mix to exactly the
+fallback hex, checked. The 6% is commented as a **ceiling, not a preference**, with the note that
+these tokens are only safe on `--panel`.
+
+Live-measured after the change: `.genview-chip` **4.64**, `.cbadge` mark **4.79** — both AA, both
+matching the offline computation within rounding.
+
+**Left alone deliberately:** `.errbar`, `.bm-in.bad`, `.rx:hover`, `.mctx-crm:hover` share
+`#fdecec`/`#a12`/`#f2c6c6`. That is an **error/destructive** family — a different concept from a
+pass/fail verdict, and internally consistent across all four. Folding it in would have been a second
+concern.
+
+**Trap worth keeping:** the US-English gate fired on `colour` inside a **CSS comment**. Code comments
+are exempt by the repo rule, but this CSS lives in a template literal and therefore *ships in the
+bundle*, which is the surface the gate scans. Comments inside the stylesheet string are gated prose.
+
+---
+
 ## (2026-08-04) — Managing the mode SET moves to the brand menu, reversing #171 (#432)
 
 **STATUS: web.** `out/*` untouched. Completes step 1 of the #432 treatment alongside the relocation.
