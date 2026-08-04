@@ -7,6 +7,39 @@
 
 ---
 
+## (2026-08-04) — The segmented control stood 6px taller than the selects beside it
+
+**STATUS: web (`main.ts` CSS only).** No engine change, `out/*` byte-identical.
+
+Owner-reported: in the token list's control bar, `Alias path` (a `.seg`) did not match the height of
+the `Show` and `Category` selects on either side. Measured: **select 40.9px, seg 46.9px.**
+
+The interesting part is where the 6px was *not*. The seg's inner buttons already matched the select
+exactly — 40.9px both — so retuning the button by eye would have been fixing the wrong thing. A
+`.seg` is a **track** around its buttons, and the track is the whole difference: both controls carry a
+1px border, but only the seg adds 2px of padding on each side, so it stands 4px taller before the
+button is measured at all, and the button's own 10px padding (vs the select's 9px) makes up the rest.
+
+So the fix subtracts the track's unmatched chrome rather than picking a number: `--ctl-py` states the
+vertical padding once and `.seg-b` reads `calc(var(--ctl-py) - 2px)`. If the control padding ever
+moves, both move together.
+
+**The trap, and I fell in it on the first attempt.** The obvious subtraction is 3px — the seg's full
+per-side chrome, 1px border + 2px padding. That double-counts the border, because the *select has one
+too*. It landed the seg at 38.9 against 40.9: 2px short, in the opposite direction, and still wrong.
+Only the *unmatched* chrome should be subtracted. Both attempts were measured, which is the only
+reason the second number is right — the arithmetic is easy to get wrong in the confident direction.
+
+`.select.sm` sets its own padding and is deliberately untouched: verified still 33.4px across the
+five compact selects on Palettes. `.seg` has exactly one user in the app (the Alias path control), so
+the change cannot reach another surface.
+
+**Habit, fourth occurrence.** Backticks inside a CSS comment in the stylesheet template literal —
+`TS1005` again. #417, #453, the palette-align attempt, and now this. Comments in `STYLE` are inside a
+template literal; they take no backticks, ever.
+
+---
+
 ## (2026-08-04) — #111's first component pasted: the structure binds, the appearance is not there
 
 **STATUS: engine (`anatomy-figma.ts`) + `test.ts`.** No `out/*` change. Verified live in Prism Test
