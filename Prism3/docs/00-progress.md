@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-08-04) — Palettes: the Neutral row's fields were misaligned by two class-name collisions
+
+**STATUS: web (`main.ts` CSS only).** No engine change, no `out/*` change.
+
+Reported as a vertical-alignment bug on the Neutral palette row: the `SOURCE` label did not sit on the
+same line as `HUE` / `CHROMA` / `ANCHOR`, and the sliders were centered against `Custom tint` while
+their labels floated higher. Measured: **label tops 16.3px apart, control mid-lines 25.6px apart.**
+
+The diagnosis is the whole story here, and it is worth writing down because two earlier passes at this
+failed *while looking correct in the stylesheet*. Every fix attempted was an alignment fix —
+`align-items: flex-end` → `flex-start`, then `stretch` with `grid-template-rows: auto 1fr`, then
+`align-self: center` on the control row. None of them moved the label tops, and the reason is that
+**it was never an alignment problem.** The slider field is built as `el('div', 'pfield slider')` and
+its input as `className: 'range psl-range'` — and `.slider` and `.range` are *also* standalone rules
+70 lines further down the same stylesheet:
+
+- `.slider{margin-top:16px}` — that 16px *is* the label misalignment, in full. A flex container cannot
+  align away a margin on its item, so `align-items` was never going to touch it.
+- `.range{margin-top:10px}` — inflated grid row 2 from 33px to 44px, making the field 66px against the
+  Source field's 55px, which is where the 25.6px control offset came from. `.psl-range` already said
+  `margin-top:0`, but at equal specificity and *earlier* in the sheet, so it lost on source order.
+
+Both are now neutralized at `.pfield.slider` / `.pfield.slider .psl-range`, which beat the single-class
+originals on specificity rather than on position. The rules read like no-ops; there is a comment at the
+site saying they are not, because deleting them silently reintroduces the bug.
+
+One thing deliberately *not* done: `align-items: baseline` on the label/readout row. It is the better
+typographic answer and it got the labels to within 1px — but under baseline alignment the 12px readout
+has the greater top-to-baseline distance, so it sets the row's baseline and pushes the 9.5px label down.
+Which of the two wins is a function of font metrics, so it would drift with a font change. Centered is
+font-independent. Final measurement: **label-top spread 0.2px, control-mid spread 0.1px** — both
+sub-pixel, and the other four palette rows (Source + Anchor only) stayed at 0.1/0.0 throughout.
+
+Trap for whoever re-verifies this: measure `:scope > .pfield` **per `.porigin`**. An earlier probe used
+a document-wide `.pfield` query and mixed the Neutral row with a brand-palette row, which reports a
+plausible-looking offset that has nothing to do with the bug. The Anchor field is also *not* inside
+`.porigin` — it is a sibling under `.phead` — so a probe scoped only to `.porigin` misses it entirely.
+
+---
+
 ## (2026-08-04) — An MCP suite that drives the real transport, and mutation-tests itself
 
 **STATUS: engine (`mcp-test.ts`, new) + CI + CLAUDE.md.** `out/*` untouched.

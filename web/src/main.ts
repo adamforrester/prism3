@@ -6167,18 +6167,39 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .prole{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
 .prole-dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
 .prm{margin-left:2px}
-.porigin{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap}
-.pfield{display:flex;flex-direction:column;gap:7px}
-.pfield.r{margin-left:auto;align-items:flex-end}
+/* Every field is a TWO-ROW grid: the label in a row that sizes to it, the control in a common band
+   below, centered. Bottom-aligning instead (the previous align-items:flex-end) made each field hang
+   from its own baseline, so a 55px Source field and a 66px slider field put their labels 10.6px
+   apart and their controls 1.3px apart -- the ragged look #67 tried to fix by equalizing heights,
+   which only holds while every control happens to be the same height. Aligning the two ROWS is
+   height-independent. Row 2 is minmax(33px,auto) -- at least as tall as the tallest control
+   (select 33, range 32) so the controls share a band, and free to grow so a taller control on any
+   other surface using pfield is never clipped.
+   Trap, and the reason two earlier passes at this "failed" while looking correct in the stylesheet:
+   the slider field carries the generic class names .slider and .range, and BOTH of those are also
+   standalone rules further down (.slider{margin-top:16px}, .range{margin-top:10px}). The 16px was
+   the entire label misalignment -- not anything to do with flex alignment -- and the 10px inflated
+   grid row 2 to 44px, which is what made the field 66px and sent the control mid-line 25.6px off.
+   Neither is visible from these rules alone, so both are neutralized here at a specificity that
+   beats the single-class originals. Do not "simplify" them back out. */
+.porigin{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
+.pfield{display:grid;grid-template-rows:auto minmax(33px,auto);gap:7px}
+.pfield > :nth-child(2){align-self:center}
+.pfield.r{margin-left:auto;justify-items:end}
+.pfield.slider{margin-top:0}
 .pfk{font-size:9.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
 .panchor{display:inline-flex;align-items:center;height:31px;padding:0 11px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);font-size:13px;color:var(--ink)}
 .panchor.dia::before{content:"◆";color:var(--ink2);font-size:9px;margin-right:6px}
 .panchor.none,.panchor.note{color:var(--muted)}
-/* Neutral row: the Hue/Chroma slider fields match the Source/Anchor box height so every origin field is
-   equal height and bottom-aligns cleanly (no ragged labels / thin sliders floating low) — #67. */
-.pfield.slider .psl-top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:15px}
+/* Neutral row: row 1 is the label paired with its live readout. It sizes itself, so it comes out the
+   same height as the plain .pfk row the other fields have and the Source / Hue / Chroma labels share
+   one top edge — the previous fixed height:15px was 0.3px taller than the label it contained.
+   Centered, not baseline: under align-items:baseline the 12px readout has the greater top-to-baseline
+   distance, so IT sets the row baseline and the 9.5px label gets pushed 1px down — measured. Which
+   of the two wins is a function of the font metrics, so centering is the stable choice here. */
+.pfield.slider .psl-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .psl-val{color:var(--muted);font-size:12px;line-height:1}
-.psl-range{width:150px;accent-color:var(--ink);height:32px;margin-top:0}
+.pfield.slider .psl-range{width:150px;accent-color:var(--ink);height:32px;margin:0}
 .pfield.slider.ro{opacity:.5}
 .pramp{display:flex;flex-direction:column}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
