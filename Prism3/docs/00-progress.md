@@ -7,6 +7,52 @@
 
 ---
 
+## (2026-08-04) — `on-inverse.border`: the outline edge on a dark band had no contract (#467)
+
+**STATUS: engine (`modes.ts` + test) + web.** `out/*` regenerated — see below for what actually moved.
+
+The interactive family had a full inverse column — `on-inverse.fill.*`, `on-inverse.text.*`,
+`on-inverse.on-fill` — but no border. The outline edge was emitted once against `background.primary`
+(`modes.ts:442`) and then *reused* on the inverse band, so nothing ever measured that pair. All 432
+mode contracts passed without checking it. This is why #461 could switch the Style guide's outline
+**ink** to `on-inverse.text.*` but had to leave the **edge** on the page-measured token: there was
+nothing to switch to. Contracts now 432 → **444**, and the web takes the same switch for the border.
+
+**The scale claim in the issue was wrong, and the correction is the useful part of this entry.**
+Filing #467 I asserted that any brand with an action color darker than Wendy's red would fail
+outright. It doesn't. `interactive.<c>.border` is step **500** of the generated ramp, and ramp
+generation *normalizes step 500 into a lightness band* — the seed sets hue and chroma, not the step's
+lightness. Six seeds across the extremes of the gamut (deep navy `#0D2340`, pure blue `#0000FF`,
+vivid blues `#0033CC`/`#2200BB`/`#1A0099`, dark maroon `#7B0F2B`), each run through the real CLI on a
+copy of the Wendy's brief, **all** landed at page ~4.58 / inverse ~4.24. I could not construct a
+brand that fails. Wendy's `#C8102E` is the lone seed that survives to step 500 verbatim, at 5.88 page
+/ **3.30 inverse — 0.30 above the floor, and previously unverified**.
+
+So the honest framing: this is **correctness hygiene, not a latent bug proven reachable**. A role
+measured against one ground was being used on another with nothing checking, and one shipped brand
+sat a third of a point from the floor. The fix makes that a gate failure instead of a silent ship.
+Worth doing on those grounds alone — but the *values* barely move, and a reviewer expecting a
+dramatic diff should know that up front rather than go looking for one.
+
+**What actually changed in `out/*`:** only the **neutral** column. Chromatic columns re-derive to the
+same hex (step 500 already clears both grounds, so `chromatic(..., nonTextMin)` has nothing to nudge).
+Neutral takes the `pickMinPass(ramp, invRgb, ...)` branch, which picks the *lowest-passing* candidate
+against the ground it is given — so the inverse edge went from the page-derived `#83817e` (5.00 on the
+band, louder than a border is meant to be) to `#6b6865` (3.51), matching the page edge's own 3.20
+intent. That is the one place the fix visibly improves the design rather than just guarding it.
+
+**Traps.**
+- Gated by `theme.inverseContext`, like the rest of `invColumn` — a brand with the lever off must not
+  gain the role, and the existing `noInv` assertion covers that because it filters on `.on-inverse`.
+- `invColumn` already runs for the extensible `interactivePalettes` columns, so they get the border
+  for free. Don't add a second emitter next to `modes.ts:479`.
+- Don't try to reproduce a failing brand by making the seed darker — that was the wasted hour here.
+  Step 500's lightness is fixed by the ramp; a darker seed just moves the brand color to a *later*
+  step and leaves 500 a mid-tone. The only lever that would reach failure is one that pins an
+  arbitrary color at 500.
+
+---
+
 ## (2026-08-04) — Nested tab groups get the L3 underline (#439's unbuilt rung)
 
 **STATUS: web.** One CSS block. `out/*` untouched.
