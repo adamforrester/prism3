@@ -2064,12 +2064,15 @@ const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => 
 const renderModeContext = (): HTMLElement => {
   const strip = el('div', 'modectx');
   const left = el('div', 'mctx-modes');
+  // Stays "Mode" (#439). Swapping it to "Editing" was considered and rejected: it would have to
+  // become "Viewing" on a derived mode, and a label that mutates under you is worse than a neutral
+  // one. The editable-vs-read-only fact lives on the chip it applies to instead.
   left.append(el('span', 'mctx-cap', 'Mode'));
   for (const m of rp.modes) {
     const derived = DERIVED_MODES.has(m);
     const b = el('button', 'mctx-b' + (m === currentMode ? ' on' : '') + (derived ? ' derived' : '')) as HTMLButtonElement;
     b.append(el('span', 'mctx-name', MODE_LABEL[m] ?? m));
-    if (derived) b.append(el('span', 'mctx-auto', 'auto'));
+    if (derived) b.append(el('span', 'mctx-vo', 'view only'));
     const ok = modeAllPass(m);
     // #54 — a per-mode contrast pass/fail badge (NOT a remove control): ✓ pass · ! fail. Spell it out on
     // hover so the mark doesn't read as "close/remove".
@@ -6245,14 +6248,27 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mctx-cap{font-size:11px;font-weight:640;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
 .mctx-b{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-sm);padding:5px 11px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
 .mctx-b:hover{border-color:var(--ink)}
-.mctx-b.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.mctx-auto{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:1.5}
-.mctx-b.on .mctx-auto{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.4)}
+/* #439 — the selected chip is a WHITE ground with an ink border plus a 1px ring, not a solid ink
+   fill. Mode is a SCOPE, not a destination: dressing it as the loudest tab on the page made it
+   heavier than the rail that chooses the page, which only got worse when the bar moved into the
+   content column (#432). The ring keeps it findable without it shouting.
+   Two things fall out, and both are simplifications rather than losses:
+     · the contrast mark now always sits on a light ground, so the --ok-inv / --danger-inv overrides
+       that existed ONLY for the dark fill are gone. That leaves both TOKENS with no consumer. They
+       are deliberately not deleted here: #448 edits the same declaration block, and a needless
+       conflict costs more than two unused custom properties for one merge. Remove them after it
+       lands — #285 measured them against --ink, and the values are in the progress log if an
+       inverted panel ever wants them back;
+     · the read-only marker no longer needs a white-on-dark variant either. */
+.mctx-b.on{background:var(--panel);color:var(--ink);border-color:var(--ink);box-shadow:0 0 0 1px var(--ink);font-weight:560}
+/* "View only", not "auto": these modes are derived and the engine REFUSES per-mode levers on them,
+   so the honest fact is that you cannot edit here — which is what a user needs, where "auto" only
+   described how the mode was produced. Sits inside the chip rather than as a caption beneath it:
+   after the wrap-to-scroll change (#432) the bar spends width freely and height not at all. */
+.mctx-vo{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:1.5;white-space:nowrap}
 .mctx-mark{font-size:12px;font-weight:700}
 .mctx-mark.ok{color:var(--ok)}
 .mctx-mark.no{color:var(--danger)}
-.mctx-b.on .mctx-mark.ok{color:var(--ok-inv)}
-.mctx-b.on .mctx-mark.no{color:var(--danger-inv)}
 /* Inline variant (#432): the same editor embedded in the brand menu, which is itself a popover —
    so it drops the positioning, shadow, border and fixed width and simply flows in the parent. */
 .mctx-menu.inline{position:static;width:auto;padding:0;background:none;border:0;box-shadow:none;z-index:auto}
