@@ -10,6 +10,10 @@
 Format: `- [ ] <rule> — <why / spec>`. Three tiers: **Universal** (every page), **Conditional** (only
 where a value is authored/derived), and **Not-universal** (Palettes-specific — do *not* blanket-apply).
 
+**Reviewing an existing page is a separate job from building one** — see *Reviewing a page* below,
+generalized from the Typography pass (2026-08-03). Read it before auditing the next page; it is
+ordered, and step 3 is the one that decides whether the findings are real.
+
 ---
 
 ## Universal — apply to every page
@@ -44,6 +48,38 @@ where a value is authored/derived), and **Not-universal** (Palettes-specific —
   `renderCard`, `objEditor`. Don't hand-roll a one-off variant; extend the shared component.
 - **Human-readable copy.** No internal jargon in the UI (`ink`→`text`, `action`→"default interactive
   color"). Labels name what the user recognizes, not how the system is built.
+- **One label per concept, page-wide.** "Which categories consume this" was `Binding`, `Bound by` and
+  `Used by` on one page. Pick one and sweep.
+- **A word that is a token VALUE must never also be a control label.** `tighter`/`wider` are
+  `letter-spacing` rung names *and* were the nudge labels, so the same word meant a rung on one tab and
+  a shift on the next (#411). Same failure on Preview, where `Role` headed both the category table and
+  the weight-role table. **Check a new label against the emitted token vocabulary before shipping it.**
+- **Terminology follows the emitted token path, and a tier rename is a page-wide sweep.** #415 re-keyed
+  `font.family.*` from roles to categories; Preview kept the word `Role` over rows that are categories,
+  because the rename touched the editors and not the mirrors. **When a tier changes, grep every surface
+  that names it.**
+
+### Modes
+- **The per-mode editing rule (#416).** A value with **many parallel instances** (7 leading rungs, 5
+  weight roles, 7 categories, the per-size pins) is edited as **one column per mode**. A **single
+  lever** (radius, tempo, density) is edited **in place via the mode bar**, using `renderPerModeSelect`
+  — `Auto — <base>` plus a `.set` class on an overridden cell. This rule was already what the code did;
+  it had never been written down, and the one control on the wrong side of it (Typefaces, 7 categories
+  on the mode bar) was exactly the one that felt wrong and lacked the `Auto`/`.set` affordance.
+  **Deciding which side a control is on tells you its whole shape.**
+- **If every mode-varying value on a page is a column, the mode bar leaves that page.** It has no
+  editing job left. Typography, Primitives and Preview all have no bar, for opposite reasons that meet
+  in the middle.
+- **Derived-mode columns are READINGS, never controls (#423).** The engine refuses per-mode levers on
+  `hc-light`/`hc-dark`/`wireframe`. The one-mode-at-a-time pages gate on
+  `DERIVED_MODES.has(currentMode)` and swap in `renderGeneratedNote` — **a table that shows every mode
+  as columns has no such gate, so each column must check `modeIsEditable(m)` for itself.** Show the
+  resolved value with an `auto` marker in the header; an interactive control there reaches the engine
+  and prints its internal error string at the user. **Converting any control to columns re-opens this
+  hole** — it is what #416 did on its way in.
+- **A mode-invariant control is never disabled by the mode bar.** State the invariance positively in a
+  note instead. `currentMode` is global, so a control disabled outside Light is *stranded* on a page
+  with no bar — the user has no way to re-enable it.
 
 ### Token paths
 - **Every token-bearing row/card shows its real, resolvable path via `tokenPill`, in the correct
@@ -56,6 +92,29 @@ where a value is authored/derived), and **Not-universal** (Palettes-specific —
 - **Stable-head / volatile-bands split.** Controls are built once and survive `apply()`; only the
   derived readouts + specimens repaint. This keeps open OS color dialogs and mid-drag sliders alive.
   Structural changes (which control is live) → `applyFull()`; value changes → `apply()`.
+- **A DERIVED affordance must be written in the change handler, not left to the next paint.** `apply()`
+  repaints only the volatile region, so a `.set` class or a "resolves to" line computed at render time
+  lags the value it describes by one interaction. Write it imperatively *and* let the next paint
+  re-derive it.
+- **Column widths: fixed for anything that scales with the data.** `mtbl-fill` is the slack absorber,
+  not a column type. One fill column *per face* made "Weight roles by face" grow without bound — 899px
+  in a 798px container on the **default** brand, so every brand saw its specimens clipped. Shared grid
+  is `112/148/148/390` = **798px**; re-measure after any cell gains content.
+- **The intrinsic-width trap.** A `nowrap` element contributes its full single-line width as
+  min-content, and a column `width` is only a hint it will blow past (measured three times: #360, #369,
+  #388, and again at 829px on a token pill). Cap with an explicit px `max-width`.
+- **`el()` escapes its text argument.** Markup needs `innerHTML`. **Never put markdown in visible
+  copy** — backticks shipped literally to users in a section description.
+- **No backticks anywhere inside the CSS template literal, including comments (#366).** They terminate
+  the literal and esbuild reports the failure dozens of lines from the edit.
+- **`.tpill` is `direction: rtl`** (left-ellipsis for long paths), so a trailing glyph reorders to the
+  front — `type.display.*` renders as `*.type.display`. Name a node, not a glob.
+- **A scoped `display` rule outranks the UA `[hidden]` rule.** If you write
+  `.x .y{display:block}`, add `.x .y[hidden]{display:none}` or `hidden` silently stops working.
+- **Dead CSS is deleted with the control it styled**, not left inert (the `.errbar-global` lesson).
+- **Legends: a symbol vocabulary may have one; a visual treatment may not.** #404 removed a legend
+  because it explained *dimming* that should not have existed. Preview's `● ○ ?` legend stays, because
+  the marks **are** the data and have no in-place alternative. Don't "fix" it for consistency.
 
 ---
 
@@ -89,14 +148,71 @@ where a value is authored/derived), and **Not-universal** (Palettes-specific —
 
 ---
 
+## Reviewing a page (the method, generalized from the Typography pass)
+
+The Typography review (2026-08-03) found 11 issues, of which **two were defects users were hitting**,
+one was a **capability silently removed by an earlier refactor**, and **one was wrong**. The method
+below is what separated them — run it per page, in this order.
+
+1. **Extract the token vocabulary first.** Walk `out/<brand>.tokens.json` for the namespaces the page
+   owns (`font.*`, `type.*`, …). That list is the vocabulary the UI is allowed to use. Everything after
+   this is a comparison against it.
+2. **Drive the page, don't read the source.** Load a brand with **4 modes and 3+ faces / palettes**
+   (defaults hide width bugs) and collect section titles, descriptions, table headers, captions, notes,
+   option labels and pills per tab. **Build the fixture from `schema/example-brands.json`, never from
+   memory** — an input that fails validation drops the app to the *"Start a new brand"* screen, and the
+   sweep then reports empty for every field. (Palettes pass: `brandColors: [{name, hex}]` when the real
+   shape is `{name, oklch:{l,c,h}}`.) **When a sweep returns nothing, suspect the fixture before the
+   page** — the emptiness is the tell, and plausible-looking partial data would not have been.
+3. **Measure the RENDERED page, never `textContent`.** *This is the rule that matters.* The one wrong
+   finding in the whole review — "header casing is inconsistent" — came from comparing extracted
+   strings; every header is `text-transform: uppercase`, so users saw nothing. Acting on it introduced
+   a real regression (`ui-monospace` beside `-apple-system`). Use `getComputedStyle` and
+   `getBoundingClientRect`; screenshot before believing a layout claim.
+4. **Sweep structurally, don't spot-check.** Ask the property of **every** instance —
+   *"for every `.mtbl-tbl`, find columns whose header carries `auto` and assert zero
+   `select`/`input`/`button`"* — rather than probing one cell. A one-cell probe is exactly what let the
+   derived-column bug ship in the first place. A structural sweep also covers instances added later
+   **without anyone remembering to extend it**.
+5. **Cross-check every label against the token vocabulary from step 1**, and against the *other tabs*.
+   Collisions (one word, two meanings) and stale tier names both surface here.
+6. **Compare widths against the shared grid at the default brand, not the convenient one.** "Clips at 4
+   faces" is a nice-to-have; "clips at the default 2" is a defect.
+7. **Separate container overflow from actually-clipped content, and report only the second.** A raw
+   `scrollWidth > clientWidth` sweep fires on deliberate `overflow:visible` badges and on 2px of gap
+   rounding. Re-check at the LEAF level (elements with no children) — Palettes flagged four containers
+   and **zero clipped leaves**, so nothing was reported; Typography's 899→798 had specimens genuinely
+   cut off. **A sweep that reports every anomaly is as useless as one that reports none.**
+
+**When a fix cannot find the signal it needs, the missing signal is the actual defect.** The reported
+Typography bug was a wrong Figma style name. The first fix tried to read mono-ness off the fallback
+tail and could not — because that tail was itself category-derived. **That impossibility was the real
+finding:** #415 had removed the only channel by which a brand could declare a face as monospace.
+The symptom was the smaller half.
+
+**Verify with a non-vacuous control.** Assert the thing that must *not* change alongside the thing that
+must: the mono-face test pins `body` → `Medium` **and** the same brand's `display` → `Semi Bold`, so it
+fails if the mono table is ever applied globally. A test that only asserts the fix passes for the wrong
+reason too.
+
+**Two findings is a good result on a healthy page.** Typography's pass produced eleven, Palettes' two.
+The method is not scored on volume — resist manufacturing work to look thorough, and say plainly when
+a page is in good shape.
+
+**Report findings you got wrong, in the log.** Two of mine were self-inflicted (the casing false
+positive, and a pill whose trailing `*` reordered under `direction: rtl`). Both are recorded in
+`00-progress.md` rather than quietly dropped — the next reviewer inherits the trap, not just the fix.
+
+---
+
 ## Rollout status (per page)
 
 | Page | Containers | Section headers | Token pills | Notes |
 |---|---|---|---|---|
-| Palettes | ✅ | ✅ | ✅ `palette.*` | #230–#232 — the reference implementation |
+| Palettes | ✅ | ✅ | ✅ `palette.*` | #230–#232 — the reference implementation. Reviewed 2026-08-04 with the method above: **mode bar removed** (workspace byte-identical Light vs Dark — a ramp is mode-invariant; #268 found this and Layout together, Layout was fixed and this was missed) and **"Validation" → "Status ramps"** to match `BrandInput.status` / `palette.success\|warning\|danger\|info`. Two findings, no width defects |
 | Surfaces & fills | ✅ | ✅ | ✅ `color.*` | #68 — full-width rows (Layout A): controls left, example (228px) right, contrast pill below; per-section contrast tables (Fills + Text; Backgrounds are grounds); adjustable Inverse (A1 override); gradient names + inline Add-stop vs full-width Add-gradient; text-on-surface previews (folds #64) |
 | Interactive | ✅ | ✅ | ✅ `color.interactive.*` (#232) | #69 — per-palette matrix: global behaviours (outline hover / disabled / icon colours) at top, then one section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows — Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill (+ inverse). Every slot/state binds to a real engine role: fill · rest is the family anchor, everything else is an A1 per-mode override; example (300px) + contrast pill locked right, Hover/Pressed states two-up below |
-| Typography | ✅ | ✅ | ✅ `type.*` / `font.typeface.*` / `font.family.*` | #72 — every section a `.psec`; retired the three competing header styles (sectionHead / subHead / .adv-obj). **#272 — split onto the primitive/semantic tier line** via a `.pvseg` switcher: **Foundations** (Typefaces · Size ladder + scale/ceiling/floor · Weight scale · Leading & tracking) and **Styles** (Weight roles · Category setup · Responsive sizing · Full type ramp). Categories never appear on Foundations. First page to carry the tier split — the pattern #267 generalises. **#269 — Typefaces rebuilt on the two tiers**: a derived **library** (one `font.typeface.<slug>` row per distinct face, with its fallback stack, availability and which roles bind it) above the three **bindings** (`font.family.display|text|mono`, each a select over the library plus *Custom face…*; mono also *None*, which drops the `code` category). The library is a read-out — a face exists exactly as long as a binding names it, so adding and removing are both done from the bindings and no cascade is needed |
+| Typography | ✅ | ✅ | ✅ `type.*` / `font.typeface.*` / `font.family.*` | **Reference implementation for the tier split and the mode rule.** Four tabs via `.pvseg` — **Primitives** (typeface library · size ladder · leading & tracking ladders) · **Semantics** (typeface bindings · weight roles · leading & tracking rungs + per mode) · **Text styles** (heading sizes · what each category is made of) · **Preview** (read-only). **#415** retired the `display|text|mono` family ROLE tier — each of the 7 categories binds a typeface directly (`font.family.<category>`), matching how Prism2's own brand-theme binds. **#416** states the per-mode rule above and removes the mode bar from the page. **#411** nudge controls are signed deltas with the resolved rung beneath. **#422/#423** derived-mode columns are readings. Reviewed end-to-end 2026-08-03; see the method section above |
 | Elevation | ✅ | ✅ | ✅ `shadow.*` | #72 — Shadow editor + Elevation-ramp specimen as `.psec`; `shadow.xs…2xl` pills |
 | Size & radius | ✅ | ✅ | ✅ `radius.*` / `size.*` | #72 — regrouped by **concept** (Corner radius · Density & size · Spacing grid), not advanced/not; Radius-ramp + Control-size specimens carry `radius.*` / `size.*.height` pills |
 | Layout | ✅ | ✅ | ✅ `breakpoint.*` / `container.*` | #72 — Breakpoints + Grid & containers as `.psec`; the Layout-grid specimen table adds a `breakpoint.*` token column and the container bars carry `container.max` / `container.narrow` pills |
