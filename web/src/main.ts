@@ -167,6 +167,7 @@ const syncErrorBar = (): void => {
   if (!globalErrHost) return;
   globalErrHost.style.display = lastError ? '' : 'none';
   if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError}`;
+  syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
 const apply = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); paintVolatile(); };
 const applyFull = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); renderWorkspace(); };
@@ -4842,7 +4843,8 @@ const hero = (title: string, lede: string): HTMLElement => {
 // ---- shell -----------------------------------------------------------------
 const app = document.getElementById('app')!;
 let workspace: HTMLElement;
-let modeStripHost: HTMLElement;   // tier 2 of the global header — the persistent mode selector (docs/23 §7)
+let modeStripHost: HTMLElement;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
+let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
 
 /** #268 — the switcher appears only where a mode-varying control actually exists.
  *
@@ -4893,10 +4895,17 @@ function renderModeStrip(): void {
   // Hidden, never disabled: a greyed-out switcher still claims the page has modes and just won't let
   // you use them. `currentMode` is untouched, so leaving and returning restores the mode you were in.
   if (!firstRun && pageHasModeVaryingControl()) modeStripHost.append(renderModeContext());
-  // Keep the sticky rail's offset tied to the ACTUAL header height — the mode chips can wrap to a
-  // second row when a brand has many modes, and a fixed offset would tuck the rail under the header.
-  const chrome = modeStripHost.parentElement;
-  if (chrome) document.documentElement.style.setProperty('--chrome-h', `${chrome.offsetHeight}px`);
+  // A page with no bar must not leave an empty sticky box holding its own padding.
+  modeStripHost.style.display = modeStripHost.childElementCount ? '' : 'none';
+  syncChromeHeight();
+}
+
+/** `--chrome-h` positions the sticky rail AND the sticky mode bar, so it must track the real header.
+ *  It used to be read off the mode strip's parent — fine while the strip lived in the chrome, wrong
+ *  now that it doesn't. Measured from the chrome element itself, and re-read whenever the chrome can
+ *  change height: the global error bar shows and hides inside it. */
+function syncChromeHeight(): void {
+  if (chromeHost) document.documentElement.style.setProperty('--chrome-h', `${chromeHost.offsetHeight}px`);
 }
 
 const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
@@ -4912,6 +4921,11 @@ const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
 };
 function renderWorkspace(): void {
   workspace.innerHTML = '';
+  // Page furniture, not global chrome (#432). Re-minted every render because the workspace is cleared;
+  // `currentMode` is module state, so the SELECTION survives navigation exactly as it did in the header.
+  modeStripHost = el('div', 'modebar');
+  workspace.append(modeStripHost);
+  renderModeStrip();
   PAGE_RENDERERS[page](workspace);
 }
 
@@ -5331,10 +5345,11 @@ const build = (): void => {
   // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
   // the persistent mode selector. Both sticky together so the mode context never scrolls away.
   const chrome = el('header', 'chrome');
+  chromeHost = chrome;
   barHost = el('div', 'bar');
   chrome.append(barHost);
-  modeStripHost = el('div', 'modebar');
-  chrome.append(modeStripHost);
+  // The mode bar is NOT tier 2 of the chrome any more (#432): it scopes the controls on the page, so
+  // it is minted by renderWorkspace at the top of the workspace instead. Chrome keeps brand + errors.
   // #388 — the error surface lives in the CHROME, not in a page. It used to be rendered only by
   // `renderPrimitives`' paint closure, so an engine throw from any other page set `lastError` and showed
   // nothing: on Typography an off-ladder rung silently kept the old value while the field displayed the
@@ -5438,7 +5453,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 
 .chrome{position:sticky;top:0;z-index:20;background:var(--paper)}
 .bar{display:flex;align-items:center;justify-content:space-between;padding:26px 2px 12px}
-.modebar{padding:0 2px 14px}
+/* Sticky at the chrome's lower edge so the mode context still never scrolls away — the property
+   it had as tier 2 of the header, preserved through the move (#432). Background is required:
+   page content scrolls underneath it. z-index sits below .chrome (20) so it tucks, not overlaps. */
+.modebar{position:sticky;top:var(--chrome-h,120px);z-index:15;background:var(--paper);padding:10px 2px 14px}
 .brandmark{display:flex;align-items:center;gap:11px}
 .logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
 .wordmark{font-weight:640;letter-spacing:-0.02em;font-size:16px}
@@ -5806,7 +5824,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* Mode-context strip (#171) — one mode at a time; sticky so the context stays reachable while
    scrolling the stage. The whole stage below reflects the selected mode. */
 .modectx{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
-.mctx-modes{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+/* Scroll, never wrap. Wrapping was affordable in the header, where the bar owned the full window
+   width; in the content column it is narrower, so a brand with several modes wrapped to a second
+   row and spent real vertical space on every page — worst on mobile, where it was already a
+   second sticky strip. Overflow scrolls instead, so the bar's height is constant at any mode count. */
+.mctx-modes{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+.mctx-modes>*{flex:none}
 .mctx-cap{font-size:11px;font-weight:640;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
 .mctx-b{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-sm);padding:5px 11px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
 .mctx-b:hover{border-color:var(--ink)}

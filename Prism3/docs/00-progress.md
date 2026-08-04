@@ -7,6 +7,55 @@
 
 ---
 
+## (2026-08-04) — The mode bar moves onto the page (#432, step 1 of the treatment)
+
+**STATUS: web.** Relocation only — **the bar's own styling is deliberately untouched**. `out/*`
+unchanged.
+
+**Why styling is out of scope on purpose.** #439 is about to decide the selected-state vocabulary
+across the dashboard, and the mode chips are the loudest selection control on the page. Styling the
+bar now and restyling it after that decision would be building it twice, so this PR moves it and
+nothing else. It is a boring diff on purpose.
+
+**What moved.** `modeStripHost` left `.chrome` and is minted by `renderWorkspace` at the top of `.ws`
+— `modectx < modebar < ws < shell`. The chrome keeps brand identity and the global error bar.
+**`--chrome-h` drops 145px → 77px**, which is what positions the sticky rail, so the rail rises with
+it.
+
+**Three properties had to survive the move, and each is a way this could have silently broken:**
+
+- **Mode persists across navigation.** `currentMode` is module state, so the selection outlives the
+  host being re-minted — verified through a page that has *no* bar (Dark on Size & radius → Palettes
+  → Motion is still Dark). Without that the bar would have become per-page state by accident.
+- **`--chrome-h` no longer measures the right element.** It was read off
+  `modeStripHost.parentElement` — correct while that parent WAS the chrome, wrong the moment it
+  isn't. Now measured from the chrome itself, and re-read from `syncErrorBar` because the error bar
+  lives in the chrome and showing it moves everything sticky below.
+- **A barless page must not leave an empty sticky box** holding its own 14px of padding. The host
+  hides itself when `renderModeStrip` appends nothing.
+
+**Wrap → scroll, and the move is what forced it.** Wrapping was affordable in the header, where the
+bar owned the full window width; the content column is narrower, so a brand with several modes would
+wrap to a second row and spend vertical space on every page — worst on mobile, where it was already
+a second sticky strip. Measured across 7 widths from 1440 down to 420: **bar height constant at 54px,
+always one row**, overflow scrolls from 640px down. Height is now independent of mode count, which
+wrapping never was.
+
+**Kept sticky.** The old comment claimed the mode context "never scrolls away"; that property is
+preserved via `position:sticky; top:var(--chrome-h)`. Worth flagging as a live choice rather than a
+conclusion — making it scroll away would reclaim 54px but lose the context deep in a long page. One
+line either way.
+
+**Verified:** placement, persistence, barless pages, sticky under 900px of scroll, wrap behavior at 7
+widths, and the mode audit re-run — **9 EDITS / 12 displays / 3 inert, identical to before the move**,
+which is the check that the relocation changed placement and nothing else. No page errors.
+
+**Split out deliberately:** "Edit modes" → brand menu is its own PR. The brand menu carries a comment
+that **#171 moved modes OUT of it** ("next to the mode you're viewing"), so putting them back reverses
+a stated decision and deserves to be judged on its own rather than riding along in a relocation.
+
+---
+
 ## (2026-08-04) — The mode-sensitivity audit becomes a command, not an afternoon (#432)
 
 **STATUS: web + docs.** No behavior change — a committed probe plus the rule it feeds. `out/*`
