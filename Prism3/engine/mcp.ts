@@ -122,7 +122,8 @@ export const manifestRootKeys = (manifest: unknown): Set<string> => {
 };
 
 /** What a `theme_brand` call may ask to be included. The token tree and the agent metadata are the
- *  two enormous ones and are OPT-IN — see the tool description for the measured numbers. */
+ *  two enormous ones and are OPT-IN — see the tool description for the measured numbers. `notes` is
+ *  in the DEFAULT set (see `DEFAULT_THEME_SECTIONS`); it is listed here so a caller can drop it. */
 export const THEME_SECTIONS = ['tokens', 'aiMetadata', 'notes'] as const;
 
 /** Tool catalogue.
@@ -165,7 +166,7 @@ export const toolDefs = (brandSchema: unknown) => [
       properties: {
         brand: brandSchema,
         include: {
-          type: 'array', description: 'Extra sections to return. Omit for the verification payload alone (small).',
+          type: 'array', description: 'Sections to return, replacing the default ["notes"]. Add "tokens" and/or "aiMetadata" for the large payloads; pass [] for the verification result alone.',
           items: { type: 'string', enum: [...THEME_SECTIONS] },
         },
       },
@@ -240,12 +241,28 @@ export const toolDefs = (brandSchema: unknown) => [
   },
 ];
 
+/** Sections included when the caller does not say. `notes` is the decisions log — every gap the
+ *  engine filled on the brand's behalf, including the ones it explicitly flags for human
+ *  confirmation ("action color defaults to the PRIMARY brand palette — CONFIRM this hue…").
+ *
+ *  It was opt-in until now, grouped with `tokens` and `aiMetadata` under "withheld by default".
+ *  That grouping was by CATEGORY when the only thing justifying it is COST, and the measured costs
+ *  are three orders of magnitude apart for a four-mode brand:
+ *
+ *      tokens      833,819 chars     aiMetadata  516,761 chars     notes  5,803 chars
+ *
+ *  Withholding the two huge payloads is right — no client can spend half a megabyte on one result.
+ *  Withholding 5.8KB cost an agent the single most decision-relevant thing the engine produces, and
+ *  did it silently: an agent that never passes `include` gets a themed brand with no indication that
+ *  fifteen choices were made for it. Defaults decide what most callers actually see. */
+export const DEFAULT_THEME_SECTIONS = ['notes'];
+
 /** Accept both `{ brand, include }` and a bare BrandInput (the pre-wrap calling convention). Detected
  *  by the presence of a `brand` key, which BrandInput itself has no property named. */
 export const readThemeArgs = (args: any): { brand: any; include: string[] } =>
   (args && typeof args === 'object' && 'brand' in args)
-    ? { brand: args.brand, include: Array.isArray(args.include) ? args.include : [] }
-    : { brand: args, include: [] };
+    ? { brand: args.brand, include: Array.isArray(args.include) ? args.include : [...DEFAULT_THEME_SECTIONS] }
+    : { brand: args, include: [...DEFAULT_THEME_SECTIONS] };
 
 const text = (obj: unknown, isError = false): ToolResult =>
   ({ content: [{ type: 'text', text: typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2) }], ...(isError ? { isError: true } : {}) });
