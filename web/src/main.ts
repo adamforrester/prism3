@@ -6787,7 +6787,18 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tok-sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line2);flex:none}
 .tok-shadow{display:inline-block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;color:var(--muted)}
 /* Token list, tier split (#390). The two-line cell is the both-Show state: alias over value. */
-.tok-seg{margin:2px 0 0}
+/* L3 of the selection ladder (#439): a tab group NESTED inside another tab group. The token list's
+   Primitives/Semantics segment sits directly under Preview's own Style guide/Contrast/Token list
+   segment, and both were rendering the identical filled treatment 67px apart -- nothing said the
+   second row lived INSIDE the first.
+   Underline rather than a second gray: a third fill would need a value quieter than --paper but
+   louder than transparent, i.e. a three-step gray ramp inside one component, and it would break
+   again the moment anyone retuned those grays. Changing the KIND of emphasis cannot collide.
+   The track chrome goes too -- a nested group is not a control surface of its own. */
+.tok-seg{margin:2px 0 0;background:none;border:0;padding:0;gap:18px;border-radius:0}
+.tok-seg .pvseg-b{padding:7px 1px;border-radius:0;color:var(--muted);box-shadow:inset 0 -2px 0 transparent}
+.tok-seg .pvseg-b:hover{color:var(--ink)}
+.tok-seg .pvseg-b.on{background:none;color:var(--ink);font-weight:560;box-shadow:inset 0 -2px 0 var(--ink)}
 .tok-ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:16px 0 4px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
 .tok-two{display:flex;flex-direction:column;gap:3px}
 .tok-stack{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
