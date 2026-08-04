@@ -5310,7 +5310,7 @@ function renderBar(): void {
   const sel = el('button', 'brandsel' + (brandMenuOpen ? ' open' : '')) as HTMLButtonElement;
   const dot = el('span', 'dot'); dot.style.background = hex(oklchToRgb(brandState.primary));
   sel.append(dot, el('span', 'bs-name', brandState.id), el('span', 'caret', '▾'));
-  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) importOpen = false; renderBar(); };
+  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; addModeOpen = false; addModeName = ''; } renderBar(); };
   bWrap.append(sel);
   if (brandMenuOpen) bWrap.append(renderBrandMenu());
   actions.append(bWrap);
@@ -5367,7 +5367,7 @@ function renderBar(): void {
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
       if ((brandMenuOpen || exportMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
-        brandMenuOpen = false; exportMenuOpen = false; navMenuOpen = false; importOpen = false; renderBar();
+        brandMenuOpen = false; exportMenuOpen = false; navMenuOpen = false; importOpen = false; addModeOpen = false; addModeName = ''; renderBar();
       }
     });
     outsideBound = true;
