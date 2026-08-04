@@ -766,14 +766,25 @@ way to tell which is which, and would put brand ink on studio prose for every br
 model — separate regions by border, not by near-invisible tint — visible for the first time, because
 previously those cards sat on white where the borders read as ordinary chrome.
 
-**Open, asked rather than assumed:** whether to add a *surface* picker (preview on
-`background.primary` / `secondary` / `inverse.primary`). A light/dark toggle was considered and is the
-wrong control — the mode already determines the ground, including for custom modes, and a manual
-switch's only correct setting is the one already derivable.
+### The surface picker — asked, then built
+
+A light/dark toggle was proposed and is the **wrong control**: the mode already determines brightness
+(including for custom modes), so such a switch's only correct setting is the one already derivable,
+and a wrong one reproduces the very bug the ground fix removes. The useful axis is *which surface*,
+not *which brightness*: **Page / Page — second tier / Card / Inverse band**, all real background roles.
+One picker for the view, not one per section.
+
+**Each ground carries its own ink and border set, and that pairing is the whole correctness of the
+feature.** `text.primary` is gated against the page planes and would be the wrong ink on the inverse
+band, where the system defines exactly ONE on-color role — so the supporting tiers collapse onto it
+there rather than borrowing a page-gated role that was never measured against that ground. Getting
+this wrong would have re-created the contrast regression above once per surface.
+
+Measured across **every surface × every mode**: 16 combinations, 140 labels each, worst **4.55:1**.
 
 **Verification.** `regen --check` 88 · **1280/0** · NB regression PASS · web+plugin typecheck/build ·
-sandbox-clean · US-English clean. Four modes screenshotted and read; 140 studio labels per mode
-measured against the ground they sit on.
+sandbox-clean · US-English clean. Four modes screenshotted and read; **2,240 studio-label
+measurements** across 4 modes × 4 surfaces, all clearing AA.
 
 ---
 

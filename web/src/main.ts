@@ -1234,27 +1234,61 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
    *  The `.psec` shell, its title and its description stay STUDIO. That boundary is deliberate: inside
    *  the frame is your system, outside it is the tool. Theming the section copy too would leave no way
    *  to tell which is which — and would put brand ink on studio prose for every brand. */
+  /** Which surface the specimens are previewed ON. Every option is a real background role, so this is
+   *  "show me this system on our panel / on our card / on our dark hero band" — not a brightness
+   *  switch. A manual light/dark toggle was considered and rejected: the mode already determines
+   *  brightness (including for custom modes), so such a control's only correct setting is the one
+   *  already derivable, and a wrong one reproduces the bug the themed ground exists to fix.
+   *
+   *  Each ground carries its OWN ink and border set. That pairing is the whole correctness of this
+   *  feature — `text.primary` is gated against the page planes and would be the wrong ink on the
+   *  inverse band, where the system defines exactly one on-color role. Getting this wrong would
+   *  re-create, per surface, the contrast regression the ground fix just removed. */
+  type SgSurface = { key: string; label: string; ink: string; line: string; line2: string; tiered: boolean };
+  const SG_SURFACES: SgSurface[] = [
+    { key: 'background.primary', label: 'Page', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'background.secondary', label: 'Page — second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'foreground.primary', label: 'Card', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
+    // borrowing a page-gated role that was never measured against this ground.
+    { key: 'background.inverse.primary', label: 'Inverse band', ink: 'text.on-inverse', line: 'border.inverse', line2: 'border.inverse', tiered: false },
+  ];
+  const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
+
   const ground = (sec: HTMLElement): HTMLElement => {
     const g = el('div', 'sg-ground');
     const head = sec.querySelector('.psec-head');
     while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
-    g.style.background = paint(cur, 'background.primary');
-    g.style.setProperty('--panel', paint(cur, 'background.primary'));
-    g.style.setProperty('--paper', paint(cur, 'background.secondary'));
-    g.style.setProperty('--line', paint(cur, 'border.primary'));
-    g.style.setProperty('--line2', paint(cur, 'border.secondary'));
-    g.style.setProperty('--ink', paint(cur, 'text.primary'));
-    g.style.setProperty('--ink2', paint(cur, 'text.secondary'));
-    // BOTH supporting inks map to text.secondary, not one each to secondary and tertiary. The engine
-    // gates `text.tertiary` at 3:1 — correct for large or non-essential text — while studio `--faint`
-    // is 10.5px token pills that need 4.5:1, and #355 moved --faint DOWN precisely to clear that bar.
-    // Mapping it onto tertiary transplanted a 3:1 role into a 4.5:1 slot and measured 3.52:1 in Dark.
-    // Losing the third ink tier inside this region is the right trade for keeping every label at AA.
-    g.style.setProperty('--muted', paint(cur, 'text.secondary'));
-    g.style.setProperty('--faint', paint(cur, 'text.secondary'));
+    const bg = paint(cur, surf.key);
+    // A tiered ground keeps the secondary ink for supporting text; the inverse band has only its one
+    // on-color role, so everything inside uses that.
+    const support = surf.tiered ? paint(cur, 'text.secondary') : paint(cur, surf.ink);
+    g.style.background = bg;
+    g.style.setProperty('--panel', bg);
+    g.style.setProperty('--paper', paint(cur, surf.tiered ? 'background.secondary' : surf.key));
+    g.style.setProperty('--line', paint(cur, surf.line));
+    g.style.setProperty('--line2', paint(cur, surf.line2));
+    g.style.setProperty('--ink', paint(cur, surf.ink));
+    g.style.setProperty('--ink2', support);
+    // BOTH supporting inks map to the AA-gated tier, not one each to secondary and tertiary. The
+    // engine gates text.tertiary at 3:1 — correct for large or non-essential text — while studio
+    // --faint is 10.5px token pills that need 4.5:1, and #355 moved --faint DOWN precisely to clear
+    // that bar. Mapping it onto tertiary transplanted a 3:1 role into a 4.5:1 slot: 3.52:1 in Dark.
+    g.style.setProperty('--muted', support);
+    g.style.setProperty('--faint', support);
     sec.append(g);
     return sec;
   };
+
+  // One picker for the view, not one per section — seven copies of the same control would be noise,
+  // and the sections are read together as one system.
+  const bar = el('div', 'sg-surfbar');
+  bar.append(el('span', 'pfk', 'Preview on'));
+  const sel = selectEl('cap');
+  for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
+  sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
+  bar.append(sel, el('span', 'sg-surfnote', `color.${surf.key}`));
+  host.append(bar);
 
   host.append(el('p', 'np-note', 'Hover any token pill for its resolved primitive, hex, and contrast. Modes switch from the picker above.'));
 
@@ -3201,6 +3235,9 @@ const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion
  *  placeholder; the style guide now carries the real value.) */
 type PreviewView = 'styleguide' | 'contrast' | 'tokens';
 let previewView: PreviewView = 'styleguide';
+/** Which background role the Style guide's specimens are previewed on. Module state so it survives
+ *  a repaint, like `previewView` and `currentMode` beside it. */
+let sgSurface = 'background.primary';
 const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['styleguide', 'Style guide'], ['contrast', 'Contrast contracts'], ['tokens', 'Token list']];
 const renderPreviewPage = (host: HTMLElement): void => {
   const [title, lede] = PAGE_COPY.preview;
@@ -6678,6 +6715,10 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
+/* The surface picker — one control for the whole view, above the sections it governs. */
+.sg-surfbar{display:flex;align-items:center;gap:10px;margin:12px 0 4px;flex-wrap:wrap}
+.sg-surfbar .pfk{flex:none}
+.sg-surfnote{font-family:var(--mono);font-size:11px;color:var(--faint)}
 /* The mode's own canvas behind the specimens. Inset from the .psec so the studio shell still reads as
    the frame; the re-scoped custom properties (set inline) carry the theme to everything inside. */
 .sg-ground{margin-top:14px;padding:18px 18px 20px;border-radius:var(--r);border:1px solid var(--line);
