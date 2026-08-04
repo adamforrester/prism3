@@ -322,8 +322,11 @@ commit.onHostMessage((m) => {
     loadBrand(m.input as BrandInput);
     return;
   }
-  seedInfo = { ok: m.ok, summary: m.summary };
-  if (barHost) renderBar();
+  if (m.kind === 'seed-info') {
+    seedInfo = { ok: m.ok, summary: m.summary };
+    if (barHost) renderBar();
+  }
+  // font-list is forwarded here from the write-adapter seam; it will be consumed by Task 4 (#112).
 });
 
 // ===========================================================================
