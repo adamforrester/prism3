@@ -5460,6 +5460,17 @@ const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
  *  both head variants are already `justify-content:space-between` flex rows; a headless section
  *  gets the badge positioned against its own box instead. */
 const attachModeBadges = (root: HTMLElement): void => {
+  // Badges belong to the pages that carry a mode bar — the scope SECTION_MODE_SCOPE already states,
+  // now enforced instead of assumed. It was assumed, and the assumption broke: the map is keyed by
+  // section TITLE, and the token list builds its sections with `palSection(capitalize(category))`,
+  // so its `icon` category minted a section titled `Icon` that collided with the Style guide's
+  // 'Icon' entry. One stray "Shared / All modes" badge on the token list, on the one category out of
+  // ~14 whose name happened to match. The token list is a read-only listing with no bar, and it
+  // already states its own mode scope per section ("mode-invariant, one value" / "each mode aliases
+  // its own target") from the token data rather than from a name — strictly better information than
+  // the badge. Gating on the bar's own predicate fixes the collision at the root rather than by
+  // renaming one of the two sections, which would leave the next collision to be found by eye.
+  if (!pageHasModeVaryingControl()) return;
   for (const sec of [...root.querySelectorAll('.psec')] as HTMLElement[]) {
     if (sec.querySelector('.msb')) continue;
     const title = sec.querySelector('.psec-t')?.textContent?.trim();
