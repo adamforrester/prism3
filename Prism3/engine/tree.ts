@@ -17,6 +17,7 @@ import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { SizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
+import { ENGINE_VERSION } from './version';
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
 const BLACK: RGB = { r: 0, g: 0, b: 0 };
@@ -788,7 +789,10 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const tree = {
     [root]: brand,
     $extensions: {
-      generator: { name: 'Prism3 engine', method: 'OKLCH color + grid-derived dimension generation' },
+      // `version` is the ENGINE version, not the token-contract version: it answers "what code
+      // produced this file", which is what you need when a value looks wrong. The name-surface
+      // version lives in schema/token-contract.json — see engine/version.ts for why they differ.
+      generator: { name: 'Prism3 engine', version: ENGINE_VERSION, method: 'OKLCH color + grid-derived dimension generation' },
       prism3: { theme: theme.id, root, colorFormat: theme.colorFormat, decisions: theme.notes },
     },
   };

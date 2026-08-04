@@ -38,7 +38,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 
 // The pattern, not a word list. `[A-Za-z]{3,}` keeps `is`/`our` themselves out.
-const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation)|our)\b/g;
+//
+// The trailing `s?` is load-bearing and was missing until #464. `our\b` matches `colour` but NOT
+// `colours`, so every en-GB PLURAL — `colours`, `behaviours`, `flavours` — walked through a gate
+// whose whole job was to stop them, and `ation\b` had the same hole for `generalisations`. It went
+// unnoticed because the self-check below only ever sampled the singular, which is the more general
+// trap: **a self-check written from the same mental model as the scan inherits its blind spot.** The
+// plural case is now sampled too. Found by mutating a file into failure and watching the gate stay
+// green — the reason to test a gate by breaking something rather than by reading it.
+const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation)|our)s?\b/g;
 // ...and a second scan, because ONE shape cannot cover both and the pattern alone was under-counting
 // in the opposite direction from the word list it replaced.
 //
@@ -105,6 +113,12 @@ const gated: string[] = [
   // held their conversion open. Gated now: leaving a clean surface ungated only defers the regression.
   join(repo, 'Prism3/schema/theme-schema.json'),
   join(repo, 'Prism3/engine/README.md'),
+  // The token-name baseline (#464). Named EXPLICITLY, unlike everything above it, because it is
+  // deliberately not a `regen` artifact — a baseline regen could rewrite would silently agree with
+  // the deletion it exists to catch. That exemption bought a blind spot in this gate at the same
+  // moment, since the comment above promises coverage follows regen. It carries prose (`note`), so
+  // it is listed by hand here; any future artifact kept out of regen needs the same line.
+  join(repo, 'Prism3/schema/token-contract.json'),
 ];
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
@@ -115,8 +129,11 @@ const gated: string[] = [
 const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'a generalised approach', expect: true },    // -ise pattern
   { sample: 'the colour of it', expect: true },          // -our pattern
+  { sample: 'all the colours here', expect: true },      // …and its PLURAL, which `our\b` could not see
+  { sample: 'two generalisations', expect: true },       // the same hole on the -isation branch
   { sample: 'a greyscale mode', expect: true },          // STEMS — the one with no suffix to match
   { sample: 'otherwise the source', expect: false },     // NOT_EN_GB must still subtract
+  { sample: 'four hours of tours', expect: false },      // the plurals `s?` newly exposes must not trip
 ];
 const selfFails = SELF_CHECK.filter(({ sample, expect }) => {
   const found = [PATTERN, STEMS].some((re) => [...sample.matchAll(re)].some((m) => !NOT_EN_GB.has(m[0].toLowerCase())));

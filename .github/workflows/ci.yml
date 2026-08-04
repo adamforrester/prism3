@@ -61,6 +61,14 @@ jobs:
       - name: Committed artifacts have not drifted
         run: npx --yes tsx@4 Prism3/engine/regen.ts --check
 
+      # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
+      # generated artifact, so if the baseline were regenerated a deleted token would rewrite the
+      # baseline to agree with the deletion and both gates would go green. The baseline is only
+      # rewritten by an explicit `--accept`, which itself refuses unless CONTRACT_VERSION has
+      # already been raised by the increment the diff requires.
+      - name: Token name contract (breaking-change gate)
+        run: npx --yes tsx@4 Prism3/engine/token-contract.ts --check
+
       # esbuild (and therefore the Vercel build) does not typecheck. These do.
       - name: Typecheck web
         run: npm run -w @prism3/web typecheck

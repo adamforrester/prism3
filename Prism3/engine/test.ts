@@ -28,7 +28,9 @@ import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
-import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION } from './mcp';
+import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
+import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump } from './version';
+import { buildContract, corpus, pathsOf, MINIMAL_BRAND } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder } from './materialise-to-figma';
@@ -5495,6 +5497,65 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(dark.length === 0,
     `source hygiene: the scan is live — every scanned root contributed files (${perRoot.map((x) => x.n).join('+')} = ${sources.length})`
     + (dark.length ? ` — EMPTY ROOTS: ${dark.join(', ')} (moved or renamed? point the scan at the new path)` : ''));
+}
+
+// --------------------------------------------------------------- versioning
+// The token-NAME contract (#464). `token-contract.ts --check` is the shipping gate; these are the
+// properties that gate depends on being true, tested where a failure names the cause rather than
+// just the symptom. The last one is the important one: it asserts the COMMITTED baseline still
+// matches the engine, so a stale baseline fails the unit suite too and not only the CLI.
+{
+  ok(satisfiesBump('1.0.0', '1.0.0', 'none'), 'version: an unchanged surface needs no bump');
+  ok(!satisfiesBump('1.0.0', '1.0.1', 'none'), 'version: "none" means EQUAL — a stray bump is still a mismatch to explain');
+  ok(satisfiesBump('1.0.0', '2.0.0', 'major') && !satisfiesBump('1.0.0', '1.9.9', 'major'),
+    'version: a major change needs a major bump — no amount of minor/patch substitutes');
+  ok(satisfiesBump('1.0.0', '1.1.0', 'minor') && satisfiesBump('1.0.0', '2.0.0', 'minor'),
+    'version: a minor change accepts a minor OR a major bump (over-bumping is safe, under-bumping is not)');
+  ok(!satisfiesBump('1.0.0', '1.0.1', 'minor'), 'version: a patch bump does NOT cover an added path');
+
+  const base = { contractVersion: '1.0.0', engineVersion: '0.1.0', note: '', corpus: [],
+    guaranteed: { 'color.text.primary': 'color', 'space.100': 'dimension' }, brandDependent: [], deprecations: [] };
+  ok(classify(base, { ...base.guaranteed }).level === 'none', 'contract: an identical surface classifies as no change');
+  ok(classify(base, { 'space.100': 'dimension' }).level === 'major', 'contract: a REMOVED path is breaking');
+  ok(classify(base, { ...base.guaranteed, 'space.200': 'dimension' }).level === 'minor', 'contract: an ADDED path is minor — it cannot break an existing reference');
+  const retyped = classify(base, { 'color.text.primary': 'string', 'space.100': 'dimension' });
+  ok(retyped.level === 'major' && retyped.retyped[0]?.from === 'color',
+    'contract: a RETYPED path is breaking and reports both types (a same-name token of a new type breaks a consumer that did nothing)');
+
+  // A rename ships its replacement; a replacement that does not exist is worse than no table at all,
+  // because it sends every consumer to a path the engine never emits.
+  const dep = [{ path: 'color.text.primary', replacedBy: 'space.100', since: '2.0.0' }];
+  const good = classify(base, { 'space.100': 'dimension' }, dep);
+  ok(good.migrated.length === 1 && good.danglingDeprecations.length === 0 && good.level === 'major',
+    'contract: a deprecated removal still classifies MAJOR, but carries the replacement path');
+  ok(classify(base, { ...base.guaranteed }, [{ path: 'a', replacedBy: 'nope.nowhere', since: '2.0.0' }]).danglingDeprecations.length === 1,
+    'contract: a deprecation pointing at a path the engine does not emit is caught');
+
+  const live = buildContract();
+  const committed = JSON.parse(readFileSync(resolve(HERE, '..', 'schema', 'token-contract.json'), 'utf8'));
+  const guaranteedCount = Object.keys(live.guaranteed).length;
+  // Non-vacuity floor. Not an exact count — the baseline file already pins that, and duplicating it
+  // here would just be two things to update. This guards the COMPUTATION going dark instead: the
+  // first cut of this intersected paths WITH the configurable root included (`nbds.*` vs `prism.*`)
+  // and returned 0, which would have made every assertion below vacuously true.
+  ok(guaranteedCount > 400, `contract: the guaranteed surface is non-empty and substantial (${guaranteedCount} paths — a root-prefix bug here yields 0)`);
+  ok(live.corpus.length === 5, `contract: the corpus spans both dialects, the legacy fixture and the minimal input (${live.corpus.length} brands)`);
+  for (const { id, theme } of corpus()) {
+    const paths = pathsOf(theme);
+    const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
+    ok(missing.length === 0, `contract: '${id}' emits every guaranteed path` + (missing.length ? ` — MISSING ${missing.slice(0, 5).join(', ')}` : ''));
+  }
+  ok(classify(committed, live.guaranteed).level === 'none',
+    'contract: the COMMITTED baseline still matches the engine (run token-contract.ts --accept after reviewing the diff)');
+  ok(committed.contractVersion === CONTRACT_VERSION,
+    `contract: the baseline's stamped version tracks CONTRACT_VERSION (${committed.contractVersion} vs ${CONTRACT_VERSION})`);
+
+  // One version, stamped everywhere it is claimed. Two hardcoded copies is how a server ends up
+  // reporting a version its own artifacts disagree with.
+  ok(SERVER_INFO.version === ENGINE_VERSION, 'version: the MCP serverInfo reports the engine version rather than a second hardcoded copy');
+  const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
+  ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
+    'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
 }
 
 // ------------------------------------------------------------------- report

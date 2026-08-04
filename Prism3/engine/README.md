@@ -51,6 +51,20 @@ the engine live and compares it against itself, so a stale committed artifact pa
 `regen.ts --check` reads the committed file. That gap is how `tokens.html` and the wendys artifacts
 drifted across many merged PRs undetected (#281).
 
+One gate is deliberately **not** part of `regen.ts`:
+
+```bash
+npx tsx Prism3/engine/token-contract.ts --check   # has the guaranteed token-NAME surface moved?
+```
+
+Token *values* are not versioned — a brand changing its colors is the engine working. Token *names*
+are, because a consumer that hard-codes `prism.color.text.primary` breaks silently when that path
+stops existing. `schema/token-contract.json` pins the 477 paths every corpus brand emits; removing
+or retyping one is a breaking change and `token-contract.ts --accept` refuses to record it until
+`CONTRACT_VERSION` has been raised to match. It stays out of `regen.ts` on purpose: a baseline that
+regenerates itself would rewrite itself to agree with the deletion it exists to catch. See
+`docs/30-versioning-and-compatibility.md`.
+
 Note: `buildTree` (the DTCG generator) lives in the **pure** `tree.ts` (no `node:*`), re-exported by
 `emit-dtcg.ts`; the browser hosts and `emit-figma.ts` import it directly. See `docs/09`/`docs/10`.
 
