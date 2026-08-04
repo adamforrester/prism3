@@ -7,6 +7,48 @@
 
 ---
 
+## (2026-08-04) — Palettes review: the mode bar was inert, and "Validation" was a UI-invented word
+
+**STATUS: web only.** First page reviewed with the doc-26 method. No emitted artifact moves.
+
+**Palettes is the reference implementation the conventions were derived from, so the interesting
+result is that it still had two findings — and that the method produced only two.** Typography's pass
+produced eleven. That difference is the signal: the page really is in good shape, and the sweep did
+not manufacture work to look productive.
+
+**1. The mode bar changed nothing.** Measured, not argued: with the mode-bar markup stripped, the
+Palettes workspace is **byte-identical between Light and Dark — 34555 chars both**. A ramp is
+mode-invariant; which STEP a mode lands on is a Surfaces concern. #268's audit had already found
+"Palettes and Layout are fully inert"; **Layout was fixed and Palettes was missed**, which is exactly
+the kind of half-applied fix a per-page sweep exists to catch. This is also the rule #416 stated and
+doc 26 now carries: if a page has no mode-varying value, the switcher leaves.
+
+**The control that makes the fix non-vacuous:** Surfaces keeps its bar and its workspace still DIFFERS
+between modes (26976 vs 26954). Without that, "the bar is gone" would be indistinguishable from
+"I broke the bar".
+
+**2. "Validation" names something the vocabulary calls `status`.** The engine input is
+`BrandInput.status`, the schema key is `status`, the emitted tokens are
+`palette.success|warning|danger|info`, and `semanticRoles` rebases onto "a status". **"Validation"
+appears nowhere in the token vocabulary** — a UI-invented word for a thing the tokens already name.
+Same class as Preview heading a category column `Role` after #415 re-keyed the tier. Now "Status
+ramps", with the internal comments and helper prose following it.
+
+**What the method correctly did NOT report.** The structural sweep flagged four elements whose
+`scrollWidth` exceeded their `clientWidth` — but the leaf-level check returned **`clippedLeaves: []`**,
+and inspecting them showed a `.plock` badge deliberately overhanging its swatch under
+`overflow:visible`, plus 2px of gap rounding. **Nothing was actually cut off**, unlike Typography's
+899→798 where specimens genuinely were. Reported as no-finding. A sweep that reports every anomaly is
+as useless as one that reports none.
+
+**A method note worth keeping: an invalid fixture fails SILENTLY into the start screen.** My first run
+returned empty for every field. The cause was `brandColors: [{name, hex}]` — the real shape is
+`{name, oklch:{l,c,h}}` — so validation rejected the brand and the app fell back to "Start a new
+brand". **The empty result is what saved it**; plausible-looking partial data would have been read as
+findings. When a sweep returns nothing, suspect the fixture before the page.
+
+---
+
 ## (2026-08-03) — Review pass 3: one vocabulary, and a finding of mine that was wrong
 
 **STATUS: web only.** No emitted artifact moves.
