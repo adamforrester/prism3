@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-04) — The Style guide renders on the mode's own canvas
+
+**STATUS: web only.** `out/*` untouched.
+
+**The mismatch inverted a meaning, not just a look.** The specimens already rendered the active mode's
+colours; the surface behind them stayed studio-white. So Dark showed dark tokens on a white page — and
+the **Inverse row (light cards) blended into that page**, making the one row that means *"a light band
+inside a dark UI"* read as the page itself. Reported as "can we make the card backgrounds dark", which
+undersells it: the row was saying the opposite of what it means.
+
+### Implemented by re-scoping custom properties, not by restyling components
+
+`--panel` / `--paper` / `--line` / `--line2` / `--ink` / `--ink2` / `--muted` / `--faint` are set on the
+ground from the mode's own roles. Those eight names are *exactly* the surfaces and ink tiers this
+system already models, so every pill, subhead and callout inside follows with **no per-component
+rule**. The inks are contrast-gated roles, so legibility on the new ground is the engine's guarantee
+rather than a hand-picked colour.
+
+### The contrast regression this nearly shipped
+
+First cut mapped `--muted → text.secondary` and `--faint → text.tertiary`, one studio tier per brand
+tier. Measured across all four modes, the **token pills came out at 3.52:1 in Dark** (3.86 in Light) —
+below AA for 10.5px text.
+
+**The engine gates `text.tertiary` at 3:1**, which is correct for large or non-essential text, while
+studio `--faint` is small supporting text that must clear 4.5 — #355 moved `--faint` *down* precisely
+to clear that bar. Mapping the two by position transplanted a 3:1 role into a 4.5:1 slot. Both
+supporting inks now map to `text.secondary`; losing the third ink tier inside this region is the right
+trade. **Worst label across 140 × 4 modes: 4.55:1.**
+
+> The general shape: **two scales with the same number of tiers are not therefore the same scale.**
+> Studio `--muted`/`--faint` and brand `text.secondary`/`tertiary` line up by position and differ by
+> contract, and only the contract matters.
+
+### The boundary that was chosen deliberately
+
+The `.psec` shell, its title and its description stay **studio**; only the specimen region is themed.
+Inside the frame is your system, outside it is the tool — theming the section copy too would leave no
+way to tell which is which, and would put brand ink on studio prose for every brand.
+
+**HC pays off immediately.** HC-dark renders pure black with white-bordered cards, which is the HC
+model — separate regions by border, not by near-invisible tint — visible for the first time, because
+previously those cards sat on white where the borders read as ordinary chrome.
+
+### The surface picker — asked, then built
+
+A light/dark toggle was proposed and is the **wrong control**: the mode already determines brightness
+(including for custom modes), so such a switch's only correct setting is the one already derivable,
+and a wrong one reproduces the very bug the ground fix removes. The useful axis is *which surface*,
+not *which brightness*: **Page / Page — second tier / Card / Inverse band**, all real background roles.
+One picker for the view, not one per section.
+
+**Each ground carries its own ink and border set, and that pairing is the whole correctness of the
+feature.** `text.primary` is gated against the page planes and would be the wrong ink on the inverse
+band, where the system defines exactly ONE on-color role — so the supporting tiers collapse onto it
+there rather than borrowing a page-gated role that was never measured against that ground. Getting
+this wrong would have re-created the contrast regression above once per surface.
+
+Measured across **every surface × every mode**: 16 combinations, 140 labels each, worst **4.55:1**.
+
+**Verification.** `regen --check` 88 · **1280/0** · NB regression PASS · web+plugin typecheck/build ·
+sandbox-clean · US-English clean. Four modes screenshotted and read; **2,240 studio-label
+measurements** across 4 modes × 4 surfaces, all clearing AA.
+
+---
+
 ## (2026-08-04) — The segmented control stops out-shouting the page (#439)
 
 **STATUS: web.** Three CSS rules. `out/*` untouched.

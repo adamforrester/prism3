@@ -1218,6 +1218,78 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     return cw;
   };
 
+  /** Re-home a built section's SPECIMENS onto the mode's own canvas.
+   *
+   *  The specimens already rendered the mode's colours; the surface behind them stayed studio-white, so
+   *  Dark showed dark tokens on a white page — and the Inverse row (light cards) blended into that page,
+   *  making the one row that means "a light band inside a dark UI" read as the page itself. The mismatch
+   *  did not just look wrong, it inverted the meaning.
+   *
+   *  Implemented by re-scoping the CSS custom properties on the ground rather than restyling each
+   *  component: `--panel`/`--paper`/`--line`/`--ink`/`--muted`/`--faint` are exactly the four surfaces
+   *  and three ink tiers this system already names, so every pill, subhead and callout inside follows
+   *  with no per-component rule. The inks are the mode's OWN contrast-gated text roles, so legibility
+   *  on the new ground is the engine's guarantee rather than a hand-picked colour.
+   *
+   *  The `.psec` shell, its title and its description stay STUDIO. That boundary is deliberate: inside
+   *  the frame is your system, outside it is the tool. Theming the section copy too would leave no way
+   *  to tell which is which — and would put brand ink on studio prose for every brand. */
+  /** Which surface the specimens are previewed ON. Every option is a real background role, so this is
+   *  "show me this system on our panel / on our card / on our dark hero band" — not a brightness
+   *  switch. A manual light/dark toggle was considered and rejected: the mode already determines
+   *  brightness (including for custom modes), so such a control's only correct setting is the one
+   *  already derivable, and a wrong one reproduces the bug the themed ground exists to fix.
+   *
+   *  Each ground carries its OWN ink and border set. That pairing is the whole correctness of this
+   *  feature — `text.primary` is gated against the page planes and would be the wrong ink on the
+   *  inverse band, where the system defines exactly one on-color role. Getting this wrong would
+   *  re-create, per surface, the contrast regression the ground fix just removed. */
+  type SgSurface = { key: string; label: string; ink: string; line: string; line2: string; tiered: boolean };
+  const SG_SURFACES: SgSurface[] = [
+    { key: 'background.primary', label: 'Page', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'background.secondary', label: 'Page — second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'foreground.primary', label: 'Card', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
+    // borrowing a page-gated role that was never measured against this ground.
+    { key: 'background.inverse.primary', label: 'Inverse band', ink: 'text.on-inverse', line: 'border.inverse', line2: 'border.inverse', tiered: false },
+  ];
+  const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
+
+  const ground = (sec: HTMLElement): HTMLElement => {
+    const g = el('div', 'sg-ground');
+    const head = sec.querySelector('.psec-head');
+    while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
+    const bg = paint(cur, surf.key);
+    // A tiered ground keeps the secondary ink for supporting text; the inverse band has only its one
+    // on-color role, so everything inside uses that.
+    const support = surf.tiered ? paint(cur, 'text.secondary') : paint(cur, surf.ink);
+    g.style.background = bg;
+    g.style.setProperty('--panel', bg);
+    g.style.setProperty('--paper', paint(cur, surf.tiered ? 'background.secondary' : surf.key));
+    g.style.setProperty('--line', paint(cur, surf.line));
+    g.style.setProperty('--line2', paint(cur, surf.line2));
+    g.style.setProperty('--ink', paint(cur, surf.ink));
+    g.style.setProperty('--ink2', support);
+    // BOTH supporting inks map to the AA-gated tier, not one each to secondary and tertiary. The
+    // engine gates text.tertiary at 3:1 — correct for large or non-essential text — while studio
+    // --faint is 10.5px token pills that need 4.5:1, and #355 moved --faint DOWN precisely to clear
+    // that bar. Mapping it onto tertiary transplanted a 3:1 role into a 4.5:1 slot: 3.52:1 in Dark.
+    g.style.setProperty('--muted', support);
+    g.style.setProperty('--faint', support);
+    sec.append(g);
+    return sec;
+  };
+
+  // One picker for the view, not one per section — seven copies of the same control would be noise,
+  // and the sections are read together as one system.
+  const bar = el('div', 'sg-surfbar');
+  bar.append(el('span', 'pfk', 'Preview on'));
+  const sel = selectEl('cap');
+  for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
+  sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
+  bar.append(sel, el('span', 'sg-surfnote', `color.${surf.key}`));
+  host.append(bar);
+
   host.append(el('p', 'np-note', 'Hover any token pill for its resolved primitive, hex, and contrast. Modes switch from the picker above.'));
 
   const SEM: Array<[string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
@@ -1231,7 +1303,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'background.inverse.primary'], ['Secondary', 'background.inverse.secondary'], ['Tertiary', 'background.inverse.tertiary']] as Array<[string, string]>)
     .map(([n, k], i) => surfaceCard(k, n, 'text.on-inverse', i === 0 ? 'On-inverse text' : undefined, i === 0 ? [sgPill('text.on-inverse')] : []))));
   secBg.append(subHead('Scrim'), grid(3, [scrimCard('scrim.default')]));
-  host.append(secBg);
+  host.append(ground(secBg));
 
   // Foreground
   const secFg = palSection('Foreground', 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
@@ -1242,7 +1314,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'foreground.inverse.primary'], ['Secondary', 'foreground.inverse.secondary'], ['Tertiary', 'foreground.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse'))));
   secFg.append(subHead('Bold'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}`, n, `text.on-${s}`, 'On-color text', [sgPill(`text.on-${s}`)]))));
   secFg.append(subHead('Subtle'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}-subtle`, n, `text.${s}`, 'On-color text', [sgPill(`text.${s}`)]))));
-  host.append(secFg);
+  host.append(ground(secFg));
 
   // Text color — Light | Inverse | Token
   const secText = palSection('Text color', 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.');
@@ -1279,20 +1351,20 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   callout.append(el('span', 'mono', 'text.link.default / hover / visited / focused'));
   callout.append(document.createTextNode(' and no neutral or accent link roles. Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift.'));
   secText.append(callout);
-  host.append(secText);
+  host.append(ground(secText));
 
   // Border
   const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
   secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.inverse'].map((k) => borderCard(k))));
   secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
-  host.append(secBorder);
+  host.append(ground(secBorder));
 
   // Icon
   const secIcon = palSection('Icon', 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.');
   secIcon.append(subHead('Neutral'), grid(3, ['icon.primary', 'icon.secondary', 'icon.tertiary'].map((k) => iconCard(k))));
   secIcon.append(subHead('Semantic'), grid(5, ['icon.brand', 'icon.danger', 'icon.success', 'icon.warning', 'icon.info'].map((k) => iconCard(k))));
   secIcon.append(subHead('On color'), grid(5, SEM.map(([, s]) => iconCard(`icon.on-${s}`, `foreground.${s}`))));
-  host.append(secIcon);
+  host.append(ground(secIcon));
 
   // Disabled
   const secDis = palSection('Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.');
@@ -1302,7 +1374,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = 'var(--panel)'; const l = el('div', 'sg-lab', 'Disabled'); l.style.color = paint(cur, 'disabled.text'); c.append(l); cw.append(c, pills(sgPill('disabled.text'))); disCards.push(cw); }
   disCards.push(borderCard('disabled.border'), iconCard('disabled.icon'));
   secDis.append(grid(5, disCards));
-  host.append(secDis);
+  host.append(ground(secDis));
 
   // Interactive — button sets in rows
   const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. Accent palettes are opt-in and would add blocks.');
@@ -1340,7 +1412,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], true));
     secInt.append(block);
   }
-  host.append(secInt);
+  host.append(ground(secInt));
 };
 
 const PAGE_COPY: Record<PageKey, [string, string]> = {
@@ -3163,6 +3235,9 @@ const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion
  *  placeholder; the style guide now carries the real value.) */
 type PreviewView = 'styleguide' | 'contrast' | 'tokens';
 let previewView: PreviewView = 'styleguide';
+/** Which background role the Style guide's specimens are previewed on. Module state so it survives
+ *  a repaint, like `previewView` and `currentMode` beside it. */
+let sgSurface = 'background.primary';
 const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['styleguide', 'Style guide'], ['contrast', 'Contrast contracts'], ['tokens', 'Token list']];
 const renderPreviewPage = (host: HTMLElement): void => {
   const [title, lede] = PAGE_COPY.preview;
@@ -6640,6 +6715,15 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
+/* The surface picker — one control for the whole view, above the sections it governs. */
+.sg-surfbar{display:flex;align-items:center;gap:10px;margin:12px 0 4px;flex-wrap:wrap}
+.sg-surfbar .pfk{flex:none}
+.sg-surfnote{font-family:var(--mono);font-size:11px;color:var(--faint)}
+/* The mode's own canvas behind the specimens. Inset from the .psec so the studio shell still reads as
+   the frame; the re-scoped custom properties (set inline) carry the theme to everything inside. */
+.sg-ground{margin-top:14px;padding:18px 18px 20px;border-radius:var(--r);border:1px solid var(--line);
+  color:var(--ink);transition:background .12s ease}
+.sg-ground .sub-t{color:var(--muted)}
 .sg-grid{display:grid;gap:14px;margin-top:2px}
 .sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
 .sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}
