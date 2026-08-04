@@ -7,6 +7,74 @@
 
 ---
 
+## (2026-08-04) — Descriptive vocabulary: the words a brief already uses (#471)
+
+**STATUS: engine (`vocabulary.ts`, new) + `theme.ts` + `levers.ts` + `mcp.ts` + `theme-schema.json`
++ docs/31.** `out/*` token trees byte-identical — only `schema/lever-manifest.json` changed.
+
+A brand brief does not speak in numbers. It says *"corners are generous and the UI is dense"*, and
+the engine had no way to hear it: nine sliders took bare numbers with no vocabulary, and a brief's
+prose was parsed then discarded. An agent had to invent a number, and its guess went unrecorded —
+which is the part that matters, because **a logged default is auditable and a guessed one is not.**
+
+### Two measurements framed it, and the first corrected my own issue
+
+**Only 9 levers could have taken a vocabulary, not the 30 #471 claimed.** That number lumped in
+colors, objects, lists and toggles, which structurally cannot take an adjective — an OKLCH anchor is
+not "friendly". Of the 9 sliders, three (`layout.columns`, `disabledMin`, `baseMd`) are bare
+quantities no word improves; a 3:1 contrast floor is not "gentle". Real target: **six.**
+
+**Brief prose was dead weight.** `parseDesignMd` returns `{ input, prose }` and *nothing in the
+engine ever read `prose`*. `design-md.ts`'s header calls it "latitude an agent reads to make the
+judgment calls the frontmatter can't encode", and the example briefs annotate their own intended
+mapping — none of it connected to anything.
+
+### The seam, which is the actual design decision
+
+Free-prose scanning was considered and rejected. Keyword-matching misfires exactly where briefs are
+richest (*"we avoid anything playful"*, *"less rounded than our old site"*) and would put a fuzzy
+step at the center of an engine whose whole claim is determinism. Instead: **the fuzzy step stays in
+the agent, the auditable step stays in the engine.** An agent reads prose, maps it onto a controlled
+vocabulary, passes `personality: [...]`. Same seam `standardToBrandInput` already draws.
+
+The words are not invented — read off the three example briefs, and each trait's citation **ships in
+the note**, so the inference can be audited rather than merely observed. A tenth candidate
+(`confident`) was dropped as redundant against `bold` rather than shipped to round the number out.
+
+### The bug worth remembering: an audit trail that misattributes
+
+Precedence is two rules — explicit always beats inferred, and between traits the first listed wins.
+The second was reported wrongly in the first cut: the presence check ran before the "which trait
+claimed this" check, but a trait-applied lever *is* present by then, so **every trait-vs-trait
+collision reported as `(set explicitly)` — crediting the author for a choice the engine made.** An
+audit trail that misattributes is worse than none. Found by running the resolver, not reading it:
+the branch was unreachable and looked entirely fine.
+
+A second correction went the other way. Unknown traits were initially lenient (a note, generation
+continues), but `theme-schema.json` declares `personality` as a closed enum — so the two enforcement
+points disagreed and the lenient branch was reachable only from the in-memory hosts. **Two
+enforcement points that differ is worse than either rule alone.** The enum won: for an agent, a hard
+error listing the nine traits closes the loop in one turn where a note may never be read.
+
+### Mutation-tested, and one mutation was fatal to the suite
+
+Five deliberate breaks: a stop off its lever's step grid, a trait targeting a nonexistent lever, a
+trait using an invalid enum value, a trait restating a number instead of a stop name, and reverting
+the attribution ordering. All caught by name — but the third **killed the entire 1,409-assertion
+run.** An invalid enum throws deep inside `componentSizes`, and the static check had already recorded
+the real cause; the report just never printed, so one defect surfaced as *zero*. The same lesson
+`mcp-test.ts` learned two entries ago, in a suite written after it. Guarded now: `build` records a
+throw and returns null, and comparisons go through a `radiusOf` helper returning NaN so two absent
+values cannot agree vacuously.
+
+> A gate is only worth what it reports when it fails. Both times, the defect was found by breaking
+> something and watching — never by reading the code.
+
+**Verification.** regen --check 88 · **1409/0** unit (+92) · MCP 49/0 · NB PASS · typecheck/build ·
+sandbox-clean · US-English clean.
+
+---
+
 ## (2026-08-04) — The token list's mode detection was one hop too shallow for `type.*`
 
 **STATUS: web (`main.ts`).** No engine change, `out/*` byte-identical.
