@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-08-04) — Elevation + Size & radius review: two specimens were showing a subset
+
+**STATUS: web only.** Third and fourth pages through the doc-26 method. No emitted artifact moves.
+
+**Both findings are the same defect in two places: a specimen that shows PART of a scale under a
+heading that promises the whole one.** Neither was visible as a bug — nothing was clipped, nothing
+errored, nothing looked broken. They were findable only by extracting the token vocabulary FIRST
+(method step 1) and counting the page against it.
+
+**1. `shadow.inset` appeared nowhere on Elevation.** The engine emits 7 `shadow.*` tokens; the ramp
+renders `SHADOW_STEPS = ['xs'…'2xl']` — six. The one token you could not see is the one whose shape you
+most need to, since an inner shadow reads nothing like an elevation step. It now rides along after the
+ramp, **labelled apart rather than appended to xs…2xl**: a different KIND of shadow, not the next rung.
+`resolve-preview.ts` already promised it — its own comment reads "`shadow.xs`…`shadow.2xl`,
+`shadow.inset` … so the elevation specimen can show it". The model was complete; the specimen never
+asked for the last one.
+
+**2. The "Spacing grid" specimen showed 4 of 18 steps — and that came from trying to fix something
+smaller.** The reported issue was cosmetic: spacing steps named their token as plain `.sp-lab mono`
+text while Corner radius and Density & size, on the same page, used `tokenPill`. Fixing that and
+counting the result gave **four pills**. The cause: `paintSpacingPreview` read `rp.dims`, which is
+**consumption-driven** — it holds only the dimension refs the preview COMPONENTS bind — so the section
+rendered whichever steps a component happened to use (`space.100/150/200/300`) under a heading reading
+"the spacing rhythm". Now reads `theme.dims.space`, the scale itself: **18 of 18**.
+
+**Third time this session the pattern has paid.** *When a fix cannot find what it needs — or its
+result does not add up — the shortfall is the real defect.* The pill swap was trivial and correct; it
+was the COUNT afterwards that exposed a specimen showing 22% of its scale. Doc 26 carries the
+principle already; this is the case showing it applies to arithmetic, not just to missing signals.
+
+**Deliberately not reported.** `.knob-label` (Elevation, Size & radius: 13.5px, sentence case, ink) vs
+`.pfk` (Palettes, Typography: 9.5px, uppercase, muted) — measured, genuinely different, but they are a
+FIELD label and a MICRO label, two tiers of one idea, exactly like `.ctable` vs `.mtbl-tbl` on
+Interactive. **Doc 26's Universal rule names `.pfk` as if it were the only label component**, which is
+what made both look like violations. A doc gap, not a page defect.
+
+**Also verified clean on both pages:** mode bars active and legitimate (Elevation 3790 vs 3999, Size &
+radius 5334 vs 5659 — shadows and geometry really are mode-varying), zero clipped leaves, no page
+overflow, no literal backticks, no duplicate select options, no console errors.
+
+**Open for doc 26 (not yet written):** the dashboard has TWO tiers of several components and the doc
+names one of each — `.pfk`/`.knob-label` for labels, `.mtbl-tbl`/`.ctable` for tables. Both pairs
+surfaced as false "inconsistencies" in consecutive reviews, which is the tell that the doc is
+under-specified. Worth one entry describing each pair and when to use which.
+
+---
+
 ## (2026-08-04) — Palettes review: the mode bar was inert, and "Validation" was a UI-invented word
 
 **STATUS: web only.** First page reviewed with the doc-26 method. No emitted artifact moves.
