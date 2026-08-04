@@ -28,7 +28,7 @@ import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
-import { handleRpc, callTool, toolDefs, manifestRootKeys } from './mcp';
+import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION } from './mcp';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, passJs, passOrder } from './materialise-to-figma';
@@ -4705,11 +4705,37 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const brandSchema = JSON.parse(readFileSync(resolve(HERE, '../schema/theme-schema.json'), 'utf8'));
   const rpc = (method: string, params?: any) => handleRpc({ jsonrpc: '2.0', id: 1, method, params }, brandSchema);
 
-  // handshake
-  const init = rpc('initialize');
-  ok((init?.result as any)?.protocolVersion && (init?.result as any)?.serverInfo?.name === 'prism3-engine', 'MCP: initialize returns protocolVersion + serverInfo');
+  // ---- 2026-07-28: stateless, server/discover, resultType, cache hints -----------------------
+  const disco = rpc('server/discover')?.result as any;
+  ok(Array.isArray(disco?.protocolVersions) && disco.protocolVersions[0] === LATEST_PROTOCOL_VERSION && disco.serverInfo?.name === 'prism3-engine',
+    `MCP: server/discover advertises versions + identity (newest ${LATEST_PROTOCOL_VERSION}) — a MUST in 2026-07-28`);
+  ok(disco.capabilities?.tools && disco.capabilities.tools.listChanged === false, 'MCP: server/discover states tools capability with listChanged:false (a static catalogue)');
+  // Every result, not just some: a missing resultType is read as "complete" by newer clients, so the
+  // only way this can be wrong is inconsistently.
+  for (const m of ['server/discover', 'initialize', 'tools/list', 'ping']) {
+    ok((rpc(m)?.result as any)?.resultType === 'complete', `MCP: ${m} result carries resultType:'complete'`);
+    ok((rpc(m)?.result as any)?._meta?.['io.modelcontextprotocol/serverInfo']?.name === 'prism3-engine', `MCP: ${m} identifies the server in _meta`);
+  }
+  const listed = rpc('tools/list')?.result as any;
+  ok(listed.ttlMs > 0 && listed.cacheScope === 'public', 'MCP: tools/list carries the required ttlMs + cacheScope cache hints');
+  ok(JSON.stringify(((rpc('tools/list')?.result as any).tools as any[]).map((t) => t.name)) === JSON.stringify((listed.tools as any[]).map((t) => t.name)),
+    'MCP: tools/list order is deterministic across calls');
+  // Version negotiation arrives per-REQUEST now. A version we speak passes; one we do not is rejected
+  // with the renumbered code, and an ABSENT version is allowed (older clients never send one).
+  const verOk = handleRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': LATEST_PROTOCOL_VERSION } } }, brandSchema);
+  ok((verOk?.result as any)?.tools?.length === 3, 'MCP: a request carrying a supported protocolVersion in _meta is served');
+  const verBad = handleRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '1999-01-01' } } }, brandSchema);
+  ok((verBad as any)?.error?.code === -32022 && Array.isArray((verBad as any)?.error?.data?.supported), 'MCP: an unsupported protocolVersion → -32022 (the reserved range) with the supported list attached');
+  ok((rpc('tools/list')?.result as any)?.tools?.length === 3, 'MCP: a request with NO protocolVersion is still served (older clients never send one)');
+
+  // ---- 2024-11-05 dual support: the old handshake still answers ------------------------------
+  const init = rpc('initialize')?.result as any;
+  ok(init?.protocolVersion === LATEST_PROTOCOL_VERSION && init?.serverInfo?.name === 'prism3-engine', 'MCP: initialize still answers for pinned clients');
+  const initOld = handleRpc({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2024-11-05' } }, brandSchema);
+  ok((initOld?.result as any)?.protocolVersion === '2024-11-05', 'MCP: initialize echoes an older version we still speak, rather than forcing the newest');
   ok(rpc('notifications/initialized') === null, 'MCP: a notification (initialized) gets no response');
   ok((rpc('bogus/method') as any)?.error?.code === -32601, 'MCP: an unknown method → JSON-RPC -32601 (method not found)');
+  ok((rpc('tools/call', { name: 'nope' }) as any)?.error?.code === -32602, 'MCP: an unknown TOOL name is a protocol error (-32602), not a tool result');
 
   // tool catalogue
   const tools = (rpc('tools/list')?.result as any)?.tools as any[];
@@ -4761,7 +4787,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(JSON.parse(callTool('validate_brand', { id: 'x' }).content[0].text).valid === false, 'MCP: validate_brand flags an incomplete brand (missing primary/neutral)');
   ok(JSON.parse(callTool('validate_brand', { id: 'ok', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } }).content[0].text).valid === true, 'MCP: validate_brand passes a complete brand');
   ok(callTool('theme_brand', { id: 'bad' }).isError === true, 'MCP: theme_brand on an invalid brand returns a tool-level error (isError), not a crash');
-  ok(callTool('no_such_tool', {}).isError === true, 'MCP: an unknown tool name → isError result');
+  ok(callTool('no_such_tool', {}).isError === true, 'MCP: callTool on an unknown name → isError (the RPC layer rejects it earlier, this is the direct-call guard)');
 }
 
 // ------------------------------------------- consumption eval (docs/17, roadmap C follow-on)

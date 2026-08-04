@@ -2,9 +2,11 @@
  * Prism3 engine — MCP adapter (docs/08 §5, roadmap C: "an agent themes Prism3").
  *
  * An agent-callable surface over the pure core. **Dependency-free JSON-RPC 2.0 over
- * stdio** — deliberately NO `@modelcontextprotocol/sdk`: MCP is just JSON-RPC plus a
- * three-method core (`initialize` / `tools/list` / `tools/call`), so we own the
- * transport the same way the engine owns its YAML parser and colour math. Keeps the
+ * stdio** — deliberately NO `@modelcontextprotocol/sdk`: MCP is JSON-RPC plus a small
+ * method set (`server/discover` / `tools/list` / `tools/call`, and `initialize` for
+ * older clients), so we own the transport the same way the engine owns its YAML parser
+ * and colour math. Owning it also meant the 2026-07-28 migration was a day's work in one
+ * file rather than an SDK upgrade across a dependency tree. Keeps the
  * no-`npm install` invariant (docs/07 §3) and fits the "pure core, hosts at the edges"
  * posture (docs/15): this file is an **I/O SHELL** — `node:` is allowed here, the pure
  * core (`theme`/`tree`/`modes`/`ai-metadata`/`levers`) is imported and never modified.
@@ -24,6 +26,10 @@
  * `theme-schema.json` (the manifest is presentation, the schema is the precise OKLCH-aware
  * validation half — a `control:'color'` lever is an OKLCH object, not a string).
  *
+ * PROTOCOL: speaks `2026-07-28` (stateless — version + client capabilities arrive per
+ * request in `_meta`; `server/discover` replaces the handshake) AND `2024-11-05` (the
+ * `initialize` handshake, kept so pinned clients keep working). See PROTOCOL_VERSIONS.
+ *
  * Run: `npx tsx Prism3/engine/mcp.ts`  (speaks MCP over stdin/stdout; point a client at it).
  */
 import { readFileSync } from 'node:fs';
@@ -35,7 +41,44 @@ import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
 
 export const SERVER_INFO = { name: 'prism3-engine', version: '0.1.0' };
-export const PROTOCOL_VERSION = '2024-11-05';
+
+/** Protocol revisions this server speaks, newest first.
+ *
+ *  `2026-07-28` made MCP STATELESS: the `initialize` / `notifications/initialized` handshake and
+ *  `ping` were removed, every request carries its protocol version and client capabilities in `_meta`,
+ *  and `server/discover` became a MUST. `2024-11-05` is kept because dropping it would break any
+ *  client pinned to the handshake, and the two cost one branch to support side by side.
+ *
+ *  DUAL SUPPORT, concretely: `initialize` and `ping` still answer (they are simply absent from the
+ *  newer spec, not forbidden), while `server/discover`, `resultType`, the `_meta` envelope and the
+ *  `tools/list` cache hints are added unconditionally — a `2024-11-05` client ignores fields it does
+ *  not know, so there is no need to branch the RESPONSE shape on the negotiated version. */
+export const PROTOCOL_VERSIONS = ['2026-07-28', '2024-11-05'] as const;
+export const LATEST_PROTOCOL_VERSION = PROTOCOL_VERSIONS[0];
+/** Retained for the older handshake's reply. */
+export const PROTOCOL_VERSION = LATEST_PROTOCOL_VERSION;
+
+/** `_meta` keys the 2026-07-28 revision defines. Spelled out rather than string-literalled at each
+ *  use so a typo cannot silently produce an unread field. */
+export const META = {
+  protocolVersion: 'io.modelcontextprotocol/protocolVersion',
+  clientInfo: 'io.modelcontextprotocol/clientInfo',
+  clientCapabilities: 'io.modelcontextprotocol/clientCapabilities',
+  serverInfo: 'io.modelcontextprotocol/serverInfo',
+} as const;
+
+/** Error codes. `-32020`–`-32099` is the range the 2026-07-28 spec reserved for itself; `-32000`–
+ *  `-32019` stays implementation-defined. The three below were renumbered by that revision. */
+export const ERR = {
+  headerMismatch: -32020,
+  missingRequiredClientCapability: -32021,
+  unsupportedProtocolVersion: -32022,
+} as const;
+
+/** Server capabilities, shared by `initialize` and `server/discover` so the two can never disagree.
+ *  `listChanged: false` is stated rather than omitted: this tool set is a static array, so the honest
+ *  answer is that it never changes — and a client can then skip opening a subscription for it. */
+export const CAPABILITIES = { tools: { listChanged: false } };
 
 export type RpcId = number | string | null;
 export type RpcRequest = { jsonrpc?: string; id?: RpcId; method: string; params?: any };
@@ -220,23 +263,54 @@ export const callTool = (name: string, args: any, brandSchema?: unknown): ToolRe
  *  (which gets no reply). Pure: `brandSchema` is injected so there is no file I/O here. */
 export const handleRpc = (req: RpcRequest, brandSchema: unknown): RpcResponse | null => {
   const id = req.id ?? null;
-  const ok = (result: unknown): RpcResponse => ({ jsonrpc: '2.0', id, result });
-  const err = (code: number, message: string): RpcResponse => ({ jsonrpc: '2.0', id, error: { code, message } });
+  /** Every result carries `resultType: 'complete'` and identifies the server in `_meta`, both required
+   *  of a 2026-07-28 server. Added unconditionally: an older client ignores fields it does not know,
+   *  and the spec tells newer clients to treat a MISSING `resultType` as `complete` anyway — so the
+   *  only shape that is wrong for somebody is a version-branched one. */
+  const ok = (result: Record<string, unknown>): RpcResponse =>
+    ({ jsonrpc: '2.0', id, result: { resultType: 'complete', ...result, _meta: { [META.serverInfo]: SERVER_INFO } } });
+  const err = (code: number, message: string, data?: unknown): RpcResponse =>
+    ({ jsonrpc: '2.0', id, error: { code, message, ...(data !== undefined ? { data } : {}) } });
+
+  // Statelessness means the version arrives on the REQUEST, not from a remembered handshake. An
+  // absent version is treated as "whatever this server speaks" rather than rejected: older clients
+  // never send it, and refusing them would defeat the dual support this is here to provide.
+  const asked = (req.params?._meta as Record<string, unknown> | undefined)?.[META.protocolVersion];
+  if (typeof asked === 'string' && !(PROTOCOL_VERSIONS as readonly string[]).includes(asked)) {
+    return err(ERR.unsupportedProtocolVersion, `unsupported protocol version: ${asked}`, { supported: PROTOCOL_VERSIONS });
+  }
 
   switch (req.method) {
-    case 'initialize':
-      return ok({ protocolVersion: PROTOCOL_VERSION, capabilities: { tools: {} }, serverInfo: SERVER_INFO });
+    // 2026-07-28 — MUST implement. The up-front version/capability probe that replaces the handshake.
+    case 'server/discover':
+      return ok({ protocolVersions: [...PROTOCOL_VERSIONS], capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
+
+    // 2024-11-05 — removed by the newer revision, kept answering so pinned clients still work.
+    // Echoes the client's version when we speak it, else our newest, which is what that spec asks.
+    case 'initialize': {
+      const want = req.params?.protocolVersion;
+      const version = typeof want === 'string' && (PROTOCOL_VERSIONS as readonly string[]).includes(want) ? want : LATEST_PROTOCOL_VERSION;
+      return ok({ protocolVersion: version, capabilities: CAPABILITIES, serverInfo: SERVER_INFO });
+    }
     case 'notifications/initialized':
     case 'initialized':
       return null; // notification — no response
-    case 'ping':
+    case 'ping':      // also removed by 2026-07-28; harmless to keep answering
       return ok({});
+
     case 'tools/list':
-      return ok({ tools: toolDefs(brandSchema) });
+      // `ttlMs` + `cacheScope` are required of a 2026-07-28 list result. This catalogue is a static
+      // array — it cannot vary per caller and never changes at runtime — so it is `public` and the
+      // TTL is generous. Order is the array's order, which satisfies the deterministic-ordering SHOULD.
+      return ok({ tools: toolDefs(brandSchema), ttlMs: 3_600_000, cacheScope: 'public' });
+
     case 'tools/call': {
       const name = req.params?.name;
       if (!name) return err(-32602, 'tools/call requires params.name');
-      return ok(callTool(name, req.params?.arguments ?? {}, brandSchema));
+      // An unknown TOOL is a protocol error (the request names something that does not exist); a tool
+      // that ran and failed is an `isError` result. -32602 per the spec's own example.
+      if (!toolDefs(brandSchema).some((t) => t.name === name)) return err(-32602, `Unknown tool: ${name}`);
+      return ok(callTool(name, req.params?.arguments ?? {}, brandSchema) as unknown as Record<string, unknown>);
     }
     default:
       return err(-32601, `method not found: ${req.method}`);
@@ -269,5 +343,5 @@ if (isMain) {
       if (res) send(res);
     }
   });
-  process.stderr.write('prism3 MCP server ready (stdio) — tools: list_levers, theme_brand, validate_brand\n');
+  process.stderr.write(`prism3 MCP server ready (stdio) — protocols ${PROTOCOL_VERSIONS.join(', ')} — tools: list_levers, theme_brand, validate_brand\n`);
 }
