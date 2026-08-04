@@ -7,6 +7,58 @@
 
 ---
 
+## (2026-08-04) — Managing the mode SET moves to the brand menu, reversing #171 (#432)
+
+**STATUS: web.** `out/*` untouched. Completes step 1 of the #432 treatment alongside the relocation.
+
+**This reverses a stated decision, so the reasoning matters more than the diff.** #171 moved modes
+OUT of the brand dropdown into an "Edit modes" popover on the mode strip, deliberately — *"next to
+the mode you're viewing"*. Two things changed since:
+
+- **The strip moved onto the page.** A popover hanging off a global header is cheap; the same popover
+  in the content column competes with page content and has to be positioned around it.
+- **The distinction turned out to be selecting vs configuring.** *Which* modes a brand generates is
+  brand configuration — it sits naturally beside namespace and the example brands. *Which* mode you
+  are looking at is a per-page act. #171 bundled them because they were both "modes"; splitting them
+  puts each where its neighbours are. **Selecting stays on the strip; only managing the set moved.**
+
+**A second benefit that is not incidental:** the strip is now purely a selector, so it no longer has
+to reserve room for a button — which is what makes the wrap→scroll change in the relocation PR
+comfortable rather than tight.
+
+**`renderModeSetMenu` became host-agnostic** rather than being duplicated: it takes the repaint
+callback (the strip and the brand menu are re-rendered by different functions) and an `inline` flag
+that drops the popover chrome, since the brand menu is *itself* a popover and a nested one would be
+absolutely positioned inside an absolutely positioned parent. All the behavior — validation, the
+locked Light row, the add form, custom-mode removal — is untouched.
+
+**The regression this introduced, found by measuring rather than by looking.** Folding the mode set in
+pushed the brand menu to **~716px**, and `.brandmenu` had **no `max-height` and `overflow-y: visible`**.
+At a 700px-tall window it ran **89px past the bottom of the viewport with the last items simply
+unreachable** — no scrollbar, no clipping, just gone. Latent before this change and survivable while
+the menu was short; adding a section is what made it reachable at an ordinary laptop height. Now
+bounded to the space below the header and scrolls internally: verified at 1100 / 900 / 800 / 700px,
+fits at all four.
+
+**A second regression, found in independent review: closing the brand menu without Cancel leaked the
+add-mode form's state.** Both close paths — the toggle button and the outside-click handler — cleared
+`brandMenuOpen` but not `addModeOpen`/`addModeName`, so a partially-typed mode name survived a
+dismiss-without-cancelling and reappeared, stale, on the next open. The old strip popover reset both
+on every close path; the brand-menu equivalents only did it from Cancel. Fixed by mirroring that reset
+at both close sites, matching the `importOpen = false` already sitting next to them. Re-verified via
+Playwright on both previously-broken paths: form closes clean, no stale text, Cancel still works as
+before.
+
+Worth keeping as a shape: **adding content to a floating element is a viewport-fit change, not just a
+content change.** Nothing in the diff says "height"; only measuring at a short viewport does.
+
+Verified: the strip has one child and no Edit button; the brand menu reads Current brand · **Modes** ·
+Examples; the inline editor computes `position: static` with no shadow; toggling Wireframe from the
+brand menu takes the strip 4 → 5 chips; closing without Cancel (both via outside-click and via the
+toggle button) now reopens the add-mode form clean. No page errors.
+
+---
+
 ## (2026-08-04) — Layout review: a specimen that overstated every ratio it drew
 
 **STATUS: web only.** No engine change, `out/*` untouched.
