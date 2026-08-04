@@ -451,7 +451,7 @@ const brandRow = (getHex: () => string, setHex: (h: string) => void, name: strin
 // Custom tint (Hue + Chroma sliders drive the scale; swatch is a read-out) and Pinned color (the swatch
 // IS the color picker → an exact grey pinned to `neutral.anchor`). The padlock marks the two read-out
 // sources — Auto + Custom tint — where the swatch is derived, not directly editable; Pinned's swatch has
-// no lock because it's the one editable picker. Source is a select, matching Validation.
+// no lock because it's the one editable picker. Source is a select, matching the status ramps.
 const neutralRow = (): { row: HTMLElement; refresh: () => void } => {
   const pinned = !!brandState.neutral.anchor;
   const auto = !pinned && !!brandState.neutral.auto;       // Auto: hue live-follows the brand primary
@@ -584,8 +584,11 @@ const renderPrimitives = (host: HTMLElement): void => {
   { const n = neutralRow(); neuSec.append(n.row); refreshers.push(n.refresh); }
   host.append(neuSec);
 
-  // Validation — status ramps every semantic role aliases; each sourced Auto / Custom hue / borrow.
-  const valSec = palSection('Validation', 'The success / warning / danger / info ramps every semantic role aliases — auto-derived, seeded from a custom hue, or borrowed from a brand palette.');
+  // "Status", not "Validation". The engine input is `status`, the emitted tokens are
+  // `palette.success|warning|danger|info`, and `semanticRoles` rebases onto "a status" — "validation"
+  // appears nowhere in the vocabulary, so it was a UI-invented word for a thing the tokens already
+  // name. Same class as Preview heading a category column `Role` after #415 re-keyed the tier.
+  const valSec = palSection('Status ramps', 'The success / warning / danger / info ramps every semantic role aliases — auto-derived, seeded from a custom hue, or borrowed from a brand palette.');
   for (const role of STATUS_ROLES) { const s = statusRow(role); valSec.append(s.row); refreshers.push(s.refresh); }
   host.append(valSec);
 
@@ -1207,10 +1210,10 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
 };
 
-// Validation-color control (docs/21 + status.*). Lives INLINE on each status ramp (primitives
+// Status-color control (docs/21 + status.*). Lives INLINE on each status ramp (primitives
 // stage), not as a standalone section: a designer edits the red/green/amber/blue right where the
 // ramp is shown. Two mutually-exclusive engine mechanisms behind one dropdown —
-//   • Custom hue → `status.<role>` seeds the ramp from a picked hue (the raw validation color)
+//   • Custom hue → `status.<role>` seeds the ramp from a picked hue (the raw status color)
 //   • Use <ramp> → `roleColors.<role>` borrows a declared palette (a red brand's red for danger)
 //   • Auto → clears both (engine default: a synthesised hue, or the danger-red carve)
 // Contrast always re-gates on whatever it lands on; a hue mismatch is flagged in the theme notes.
@@ -1235,7 +1238,7 @@ const setStatusHue = (role: StatusRole, hexVal: string): void => {
   apply();
 };
 
-/** One validation (status) row — Source select (Auto / Custom hue / borrow a brand palette) on the left,
+/** One status row — Source select (Auto / Custom hue / borrow a brand palette) on the left,
  *  the anchor on the right. The left swatch is the hue picker only under Custom hue (authored); Auto and
  *  borrow render it as a read-out with no hex-by-name. Source changes are structural → applyFull. */
 const statusRow = (role: StatusRole): { row: HTMLElement; refresh: () => void } => {
@@ -4813,6 +4816,12 @@ let modeStripHost: HTMLElement;   // tier 2 of the global header — the persist
  *  form silently grants the switcher to any tab added later, which is how Preview would have got one. */
 const pageHasModeVaryingControl = (): boolean => {
   if (page === 'layout') return false;
+  // Palettes has NO mode-varying value at all — a ramp is mode-invariant, and choosing which STEP a
+  // mode lands on is a Surfaces concern. Measured rather than argued: the workspace markup is
+  // byte-identical between Light and Dark (34555 chars both), so the switcher changed nothing and
+  // only claimed the page had an axis. #268's audit found this and Layout together; Layout was fixed
+  // and this was missed.
+  if (page === 'palettes') return false;
   // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
   //  do — the same reasoning that hides it on Primitives, reached from the other direction.
   // #416 — Typography edits every mode-varying value it has (families, weight roles, leading and
