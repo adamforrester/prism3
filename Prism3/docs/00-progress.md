@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-08-04) — On Preview the mode bar sits below the view switcher, and the surface picker says what it does (owner-reported)
+
+**STATUS: web.** `out/*` untouched.
+
+**The bar was making the view switcher jump.** #457 put the bar directly under the hero; #452 hides
+it on two of Preview's three views. Together those meant the Style guide / Contrast contracts / Token
+list segment moved up and down the page as you switched views — the control you are *aiming at*
+relocating itself under the cursor.
+
+**Rule: a control that changes the page outranks a control that scopes it.** The bar now anchors
+below a view switcher when one immediately follows the hero, so the segment holds still and only the
+thing that genuinely varies moves. Measured: the segment sits at y=249 on all three views, with the
+bar present on one of them.
+
+**The surface picker was named for where it sits, not what it does.** "Preview on / Page" left a
+reader guessing whether it changed the mode, the page, or the specimens. It is now **"Draw specimens
+on"**, with the label ABOVE the control like every other labelled field in the app (`pfield`) rather
+than inline, plus a hint: *"Every card, fill, button and text sample below is drawn on this surface —
+switch it to check the same system on a card or an inverse band."*
+
+That sentence is doing real work: it names the thing that changes (the ground), the things that do
+not (the specimens), and the reason anyone would touch it.
+
+Verified: order `hero → pvseg → modebar`; segment y identical across all three views; label renders
+above the select; no page errors.
+
+---
+
 ## (2026-08-04) — Palettes: the Neutral row's fields were misaligned by two class-name collisions
 
 **STATUS: web (`main.ts` CSS only).** No engine change, no `out/*` change.

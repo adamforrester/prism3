@@ -1282,12 +1282,18 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   // One picker for the view, not one per section — seven copies of the same control would be noise,
   // and the sections are read together as one system.
+  // Label ABOVE the control, matching every other labelled field in the app (`pfield`), and named for
+  // what it does rather than where it sits: "Preview on / Page" left a reader guessing whether it
+  // changed the mode, the page, or the specimens. It changes the ground the specimens are drawn on,
+  // so it says that.
   const bar = el('div', 'sg-surfbar');
-  bar.append(el('span', 'pfk', 'Preview on'));
   const sel = selectEl('cap');
   for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
   sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
-  bar.append(sel, el('span', 'sg-surfnote', `color.${surf.key}`));
+  const row = el('div', 'sg-surfrow');
+  row.append(sel, el('span', 'sg-surfnote', `color.${surf.key}`));
+  bar.append(pfield('Draw specimens on', row));
+  bar.append(el('p', 'sg-surfhint', 'Every card, fill, button and text sample below is drawn on this surface — switch it to check the same system on a card or an inverse band.'));
   host.append(bar);
 
   host.append(el('p', 'np-note', 'Hover any token pill for its resolved primitive, hex, and contrast. Modes switch from the picker above.'));
@@ -5475,8 +5481,16 @@ function renderWorkspace(): void {
   // chrome again — which is what moving it out of the header (#432) was meant to stop. Repositioned
   // here rather than inside each page renderer for the same reason the badges are: there is more than
   // one renderer, and a new one would forget.
+  // Below the hero — and below a VIEW switcher when one immediately follows it. On Preview the
+  // Style guide / Contrast contracts / Token list segment changes what the page shows, and the bar
+  // is hidden on two of those three (#452). With the bar above the segment, switching views made
+  // the segment itself jump up and down the page; below it, the segment holds still and only the
+  // thing that actually varies moves. A control that changes the page outranks a control that
+  // scopes it.
   const hero = workspace.querySelector(':scope > .hero');
-  if (hero) hero.after(modeStripHost);
+  const next = hero?.nextElementSibling;
+  const anchorEl = next?.classList.contains('pvseg') ? next : hero;
+  if (anchorEl) anchorEl.after(modeStripHost);
   syncStuck();
 }
 
@@ -6795,7 +6809,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
 /* The surface picker — one control for the whole view, above the sections it governs. */
-.sg-surfbar{display:flex;align-items:center;gap:10px;margin:12px 0 4px;flex-wrap:wrap}
+.sg-surfbar{display:flex;flex-direction:column;gap:6px;margin:12px 0 10px}
+.sg-surfrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sg-surfhint{margin:0;font-size:12.5px;line-height:1.5;color:var(--faint);max-width:62ch}
 .sg-surfbar .pfk{flex:none}
 .sg-surfnote{font-family:var(--mono);font-size:11px;color:var(--faint)}
 /* The mode's own canvas behind the specimens. Inset from the .psec so the studio shell still reads as
