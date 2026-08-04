@@ -7,6 +7,67 @@
 
 ---
 
+## (2026-08-04) — MCP part 2: migrate to 2026-07-28, keeping 2024-11-05 alive
+
+**STATUS: engine (`mcp.ts` + tests).** `out/*` untouched. Stacked on part 1.
+
+The server answered `2024-11-05`, four revisions behind. `2026-07-28` is the disruptive one: it makes
+MCP **stateless**.
+
+| | 2024-11-05 | 2026-07-28 |
+|---|---|---|
+| version negotiation | `initialize` handshake, remembered per connection | per-REQUEST `_meta` |
+| discovery | — | **`server/discover` (MUST)** |
+| `ping` | present | removed |
+| every result | — | **`resultType: 'complete'`** required |
+| `tools/list` | — | **`ttlMs` + `cacheScope`** required |
+| reserved error range | — | `-32020`–`-32099` |
+
+### Dual support cost one branch, not two code paths
+
+The insight that kept this small: **only the REQUEST side needs branching.** `initialize` and `ping`
+are *absent* from the newer spec, not forbidden, so they keep answering. Everything the new revision
+ADDS — `resultType`, the `_meta` server identity, the cache hints — is emitted unconditionally,
+because a `2024-11-05` client ignores fields it does not know and the newer spec tells clients to read
+a MISSING `resultType` as `complete` anyway.
+
+> **The only response shape that is wrong for somebody is a version-branched one.**
+
+`initialize` echoes an older version when the client asks for one we still speak, rather than forcing
+the newest — verified on the wire.
+
+### Version checking moved to where the version now lives
+
+Statelessness means the version arrives on each request. An **absent** version is served rather than
+rejected: older clients never send one, and refusing them would defeat the point. An unsupported one
+returns **`-32022`** (the renumbered `UnsupportedProtocolVersion`, in the range the spec reserved) with
+the supported list attached, so a client can renegotiate instead of guessing.
+
+### One behaviour change worth noting
+
+An unknown TOOL name was an `isError` result; it is now a **`-32602` protocol error**, per the spec's
+own example — the request names something that does not exist, which is a different thing from a tool
+that ran and failed. `callTool`'s own guard stays for direct callers and is still tested.
+
+`listChanged: false` is stated rather than omitted: the catalogue is a static array, so a client can
+skip opening a subscription for it.
+
+### Owning the transport paid off here
+
+No `@modelcontextprotocol/sdk`, so a four-revision migration was one file and an afternoon rather than
+an SDK upgrade across a dependency tree — and the no-`npm install` invariant (docs/07 §3) held.
+
+**Deprecations that cost nothing:** Roots, Sampling and Logging are all deprecated in this revision;
+this server uses none of them. HTTP+SSE likewise — stdio only.
+
+**Verification.** `regen --check` 88 · **1306/0** (1289 → 1306) · NB regression PASS (exit 0) ·
+web+plugin typecheck/build · sandbox-clean · US-English clean. Driven over stdio: `server/discover`
+advertises both versions, a supported `_meta` version is served, `1999-01-01` returns `-32022` with the
+supported list, `initialize` echoes `2024-11-05` for a pinned client, and an unknown tool returns
+`-32602`.
+
+---
+
 ## (2026-08-04) — MCP audit: the agent surface was unusable and under-reported by a third
 
 **STATUS: engine (`mcp.ts` + tests).** `out/*` untouched. Part 1 of 2 — usability now, the
