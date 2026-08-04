@@ -7,6 +7,57 @@
 
 ---
 
+## (2026-08-04) — #111's first component pasted: the structure binds, the appearance is not there
+
+**STATUS: engine (`anatomy-figma.ts`) + `test.ts`.** No `out/*` change. Verified live in Prism Test
+File v2 — the first ComponentDef ever materialised into a real Figma file.
+
+Ran the Button spike (#111) against the theme the nine-pass drive left in place. Its stated prereq —
+*the token variables must already be materialised so component slots can bind to them* — was
+satisfied, and the spike needed no new machinery: `figmaAnatomyPlan` + `planToPluginJs` (#327) were
+already built and gated offline. What was unproven was the paste.
+
+**It works.** `figmaAnatomyPlan(button, 'medium', {leading:true})` pasted to a real COMPONENT with
+**all 10 bindings resolved and `misses: []`** — `size/md/height` → 48px, `radius/md` → 4px,
+`size/md/gap` → 8px, `icon/size/md` → 24×24, and the label carrying the `label/md/emphasis` Text
+Style. The #326 slot-aware inset is live: `paddingLeft` = `size/md/padding-x-visual` (12px) against
+`paddingRight` = `size/md/padding-x` (16px). That asymmetry in a real file is the thing the
+projection exists to demonstrate, and it is the part a hand-built component gets wrong.
+
+**Finding 1 — the same discarded-return-value defect, in a second file.** `planToPluginJs` wrapped
+its body in `(async()=>{...})()`, so the first paste returned `success: true` with
+`result: undefined` and the literal warning *"Code returned undefined"*; the component had built
+fine, but I had to read back separately to learn that. Identical to the token-tier defect fixed in
+#478, in a file #478 does not touch — so it needed its own branch rather than a late commit onto a
+PR already in review.
+
+**Why this defect is worse in the component tier.** `misses[]` is this payload's ONLY failure
+channel: an unresolved variable or text style is recorded and the build *continues*. So a component
+whose every binding missed still produces a frame and still reports `success: true`. Discarding the
+return value means an all-missed paste and a perfect paste are indistinguishable to the caller. The
+new gate asserts both no-IIFE and that the top-level return carries `misses`.
+
+**Finding 2 — the component is structurally correct and visually blank, and that is a boundary, not
+a bug.** No fill, no border, no label text. The plan binds **0 of the 48 colour tokens** Button
+declares, and carries no `intent`/`appearance` axis — only `size` + slots. #327 is explicitly the
+*structural* projection, so this is in scope as designed. It is still worth naming, because
+`PartDef.role`'s own comment says the target "owns the hit area, radius, fill and border" — and fill
+and border are exactly the two it cannot express. A designer opening the file sees an invisible
+button, which reads as a broken component rather than a deliberate half.
+
+**The open question that follows, and why it is not mechanical.** Button declares 3 intents × 3
+appearances × 3 sizes × 2 widths + modifiers. Projecting the full matrix is 27+ variants of a
+COMPONENT_SET, and the right answer is probably NOT all of it — but "which slice of the variant
+matrix should exist in Figma" is a design-system decision (what a designer needs to pick from) rather
+than a completeness exercise. Logged as the next piece of #111 rather than guessed at here.
+
+**Housekeeping note for the next drive.** The first paste went onto blank canvas; the artifact was
+removed and re-pasted into a `Prism3 Components` Section per the MCP server's placement rule. The
+file now holds that Section with one Button component, alongside the 547 variables / 38 Text Styles
+/ 14 Effect Styles from the token drive.
+
+---
+
 ## (2026-08-04) — The paste path reported success while telling the agent nothing
 
 **STATUS: engine (`materialise-to-figma.ts`) + `test.ts`.** No `out/*` change — this is the payload

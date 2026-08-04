@@ -208,9 +208,16 @@ export const planBindingErrors = (
  *
  * Deliberately builds ONE component, not forty (docs/28 §6): the spike's deliverable is the
  * validated schema and the projection rules, not the Figma asset.
+ *
+ * NO ASYNC IIFE — the body emits top-level `await` instead. `figma_execute` neither awaits nor
+ * unwraps a returned Promise, so a `(async()=>{...})()` wrapper handed the caller
+ * `success: true, result: undefined` ("Code returned undefined") while the component built fine.
+ * That matters more here than in the token tier: `misses[]` is this payload's ONLY failure channel.
+ * A variable or text style that doesn't resolve is recorded and the build continues, so a component
+ * with nothing bound still looks like a success — and a discarded return value is the difference
+ * between a verified paste and a frame that merely exists. Found by pasting this for real (#111).
  */
-export const planToPluginJs = (plan: AnatomyPlan): string => `(async()=>{
-const PLAN=${JSON.stringify(plan.root)};
+export const planToPluginJs = (plan: AnatomyPlan): string => `const PLAN=${JSON.stringify(plan.root)};
 const vars=await figma.variables.getLocalVariablesAsync();
 const byName=new Map(vars.map(v=>[v.name,v]));
 const styles=await figma.getLocalTextStylesAsync();
@@ -246,4 +253,4 @@ figma.currentPage.appendChild(root);
 const comp=figma.createComponentFromNode(root);
 comp.name=${JSON.stringify(`${plan.component}/size=${plan.size}${plan.slots.leading ? ', leading' : ''}${plan.slots.trailing ? ', trailing' : ''}`)};
 return {component:comp.name,parts:${JSON.stringify(planPartNames(plan.root).length)},misses,codeOnly:${JSON.stringify(plan.codeOnly.length)}};
-})()`;
+`;
