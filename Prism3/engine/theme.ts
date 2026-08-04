@@ -1117,6 +1117,25 @@ const deriveFamilies = (fam: TypographyInput['families'] = {}): FontFamilyBindin
     const d = TYPE_FAMILY_DEFAULT[group];
     out.push({ group, stack: asStack(chosen, d.face, d.fallback), variable: isVar(group) });
   }
+  // MONO-NESS IS DECLARED BY `code`, and this pass is what restores the signal #415 removed. The
+  // fallback tail is picked per CATEGORY, so binding a mono face anywhere but `code` produced
+  // `['JetBrains Mono', …, 'sans-serif']` — a monospace face promising a proportional fallback. Worse,
+  // `deriveTypefaces` dedupes by slug and walks in TYPE_GROUPS order, so `body` won the stack and
+  // `font.typeface.jetbrains-mono` shipped a SANS tail for every consumer INCLUDING `code` itself.
+  //
+  // Before #415 the brand said "this face is mono" by putting it on `families.mono`; there is no such
+  // channel now, so the face `code` binds IS the declaration. A brand that opts out of code
+  // (`code: null`) has declared no mono face, and nothing is re-padded — correct, not a gap.
+  //
+  // Only AUTO-PADDED stacks are touched: a brand that supplied a full array is trusted verbatim,
+  // which is the promise `asStack` makes everywhere else.
+  const codeFace = out.find((b) => b.group === 'code')?.stack[0];
+  if (codeFace) {
+    for (const b of out) {
+      if (b.group === 'code' || Array.isArray(fam[b.group]) || b.stack[0] !== codeFace) continue;
+      b.stack = asStack(b.stack[0], b.stack[0], MONO_FALLBACK);
+    }
+  }
   return out;
 };
 

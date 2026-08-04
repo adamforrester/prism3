@@ -35,14 +35,20 @@ const WEIGHT_STYLE_NAME_MONO: Record<number, string> = {
   600: 'Medium', // JetBrains Mono / most mono families lack Semi Bold → collapse
 };
 
-/** Style name for a given text CATEGORY + numeric weight (+ italic). `category` is a DTCG
- *  `font.family.<category>` key (`title`/`body`/`code`/…), NOT the font face; `code` maps via the
- *  mono-specific table because mono families lack certain weights. It was the `mono` family ROLE
- *  before #415 collapsed that tier; `code` is the category that role existed to serve, so the same
- *  composites take the same table. Italic follows Figma's naming: Regular→`Italic` (not
- *  `Regular Italic`), otherwise `<Weight> Italic` (e.g. `Bold Italic`, `Semi Bold Italic`). */
-export const fontStyleName = (category: string, numericWeight: number, italic = false): string => {
-  const table = category === 'code' ? WEIGHT_STYLE_NAME_MONO : WEIGHT_STYLE_NAME;
+/** Style name for a given FACE + numeric weight (+ italic). `mono` selects the mono-specific table,
+ *  because mono families lack certain weights (JetBrains Mono has no Semi Bold).
+ *
+ *  KEYED ON THE FACE, not the category. #415 keyed it on `code` — the category the retired `mono`
+ *  ROLE existed to serve — which is right for every default brand and wrong the moment a brand binds
+ *  a mono face somewhere else: `families.body: 'JetBrains Mono'` emitted `Semi Bold`, a style that
+ *  face does not have, and `figma.loadFontAsync({family, style})` fails on it rather than degrading.
+ *  Before #415 the ROLE travelled with the face, so the old code got this case right by accident of
+ *  its keying. Asking the face is correct under both shapes.
+ *
+ *  Italic follows Figma's naming: Regular→`Italic` (not `Regular Italic`), otherwise `<Weight> Italic`
+ *  (e.g. `Bold Italic`, `Semi Bold Italic`). */
+export const fontStyleName = (mono: boolean, numericWeight: number, italic = false): string => {
+  const table = mono ? WEIGHT_STYLE_NAME_MONO : WEIGHT_STYLE_NAME;
   const base = table[numericWeight] ?? 'Regular';
   if (!italic) return base;
   return base === 'Regular' ? 'Italic' : `${base} Italic`;
@@ -75,7 +81,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
     // fallback stack lives in the description (fix #4). A per-mode family override supplies its
     // own $value (primary) + fallbackStack; else the canonical (light) leaf. hiddenFromPublishing
     // hides them from library consumers.
-    // A family role is now an ALIAS onto a typeface primitive (#269), so the face comes from
+    // A family semantic is now an ALIAS onto a typeface primitive (#269), so the face comes from
     // the role's `face` extension and the fallback tail from the typeface it points at. The
     // EMITTED Figma variable is unchanged — value = primary face, description = full stack —
     // so the Figma-side contract and the fixtures are untouched by the retiering.
@@ -226,7 +232,18 @@ export type FigmaTextStyle = {
 };
 export type FigmaTextStylesFile = { $collection: 'text-styles'; styles: FigmaTextStyle[] };
 
-// Resolve a composite's family-role by dereferencing its fontFamily alias
+/** Is the face this CATEGORY binds a monospace one? Walks category → `font.family.<cat>` → its
+ *  `font.typeface.<slug>` → the curated fallback tail, and asks whether that tail ends in `monospace`
+ *  — which is how `MONO_FALLBACK` is defined, so the answer comes from the stack the brand actually
+ *  ships rather than from a name that happens to contain "mono". Unknown category ⇒ not mono, which
+ *  is the same default the sans table already was. */
+const isMonoCategory = (font: any, category: string): boolean => {
+  const famLeaf = font?.family?.[category];
+  const slug = typeof famLeaf?.$value === 'string' ? /font\.typeface\.([^.}]+)\}?$/.exec(famLeaf.$value)?.[1] : undefined;
+  const stack: string[] = (slug && font?.typeface?.[slug]?.$extensions?.prism3?.fallbackStack) || [];
+  return stack[stack.length - 1] === 'monospace';
+};
+// Resolve a composite's family CATEGORY by dereferencing its fontFamily alias
 // (`{root.font.family.<role>}`) — the role, not the face, is what determines
 // fontStyle-name resolution and the bound STRING variable name.
 const familyCategoryFromAlias = (aliasStr: string): string => {
@@ -280,7 +297,7 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const weightRole = weightRoleFromAlias(v.fontWeight);
     const numeric = numericWeightForRole(font, weightRole);
     const italic = !!ext.italic || v.fontStyle === 'italic';
-    const styleName = fontStyleName(familyCategory, numeric, italic);
+    const styleName = fontStyleName(isMonoCategory(font, familyCategory), numeric, italic);
     const fluid: boolean = !!ext.responsive?.fluid;
     const sb = sizeBinding(path, v.fontSize, fluid);
     // Line-height: PERCENT = unitless × 100 (fix 3a). Unbound — Figma has no

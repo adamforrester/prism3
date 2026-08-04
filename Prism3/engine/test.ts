@@ -2477,7 +2477,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const root = Object.keys(tree)[0];
   ok((tree[root] as any).type.body.md['default-italic'].$value.fontStyle === 'italic', 'italic composite carries fontStyle:italic on $value');
   ok((tree[root] as any).type.body.md.default.$value.fontStyle === undefined, 'roman composite omits fontStyle');
-  ok(fontStyleName('body', 700, true) === 'Bold Italic' && fontStyleName('body', 400, true) === 'Italic', 'Figma style name: 700→Bold Italic, 400→Italic (not Regular Italic)');
+  ok(fontStyleName(false, 700, true) === 'Bold Italic' && fontStyleName(false, 400, true) === 'Italic', 'Figma style name: 700→Bold Italic, 400→Italic (not Regular Italic)');
 }
 
 // ---- font families: typeface PRIMITIVES + family-ROLE semantics (#269) ----
@@ -3761,9 +3761,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(decoMismatch.length === 0, 'figma text-styles: textDecoration preserved (-link → UNDERLINE, else NONE)' + (decoMismatch.length ? ` — ${decoMismatch.slice(0, 3).join('; ')}` : ''));
 
   // fontStyleName table sanity — mono collapses 600 to Medium (JetBrains Mono has no Semi Bold).
-  ok(fontStyleName('body', 700) === 'Bold' && fontStyleName('display', 600) === 'Semi Bold', 'figma fontStyleName: sans/display weight → real style name (700=Bold, 600=Semi Bold)');
-  // #415 — keyed by the `code` CATEGORY now, not the retired `mono` role. Same composites, same table.
-  ok(fontStyleName('code', 600) === 'Medium' && fontStyleName('code', 400) === 'Regular', 'figma fontStyleName: code collapses 600→Medium (JetBrains Mono lacks Semi Bold)');
+  ok(fontStyleName(false, 700) === 'Bold' && fontStyleName(false, 600) === 'Semi Bold', 'figma fontStyleName: sans weight → real style name (700=Bold, 600=Semi Bold)');
+  // Keyed on the FACE now, not the category — #415 keyed it on `code`, which is right for a default
+  // brand and wrong for any brand that binds a mono face elsewhere. See the regression test below.
+  ok(fontStyleName(true, 600) === 'Medium' && fontStyleName(true, 400) === 'Regular', 'figma fontStyleName: a mono face collapses 600→Medium (JetBrains Mono lacks Semi Bold)');
+  {
+    // THE REGRESSION: a mono face on a NON-code category. #415 emitted `Semi Bold` here — a style
+    // JetBrains Mono does not have, which `figma.loadFontAsync({family, style})` fails on outright
+    // rather than degrading. Non-vacuous by construction: the same brand's `display` (a sans face)
+    // must still say `Semi Bold`, so this fails if the mono table is ever applied to everything.
+    const monoBody = brandTheme({ id: 'mono-body', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+      typography: { families: { body: 'JetBrains Mono' }, weights: { body: ['default', 'emphasis'], display: ['emphasis'] } } } as any);
+    const st = buildFigmaTextStyles(monoBody).styles;
+    const bodyEmph = st.filter((x: any) => /^body\/.*\/emphasis$/.test(x.name));
+    const dispEmph = st.filter((x: any) => /^display\/.*\/emphasis$/.test(x.name));
+    ok(bodyEmph.length > 0 && bodyEmph.every((x: any) => (x.properties.fontStyle as any).value === 'Medium'),
+      `[review] a MONO face on \`body\` takes the mono style table (600→Medium, not Semi Bold) — got ${(bodyEmph[0]?.properties.fontStyle as any)?.value}`);
+    ok(dispEmph.length > 0 && dispEmph.every((x: any) => (x.properties.fontStyle as any).value === 'Semi Bold'),
+      '[review] …and a SANS face in the same brand still says Semi Bold — the table is chosen per face, not globally');
+  }
 }
 // (13) EMIT-FIGMA DIMS (docs/10 §7 item 2) — the geometric axis has NO fixtures
 // (§2 freezes only colour + typography). Gate structurally: variable counts vs

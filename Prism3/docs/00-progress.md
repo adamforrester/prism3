@@ -7,6 +7,52 @@
 
 ---
 
+## (2026-08-03) — Review pass 1: the defects, and a capability #415 removed without noticing
+
+**STATUS: engine + web.** From a code + UI review of the typography work. No emitted artifact moves —
+`regen --check` stays at 88, because no shipping brand hits the case below.
+
+**The one that matters: #415 removed the only way to declare a face as MONOSPACE.** Reported as a
+narrow Figma bug (`fontStyleName` keyed on the `code` category, so a mono face elsewhere got
+`Semi Bold` — a style JetBrains Mono lacks, which `loadFontAsync` fails on outright). Fixing it
+surfaced a bigger root cause: the fallback tail is chosen per CATEGORY, so
+`families.body: 'JetBrains Mono'` emitted `['JetBrains Mono', …, 'sans-serif']` — a monospace face
+promising a proportional fallback. And because `deriveTypefaces` dedupes by slug walking TYPE_GROUPS
+order, `body` won the stack and **`font.typeface.jetbrains-mono` shipped a sans tail for every
+consumer including `code` itself**.
+
+Before #415 the brand said "this face is mono" by putting it on `families.mono`. There is no such
+channel now — so **the face `code` binds IS the declaration**, and any auto-padded binding on that same
+face is re-padded with `MONO_FALLBACK`. One signal, three symptoms: the typeface primitive's tail, the
+binding's tail, and (via the tail) the Figma style name. `code: null` declares no mono face and
+re-pads nothing, which is correct rather than a gap; a brand that supplied a full array is still
+trusted verbatim.
+
+**The lesson worth keeping: I reported the symptom I could see and it was the smaller half.** The
+style-name bug was visible from the emitted artifact; the fallback-tail bug needed someone to ask why
+the fix could not read the signal it wanted. When a fix cannot find the information it needs, the
+missing information is usually the actual defect.
+
+**UI defects, same pass.**
+- **Literal backticks shipped in visible copy** (mine, #415): `el()` escapes its text, so
+  `` `font.family.<category>` `` rendered with the backticks. Markdown in a plain-text string never
+  renders — the page-wide scan found exactly one, now zero.
+- **Preview still spoke the retired vocabulary.** Its Faces table was headed `Role` over rows that are
+  categories, described as "the family each **role** resolves to". #415 changed the tier and the
+  mirror kept the old word. Renamed to `Typefaces` / `Category`, matching the tokens it mirrors.
+- **`Role` meant two things on one tab** — categories in that table, weight roles in the next. Exactly
+  the collision class #411 had just fixed for the nudge labels, one tab away. Now it appears once.
+- **Stale prose only, code correct**: `write-plan.ts` said `font/family/<role>`. Checked rather than
+  assumed — it resolves through a `Map` keyed by variable NAME, so it is terminology-agnostic and
+  works. Comment-level, fixed as such.
+
+**Verification.** `regen --check` (88, no drift) · **1277/0** (a new regression test pins the mono
+face on a non-code category, with the same brand's sans category as a non-vacuous control) · NB
+regression PASS · web + plugin typecheck/test/build · sandbox-clean · US-English clean. Page re-scanned
+in Chromium: 0 literal backticks, `Role` appears exactly once across the Typography page.
+
+---
+
 ## (2026-08-03) — #411: the nudge is a signed delta, with the rung it lands on underneath
 
 **STATUS: web + a one-word engine export.** No emitted artifact moves — `regen --check` stays at 88.
