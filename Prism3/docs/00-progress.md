@@ -7,6 +7,54 @@
 
 ---
 
+## (2026-08-03) — Review pass 3: one vocabulary, and a finding of mine that was wrong
+
+**STATUS: web only.** No emitted artifact moves.
+
+**The correction first, because it is the useful part. "Header casing is inconsistent" was a FALSE
+POSITIVE.** I extracted copy with `textContent` and saw `subtle`/`leading` beside `Category`/`Role`.
+Every table header is `text-transform: uppercase`, so the RENDERED page was already uniform and no
+user ever saw the difference. Worse: acting on it, I added a `mono` class to the weight-role headers
+reasoning they were "token identifiers" — which rendered `ui-monospace` next to `-apple-system` in one
+header row. **The only user-visible change in the entire casing question was the one I introduced, and
+it made things worse.** Measured, reverted. The textual Title-casing stays as source tidying, flagged
+as invisible rather than sold as a fix.
+
+**The lesson: `textContent` is not what the user sees.** Every other finding in this review was
+measured in the rendered page; this one was read off extracted strings, and it is the only one that
+was wrong.
+
+**A second self-inflicted one, caught by screenshot rather than by the DOM.** The new category pill
+was `type.<g>.*`, and its text content was exactly that — but `.tpill` is `direction: rtl` (it
+left-ellipsises long paths), which reorders a trailing `*` to the front. It rendered `*.type.display`.
+The pill now names the NODE (`type.display`) with the set explained in its tooltip, and the "6 styles"
+count above it already said it was a set.
+
+**What actually changed.**
+- **`Used by` is now the only label for "which categories consume this."** It was three — `Binding`
+  (Primitives typefaces), `Bound by` (Primitives size ladder), `Used by` (Semantics rungs) — for one
+  idea.
+- **Text styles names its tokens.** It was the ONLY tab with no token pill, and it is the tab that
+  defines `type.*`; Preview listed `type.display.3xl.strong` while the tab that CREATES it said
+  nothing. Column parity re-measured at **800px**, unchanged.
+- **"Leading & tracking" → "Leading & tracking rungs"** on Semantics. The page's own copy already says
+  "each named rung binds one step of the fixed ladders on Primitives", so `ladders` (primitive steps)
+  vs `rungs` (semantic bindings) makes the tier visible in the section names rather than leaving two
+  near-identical titles one tab apart.
+
+**Deliberately NOT changed: the ● ○ ? legend on Preview.** #404 removed a legend from the size ladder,
+so consistency argues for removing this one — but the cases are different. #404's legend explained a
+visual TREATMENT (dimming) that should not have existed, and two of its three keys described facts
+belonging on another tab. This legend explains a SYMBOL VOCABULARY that has no in-place alternative:
+the marks are the data. Removing it would leave three glyphs unexplained. Recorded so the next person
+does not "fix" it for consistency.
+
+**Verification.** `regen --check` (88) · 1275/0 · plugin typecheck/test/build · sandbox-clean ·
+US-English clean. Page re-scanned: `Used by` is the only consume-label, every caption Title case,
+7 pills on Text styles (was 0), header fonts back to a single family, `.cs-table` still 800px.
+
+---
+
 ## (2026-08-03) — Review pass 2: "Weight roles by face" clipped at DEFAULT settings
 
 **STATUS: web only.** From the same review. No emitted artifact moves.

@@ -2903,7 +2903,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const libTbl = el('table', 'mtbl-tbl');
   const libHead = el('thead'), libHtr = el('tr');
   libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', 'On this device'),
-    el('th', 'mtbl-mode', 'Binding'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+    el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   libHead.append(libHtr); libTbl.append(libHead);
   const libBody = el('tbody');
   let anyUnbound = false;
@@ -3192,7 +3192,7 @@ const renderSizeLadder = (): HTMLElement => {
   const tbl = el('table', 'mtbl-tbl');
   const thead = el('thead'), htr = el('tr');
   htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'rem'),
-    el('th', 'mtbl-mode', 'Bound by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+    el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
   let firstBound: HTMLElement | null = null;
@@ -3248,7 +3248,7 @@ const renderRungLadders = (): HTMLElement => {
     // table here would have broken the one-grid rule the tab is built on. The 3rd column is what makes
     // a read-only ladder worth showing at all: 15 bare numbers teach nothing, 15 rendered steps show
     // you what the gaps between them actually cost.
-    htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'Bound by'),
+    htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'Used by'),
       el('th', 'mtbl-mode', ''), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
     thead.append(htr); tbl.append(thead);
     const tb = el('tbody');
@@ -3300,7 +3300,7 @@ const renderRungLadders = (): HTMLElement => {
  *  beside the ladder was what made the two read as one conflated thing. */
 const renderLeadingTracking = (): HTMLElement => {
   const ty = theme.typography;
-  const sec = palSection('Leading & tracking', 'Each named rung binds one step of the fixed ladders on Primitives. Re-point a rung here and every style using it reflows — one binding each, shared by every mode unless a mode re-points it below. Which rung a category lands on is chosen for you from its size and role, and nudged per category on Text styles.');
+  const sec = palSection('Leading & tracking rungs', 'Each named rung binds one step of the fixed ladders on Primitives. Re-point a rung here and every style using it reflows — one binding each, shared by every mode unless a mode re-points it below. Which rung a category lands on is chosen for you from its size and role, and nudged per category on Text styles.');
   // #363 — the shared `.mtbl` table format, but its GEOMETRY only, not its semantics. These rungs are
   // mode-invariant primitives, so there is NO mode axis and the table gets no mode columns: adding them
   // would assert a dimension these values do not have. Same rule that keeps Category setup and
@@ -3425,7 +3425,7 @@ const renderWeightTable = (): HTMLElement => {
   const ty = theme.typography;
   const modes = rp.modes;
   const box = el('div', 'mtbl');
-  box.append(el('p', 'mtbl-cap', 'weight roles'));
+  box.append(el('p', 'mtbl-cap', 'Weight roles'));
   const scroll = el('div', 'mtbl-scroll');
   const tbl = el('table', 'mtbl-tbl');
   const thead = el('thead'), htr = el('tr');
@@ -3595,8 +3595,8 @@ const renderRepoints = (): HTMLElement | null => {
   if (rp.modes.length < 2) return null;
   const ty = theme.typography;
   const sec = palSection('Leading & tracking per mode', 'A mode can swap one rung for another — a dark theme that wants everything a step looser, a compact mode that tightens. Rows are the rungs bound above, with what each is worth in the baseline column; every other column names the rung that mode substitutes. “Auto” keeps the rung itself.');
-  sec.append(renderRepointTable('line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`, 'lineHeights'));
-  sec.append(renderRepointTable('letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`, 'letterSpacings'));
+  sec.append(renderRepointTable('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`, 'lineHeights'));
+  sec.append(renderRepointTable('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`, 'letterSpacings'));
   return sec;
 };
 
@@ -3621,8 +3621,13 @@ const renderCategorySetup = (): HTMLElement => {
   const table = el('table', 'cs-table');
   const head = el('tr');
   head.append(el('th', undefined, 'Category'), el('th', undefined, 'Face'));
+  // Header casing is SOURCE-ONLY tidying: every table header is `text-transform:uppercase`, so the
+  // rendered page was already consistent and none of this is visible. Measured before assuming —
+  // an earlier pass here added a `mono` class on the strength of "these are token identifiers", which
+  // rendered ui-monospace beside -apple-system in one header row. That was the only user-visible
+  // change in the whole casing question, and it made things worse. Reverted.
   for (const r of roleOrder) head.append(el('th', 'cs-c', r));
-  head.append(el('th', 'cs-c', 'leading'), el('th', 'cs-c', 'tracking'), el('th', 'cs-c', 'italic'), el('th', 'cs-c', 'link'));
+  head.append(el('th', 'cs-c', 'Leading'), el('th', 'cs-c', 'Tracking'), el('th', 'cs-c', 'Italic'), el('th', 'cs-c', 'Link'));
   table.append(head);
   const cb = (checked: boolean, onChange: (v: boolean) => void): HTMLInputElement => {
     const c = el('input') as HTMLInputElement;
@@ -3713,7 +3718,16 @@ const renderCategorySetup = (): HTMLElement => {
     const comps = ty.composites.filter((c) => c.group === g);
     const tr = el('tr');
     const nameTd = el('td');
+    // Text styles was the ONLY tab that never named a token — and it is the tab that defines `type.*`.
+    // Primitives, Semantics and Preview all carry pills; Preview lists `type.display.3xl.strong` while
+    // the tab that CREATES it said nothing. A category is a family of composites rather than one leaf, so the pill names the
+    // NODE they are emitted under. It carried a trailing `*` first, which `.tpill`'s `direction:rtl`
+    // (left-ellipsis for long paths) reordered to the front — it rendered `*.type.display`. The count
+    // above it already says this is a set, and the tooltip says so in words.
     nameTd.append(el('div', 'cs-name mono', g), el('div', 'cs-count', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`));
+    const catPill = tokenPill(`type.${g}`);
+    catPill.title = `Every style in this category is emitted under type.${g} — ${comps.length} of them`;
+    nameTd.append(catPill);
     tr.append(nameTd);
     // #415 — READ-ONLY. This was a select over the display/text/mono ROLES, and it is the control that
     // exposed the tier as a mistake: with every role on one face it rendered several options all
