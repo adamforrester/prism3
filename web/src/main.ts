@@ -4608,7 +4608,12 @@ const paintBreakpointsPreview = (into: HTMLElement): void => {
     tr.append(el('td', 'mono', g.bp), pillCell, el('td', 'mono', `${bp?.px ?? 0}px`), el('td', 'mono', String(g.columns)), el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`));
     table.append(tr);
   }
-  into.append(table);
+  // Six columns of tabular data have a real min-content width, and the split layout's preview pane is
+  // only ~392px at 1100px wide — where the table used to push the whole DOCUMENT into a horizontal
+  // scroll. Scrolling it inside its own pane is the same treatment Preview's token tables use
+  // (`pv-tscroll`), and it is what doc 26 asks of wide content: the table scrolls, the page never does.
+  const scroll = el('div', 'ly-tscroll'); scroll.append(table);
+  into.append(scroll);
 };
 const paintColumnsPreview = (into: HTMLElement): void => {
   const ly = theme.layout;
@@ -4622,16 +4627,34 @@ const paintContainersPreview = (into: HTMLElement): void => {
   const ly = theme.layout;
   into.innerHTML = '';
   const cont = el('div', 'ly-cont');
-  const maxW = Math.max(ly.containerMax, ly.containerNarrow, 1);
-  const bar = (path: string, px: number): HTMLElement => {
+  // Scale against the widest VIEWPORT the system targets, not against containerMax. Normalising by
+  // containerMax made that bar 100% by construction, so the Container max slider could never move its
+  // own preview — the one thing the specimen is beside it to show. The top breakpoint is the honest
+  // reference (it is what "fluid" fills), and it is real data on this same page; the `max` guard keeps
+  // the bars inside the track if a brand caps content wider than its largest breakpoint.
+  const viewport = Math.max(...ly.breakpoints.map((b) => b.px), ly.containerMax, 1);
+  // The bar goes inside its own TRACK. Its width is a percentage, and a percentage resolves against
+  // the containing block — which was the whole row, including the 150px label the bar does not get to
+  // use. Only the 100% bar was wide enough to overflow, so only it was flex-shrunk (to the 330px that
+  // was actually free); every narrower bar rendered at its true fraction of the full 492px row. The
+  // arithmetic was right and the reference was wrong, which inflated every ratio the specimen exists
+  // to show by 492/330 ≈ 1.5 — a 720-on-1440 reading column drew at 75%, not 50%.
+  const bar = (path: string, px: number, label: string): HTMLElement => {
     const row = el('div', 'ly-cont-row');
+    const track = el('div', 'ly-cont-track');
     const b = el('div', 'ly-cont-bar');
-    b.style.width = `${Math.max(6, (px / maxW) * 100)}%`;
-    const lab = el('div', 'ly-cont-lab'); lab.append(tokenPill(path), el('span', 'mono', `${px}px`));
-    row.append(lab, b);
+    b.style.width = `${Math.max(6, Math.min(100, (px / viewport) * 100))}%`;
+    track.append(b);
+    const lab = el('div', 'ly-cont-lab'); lab.append(tokenPill(path), el('span', 'ly-cont-val mono', label));
+    row.append(lab, track);
     return row;
   };
-  cont.append(bar('container.max', ly.containerMax), bar('container.narrow', ly.containerNarrow));
+  // `container.fluid` is the DEFAULT container and was the one member of the family with no row. Shown
+  // at the full track, which is what it means: no cap — so the two capped bars read as caps against it.
+  cont.append(bar('container.fluid', viewport, '100%'),
+    bar('container.max', ly.containerMax, `${ly.containerMax}px`),
+    bar('container.narrow', ly.containerNarrow, `${ly.containerNarrow}px`));
+  into.append(el('div', 'ly-cap', `Relative widths at a ${viewport}px viewport — the widest breakpoint.`));
   into.append(cont);
 };
 
@@ -5916,10 +5939,22 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* Layout specimen — breakpoint/grid table + column preview + container bars. */
 .layout-spec{margin-bottom:8px}
 .ly-table{border-collapse:collapse;width:100%;font-size:12px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
-.ly-table th,.ly-table td{padding:7px 12px;border-bottom:1px solid var(--line);text-align:right}
+/* 7px/8px is .ctable's padding. At 12px the six columns plus nowrap headers overran the 492px preview
+   pane and clipped the Margin column — the 12px header fixed one wrap by creating a worse defect. */
+.ly-table th,.ly-table td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
 .ly-table th:first-child,.ly-table td:first-child{text-align:left}
-.ly-table th{font-size:11px;font-weight:600;color:var(--muted);text-transform:lowercase;letter-spacing:.02em;background:var(--panel)}
+/* Header typography matches .ctable — 12px/700, sentence case. It was 11px/600 and, uniquely in the
+   whole app, text-transform: lowercase — a third header treatment beside .mtbl-tbl's 9.5px uppercase
+   and .ctable's 12px sentence case, on a table that is doing exactly .ctable's job (dense, read-only).
+   Measured across all nine pages before changing it — the Typography pass produced a casing FALSE
+   positive by comparing textContent, so this compares the computed textTransform instead.
+   The right-aligned numerics and the bordered shell stay: those are earning their difference. */
+.ly-table th{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:normal;background:var(--panel);white-space:nowrap}
 .ly-table tr:last-child td{border-bottom:none}
+/* The table's scroll pane. margin-bottom moves off .ly-table onto the wrapper so the spacing below the
+   table is unchanged; the table keeps width:100% and simply overflows this box when it must. */
+.ly-tscroll{overflow-x:auto;margin-bottom:16px}
+.ly-tscroll>.ly-table{margin-bottom:0}
 .ly-cap{font-size:11.5px;color:var(--muted);margin:0 2px 8px}
 .ly-ruler{position:relative;height:44px;margin:2px 2px 22px;border-bottom:2px solid var(--line2)}
 .ly-tick{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding-left:5px}
@@ -5930,8 +5965,19 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .ly-col{background:var(--ink);opacity:.14;border-radius:3px}
 .ly-cont{display:flex;flex-direction:column;gap:8px}
 .ly-cont-row{display:flex;align-items:center;gap:12px}
-.ly-cont-lab{font-size:11.5px;color:var(--muted);min-width:150px}
+/* 172px, not 150: at 150 the widest pill (container.narrow, 115px) plus its value left no room, so the
+   two ran together — "container.narrow720px" was literally the row's text content. */
+.ly-cont-lab{font-size:11.5px;color:var(--muted);min-width:172px;display:flex;align-items:center;gap:7px}
+/* margin-left:auto right-aligns the three values into a column against the track, instead of letting
+   each one start wherever its pill happens to end (100% / 1440px / 720px read ragged otherwise). */
+.ly-cont-val{flex:none;margin-left:auto}
+/* The track is what a bar's percentage resolves against. Without it, 100% meant the whole row —
+   including the label — and only the bar wide enough to overflow got shrunk back to reality. */
+.ly-cont-track{flex:1;min-width:0}
 .ly-cont-bar{height:16px;background:var(--ink);opacity:.55;border-radius:3px}
+/* fluid is the uncapped default — drawn as an outline so it reads as "no cap" rather than as a third
+   solid bar competing with the two that ARE caps. */
+.ly-cont-row:first-child .ly-cont-bar{background:transparent;opacity:1;border:1px dashed var(--line2)}
 /* Controls-beside-previews pages (#264 Layout, #265 Size & radius): each control sits next to its live
    preview, so a change is visible without scrolling. The control column is fixed-narrow (no full-width
    sliders); the preview takes the rest and wraps under the controls on a narrow viewport. */
