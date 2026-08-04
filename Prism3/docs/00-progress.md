@@ -7,6 +7,39 @@
 
 ---
 
+## (2026-08-04) — A stray mode badge on the token list, from a section-title collision
+
+**STATUS: web (`main.ts`).** No engine change, no `out/*` change.
+
+Owner-reported: the token list's **Icon** section carried a "SHARED · All modes" badge and no other
+section on that page did. One badge, on the one category out of ~14 whose name happened to collide.
+
+`SECTION_MODE_SCOPE` is keyed by section **title**, and `attachModeBadges` walks every `.psec` in the
+workspace matching titles against it. The token list builds its sections with
+`palSection(capitalize(category), …)`, so category `icon` minted a section titled `Icon` — the same
+string as the Style guide's `'Icon': 'shared'` entry. `Type`, `Space`, `Radius` and the rest have no
+map entry, so they stayed clean and the one collision looked like a deliberate exception.
+
+**Fixed at the root, not by renaming.** The map's own doc comment already declared its scope — "the
+six pages that carry a mode bar" — it just wasn't enforced. `attachModeBadges` now returns early on
+`!pageHasModeVaryingControl()`, the same predicate the bar itself uses. Renaming one of the two
+sections would have fixed this instance and left the next collision to be found by eye.
+
+The token list loses nothing by it: it already states its own mode scope per section, from the token
+data rather than from a name — "mode-invariant, one value" vs "each mode aliases its own target",
+computed from `$extensions.prism3.modes`. That is strictly better information than the badge.
+
+Verified: `audit:modes --check-badges` still reports 28/28 badged sections correct, and across
+Preview's three views the badges now land Style guide 7/7, Contrast contracts 0, Token list **0/10**.
+
+**Second-order note, recorded because it is the third instance this week.** This is the same defect
+shape as the palette field-alignment bug earlier today (`.pfield.slider` colliding with a standalone
+`.slider` rule): **a lookup keyed by a bare name that a second surface also uses.** Both looked
+correct at the definition site and both were invisible until something rendered wrong. Worth
+suspecting first whenever exactly one item in a list behaves differently from its neighbors.
+
+---
+
 ## (2026-08-04) — Versioning: the token *names* are the contract, and a gate that cannot rewrite itself
 
 **STATUS: engine (`version.ts` + `token-contract.ts`, new) + `schema/token-contract.json` + CI +
