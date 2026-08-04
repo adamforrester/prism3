@@ -208,7 +208,29 @@ export const button: ComponentDef = {
       'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame.',
       'focus-ring-offset — expressible as a Figma stroke, but the `:focus-visible` CONDITION is not; a materialized button carries the ring geometry with no way to say when it appears.',
       'min-width derivation — resolved to a literal at emit, so the Figma component holds a frozen number rather than the live height×multiplier relationship.',
+      'width (auto | full) — declared as a variant axis but deliberately NOT projected into Figma (#487 §4). A designer resizes an auto-layout frame; a variant axis for it doubles the whole set to buy nothing a drag does not already do.',
+      'modifiers (leading-visual | trailing-visual | pending) — not projected as-is. Slot CONTENT is an INSTANCE_SWAP property, and `pending` is already a value on the state axis, so projecting this axis would duplicate one and mis-model the other. Slot PRESENCE still needs its own variant axis before #326\'s split inline padding can survive the Figma leg — that axis does not exist in this def yet, so it is not claimed here.',
     ],
+  },
+
+  // How this projects into Figma component properties (#487 §5). DECLARED, not inferred from
+  // `props[].type` — those are prose. Deliberately partial: `variantAxes` names only the three axes
+  // that exist and should project, and every axis it omits is admitted in `codeOnly` above (the
+  // validator enforces that pairing). The slot-presence axis §4 calls for is future def work, so it
+  // is absent rather than stubbed.
+  figmaProperties: {
+    variantAxes: ['intent', 'appearance', 'size'],
+    // Seven values, from `states` above — the single source (#487 §0.4). The legacy sheet's six
+    // (`active`, `focused`, `loading`) are deliberately NOT codified: they are that sheet's names
+    // for `pressed`, `focus-visible` and `pending`, and it has no equivalent for `inactive` at all.
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'] },
+    // Slot CONTENT, so a designer can pick the icon. Slot PRESENCE is a variant question (§4).
+    swaps: { leadingVisual: 'leadingVisual', trailingVisual: 'trailingVisual' },
+    texts: { children: 'label' },
+    // Empty, and stated rather than omitted. `fullWidth` is layout; `isPending`/`isInactive`/
+    // `isDisabled` collapse into the state axis; `onClick`/`type`/`href` are behavioral. A Figma
+    // BOOLEAN drives one node's `visible` and nothing else, and none of those are that.
+    booleans: {},
   },
 
   accessibility: {
