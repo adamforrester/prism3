@@ -2966,41 +2966,71 @@ const primitiveScalesNote = (): HTMLElement => el('p', 'ic-modenote',
  *  The swatches sit on a checkerboard because an alpha ramp over an opaque background is
  *  indistinguishable from a solid ramp — the transparency IS the token. */
 const ALPHA_STEPS_UI = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+/** The 8-digit hex the engine emits for an alpha step — `#0000000d`. Built here rather than read from
+ *  the tree because these are fixed constants, so a second source could only drift from nothing. */
+const alphaHex = (base: 'black' | 'white', pct: number): string =>
+  `#${base === 'black' ? '000000' : 'ffffff'}${Math.round((pct / 100) * 255).toString(16).padStart(2, '0')}`;
+
 const renderAlphaAndOpacity = (): HTMLElement => {
   const sec = palSection('Alpha & opacity', 'Black and white at increasing transparency, and the matching dimensionless opacity scale. Fixed for every brand — these are primitives, so there is nothing to tune; they are here so you can see what exists and what each name resolves to.');
-  // Each ramp sits on the ground it EXISTS for: black alpha over a light checkerboard, white alpha
-  // over a dark one. Both on light, the white ramp is ten near-identical pale squares — technically
-  // rendered, practically unreadable, which is the same failure as not showing it at all.
-  const ramp = (base: 'black' | 'white', rgb: string): HTMLElement => {
-    const box = el('div', 'ao-ramp');
-    box.append(el('div', 'ao-t', `palette.${base}-alpha`));
-    const row = el('div', 'ao-row');
-    for (const st of ALPHA_STEPS_UI.filter((x) => x > 0 && x < 100)) {
-      const cell = el('div', 'ao-cell');
-      const sw = el('div', 'ao-sw' + (base === 'white' ? ' dark' : ''));
-      // `backgroundColor`, NOT `background`. The shorthand clears `background-image`, which is where the
-      // checkerboard lives — so the alpha never showed through, and the white ramp was ten invisible
-      // white swatches on a white panel. The DOM said 20 swatches; only a screenshot said 10 of them
-      // could not be seen.
-      sw.style.backgroundColor = `rgba(${rgb}, ${st / 100})`;
-      cell.append(sw, el('div', 'ao-lab mono', String(st)));
-      cell.title = `palette.${base}-alpha.${st} — ${base} at ${st}% alpha, composites over any surface`;
-      row.append(cell);
+
+  /** A ramp presented exactly like a brand palette: identity head (swatch · name · token pill) over a
+   *  full-width band with the step key and its value beneath — the value sitting where a palette's hex
+   *  sits, because for these that IS the value (`#0000000d`, or a bare `0.05` for opacity). */
+  const ramp = (name: string, path: string, steps: number[], dark: boolean,
+    fill: (pct: number) => string, value: (pct: number) => string, chipPct: number): HTMLElement => {
+    const row = el('div', 'prow');
+    const head = el('div', 'phead');
+    const ident = el('div', 'pident');
+    // The identity chip is the same checkerboard-plus-inner-fill construction as the band swatches, so
+    // it reads as a sample of the ramp rather than a differently-built approximation of one.
+    const chip = el('div', `pswatch ro ao-chk${dark ? ' dark' : ''}`);
+    const chipFill = el('div', 'ao-fill'); chipFill.style.background = fill(chipPct);
+    chip.append(chipFill);
+    const idcol = el('div', 'pidcol');
+    idcol.append(el('span', 'pname', name));
+    const sub = el('div', 'psub'); sub.append(tokenPill(path));
+    idcol.append(sub);
+    ident.append(chip, idcol);
+    head.append(ident);
+    row.append(head);
+
+    const wrap = el('div', 'pramp');
+    const band = el('div', 'band');
+    const strip = el('div', 'strip');
+    const labs = el('div', 'labs');
+    for (const pct of steps) {
+      // The ground is the SWATCH; the alpha goes on an inner fill. Setting the colour on the swatch
+      // itself replaced the ground — which is exactly what shipped in #442: `.ao-sw.dark` carried the
+      // dark base as `background-color`, the inline `backgroundColor` overwrote it, and all ten white
+      // steps rendered identically because the only thing left behind them was the white panel. The
+      // shadow tint read-out already solved this the same way; this now matches it.
+      const sw = el('div', `sw ao-chk${dark ? ' dark' : ''}`);
+      const inner = el('div', 'ao-fill'); inner.style.background = fill(pct);
+      sw.append(inner);
+      strip.append(sw);
+      const lab = el('div', 'lab');
+      lab.append(el('span', 'lab-step mono', String(pct)), el('span', 'lab-hex mono', value(pct)));
+      lab.title = `${path}.${pct}`;
+      labs.append(lab);
     }
-    box.append(row);
-    return box;
+    band.append(strip, labs);
+    wrap.append(band);
+    row.append(wrap);
+    return row;
   };
-  sec.append(ramp('black', '0,0,0'), ramp('white', '255,255,255'));
-  const op = el('div', 'ao-ramp');
-  op.append(el('div', 'ao-t', 'opacity'));
-  const orow = el('div', 'ao-oprow');
-  for (const st of ALPHA_STEPS_UI) {
-    const cell = el('div', 'ao-opcell');
-    cell.append(tokenPill(`opacity.${st}`), el('span', 'sp-px mono', String(+(st / 100).toFixed(2))));
-    orow.append(cell);
-  }
-  op.append(orow);
-  sec.append(op);
+
+  const alphaSteps = ALPHA_STEPS_UI.filter((x) => x > 0 && x < 100);
+  // Black over a light ground, white over a dark one — each ramp on the ground it exists for.
+  sec.append(ramp('Black alpha', 'palette.black-alpha', alphaSteps, false,
+    (p) => `rgba(0,0,0,${p / 100})`, (p) => alphaHex('black', p), 50));
+  sec.append(ramp('White alpha', 'palette.white-alpha', alphaSteps, true,
+    (p) => `rgba(255,255,255,${p / 100})`, (p) => alphaHex('white', p), 50));
+  // Opacity keeps the checkerboard: applying 0.3 opacity to an element genuinely makes what is behind
+  // it show through, so the ground is part of the truth here as much as it is for the alpha ramps.
+  // 0 shows only the ground, which is exactly what 0 means.
+  sec.append(ramp('Opacity', 'opacity', ALPHA_STEPS_UI, false,
+    (p) => `rgba(23,19,53,${p / 100})`, (p) => String(+(p / 100).toFixed(2)), 50));
   return sec;
 };
 
@@ -3019,12 +3049,12 @@ const renderSizeRadiusPage = (host: HTMLElement): void => controlSplitPage(host,
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
     // which is more use than a section that quietly vanished.
-    { title: 'Spacing grid', sub: 'The spacing rhythm — space.100 = 1× an 8px base, fixed for every brand.', controls: spacingFixedNote(), paint: paintSpacingPreview },
+    { title: 'Spacing grid', sub: 'The spacing rhythm — space.100 = 1× an 8px base, fixed for every brand.', controls: spacingFixedNote(), stack: true, paint: paintSpacingPreview },
     // These three scales are emitted, aliased by half the system, and were visible NOWHERE in the
     // dashboard — a user could only find them in Preview's token list. Nothing here is settable, which
     // is exactly why they had no home: the page is organized around levers, and a scale with no lever
     // fell through. Read-only is the point — see what exists, and what the names resolve to.
-    { title: 'Primitive scales', sub: 'The raw grid the geometry aliases resolve onto — fixed for every brand, and read-only. Radius, spacing and component sizes all land on dimension steps.', controls: primitiveScalesNote(), paint: paintPrimitivesPreview },
+    { title: 'Primitive scales', sub: 'The raw grid the geometry aliases resolve onto — fixed for every brand, and read-only. Radius, spacing and component sizes all land on dimension steps.', controls: primitiveScalesNote(), stack: true, paint: paintPrimitivesPreview },
   ];
 });
 
@@ -3033,7 +3063,12 @@ const renderSizeRadiusPage = (host: HTMLElement): void => controlSplitPage(host,
 // scrolling to a specimen block far below. Built like the Palettes page: controls are stable and only the
 // preview sub-nodes repaint (via `refreshers` → paintVolatile), so a slider/select is never rebuilt
 // mid-interaction. `controlSplitPage` is the shared scaffold both pages compose from.
-type SplitBlock = { title: string; sub: string; controls: HTMLElement; paint: (into: HTMLElement) => void };
+/** `controls: null` STACKS the block — description under the heading, specimen full-width below.
+ *  The two-column split earns its keep when a setting sits beside the thing it changes; with no
+ *  setting it just reserves an empty left column and squeezes the specimen into ~490px. Blocks that
+ *  DO have controls can opt in with `stack: true` where the specimen needs the width more than the
+ *  adjacency (Layout's breakpoint table and the fluid-type list both overran the narrow column). */
+type SplitBlock = { title: string; sub: string; controls: HTMLElement | null; stack?: boolean; paint: (into: HTMLElement) => void };
 /** The shared scaffold: hero → (derived-mode note, or) one `.cs-split` section per block (controls beside a
  *  preview node) → a page-local `paintVolatile` that repaints only the preview nodes on every `apply()`. */
 const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => SplitBlock[]): void => {
@@ -3043,11 +3078,17 @@ const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => Spl
   const refreshers: Array<() => void> = [];
   for (const b of blocks()) {
     const sec = palSection(b.title, b.sub);
-    const split = el('div', 'cs-split');
-    const ctlCol = el('div', 'cs-ctl-col'); ctlCol.append(b.controls);
     const preview = el('div', 'cs-preview');
-    split.append(ctlCol, preview);
-    sec.append(split);
+    if (!b.controls || b.stack) {
+      if (b.controls) sec.append(b.controls);
+      preview.classList.add('cs-preview-full');
+      sec.append(preview);
+    } else {
+      const split = el('div', 'cs-split');
+      const ctlCol = el('div', 'cs-ctl-col'); ctlCol.append(b.controls);
+      split.append(ctlCol, preview);
+      sec.append(split);
+    }
     host.append(sec);
     refreshers.push(() => b.paint(preview));
   }
@@ -3093,12 +3134,12 @@ const renderLayoutPage = (host: HTMLElement): void => controlSplitPage(host, 'la
     csSlider('layout.containerNarrow', 'Content container', 480, 960, 20, 'px', () => (brandState.layout?.containerNarrow ?? theme.layout.containerNarrow) as number),
   );
   return [
-    { title: 'Breakpoints', sub: 'Min-width floors (px, ascending) — names auto-assign sm / md / lg / xl / 2xl.', controls: renderBreakpointsControls(), paint: paintBreakpointsPreview },
+    { title: 'Breakpoints', sub: `Min-width floors (px, ascending) — names auto-assign from the count: ${theme.layout.breakpoints.map((x) => x.name).join(' / ')}.`, controls: renderBreakpointsControls(), stack: true, paint: paintBreakpointsPreview },
     // Beside breakpoints on purpose (#361): both are viewport thresholds in px, and the interpolation
     // range only means something read against the floors it spans.
-    { title: 'Responsive type sizing', sub: 'Headings interpolate between a mobile floor and a desktop ceiling across this viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.', controls: renderResponsiveControls(), paint: paintFluidPreview },
+    { title: 'Responsive type sizing', sub: 'Headings interpolate between a mobile floor and a desktop ceiling across this viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.', controls: renderResponsiveControls(), stack: true, paint: paintFluidPreview },
     { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
-    { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, paint: paintContainersPreview },
+    { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, stack: true, paint: paintContainersPreview },
   ];
 });
 
@@ -4741,11 +4782,15 @@ const paintSpacingPreview = (into: HTMLElement): void => {
   // heading that says "the spacing rhythm". A scale specimen has to show the scale; which steps some
   // component consumes is a different question, and not this section's.
   const steps = theme.dims.space.map((s) => ({ ref: `space.${s.key}`, px: s.px }));
-  const maxPx = Math.max(...steps.map((s) => s.px), 1);
   const list = el('div', 'sp-list');
   for (const { ref: k, px } of steps) {
     const cell = el('div', 'sp-cell');
-    const bar = el('div', 'sp-bar'); bar.style.width = `${Math.max(2, (px / maxPx) * 100)}%`;
+    // TRUE px, not a percentage of the pane. The old `Math.max(2, (px/maxPx)*100)%` floored at 2
+    // PERCENT — about 10px — so `space.0` and `space.025` (0px and 2px) drew identically and nothing
+    // in the ramp was to scale. The whole ladder tops out at 96px and this section is now full width,
+    // so the honest rendering fits: 8px is 8px, and 0 is nothing.
+    const bar = el('div', 'sp-bar'); bar.style.width = `${px}px`;
+    if (px === 0) bar.classList.add('zero');
     // `tokenPill`, not mono text. The path was already visible here — but Corner radius and
     // Density & size, on this same page, name theirs with the shared pill, so one of three specimens
     // was saying the same kind of thing in a different component (doc 26: reuse the kit).
@@ -4778,11 +4823,18 @@ const paintPrimitivesPreview = (into: HTMLElement): void => {
   // border-width and icon.size are ALIASES onto the grid, so they are shown next to it rather than as
   // separate scales — the point is that they resolve onto the same ladder.
   const BW: Array<[string, number]> = [['none', 0], ['hairline', 1], ['thick', 2], ['heavy', 4]];
-  into.append(
-    scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-grid'),
+  // Two columns inside the now-full-width section: the 36-step grid is long and wants its own column,
+  // while border-width (4) and icon size (5) are short alias lists that read better stacked beside it
+  // than strung out underneath a list three times their length.
+  const cols = el('div', 'pv-cols');
+  const left = el('div', 'pv-col'); const right = el('div', 'pv-col');
+  left.append(scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-grid'));
+  right.append(
     scale('Border width', BW.map(([k, px]) => ({ ref: `border-width.${k}`, px })), 'pv-rows'),
     scale('Icon size', theme.dims.icons.map((i) => ({ ref: `icon.size.${i.name}`, px: i.px })), 'pv-rows'),
   );
+  cols.append(left, right);
+  into.append(cols);
 };
 
 /** The layout specimen: the responsive-grid axis — breakpoints (min-widths) with their column/gutter/
@@ -6197,8 +6249,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sz-box{display:flex;align-items:center;justify-content:center;min-width:44px;background:var(--ink);color:var(--panel);border-radius:6px;font-size:12px;font-weight:560}
 .sz-lab{font-size:11px;color:var(--muted);white-space:nowrap}
 /* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
-.sp-list{display:flex;flex-direction:column;gap:10px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
-.sp-cell{display:flex;flex-direction:column;gap:5px}
+.sp-list{display:flex;flex-direction:column;gap:7px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
+/* Label and bar on ONE row. Stacked, the 18 steps ran ~950px tall while the bars — now drawn at their
+   true px — used a fraction of the width the section had just gained. A fixed label column keeps every
+   bar starting at the same x, which is what makes the ramp readable as a ramp. */
+.sp-cell{display:flex;align-items:center;gap:14px;min-height:20px}
+.sp-cell .sp-lab{width:142px;flex:none;justify-content:flex-start}
 /* The read-only primitive scales (review). Dense wrap for the 36-step grid; one-per-row for the two
    short alias scales, which read as lists rather than as a ladder. */
 .pv-scale{margin-bottom:16px}
@@ -6209,19 +6265,14 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .pv-cell{display:flex;align-items:center;gap:6px}
 .sp-lab{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
 .sp-px{font-size:11px;color:var(--faint);flex:none}
-/* Alpha ramps + opacity scale (review). Checkerboard behind the swatches — an alpha ramp over an
-   opaque ground is indistinguishable from a solid one, and the transparency IS the token. */
-.ao-ramp{margin-top:14px}
-.ao-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:7px;font-family:var(--mono)}
-.ao-row{display:flex;gap:6px;flex-wrap:wrap}
-.ao-cell{display:flex;flex-direction:column;gap:4px;align-items:center}
-.ao-sw{width:46px;height:38px;border-radius:var(--r-xs);border:1px solid var(--line);
-  background-image:linear-gradient(45deg,#d8d8dc 25%,transparent 25%),linear-gradient(-45deg,#d8d8dc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d8d8dc 75%),linear-gradient(-45deg,transparent 75%,#d8d8dc 75%);
-  background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0}
-.ao-sw.dark{background-image:linear-gradient(45deg,#4a4a52 25%,transparent 25%),linear-gradient(-45deg,#4a4a52 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#4a4a52 75%),linear-gradient(-45deg,transparent 75%,#4a4a52 75%);background-color:#2a2a31}
-.ao-lab{font-size:10.5px;color:var(--faint)}
-.ao-oprow{display:flex;flex-wrap:wrap;gap:5px 10px}
-.ao-opcell{display:flex;align-items:center;gap:6px}
+/* Alpha & opacity — reuses the palette row + band components; only the checkerboard ground and the
+   inner fill are new. The GROUND is the swatch and the alpha goes on an inner .ao-fill: colouring the
+   swatch itself REPLACES the ground, which is how #442 shipped ten identical white steps. */
+.ao-chk{background-image:linear-gradient(45deg,#d8d8dc 25%,transparent 25%),linear-gradient(-45deg,#d8d8dc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d8d8dc 75%),linear-gradient(-45deg,transparent 75%,#d8d8dc 75%);
+  background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;background-color:var(--paper)}
+.ao-chk.dark{background-image:linear-gradient(45deg,#4a4a52 25%,transparent 25%),linear-gradient(-45deg,#4a4a52 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#4a4a52 75%),linear-gradient(-45deg,transparent 75%,#4a4a52 75%);background-color:#2a2a31}
+.ao-fill{position:absolute;inset:0}
+.pswatch.ao-chk{position:relative}
 /* Focus ring (review) — the numbers beside a live specimen; 2px at 2px offset is judged by eye. */
 .fr-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
 .fr-list{display:flex;flex-direction:column;gap:7px;min-width:0}
@@ -6232,7 +6283,16 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .fr-excell{display:flex;flex-direction:column;gap:9px;align-items:center}
 .fr-btn{padding:7px 14px;border-radius:var(--r-xs);background:var(--panel);border:1px solid var(--line2);font-size:12.5px;color:var(--ink)}
 .fr-exlab{font-size:10.5px;color:var(--faint)}
-.sp-bar{height:12px;background:var(--ink);opacity:.55;border-radius:3px;min-width:2px}
+/* No min-width: the bar is drawn at its real px, so a floor would re-introduce exactly the lie this
+   fixed (0px and 2px rendering the same). space.0 draws nothing and says so in its label. */
+.sp-bar{height:12px;background:var(--ink);opacity:.55;border-radius:3px}
+.sp-bar.zero{width:0;border-left:1px dashed var(--line2);height:12px;opacity:1}
+/* A stacked block: the specimen owns the section's full width instead of a ~490px right column. */
+.cs-preview-full{margin-top:14px}
+/* Primitive scales: the long grid beside the two short alias lists. */
+.pv-cols{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
+.pv-col{min-width:0;display:flex;flex-direction:column;gap:20px}
+@media(max-width:760px){.pv-cols{grid-template-columns:1fr}}
 /* Manifest-advanced scalar/enum levers — exposed as a normal panel (no disclosure). */
 .adv-panel{margin-top:12px}
 /* Advanced object/list bespoke editors (responsive type, breakpoints, emphasized easing). */
