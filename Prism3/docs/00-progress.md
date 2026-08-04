@@ -7,6 +7,45 @@
 
 ---
 
+## (2026-08-04) — The MCP decisions log ships by default (its description already said it did)
+
+**STATUS: engine (`mcp.ts`, `test.ts`).** `out/*` byte-identical — no token changed.
+
+`theme_brand`'s `include` defaulted to `[]`, so the decisions log was opt-in, grouped with `tokens`
+and `aiMetadata` under "withheld by default". **The tool's own description already claimed it
+returned "the decisions log by default."** Description and behavior disagreed, and the description
+was the correct half.
+
+The grouping was by CATEGORY when the only thing that justifies withholding is COST, and the costs
+are three orders of magnitude apart for a four-mode brand:
+
+| section | chars |
+|---|---|
+| `tokens` | 833,819 |
+| `aiMetadata` | 516,761 |
+| `notes` | **5,803** |
+
+Withholding half a megabyte is right — no client can spend that on one result. Withholding 5.8KB
+cost an agent the single most decision-relevant thing the engine produces, and cost it *silently*:
+an agent that never passes `include` got a themed brand with no indication that **fifteen** choices
+had been made on its behalf — including one the engine explicitly flags for human confirmation
+(*"action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive
+color"*). This matters most for the onboarding case in #471: someone arriving through an agent with
+no `design.md` gets a complete 567-token, four-mode system from three required fields, and the audit
+trail for that is exactly what was being hidden.
+
+`include: []` still opts out of everything — this is a default, not a floor. A cost assertion guards
+the reason the default is affordable, so notes growing into a payload fails loudly rather than
+quietly making every call expensive; another asserts the description still advertises the default it
+actually has, since those drifted apart once already. Mutation-tested: reverting the default fails
+three assertions by name.
+
+> **Defaults decide what most callers actually see.** Grouping a 6KB audit trail with a 500KB
+> payload because both are "extra" is a category error that costs every caller who never reads the
+> parameter list.
+
+---
+
 ## (2026-08-04) — `on-inverse.border`: the outline edge on a dark band had no contract (#467)
 
 **STATUS: engine (`modes.ts` + test) + web.** `out/*` regenerated — see below for what actually moved.

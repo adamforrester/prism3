@@ -4794,6 +4794,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const full = JSON.parse(callTool('theme_brand', { brand, include: ['tokens', 'aiMetadata', 'notes'] }).content[0].text);
   ok(full.tokens?.prism && full.aiMetadata && Array.isArray(full.notes), 'MCP: include:[tokens,aiMetadata,notes] returns the DTCG tree, the .ai.json metadata and the decisions log');
   ok(themed.structuredContent !== undefined, 'MCP: results carry structuredContent alongside the text block');
+
+  // The decisions log ships BY DEFAULT. It was opt-in, grouped with `tokens` and `aiMetadata` under
+  // "withheld by default" — a grouping by CATEGORY when the only thing justifying it is COST, and
+  // the costs differ by three orders of magnitude (833,819 / 516,761 / 5,803 chars). The tool's own
+  // description already claimed it returned "the decisions log by default", so description and
+  // behaviour disagreed and the description was the correct half. These assert the fixed direction.
+  ok(Array.isArray(payload.notes) && payload.notes.length > 0,
+    `MCP: theme_brand returns the decisions log by DEFAULT (${payload.notes?.length} decisions the engine made for this brand, incl. ones flagged for human confirmation)`);
+  ok(!payload.omitted.includes('notes'), 'MCP: notes are not reported as withheld when they were in fact returned');
+  ok(Array.isArray(JSON.parse(callTool('theme_brand', brand).content[0].text).notes),
+    'MCP: the bare-BrandInput calling convention gets the decisions log too (both entry points default alike)');
+  const noNotes = JSON.parse(callTool('theme_brand', { brand, include: [] }).content[0].text);
+  ok(noNotes.notes === undefined, 'MCP: include:[] still opts OUT of everything — a default, not a floor');
+  // Guard the reason the default is affordable at all. If notes ever grow into a payload rather than
+  // a log, this fails rather than quietly making every call expensive.
+  const notesCost = themed.content[0].text.length - callTool('theme_brand', { brand, include: [] }).content[0].text.length;
+  ok(notesCost < 25_000, `MCP: the decisions log stays cheap enough to be a default (${notesCost.toLocaleString()} chars vs ~834,000 for tokens)`);
+  ok(toolDefs(brandSchema).find((t) => t.name === 'theme_brand')?.description.includes('decisions log by default'),
+    'MCP: the tool description still advertises the default it actually has (these drifted apart once)');
   // The pre-wrap calling convention (a bare BrandInput) still works.
   ok(JSON.parse(callTool('theme_brand', brand).content[0].text).contracts.checks > 0, 'MCP: a bare BrandInput (the old calling convention) is still accepted');
 
