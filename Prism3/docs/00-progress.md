@@ -7,6 +7,36 @@
 
 ---
 
+## (2026-08-04) — The mode bar sits under the page title, and stops cutting a hard edge (#439)
+
+**STATUS: web.** `out/*` untouched.
+
+**Placement: below the hero, not above it.** The bar scopes the CONTROLS; the hero is the page's
+identity. A scope control sitting above the name of the thing it scopes reads as chrome again —
+which is the exact thing moving it out of the header (#432) was meant to stop. Order is now
+`hero → modebar → sections`.
+
+Repositioned in the same post-render pass as the badges rather than inside each page renderer, for
+the same reason: there is more than one renderer and a new one would forget.
+
+**Sticky edge: a shadow, and only while actually stuck.** Content sliding under a sticky bar with a
+flat background reads as a hard cut at the bar's own color rather than as a layer. `.stuck` is
+applied only once the bar has reached its sticky position, so a page scrolled to the top shows no
+shadow at all — a permanent one would claim there is content above when there is not.
+
+**Measured against the LIVE chrome height, not a baked offset.** The global error bar lives in the
+chrome and changes its height when it appears; a fixed threshold would be wrong for exactly the
+situation where the user is reading an error. `syncStuck` reads `chromeHost.offsetHeight` each time.
+
+**rAF-throttled, and bound once.** The listener coalesces to one measurement per frame, and
+`prefers-reduced-motion` drops the transition.
+
+Verified: workspace order `hero → modebar → psec`; at scrollY 0 and 120 the bar is unstuck with no
+shadow; at 600 and 1400 it is pinned at top 77 (exactly the chrome's lower edge) with the shadow on;
+no page errors.
+
+---
+
 ## (2026-08-04) — MCP part 2: migrate to 2026-07-28, keeping 2024-11-05 alive
 
 **STATUS: engine (`mcp.ts` + tests).** `out/*` untouched. Stacked on part 1.

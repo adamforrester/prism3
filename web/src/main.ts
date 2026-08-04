@@ -5448,7 +5448,42 @@ function renderWorkspace(): void {
   renderModeStrip();
   PAGE_RENDERERS[page](workspace);
   attachModeBadges(workspace);
+  // The bar belongs UNDER the page's title + lede, not above it. It scopes the CONTROLS; the hero is
+  // the page's identity, and a scope control sitting above the name of the thing it scopes reads as
+  // chrome again — which is what moving it out of the header (#432) was meant to stop. Repositioned
+  // here rather than inside each page renderer for the same reason the badges are: there is more than
+  // one renderer, and a new one would forget.
+  const hero = workspace.querySelector(':scope > .hero');
+  if (hero) hero.after(modeStripHost);
+  syncStuck();
 }
+
+/** The bar is sticky, so page content slides under it. Without a shadow that reads as a hard cut at
+ *  the bar's own background colour rather than as a layer. `.stuck` is applied only once the bar has
+ *  actually reached its sticky position, so a page scrolled to the top shows no shadow at all — a
+ *  permanent one would claim there is content above when there is not.
+ *
+ *  Measured against the LIVE chrome height rather than a baked offset: the global error bar lives in
+ *  the chrome and changes its height when it appears, which would leave a fixed threshold wrong for
+ *  exactly the situation where the user is reading an error. */
+function syncStuck(): void {
+  if (!modeStripHost) return;
+  const chromeH = chromeHost?.offsetHeight ?? 0;
+  modeStripHost.classList.toggle('stuck', modeStripHost.getBoundingClientRect().top <= chromeH + 0.5);
+}
+let stuckBound = false;
+const bindStuck = (): void => {
+  if (stuckBound) return;
+  stuckBound = true;
+  let queued = false;
+  const onScroll = (): void => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; syncStuck(); });
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll, { passive: true });
+};
 
 // ---- brand setup — selector menu: name + namespace, switch / new / import --------
 let barHost: HTMLElement;
@@ -5892,6 +5927,7 @@ const build = (): void => {
   app.append(chrome);
   renderBar();
   renderModeStrip();
+  bindStuck();
 
   const shell = el('div', 'shell');
   const rail = el('nav', 'rail');
@@ -5998,7 +6034,11 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 /* Sticky at the chrome's lower edge so the mode context still never scrolls away — the property
    it had as tier 2 of the header, preserved through the move (#432). Background is required:
    page content scrolls underneath it. z-index sits below .chrome (20) so it tucks, not overlaps. */
-.modebar{position:sticky;top:var(--chrome-h,120px);z-index:15;background:var(--paper);padding:10px 2px 14px}
+.modebar{position:sticky;top:var(--chrome-h,120px);z-index:15;background:var(--paper);padding:10px 2px 14px;transition:box-shadow .16s ease}
+/* Only while actually stuck — see syncStuck. Soft and short-throw: it should read as the bar
+   sitting above the page, not as a drop shadow on a card. */
+.modebar.stuck{box-shadow:0 10px 14px -12px rgba(20,22,30,.42)}
+@media(prefers-reduced-motion:reduce){.modebar{transition:none}}
 .brandmark{display:flex;align-items:center;gap:11px}
 .logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
 .wordmark{font-weight:640;letter-spacing:-0.02em;font-size:16px}
