@@ -7,6 +7,77 @@
 
 ---
 
+## (2026-08-04) — Review follow-ups: the white alpha ramp was ten identical swatches
+
+**STATUS: web only.** `out/*` untouched. Design feedback on the read-only sections the audit added.
+
+### The bug: an inline colour replaced the ground it was supposed to sit on
+
+**Every one of the ten `white-alpha` steps rendered identically.** `.ao-sw.dark` carried the dark
+checkerboard's base as `background-color`; the inline `sw.style.backgroundColor = rgba(255,255,255,α)`
+**overwrote that property**, so the only thing behind the translucent white was the white panel. 5%
+and 90% white over white are the same swatch.
+
+The `background`-shorthand version of this exact mistake was already fixed once in #442 — the fix moved
+from the shorthand to `backgroundColor` and *stopped there*, which cured black-alpha (whose ground is
+a `background-image` only) and left white-alpha broken, because white's ground lives in the property
+the fix now wrote to. **A partial fix that cures the visible half is worse than none: it retires the
+symptom that would have kept you looking.**
+
+Correct shape — and one this codebase already had: the shadow tint read-out (#305) puts the colour on
+an INNER fill so the chip's checkerboard survives. The ramps now do the same. Reported by eye, not by
+any check: the DOM had ten swatches with ten distinct inline colours the whole time.
+
+### Alpha & opacity now reuses the palette components rather than approximating them
+
+Was a bespoke `ao-*` grid with the token path as an uppercase mono heading. Now the same
+`.prow`/`.phead`/`.pident` head (swatch · **name** · token pill) over the same `.band` the brand ramps
+use, with the step key and its value beneath — the value where a palette's hex sits, because for these
+that IS the value: `#0000000d` for alpha, `0.05` for opacity. Opacity gained a visual ramp; it was a
+list of pills and numbers next to two ramps of swatches.
+
+### `0px` and `2px` drew the same bar
+
+`Math.max(2, (px / maxPx) * 100)` floors at **2 percent** — ~10px in that pane — so `space.0` and
+`space.025` were identical and nothing in the ladder was to scale. Bars are now drawn at their **true
+px** (the scale tops out at 96px and the section is full width, so honesty fits); `space.0` draws a
+dashed zero tick. **A floor expressed in the wrong unit is invisible in review and obvious on screen.**
+
+### The two-column split was load-bearing only where there are controls
+
+`controlSplitPage` always built controls-left / specimen-right. That earns its keep when a setting sits
+beside the thing it changes — and with no setting it reserves an empty left column and squeezes the
+specimen into ~490px. `controls: null` (or `stack: true`) now stacks: description under the heading,
+specimen full width.
+
+Applied to **Spacing grid** and **Primitive scales** (no settings at all), and to Layout's
+**Breakpoints**, **Responsive type sizing** and **Container caps** — which do have controls, but whose
+specimens were being *cut off* by the narrow column: the breakpoint table overran it, and the fluid
+type list truncated every `clamp()` mid-string. Adjacency was worth less than the width.
+
+Two follow-ons: the spacing rows went label-above-bar → **one row** (the stacked form ran ~950px tall
+while using a fraction of the width it had just gained), and Primitive scales splits internally —
+the 36-step grid in one column, the two short alias lists beside it.
+
+### A copy defect the wider layout exposed
+
+Breakpoints read *"names auto-assign sm / md / lg / xl / 2xl"* — hardcoded, and **wrong at six
+floors**, where they are `xs`…`2xl`. This is the same floor-count-dependent naming that produced #444's
+phantom "missing `breakpoint.xs`". Now derived from `theme.layout.breakpoints`.
+
+### Already fixed, reported from a stale build
+
+The container-caps report — *"the max slider controls `container.narrow` but not `container.max`"* — is
+#444, merged earlier the same day. Worth recording that the reporter's observation was **exactly
+right** and independently arrived at: normalising by `containerMax` made that bar 100% by construction.
+
+**Verification.** `regen --check` 88 · **1280/0** · NB regression PASS (exit 0) · web+plugin
+typecheck/build · sandbox-clean · US-English clean. Layout and Size & radius swept at 1500 / 1280 /
+1100 / 900 / 700px: no page overflow, no clipped leaves, no unreachable tables. Alpha fills read back
+as ten distinct rgba values over a ground that is no longer one of them.
+
+---
+
 ## (2026-08-04) — Every section says whether the mode bar reaches it, and the audit gates the claim (#439)
 
 **STATUS: web.** `out/*` untouched. Second half of the #439 build, after the chip (#449).
@@ -565,77 +636,6 @@ follow-up, but changing derived-mode page shape is its own decision, not a side 
 typecheck/build · sandbox-clean · US-English clean. Coverage **7/34 → 34/34**, computed from the brand
 the UI renders. Cross-page pill sweep: 0 elided, 0 clipped leaves, no page overflow — and diffed
 against `main` to prove the shared-helper revert left the other pages exactly as they were.
-
----
-
-## (2026-08-04) — Review follow-ups: the white alpha ramp was ten identical swatches
-
-**STATUS: web only.** `out/*` untouched. Design feedback on the read-only sections the audit added.
-
-### The bug: an inline colour replaced the ground it was supposed to sit on
-
-**Every one of the ten `white-alpha` steps rendered identically.** `.ao-sw.dark` carried the dark
-checkerboard's base as `background-color`; the inline `sw.style.backgroundColor = rgba(255,255,255,α)`
-**overwrote that property**, so the only thing behind the translucent white was the white panel. 5%
-and 90% white over white are the same swatch.
-
-The `background`-shorthand version of this exact mistake was already fixed once in #442 — the fix moved
-from the shorthand to `backgroundColor` and *stopped there*, which cured black-alpha (whose ground is
-a `background-image` only) and left white-alpha broken, because white's ground lives in the property
-the fix now wrote to. **A partial fix that cures the visible half is worse than none: it retires the
-symptom that would have kept you looking.**
-
-Correct shape — and one this codebase already had: the shadow tint read-out (#305) puts the colour on
-an INNER fill so the chip's checkerboard survives. The ramps now do the same. Reported by eye, not by
-any check: the DOM had ten swatches with ten distinct inline colours the whole time.
-
-### Alpha & opacity now reuses the palette components rather than approximating them
-
-Was a bespoke `ao-*` grid with the token path as an uppercase mono heading. Now the same
-`.prow`/`.phead`/`.pident` head (swatch · **name** · token pill) over the same `.band` the brand ramps
-use, with the step key and its value beneath — the value where a palette's hex sits, because for these
-that IS the value: `#0000000d` for alpha, `0.05` for opacity. Opacity gained a visual ramp; it was a
-list of pills and numbers next to two ramps of swatches.
-
-### `0px` and `2px` drew the same bar
-
-`Math.max(2, (px / maxPx) * 100)` floors at **2 percent** — ~10px in that pane — so `space.0` and
-`space.025` were identical and nothing in the ladder was to scale. Bars are now drawn at their **true
-px** (the scale tops out at 96px and the section is full width, so honesty fits); `space.0` draws a
-dashed zero tick. **A floor expressed in the wrong unit is invisible in review and obvious on screen.**
-
-### The two-column split was load-bearing only where there are controls
-
-`controlSplitPage` always built controls-left / specimen-right. That earns its keep when a setting sits
-beside the thing it changes — and with no setting it reserves an empty left column and squeezes the
-specimen into ~490px. `controls: null` (or `stack: true`) now stacks: description under the heading,
-specimen full width.
-
-Applied to **Spacing grid** and **Primitive scales** (no settings at all), and to Layout's
-**Breakpoints**, **Responsive type sizing** and **Container caps** — which do have controls, but whose
-specimens were being *cut off* by the narrow column: the breakpoint table overran it, and the fluid
-type list truncated every `clamp()` mid-string. Adjacency was worth less than the width.
-
-Two follow-ons: the spacing rows went label-above-bar → **one row** (the stacked form ran ~950px tall
-while using a fraction of the width it had just gained), and Primitive scales splits internally —
-the 36-step grid in one column, the two short alias lists beside it.
-
-### A copy defect the wider layout exposed
-
-Breakpoints read *"names auto-assign sm / md / lg / xl / 2xl"* — hardcoded, and **wrong at six
-floors**, where they are `xs`…`2xl`. This is the same floor-count-dependent naming that produced #444's
-phantom "missing `breakpoint.xs`". Now derived from `theme.layout.breakpoints`.
-
-### Already fixed, reported from a stale build
-
-The container-caps report — *"the max slider controls `container.narrow` but not `container.max`"* — is
-#444, merged earlier the same day. Worth recording that the reporter's observation was **exactly
-right** and independently arrived at: normalising by `containerMax` made that bar 100% by construction.
-
-**Verification.** `regen --check` 88 · **1280/0** · NB regression PASS (exit 0) · web+plugin
-typecheck/build · sandbox-clean · US-English clean. Layout and Size & radius swept at 1500 / 1280 /
-1100 / 900 / 700px: no page overflow, no clipped leaves, no unreachable tables. Alpha fills read back
-as ten distinct rgba values over a ground that is no longer one of them.
 
 ---
 
