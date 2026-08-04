@@ -4723,10 +4723,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Version negotiation arrives per-REQUEST now. A version we speak passes; one we do not is rejected
   // with the renumbered code, and an ABSENT version is allowed (older clients never send one).
   const verOk = handleRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': LATEST_PROTOCOL_VERSION } } }, brandSchema);
-  ok((verOk?.result as any)?.tools?.length === 3, 'MCP: a request carrying a supported protocolVersion in _meta is served');
+  ok((verOk?.result as any)?.tools?.length === 5, 'MCP: a request carrying a supported protocolVersion in _meta is served');
   const verBad = handleRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '1999-01-01' } } }, brandSchema);
   ok((verBad as any)?.error?.code === -32022 && Array.isArray((verBad as any)?.error?.data?.supported), 'MCP: an unsupported protocolVersion → -32022 (the reserved range) with the supported list attached');
-  ok((rpc('tools/list')?.result as any)?.tools?.length === 3, 'MCP: a request with NO protocolVersion is still served (older clients never send one)');
+  ok((rpc('tools/list')?.result as any)?.tools?.length === 5, 'MCP: a request with NO protocolVersion is still served (older clients never send one)');
 
   // ---- 2024-11-05 dual support: the old handshake still answers ------------------------------
   const init = rpc('initialize')?.result as any;
@@ -4739,9 +4739,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // tool catalogue
   const tools = (rpc('tools/list')?.result as any)?.tools as any[];
-  ok(Array.isArray(tools) && tools.map((t) => t.name).sort().join(',') === 'list_levers,theme_brand,validate_brand', 'MCP: tools/list advertises list_levers + theme_brand + validate_brand');
+  ok(Array.isArray(tools) && tools.map((t) => t.name).sort().join(',') === 'list_levers,score_consumption,theme_brand,theme_from_brief,validate_brand', 'MCP: tools/list advertises all five tools');
   ok(tools.find((t) => t.name === 'theme_brand')?.inputSchema?.properties?.brand === brandSchema, 'MCP: theme_brand takes { brand, include } with the BrandInput schema under `brand`');
-  ok(toolDefs(brandSchema).length === 3, 'MCP: toolDefs is a pure function of the brand schema');
+  ok(toolDefs(brandSchema).length === 5, 'MCP: toolDefs is a pure function of the brand schema');
   // Current MCP tool UX: a display title and behaviour annotations on every tool. All three are pure
   // reads of the engine, so all three are readOnly + idempotent + closed-world.
   ok(tools.every((t) => typeof t.title === 'string' && t.annotations?.readOnlyHint === true && t.annotations?.idempotentHint === true && t.annotations?.openWorldHint === false),
@@ -4782,6 +4782,38 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(themed.structuredContent !== undefined, 'MCP: results carry structuredContent alongside the text block');
   // The pre-wrap calling convention (a bare BrandInput) still works.
   ok(JSON.parse(callTool('theme_brand', brand).content[0].text).contracts.checks > 0, 'MCP: a bare BrandInput (the old calling convention) is still accepted');
+
+  // ---- score_consumption: the metric eval.ts was written FOR, now reachable over MCP -----------
+  // Its own docstring says it "measures whether an agent handed the MCP surface produced COMPLIANT
+  // output" — and until now it was not callable from that surface.
+  const scored = JSON.parse(callTool('score_consumption', {
+    brand,
+    refs: ['color.text.primary', '{prism.color.background.primary}', 'palette.primary.600', 'color.nope.missing'],
+    pairs: [{ fg: 'color.text.primary', bg: 'color.background.primary' }, { fg: 'color.text.tertiary', bg: 'color.background.primary', kind: 'ui' }],
+  }).content[0].text);
+  ok(scored.consumption.invented.length === 1 && scored.consumption.invented[0] === 'color.nope.missing',
+    'MCP: score_consumption catches an invented token ref');
+  ok(scored.consumption.primitiveLeaks.length === 1 && scored.consumption.primitiveLeaks[0] === 'palette.primary.600',
+    'MCP: score_consumption catches a reach past the semantic layer into a raw primitive');
+  // Non-vacuous: brace syntax and a root-qualified path must BOTH be accepted, or the two valid refs
+  // above would have been miscounted as invented and the assertion would pass for the wrong reason.
+  ok(scored.consumption.valid === 3 && scored.consumption.total === 4, `MCP: score_consumption normalises brace + root-qualified refs (valid ${scored.consumption.valid}/4)`);
+  ok(scored.contracts && scored.contracts.checked > 0, 'MCP: score_consumption checks the fg/bg pairs across every mode');
+  ok(JSON.parse(callTool('score_consumption', { brand, refs: [] }).content[0].text).contracts === undefined,
+    'MCP: contract scoring is omitted when no pairs were supplied (ref hygiene is a separate question)');
+  ok(callTool('score_consumption', { brand: { id: 'bad' }, refs: [] }).isError === true, 'MCP: score_consumption rejects an invalid brand loudly');
+
+  // ---- theme_from_brief: the design.md path, for agents working from prose --------------------
+  const brief = ['---', 'id: brief-probe', 'primary: { l: 0.5, c: 0.15, h: 250 }', 'neutral: { hue: 250, chroma: 0.01 }', '---', '', 'A calm, considered brand.'].join('\n');
+  const fromBrief = callTool('theme_from_brief', { brief });
+  ok(fromBrief.isError !== true, 'MCP: theme_from_brief generates from a design.md brief');
+  const bp = JSON.parse(fromBrief.content[0].text);
+  ok(bp.id === 'brief-probe' && bp.contracts.checks > 0, 'MCP: theme_from_brief returns the same verification payload as theme_brand');
+  ok(bp.derivedBrandInput?.primary?.h === 250, 'MCP: theme_from_brief reports the BrandInput it derived (a brief is lossy — the round trip has to be inspectable)');
+  ok(callTool('theme_from_brief', { brief: 'no frontmatter here' }).isError === true, 'MCP: a malformed brief is a tool error the model can correct, not an RPC error');
+  // The two entry points must not be able to describe the same brand differently.
+  ok(JSON.stringify(bp.contracts) === JSON.stringify(JSON.parse(callTool('theme_brand', { brand: bp.derivedBrandInput }).content[0].text).contracts),
+    'MCP: theme_from_brief and theme_brand report an identical payload for the same brand (one shared path)');
 
   // validate_brand: bad input → errors; good input → clean; and theme_brand rejects a bad brand loudly
   ok(JSON.parse(callTool('validate_brand', { id: 'x' }).content[0].text).valid === false, 'MCP: validate_brand flags an incomplete brand (missing primary/neutral)');
