@@ -43,6 +43,13 @@ jobs:
       - name: Engine unit tests
         run: npx --yes tsx@4 Prism3/engine/test.ts
 
+      # The MCP surface, driven over the REAL stdio transport as a subprocess. test.ts covers
+      # handleRpc/callTool in-process; this covers what a CLIENT meets — newline framing, a message
+      # split across chunks, a parse error that must not kill the process — plus 2026-07-28
+      # conformance and the agent journey (discover → generate from a brief → verify → self-score).
+      - name: MCP conformance + journey
+        run: npx --yes tsx@4 Prism3/engine/mcp-test.ts
+
       # Reproduces New Balance perceptually from the schema alone; every step within its ΔE00
       # ceiling, plus the contrast contracts. Exits non-zero on any regression.
       - name: NB regression

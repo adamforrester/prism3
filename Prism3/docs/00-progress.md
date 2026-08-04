@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-08-04) — An MCP suite that drives the real transport, and mutation-tests itself
+
+**STATUS: engine (`mcp-test.ts`, new) + CI + CLAUDE.md.** `out/*` untouched.
+
+`test.ts` exercised `handleRpc` / `callTool` **in-process**, which is the right home for dispatch
+logic and cannot reach the thing a client actually meets: **the transport**. Everything between "a
+client wrote bytes to a pipe" and "handleRpc saw an object" was untested — newline framing, a message
+split across chunks, several messages in one chunk, a notification that must produce no reply, a parse
+error that must not kill the process. **That is exactly where an integration bug hides, because every
+unit test passes while the server is unreachable.**
+
+`Prism3/engine/mcp-test.ts` spawns `mcp.ts` as a subprocess and talks to it as a client does.
+**49 assertions**, in three parts:
+
+1. **Transport** — partial-write reassembly, batched writes, blank lines, a malformed message that
+   must be reported *and survived*, notification silence, and that the banner goes to **stderr**
+   (stdout is the protocol channel).
+2. **Conformance** — `server/discover`, `resultType` and the `_meta` identity on *every* result,
+   `ttlMs`/`cacheScope`, deterministic ordering, tool-name charset, the affordability ceiling,
+   per-request version negotiation including `-32022`, the error taxonomy (unknown method vs unknown
+   tool vs a tool that ran and failed), 2024-11-05 dual support, and that `structuredContent` agrees
+   with the text block.
+3. **Journey** — the end-to-end an agent performs, where **each step consumes the previous step's
+   output** rather than a fixture: discover controls → generate from a brief → confirm the derived
+   input round-trips identically through `theme_brand` → pull tokens only when needed → score its own
+   consumption → fail loudly on a malformed brief. A per-tool assertion cannot catch tools that stop
+   *composing*; this can.
+
+### The suite was mutation-tested, and the first mutation exposed a defect in the suite
+
+A suite that passes on its first run has proved nothing. Three deliberate breaks:
+
+| mutation | caught? |
+|---|---|
+| remove `server/discover` | yes — but **crashed with a TypeError** |
+| remove `resultType` from results | yes, 4 clean failures |
+| re-inline the schema on a second tool | yes — `tools/list` 95,931 chars |
+
+The first one is the finding. A missing method threw on the first property read and **took the rest of
+the run with it** — so one defect reported one problem instead of five, and everything after it went
+unmeasured. Fixed with a `resultOf` helper that records an errored call as a failure and returns `{}`.
+The same mutation now reports five readable failures and the suite continues.
+
+> **A test suite that dies on the first defect reports one problem per run.** Fail soft, report all.
+
+### Why this belongs in CI rather than in `test.ts`
+
+It spawns a subprocess and costs seconds rather than milliseconds, so it stays a separate gate —
+placed after the unit tests, cheapest-first, so a fast failure still reports fast. Added to
+`.github/workflows/ci.yml` and to the CLAUDE.md pre-push sequence.
+
+**Verification.** `regen --check` 88 · **1317/0** · **MCP suite 49/0** · NB regression PASS · web+plugin
+typecheck/build · sandbox-clean · US-English clean.
+
+---
+
 ## (2026-08-04) — MCP part 3: the eval that scores MCP agents was not callable over MCP
 
 **STATUS: engine (`mcp.ts` + tests).** `out/*` untouched. Stacked on part 2.
