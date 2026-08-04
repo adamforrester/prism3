@@ -5295,6 +5295,15 @@ const pageHasModeVaryingControl = (): boolean => {
   // to drive. Same conclusion as Primitives and Preview, reached from the other end: those have no
   // per-mode values, this one shows them all at once.
   if (page === 'typography') return false;
+  // Preview is THREE views with three different answers, so the rule lands per VIEW, not per page.
+  // Measured Light->Dark on the rendered TEXT (#439):
+  //   Style guide         8 of 373 lines differ — it renders the ACTIVE mode, and says so
+  //                       ("ON LIGHT SURFACE" -> "ON DARK SURFACE"). The bar does real work.
+  //   Contrast contracts  0 of 54  — every mode is already a column (Pair | Light | Dark | HC ...)
+  //   Token list          1 of 940 — one caption; every mode is already a column pair
+  // The two column views meet exactly the condition stated for Typography above: when every
+  // mode-varying value is a column, the bar has nothing left to drive. Same rule, finer grain.
+  if (page === 'preview') return previewView === 'styleguide';
   return true;
 };
 
