@@ -161,6 +161,15 @@ ordered, and step 3 is the one that decides whether the findings are real.
 - **A clamp floor must be in the same unit as the value it floors.** `Math.max(2, pct)` on a width
   expressed in percent made 0px and 2px draw identically — invisible in code review, obvious on
   screen. Prefer drawing a scale specimen at its TRUE size where the range allows it.
+- **A specimen belongs on the ground it ships on.** The Style guide's cards rendered the active
+  mode's colours on the studio's white panel, so Dark read as dark tokens on a light page and the
+  Inverse row blended into it. Theme the specimen REGION (re-scope `--panel`/`--paper`/`--line`/
+  `--ink`/`--muted`/`--faint` on a ground element and every child follows); leave the `.psec`
+  shell, title and description studio, so the frame still says which is tool and which is brand.
+- **Two scales with the same number of tiers are not the same scale.** Studio `--muted`/`--faint`
+  and brand `text.secondary`/`text.tertiary` line up by position and differ by CONTRACT: the
+  engine gates tertiary at 3:1, and `--faint` is 10.5px text needing 4.5:1. Mapping by position
+  put token pills at 3.52:1. Map by contract, and measure after.
 - **The intrinsic-width trap.** A `nowrap` element contributes its full single-line width as
   min-content, and a column `width` is only a hint it will blow past (measured three times: #360, #369,
   #388, and again at 829px on a token pill). Cap with an explicit px `max-width`.
