@@ -1391,16 +1391,32 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     row.append(lab, bs);
     return row;
   };
+  // Is the chosen preview ground itself an inverse band? Both the background and foreground inverse
+  // tiers qualify — what matters is that the ground is the dark one the `on-inverse` family was
+  // measured against, not which collection it came from.
+  const onInverseGround = surf.key.includes('inverse');
   const paletteBlock = (nm: string, c: string): HTMLElement => {
     const block = el('div', 'sg-pblock');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
     const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`));
     const bgFor: Record<string, string> = { rest: 'transparent', hover: paint(cur, `interactive.${c}.overlay.hover`), pressed: paint(cur, `interactive.${c}.overlay.pressed`) };
-    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, `interactive.${c}.text.${s}`), paint(cur, `interactive.${c}.border`), s, `interactive.${c}.text.${s}`, `text.${s}`));
+    // The OUTLINE ink is the one role here measured against the PAGE rather than against its own
+    // fill, so it is the one that breaks when the preview ground stops being the page. On the
+    // inverse band `interactive.<c>.text.rest` rendered #0e0d0c on #0e0d0c — 1.00:1, the identical
+    // colour, text that is not merely low-contrast but literally invisible. The engine already
+    // resolves `on-inverse.text.*` for exactly this ground, so the row asks for the ink that matches
+    // where it is being shown. Filled and Inverse need no such switch: their ink is `on-fill`,
+    // measured against the button's own fill, which the ground behind it cannot change.
+    const otxt = (s: string) => `interactive.${c}.${onInverseGround ? 'on-inverse.' : ''}text.${s}`;
+    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, `interactive.${c}.border`), s, otxt(s), `text.${s}`));
     const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.on-inverse.fill.${s}`), paint(cur, `interactive.${c}.on-inverse.on-fill`), null, s, `interactive.${c}.on-inverse.fill.${s}`, `fill.${s}`));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
     block.append(trow('Outline', [footLine('border', sgPill(`interactive.${c}.border`, 'border'))], outline, false));
-    block.append(trow('Inverse', [footLine('text', sgPill(`interactive.${c}.on-inverse.on-fill`, 'on-fill'))], inv, true));
+    // The Inverse row paints its own inverse band so the on-inverse variants have the ground they
+    // were measured against. When the PREVIEW ground is already that band, painting it again is a
+    // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
+    // dark" rather than as a distinct treatment. On that ground the row simply uses the page's.
+    block.append(trow('Inverse', [footLine('text', sgPill(`interactive.${c}.on-inverse.on-fill`, 'on-fill'))], inv, !onInverseGround));
     return block;
   };
   secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
@@ -1409,7 +1425,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'color.disabled')); block.append(hd);
     block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], false));
     block.append(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false));
-    block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], true));
+    block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], !onInverseGround));
     secInt.append(block);
   }
   host.append(ground(secInt));

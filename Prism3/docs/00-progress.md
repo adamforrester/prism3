@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-08-04) — The Style guide's interactive rows now resolve against the ground they are shown on (owner-reported)
+
+**STATUS: web.** `out/*` untouched. Both defects arrived with the preview-surface picker (#454): it
+changed the ground beneath the specimens without changing which roles they ask for.
+
+**The outline ink was literally invisible, not merely low-contrast.** Measured on the Inverse band:
+`interactive.neutral.text.rest` rendered **`#0e0d0c` on `#0e0d0c` — 1.00:1`**, the identical color.
+Primary and Destructive were 3.48 and 2.55.
+
+**Why only that row.** `Filled` and `Inverse` colour their label with `on-fill`, which is measured
+against *the button's own fill* — a ground the page cannot change. `Outline` is the one treatment
+whose ink is measured against **the page**, so it is the only one that breaks when the page stops
+being the ground. The engine already resolves `on-inverse.text.*` for exactly this case, so the row
+now asks for the ink that matches where it is being shown.
+
+```
+Inverse band, outline text          before        after
+  Primary    rest/hover/pressed     ~1.0          5.00 / 5.98 / 7.02
+  Neutral    rest/hover/pressed     1.00          18.11 / 18.27 / 18.41
+  Destructive                       3.48/3.09/2.55  4.94 / 5.89 / 7.02
+```
+
+Page ground is untouched and unchanged (5.59 / 15.98 / 4.60 at rest).
+
+**The Inverse row was painting a dark band onto a dark ground.** It paints its own inverse band so
+the `on-inverse` variants have the ground they were measured against — correct on the page, and a
+dark rectangle on an identical dark rectangle once the preview ground *is* that band. The row lost
+its edges and read as "still dark" rather than as a distinct treatment. It now uses the page's ground
+there. Four rows painted a band on Page, **zero on Inverse**, verified.
+
+**A second builder had the same bug.** The Disabled block builds its own rows and hard-coded the same
+`true`. Caught only because the check counted rows across the whole page rather than inspecting one
+block — 3 of 4 fixed would have looked like success on a spot-check.
+
+**My verification probe was wrong first, and in the dangerous direction.** It read
+`rgba(0,0,0,0.1)` — the hover wash — as opaque black, reporting **1.08:1 for text that is plainly
+legible** and flagging six Page-ground rows as broken. Alpha must be composited over what is behind
+it, not parsed as a colour. Had I not checked, this entry would have claimed six defects that do not
+exist. **Third bad probe this session, and the third to look plausible while wrong.**
+
+**Known gap, not fixed here:** there is no `on-inverse.border` role, so the outline's *edge* on the
+inverse band still uses the page-gated `interactive.<c>.border`. It reads acceptably, but it is
+unmeasured against that ground — an engine-side gap worth its own issue rather than a colour invented
+in the view layer.
+
+---
+
 ## (2026-08-04) — Tone of voice: codifying the voice we already had, plus the channel matrix (docs/29)
 
 **STATUS: docs only.** No engine change, no `out/*` regeneration.
