@@ -41,12 +41,29 @@ genuine, translators, dry humor* — and **"translators"** is the one worth stea
 outright: demystifying B2B terminology is exactly what a token engine's UI does when it
 turns OKLCH chroma into a decision a designer can make.
 
-**The gap this doc fills.** Design systems ship *one* voice, aimed at product UI. General
-content style guides differentiate by channel but aren't design systems. Nobody surveyed
-ships **channel-differentiated voice guidance for a design system** — which is consistent
-with KB 04's own framing of the voice-and-tone matrix as *"the practice's most-undersold
-content artefact at system altitude."* So §4 is genuinely new, and is the part worth
-promoting back to the KB.
+**Microsoft states the same split, independently** — *"our voice is constant regardless of
+who we're talking to… we adapt our tone — from serious to empathetic to lighthearted — to
+fit the context and the customer's state of mind."* Three principles: *warm and relaxed,
+crisp and clear, ready to lend a hand*, plus style tips worth holding — get to the point
+fast, prune every excess word, write for scanning first and reading second.
+
+**Google's developer-documentation style guide is the authority for channel C**, and it is
+stricter than instinct suggests. It prohibits, explicitly: **exclamation marks, buzzwords,
+figurative language, culturally specific references, "please note", and "simply" / "it's
+easy."** The stated reason is a global, non-native-English readership — which applies
+directly here, since Prism3 targets enterprise clients across markets. Its framing of the
+reader is the useful part: *"someone who's looking for it and may be in a hurry."* And it
+argues for a **more conversational** register than formality instinct suggests — *"a
+knowledgeable friend who understands what the developer wants to do."*
+
+**The channel finding, corrected.** The first pass concluded "nobody differentiates by
+channel." That was wrong, and the second pass shows why: **the field differentiates by
+shipping separate guides per channel, not by publishing one matrix.** Google ships a guide
+*specifically for developer documentation*, distinct from Material's product-content
+guidance. Mailchimp splits by content type inside one guide. Microsoft ships one voice
+spanning surfaces with tone adapting underneath. So §4 is not an invention — it is a
+**consolidation of a practice the field already runs**, into a single table, for a product
+whose four channels are unusually far apart.
 
 ---
 
@@ -117,10 +134,31 @@ thing in the room.
 This attribute is what makes §4 necessary. It binds hard in the plugin, and it **relaxes in
 marketing** — because on the marketing site, the brand on screen *is* ours.
 
+### 3.5 Declarative ≠ formal — the reconciliation
+Google argues developer docs should read as *"a knowledgeable friend,"* conversational
+rather than formal. That is not in tension with §3.2, because the two apply to different
+sentences: **describe the system declaratively, instruct the reader imperatively.**
+"The engine places it on the ramp by its lightness" (describing) and "Run `npx tsx
+Prism3/engine/cli.ts <design.md>`" (instructing) are both correct. What neither licenses is
+stiffness — passive voice, nominalisation, or ceremony. Contractions are fine.
+
 ### What we are not
 Not chatty. Not apologetic. Not cute. Not a personality. Not vague-friendly ("Oops!
 Something went wrong"). Not academic — precise is not the same as dense, and a paper about
 OKLCH is not the goal.
+
+**Banned outright, on every surface** (adopted from Google's developer-documentation guide;
+the reason is a global, non-native-English readership, which is our client base too):
+
+| Never | Why |
+|---|---|
+| **"simply", "just", "easy", "obviously"** | If the reader is stuck, this tells them the fault is theirs. It never adds information. |
+| **Exclamation marks** | Manufactured enthusiasm. The one exception is nowhere. |
+| **"please note", "note that"** | Filler. If it matters, state it; if it doesn't, cut it. |
+| **Figurative language, idiom, cultural reference** | Translates badly and reads as noise to a non-native reader. |
+| **Buzzwords / unexplained acronyms** | Costs trust in a product whose whole claim is precision. |
+
+These are mechanically checkable, which is what makes them worth writing down (§7).
 
 ---
 
@@ -138,7 +176,7 @@ Voice (§3) is constant. Two things vary: **register** (density, length, person)
 | **Length** | ≤1 line per control; ~90 chars for a `desc`. | 1–3 sentences per rule. | As long as correctness needs. | Short. Every sentence earns the next. |
 | **Jargon** | Recognizable names only in **labels**; precise terms allowed in **descriptions** (see §6). | Introduce the term, then use it. This is where vocabulary gets taught. | Full precision assumed. Token paths, API names, exact types. | Translate everything. A term the reader doesn't know is a lost reader. |
 | **Numbers** | Inline, always (`4.5:1`). | Inline, with the standard named. | Exact, with units and types. | Only when the number *is* the argument (e.g. "432 contrast contracts, every build"). |
-| **Personality** | **None.** Recessive binds hardest here. | None. | Dry asides acceptable where they aid recall. | **Permitted** — this is our brand, not the client's. Still no hype. |
+| **Personality** | **None.** Recessive binds hardest here. | None. | **None** — corrected. The first draft allowed "dry asides where they aid recall"; Google's guide bans exclamation marks and figurative language outright for non-native readers, and that reasoning holds for us. Conversational ≠ characterful. | **Permitted** — this is our brand, not the client's. Still no hype, and the §3.5 bans still apply. |
 | **Failure mode to avoid** | Chrome that talks more than the work. | Rules with no reason attached. | Prose where a code block would do. | Claims the engine can't back. |
 
 ### The one rule that spans all four
@@ -224,12 +262,16 @@ unusual position and it makes mechanical enforcement more valuable than review.
 
 ---
 
-*Sources surveyed (2026-07-31): Mailchimp Content Style Guide — voice/tone distinction,
-four voice attributes, and the content-type sections that are the only channel
-differentiation found in the survey; Shopify Polaris *Voice and tone* — the
-de-emphasis position, plain-language standard, no channel split; Carbon and Atlassian
-content guidance (both JS-rendered, not retrievable this pass — worth a second attempt
-before treating the "nobody differentiates by channel" finding as complete). In-repo
+*Sources surveyed (2026-07-31 → 2026-08-04): Mailchimp Content Style Guide — the
+voice/tone distinction, four voice attributes, and content-type sections; Shopify Polaris
+*Voice and tone* — the de-emphasis position and plain-language standard, no channel split;
+Microsoft Writing Style Guide *brand voice* — voice-constant/tone-variable stated
+independently, three principles, and the scanning-first style tips; Google developer
+documentation style guide *tone* — the authority for channel C, source of the §3.5 ban
+list and the non-native-reader rationale. **Still unretrieved:** Carbon (MDX path 404s;
+rendered page truncates) and Atlassian (JS-rendered) — so the read of the design-system
+field in §1 rests on Polaris alone, and a second DS-native opinion would strengthen it.
+In-repo
 evidence: `Prism3/engine/levers.ts`, `web/src/main.ts` role descriptions,
 `Prism3/engine/ai-metadata.ts` (the generated-prose surface), `26-cross-page-ui-conventions`
 §Controls & labels, `CLAUDE.md` US-English gate. KB: `04-documentation` §"The

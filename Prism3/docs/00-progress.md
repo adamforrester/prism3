@@ -28,7 +28,15 @@ this whole apparatus: *"Don't worry too much about voice and tone, just focus on
 No channel differentiation anywhere in it. Mailchimp is the only surveyed source that differentiates
 by content type, and it isn't a design system. So **channel-differentiated voice guidance for a
 design system appears to be genuinely unserved** — which matches KB 04's own framing of the matrix
-as "the practice's most-undersold content artefact." That makes §4 the promotable-to-KB part.
+as "the practice's most-undersold content artefact."
+
+**Corrected on the second pass (the first conclusion was wrong).** "Nobody differentiates by
+channel" did not survive contact with two more sources. The field *does* differentiate — it just
+ships **separate guides per channel** rather than one matrix. Google publishes a style guide
+specifically for **developer documentation**, distinct from Material's product-content guidance;
+Microsoft ships one voice spanning surfaces with tone adapting underneath. So `29` §4 is a
+**consolidation of a practice the field already runs**, not an invention — a weaker claim, and the
+true one. Scope is **Prism3 only**; this is not being written up for the vault.
 
 **The attribute that is ours, not borrowed: *recessive*.** Prism3 is a tool for building *other
 people's* brands — whatever sits on screen in the plugin competes with the brand a designer is
@@ -54,15 +62,20 @@ Logged as `29` §6 rather than changed unilaterally, since it edits a settled co
 **Traps.**
 1. **§4 column D (marketing) is authored ahead of need** — flagged as speculative in `29` §8.1. If
    no marketing site is planned, don't treat it as settled guidance.
-2. **The "nobody differentiates by channel" finding is incomplete.** Carbon and Atlassian are both
-   JS-rendered and were not retrievable this pass. Worth a second attempt via source before the
-   claim is promoted to the KB as field truth.
+2. **A rule in the first draft was wrong and is now corrected in place.** Column C originally
+   allowed "dry asides where they aid recall" in developer docs. Google's guide bans exclamation
+   marks and figurative language outright, for a global non-native-English readership — which is
+   our client base. Conversational ≠ characterful. If that cell ever reads permissive again,
+   this is why it shouldn't. **Carbon and Atlassian remain unretrieved** (both JS-rendered; the
+   Carbon MDX path 404s and its rendered page truncates) — a second DS-native opinion alongside
+   Polaris is still missing, so §1's read of the DS field rests on Polaris alone.
 3. **Plugin and dashboard are one channel here** only because they share `web/src` (docs/09). A Dev
    Mode surface (docs/27 Idea 1) addresses a *developer*, which would be a fifth column, not a
    variation of A.
 
-**Next:** the KB-side promotion (channel adaptation extends `04`'s matrix), and optionally the
-mechanical voice gate as an issue.
+**Next:** the mechanical voice gate as an issue (the §3.5 ban list is scannable, and
+`lint-us-english.ts` is the working precedent), and resolving the doc-26 label/description
+jargon question in `29` §6.
 
 ---
 
