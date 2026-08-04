@@ -36,6 +36,7 @@ type Unit = { unit: 'PERCENT' | 'PIXELS'; value: number };
 /** Minimal Text Style surface — mutable name/props + bound-variable wiring. */
 export interface TextStyleNode {
   name: string;
+  description: string;
   fontName: FontName;
   fontSize: number;
   lineHeight: Unit | { unit: 'AUTO' };
@@ -96,6 +97,10 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     if (!s) { s = api.createTextStyle(); s.name = row.name; byName.set(row.name, s); created++; }
 
     // Baked literals (the correct fallback value even before/without a variable binding).
+    // `description` is what a designer reads in the Figma style panel to know what a rung is FOR —
+    // the plan has always carried it and this executor silently dropped it, so the sibling
+    // `materialise-to-figma.ts` paste path would have written it and the plugin would not.
+    s.description = row.description;
     s.fontName = { family: row.fontFamilyPrimary, style: row.fontStyle };
     s.lineHeight = { unit: 'PERCENT', value: row.lineHeightPct };
     s.letterSpacing = { unit: 'PERCENT', value: row.letterSpacingPct };
