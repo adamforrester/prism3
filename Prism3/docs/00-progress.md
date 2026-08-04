@@ -7,6 +7,61 @@
 
 ---
 
+## (2026-08-04) — The paste path reported success while telling the agent nothing
+
+**STATUS: engine (`materialise-to-figma.ts`) + `test.ts`.** No `out/*` change — this is the payload
+*shape*, not the token data. Verified live against Prism Test File v2 (all 9 passes, then the
+`text-styles` re-paste that had failed).
+
+Found by driving the full nine-pass materialisation into a real file rather than trusting the unit
+tests. Both defects are in the class the suite structurally could not see: it asserted what the
+generated JS *contains*, never what `figma_execute` *does with it*.
+
+**1. Every pass discarded its own return value.** Each pass wrapped its body in `(async()=>{ ... })()`
+with the `return {...}` inside the IIFE. `figma_execute` does not await or unwrap a returned Promise,
+so the caller got `success: true` with `result: undefined` — every created / bound / skipped / miss
+count the pass carefully computes was thrown away at the boundary. The write path *looked* verified
+and reported nothing. `figma_execute` supports top-level `await`, so the wrapper was pure loss: strip
+it and the same payload returns real data. This is the whole reason these payloads exist over
+`figma_batch_create_variables`, so a blind paste is close to worthless.
+
+**2. `text-styles` overran the execution ceiling.** It called `loadFontAsync` per style — 38
+sequential awaits for **4 distinct faces** (Inter Bold/Regular/Semi Bold, JetBrains Mono Regular).
+First paste squeaked through; the idempotency re-paste returned `Execution timed out after 5000ms`.
+Hoisting the loads into a de-duped ledger fixed it: same pass, same default 5000ms, now returns
+`{total:38, created:0, bound:114, skipped:[], misses:[], distinctFacesLoaded:4}`.
+
+**The tradeoff on #2 that is worth recording.** `figma_execute` accepts a `timeout` param (default
+5000, max 30000), so the ceiling was raisable — the timeout was *not* a hard wall. De-duping was
+still the right fix, because asking the caller to pass a bigger timeout treats 34 redundant font
+loads as a cost to be funded rather than removed, and a pass that needs 6× the default budget on the
+owner's machine is a pass that fails on a slower one. The ledger also *preserves* skip-with-warning
+exactly (#237): a face that won't load is recorded `false` once, and every style wanting it still
+lands in `skipped[]` — the guard did not get traded for the speed.
+
+**Gate added, and one thing it taught.** `test.ts` now asserts, **per pass**, no async IIFE + a
+top-level structured `return` — per pass rather than once, since one re-wrapped pass is one blind
+pass. Writing it surfaced that `dims-create` returns a bare array (`return out;`) not an object, so
+the assertion matches either shape; a naive `return {` check would have failed a correct pass. The
+font gate asserts `loadFontAsync` appears exactly **once** and that the plan really has fewer faces
+than styles, so the de-dupe cannot silently revert to per-style loading.
+
+**Trap for whoever re-verifies this.** `web/dist/` is gitignored, so a stale local bundle fails the
+US-English gate on prose that is not in any committed source (`behaviours`, from an older
+`levers.ts`). Rebuild the web workspace before believing that failure. Also: Figma stores PERCENT
+line heights as float32, so 105 reads back as `104.99999523162842` — never assert equality on those.
+
+**Not fixed here, deliberately (one concern per PR).** The drive also found ~6 stale leaf variables at
+paths that are now groups and ~100 orphaned `core-palette` variables from the `accent`→`red` rename:
+create-or-update-by-name cannot detect a rename, so there is no prune lane. Confirmed **not** blocking
+#111 — every ComponentDef binds the stateful children (`interactive.primary.text.rest`), never the
+flat leaves, so the ghosts are inert. Wants an explicit plan-vs-file diff and a report-by-default /
+prune-behind-a-flag decision, since deleting a variable a designer has bound is destructive. The
+persisted `brandInput` in that file is also pre-#341/#415 shape (`families.display/text/mono`,
+`displayCeiling: 128` as a number) — bears on `restoreInput`/#131.
+
+---
+
 ## (2026-08-04) — Descriptive vocabulary: the words a brief already uses (#471)
 
 **STATUS: engine (`vocabulary.ts`, new) + `theme.ts` + `levers.ts` + `mcp.ts` + `theme-schema.json`

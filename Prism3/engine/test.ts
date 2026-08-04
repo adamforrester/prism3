@@ -5331,6 +5331,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Payload budget — the reason the colour lane is split across three passes in the first place.
   for (const name of passOrder())
     ok(Buffer.byteLength(passJs('nb', name), 'utf8') < 45_000, `materialise: pass '${name}' is inside the figma_execute budget (${Buffer.byteLength(passJs('nb', name), 'utf8')} bytes)`);
+
+  // NO async IIFE — every pass must return its counts to the PASTING AGENT. `figma_execute` neither
+  // awaits nor unwraps a returned Promise, so a `(async()=>{...})()` wrapper handed the caller
+  // `result: undefined` while still reporting `success: true`: the created / bound / skipped / miss
+  // counts each pass computes were invisible, and the write path only LOOKED verified. Top-level
+  // `await` is supported, so the wrapper was pure loss. Asserted per pass — the whole value of these
+  // payloads is that a paste can be checked, and one re-wrapped pass is one blind pass.
+  for (const name of passOrder()) {
+    const js = passJs('nb', name);
+    ok(!/\(async\s*\(\)\s*=>\s*\{/.test(js) && !/\}\)\(\)\s*$/.test(js.trim()),
+      `materialise: pass '${name}' emits top-level await, NOT an async IIFE (figma_execute drops the Promise → result: undefined)`);
+    // `dims-create` returns a bare array (one entry per collection) rather than an object — both are
+    // structured results, so match a top-level `return` of either shape, not an object literal alone.
+    ok(/^\s*return\s*[{[]/m.test(js) || /^\s*return\s+\w+;\s*$/m.test(js),
+      `materialise: pass '${name}' returns a structured result the pasting agent can verify`);
+  }
 }
 
 // ------------------------------- materialise-to-figma: the TYPOGRAPHY + STYLE paste paths (#464)
@@ -5407,6 +5423,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // one missing weight would lose all 38 styles instead of one.
   ok(/skipped\.push/.test(textStyles) && !/throw/.test(textStyles),
     'materialise: text-styles SKIPS an unloadable font with a warning (never a wrong substituted face, never a throw)');
+  // Load each DISTINCT face once. 38 styles resolve to 4 faces, and 38 sequential awaits overran
+  // `figma_execute`'s 5s ceiling on the live drive — a per-style load is a budget bug, not a style
+  // preference, so assert the count against the plan's real face cardinality.
+  const faceKeys = new Set(plan.map((r) => `${r.fontFamilyPrimary} / ${r.fontStyle}`));
+  ok(faceKeys.size < plan.length,
+    `materialise: the text-style plan has fewer distinct faces than styles (${faceKeys.size} faces / ${plan.length} styles) — so de-duping the loads is worth it`);
+  ok((textStyles.match(/loadFontAsync/g) ?? []).length === 1,
+    'materialise: text-styles calls loadFontAsync from ONE hoisted de-duped loop, not once per style (the 5s figma_execute ceiling)');
   // The #146 lesson: the name map must be UNFILTERED — a type-filtered fetch misses the STRING
   // family var while finding the FLOAT size/weight ones, so families silently fail to bind.
   ok(/getLocalVariablesAsync\(\)/.test(textStyles) && !/getLocalVariablesAsync\('/.test(textStyles),

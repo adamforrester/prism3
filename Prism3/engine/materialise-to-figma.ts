@@ -21,6 +21,14 @@
  *     alias target, so the collapse can't happen.
  *   - **Payload budget** — data is embedded compactly (scope codes, array rows); each pass is
  *     a separate `figma_execute` call so no single payload blows the budget.
+ *   - **NO async IIFE — emit top-level `await`.** Every pass used to wrap its body in
+ *     `(async()=>{...})()`. `figma_execute` does not await or unwrap the returned Promise, so the
+ *     pasting agent got `success:true, result:undefined` and could not see the created / bound /
+ *     skipped / miss counts each pass computes — a silent write path that only looked verified.
+ *     `figma_execute` supports top-level `await` directly, so the wrapper was pure loss.
+ *   - **Load each distinct font face once.** The `text-styles` pass has a hard 5s execution
+ *     ceiling to live inside; per-style `loadFontAsync` meant 38 sequential awaits for 4 real
+ *     faces and overran it. Faces are loaded up front into a ledger the style loop reads.
  *   - **API-probe verification** — the `verify` pass reads back via `getLocalVariablesAsync`
  *     (authoritative for scopes / aliases / modes / hidden), and asserts **modes are distinct**
  *     (the collapse guard) + reports the interactive/disabled slot scopes.
@@ -229,8 +237,7 @@ const findCol=async(n)=>(await cols()).find(c=>c.name===n);`;
 const palettePass = (brand: string): string => {
   // row: [name, scopeCode, description, value, hidden]
   const P = planFor(brand).palette.map((r) => [r.name, encodeScopes(r.scopes), r.description, r.value, r.hidden ? 1 : 0]);
-  return `(async()=>{
-${PRELUDE}
+  return `${PRELUDE}
 const P=${JSON.stringify(P)};
 let col=await findCol('core-palette');
 if(!col)col=figma.variables.createVariableCollection('core-palette');
@@ -244,7 +251,7 @@ for(const [name,sc,desc,val,hidden] of P){
   v.setValueForMode(mode,val);
 }
 return {collection:'core-palette',total:P.length,created};
-})()`;
+`;
 };
 
 // ---- pass: color-create (color collection, N modes, literal fallback values) -----------
@@ -252,8 +259,7 @@ const colorCreatePass = (brand: string): string => {
   const { modes, create } = planFor(brand).color;
   // row: [name, scopeCode, description, [value per mode, in `modes` order]]
   const C = create.map((r) => [r.name, encodeScopes(r.scopes), r.description, r.valuesByMode]);
-  return `(async()=>{
-${PRELUDE}
+  return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const C=${JSON.stringify(C)};
 let col=await findCol('color');
@@ -270,7 +276,7 @@ for(const [name,sc,desc,vals] of C){
   MODES.forEach((m,i)=>v.setValueForMode(modeIds[m],vals[i]));
 }
 return {collection:'color',modes:MODES,total:C.length,created};
-})()`;
+`;
 };
 
 // The per-mode alias targets for the colour collection: one row per variable,
@@ -287,8 +293,7 @@ export const aliasRows = (brand: string): { modes: string[]; rows: AliasRow[] } 
 // ---- pass: color-aliases (rebind PER MODE — the collapse-proof pass) --------------------
 const colorAliasesPass = (brand: string): string => {
   const { modes, rows: A } = aliasRows(brand);
-  return `(async()=>{
-${PRELUDE}
+  return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const A=${JSON.stringify(A)};
 const vars=await figma.variables.getLocalVariablesAsync();
@@ -307,7 +312,7 @@ for(const [name,targets] of A){
   });
 }
 return {bound,expected:A.length*MODES.length,misses};
-})()`;
+`;
 };
 
 // ---- pass: dims-create (every FLOAT collection, N modes, literal fallback values) -------
@@ -321,8 +326,7 @@ const dimsCreatePass = (brand: string): string => {
     p.name, p.modes,
     p.create.map((r) => [r.name, encodeFloatScopes(r.scopes), r.description, r.hidden ? 1 : 0, r.valuesByMode]),
   ]);
-  return `(async()=>{
-${PRELUDE}
+  return `${PRELUDE}
 const FSC=${FSC};
 const dec=(c)=>[...c].map(x=>FSC[x]);
 const D=${JSON.stringify(D)};
@@ -344,7 +348,7 @@ for(const [cname,MODES,rows] of D){
   out.push({collection:cname,modes:MODES,total:rows.length,created});
 }
 return out;
-})()`;
+`;
 };
 
 // ---- pass: dims-aliases (rebind PER MODE — the same collapse-proofing as colour) --------
@@ -355,8 +359,7 @@ const dimsAliasesPass = (brand: string): string => {
   const A = floatPlans(brand)
     .map((p) => [p.name, p.modes, p.aliases.filter((r) => r.targetsByMode.some((t) => t !== null)).map((r) => [r.name, r.targetsByMode])])
     .filter(([, , rows]) => (rows as unknown[]).length > 0);
-  return `(async()=>{
-${PRELUDE}
+  return `${PRELUDE}
 const A=${JSON.stringify(A)};
 const vars=await figma.variables.getLocalVariablesAsync();
 const byName=new Map(vars.map(v=>[v.name,v]));
@@ -377,7 +380,7 @@ for(const [cname,MODES,rows] of A){
   }
 }
 return {bound,misses};
-})()`;
+`;
 };
 
 // ---- pass: font-vars (core-font + type-sets; MIXED type in one collection) ---------------
@@ -400,8 +403,7 @@ const fontVarsPass = (brand: string): string => {
     ]),
   ]);
   const FSC = JSON.stringify(Object.fromEntries(Object.entries(FONT_SCOPE_CODE).map(([k, v]) => [v, k])));
-  return `(async()=>{
-${PRELUDE}
+  return `${PRELUDE}
 const FSC=${FSC};
 const dec=(c)=>[...c].map(x=>{const s=FSC[x];if(!s)throw new Error('unknown scope code: '+x);return s;});
 const TY={s:'STRING',f:'FLOAT'};
@@ -443,7 +445,7 @@ for(const [cname,MODES,rows] of F){
   }
 }
 return {collections:out,bound,misses};
-})()`;
+`;
 };
 
 // ---- pass: styles (Effect Styles = shadows, Paint Styles = gradients) --------------------
@@ -455,8 +457,7 @@ const stylesPass = (brand: string): string => {
   const { effects, paints } = stylesPlan(brand);
   const E = effects.map((r) => [r.name, r.description, r.effects]);
   const P = paints.map((r) => [r.name, r.description, r.paintType, r.gradientTransform, r.stops]);
-  return `(async()=>{
-const E=${JSON.stringify(E)};
+  return `const E=${JSON.stringify(E)};
 const P=${JSON.stringify(P)};
 const effectByName=new Map((await figma.getLocalEffectStylesAsync()).map(s=>[s.name,s]));
 let effectsCreated=0;
@@ -474,7 +475,7 @@ for(const [name,desc,paintType,gradientTransform,stops] of P){
   s.paints=[{type:paintType,gradientTransform:gradientTransform,gradientStops:stops}];
 }
 return {effects:{total:E.length,created:effectsCreated},paints:{total:P.length,created:paintsCreated}};
-})()`;
+`;
 };
 
 // ---- pass: text-styles (the only pass that must LOAD a resource) ------------------------
@@ -484,6 +485,12 @@ return {effects:{total:E.length,created:effectsCreated},paints:{total:P.length,c
 // recorded in `skipped[]`, never substituted with a wrong face and never thrown — so one missing
 // weight costs one style rather than the whole paste.
 //
+// The loads are HOISTED and DE-DUPED by face, which is a budget fix rather than a tidy-up: the live
+// drive found 38 styles resolving to 4 distinct faces (Inter Bold/Regular/Semi Bold, JetBrains Mono
+// Regular), and 38 sequential awaits tripped `figma_execute`'s 5s ceiling on re-paste. Loading each
+// face once keeps the pass well inside it. Skip-with-warning is preserved exactly: a face that fails
+// to load is recorded `false` in the ledger, and every style wanting it lands in `skipped[]`.
+//
 // Must be pasted AFTER `font-vars`: the three bound props resolve their targets by name, and the
 // name map is built from an UNFILTERED `getLocalVariablesAsync()` (the #146 lesson — a type-filtered
 // fetch would miss the STRING family var alongside the FLOAT size/weight vars).
@@ -492,14 +499,21 @@ const textStylesPass = (brand: string): string => {
     r.name, r.description, r.fontFamilyVar, r.fontFamilyPrimary, r.fontSizeVar,
     r.fontWeightVar, r.fontStyle, r.lineHeightPct, r.letterSpacingPct, r.textCase, r.textDecoration,
   ]);
-  return `(async()=>{
-const T=${JSON.stringify(T)};
+  return `const T=${JSON.stringify(T)};
 const byName=new Map((await figma.getLocalTextStylesAsync()).map(s=>[s.name,s]));
 const varByName=new Map((await figma.variables.getLocalVariablesAsync()).map(v=>[v.name,v]));
 let created=0,bound=0;const skipped=[],misses=[];
+// load each DISTINCT face once, up front: 38 styles resolve to 4 faces, and 38 sequential
+// awaits overran figma_execute's 5s ceiling. \`faces\` doubles as the skip ledger below.
+const faces=new Map();
+for(const r of T){
+  const key=r[3]+'\\u0000'+r[6];
+  if(faces.has(key))continue;
+  try{await figma.loadFontAsync({family:r[3],style:r[6]});faces.set(key,true);}
+  catch(e){faces.set(key,false);}
+}
 for(const [name,desc,famVar,face,sizeVar,weightVar,style,lhPct,lsPct,tCase,tDec] of T){
-  try{await figma.loadFontAsync({family:face,style:style});}
-  catch(e){skipped.push({name:name,reason:'font unavailable: '+face+' '+style});continue;}
+  if(!faces.get(face+'\\u0000'+style)){skipped.push({name:name,reason:'font unavailable: '+face+' '+style});continue;}
   let s=byName.get(name);
   if(!s){s=figma.createTextStyle();s.name=name;byName.set(name,s);created++;}
   s.description=desc;
@@ -515,14 +529,13 @@ for(const [name,desc,famVar,face,sizeVar,weightVar,style,lhPct,lsPct,tCase,tDec]
   }
 }
 return {total:T.length,created,bound,skipped,misses};
-})()`;
+`;
 };
 
 // ---- pass: verify (API-probe read-back; the collapse guard lives here) ------------------
 const verifyPass = (brand: string): string => {
   const modes = colourModes(brand);
-  return `(async()=>{
-${PRELUDE}
+  return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const vars=await figma.variables.getLocalVariablesAsync();
 const col=await findCol('color');
@@ -561,7 +574,7 @@ return {
   renamedRolesAbsent:['color/disabled/surface','color/disabled/on-disabled','color/field/surface','color/field/border'].every(absent),
   bareDangerPresent:byName.has('color/foreground/danger'),
 };
-})()`;
+`;
 };
 
 // ---- CLI --------------------------------------------------------------------------------
