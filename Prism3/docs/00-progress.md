@@ -66,6 +66,9 @@ precondition, and it is not listed as one.
 **Verification.** regen --check 88 · **1340/0** unit (+23) · MCP 49/0 · NB PASS · typecheck/build ·
 sandbox-clean · US-English clean. Mutation-tested: gutting the validator fails 14 assertions;
 omitting `booleans` fails the explicit-empty check; the legacy six states fail four.
+
+---
+
 ## (2026-08-04) — The segmented control stood 6px taller than the selects beside it
 
 **STATUS: web (`main.ts` CSS only).** No engine change, `out/*` byte-identical.
