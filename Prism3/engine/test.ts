@@ -28,7 +28,7 @@ import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
-import { handleRpc, callTool, toolDefs } from './mcp';
+import { handleRpc, callTool, toolDefs, manifestRootKeys } from './mcp';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, passJs, passOrder } from './materialise-to-figma';
@@ -4714,22 +4714,48 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // tool catalogue
   const tools = (rpc('tools/list')?.result as any)?.tools as any[];
   ok(Array.isArray(tools) && tools.map((t) => t.name).sort().join(',') === 'list_levers,theme_brand,validate_brand', 'MCP: tools/list advertises list_levers + theme_brand + validate_brand');
-  ok(tools.find((t) => t.name === 'theme_brand')?.inputSchema === brandSchema, 'MCP: theme_brand inputSchema IS the BrandInput schema (precise OKLCH-aware shape)');
+  ok(tools.find((t) => t.name === 'theme_brand')?.inputSchema?.properties?.brand === brandSchema, 'MCP: theme_brand takes { brand, include } with the BrandInput schema under `brand`');
   ok(toolDefs(brandSchema).length === 3, 'MCP: toolDefs is a pure function of the brand schema');
+  // Current MCP tool UX: a display title and behaviour annotations on every tool. All three are pure
+  // reads of the engine, so all three are readOnly + idempotent + closed-world.
+  ok(tools.every((t) => typeof t.title === 'string' && t.annotations?.readOnlyHint === true && t.annotations?.idempotentHint === true && t.annotations?.openWorldHint === false),
+    'MCP: every tool declares a title + readOnly/idempotent/closed-world annotations');
+  // The 52KB brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
+  // discover three tools, and the second copy told a client nothing the first had not.
+  const listChars = JSON.stringify(tools).length;
+  ok(listChars < 60_000, `MCP: tools/list stays under 60,000 chars — the schema is inlined once (${listChars.toLocaleString()})`);
 
-  // list_levers derives from the manifest (can't drift — the surface IS the manifest)
-  const leversText = (callTool('list_levers', {}).content[0].text);
-  const leversPayload = JSON.parse(leversText);
-  ok(leversPayload.levers.length === leverManifest.length && leversPayload.groups.length === leverGroups.length, 'MCP: list_levers returns the lever manifest verbatim (every lever an agent can turn)');
+  // list_levers now covers the WHOLE input surface, not just the UI knobs. This is the gate on the
+  // defect it was written for: the manifest advertised 21 of the schema's 32 top-level fields, and the
+  // 11 it omitted included REQUIRED `id` and the entire per-mode override layer.
+  const leversPayload = JSON.parse(callTool('list_levers', {}, brandSchema).content[0].text);
+  ok(leversPayload.levers.levers.length === leverManifest.length, 'MCP: list_levers still returns the lever manifest verbatim');
+  const advertised = new Set<string>([
+    ...manifestRootKeys(leversPayload.levers),
+    ...leversPayload.nonLeverFields.map((f: { key: string }) => f.key),
+  ]);
+  const schemaProps = Object.keys((brandSchema as any).properties);
+  const unadvertised = schemaProps.filter((k) => !advertised.has(k));
+  ok(unadvertised.length === 0, `MCP: list_levers advertises EVERY BrandInput field (${schemaProps.length} of ${schemaProps.length}); unadvertised: ${unadvertised.join(', ') || 'none'}`);
+  ok(leversPayload.nonLeverFields.some((f: any) => f.key === 'id' && f.required === true), 'MCP: list_levers names `id` and marks it required (the field an agent omitted)');
+  ok(['overrides', 'modeAnchors', 'modeLevers'].every((k) => advertised.has(k)), 'MCP: the per-mode override layers are discoverable through list_levers');
 
-  // theme_brand round-trip: a valid brand → tokens + metadata + all contracts pass
-  const themed = callTool('theme_brand', { id: 'mcp-probe', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } });
+  // theme_brand round-trip: verification payload by DEFAULT, the two huge sections opt-in.
+  const brand = { id: 'mcp-probe', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 } };
+  const themed = callTool('theme_brand', { brand });
   ok(themed.isError !== true, 'MCP: theme_brand on a valid brand is not an error');
   const payload = JSON.parse(themed.content[0].text);
-  ok(payload.tokens?.prism && payload.id === 'mcp-probe', 'MCP: theme_brand returns the DTCG token tree under the root namespace');
   ok(payload.contracts.checks > 0 && payload.contracts.pass === payload.contracts.checks && payload.contracts.failures.length === 0, `MCP: theme_brand reports all ${payload.contracts.checks} contrast contracts passing`);
   ok(payload.aliases.broken.length === 0 && payload.aliases.resolved === payload.aliases.total, 'MCP: theme_brand reports every alias resolving');
-  ok(payload.aiMetadata && Array.isArray(payload.notes), 'MCP: theme_brand includes the .ai.json metadata + the decisions log');
+  ok(payload.tokens === undefined && payload.aiMetadata === undefined, 'MCP: theme_brand withholds the token tree + ai metadata by default (they measure ~490KB together)');
+  ok(typeof payload.hint === 'string' && payload.omitted.includes('tokens'), 'MCP: theme_brand SAYS what it withheld and how to ask for it');
+  // The default result has to be small enough to actually spend on.
+  ok(themed.content[0].text.length < 20_000, `MCP: the default theme_brand result stays under 20,000 chars (${themed.content[0].text.length.toLocaleString()})`);
+  const full = JSON.parse(callTool('theme_brand', { brand, include: ['tokens', 'aiMetadata', 'notes'] }).content[0].text);
+  ok(full.tokens?.prism && full.aiMetadata && Array.isArray(full.notes), 'MCP: include:[tokens,aiMetadata,notes] returns the DTCG tree, the .ai.json metadata and the decisions log');
+  ok(themed.structuredContent !== undefined, 'MCP: results carry structuredContent alongside the text block');
+  // The pre-wrap calling convention (a bare BrandInput) still works.
+  ok(JSON.parse(callTool('theme_brand', brand).content[0].text).contracts.checks > 0, 'MCP: a bare BrandInput (the old calling convention) is still accepted');
 
   // validate_brand: bad input → errors; good input → clean; and theme_brand rejects a bad brand loudly
   ok(JSON.parse(callTool('validate_brand', { id: 'x' }).content[0].text).valid === false, 'MCP: validate_brand flags an incomplete brand (missing primary/neutral)');

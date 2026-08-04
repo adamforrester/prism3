@@ -7,6 +7,91 @@
 
 ---
 
+## (2026-08-04) — MCP audit: the agent surface was unusable and under-reported by a third
+
+**STATUS: engine (`mcp.ts` + tests).** `out/*` untouched. Part 1 of 2 — usability now, the
+2026-07-28 protocol migration next.
+
+`mcp.ts` was last touched at **#204**. The schema has moved through #388, #406 and #415 since, and
+nobody had driven the server in between.
+
+### The blocking problem was size, not the spec
+
+Measured against the running server, four modes and one accent:
+
+| call | before | after |
+|---|---|---|
+| `theme_brand` | **829,614 chars ≈ 207,000 tokens** | **469 chars ≈ 117 tokens** |
+| `tools/list` | 91,528 chars ≈ 23,000 tokens | 48,070 chars ≈ 12,000 tokens |
+
+The token tree (269KB) and `.ai.json` metadata (222KB) came back in **one text blob on every call**.
+That exceeds most context windows outright — the tool could not be used as an agent tool at all. They
+are now opt-in via `include`, and the default is the **verification payload** (contracts, alias
+integrity, mode list), which is what "generate and verify over one call" is actually worth. The result
+*says* what it withheld and how to ask for it: a silently partial result is worse than a big one.
+
+`tools/list` halved because the 52KB brand schema was inlined **twice** — `validate_brand` repeated
+`theme_brand`'s schema verbatim and taught a client nothing new. It points at `theme_brand` instead.
+
+### A category error, not a stale list
+
+`list_levers` advertised **21 of the schema's 32 top-level fields**. The 11 missing included REQUIRED
+`id` and the entire per-mode override layer (`overrides`, `modeAnchors`, `modeLevers`).
+
+Driven end to end, both halves of that:
+- a brand using `modeLevers` **validates fine** — the capability works and was simply undiscoverable;
+- a brand built the way an agent would after following the tool's own instruction (*"call this first
+  to learn what theme_brand accepts"*) came back **`valid: false — missing required 'id'`**.
+
+**The cause is that the lever manifest is a UI presentation catalogue and the MCP adapter reused it as
+an API contract.** Different jobs: the manifest is *right* to omit things that are not knobs. The fix
+is not to stuff the manifest — it is for the adapter to present the non-lever fields beside it,
+**derived by diffing the schema against the manifest** so neither side can drift again.
+
+### Calling convention
+
+`theme_brand` now takes `{ brand, include }`. The bare-BrandInput form still works and is tested,
+because the schema is `additionalProperties: false` — there was no way to add an argument alongside
+the brand without polluting BrandInput or breaking the call. Wrapping is the honest fix: **a tool's
+arguments are the tool's own contract, not literally a domain object.**
+
+### Current MCP tool UX, adopted
+
+Every tool now declares `title` and `annotations` (all three are pure engine reads →
+`readOnlyHint` + `idempotentHint`, `openWorldHint: false`), and results carry `structuredContent`
+alongside the text block (the spec asks for the text copy for older clients). `list_levers` and
+`validate_brand` declare `outputSchema`.
+
+### The finding that wasn't
+
+A first scan flagged six BrandInput fields the engine reads but the schema seemed to lack —
+`breakpoints`, `columns`, `containerMax`, `containerNarrow`, `softness`, `tint`. **False positive:**
+all six are `BrandInput['layout']` / `BrandInput['shadow']` sub-inputs read through a differently
+scoped parameter also named `input`, and the schema declares every one of them nested correctly.
+**There is no engine↔schema drift** — worth stating, since `additionalProperties: false` would make
+any such drift a hard rejection rather than a soft one.
+
+### The gate
+
+`test.ts` now asserts the union of manifest roots + non-lever fields covers **every** schema property,
+that `id` is named and marked required, that the per-mode layers are discoverable, that `tools/list`
+stays under 60,000 chars and a default `theme_brand` under 20,000, and that the old calling convention
+still works. 1280 → **1289 tests**.
+
+### Still open — part 2
+
+Protocol conformance. The server answers `2024-11-05`; the current revision is **2026-07-28**, which
+makes MCP stateless: `initialize`/`notifications/initialized` and `ping` are removed, `server/discover`
+becomes a MUST, every result needs `resultType`, `tools/list` needs `ttlMs` + `cacheScope`, and the
+error codes renumber into `-32020`–`-32099`. Confirmed live: `server/discover` → *method not found*.
+Agreed approach is **dual-support** — keep `initialize`/`ping` answering for older clients.
+
+**Verification.** `regen --check` 88 · **1289/0** · NB regression PASS (exit 0) · web+plugin
+typecheck/build · sandbox-clean · US-English clean. Every number above measured by driving the server
+over stdio, before and after.
+
+---
+
 ## (2026-08-04) — The chip's ring was being clipped, and the contrast marks leave (#439, owner-reported)
 
 **STATUS: web.** `out/*` untouched.
