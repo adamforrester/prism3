@@ -7,6 +7,51 @@
 
 ---
 
+## (2026-08-04) — The mode-sensitivity audit becomes a command, not an afternoon (#432)
+
+**STATUS: web + docs.** No behavior change — a committed probe plus the rule it feeds. `out/*`
+untouched.
+
+**This answer has now been derived by hand three times** (#268 twice, #432 once) and it moves with
+every page change, so it is committed as `web/mode-audit.mjs` (`npm run -w @prism3/web audit:modes`).
+It switches Light→Dark and diffs each `.psec`: **EDITS** (control set or labels differ — the bar is
+an editing scope), **displays** (only previews re-resolve — context, not scope), **inert** (nothing).
+
+**The signature is the whole difficulty, and it took three attempts — each returning a clean-looking
+table that was wrong.**
+
+1. **Control values only** → *"Interactive edits nothing."* False: values match while the control SET
+   changes (a global slider becomes an `Auto — follows global` select).
+2. **Values + option labels** → *"Elevation edits nothing."* False, and this is the instructive one:
+   Elevation's per-mode affordance is an **identical `range` slider** — same type, same value, same
+   options. Only the knob LABEL becomes `Auto (1)`, and only what it writes changes
+   (`modeLevers[mode].shadow`).
+3. **Values + options + knob label** → agrees with #268's independent audit on every shared page.
+
+Recorded because a future affordance that carries its per-mode-ness somewhere else again will
+under-count exactly as quietly. **The lesson is not "the probe is now right" — it is that a passing
+sweep is evidence only about what the sweep can see.**
+
+**Elevation is also the sharpest statement of the UX problem behind #432**: the control is
+byte-identical between modes. Nothing about it announces that it is per-mode, which is precisely how
+the capability came to read as unbuilt.
+
+**Result (harbor, 1440px): 9 EDITS · 12 displays · 3 inert** across six bar pages. **Preview is the
+only bar page that edits nothing** (0/7) *and* shows every mode as columns — which is exactly the
+condition doc 26 already states for the bar leaving a page (it is why Typography·Preview lost it).
+That one looks decidable on the existing rule rather than needing a new one.
+
+**Playwright is deliberately NOT added as a dependency.** Whether this repo takes a browser-test dep
+is #333's open decision, and one audit script should not pre-empt it — so the import is dynamic, with
+`PLAYWRIGHT_MODULE` for an external copy and a failure message that explains itself. Two traps found
+doing it: `NODE_PATH` does **not** work (Node ignores it for ESM bare specifiers), and a CJS copy
+lands its exports under `.default`, so the destructure silently yields `undefined`.
+
+**Superseded work, closed rather than merged:** PR #433 fixed the Palettes mode bar; #430 shipped the
+same fix from another session first. Kept the finding, dropped the branch.
+
+---
+
 ## (2026-08-04) — Token coverage: 45 primitives that existed only in Preview's token list
 
 **STATUS: web only.** Owner-raised as the follow-up to the mode-bar audit: *"identify opportunities to

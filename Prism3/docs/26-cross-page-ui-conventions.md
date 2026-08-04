@@ -77,6 +77,27 @@ ordered, and step 3 is the one that decides whether the findings are real.
   resolved value with an `auto` marker in the header; an interactive control there reaches the engine
   and prints its internal error string at the user. **Converting any control to columns re-opens this
   hole** — it is what #416 did on its way in.
+- **Which sections actually respond is MEASURED, and the probe is committed** — `web/mode-audit.mjs`
+  (`npm run -w @prism3/web audit:modes`). It switches Light→Dark and diffs each `.psec`, reporting
+  **EDITS** (the control set or its labels differ — the bar is an editing scope here), **displays**
+  (only previews/readouts re-resolve — the bar is context, not scope) or **inert** (nothing changes).
+  Committed rather than written down because the answer moves with every page change and has been
+  re-derived by hand three times. **Do not re-derive it statically:** counting `currentMode` per
+  function under-counts (the read hides behind delegation), and resolving the call graph over-counts
+  (controls call `build()`, so the graph leaks through the chrome and every page reaches every page).
+  Both are on record as wrong, in opposite directions, on #268.
+  - **The signature took three attempts, each of which returned a clean-looking wrong table** (#432):
+    values alone missed Interactive (values match while the control SET changes); values + options
+    missed Elevation, whose per-mode affordance is an **identical range slider** — same type, same
+    value, same options — where only the knob LABEL becomes `Auto (1)` and only what it writes
+    changes. Values + options + label agrees with #268's independent audit. A future affordance that
+    carries its per-mode-ness somewhere else again will under-count just as quietly.
+  - **Result 2026-08-04** (harbor, Light vs Dark, 1440px): **9 EDITS · 12 displays · 3 inert** across
+    the six bar pages. Edits — Surfaces (Backgrounds, Foreground fills), Interactive (Primary,
+    Neutral, Destructive actions), Size & radius (Corner radius, Density & size), Elevation (Shadow),
+    Motion (Tempo). **Preview is the only bar page that edits nothing** (0/7) *and* it shows every
+    mode as columns — which is exactly the condition stated above for the bar leaving a page.
+    No bar: Palettes, Typography, Layout.
 - **A mode-invariant control is never disabled by the mode bar.** State the invariance positively in a
   note instead. `currentMode` is global, so a control disabled outside Light is *stranded* on a page
   with no bar — the user has no way to re-enable it.
