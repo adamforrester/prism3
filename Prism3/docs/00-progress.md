@@ -7,6 +7,65 @@
 
 ---
 
+## (2026-08-04) — Tone of voice: codifying the voice we already had, plus the channel matrix (docs/29)
+
+**STATUS: docs only.** No engine change, no `out/*` regeneration.
+
+**What was actually missing.** Not a voice — the repo has a strikingly consistent one already,
+because the same instinct wrote every lever description and role `desc`. What was missing was
+(a) anyone having *named* it, and (b) the part the owner asked for: **how it adapts per channel**
+(plugin UI vs usage guidance vs developer docs vs marketing). So `29` codifies rather than invents:
+the four attributes in §3 were extracted from live strings in `levers.ts` and `web/src/main.ts`,
+not composed for the doc.
+
+**What the survey did not need to re-derive.** KB `04-documentation` already commits the practice
+to the *shape* of a voice-and-tone artefact (voice across the top, tone contexts down the side)
+and names the canonical references. Same discipline as `28` — the question was re-aimed at the
+part the vault doesn't answer.
+
+**The useful corrective.** Polaris — the design-system-native reference — explicitly de-emphasizes
+this whole apparatus: *"Don't worry too much about voice and tone, just focus on sounding human."*
+No channel differentiation anywhere in it. Mailchimp is the only surveyed source that differentiates
+by content type, and it isn't a design system. So **channel-differentiated voice guidance for a
+design system appears to be genuinely unserved** — which matches KB 04's own framing of the matrix
+as "the practice's most-undersold content artefact." That makes §4 the promotable-to-KB part.
+
+**The attribute that is ours, not borrowed: *recessive*.** Prism3 is a tool for building *other
+people's* brands — whatever sits on screen in the plugin competes with the brand a designer is
+actively theming. That is why the product surfaces take Polaris's restraint rather than Mailchimp's
+dry humor, and it is also the dial that makes the channel matrix work: recessive binds hardest in
+the plugin and relaxes on the marketing site, because there the brand on screen is ours.
+
+**The finding that changes where enforcement should go.** Most of this product's user-facing prose
+is **emitted by a generator, not typed by a person** — `ai-metadata.ts` synthesizes `when_to_use` /
+`avoid_when` from a deterministic role→intent model, and `levers.ts` prose is inlined into the web
+bundle. So voice is enforced by editing generators, not by asking writers to remember, which makes
+a mechanical gate more valuable than review. `lint-us-english.ts` is the proven precedent — its
+scanner shape and `regen.ts`-imported scope would extend to "no exclamation marks / no Oops / desc
+length ceiling" without new machinery.
+
+**A live inconsistency surfaced, deliberately not fixed here.** `26-cross-page-ui-conventions`
+says "no internal jargon in the UI (`ink`→`text`)", but shipped copy has `label: 'On-fill text'`
+directly above `desc: 'The ink on the inverse (light) fill…'`. Two readings — deliberate layering
+(labels recognizable, descriptions precise) or drift. Layering is the better system, so the likely
+fix is *sharpening doc 26's rule to scope it to labels*, not purging "ink" from descriptions.
+Logged as `29` §6 rather than changed unilaterally, since it edits a settled convention.
+
+**Traps.**
+1. **§4 column D (marketing) is authored ahead of need** — flagged as speculative in `29` §8.1. If
+   no marketing site is planned, don't treat it as settled guidance.
+2. **The "nobody differentiates by channel" finding is incomplete.** Carbon and Atlassian are both
+   JS-rendered and were not retrievable this pass. Worth a second attempt via source before the
+   claim is promoted to the KB as field truth.
+3. **Plugin and dashboard are one channel here** only because they share `web/src` (docs/09). A Dev
+   Mode surface (docs/27 Idea 1) addresses a *developer*, which would be a fifth column, not a
+   variation of A.
+
+**Next:** the KB-side promotion (channel adaptation extends `04`'s matrix), and optionally the
+mechanical voice gate as an issue.
+
+---
+
 ## (2026-08-04) — Specimen labels name the role, except where letterforms are the subject (owner-reported)
 
 **STATUS: web.** Copy only. `out/*` untouched.
