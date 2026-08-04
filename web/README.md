@@ -82,8 +82,21 @@ touch `node:` and would not bundle for the browser.
 The dashboard is a **static site** — the engine runs client-side, there is no backend, and
 `main.ts` makes no network calls at runtime. It deploys to Vercel from this monorepo.
 
-The deploy contract lives in the repo-root **`vercel.json`** (two keys: `buildCommand` +
-`outputDirectory`), so it is reviewable in git rather than hidden in dashboard settings.
+The deploy contract lives in the repo-root **`vercel.json`**, so it is reviewable in git rather than
+hidden in dashboard settings. It is deliberately minimal — no `installCommand`, `rewrites` or
+`framework`, each of which would be a redundant override of something already correct by default and
+free to drift.
+
+`headers` is the one exception, and it is not in that category (#474). `index.html` references the
+bundle at a **fixed** `/dist/main.js` — no content hash, no query — because `build-site.mjs` copies
+`index.html` verbatim so one absolute path resolves identically under the local dev server and the
+deploy root. That invariant is worth keeping, but it means every deploy publishes different bytes at
+an unchanged URL, and whether that goes stale in a browser would otherwise rest entirely on Vercel's
+*default* `cache-control`. So the deploy states it: everything revalidates. An unchanged bundle costs
+one 304; a changed one is picked up on the next load rather than whenever a cache happens to expire.
+
+If you add a genuinely immutable, content-hashed asset later, give it its own longer-lived rule
+rather than relaxing this one — the blanket rule is safe precisely because nothing here is hashed.
 
 ```bash
 npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/

@@ -7,6 +7,50 @@
 
 ---
 
+## (2026-08-04) — The deploy could go stale invisibly, and the page never said which build it was (#474)
+
+**STATUS: deploy + web (`vercel.json`, `build-site.mjs`, `plugin/build.mjs`, `main.ts`, READMEs).**
+No engine change, `out/*` byte-identical.
+
+Owner reported not seeing #466 (the L3 nested-tab underline) after it merged. It *had* merged
+(`f733aa3`) and it *was* correct — rebuilding `main` and measuring both tab groups showed the nested
+group at `track rgba(0,0,0,0) / border 0px / selected bg rgba(0,0,0,0) / weight 560 / underline`,
+exactly as intended. The screenshot showed the L2 treatment instead: the pre-#466 bundle.
+
+**Two causes, and the second is the expensive one.**
+
+*The bundle URL never changes.* `index.html` loads a fixed `/dist/main.js` — no content hash, no
+query — because `build-site.mjs` copies `index.html` **verbatim** so one absolute path resolves
+identically under the local dev server and the deploy root (#104's decision, still right). But it
+means every deploy publishes different bytes at an unchanged URL, and whether a browser notices was
+resting entirely on Vercel's *default* `cache-control`, which is nowhere in this repo. `vercel.json`
+now states it: everything revalidates. An unchanged bundle costs one 304.
+
+Note this is **not** the category #104 excluded. That entry kept `vercel.json` to two keys because
+`installCommand`/`rewrites`/`framework` are redundant overrides of things already correct by default.
+`headers` specifies something whose default we never knew. Recorded in `web/README.md` next to the
+minimalism rule, since `vercel.json` is JSON and cannot hold the reasoning itself.
+
+*Nothing on the page said which build it was.* This is what actually cost the time: answering "did it
+deploy?" required a local rebuild and a pixel measurement. `ENGINE_VERSION`/`CONTRACT_VERSION` are
+stamped into every emitted artifact and reported as the MCP `serverInfo.version` — every surface
+except the one a human looks at. The rail now carries `engine <version> · <commit>`, from
+`VERCEL_GIT_COMMIT_SHA`, falling back to `local` when not built by the deploy.
+
+**Traps.**
+- `PRISM3_BUILD` is a **required build input, not a value with a fallback.** An absent esbuild
+  `define` leaves a bare identifier in the output that throws at load. THREE entry points bundle
+  `web/src` and all three needed it: `web` `dev`, `web` `build`, `build-site.mjs`, and
+  `plugin/build.mjs` (#110 — the plugin UI *is* the shared `web/src/main.ts`, no fork). Missing the
+  plugin would have shipped a Figma plugin that white-screens while every web gate stayed green.
+- Verified both branches, not just the one that runs locally: a bare `build:site` embeds `"local"`,
+  and `VERCEL_GIT_COMMIT_SHA=abc1234567890 build:site` embeds `"abc1234"`. The deploy path is the one
+  that matters and it is the one you cannot see from a dev machine.
+- The blanket revalidate rule is safe *because* nothing in the output is content-hashed. If a hashed
+  immutable asset is added later, give it its own longer-lived rule rather than relaxing this one.
+
+---
+
 ## (2026-08-04) — A stray mode badge on the token list, from a section-title collision
 
 **STATUS: web (`main.ts`).** No engine change, no `out/*` change.

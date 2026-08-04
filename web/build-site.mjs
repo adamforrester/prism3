@@ -25,13 +25,18 @@ const pub = resolve(root, 'public');
 await rm(pub, { recursive: true, force: true });
 await mkdir(pub, { recursive: true });
 
+// The commit this bundle was built from, rendered in the rail so the live page states its own
+// identity (#474). Vercel sets VERCEL_GIT_COMMIT_SHA; a local `npm run build:site` has no commit
+// to claim and says so rather than inventing one.
+const buildId = (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7) || 'local';
+
 // Same flags as the `build` script — the deployed bundle must be the one we develop against.
 await build({
   entryPoints: [resolve(root, 'src/main.ts')],
   outdir: resolve(pub, 'dist'),
   bundle: true,
   format: 'esm',
-  define: { PRISM3_HOST: "'web'" },
+  define: { PRISM3_HOST: "'web'", PRISM3_BUILD: JSON.stringify(buildId) },
   sourcemap: true,
   logLevel: 'info',
 });

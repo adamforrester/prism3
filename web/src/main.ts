@@ -31,6 +31,7 @@ import type { ResolvedPreview } from '../../Prism3/engine/resolve-preview';
 import { resolveAllModes } from '../../Prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '../../Prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../Prism3/engine/tree';
+import { ENGINE_VERSION } from '../../Prism3/engine/version';
 import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
 import exampleBrands from '../../Prism3/schema/example-brands.json';
@@ -5994,6 +5995,17 @@ const build = (): void => {
     rail.append(it);
   });
   rail.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
+  // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
+  // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
+  // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
+  // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
+  // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
+  const stamp = el('p', 'rail-build');
+  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', PRISM3_BUILD));
+  stamp.title = PRISM3_BUILD === 'local'
+    ? 'Built outside the deploy — no commit to report.'
+    : `Deployed from commit ${PRISM3_BUILD}.`;
+  rail.append(stamp);
   shell.append(rail);
 
   workspace = el('section', 'ws');
@@ -6149,6 +6161,9 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .stage.active .stage-t b{color:var(--ink)}
 .stage-t small{color:var(--faint);font-size:11.5px}
 .rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
+/* Build identity (#474) — quiet by default, legible when you go looking for it. */
+.rail-build{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;color:var(--faint);font-size:11px;margin:12px 8px 0;user-select:text}
+.rail-build-b{font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--muted)}
 
 .hero{padding:6px 0 4px}
 .hero h1{margin:0;font-size:40px;font-weight:660;letter-spacing:-0.03em;line-height:1.08}
