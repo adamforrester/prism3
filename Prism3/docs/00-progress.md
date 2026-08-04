@@ -7,6 +7,54 @@
 
 ---
 
+## (2026-08-03) — Palettes stops showing a mode bar that does nothing (#432, finding 1)
+
+**STATUS: web.** One rule, inverted. `out/*` untouched. Filed **#432** for the mode-bar *treatment*
+question, which #268 closed without settling; this fixes the one part of it that is a plain defect.
+
+**The original #268 complaint was never fixed.** *"The global mode bar changes modes but only on
+semantic pages, it doesn't affect primitives, so it's a bit odd UX currently"* — that is what opened
+#268 in July. Measured on today's `main`: Palettes shows a full mode bar and is **inert on both
+counts**, 0 control changes and 0 DOM changes Light→Dark. #268 shipped the *placement* rule and
+Palettes was never added to it.
+
+**The rule was negative, which is exactly how it happened.**
+
+```ts
+if (page === 'layout') return false;
+if (page === 'typography') return typeTab === 'semantics' || typeTab === 'styles';
+return true;                                  // ← palettes lands here
+```
+
+Layout got a special case; Palettes never did; the default said yes. **#350 already learned this
+lesson one level down** — it made the typography TAB rule a positive list precisely because *"the
+negative form silently grants the switcher to any tab added later"*. The same reasoning was never
+applied to the PAGE rule, so the page-level default kept doing what the tab-level default had been
+fixed for. Now a positive `MODE_BAR_PAGES` set: a page added later gets no bar until someone
+measures it and puts it in.
+
+**Membership is measured, not inferred.** Switch Light→Dark, diff control values and DOM per page.
+The docs record static analysis failing at this twice in opposite directions — counting `currentMode`
+under-counts through delegation, resolving the call graph over-counts because controls call `build()`
+and the graph leaks back through the chrome — so the comment on the set says re-measure rather than
+re-derive.
+
+**The audit is also re-derived, because the #268 one is stale** (2026-07-30, before the four-tab
+typography split, #350, #402, #409). Current: **edits per mode** — Surfaces, Typography·Semantics,
+Typography·Text styles, Size & radius, Motion. **Displays only** — Interactive, Elevation, Preview.
+**Inert** — Palettes, Layout. Full table on #432.
+
+**Verified the thing hiding a bar can break: mode persistence.** Select Dark on Size & radius →
+navigate to Palettes (no bar) → back to Size & radius: still Dark. Same through Layout to Motion.
+Palettes still renders its content, no page errors, and every other page's verdict is unchanged —
+the change is contained to the one page it is about.
+
+**Left open on #432** (owner decisions, not defects): whether the bar moves out of global chrome onto
+the page; whether *edits per mode* and *displays only* get different treatments rather than the one
+appearance they share now; and whether the base mode should state what editing there means, which is
+the disclosure gap behind discussion-backlog #7.
+
+
 ## (2026-08-03) — "+ Add face" becomes a submit CTA (#405)
 
 **STATUS: web.** `out/*` unchanged. Owner-raised; closes #405.

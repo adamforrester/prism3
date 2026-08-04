@@ -4648,12 +4648,21 @@ let modeStripHost: HTMLElement;   // tier 2 of the global header — the persist
  *
  *  Stated as a POSITIVE list of the tabs that have the axis, not `!== 'primitives'`: the negative
  *  form silently grants the switcher to any tab added later, which is how Preview would have got one. */
+/** Pages the mode bar is shown on — a POSITIVE list, for the same reason #350 made the typography
+ *  TAB rule positive: a negative default (`return true`) silently grants the bar to every page added
+ *  later, and to every page nobody remembered to exclude. That is exactly how Palettes kept a bar
+ *  that changes nothing — Layout got a special case, Palettes never did, and the default said yes.
+ *
+ *  Membership is MEASURED, not inferred (#432): switch Light→Dark and diff control values + DOM per
+ *  page. Palettes is inert on both counts — 0 control changes, 0 DOM changes — which is the original
+ *  #268 complaint ("the mode bar changes modes but only on semantic pages"). Static analysis has been
+ *  attempted twice for this and been wrong both times, in opposite directions; re-measure instead. */
+const MODE_BAR_PAGES: ReadonlySet<PageKey> = new Set<PageKey>(['surfaces', 'interactive', 'elevation', 'sizeRadius', 'motion', 'preview']);
 const pageHasModeVaryingControl = (): boolean => {
-  if (page === 'layout') return false;
-  // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
-  //  do — the same reasoning that hides it on Primitives, reached from the other direction.
+  // Typography keeps its own tab-level rule: Primitives and its Preview tab vary by nothing, the
+  // other two edit per mode, so the page as a whole is neither in nor out.
   if (page === 'typography') return typeTab === 'semantics' || typeTab === 'styles';
-  return true;
+  return MODE_BAR_PAGES.has(page);
 };
 
 /** Repaint the persistent mode-selector strip in the global header. Called on mode change, on menu
