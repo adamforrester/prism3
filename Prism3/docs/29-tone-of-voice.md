@@ -97,6 +97,34 @@ That is already a voice. It needs naming and defending, not replacing.
 
 ---
 
+## 2b. Standard vs differentiated — the alignment question
+
+The honest answer: **follow the standard for most of it.** There is no value in sounding
+different for its own sake, and every source converges on the same fundamentals. Prism3
+adopts them wholesale:
+
+> plain language · everyday words · clarity over personality · voice constant, tone varies
+> by context · write for scanning first · sentence case · contractions are fine · introduce
+> a term before using it · the §3.5 ban list · don't be cute
+
+That is ~80% of the guidance, and none of it is ours to reinvent.
+
+**Four things are genuinely different — and all four are structural, not stylistic.** Each
+one exists because of a property of this product that no surveyed system has:
+
+| # | Differentiator | Why no one else has it |
+|---|---|---|
+| 1 | **Recessive voice** (§3.4) | Polaris, Material, Carbon and Spectrum are **first-party** systems: the design system's voice *is* the company's voice, and the product on screen *is* their brand. Prism3 is a tool for building **other people's** systems — its UI sits beside a brand a designer is actively theming. A characterful tool voice competes with the client's work. This is the one attribute that would be wrong to borrow from any of them. |
+| 2 | **Most user-facing prose is generated, not written** | `ai-metadata.ts` synthesizes `when_to_use` / `avoid_when` from a deterministic role→intent model; `levers.ts` prose is inlined into the web bundle. No surveyed guide contemplates this, because none of them generate their microcopy. It relocates voice from a *writing culture* to *generator code* — and makes a mechanical gate more valuable than editorial review (§7). |
+| 3 | **Agents are a reader** | `out/*.ai.json` is consumed by LLMs, not humans. Every surveyed guide assumes a human reader. Whether that is a fifth channel with its own register is genuinely open (§8.4). |
+| 4 | **Claims are verifiable, so overclaiming is expensive** | This product's differentiator is that output is *gated* — contrast contracts, alias resolution, byte-reproduction. "Never claim a guarantee the engine doesn't verify" (§4) is a voice rule with teeth here in a way it isn't for a system that makes no checkable claims about its own output. |
+
+**The practical read:** copy the standard, and spend the differentiation budget entirely on
+#1 and #2 — being recessive in-product, and enforcing voice in the generators. #3 and #4
+are guardrails, not a style.
+
+---
+
 ## 3. Voice — four attributes (constant across every channel)
 
 ### 3.1 Precise
