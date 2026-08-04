@@ -40,47 +40,152 @@ export const PROTOCOL_VERSION = '2024-11-05';
 export type RpcId = number | string | null;
 export type RpcRequest = { jsonrpc?: string; id?: RpcId; method: string; params?: any };
 export type RpcResponse = { jsonrpc: '2.0'; id: RpcId; result?: unknown; error?: { code: number; message: string; data?: unknown } };
-type ToolResult = { content: { type: 'text'; text: string }[]; isError?: boolean };
+type ToolResult = { content: { type: 'text'; text: string }[]; structuredContent?: unknown; isError?: boolean };
 
-/** Tool catalogue. `theme_brand`/`validate_brand` take a `BrandInput`, so their inputSchema
- *  IS the BrandInput schema (passed in — the shell loads it, `handleRpc` stays pure). */
+/** The BrandInput fields that are NOT levers, derived from the schema so it cannot drift again.
+ *
+ *  The lever manifest is a UI PRESENTATION catalogue — labels, groups, knob types, ranges — and it is
+ *  right to omit things that are not knobs. The MCP adapter reused it as if it were the API contract,
+ *  which is a different job: measured, `list_levers` advertised 21 of the schema's 32 top-level fields.
+ *  The 11 it never mentioned included REQUIRED `id` and the whole per-mode override layer (`overrides`,
+ *  `modeAnchors`, `modeLevers`). An agent following this tool's own instruction — "call this first to
+ *  learn what theme_brand accepts" — produced an input that failed validation on the missing `id`.
+ *
+ *  Derived by DIFFING the schema against the manifest rather than hand-listing, so a field added to
+ *  either side shows up here automatically. `test.ts` asserts the union is total. */
+export const nonLeverFields = (brandSchema: unknown, leverKeys: Set<string>): Array<Record<string, unknown>> => {
+  const props = ((brandSchema as { properties?: Record<string, { type?: unknown; description?: string; enum?: unknown }> }).properties) ?? {};
+  const required: string[] = ((brandSchema as { required?: string[] }).required) ?? [];
+  return Object.entries(props)
+    .filter(([k]) => !leverKeys.has(k))
+    .map(([k, v]) => ({ key: k, required: required.includes(k), type: v.type, description: v.description }));
+};
+
+/** Every root key the lever manifest advertises. */
+export const manifestRootKeys = (manifest: unknown): Set<string> => {
+  const out = new Set<string>();
+  const walk = (o: unknown): void => {
+    if (Array.isArray(o)) { o.forEach(walk); return; }
+    if (o && typeof o === 'object') {
+      const r = o as Record<string, unknown>;
+      if (typeof r.key === 'string') out.add(r.key.split('.')[0]);
+      Object.values(r).forEach(walk);
+    }
+  };
+  walk(manifest);
+  return out;
+};
+
+/** What a `theme_brand` call may ask to be included. The token tree and the agent metadata are the
+ *  two enormous ones and are OPT-IN — see the tool description for the measured numbers. */
+export const THEME_SECTIONS = ['tokens', 'aiMetadata', 'notes'] as const;
+
+/** Tool catalogue.
+ *
+ *  `theme_brand` takes `{ brand, include }` rather than a bare BrandInput. The old shape is still
+ *  accepted (see `readThemeArgs`) because the schema is `additionalProperties: false`, so there was
+ *  no way to add an argument alongside the brand without either polluting BrandInput or breaking the
+ *  call. Wrapping is the honest fix: a tool's arguments are the tool's own contract, not literally a
+ *  domain object.
+ *
+ *  `validate_brand` does NOT re-inline the 52KB brand schema. Two copies made `tools/list` 91,528
+ *  characters — roughly 23,000 tokens to discover three tools — and the second copy taught a client
+ *  nothing the first had not. It points at `theme_brand` instead. */
 export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'list_levers',
-    description: 'List every BrandInput control an agent can set — grouped, labelled, typed, with enums, defaults and UI ranges. The knob catalogue (the same lever manifest the Figma plugin and web playground render from). Call this first to learn what theme_brand accepts.',
-    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+    title: 'List brand controls',
+    description: 'List the complete BrandInput surface an agent can set: the lever catalogue (grouped, labelled, typed, with enums, defaults and UI ranges — the same manifest the Figma plugin and web playground render from) PLUS the non-lever fields the manifest does not carry (identity, mode set, and the per-mode override layers). Call this first to learn what theme_brand accepts.',
+    inputSchema: { type: 'object', additionalProperties: false },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        levers: { type: 'object', description: 'The lever manifest — UI presentation contract.' },
+        nonLeverFields: {
+          type: 'array', description: 'BrandInput fields that are not UI knobs but are still accepted (and sometimes required).',
+          items: { type: 'object', properties: { key: { type: 'string' }, required: { type: 'boolean' }, description: { type: 'string' } }, required: ['key', 'required'] },
+        },
+        required: { type: 'array', items: { type: 'string' }, description: 'Fields theme_brand will reject a call without.' },
+      },
+      required: ['levers', 'nonLeverFields', 'required'],
+    },
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
   {
     name: 'theme_brand',
-    description: 'Generate a full design-token system from a brand input. Returns the DTCG token tree (colour ramps + semantic roles across light/dark/high-contrast modes, dimension, typography, motion, shadow, layout), the .ai.json agent metadata (per-token rationale, consumers, avoid_when), the per-mode contrast-contract results (every a11y pair, computed on the resolved colours), and the decisions log. Arguments are a BrandInput — call list_levers to see the controls, or validate_brand to check one first.',
-    inputSchema: brandSchema,
+    title: 'Generate a design-token system',
+    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 270,000 and 220,000 characters respectively (~120,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        brand: brandSchema,
+        include: {
+          type: 'array', description: 'Extra sections to return. Omit for the verification payload alone (small).',
+          items: { type: 'string', enum: [...THEME_SECTIONS] },
+        },
+      },
+      required: ['brand'],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
   {
     name: 'validate_brand',
-    description: 'Validate a BrandInput against the engine schema WITHOUT generating. Returns { valid, errors } — a fast pre-flight before theme_brand.',
-    inputSchema: brandSchema,
+    title: 'Validate a brand input',
+    description: 'Validate a BrandInput against the engine schema WITHOUT generating. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
+    inputSchema: { type: 'object', description: 'A BrandInput — the same shape as theme_brand\'s `brand` property.' },
+    outputSchema: {
+      type: 'object',
+      properties: { valid: { type: 'boolean' }, errors: { type: 'array', items: { type: 'string' } } },
+      required: ['valid', 'errors'],
+    },
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
 ];
+
+/** Accept both `{ brand, include }` and a bare BrandInput (the pre-wrap calling convention). Detected
+ *  by the presence of a `brand` key, which BrandInput itself has no property named. */
+export const readThemeArgs = (args: any): { brand: any; include: string[] } =>
+  (args && typeof args === 'object' && 'brand' in args)
+    ? { brand: args.brand, include: Array.isArray(args.include) ? args.include : [] }
+    : { brand: args, include: [] };
 
 const text = (obj: unknown, isError = false): ToolResult =>
   ({ content: [{ type: 'text', text: typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2) }], ...(isError ? { isError: true } : {}) });
 
+/** A result carrying BOTH `structuredContent` (what a client validates against `outputSchema`) and the
+ *  serialised JSON in a text block — the spec asks for the text copy for backwards compatibility with
+ *  clients that do not read structured content. */
+const structured = (obj: unknown): ToolResult =>
+  ({ content: [{ type: 'text', text: JSON.stringify(obj, null, 2) }], structuredContent: obj });
+
 /** Dispatch a tools/call. Pure — imports of the core are all pure functions. Tool-level
  *  failures (bad brand, generation throw) come back as `isError` results, not RPC errors,
  *  per the MCP convention (the call succeeded; the tool reported a problem). */
-export const callTool = (name: string, args: any): ToolResult => {
-  if (name === 'list_levers') return text(buildLeverManifest());
+export const callTool = (name: string, args: any, brandSchema?: unknown): ToolResult => {
+  if (name === 'list_levers') {
+    const levers = buildLeverManifest();
+    // The manifest ALONE was the bug: it is the UI catalogue, not the input contract. Shipping the
+    // non-lever fields beside it makes this tool's promise ("what theme_brand accepts") true.
+    const nonLever = brandSchema ? nonLeverFields(brandSchema, manifestRootKeys(levers)) : [];
+    return structured({
+      levers,
+      nonLeverFields: nonLever,
+      required: ((brandSchema as { required?: string[] } | undefined)?.required) ?? [],
+    });
+  }
 
   if (name === 'validate_brand') {
     const errors = validateBrandInput(args);
-    return text({ valid: errors.length === 0, errors });
+    return structured({ valid: errors.length === 0, errors });
   }
 
   if (name === 'theme_brand') {
-    const errors = validateBrandInput(args);
+    const { brand, include } = readThemeArgs(args);
+    const errors = validateBrandInput(brand);
     if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
     let theme;
-    try { theme = brandTheme(args as BrandInput); }
+    try { theme = brandTheme(brand as BrandInput); }
     catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
     const { tree, modes, stats } = buildTree(theme);
     let checks = 0, pass = 0; const failures: string[] = [];
@@ -88,14 +193,24 @@ export const callTool = (name: string, args: any): ToolResult => {
       const rr = r as { min: number; ratio: number };
       if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push(`${m.mode}.${k} ${rr.ratio}<${rr.min}`); }
     }
-    return text({
+    // The VERIFICATION payload is the default, because that is what "generate and verify" is worth
+    // over one call — and because the two omitted sections measured ~490,000 characters for a
+    // four-mode brand, which no client can spend on a single tool result.
+    const out: Record<string, unknown> = {
       id: theme.id,
-      tokens: tree,
-      aiMetadata: buildAiMetadata(theme, tree),
+      modes: modes.map((m) => m.mode),
       contracts: { checks, pass, failures },
       aliases: { total: stats.aliases, resolved: stats.resolved, broken: stats.broken },
-      notes: theme.notes,
-    });
+      omitted: THEME_SECTIONS.filter((k) => !include.includes(k)),
+    };
+    if (include.includes('tokens')) out.tokens = tree;
+    if (include.includes('aiMetadata')) out.aiMetadata = buildAiMetadata(theme, tree);
+    if (include.includes('notes')) out.notes = theme.notes;
+    // Say what was withheld and how to get it — a silently partial result is worse than a big one.
+    if (out.omitted && (out.omitted as string[]).length) {
+      out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~270KB, aiMetadata ~220KB for a four-mode brand).`;
+    }
+    return structured(out);
   }
 
   return text({ error: `unknown tool: ${name}` }, true);
@@ -121,7 +236,7 @@ export const handleRpc = (req: RpcRequest, brandSchema: unknown): RpcResponse | 
     case 'tools/call': {
       const name = req.params?.name;
       if (!name) return err(-32602, 'tools/call requires params.name');
-      return ok(callTool(name, req.params?.arguments ?? {}));
+      return ok(callTool(name, req.params?.arguments ?? {}, brandSchema));
     }
     default:
       return err(-32601, `method not found: ${req.method}`);
