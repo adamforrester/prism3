@@ -41,8 +41,11 @@ import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
 import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
 import { parseDesignMd } from './design-md';
+import { ENGINE_VERSION } from './version';
 
-export const SERVER_INFO = { name: 'prism3-engine', version: '0.1.0' };
+// Reads the shared constant rather than restating it: a hardcoded duplicate is exactly how a
+// server ends up reporting a version the artifacts it emits do not agree with.
+export const SERVER_INFO = { name: 'prism3-engine', version: ENGINE_VERSION };
 
 /** Protocol revisions this server speaks, newest first.
  *

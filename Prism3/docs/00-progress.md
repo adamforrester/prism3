@@ -7,6 +7,93 @@
 
 ---
 
+## (2026-08-04) — Versioning: the token *names* are the contract, and a gate that cannot rewrite itself
+
+**STATUS: engine (`version.ts` + `token-contract.ts`, new) + `schema/token-contract.json` + CI +
+CLAUDE.md + docs/30.** Every `out/*` tree changed by one line — the new `generator.version` stamp.
+
+There was no versioning of any kind: no semver, no breaking-change policy, no migration path, no
+deprecation story for a renamed token. Nothing recorded which code produced a given artifact.
+
+**The framing decision, and it is the whole design: version the NAMES, not the values.** The
+engine's purpose is to change token values — that is what regenerating a brand *means* — so
+versioning the output would fire on every brand tweak and teach everyone to ignore it. A consumer
+hard-codes `prism.color.text.primary` in a stylesheet; it does not care that the primary hue moved
+four degrees, and it cares enormously if `text.primary` stops existing, because that reference then
+resolves to nothing, silently, with no build error anywhere in the chain. So there are two versions
+and they are deliberately independent: `ENGINE_VERSION` ("what code produced this?", stamped into
+every emitted tree and reported as the MCP `serverInfo.version`, bumps on any behavior change) and
+`CONTRACT_VERSION` ("can my app still resolve its references?", bumps only when the guaranteed
+name surface moves). Tying them together would either cry wolf or stay silent; separated, each can
+be strict. Full policy in `docs/30-versioning-and-compatibility.md`.
+
+### Defining "guaranteed" was the hard part, and the first attempt was vacuous
+
+The emitted set is input-dependent — extra brand colors mean extra palettes — so "the paths the
+engine emits" is not a promise, it is a function of the input. What is well-formed is the
+**intersection across a corpus** spanning both input dialects, the legacy NB fixture, and the
+sparsest input the engine accepts: **477 paths, zero `$type` disagreements.**
+
+The first cut of that intersection returned **0**, and would have shipped a gate that passed
+everything. Cause: it compared paths *with* the root included, and the root is itself a lever
+(`nbds.*` vs `prism.*`). Worth stating plainly because the failure is silent in the dangerous
+direction — **an empty gate reports success forever.** The unit tests now carry a non-vacuity floor
+(`> 400`) aimed squarely at that, rather than at the exact count the baseline file already pins.
+
+The corpus members were chosen adversarially, and two of them are load-bearing:
+
+- **`minimal`** (the three required fields, nothing else) exists to stop the number over-claiming —
+  without it, "guaranteed" would mean "what four richly-specified brands happen to share." It
+  removed **zero** paths: all 477 survive the sparsest input the engine accepts.
+- **`wendys`** (standard dialect) removed exactly one — `font.typeface.inter`, a slug derived from a
+  *value*. Precisely the class of path that should never have been promised, caught by widening the
+  corpus rather than by inspection.
+
+### The rule that makes the gate work: it must not be a `regen` artifact
+
+The tempting move is to add `token-contract.json` to `regen.ts` alongside every other generated
+file. That would destroy it. `regen` rewrites everything and `regen --check` proves the committed
+copies match — so deleting a token would rewrite the baseline to *agree with the deletion* and both
+gates would go green. #281's lesson was **no gate reads the committed artifact**; this is the next
+one along: **a gate allowed to rewrite what it reads has no memory.** The baseline is written only
+by an explicit `--accept`, which itself refuses unless `CONTRACT_VERSION` was already raised by the
+increment the diff requires — an under-bump is rejected as firmly as no bump.
+
+`DEPRECATIONS` ships **empty**, and that is the honest state. It exists because without it MAJOR is
+a dead end — you learn your build broke, not what to write instead. The gate refuses a `replacedBy`
+that is not in the live set, so an entry cannot rot into a pointer at nothing.
+
+### Mutation-tested, and the mutation found a live bug in a *different* gate
+
+Five deliberate breaks, all caught with the right classification and exit code: remove a token
+(MAJOR), add one (MINOR), retype one (MAJOR, both types reported), a dangling deprecation, and
+`--accept` on an unbumped and then an under-bumped breaking change (refused; baseline untouched).
+
+The sixth mutation is the interesting one. Keeping the baseline out of `regen` also kept it out of
+the **US-English gate**, whose scope is imported from `regen.ts` — the exemption and the blind spot
+arrived together. Naming it explicitly in `lint-us-english.ts` closed that, and then mutating
+`colors` → `colours` in the file to *prove* the coverage came back **stayed green**.
+
+Cause: `PATTERN` ended `our\b`, which matches `colour` but **not `colours`**. Every en-GB plural has
+been walking through that gate since it was written, and `ation\b` had the same hole for
+`generalisations`. The gate's own self-check never noticed because it only ever sampled the
+singular — **a self-check written from the same mental model as the scan inherits its blind spot.**
+Fixed with `s?` plus plural samples in `SELF_CHECK`, and widening it immediately caught a real
+`behaviours` shipping in `web/dist/main.js`.
+
+That last hit also retired the comments-are-exempt carve-out **for `web/src`**: only 1 of the 6
+en-GB comments in `main.ts` survived into the bundle, and *which* comments esbuild keeps is a
+bundler implementation detail. An exemption the gate cannot see is not an exemption, it is a
+coin flip — so those comments are US English now (comment-only, zero behavior change).
+
+> Every one of these was found by breaking something and watching what the gate did. Reading a gate
+> tells you what it was meant to catch; only breaking something tells you what it catches.
+
+**Verification.** `regen --check` 88 · **1339/0** unit · MCP suite 49/0 · token contract clean ·
+NB regression PASS · web+plugin typecheck/build · sandbox-clean · US-English clean (92 files).
+
+---
+
 ## (2026-08-04) — The MCP write path could theme a file and give it no typography
 
 **STATUS: engine (`materialise-to-figma.ts`, `write-plan.ts`, `test.ts`) + plugin

@@ -418,7 +418,7 @@ type ModeScope = 'per-mode' | 'shared';
 const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   // Surfaces & fills
   'Backgrounds': 'per-mode', 'Foreground fills': 'per-mode', 'Text': 'per-mode',
-  // Interactive — the three action palettes edit; the global behaviours only re-resolve
+  // Interactive — the three action palettes edit; the global behaviors only re-resolve
   'Primary actions': 'per-mode', 'Neutral actions': 'per-mode', 'Destructive actions': 'per-mode',
   'Outline button hover': 'shared', 'Icon colors': 'shared', 'Focus ring': 'shared',
   // Size & radius
@@ -1220,7 +1220,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   /** Re-home a built section's SPECIMENS onto the mode's own canvas.
    *
-   *  The specimens already rendered the mode's colours; the surface behind them stayed studio-white, so
+   *  The specimens already rendered the mode's colors; the surface behind them stayed studio-white, so
    *  Dark showed dark tokens on a white page — and the Inverse row (light cards) blended into that page,
    *  making the one row that means "a light band inside a dark UI" read as the page itself. The mismatch
    *  did not just look wrong, it inverted the meaning.
@@ -1584,8 +1584,8 @@ const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', c
 // binds to a REAL engine role — ENG-1/ENG-2 emit the full per-state, inverse, and overlay surface. The
 // fill · rest Source is the column's fill ANCHOR (re-derives the whole family coherently); every other
 // Source and every state is a surgical per-mode colour OVERRIDE (brandState.overrides[mode][role] =
-// {palette, step}; "Auto" clears it, reverting to the derived value). Cross-cutting behaviours (outline
-// hover, disabled, icon colours) sit at the TOP — they govern every palette. Overrides only live on the
+// {palette, step}; "Auto" clears it, reverting to the derived value). Cross-cutting behaviors (outline
+// hover, disabled, icon colors) sit at the TOP — they govern every palette. Overrides only live on the
 // customizable modes, so renderScreen renders the generated-note on the derived modes and this editor
 // never runs there.
 // A structural narrowing of the engine's `ResolvedRole`. `against` names the role this one's `ratio`
@@ -1894,7 +1894,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
   return sec;
 };
 
-// ---- lead controls + global behaviours ------------------------------------
+// ---- lead controls + global behaviors ------------------------------------
 /** An enum lever as a `.cap` select that writes the input + rebuilds (a lever change re-derives roles the
  *  matrix reads, so applyFull, not apply). */
 const iEnumSelect = (key: string): HTMLSelectElement => {
@@ -1931,7 +1931,7 @@ const neutralEmphasisLead = (): HTMLElement => {
     example: iExample(exBtn(roles['interactive.neutral.fill.rest']?.hex ?? '#eeeeee', roles['interactive.neutral.on-fill']?.hex ?? '#111111')) });
 };
 
-/** The cross-cutting behaviours grouped at the top — outline hover, disabled, icon colours — each governs
+/** The cross-cutting behaviors grouped at the top — outline hover, disabled, icon colors — each governs
  *  every palette below, so it doesn't belong to any one of them. */
 const renderGlobalBehavior = (host: HTMLElement): void => {
   const cap = el('div', 'gcap'); cap.append(el('p', 'gcap-t', 'Global action behavior'), el('p', 'gcap-d', 'These apply across every action palette below.'));
@@ -2063,7 +2063,7 @@ const renderAddAccentRow = (): HTMLElement => {
   return row;
 };
 
-/** The whole interactive editor: global behaviours, then one section per action palette, then the add row.
+/** The whole interactive editor: global behaviors, then one section per action palette, then the add row.
  *  The fill anchor is per-mode outside Light (modeAnchors); structural edits (add/remove a column) stay
  *  base-only. */
 const renderInteractiveMatrix = (host: HTMLElement): void => {
@@ -2790,7 +2790,7 @@ const renderSurfacesPage = (host: HTMLElement): void => renderScreen(host, 'surf
   // read-only specimen was a duplicate of the live editor preview — both retired here.
 }, () => []);
 
-// Interactive & action colors — the per-palette matrix (#69). Global behaviours at the top, then one
+// Interactive & action colors — the per-palette matrix (#69). Global behaviors at the top, then one
 // section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows binding
 // every fill/text/inverse/overlay/on-fill role. The per-page contrast table stays volatile below.
 const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'interactive', (h) => {
