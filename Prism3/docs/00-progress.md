@@ -7,6 +7,105 @@
 
 ---
 
+## (2026-08-04) — Token coverage: 45 primitives that existed only in Preview's token list
+
+**STATUS: web only.** Owner-raised as the follow-up to the mode-bar audit: *"identify opportunities to
+display inert tokens so users can at least see what exists."* No emitted artifact moves.
+
+**The audit that made it measurable.** For every page, count the tokens it DISPLAYS against the tokens
+its namespaces EMIT. Run against the fixture brand's own token tree:
+
+| page | shown / owned | | page | shown / owned |
+|---|---|---|---|---|
+| Elevation | 7 / 7 (100%) | | Layout | 7 / 23 (30%) |
+| Palettes | 140 / 162 (86%) | | Surfaces | 13 / 55 (23%) |
+| Size & radius | 28 / 48 (58%) | | Interactive | 21 / 92 (22%) |
+| Typography | 47 / 105 (44%) | | Motion | 7 / 34 (20%) |
+
+**Two corrections to that audit, both mine, both worth keeping.**
+1. **The first run reported Palettes at 0%.** I compared a live brand's UI against *NB's* emitted
+   tokens — and palette names are brand-specific (`citrus`/`teal` vs NB's `red`/`amber`). Regenerating
+   from the brand actually on screen moved it to 86%. **The comparison set must come from the brand
+   being rendered**, which is the fixture lesson one layer up.
+2. **The percentages conflate two different problems** and only one is the owner's concern:
+   **(a) the token is invisible** (spacing showed 4 of 18; these 45 showed nowhere) versus
+   **(b) the token is visible but unnamed** (`font.size.*` — the ladder shows all 22 steps as
+   `10 / 0.625rem`, just without the path). A user CAN see (b). Owner scoped this pass to (a) and
+   deferred (b) to a separate task — correct call, and the coverage table alone cannot tell them apart,
+   so quoting it without this caveat overstates the harm.
+
+**What shipped: `dimension.*` (36), `border-width.*` (4), `icon.size.*` (5) — 45 tokens with no home
+at all.** Emitted, aliased by half the geometry system, and findable only in Preview's token list.
+They now have a read-only **Primitive scales** section on Size & radius.
+
+**Why they had no home is the interesting part: the page is organized around LEVERS, and a scale with
+no lever fell through.** Every other section on that page pairs a control with a specimen; these three
+have nothing to set, so there was nowhere to put them. Read-only is the point, not a limitation — and
+the section says so rather than showing an empty control column (the same shape `spacingFixedNote`
+already established).
+
+**Read off `theme.dims`, never `rp.dims`** — the trap the spacing specimen fell into hours earlier:
+`rp.dims` holds only the refs preview COMPONENTS bind, which answers a different question than "what
+is the scale".
+
+**Still (a) and NOT yet placed — needs the IA call the owner has not made:** `palette.black-alpha.*` /
+`white-alpha.*` (20, the word "alpha" appears nowhere on Palettes), `opacity.*` (12) and
+`focus.ring.*` (4). 36 tokens, three plausible homes, deliberately left rather than guessed.
+
+**Verification.** `regen --check` (88) · 1277/0 · plugin typecheck/test/build · sandbox-clean ·
+US-English clean. Size & radius now renders 73 pills (was 28): dimension 36, border-width 4,
+icon.size 5, plus the 28 it already had. Zero clipped leaves, no page overflow, no console errors.
+
+---
+
+
+## (2026-08-04) — Elevation + Size & radius review: two specimens were showing a subset
+
+**STATUS: web only.** Third and fourth pages through the doc-26 method. No emitted artifact moves.
+
+**Both findings are the same defect in two places: a specimen that shows PART of a scale under a
+heading that promises the whole one.** Neither was visible as a bug — nothing was clipped, nothing
+errored, nothing looked broken. They were findable only by extracting the token vocabulary FIRST
+(method step 1) and counting the page against it.
+
+**1. `shadow.inset` appeared nowhere on Elevation.** The engine emits 7 `shadow.*` tokens; the ramp
+renders `SHADOW_STEPS = ['xs'…'2xl']` — six. The one token you could not see is the one whose shape you
+most need to, since an inner shadow reads nothing like an elevation step. It now rides along after the
+ramp, **labelled apart rather than appended to xs…2xl**: a different KIND of shadow, not the next rung.
+`resolve-preview.ts` already promised it — its own comment reads "`shadow.xs`…`shadow.2xl`,
+`shadow.inset` … so the elevation specimen can show it". The model was complete; the specimen never
+asked for the last one.
+
+**2. The "Spacing grid" specimen showed 4 of 18 steps — and that came from trying to fix something
+smaller.** The reported issue was cosmetic: spacing steps named their token as plain `.sp-lab mono`
+text while Corner radius and Density & size, on the same page, used `tokenPill`. Fixing that and
+counting the result gave **four pills**. The cause: `paintSpacingPreview` read `rp.dims`, which is
+**consumption-driven** — it holds only the dimension refs the preview COMPONENTS bind — so the section
+rendered whichever steps a component happened to use (`space.100/150/200/300`) under a heading reading
+"the spacing rhythm". Now reads `theme.dims.space`, the scale itself: **18 of 18**.
+
+**Third time this session the pattern has paid.** *When a fix cannot find what it needs — or its
+result does not add up — the shortfall is the real defect.* The pill swap was trivial and correct; it
+was the COUNT afterwards that exposed a specimen showing 22% of its scale. Doc 26 carries the
+principle already; this is the case showing it applies to arithmetic, not just to missing signals.
+
+**Deliberately not reported.** `.knob-label` (Elevation, Size & radius: 13.5px, sentence case, ink) vs
+`.pfk` (Palettes, Typography: 9.5px, uppercase, muted) — measured, genuinely different, but they are a
+FIELD label and a MICRO label, two tiers of one idea, exactly like `.ctable` vs `.mtbl-tbl` on
+Interactive. **Doc 26's Universal rule names `.pfk` as if it were the only label component**, which is
+what made both look like violations. A doc gap, not a page defect.
+
+**Also verified clean on both pages:** mode bars active and legitimate (Elevation 3790 vs 3999, Size &
+radius 5334 vs 5659 — shadows and geometry really are mode-varying), zero clipped leaves, no page
+overflow, no literal backticks, no duplicate select options, no console errors.
+
+**Open for doc 26 (not yet written):** the dashboard has TWO tiers of several components and the doc
+names one of each — `.pfk`/`.knob-label` for labels, `.mtbl-tbl`/`.ctable` for tables. Both pairs
+surfaced as false "inconsistencies" in consecutive reviews, which is the tell that the doc is
+under-specified. Worth one entry describing each pair and when to use which.
+
+---
+
 ## (2026-08-04) — Palettes review: the mode bar was inert, and "Validation" was a UI-invented word
 
 **STATUS: web only.** First page reviewed with the doc-26 method. No emitted artifact moves.
