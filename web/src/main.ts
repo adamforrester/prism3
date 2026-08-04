@@ -6104,6 +6104,19 @@ const STYLE = `
      needs ~90px and a leading select ~130px, and its row labels are the shortest. Future tables
      (weights, leading, tracking) consume these rather than choosing their own, so the columns cannot
      drift apart. Change here, not per table. */
+  /* Shared vertical padding for the full-size form controls, so a select and a .seg standing side by
+     side in one control bar come out the same height. They did not: the select measured 40.9px and
+     the segmented control 46.9px, a visible 6px step between two fields on the same row.
+     The 6px was not arbitrary and not in the buttons — a .seg is a TRACK around its buttons, and its
+     inner button already matched the select exactly (40.9px both). The extra height is the track:
+     both controls carry a 1px border, but only the seg adds 2px of padding on each side, so it runs
+     4px taller before the button is even measured. Hence .seg-b subtracts 2px per side, NOT 3 —
+     subtracting the border as well double-counts it and lands the seg 2px SHORT, which is what the
+     first attempt did (38.9 against 40.9). Measured both times; the arithmetic is easy to get wrong
+     in the confident direction.
+     State the padding once here and both stay locked together if it ever moves. .select.sm sets its
+     own padding and is deliberately untouched — it is the compact variant, a different size. */
+  --ctl-py:9px;
   --tbl-col-name:112px; --tbl-col-mode:148px;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Roboto,sans-serif;
   --mono:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
@@ -6306,7 +6319,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    --panel thumb, matching the select's fill and type size rather than out-shouting the page.
    The principle this states: selection weight tracks SCOPE, and a display preference has none. */
 .seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-xs);padding:2px;gap:2px;background:var(--paper)}
-.seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:10px 12px;border-radius:5px;cursor:pointer}
+.seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:calc(var(--ctl-py) - 2px) 12px;border-radius:5px;cursor:pointer}
 .seg-b:hover{color:var(--ink)}
 .seg-b.on{background:var(--panel);color:var(--ink);font-weight:560;box-shadow:0 1px 2px rgba(20,22,30,.10)}
 
@@ -6339,7 +6352,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .lab-hex{font-size:11px;color:var(--faint)}
 /* The dashboard <select> component (doc 24 C1) — one base class owns every dropdown's cosmetics + the
    consistent chevron; sm / fill / cap are additive size/context modifiers. */
-.select{appearance:none;-webkit-appearance:none;font:inherit;font-size:13.5px;padding:9px 11px;padding-right:28px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;
+.select{appearance:none;-webkit-appearance:none;font:inherit;font-size:13.5px;padding:var(--ctl-py) 11px;padding-right:28px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2371717a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 9px center;background-size:11px}
 .select:disabled{opacity:.6}
