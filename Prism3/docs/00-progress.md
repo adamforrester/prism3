@@ -267,6 +267,77 @@ primitive scales, 32 here on Palettes, 4 on Interactive. **(b) — visible but u
 
 ---
 
+## (2026-08-04) — Motion review: 7 of 34 tokens were visible; now all 34
+
+**STATUS: web only.** No engine change, `out/*` untouched.
+
+**The thinnest coverage of any page audited.** Motion showed seven of its thirty-four tokens, and the
+gap was not incidental — it was the *ramp the page's only control exists to move*.
+
+### Tempo scaled a ladder nobody could see
+
+`motion.duration.*` had 3 of 6 steps visible, and only as pills inside the transitions specimen. The
+8 `duration-ms` primitives they alias: nowhere. The **reduce-motion ramp: nowhere** — while two
+separate lines of copy claimed "reduce-motion is derived." A promise made twice and evidenced zero
+times. New read-only **Duration ramp** section: six steps, each with its resolved ms, the literal
+primitive it aliases, and the reduced value beside it — with `0ms` labelled **eliminated** rather than
+left as a bare zero, because eliminated and instant are not the same claim.
+
+**It reads the current mode's re-derived ramp** (`motionByMode[mode]`), the way the specimen does. A
+mode can run its own tempo, so reading `theme.motion` directly would print Light's numbers under a
+Dark mode bar — the #158 lesson. The primitive strip lists the **union across every mode's tempo**,
+because that is what `tree.ts` emits (one invariant leaf per reachable value); showing the current
+mode's six would have quietly disagreed with the artifact.
+
+### A section titled "Easing" showed one of six curves
+
+`linear` and `calm` appeared nowhere in the app. `calm` is an **accessibility role** — soft onset for
+long or involuntary motion — which is not a thing to leave undiscoverable. All six now render as
+curve cards. Only `emphasized` is authored; the section says so instead of implying the rest are
+missing.
+
+Its description also pointed at *"the Motion specimen's emphasized **bar**"*. The specimen was rebuilt
+as curve cards and has had no bars since — **copy that outlived the rendering it referenced**. Worth
+noting the shape: a stale cross-reference survives every gate, because nothing links prose to the DOM
+it describes.
+
+Springs (3) and `motion.stagger` got homes; each specimen card gained a pill for the
+`motion.transition.*` composite it *is* — it was showing both of its parts and not itself.
+
+### Two self-inflicted bugs, both caught only by looking
+
+**Six easing curves painted across the entire page.** `.mo-stage-svg` is `position: absolute`; the
+specimen's `.mo-stage` is `relative` and contains it. My new `.mo-ez-stage` was **static**, so all six
+escaped to the viewport and rendered at **1500×1500** as giant diagonal strokes over everything.
+`overflow: hidden` does not save you — an abspos descendant whose containing block is outside the
+element is not clipped by it. Every DOM assertion passed. **Fifth time this session a check was green
+while the page was visibly wrong.**
+
+**A "harmless" shared-component change regressed two other pages.** To break long paths on dot
+boundaries I put `<wbr>` into `tokenPill` itself, reasoning it would be inert under
+`white-space: nowrap`. **It is not, in Chromium.** Measured against `main` with the same sweep: Layout
+went from 0 wrapped pills to 5, and Surfaces' 3 elided pills became 3 wrapped ones — row heights
+changed on two pages I was not working on. Reverted; the behaviour now lives in a separate
+`tokenPillWrapping` used only by the card grids that need it.
+
+> **A shared component is exactly where an obviously-harmless addition does damage out of sight of the
+> page you are on.** The only reason this was caught is that the sweep runs across all nine pages and
+> was diffed against `main` rather than read on its own.
+
+### Deliberate non-change
+
+The new read-only sections sit in the `sections` callback, so a derived mode (HC / wireframe) still
+shows only the specimen + generated note. That matches every other page's gate. It does mean an HC
+designer sees four resolved transition durations but not the full six-step ramp — a reasonable
+follow-up, but changing derived-mode page shape is its own decision, not a side effect of this one.
+
+**Verification.** `regen --check` 88 · **1277/0** · NB regression PASS (exit 0) · web+plugin
+typecheck/build · sandbox-clean · US-English clean. Coverage **7/34 → 34/34**, computed from the brand
+the UI renders. Cross-page pill sweep: 0 elided, 0 clipped leaves, no page overflow — and diffed
+against `main` to prove the shared-helper revert left the other pages exactly as they were.
+
+---
+
 ## (2026-08-04) — The mode bar moves onto the page (#432, step 1 of the treatment)
 
 **STATUS: web.** Relocation only — **the bar's own styling is deliberately untouched**. `out/*`
