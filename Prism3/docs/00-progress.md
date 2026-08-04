@@ -7,6 +7,78 @@
 
 ---
 
+## (2026-08-04) — MCP part 3: the eval that scores MCP agents was not callable over MCP
+
+**STATUS: engine (`mcp.ts` + tests).** `out/*` untouched. Stacked on part 2.
+
+Asked for "the most complete version to test against", the useful question turned out not to be *what
+else does the spec want* but **what can the engine already do that an agent cannot reach**. Two things,
+and the first is close to embarrassing.
+
+### `eval.ts` exists to score MCP agents. It had no MCP tool.
+
+Its own docstring: *"Measures whether an agent handed the MCP surface (`theme_brand` / `list_levers`,
+`mcp.ts`) produced COMPLIANT output — turning 'MCP-first > screenshot-first' from an assertion into a
+number."* Three deterministic metrics, no model judge required, and **unreachable from the surface it
+was written to measure.** For a testing ticket that is the gap that matters: the instrument was in the
+drawer next to the patient.
+
+`score_consumption` exposes all three:
+- **invented-token rate** — refs naming tokens that do not exist (the hallucination metric);
+- **primitive-leak rate** — valid refs reaching past the semantic layer into `palette`/`dimension`/`font`;
+- **contract compliance** — every fg/bg pair the output used, resolved and contrast-checked **in every
+  mode**, at the floor the pair's `kind` implies (text 4.5 / large-text + ui 3).
+
+Pairs are optional: ref hygiene and contrast compliance are different questions, and an agent that only
+reports the tokens it named should still get the first two.
+
+> Driven on the wire, it immediately flagged `text.tertiary` on `background.primary` as failing the
+> text floor in both modes — **the exact mistake made in the Style guide ground work earlier the same
+> day**, where `--faint` was mapped onto a 3:1-gated role and landed at 3.52:1. The tool catches by
+> construction the class of error that took a manual contrast sweep to find.
+
+### `theme_from_brief` — the entry point an LLM actually wants
+
+`parseDesignMd` has been in the engine throughout; `cli.ts` uses it. An agent working from a written
+brand description had to assemble a 32-field JSON object instead. It now hands the markdown over.
+
+It returns `derivedBrandInput` alongside the usual payload, because **a brief is lossy and an agent
+cannot correct a misreading it never sees**. Both entry points share one `themePayload` path, and a
+test asserts they report an identical payload for the same brand — two doors, one room.
+
+A malformed brief is a **tool** error, not an RPC one: the model wrote it and can fix it, which is the
+case the spec says to report with `isError` so the client can feed it back.
+
+### The part-1 gate caught a regression from part 3, immediately
+
+Adding `score_consumption` re-inlined the 52KB brand schema and put `tools/list` straight back to
+**95,907 chars** — the exact defect part 1 removed. The size assertion failed on the first run.
+
+**This is the argument for gating a fix with a number rather than trusting the fix.** "Do not inline
+the schema twice" is a rule someone has to remember; `tools/list < 60,000 chars` is a rule the suite
+remembers. Third tool now points at `theme_brand` like the second does: **50,827 chars for five tools.**
+
+### Deliberately NOT done
+
+**Resources.** The token tree wants to be `prism3://brand/{id}/tokens` rather than a 270KB tool result.
+But MCP is stateless as of 2026-07-28, so that needs the server-minted handle pattern (a brand handle
+minted by one call and passed to the next) — real design work, and a second capability's worth of test
+surface, to solve a problem `include` already solves. Revisit if the testing ticket finds `include`
+insufficient.
+
+**Prompts.** Speculative without a concrete workflow to encode.
+
+**`tools/list` pagination.** Correct at five tools; revisit if the catalogue grows.
+
+**Verification.** `regen --check` 88 · **1317/0** (1306 → 1317) · NB regression PASS (exit 0) ·
+web+plugin typecheck/build · sandbox-clean · US-English clean. Both new tools driven over stdio:
+score_consumption caught an invented ref, a primitive leak and 2 of 4 mode-pairs failing;
+theme_from_brief generated from a brief and reported its derived input; a brief with no frontmatter
+returned an actionable `isError`. Ref normalisation asserted non-vacuously (brace syntax AND
+root-qualified paths both counted valid, so the invented-ref count cannot pass for the wrong reason).
+
+---
+
 ## (2026-08-04) — The Style guide's interactive rows now resolve against the ground they are shown on (owner-reported)
 
 **STATUS: web.** `out/*` untouched. Both defects arrived with the preview-surface picker (#454): it

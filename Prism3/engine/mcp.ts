@@ -39,6 +39,8 @@ import { brandTheme, BrandInput } from './theme';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
+import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
+import { parseDesignMd } from './design-md';
 
 export const SERVER_INFO = { name: 'prism3-engine', version: '0.1.0' };
 
@@ -173,6 +175,58 @@ export const toolDefs = (brandSchema: unknown) => [
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
   {
+    name: 'score_consumption',
+    title: 'Score how an agent used the tokens',
+    description: 'Score generated output against a brand\'s token system — the check that closes the loop after theme_brand. Give it the token refs your output used and, optionally, the foreground/background pairs it put together. Returns: invented-token rate (refs naming tokens that do not exist), primitive-leak rate (refs reaching past the semantic layer into raw palette/dimension/font tiers), and contrast-contract compliance for every pair across every mode. Deterministic — no model judgement involved.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        // NOT a second inline copy of the 52KB brand schema — that is what made tools/list 91,500
+        // chars before, and adding this tool put it straight back to 95,907 until the size gate
+        // caught it. One canonical copy lives on theme_brand; everything else points at it.
+        brand: { type: 'object', description: 'The same BrandInput you passed to theme_brand — see that tool for the full input schema.' },
+        refs: { type: 'array', items: { type: 'string' }, description: 'Token refs the output used. Brace syntax, root-qualified or root-relative all accepted.' },
+        pairs: {
+          type: 'array', description: 'Optional foreground/background pairs the output placed together, checked against the contrast floor in EVERY mode.',
+          items: {
+            type: 'object',
+            properties: {
+              fg: { type: 'string' }, bg: { type: 'string' },
+              kind: { type: 'string', enum: ['text', 'large-text', 'ui'], description: 'Sets the floor: text 4.5:1, large-text and ui 3:1. Defaults to text.' },
+            },
+            required: ['fg', 'bg'],
+          },
+        },
+      },
+      required: ['brand', 'refs'],
+      additionalProperties: false,
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        consumption: { type: 'object', description: 'total / valid / invented / inventedRate / primitiveLeaks / primitiveLeakRate.' },
+        contracts: { type: 'object', description: 'checked / pass / rate / failures / unresolved — omitted when no pairs were given.' },
+      },
+      required: ['consumption'],
+    },
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: 'theme_from_brief',
+    title: 'Generate from a markdown brief',
+    description: 'Generate a token system from a design.md brief — YAML frontmatter plus prose — instead of a hand-assembled BrandInput. The natural entry point when working from a written brand description rather than known numbers: it parses the brief, reports the BrandInput it derived, and returns the same verification payload as theme_brand (with the same opt-in `include`). Call theme_brand directly when you already hold exact values.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        brief: { type: 'string', description: 'A design.md document. MUST open with a --- YAML frontmatter fence on the first line.' },
+        include: { type: 'array', items: { type: 'string', enum: [...THEME_SECTIONS] }, description: 'Extra sections to return; same meaning as theme_brand.' },
+      },
+      required: ['brief'],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  },
+  {
     name: 'validate_brand',
     title: 'Validate a brand input',
     description: 'Validate a BrandInput against the engine schema WITHOUT generating. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
@@ -205,6 +259,40 @@ const structured = (obj: unknown): ToolResult =>
 /** Dispatch a tools/call. Pure — imports of the core are all pure functions. Tool-level
  *  failures (bad brand, generation throw) come back as `isError` results, not RPC errors,
  *  per the MCP convention (the call succeeded; the tool reported a problem). */
+/** Validate → generate → verification payload. Shared by `theme_brand` and `theme_from_brief` so the
+ *  two can never report a brand differently depending on how it was supplied. */
+const themePayload = (brand: unknown, include: string[]): ToolResult => {
+  const errors = validateBrandInput(brand);
+  if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
+  let theme;
+  try { theme = brandTheme(brand as BrandInput); }
+  catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
+  const { tree, modes, stats } = buildTree(theme);
+  let checks = 0, pass = 0; const failures: string[] = [];
+  for (const m of modes) for (const [k, r] of Object.entries(m.roles)) {
+    const rr = r as { min: number; ratio: number };
+    if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push(`${m.mode}.${k} ${rr.ratio}<${rr.min}`); }
+  }
+  // The VERIFICATION payload is the default, because that is what "generate and verify" is worth over
+  // one call — and because the two omitted sections measured ~490,000 characters for a four-mode
+  // brand, which no client can spend on a single tool result.
+  const out: Record<string, unknown> = {
+    id: theme.id,
+    modes: modes.map((m) => m.mode),
+    contracts: { checks, pass, failures },
+    aliases: { total: stats.aliases, resolved: stats.resolved, broken: stats.broken },
+    omitted: THEME_SECTIONS.filter((k) => !include.includes(k)),
+  };
+  if (include.includes('tokens')) out.tokens = tree;
+  if (include.includes('aiMetadata')) out.aiMetadata = buildAiMetadata(theme, tree);
+  if (include.includes('notes')) out.notes = theme.notes;
+  // Say what was withheld and how to get it — a silently partial result is worse than a big one.
+  if ((out.omitted as string[]).length) {
+    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~270KB, aiMetadata ~220KB for a four-mode brand).`;
+  }
+  return structured(out);
+};
+
 export const callTool = (name: string, args: any, brandSchema?: unknown): ToolResult => {
   if (name === 'list_levers') {
     const levers = buildLeverManifest();
@@ -223,37 +311,40 @@ export const callTool = (name: string, args: any, brandSchema?: unknown): ToolRe
     return structured({ valid: errors.length === 0, errors });
   }
 
+  if (name === 'score_consumption') {
+    const errors = validateBrandInput(args?.brand);
+    if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
+    if (!Array.isArray(args?.refs)) return text({ error: 'score_consumption requires `refs`: an array of token refs' }, true);
+    let theme;
+    try { theme = brandTheme(args.brand as BrandInput); }
+    catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
+    const { tree } = buildTree(theme);
+    const out: Record<string, unknown> = { consumption: scoreConsumption(args.refs as string[], tree, theme.root) };
+    // Pairs are optional: contract compliance is a different question from ref hygiene, and an agent
+    // that only reports the tokens it named should still get the first two metrics.
+    if (Array.isArray(args.pairs) && args.pairs.length) out.contracts = scoreContractCompliance(args.pairs as UsedPair[], theme);
+    return structured(out);
+  }
+
+  if (name === 'theme_from_brief') {
+    if (typeof args?.brief !== 'string') return text({ error: 'theme_from_brief requires `brief`: a design.md string' }, true);
+    let parsed;
+    // A malformed brief is a TOOL error, not an RPC one — the model wrote it and can fix it, which is
+    // exactly the case the spec says to report with isError so the client can feed it back.
+    try { parsed = parseDesignMd(args.brief); }
+    catch (e) { return text({ error: `could not parse the design.md brief: ${(e as Error).message}` }, true); }
+    const result = themePayload(parsed.input, Array.isArray(args.include) ? args.include : []);
+    if (result.isError) return result;
+    // Report what the brief RESOLVED to. A brief is lossy by nature, and an agent cannot correct a
+    // misreading it never sees — this is the field that makes the round trip debuggable.
+    const payload = JSON.parse(result.content[0].text);
+    payload.derivedBrandInput = parsed.input;
+    return structured(payload);
+  }
+
   if (name === 'theme_brand') {
     const { brand, include } = readThemeArgs(args);
-    const errors = validateBrandInput(brand);
-    if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
-    let theme;
-    try { theme = brandTheme(brand as BrandInput); }
-    catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
-    const { tree, modes, stats } = buildTree(theme);
-    let checks = 0, pass = 0; const failures: string[] = [];
-    for (const m of modes) for (const [k, r] of Object.entries(m.roles)) {
-      const rr = r as { min: number; ratio: number };
-      if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push(`${m.mode}.${k} ${rr.ratio}<${rr.min}`); }
-    }
-    // The VERIFICATION payload is the default, because that is what "generate and verify" is worth
-    // over one call — and because the two omitted sections measured ~490,000 characters for a
-    // four-mode brand, which no client can spend on a single tool result.
-    const out: Record<string, unknown> = {
-      id: theme.id,
-      modes: modes.map((m) => m.mode),
-      contracts: { checks, pass, failures },
-      aliases: { total: stats.aliases, resolved: stats.resolved, broken: stats.broken },
-      omitted: THEME_SECTIONS.filter((k) => !include.includes(k)),
-    };
-    if (include.includes('tokens')) out.tokens = tree;
-    if (include.includes('aiMetadata')) out.aiMetadata = buildAiMetadata(theme, tree);
-    if (include.includes('notes')) out.notes = theme.notes;
-    // Say what was withheld and how to get it — a silently partial result is worse than a big one.
-    if (out.omitted && (out.omitted as string[]).length) {
-      out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~270KB, aiMetadata ~220KB for a four-mode brand).`;
-    }
-    return structured(out);
+    return themePayload(brand, include);
   }
 
   return text({ error: `unknown tool: ${name}` }, true);
