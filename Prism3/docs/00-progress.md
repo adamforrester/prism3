@@ -7,6 +7,43 @@
 
 ---
 
+## (2026-08-04) — The mode bar leaves two of Preview's three views (#439)
+
+**STATUS: web.** One condition. `out/*` untouched.
+
+**Owner's question was whether Preview should use the mode bar at all, being entirely view-only.
+Measured, the answer is that Preview is not one thing.** Switching Light→Dark and diffing the
+rendered *text*:
+
+```
+Style guide          8 of 373 lines differ   — incl. "ON LIGHT SURFACE" -> "ON DARK SURFACE"
+Contrast contracts   0 of 54                 — already Pair | Light | Dark | HC light | HC dark
+Token list           1 of 940                — one caption; already a column pair per mode
+```
+
+**The bar is load-bearing on exactly one of the three.** The other two already satisfy the condition
+doc 26 states for the bar leaving a page — *"if every mode-varying value on a page is a column, the
+mode bar leaves"* — which is the same reasoning that removed it from Typography (#416) and the
+Typography Preview tab.
+
+**So the rule was applied at VIEW granularity rather than page granularity.** No new mechanism, no new
+vocabulary: the existing rule, one level finer. That is deliberately the smaller of the two available
+answers — the larger one is to make the Style guide show all four modes side by side, after which the
+bar leaves Preview entirely. That is a full component spread × 4 and a real layout project; it should
+not ride inside a switcher change.
+
+**Text was the right thing to diff, and colors were not.** All three views "respond" to the mode bar
+if you compare markup — every specimen re-resolves its colors. That is what made Preview look
+uniformly mode-sensitive in the section audit. Comparing rendered *text* separates a view that
+**renders a mode** from one that merely **repaints in it**: 0 of 54 lines is a view with nothing to
+switch.
+
+**Verified:** bar shown on Style guide, hidden on the other two; a mode chosen on Style guide survives
+a trip through the barless views and back (Dark → Token list → Dark); the hidden bar leaves no empty
+sticky box (`display:none`, 0px); Size & radius, Motion and Palettes unchanged; no page errors.
+
+
+
 ## (2026-08-04) — Review follow-ups: the white alpha ramp was ten identical swatches
 
 **STATUS: web only.** `out/*` untouched. Design feedback on the read-only sections the audit added.
