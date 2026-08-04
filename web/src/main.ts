@@ -401,10 +401,64 @@ const cascadeRemove = (removed: string): void => {
 // status Custom hue) and a read-out otherwise — and the hex-by-name shows only then.
 
 // A per-role section container with a heading.
+/** Which sections answer to the mode bar. MEASURED, not asserted — every entry comes from
+ *  `npm run -w @prism3/web audit:modes`, which switches Light→Dark and diffs each section. That
+ *  script also GATES this map (`--check-badges`), so a section whose behaviour changes, or whose
+ *  title is renamed out from under an entry, fails rather than silently losing its badge.
+ *
+ *  Two states, not three (#439). The audit distinguishes `displays` (the preview re-resolves, the
+ *  control does not) from `inert` (nothing changes), and that split is real and worth keeping in the
+ *  tool — but it is not ACTIONABLE: in both cases the answer to "can I edit this per mode?" is no.
+ *  Three labels made two of them sound like the same thing, which is exactly how it read in review.
+ *
+ *  Scope: the six pages that carry a mode bar. Typography edits every mode as columns and has no bar
+ *  (#416), so its "editing all modes" case is deliberately not covered here — it is not in the
+ *  audit's output, and a badge nobody measured is the thing this map exists to avoid. */
+type ModeScope = 'per-mode' | 'shared';
+const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
+  // Surfaces & fills
+  'Backgrounds': 'per-mode', 'Foreground fills': 'per-mode', 'Text': 'per-mode',
+  // Interactive — the three action palettes edit; the global behaviours only re-resolve
+  'Primary actions': 'per-mode', 'Neutral actions': 'per-mode', 'Destructive actions': 'per-mode',
+  'Outline button hover': 'shared', 'Icon colors': 'shared', 'Focus ring': 'shared',
+  // Size & radius
+  'Corner radius': 'per-mode', 'Density & size': 'per-mode', 'Spacing grid': 'shared',
+  'Primitive scales': 'shared',
+  // Elevation
+  'Shadow': 'per-mode', 'Elevation ramp': 'shared',
+  // Motion
+  'Tempo': 'per-mode', 'Easing': 'shared', 'Motion': 'shared',
+  'Duration ramp': 'shared', 'Springs': 'shared',
+  // Preview — read-only end to end
+  'Background': 'shared', 'Foreground': 'shared', 'Text color': 'shared', 'Border': 'shared',
+  'Icon': 'shared', 'Disabled': 'shared', 'Interactive': 'shared',
+};
+
+/** The badge: label + scope, one grammar across both states, and deliberately ACHROMATIC.
+ *  Hue is reserved for the contrast verdicts (--ok / --danger, #446) — neither mode state is good or
+ *  bad, so tinting one would borrow a meaning that does not apply. Fill says "the bar reaches this";
+ *  dashed outline says it does not. */
+const modeScopeBadge = (scope: ModeScope): HTMLElement => {
+  const editable = scope === 'per-mode' && !DERIVED_MODES.has(currentMode);
+  const b = el('span', 'msb' + (editable ? ' on' : ''));
+  // A per-mode section is NOT editable in a derived mode — the engine refuses levers there — so the
+  // badge reads from the live mode, never from the map alone (doc 26 states this trap for columns).
+  b.append(el('span', 'msb-k', editable ? 'Editing' : 'Shared'),
+           el('span', 'msb-v', editable ? (MODE_LABEL[currentMode] ?? currentMode) : 'All modes'));
+  b.title = editable
+    ? `Controls in this section write to ${MODE_LABEL[currentMode] ?? currentMode} only.`
+    : scope === 'per-mode'
+      ? `${MODE_LABEL[currentMode] ?? currentMode} is derived — it cannot be edited. Switch to a customizable mode to edit this section.`
+      : 'One value, shared by every mode. What you see re-resolves per mode; the control does not.';
+  return b;
+};
+
 const palSection = (title: string, sub: string): HTMLElement => {
   const sec = el('div', 'psec');
   const head = el('div', 'psec-head');
-  head.append(el('h3', 'psec-t', title), el('p', 'psec-d', sub));
+  const txt = el('div', 'psec-txt');
+  txt.append(el('h3', 'psec-t', title), el('p', 'psec-d', sub));
+  head.append(txt);
   sec.append(head);
   return sec;
 };
@@ -5225,6 +5279,30 @@ const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
   motion: renderMotionPage,
   preview: renderPreviewPage,
 };
+/** Attach the mode badge to every section on the page, in ONE post-render pass.
+ *
+ *  Deliberately not done inside the section builders: there are already THREE ways a `.psec` comes
+ *  into existence — `palSection`, `renderPaletteSection` (its own `.psec-h`, which also carries a
+ *  remove button), and `renderGlobalBehavior`, which assembles bare `.psec` nodes with no head at
+ *  all. Wiring each one means a fourth builder silently ships without badges, which is the same
+ *  shape as the negative mode-bar rule that let Palettes keep an inert switcher for a month (#430).
+ *  A pass over the rendered DOM cannot be forgotten by code that does not know it exists.
+ *
+ *  Placement follows whatever head the section has, so the badge lands top-right in all three:
+ *  both head variants are already `justify-content:space-between` flex rows; a headless section
+ *  gets the badge positioned against its own box instead. */
+const attachModeBadges = (root: HTMLElement): void => {
+  for (const sec of [...root.querySelectorAll('.psec')] as HTMLElement[]) {
+    if (sec.querySelector('.msb')) continue;
+    const title = sec.querySelector('.psec-t')?.textContent?.trim();
+    const scope = title ? SECTION_MODE_SCOPE[title] : undefined;
+    if (!scope) continue;
+    const head = sec.querySelector('.psec-head') ?? sec.querySelector('.psec-h');
+    if (head) head.append(modeScopeBadge(scope));
+    else { sec.classList.add('psec-badged'); sec.append(modeScopeBadge(scope)); }
+  }
+};
+
 function renderWorkspace(): void {
   workspace.innerHTML = '';
   // Page furniture, not global chrome (#432). Re-minted every render because the workspace is cleared;
@@ -5233,6 +5311,7 @@ function renderWorkspace(): void {
   workspace.append(modeStripHost);
   renderModeStrip();
   PAGE_RENDERERS[page](workspace);
+  attachModeBadges(workspace);
 }
 
 // ---- brand setup — selector menu: name + namespace, switch / new / import --------
@@ -5854,7 +5933,22 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 /* ---- Palettes page (#59): per-role section containers + full-width palette rows ---- */
 .psec{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 24px 22px;margin-top:22px}
 .psec:first-of-type{margin-top:8px}
+/* The head becomes a row so the mode badge can sit top-right; .psec-txt keeps the title+description
+   stacked as before, so nothing about their own spacing moves. */
+.psec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.psec-txt{min-width:0}
 .psec-t{margin:0;font-size:13px;font-weight:680;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)}
+/* Label + scope: the label is small, letterspaced and muted; the scope is heavier and darker, so the
+   eye lands on the part that actually changes. Achromatic by design — see modeScopeBadge. */
+.psec-badged{position:relative}
+.psec-badged>.msb{position:absolute;top:0;right:0}
+.msb{display:inline-flex;align-items:baseline;gap:6px;flex:none;border-radius:99px;padding:4px 11px;
+     border:1px dashed var(--line2);background:transparent;white-space:nowrap}
+.msb.on{border-style:solid;border-color:transparent;background:var(--paper)}
+.msb-k{font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.msb-v{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--muted)}
+.msb.on .msb-v{color:var(--ink)}
+@media(max-width:720px){.psec-head{flex-direction:column;gap:8px}}
 .psec-d{margin:4px 0 0;color:var(--faint);font-size:13px;line-height:1.5}
 .psec .errbar{margin-top:16px}
 .prow{padding:20px 0 6px}

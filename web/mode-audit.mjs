@@ -68,7 +68,9 @@ const server = createServer(async (req, res) => {
 });
 await new Promise((r) => server.listen(8899, '127.0.0.1', r));
 
-const BRAND = process.argv[2] ?? 'harbor';
+// Positional arg is the brand; flags are filtered out so `audit:modes -- --check-badges` does not
+// read the flag as a brand name and hang waiting for a button that will never exist.
+const BRAND = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'harbor';
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
 await page.goto('http://127.0.0.1:8899/index.html', { waitUntil: 'networkidle' });
@@ -86,15 +88,21 @@ const snap = () => page.evaluate(() => {
       : `IN:${e.type}=${e.value}`;
     return `${label}>>${ctrl}`;
   }).join(' | ');
-  return nodes.map((s, i) => ({
-    name: (s.querySelector('.psec-t')?.textContent ?? s.querySelector('h2,h3')?.textContent ?? `section ${i + 1}`).trim(),
-    ctrl: sig(s),
-    html: s.innerHTML,
-  }));
+  return nodes.map((s, i) => {
+    const badge = s.querySelector('.msb');
+    return {
+      name: (s.querySelector('.psec-t')?.textContent ?? s.querySelector('h2,h3')?.textContent ?? `section ${i + 1}`).trim(),
+      ctrl: sig(s),
+      html: s.innerHTML,
+      // #439 — what the section CLAIMS about itself, so --check-badges can compare claim to measurement.
+      badge: badge ? (badge.classList.contains('on') ? 'per-mode' : 'shared') : null,
+    };
+  });
 });
 
 const stages = (await page.locator('.stage').allTextContents()).map((s) => s.split('\n')[0].trim());
 const tally = { EDITS: 0, displays: 0, inert: 0 };
+const claims = [];
 const noBar = [];
 console.log(`\nMode-sensitivity audit — brand '${BRAND}', Light vs Dark, 1440px\n${'='.repeat(64)}`);
 for (const stage of stages) {
@@ -114,10 +122,30 @@ for (const stage of stages) {
     if (!d) { console.log(`   ??????    ${s.name}  (section count differs between modes)`); continue; }
     const v = s.ctrl !== d.ctrl ? 'EDITS   ' : s.html !== d.html ? 'displays' : 'inert   ';
     tally[v.trim() === 'EDITS' ? 'EDITS' : v.trim()]++;
-    console.log(`   ${v}  ${s.name}`);
+    // Two UI states from three verdicts: only EDITS is per-mode; displays and inert both mean
+    // "the bar does not reach this", which is the distinction a user can act on.
+    claims.push({ page: stage.slice(0, 22), name: s.name, verdict: v.trim(),
+                  expected: v.trim() === 'EDITS' ? 'per-mode' : 'shared', badge: s.badge });
+    console.log(`   ${v}  ${s.name}${s.badge ? '' : '   (no badge)'}`);
   }
 }
 console.log(`\nNo mode bar: ${noBar.join(' · ')}`);
 console.log(`Totals across bar pages: ${JSON.stringify(tally)}\n`);
+
+// --check-badges: the map in main.ts (SECTION_MODE_SCOPE) is hand-maintained from THIS measurement,
+// so it can drift the moment a section changes behaviour or gets renamed. Comparing the badge the
+// page renders against the verdict measured in the same pass closes that: a renamed section loses
+// its map entry and shows up as `missing`, and a section that stops (or starts) editing per mode
+// shows up as a mismatch. Exits non-zero so it can gate.
+if (process.argv.includes('--check-badges')) {
+  const bad = claims.filter((c) => c.badge !== c.expected);
+  console.log(`--check-badges — ${claims.length} badged/expected sections compared`);
+  for (const c of bad) {
+    console.log(`   ${c.page} / ${c.name}`);
+    console.log(`      measured ${c.verdict} -> expected badge '${c.expected}', page renders ${c.badge === null ? 'NO BADGE (missing map entry?)' : `'${c.badge}'`}`);
+  }
+  if (bad.length) { console.log(`\n${bad.length} mismatch(es).\n`); process.exit(1); }
+  console.log('   ✓ every badge matches what the page actually does\n');
+}
 await browser.close();
 server.close();

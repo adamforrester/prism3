@@ -7,6 +7,59 @@
 
 ---
 
+## (2026-08-04) — Every section says whether the mode bar reaches it, and the audit gates the claim (#439)
+
+**STATUS: web.** `out/*` untouched. Second half of the #439 build, after the chip (#449).
+
+**Two states, not three, and the reason is the review that produced them.** The audit distinguishes
+`displays` (the preview re-resolves, the control does not) from `inert` (nothing changes). Both were
+badged separately in the first draft and the owner's response was that *"SHARED ACROSS MODES"* and
+*"SAME IN ALL MODES"* sounded like the same thing. They did — because the split is real but not
+**actionable**: in both cases the answer to *"can I edit this per mode?"* is no. The tool keeps three
+verdicts; the UI shows two.
+
+**One grammar: `Editing · Dark` / `Shared · All modes`.** Label small, letterspaced, muted; scope
+heavier and darker, so the eye lands on the part that changes. **Achromatic by design** — hue is
+reserved for the contrast verdicts (#446), and neither mode state is good or bad, so tinting one
+would borrow a meaning that does not apply. Fill means the bar reaches this section; dashed outline
+means it does not.
+
+**Attached in ONE post-render pass, not inside the section builders.** There are already **three**
+ways a `.psec` comes into existence — `palSection`, `renderPaletteSection` (its own `.psec-h`, which
+also carries a remove button), and `renderGlobalBehavior`, which assembles bare `.psec` nodes with no
+head at all. Wiring each means a fourth builder ships silently unbadged — the same shape as the
+negative mode-bar rule that let Palettes keep an inert switcher for a month (#430). A pass over the
+rendered DOM cannot be forgotten by code that does not know it exists.
+
+**The map is measured, and now gated.** `SECTION_MODE_SCOPE` is hand-maintained from
+`audit:modes`, so it can drift the moment a section changes behavior or is renamed.
+`audit:modes -- --check-badges` compares the badge the page renders against the verdict measured in
+the same pass, and exits non-zero on a mismatch.
+
+**It caught real drift on its first run — nine mismatches, and none of them were typos.**
+
+- **`Surfaces & fills / Text` had become per-mode.** My table said `displays`; #443 landed while this
+  was being built and made it editable. The map was stale within hours of being written.
+- **Two sections did not exist when I measured** — `Focus ring` (Interactive) and `Primitive scales`
+  (Size & radius), both added by #442–#445 during the same session.
+- **Six Interactive sections rendered no badge at all**, which is how the second and third section
+  builders were discovered. The gate found the architectural gap, not just the data gap.
+
+That is the argument for the gate in one paragraph: a hand-maintained map of measured behavior is
+worth having only if something re-measures it. Totals now **10 EDITS / 12 displays / 4 inert**, and
+all 26 badges agree with the page.
+
+**One guard is deliberately unreachable today.** `modeScopeBadge` reads editability from the live
+mode, not the map alone, so a per-mode section in a derived mode reads `Shared` rather than claiming
+an edit the engine would refuse. On today's pages a derived mode swaps the whole editor for the
+generated note (#318/#423), so the branch never fires — but doc 26 records exactly this trap for
+per-mode columns, and a page that shows sections in a derived mode would otherwise lie.
+
+Verified: `Editing · Light` on the two per-mode sections of Size & radius and `Shared · All modes` on
+the other two; the same sections track to `Editing · Dark`; badge value **15.97:1** and label
+**4.63:1**, both AA; no page errors.
+
+
 ## (2026-08-04) — The mode chip stops shouting, and says who can be edited (#439)
 
 **STATUS: web.** `out/*` untouched. First half of the #439 build; section badges follow.
