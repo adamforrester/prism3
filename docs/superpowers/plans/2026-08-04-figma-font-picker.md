@@ -464,12 +464,25 @@ Expected: clean.
 Run: `npm run build -w @prism3/web`
 Expected: `dist/main.js` written.
 
-- [ ] **Step 6: Confirm the web build is unchanged in behavior**
+- [ ] **Step 6: Confirm no Figma bridge plumbing reaches the web bundle**
 
-The web bundle must not gain a font path. Verify the branch is statically dead:
+What "dead-code-eliminated" does and does not cover here was measured on the pre-change bundle, because it is easy to assert too much:
 
-Run: `rtk proxy grep -c "font-list" web/dist/main.js`
-Expected: `0` — `webCommit.onHostMessage` is a no-op and esbuild drops the unreachable branch. **If this is not 0**, the message handler is reachable on web; that is a real finding — report it rather than working around it.
+`figmaCommit`'s **body** is eliminated on web — `apply-theme`, `ui-ready`, `resize-ui`, `pluginMessage` and `addEventListener("message"` all appear **0** times in `web/dist/main.js`, and `var figmaCommit` is never defined. What survives is the caller, `var hostCommit = () => false ? figmaCommit() : webCommit();` — esbuild substitutes the define but leaves the ternary unfolded.
+
+The **handler callback is a different thing** and it does ship on web. `commit.onHostMessage((m) => { if (m.kind === "restore-input") … })` is present in today's web bundle; it is ordinary `main.ts` code, not host-conditional code, and it is merely never invoked because `webCommit.onHostMessage` is an empty no-op. So **`"font-list"` WILL appear in `web/dist/main.js` after Step 1, exactly as `"restore-input"` does now. That is correct and expected — do not "fix" it.**
+
+Verify the real guarantee — that no bridge plumbing crossed over:
+
+```bash
+for s in pluginMessage 'apply-theme' 'ui-ready' 'listAvailableFontsAsync'; do
+  printf '%-24s %s\n' "$s" "$(grep -o -F "$s" web/dist/main.js | wc -l | tr -d ' ')"
+done
+```
+
+Expected: `0` for every one. **If any is non-zero**, Figma-only code reached the web bundle — a real finding; report it rather than working around it.
+
+Then confirm the handler is unreachable rather than absent: `webCommit`'s `onHostMessage` must still be an empty method (`grep -A6 'var webCommit' web/dist/main.js`). If it ever gains a body, the branch becomes live on web and that is the finding.
 
 - [ ] **Step 7: Run the US-English gate**
 
