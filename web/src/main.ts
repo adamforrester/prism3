@@ -592,6 +592,7 @@ const renderPrimitives = (host: HTMLElement): void => {
   const valSec = palSection('Status ramps', 'The success / warning / danger / info ramps every semantic role aliases — auto-derived, seeded from a custom hue, or borrowed from a brand palette.');
   for (const role of STATUS_ROLES) { const s = statusRow(role); valSec.append(s.row); refreshers.push(s.refresh); }
   host.append(valSec);
+  host.append(renderAlphaAndOpacity());
 
   paintVolatile = () => {
     errBar.style.display = lastError ? '' : 'none';
@@ -1761,6 +1762,40 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
     desc: 'Match text keeps icons at full text legibility; Distinct lets them sit lighter (WCAG non-text 3:1).',
     example: twoUp(['Match text', exIconLabel(txt, txt)], ['Distinct', exIconLabel(lighter, txt)]) }));
   host.append(ic);
+
+  // FOCUS RING (review, 2026-08-04) — 4 emitted tokens that appeared nowhere in the dashboard. They
+  // belong here: a focus ring is an interaction state, and `color.border.focus` (its colour, already
+  // on this page's contract table) is the one part of it that WAS visible. These are the geometry.
+  // Fixed constants in the engine, so read-only — shown with a live specimen because a 2px ring at 2px
+  // offset is a thing you judge by looking, not by reading two numbers.
+  const fr = el('div', 'psec');
+  fr.append(el('p', 'psec-t', 'Focus ring'), el('p', 'psec-d', 'The ring geometry every focusable control shares — width, how far it sits off the element, and its stroke style. Fixed for every brand (WCAG 2.4.13 sets the floor); its color is the color.border.focus role above.'));
+  const frRows: Array<[string, string, string]> = [
+    ['focus.ring.width', '2px', 'WCAG 2.4.13 floor'],
+    ['focus.ring.offset', '2px', 'separates the ring from the element edge'],
+    ['focus.ring.offset-field', '0px', 'form fields — the ring hugs the field'],
+    ['focus.ring.style', 'solid', 'dashed and dotted fail at small sizes'],
+  ];
+  const frWrap = el('div', 'fr-wrap');
+  const frList = el('div', 'fr-list');
+  for (const [ref, val, why] of frRows) {
+    const r = el('div', 'fr-row');
+    r.append(tokenPill(ref), el('span', 'fr-v mono', val), el('span', 'fr-why', why));
+    frList.append(r);
+  }
+  const frEx = el('div', 'fr-ex');
+  const ringColor = roles['border.focus']?.hex ?? roles['interactive.primary.border']?.hex ?? '#3e6dc8';
+  for (const [lab, off] of [['Control', '2px'], ['Form field', '0px']] as Array<[string, string]>) {
+    const cell = el('div', 'fr-excell');
+    const btn = el('div', 'fr-btn', lab);
+    btn.style.outline = `2px solid ${ringColor}`;
+    btn.style.outlineOffset = off;
+    cell.append(btn, el('span', 'fr-exlab', `offset ${off}`));
+    frEx.append(cell);
+  }
+  frWrap.append(frList, frEx);
+  fr.append(frWrap);
+  host.append(fr);
 };
 
 /** The add-accent promote row — a select of promotable palettes + an add button (structural, base-mode
@@ -2674,6 +2709,61 @@ const primitiveScalesNote = (): HTMLElement => el('p', 'ic-modenote',
   'Nothing to set here. The dimension grid is the fixed 4px-step ladder every geometry token resolves '
   + 'onto — border widths and icon sizes are named aliases onto it, and radius, spacing and component '
   + 'sizes land on its steps. Change those on the sections above; this is what they land on.');
+/** ALPHA RAMPS + THE OPACITY SCALE (review, 2026-08-04). 32 tokens that were emitted and visible
+ *  nowhere in the dashboard — the word "alpha" did not appear on this page at all, so the only way to
+ *  learn they existed was Preview's token list.
+ *
+ *  They belong TOGETHER, and on Palettes, for a reason stronger than "somewhere to put them": both are
+ *  driven by the SAME `ALPHA_STEPS` set in the engine — the ramps express those steps as color
+ *  (black/white composited over any surface), `opacity.*` expresses them as the raw dimensionless
+ *  number. One step set, two forms. `opacity.*` is a PRIMITIVE, not a semantic (tree.ts: "opacity
+ *  primitive scale (dimensionless 0..1)"), which is why it sits with the palette primitives rather
+ *  than with the roles on Surfaces.
+ *
+ *  Read-only, and fixed for every brand — the steps are a constant, not a lever. The values are
+ *  rendered from that same constant rather than plumbed through the theme: the engine hardcodes them
+ *  too, so a second source here would be a copy that could drift from nothing.
+ *
+ *  The swatches sit on a checkerboard because an alpha ramp over an opaque background is
+ *  indistinguishable from a solid ramp — the transparency IS the token. */
+const ALPHA_STEPS_UI = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+const renderAlphaAndOpacity = (): HTMLElement => {
+  const sec = palSection('Alpha & opacity', 'Black and white at increasing transparency, and the matching dimensionless opacity scale. Fixed for every brand — these are primitives, so there is nothing to tune; they are here so you can see what exists and what each name resolves to.');
+  // Each ramp sits on the ground it EXISTS for: black alpha over a light checkerboard, white alpha
+  // over a dark one. Both on light, the white ramp is ten near-identical pale squares — technically
+  // rendered, practically unreadable, which is the same failure as not showing it at all.
+  const ramp = (base: 'black' | 'white', rgb: string): HTMLElement => {
+    const box = el('div', 'ao-ramp');
+    box.append(el('div', 'ao-t', `palette.${base}-alpha`));
+    const row = el('div', 'ao-row');
+    for (const st of ALPHA_STEPS_UI.filter((x) => x > 0 && x < 100)) {
+      const cell = el('div', 'ao-cell');
+      const sw = el('div', 'ao-sw' + (base === 'white' ? ' dark' : ''));
+      // `backgroundColor`, NOT `background`. The shorthand clears `background-image`, which is where the
+      // checkerboard lives — so the alpha never showed through, and the white ramp was ten invisible
+      // white swatches on a white panel. The DOM said 20 swatches; only a screenshot said 10 of them
+      // could not be seen.
+      sw.style.backgroundColor = `rgba(${rgb}, ${st / 100})`;
+      cell.append(sw, el('div', 'ao-lab mono', String(st)));
+      cell.title = `palette.${base}-alpha.${st} — ${base} at ${st}% alpha, composites over any surface`;
+      row.append(cell);
+    }
+    box.append(row);
+    return box;
+  };
+  sec.append(ramp('black', '0,0,0'), ramp('white', '255,255,255'));
+  const op = el('div', 'ao-ramp');
+  op.append(el('div', 'ao-t', 'opacity'));
+  const orow = el('div', 'ao-oprow');
+  for (const st of ALPHA_STEPS_UI) {
+    const cell = el('div', 'ao-opcell');
+    cell.append(tokenPill(`opacity.${st}`), el('span', 'sp-px mono', String(+(st / 100).toFixed(2))));
+    orow.append(cell);
+  }
+  op.append(orow);
+  sec.append(op);
+  return sec;
+};
 
 /** The Spacing grid section has no controls by design — both its levers were removed. Says why, rather
  *  than leaving an empty control column that reads as a rendering bug. */
@@ -5746,6 +5836,29 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .pv-cell{display:flex;align-items:center;gap:6px}
 .sp-lab{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
 .sp-px{font-size:11px;color:var(--faint);flex:none}
+/* Alpha ramps + opacity scale (review). Checkerboard behind the swatches — an alpha ramp over an
+   opaque ground is indistinguishable from a solid one, and the transparency IS the token. */
+.ao-ramp{margin-top:14px}
+.ao-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:7px;font-family:var(--mono)}
+.ao-row{display:flex;gap:6px;flex-wrap:wrap}
+.ao-cell{display:flex;flex-direction:column;gap:4px;align-items:center}
+.ao-sw{width:46px;height:38px;border-radius:var(--r-xs);border:1px solid var(--line);
+  background-image:linear-gradient(45deg,#d8d8dc 25%,transparent 25%),linear-gradient(-45deg,#d8d8dc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d8d8dc 75%),linear-gradient(-45deg,transparent 75%,#d8d8dc 75%);
+  background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0}
+.ao-sw.dark{background-image:linear-gradient(45deg,#4a4a52 25%,transparent 25%),linear-gradient(-45deg,#4a4a52 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#4a4a52 75%),linear-gradient(-45deg,transparent 75%,#4a4a52 75%);background-color:#2a2a31}
+.ao-lab{font-size:10.5px;color:var(--faint)}
+.ao-oprow{display:flex;flex-wrap:wrap;gap:5px 10px}
+.ao-opcell{display:flex;align-items:center;gap:6px}
+/* Focus ring (review) — the numbers beside a live specimen; 2px at 2px offset is judged by eye. */
+.fr-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+.fr-list{display:flex;flex-direction:column;gap:7px;min-width:0}
+.fr-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fr-v{font-size:11.5px;color:var(--ink2);font-weight:600}
+.fr-why{font-size:11.5px;color:var(--faint)}
+.fr-ex{display:flex;gap:22px;padding:6px 4px}
+.fr-excell{display:flex;flex-direction:column;gap:9px;align-items:center}
+.fr-btn{padding:7px 14px;border-radius:var(--r-xs);background:var(--panel);border:1px solid var(--line2);font-size:12.5px;color:var(--ink)}
+.fr-exlab{font-size:10.5px;color:var(--faint)}
 .sp-bar{height:12px;background:var(--ink);opacity:.55;border-radius:3px;min-width:2px}
 /* Manifest-advanced scalar/enum levers — exposed as a normal panel (no disclosure). */
 .adv-panel{margin-top:12px}

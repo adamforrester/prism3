@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-04) — The last 36 invisible tokens get a home (alpha, opacity, focus ring)
+
+**STATUS: web only.** Completes the (a)-class token-coverage work. No emitted artifact moves.
+
+**Owner placement decisions:** alpha ramps → Palettes, bottom of page · opacity → Palettes for now,
+pending wider IA · focus ring → Interactive.
+
+**`opacity.*` is a PRIMITIVE, and that makes Palettes the right home rather than a parking spot.** The
+owner asked whether these were semantics. `tree.ts` answers it: *"opacity primitive scale
+(dimensionless 0..1)"* — a raw number scale. Better, it is generated from the **same `ALPHA_STEPS`
+constant as the alpha ramps**: the ramps express those steps as colour, `opacity.*` expresses them as
+the bare number. One step set, two forms — so they ship as one section, `Alpha & opacity`.
+
+**Values rendered from the constant, not plumbed through the theme.** The engine hardcodes
+`ALPHA_STEPS` and the four focus-ring numbers; adding a theme path for them would be a second source
+that could drift from nothing. Read-only by nature — these are constants, not levers, which is exactly
+why they had no home on lever-organized pages.
+
+**Two rendering bugs the DOM check passed and only a screenshot caught.**
+1. **`style.background` clobbered the checkerboard.** The shorthand clears `background-image`, so the
+   transparency never showed — and the white ramp was **ten invisible white swatches on a white
+   panel**. `alphaSwatches: 20` was true the whole time. `backgroundColor` fixes it.
+2. **A light ground made the white ramp unreadable even once visible.** Ten near-identical pale squares
+   is the same failure as not rendering it. Each ramp now sits on the ground it EXISTS for — black
+   alpha over a light checkerboard, white alpha over a dark one.
+
+**This is the third time this session that a DOM assertion passed while the thing was not actually
+visible** (after `[hidden]` losing to `display:block`, and the `direction:rtl` pill). Doc 26's step 3
+says measure the rendered page; these say something sharper — **for anything whose whole point is
+visual, the DOM count is not evidence. Look at it.**
+
+**The focus ring gets a live specimen** rather than four numbers: 2px at 2px offset versus 2px at 0px
+is a thing you judge by eye. Its colour was already visible as `color.border.focus` on the same page's
+contract table — these four tokens are the geometry that was missing.
+
+**(a) is now complete: 81 of 81 previously-invisible tokens have a home.** 45 in the Size & radius
+primitive scales, 32 here on Palettes, 4 on Interactive. **(b) — visible but unnamed (`font.size.*`,
+`grid.*`) — remains a separate task** by owner decision.
+
+---
+
 ## (2026-08-04) — The mode bar moves onto the page (#432, step 1 of the treatment)
 
 **STATUS: web.** Relocation only — **the bar's own styling is deliberately untouched**. `out/*`
