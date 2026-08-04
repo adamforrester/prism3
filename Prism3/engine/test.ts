@@ -5259,6 +5259,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const js = planToPluginJs(lead);
     ok(js.includes('getLocalVariablesAsync') && js.includes('setBoundVariable'), 'anatomy: the plugin payload binds variables through the Plugin API');
     ok(js.includes(visualSide), 'anatomy: the plugin payload carries the asymmetric inset it was projected with');
+    // The payload must RETURN its result to the pasting agent. `figma_execute` neither awaits nor
+    // unwraps a returned Promise, so an async-IIFE wrapper yields `success: true, result: undefined`
+    // — the component builds and the caller learns nothing. That is worse here than in the token
+    // tier: `misses[]` is this payload's only failure channel, and a component whose bindings all
+    // missed still looks like a success. Verified live in #111 before this gate existed.
+    ok(!/\(async\s*\(\)\s*=>\s*\{/.test(js) && !/\}\)\(\)\s*$/.test(js.trim()),
+      'anatomy: the plugin payload emits top-level await, NOT an async IIFE (figma_execute drops the Promise → result: undefined)');
+    ok(/^return \{[^}]*misses/m.test(js),
+      'anatomy: the plugin payload returns its misses[] at the top level — the only channel that reports an unresolved binding');
 
     // A def whose anatomy is structurally broken must FAIL, not warn. Four shapes, each a real
     // authoring mistake rather than a synthetic one.
