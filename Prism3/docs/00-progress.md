@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-04) — The mode chip stops shouting, and says who can be edited (#439)
+
+**STATUS: web.** `out/*` untouched. First half of the #439 build; section badges follow.
+
+**Option C, chosen from four mocked fills.** The selected chip is a **white ground with an ink border
+plus a 1px ring**, not a solid `--ink` fill. Mode is a **scope, not a destination** — dressing it as
+the loudest control on the page made it heavier than the rail that chooses the page, and moving the
+bar into the content column (#432) made that worse rather than better.
+
+**`auto` becomes `view only`, and the word matters more than the restyle.** Derived modes
+(`hc-light` / `hc-dark` / `wireframe`) are ones the engine **refuses per-mode levers on**. "Auto"
+described *how the mode was produced*; "view only" states *what you can do*, which is the thing a
+user is actually asking. Inside the chip rather than as a caption beneath it: after wrap→scroll
+(#432) the bar spends width freely and height not at all.
+
+**The bar label stays `MODE`, and that is a decision, not inertia.** Swapping it to "Editing" was
+proposed and rejected in review: it would have to become "Viewing" on a derived mode, and a label
+that mutates under you is worse than a neutral one. The editable-vs-read-only fact belongs on the
+chip it applies to. Recorded in the code so it is not re-proposed.
+
+**Two simplifications fall out of the white ground, and one of them improves contrast.** The contrast
+mark now always sits on a light chip, so the `--ok-inv` / `--danger-inv` overrides that existed
+*only* for the dark fill are gone — measured, the mark went from the inverted pair on `#18181b` to
+`--ok` on white at **5.02:1**. The read-only marker likewise no longer needs a white-on-dark variant.
+
+**The mark itself was kept, against my own mock.** The v1 proposal showed chips without it and argued
+the contrast readout is theme health rather than part of a mode's name. That is still true, but
+removing it would delete the per-mode contrast signal #54 added deliberately, and **option C already
+solves the loudness problem on its own** — the mark leaving was an aesthetic addition, not a
+requirement. Removing it later is a two-line change; losing an accessibility signal silently is not
+recoverable in the same way.
+
+**`--ok-inv` / `--danger-inv` now have no consumer** and are deliberately left in place: #448 edits
+the same declaration block, and a needless conflict costs more than two unused custom properties for
+one merge. Remove after it lands; #285 measured them against `--ink` and the values are here if an
+inverted panel ever wants them.
+
+Verified: label `Mode`; selected chip white/ink/ring at weight 560; `view only` present with zero
+legacy `.mctx-auto` nodes; mark **5.02:1**, marker text **5.13:1**, chip text **17.72:1** — all AA;
+switching modes still works; no page errors.
+
+---
+
 ## (2026-08-04) — The verdict badges resolve through tokens, and three of my own claims were wrong (#446)
 
 **STATUS: web.** `out/*` untouched. Prerequisite for #439's mode badges — one verdict palette before a
