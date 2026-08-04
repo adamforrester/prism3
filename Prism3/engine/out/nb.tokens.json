@@ -3991,6 +3991,50 @@
                   }
                 }
               }
+            },
+            "border": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.500}",
+              "$description": "primary interactive border on a dark / inverse surface (outline on a dark hero)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.500",
+                  "contrast": 4.24,
+                  "against": "background.inverse.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.500}",
+                      "contrast": 4.27,
+                      "against": "background.inverse.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.500}",
+                      "contrast": 4.58,
+                      "against": "background.inverse.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.500}",
+                      "contrast": 4.58,
+                      "against": "background.inverse.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
             }
           },
           "overlay": {
@@ -4885,6 +4929,50 @@
                   }
                 }
               }
+            },
+            "border": {
+              "$type": "color",
+              "$value": "{nbds.palette.red.500}",
+              "$description": "destructive interactive border on a dark / inverse surface (outline on a dark hero)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.red.500",
+                  "contrast": 4.24,
+                  "against": "background.inverse.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.red.500}",
+                      "contrast": 4.27,
+                      "against": "background.inverse.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.red.500}",
+                      "contrast": 4.58,
+                      "against": "background.inverse.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.red.500}",
+                      "contrast": 4.58,
+                      "against": "background.inverse.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
             }
           },
           "overlay": {
@@ -5744,6 +5832,50 @@
                       "$value": "{nbds.palette.white}",
                       "contrast": 16,
                       "against": "interactive.neutral.on-inverse.fill.rest",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "border": {
+              "$type": "color",
+              "$value": "{nbds.palette.neutral.550}",
+              "$description": "neutral interactive border on a dark / inverse surface (outline on a dark hero)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.palette.neutral.550",
+                  "contrast": 3.54,
+                  "against": "background.inverse.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.palette.neutral.400}",
+                      "contrast": 3.05,
+                      "against": "background.inverse.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.palette.neutral.500}",
+                      "contrast": 4.57,
+                      "against": "background.inverse.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.palette.neutral.500}",
+                      "contrast": 4.59,
+                      "against": "background.inverse.primary",
                       "min": 4.5
                     }
                   },
@@ -14052,6 +14184,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
+      "version": "0.1.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

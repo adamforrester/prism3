@@ -21,6 +21,7 @@ import { resolveAllModes } from './modes';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
+import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
@@ -28,11 +29,13 @@ import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
-import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION } from './mcp';
+import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
+import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump } from './version';
+import { buildContract, corpus, pathsOf, MINIMAL_BRAND } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, floatCollections, passJs, passOrder } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan } from './write-plan';
+import { aliasRows, floatCollections, fontCollections, passJs, passOrder } from './materialise-to-figma';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
@@ -889,6 +892,20 @@ for (const b of brands) {
   const noInv = resolveAllModes({ ...nbTheme(), inverseContext: false })
     .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.on-inverse'));
   ok(noInv.length === 0, 'inverse: inverse=false emits no on-inverse inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
+
+  // (a2) the outline EDGE on the dark band (#467). Before this the border was emitted once against
+  //      `background.primary` and reused on the inverse band, so the pair was never measured — the
+  //      432 contracts all passed without checking it. This asserts the ground and the floor, which
+  //      is the whole point: it makes a failing edge a gate failure rather than a silent ship.
+  const invBdFails: string[] = [];
+  for (const m of modes)
+    for (const c of ['primary', 'neutral', 'destructive']) {
+      const r = m.roles[`interactive.${c}.on-inverse.border`];
+      if (!r) { invBdFails.push(`${m.mode}:${c}:absent`); continue; }
+      if (r.against !== 'background.inverse.primary') invBdFails.push(`${m.mode}:${c}:against=${r.against}`);
+      if (r.min > 0 && r.ratio < r.min) invBdFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
+    }
+  ok(invBdFails.length === 0, 'inverse: interactive.<color>.on-inverse.border gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
 
   // (b) neutralEmphasis 'strong' → a bold neutral fill that clears the non-text floor, on-fill still gated.
   const strong = resolveAllModes({ ...nbTheme(), neutralEmphasis: 'strong' });
@@ -4780,6 +4797,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const full = JSON.parse(callTool('theme_brand', { brand, include: ['tokens', 'aiMetadata', 'notes'] }).content[0].text);
   ok(full.tokens?.prism && full.aiMetadata && Array.isArray(full.notes), 'MCP: include:[tokens,aiMetadata,notes] returns the DTCG tree, the .ai.json metadata and the decisions log');
   ok(themed.structuredContent !== undefined, 'MCP: results carry structuredContent alongside the text block');
+
+  // The decisions log ships BY DEFAULT. It was opt-in, grouped with `tokens` and `aiMetadata` under
+  // "withheld by default" — a grouping by CATEGORY when the only thing justifying it is COST, and
+  // the costs differ by three orders of magnitude (833,819 / 516,761 / 5,803 chars). The tool's own
+  // description already claimed it returned "the decisions log by default", so description and
+  // behaviour disagreed and the description was the correct half. These assert the fixed direction.
+  ok(Array.isArray(payload.notes) && payload.notes.length > 0,
+    `MCP: theme_brand returns the decisions log by DEFAULT (${payload.notes?.length} decisions the engine made for this brand, incl. ones flagged for human confirmation)`);
+  ok(!payload.omitted.includes('notes'), 'MCP: notes are not reported as withheld when they were in fact returned');
+  ok(Array.isArray(JSON.parse(callTool('theme_brand', brand).content[0].text).notes),
+    'MCP: the bare-BrandInput calling convention gets the decisions log too (both entry points default alike)');
+  const noNotes = JSON.parse(callTool('theme_brand', { brand, include: [] }).content[0].text);
+  ok(noNotes.notes === undefined, 'MCP: include:[] still opts OUT of everything — a default, not a floor');
+  // Guard the reason the default is affordable at all. If notes ever grow into a payload rather than
+  // a log, this fails rather than quietly making every call expensive.
+  const notesCost = themed.content[0].text.length - callTool('theme_brand', { brand, include: [] }).content[0].text.length;
+  ok(notesCost < 25_000, `MCP: the decisions log stays cheap enough to be a default (${notesCost.toLocaleString()} chars vs ~834,000 for tokens)`);
+  ok(toolDefs(brandSchema).find((t) => t.name === 'theme_brand')?.description.includes('decisions log by default'),
+    'MCP: the tool description still advertises the default it actually has (these drifted apart once)');
   // The pre-wrap calling convention (a bare BrandInput) still works.
   ok(JSON.parse(callTool('theme_brand', brand).content[0].text).contracts.checks > 0, 'MCP: a bare BrandInput (the old calling convention) is still accepted');
 
@@ -5223,6 +5259,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const js = planToPluginJs(lead);
     ok(js.includes('getLocalVariablesAsync') && js.includes('setBoundVariable'), 'anatomy: the plugin payload binds variables through the Plugin API');
     ok(js.includes(visualSide), 'anatomy: the plugin payload carries the asymmetric inset it was projected with');
+    // The payload must RETURN its result to the pasting agent. `figma_execute` neither awaits nor
+    // unwraps a returned Promise, so an async-IIFE wrapper yields `success: true, result: undefined`
+    // — the component builds and the caller learns nothing. That is worse here than in the token
+    // tier: `misses[]` is this payload's only failure channel, and a component whose bindings all
+    // missed still looks like a success. Verified live in #111 before this gate existed.
+    ok(!/\(async\s*\(\)\s*=>\s*\{/.test(js) && !/\}\)\(\)\s*$/.test(js.trim()),
+      'anatomy: the plugin payload emits top-level await, NOT an async IIFE (figma_execute drops the Promise → result: undefined)');
+    ok(/^return \{[^}]*misses/m.test(js),
+      'anatomy: the plugin payload returns its misses[] at the top level — the only channel that reports an unresolved binding');
 
     // A def whose anatomy is structurally broken must FAIL, not warn. Four shapes, each a real
     // authoring mistake rather than a synthetic one.
@@ -5354,6 +5399,127 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Payload budget — the reason the colour lane is split across three passes in the first place.
   for (const name of passOrder())
     ok(Buffer.byteLength(passJs('nb', name), 'utf8') < 45_000, `materialise: pass '${name}' is inside the figma_execute budget (${Buffer.byteLength(passJs('nb', name), 'utf8')} bytes)`);
+
+  // NO async IIFE — every pass must return its counts to the PASTING AGENT. `figma_execute` neither
+  // awaits nor unwraps a returned Promise, so a `(async()=>{...})()` wrapper handed the caller
+  // `result: undefined` while still reporting `success: true`: the created / bound / skipped / miss
+  // counts each pass computes were invisible, and the write path only LOOKED verified. Top-level
+  // `await` is supported, so the wrapper was pure loss. Asserted per pass — the whole value of these
+  // payloads is that a paste can be checked, and one re-wrapped pass is one blind pass.
+  for (const name of passOrder()) {
+    const js = passJs('nb', name);
+    ok(!/\(async\s*\(\)\s*=>\s*\{/.test(js) && !/\}\)\(\)\s*$/.test(js.trim()),
+      `materialise: pass '${name}' emits top-level await, NOT an async IIFE (figma_execute drops the Promise → result: undefined)`);
+    // `dims-create` returns a bare array (one entry per collection) rather than an object — both are
+    // structured results, so match a top-level `return` of either shape, not an object literal alone.
+    ok(/^\s*return\s*[{[]/m.test(js) || /^\s*return\s+\w+;\s*$/m.test(js),
+      `materialise: pass '${name}' returns a structured result the pasting agent can verify`);
+  }
+}
+
+// ------------------------------- materialise-to-figma: the TYPOGRAPHY + STYLE paste paths (#464)
+// The same gap #342 closed for floats, for the last three axes. The plugin has written all five
+// since #237; the paste path — the only one an MCP-driven session can use — had colour and floats,
+// so `core-font`, `type-sets`, 38 Text Styles and 14 Effect Styles were unreachable over MCP. An
+// agent could theme a file and get every colour and dimension and no typography at all.
+//
+// The load-bearing assertion is not "the passes exist" but "the file-read plan EQUALS the
+// theme-built plan". Both write paths project one plan by construction; these lock that in, so a
+// change to either reshape fails here rather than in a Figma file three surfaces away.
+{
+  const t = nbTheme();
+
+  // Axis parity, the drift check that would have caught the gap when it opened.
+  const pluginFontAxes = buildFontVarPlan(t).map((p) => p.name).sort();
+  const pasteFontAxes = fontCollections('nb').sort();
+  ok(JSON.stringify(pluginFontAxes) === JSON.stringify(pasteFontAxes),
+    `materialise: the paste path covers every font collection the plugin path writes${JSON.stringify(pluginFontAxes) === JSON.stringify(pasteFontAxes) ? ` (${pasteFontAxes.join(', ')})` : ` — plugin [${pluginFontAxes}] vs paste [${pasteFontAxes}]`}`);
+
+  // PLAN EQUALITY — the file-read reshapes against the theme-built ones, per axis. `nb` is the
+  // fixture both paths can build, so this is a true equality rather than a shape comparison.
+  const rd = (f: string): unknown => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
+  const coreFont = rd('core-font.json') as Parameters<typeof fontVarPlanFrom>[0][number];
+  const fluidFiles = ['mobile', 'desktop'].map((m) => rd(`type-sets.${m}.json`) as typeof coreFont);
+  ok(JSON.stringify(fontVarPlanFrom([coreFont], fluidFiles)) === JSON.stringify(buildFontVarPlan(t)),
+    'materialise: the file-read font plan is IDENTICAL to the theme-built font plan (the two write paths cannot drift)');
+  ok(JSON.stringify(stylesPlanFromFiles(rd('shadow-styles.json') as never, rd('gradient-styles.json') as never)) === JSON.stringify(buildStylesPlan(t)),
+    'materialise: the file-read styles plan is IDENTICAL to the theme-built styles plan');
+  ok(JSON.stringify(textStylePlanFromFiles(rd('text-styles.json') as never, coreFont)) === JSON.stringify(buildTextStylePlan(t)),
+    'materialise: the file-read text-style plan is IDENTICAL to the theme-built text-style plan');
+
+  const fontVars = passJs('nb', 'font-vars');
+  const textStyles = passJs('nb', 'text-styles');
+  const styles = passJs('nb', 'styles');
+
+  // `core-font` mixes STRING (family) and FLOAT (size/weight) in ONE collection — the reason this
+  // pass carries a per-row type code where `dims-create` hardcodes 'FLOAT'. A family var created as
+  // FLOAT accepts no string value and fails only when a Text Style tries to bind it, so both codes
+  // must reach the payload, and the decode must THROW on an unknown one rather than default.
+  ok(fontVars.includes("TY={s:'STRING',f:'FLOAT'}"), 'materialise: font-vars carries both variable types (STRING family + FLOAT size/weight in one collection)');
+  ok(/,"s",/.test(fontVars) && /,"f",/.test(fontVars), 'materialise: font-vars rows use both type codes');
+  ok(/throw new Error\('unknown scope code/.test(fontVars), 'materialise: an unknown font scope code THROWS at paste time (never silently decodes to undefined)');
+  // This is the assertion that caught FONT_FAMILY having no code at all — it's a STRING scope, so the
+  // FLOAT map (built for the dims lane) never needed one, and `core-font` is the only collection that
+  // mixes the two. Every family var would have pasted with `scopes: [undefined]`.
+  ok(!/"[a-z*]*\?[a-z*]*",/.test(fontVars), 'materialise: every font scope encodes to a known code (no `?` in the payload)');
+  // The decode map is a bijection or it silently mis-scopes: two scopes sharing a letter means one
+  // decodes to the other's enum, which the Plugin API accepts and no read-back would question.
+  const codeMap = JSON.parse(fontVars.match(/const FSC=(\{[^}]*\});/)![1].replace(/(\w+):/g, '"$1":').replace(/'/g, '"')) as Record<string, string>;
+  ok(new Set(Object.values(codeMap)).size === Object.keys(codeMap).length,
+    `materialise: the font scope code map is a bijection (${Object.keys(codeMap).length} codes → ${new Set(Object.values(codeMap)).size} distinct scopes)`);
+  ok(codeMap.m === 'FONT_FAMILY', 'materialise: FONT_FAMILY (the one STRING scope) has its own code, not a float code reused');
+
+  // The weight-role aliases are intra-collection (`font/weight-role/strong` → `font/weight/700`), so
+  // one payload does create-then-bind in two loops. Every target must be created by the same pass.
+  const fontCreated = new Set<string>();
+  for (const m of fontVars.matchAll(/\["([a-z0-9/\-.]+)","[sf]"/g)) fontCreated.add(m[1]);
+  const fontTargets = new Set<string>();
+  for (const m of fontVars.matchAll(/,\["(font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
+  ok(fontCreated.size === 50, `materialise: font-vars creates all 50 typography variables (${fontCreated.size})`);
+  ok(fontTargets.size === 5 && [...fontTargets].every((x) => fontCreated.has(x)),
+    `materialise: every weight-role alias target is created by the same pass (${fontTargets.size} roles)`);
+
+  // Text Styles must be pasted AFTER the vars they bind — the one real cross-lane ordering rule.
+  ok(passOrder().indexOf('font-vars') < passOrder().indexOf('text-styles'),
+    'materialise: font-vars is pasted before text-styles (setBoundVariable resolves its targets by name)');
+  const plan = buildTextStylePlan(t);
+  const boundTargets = new Set(plan.flatMap((r) => [r.fontFamilyVar, r.fontSizeVar, r.fontWeightVar]).filter(Boolean));
+  const unreachable = [...boundTargets].filter((v) => !fontCreated.has(v));
+  ok(unreachable.length === 0, `materialise: every variable a Text Style binds is created by font-vars${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${boundTargets.size} vars)`}`);
+
+  // Skip-with-warning, not substitute-or-throw (the #237 owner decision). A paste path that threw on
+  // one missing weight would lose all 38 styles instead of one.
+  ok(/skipped\.push/.test(textStyles) && !/throw/.test(textStyles),
+    'materialise: text-styles SKIPS an unloadable font with a warning (never a wrong substituted face, never a throw)');
+  // Load each DISTINCT face once. 38 styles resolve to 4 faces, and 38 sequential awaits overran
+  // `figma_execute`'s 5s ceiling on the live drive — a per-style load is a budget bug, not a style
+  // preference, so assert the count against the plan's real face cardinality.
+  const faceKeys = new Set(plan.map((r) => `${r.fontFamilyPrimary} / ${r.fontStyle}`));
+  ok(faceKeys.size < plan.length,
+    `materialise: the text-style plan has fewer distinct faces than styles (${faceKeys.size} faces / ${plan.length} styles) — so de-duping the loads is worth it`);
+  ok((textStyles.match(/loadFontAsync/g) ?? []).length === 1,
+    'materialise: text-styles calls loadFontAsync from ONE hoisted de-duped loop, not once per style (the 5s figma_execute ceiling)');
+  // The #146 lesson: the name map must be UNFILTERED — a type-filtered fetch misses the STRING
+  // family var while finding the FLOAT size/weight ones, so families silently fail to bind.
+  ok(/getLocalVariablesAsync\(\)/.test(textStyles) && !/getLocalVariablesAsync\('/.test(textStyles),
+    'materialise: text-styles builds its name map from an UNFILTERED getLocalVariablesAsync (STRING family + FLOAT size/weight)');
+  // #377 nearly baked every style at 100% line height silently. Assert the real spread reaches the
+  // payload rather than trusting the plan — this is the layer where that drop would have shown.
+  const lh = new Set(plan.map((r) => r.lineHeightPct));
+  ok(lh.size > 1 && !(lh.size === 1 && lh.has(100)), `materialise: text-styles carries a real line-height spread (${[...lh].sort((a, b) => a - b).join('/')}) — not all-100 (#377)`);
+  ok(plan.every((r) => r.description !== ''), 'materialise: every text-style row carries its description (the style-panel documentation)');
+
+  // Styles: BOTH shadow sets, because Effect Styles can't carry Figma modes — a component swaps the
+  // pair by mode instead. A pass that wrote only `shadow/*` would leave dark elevation unthemeable.
+  ok(styles.includes('"shadow/xs"') && styles.includes('"shadow-dark/xs"'),
+    'materialise: styles writes BOTH the light `shadow/*` and dark `shadow-dark/*` Effect Style sets');
+  ok(styles.includes('createEffectStyle') && styles.includes('createPaintStyle'),
+    'materialise: styles covers both Effect (shadow) and Paint (gradient) styles');
+  // nb ships no gradients; aurora does — so the Paint lane is only actually exercised there.
+  const aurora = passJs('aurora', 'styles');
+  ok(/GRADIENT_LINEAR/.test(aurora) && /GRADIENT_RADIAL/.test(aurora),
+    'materialise: a brand WITH gradients emits both paint types (aurora — nb ships none, so nb alone would not exercise this)');
+  ok(/gradientTransform/.test(aurora), 'materialise: the paint rows carry the computed gradientTransform (Figma positions gradients by an affine transform, not an angle)');
 }
 
 // ------------------------------------------------------------------- neutral.auto
@@ -5424,6 +5590,176 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(dark.length === 0,
     `source hygiene: the scan is live — every scanned root contributed files (${perRoot.map((x) => x.n).join('+')} = ${sources.length})`
     + (dark.length ? ` — EMPTY ROOTS: ${dark.join(', ')} (moved or renamed? point the scan at the new path)` : ''));
+}
+
+// --------------------------------------------------------------- versioning
+// The token-NAME contract (#464). `token-contract.ts --check` is the shipping gate; these are the
+// properties that gate depends on being true, tested where a failure names the cause rather than
+// just the symptom. The last one is the important one: it asserts the COMMITTED baseline still
+// matches the engine, so a stale baseline fails the unit suite too and not only the CLI.
+{
+  ok(satisfiesBump('1.0.0', '1.0.0', 'none'), 'version: an unchanged surface needs no bump');
+  ok(!satisfiesBump('1.0.0', '1.0.1', 'none'), 'version: "none" means EQUAL — a stray bump is still a mismatch to explain');
+  ok(satisfiesBump('1.0.0', '2.0.0', 'major') && !satisfiesBump('1.0.0', '1.9.9', 'major'),
+    'version: a major change needs a major bump — no amount of minor/patch substitutes');
+  ok(satisfiesBump('1.0.0', '1.1.0', 'minor') && satisfiesBump('1.0.0', '2.0.0', 'minor'),
+    'version: a minor change accepts a minor OR a major bump (over-bumping is safe, under-bumping is not)');
+  ok(!satisfiesBump('1.0.0', '1.0.1', 'minor'), 'version: a patch bump does NOT cover an added path');
+
+  const base = { contractVersion: '1.0.0', engineVersion: '0.1.0', note: '', corpus: [],
+    guaranteed: { 'color.text.primary': 'color', 'space.100': 'dimension' }, brandDependent: [], deprecations: [] };
+  ok(classify(base, { ...base.guaranteed }).level === 'none', 'contract: an identical surface classifies as no change');
+  ok(classify(base, { 'space.100': 'dimension' }).level === 'major', 'contract: a REMOVED path is breaking');
+  ok(classify(base, { ...base.guaranteed, 'space.200': 'dimension' }).level === 'minor', 'contract: an ADDED path is minor — it cannot break an existing reference');
+  const retyped = classify(base, { 'color.text.primary': 'string', 'space.100': 'dimension' });
+  ok(retyped.level === 'major' && retyped.retyped[0]?.from === 'color',
+    'contract: a RETYPED path is breaking and reports both types (a same-name token of a new type breaks a consumer that did nothing)');
+
+  // A rename ships its replacement; a replacement that does not exist is worse than no table at all,
+  // because it sends every consumer to a path the engine never emits.
+  const dep = [{ path: 'color.text.primary', replacedBy: 'space.100', since: '2.0.0' }];
+  const good = classify(base, { 'space.100': 'dimension' }, dep);
+  ok(good.migrated.length === 1 && good.danglingDeprecations.length === 0 && good.level === 'major',
+    'contract: a deprecated removal still classifies MAJOR, but carries the replacement path');
+  ok(classify(base, { ...base.guaranteed }, [{ path: 'a', replacedBy: 'nope.nowhere', since: '2.0.0' }]).danglingDeprecations.length === 1,
+    'contract: a deprecation pointing at a path the engine does not emit is caught');
+
+  const live = buildContract();
+  const committed = JSON.parse(readFileSync(resolve(HERE, '..', 'schema', 'token-contract.json'), 'utf8'));
+  const guaranteedCount = Object.keys(live.guaranteed).length;
+  // Non-vacuity floor. Not an exact count — the baseline file already pins that, and duplicating it
+  // here would just be two things to update. This guards the COMPUTATION going dark instead: the
+  // first cut of this intersected paths WITH the configurable root included (`nbds.*` vs `prism.*`)
+  // and returned 0, which would have made every assertion below vacuously true.
+  ok(guaranteedCount > 400, `contract: the guaranteed surface is non-empty and substantial (${guaranteedCount} paths — a root-prefix bug here yields 0)`);
+  ok(live.corpus.length === 5, `contract: the corpus spans both dialects, the legacy fixture and the minimal input (${live.corpus.length} brands)`);
+  for (const { id, theme } of corpus()) {
+    const paths = pathsOf(theme);
+    const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
+    ok(missing.length === 0, `contract: '${id}' emits every guaranteed path` + (missing.length ? ` — MISSING ${missing.slice(0, 5).join(', ')}` : ''));
+  }
+  ok(classify(committed, live.guaranteed).level === 'none',
+    'contract: the COMMITTED baseline still matches the engine (run token-contract.ts --accept after reviewing the diff)');
+  ok(committed.contractVersion === CONTRACT_VERSION,
+    `contract: the baseline's stamped version tracks CONTRACT_VERSION (${committed.contractVersion} vs ${CONTRACT_VERSION})`);
+
+  // One version, stamped everywhere it is claimed. Two hardcoded copies is how a server ends up
+  // reporting a version its own artifacts disagree with.
+  ok(SERVER_INFO.version === ENGINE_VERSION, 'version: the MCP serverInfo reports the engine version rather than a second hardcoded copy');
+  const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
+  ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
+    'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
+}
+
+// --------------------------------------------------------- vocabulary (#471)
+// Named stops + personality traits. The interesting assertions are not "does 'soft' become 1.5" but
+// the three that keep the layer honest: stops land on the lever's own step grid, a trait cannot
+// target a lever that does not exist, and an explicit value always beats an inferred one.
+{
+  const schema = JSON.parse(readFileSync(resolve(HERE, '..', 'schema', 'theme-schema.json'), 'utf8'));
+  const base = { id: 'v', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  // Fail SOFT. A trait carrying a value its lever does not accept (`density: 'roomy'`) throws deep
+  // inside `componentSizes`, and an unguarded call took the entire 1,409-assertion run down with it
+  // — the static checks above had already recorded the real cause, but the report never printed, so
+  // one defect surfaced as zero. Same lesson the MCP suite learned: a suite that dies on the first
+  // defect reports one problem per run, or none. Returns null so a downstream comparison fails
+  // rather than passing vacuously.
+  const build = (extra: Record<string, unknown>): ReturnType<typeof brandTheme> | null => {
+    try { return brandTheme({ ...base, ...extra } as any); }
+    catch (e) { fails.push(`vocabulary: brandTheme threw on ${JSON.stringify(extra)} — ${(e as Error).message}`); return null; }
+  };
+  /** A build's radius value, or NaN — never undefined, so `a === b` cannot pass by both being absent. */
+  const radiusOf = (extra: Record<string, unknown>): number => build(extra)?.dims.radiusScaleValue ?? NaN;
+
+  // ---- stops are real positions on the lever they belong to ----
+  for (const [key, stops] of Object.entries(SLIDER_STOPS)) {
+    const lever = leverManifest.find((l) => l.key === key);
+    ok(lever !== undefined, `vocabulary: '${key}' names a real lever (a renamed lever must not leave stops orphaned and unadvertised)`);
+    if (!lever) continue;
+    const bad = Object.entries(stops).filter(([, v]) =>
+      (lever.min !== undefined && v < lever.min) || (lever.max !== undefined && v > lever.max)
+      || (lever.step !== undefined && Math.abs(Math.round(v / lever.step) * lever.step - v) > 1e-9));
+    ok(bad.length === 0,
+      `vocabulary: every '${key}' stop is inside the lever's range and on its step grid`
+      + (bad.length ? ` — OFF-GRID: ${bad.map(([n, v]) => `${n}=${v}`).join(', ')}` : ''));
+    ok(lever.stops === stops, `vocabulary: the '${key}' manifest entry carries the SAME stops object the engine resolves against (joined, not restated)`);
+  }
+
+  // ---- traits target real levers, with values those levers accept ----
+  const leverKeys = new Set(leverManifest.map((l) => l.key));
+  for (const [name, trait] of Object.entries(TRAITS)) {
+    const targets = Object.keys(trait.levers);
+    ok(targets.length >= 2, `vocabulary: trait '${name}' moves ${targets.length} levers — a one-lever trait would just be a slower named stop`);
+    const unknown = targets.filter((k) => !leverKeys.has(k));
+    ok(unknown.length === 0, `vocabulary: every lever trait '${name}' targets exists` + (unknown.length ? ` — UNKNOWN: ${unknown.join(', ')}` : ''));
+    for (const [lever, value] of Object.entries(trait.levers)) {
+      if (SLIDER_STOPS[lever]) {
+        ok(SLIDER_STOPS[lever][String(value)] !== undefined, `vocabulary: trait '${name}' sets ${lever} to a declared stop ('${String(value)}')`);
+      } else {
+        // A non-slider target must be a legal enum value on that lever, or the trait silently
+        // produces an input the schema rejects — a failure the author cannot see from the trait name.
+        const opts = leverManifest.find((l) => l.key === lever)?.options?.map((o) => o.value);
+        ok(opts !== undefined && opts.includes(value as string | number),
+          `vocabulary: trait '${name}' sets ${lever} to a value that lever accepts ('${String(value)}' in [${opts?.join(', ')}])`);
+      }
+    }
+    ok(trait.why.length > 20, `vocabulary: trait '${name}' cites the brief language it was read from (an uncited mapping is an invention)`);
+  }
+
+  // ---- the structural invariant ----
+  // `personality: ['soft']` and `radiusScale: 'soft'` must agree, and they do BY CONSTRUCTION because
+  // TRAITS names stops rather than restating numbers. Asserted anyway: it is the property a future
+  // edit is most likely to break by "simplifying" a trait to a literal.
+  const viaTrait = radiusOf({ personality: ['soft'] });
+  ok(Number.isFinite(viaTrait) && viaTrait === radiusOf({ radiusScale: 'soft' }),
+    "vocabulary: personality ['soft'] and radiusScale: 'soft' resolve to the same value");
+  ok(radiusOf({ radiusScale: 'round' }) === SLIDER_STOPS.radiusScale.round, 'vocabulary: a named stop resolves to its declared number');
+  ok(radiusOf({ radiusScale: 1.5 }) === 1.5, 'vocabulary: a raw number still passes straight through (stops are additive, not a replacement)');
+
+  // ---- precedence: explicit beats inferred, first trait beats later ones ----
+  ok(radiusOf({ personality: ['generous'], radiusScale: 0 }) === 0,
+    'vocabulary: an explicitly set lever beats a personality trait (an advisory layer must never overwrite a stated choice)');
+  ok(build({ personality: ['generous'], radiusScale: 0 })?.dims.density === 'spacious',
+    'vocabulary: the same trait still fills the levers the author left absent');
+  ok(radiusOf({ personality: ['soft', 'sharp'] }) === SLIDER_STOPS.radiusScale.soft,
+    'vocabulary: between conflicting traits the first listed wins (order is the stated priority)');
+  // The attribution bug this suite exists to prevent: a presence-first check reported every
+  // trait-vs-trait collision as "set explicitly", crediting the author for the engine's own choice.
+  const conflict = build({ personality: ['soft', 'sharp'] })?.notes.find((n) => n.startsWith("personality 'sharp'"));
+  ok(conflict?.includes("already set by 'soft'") === true,
+    `vocabulary: a trait-vs-trait collision is attributed to the TRAIT that won, not to the author — ${conflict?.slice(0, 90)}`);
+  const explicit = build({ personality: ['generous'], radiusScale: 0 })?.notes.find((n) => n.startsWith("personality 'generous'"));
+  ok(explicit?.includes('(set explicitly)') === true, 'vocabulary: an author-set lever IS attributed to the author');
+
+  // ---- every inference is logged, and nothing leaks downstream ----
+  ok(build({ personality: ['calm'] })?.notes.some((n) => n.startsWith("personality 'calm' →") && n.includes('[harbor:')),
+    'vocabulary: each applied trait logs what it set AND the brief language justifying it');
+  ok(build({ radiusScale: 'soft' })?.notes.some((n) => n === "radiusScale 'soft' → 1.5"), 'vocabulary: a resolved stop is logged with both the word and the number');
+  ok(build({})?.notes.every((n) => !n.startsWith('personality')), 'vocabulary: a brand that declares no personality gets no personality notes');
+  ok((resolveVocabulary({ ...base, personality: ['calm'] }).input as Record<string, unknown>).personality === undefined,
+    'vocabulary: `personality` is stripped after resolution — it is an authoring field, not a lever the theme builder should see');
+
+  // ---- unrecognized words fail loud, at BOTH enforcement points ----
+  // These bypass `build` deliberately: it swallows throws to keep the run alive, which is exactly
+  // the behaviour under test here.
+  let threwStop = false; try { brandTheme({ ...base, radiusScale: 'banana' } as any); } catch { threwStop = true; }
+  ok(threwStop, 'vocabulary: an unknown stop name throws (the author believes they set that lever)');
+  let threwTrait = false; try { brandTheme({ ...base, personality: ['playful'] } as any); } catch { threwTrait = true; }
+  ok(threwTrait, 'vocabulary: an unknown trait throws — the engine agrees with the schema enum rather than diverging from it');
+  ok(validateBrandInput({ ...base, radiusScale: 'soft' }).length === 0, 'vocabulary: the SCHEMA accepts a named stop');
+  ok(validateBrandInput({ ...base, radiusScale: 'banana' }).length > 0, 'vocabulary: the schema rejects an undeclared stop name');
+  ok(validateBrandInput({ ...base, personality: ['soft', 'generous'] }).length === 0, 'vocabulary: the schema accepts a personality list');
+  ok(validateBrandInput({ ...base, personality: ['playful'] }).length > 0, 'vocabulary: the schema rejects a trait outside the vocabulary');
+  // Contract and engine must advertise the SAME vocabulary — an agent reads the schema enum to learn
+  // what it may pass, so a schema listing a trait the engine does not implement is a broken promise.
+  ok(JSON.stringify([...(schema.properties.personality.items.enum as string[])].sort()) === JSON.stringify(Object.keys(TRAITS).sort()),
+    'vocabulary: the schema enum and TRAITS list exactly the same traits');
+  for (const key of Object.keys(SLIDER_STOPS)) {
+    const node = key.split('.').reduce<any>((n, seg) => n?.properties?.[seg], { properties: schema.properties });
+    const branch = node?.oneOf?.find((b: any) => b.type === 'string');
+    ok(JSON.stringify(branch?.enum?.slice().sort()) === JSON.stringify(Object.keys(SLIDER_STOPS[key]).sort()),
+      `vocabulary: the schema's '${key}' stop enum matches SLIDER_STOPS exactly`);
+  }
 }
 
 // ------------------------------------------------------------------- report

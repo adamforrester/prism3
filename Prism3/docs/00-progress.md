@@ -66,6 +66,710 @@ precondition, and it is not listed as one.
 **Verification.** regen --check 88 · **1340/0** unit (+23) · MCP 49/0 · NB PASS · typecheck/build ·
 sandbox-clean · US-English clean. Mutation-tested: gutting the validator fails 14 assertions;
 omitting `booleans` fails the explicit-empty check; the legacy six states fail four.
+## (2026-08-04) — The segmented control stood 6px taller than the selects beside it
+
+**STATUS: web (`main.ts` CSS only).** No engine change, `out/*` byte-identical.
+
+Owner-reported: in the token list's control bar, `Alias path` (a `.seg`) did not match the height of
+the `Show` and `Category` selects on either side. Measured: **select 40.9px, seg 46.9px.**
+
+The interesting part is where the 6px was *not*. The seg's inner buttons already matched the select
+exactly — 40.9px both — so retuning the button by eye would have been fixing the wrong thing. A
+`.seg` is a **track** around its buttons, and the track is the whole difference: both controls carry a
+1px border, but only the seg adds 2px of padding on each side, so it stands 4px taller before the
+button is measured at all, and the button's own 10px padding (vs the select's 9px) makes up the rest.
+
+So the fix subtracts the track's unmatched chrome rather than picking a number: `--ctl-py` states the
+vertical padding once and `.seg-b` reads `calc(var(--ctl-py) - 2px)`. If the control padding ever
+moves, both move together.
+
+**The trap, and I fell in it on the first attempt.** The obvious subtraction is 3px — the seg's full
+per-side chrome, 1px border + 2px padding. That double-counts the border, because the *select has one
+too*. It landed the seg at 38.9 against 40.9: 2px short, in the opposite direction, and still wrong.
+Only the *unmatched* chrome should be subtracted. Both attempts were measured, which is the only
+reason the second number is right — the arithmetic is easy to get wrong in the confident direction.
+
+`.select.sm` sets its own padding and is deliberately untouched: verified still 33.4px across the
+five compact selects on Palettes. `.seg` has exactly one user in the app (the Alias path control), so
+the change cannot reach another surface.
+
+**Habit, fourth occurrence.** Backticks inside a CSS comment in the stylesheet template literal —
+`TS1005` again. #417, #453, the palette-align attempt, and now this. Comments in `STYLE` are inside a
+template literal; they take no backticks, ever.
+
+---
+
+## (2026-08-04) — #111's first component pasted: the structure binds, the appearance is not there
+
+**STATUS: engine (`anatomy-figma.ts`) + `test.ts`.** No `out/*` change. Verified live in Prism Test
+File v2 — the first ComponentDef ever materialised into a real Figma file.
+
+Ran the Button spike (#111) against the theme the nine-pass drive left in place. Its stated prereq —
+*the token variables must already be materialised so component slots can bind to them* — was
+satisfied, and the spike needed no new machinery: `figmaAnatomyPlan` + `planToPluginJs` (#327) were
+already built and gated offline. What was unproven was the paste.
+
+**It works.** `figmaAnatomyPlan(button, 'medium', {leading:true})` pasted to a real COMPONENT with
+**all 10 bindings resolved and `misses: []`** — `size/md/height` → 48px, `radius/md` → 4px,
+`size/md/gap` → 8px, `icon/size/md` → 24×24, and the label carrying the `label/md/emphasis` Text
+Style. The #326 slot-aware inset is live: `paddingLeft` = `size/md/padding-x-visual` (12px) against
+`paddingRight` = `size/md/padding-x` (16px). That asymmetry in a real file is the thing the
+projection exists to demonstrate, and it is the part a hand-built component gets wrong.
+
+**Finding 1 — the same discarded-return-value defect, in a second file.** `planToPluginJs` wrapped
+its body in `(async()=>{...})()`, so the first paste returned `success: true` with
+`result: undefined` and the literal warning *"Code returned undefined"*; the component had built
+fine, but I had to read back separately to learn that. Identical to the token-tier defect fixed in
+#478, in a file #478 does not touch — so it needed its own branch rather than a late commit onto a
+PR already in review.
+
+**Why this defect is worse in the component tier.** `misses[]` is this payload's ONLY failure
+channel: an unresolved variable or text style is recorded and the build *continues*. So a component
+whose every binding missed still produces a frame and still reports `success: true`. Discarding the
+return value means an all-missed paste and a perfect paste are indistinguishable to the caller. The
+new gate asserts both no-IIFE and that the top-level return carries `misses`.
+
+**Finding 2 — the component is structurally correct and visually blank, and that is a boundary, not
+a bug.** No fill, no border, no label text. The plan binds **0 of the 48 colour tokens** Button
+declares, and carries no `intent`/`appearance` axis — only `size` + slots. #327 is explicitly the
+*structural* projection, so this is in scope as designed. It is still worth naming, because
+`PartDef.role`'s own comment says the target "owns the hit area, radius, fill and border" — and fill
+and border are exactly the two it cannot express. A designer opening the file sees an invisible
+button, which reads as a broken component rather than a deliberate half.
+
+**The open question that follows, and why it is not mechanical.** Button declares 3 intents × 3
+appearances × 3 sizes × 2 widths + modifiers. Projecting the full matrix is 27+ variants of a
+COMPONENT_SET, and the right answer is probably NOT all of it — but "which slice of the variant
+matrix should exist in Figma" is a design-system decision (what a designer needs to pick from) rather
+than a completeness exercise. Logged as the next piece of #111 rather than guessed at here.
+
+**Housekeeping note for the next drive.** The first paste went onto blank canvas; the artifact was
+removed and re-pasted into a `Prism3 Components` Section per the MCP server's placement rule. The
+file now holds that Section with one Button component, alongside the 547 variables / 38 Text Styles
+/ 14 Effect Styles from the token drive.
+
+---
+
+## (2026-08-04) — The paste path reported success while telling the agent nothing
+
+**STATUS: engine (`materialise-to-figma.ts`) + `test.ts`.** No `out/*` change — this is the payload
+*shape*, not the token data. Verified live against Prism Test File v2 (all 9 passes, then the
+`text-styles` re-paste that had failed).
+
+Found by driving the full nine-pass materialisation into a real file rather than trusting the unit
+tests. Both defects are in the class the suite structurally could not see: it asserted what the
+generated JS *contains*, never what `figma_execute` *does with it*.
+
+**1. Every pass discarded its own return value.** Each pass wrapped its body in `(async()=>{ ... })()`
+with the `return {...}` inside the IIFE. `figma_execute` does not await or unwrap a returned Promise,
+so the caller got `success: true` with `result: undefined` — every created / bound / skipped / miss
+count the pass carefully computes was thrown away at the boundary. The write path *looked* verified
+and reported nothing. `figma_execute` supports top-level `await`, so the wrapper was pure loss: strip
+it and the same payload returns real data. This is the whole reason these payloads exist over
+`figma_batch_create_variables`, so a blind paste is close to worthless.
+
+**2. `text-styles` overran the execution ceiling.** It called `loadFontAsync` per style — 38
+sequential awaits for **4 distinct faces** (Inter Bold/Regular/Semi Bold, JetBrains Mono Regular).
+First paste squeaked through; the idempotency re-paste returned `Execution timed out after 5000ms`.
+Hoisting the loads into a de-duped ledger fixed it: same pass, same default 5000ms, now returns
+`{total:38, created:0, bound:114, skipped:[], misses:[], distinctFacesLoaded:4}`.
+
+**The tradeoff on #2 that is worth recording.** `figma_execute` accepts a `timeout` param (default
+5000, max 30000), so the ceiling was raisable — the timeout was *not* a hard wall. De-duping was
+still the right fix, because asking the caller to pass a bigger timeout treats 34 redundant font
+loads as a cost to be funded rather than removed, and a pass that needs 6× the default budget on the
+owner's machine is a pass that fails on a slower one. The ledger also *preserves* skip-with-warning
+exactly (#237): a face that won't load is recorded `false` once, and every style wanting it still
+lands in `skipped[]` — the guard did not get traded for the speed.
+
+**Gate added, and one thing it taught.** `test.ts` now asserts, **per pass**, no async IIFE + a
+top-level structured `return` — per pass rather than once, since one re-wrapped pass is one blind
+pass. Writing it surfaced that `dims-create` returns a bare array (`return out;`) not an object, so
+the assertion matches either shape; a naive `return {` check would have failed a correct pass. The
+font gate asserts `loadFontAsync` appears exactly **once** and that the plan really has fewer faces
+than styles, so the de-dupe cannot silently revert to per-style loading.
+
+**Trap for whoever re-verifies this.** `web/dist/` is gitignored, so a stale local bundle fails the
+US-English gate on prose that is not in any committed source (`behaviours`, from an older
+`levers.ts`). Rebuild the web workspace before believing that failure. Also: Figma stores PERCENT
+line heights as float32, so 105 reads back as `104.99999523162842` — never assert equality on those.
+
+**Not fixed here, deliberately (one concern per PR).** The drive also found ~6 stale leaf variables at
+paths that are now groups and ~100 orphaned `core-palette` variables from the `accent`→`red` rename:
+create-or-update-by-name cannot detect a rename, so there is no prune lane. Confirmed **not** blocking
+#111 — every ComponentDef binds the stateful children (`interactive.primary.text.rest`), never the
+flat leaves, so the ghosts are inert. Wants an explicit plan-vs-file diff and a report-by-default /
+prune-behind-a-flag decision, since deleting a variable a designer has bound is destructive. The
+persisted `brandInput` in that file is also pre-#341/#415 shape (`families.display/text/mono`,
+`displayCeiling: 128` as a number) — bears on `restoreInput`/#131.
+
+---
+
+## (2026-08-04) — Descriptive vocabulary: the words a brief already uses (#471)
+
+**STATUS: engine (`vocabulary.ts`, new) + `theme.ts` + `levers.ts` + `mcp.ts` + `theme-schema.json`
++ docs/31.** `out/*` token trees byte-identical — only `schema/lever-manifest.json` changed.
+
+A brand brief does not speak in numbers. It says *"corners are generous and the UI is dense"*, and
+the engine had no way to hear it: nine sliders took bare numbers with no vocabulary, and a brief's
+prose was parsed then discarded. An agent had to invent a number, and its guess went unrecorded —
+which is the part that matters, because **a logged default is auditable and a guessed one is not.**
+
+### Two measurements framed it, and the first corrected my own issue
+
+**Only 9 levers could have taken a vocabulary, not the 30 #471 claimed.** That number lumped in
+colors, objects, lists and toggles, which structurally cannot take an adjective — an OKLCH anchor is
+not "friendly". Of the 9 sliders, three (`layout.columns`, `disabledMin`, `baseMd`) are bare
+quantities no word improves; a 3:1 contrast floor is not "gentle". Real target: **six.**
+
+**Brief prose was dead weight.** `parseDesignMd` returns `{ input, prose }` and *nothing in the
+engine ever read `prose`*. `design-md.ts`'s header calls it "latitude an agent reads to make the
+judgment calls the frontmatter can't encode", and the example briefs annotate their own intended
+mapping — none of it connected to anything.
+
+### The seam, which is the actual design decision
+
+Free-prose scanning was considered and rejected. Keyword-matching misfires exactly where briefs are
+richest (*"we avoid anything playful"*, *"less rounded than our old site"*) and would put a fuzzy
+step at the center of an engine whose whole claim is determinism. Instead: **the fuzzy step stays in
+the agent, the auditable step stays in the engine.** An agent reads prose, maps it onto a controlled
+vocabulary, passes `personality: [...]`. Same seam `standardToBrandInput` already draws.
+
+The words are not invented — read off the three example briefs, and each trait's citation **ships in
+the note**, so the inference can be audited rather than merely observed. A tenth candidate
+(`confident`) was dropped as redundant against `bold` rather than shipped to round the number out.
+
+### The bug worth remembering: an audit trail that misattributes
+
+Precedence is two rules — explicit always beats inferred, and between traits the first listed wins.
+The second was reported wrongly in the first cut: the presence check ran before the "which trait
+claimed this" check, but a trait-applied lever *is* present by then, so **every trait-vs-trait
+collision reported as `(set explicitly)` — crediting the author for a choice the engine made.** An
+audit trail that misattributes is worse than none. Found by running the resolver, not reading it:
+the branch was unreachable and looked entirely fine.
+
+A second correction went the other way. Unknown traits were initially lenient (a note, generation
+continues), but `theme-schema.json` declares `personality` as a closed enum — so the two enforcement
+points disagreed and the lenient branch was reachable only from the in-memory hosts. **Two
+enforcement points that differ is worse than either rule alone.** The enum won: for an agent, a hard
+error listing the nine traits closes the loop in one turn where a note may never be read.
+
+### Mutation-tested, and one mutation was fatal to the suite
+
+Five deliberate breaks: a stop off its lever's step grid, a trait targeting a nonexistent lever, a
+trait using an invalid enum value, a trait restating a number instead of a stop name, and reverting
+the attribution ordering. All caught by name — but the third **killed the entire 1,409-assertion
+run.** An invalid enum throws deep inside `componentSizes`, and the static check had already recorded
+the real cause; the report just never printed, so one defect surfaced as *zero*. The same lesson
+`mcp-test.ts` learned two entries ago, in a suite written after it. Guarded now: `build` records a
+throw and returns null, and comparisons go through a `radiusOf` helper returning NaN so two absent
+values cannot agree vacuously.
+
+> A gate is only worth what it reports when it fails. Both times, the defect was found by breaking
+> something and watching — never by reading the code.
+
+**Verification.** regen --check 88 · **1409/0** unit (+92) · MCP 49/0 · NB PASS · typecheck/build ·
+sandbox-clean · US-English clean.
+
+---
+
+## (2026-08-04) — The token list's mode detection was one hop too shallow for `type.*`
+
+**STATUS: web (`main.ts`).** No engine change, `out/*` byte-identical.
+
+Owner asked whether type composites should be viewable per mode. Investigating it turned up a real,
+latent inaccuracy rather than a missing feature.
+
+**What was already right.** `type.*` composites genuinely are mode-invariant *as names*: measured
+through `brandTheme` → `buildTree`, setting `modeLevers.dark.weights = { strong: 600 }` marks
+`font.weight-role.strong` and **nothing else** — zero `type.*` composites carry `modes`. Same for
+`lineHeights` (`font.line-height-role.normal`) and `families` (`font.family.display`). That is the
+architecture doing exactly what the token list's own primitive blurb claims: *a mode re-points a
+semantic at a different primitive, it never redefines one.*
+
+**What was wrong.** `hasModes` read `leaves.some((l) => l.node.$extensions?.prism3?.modes)` — the leaf
+only. So for any brand that deviated type per mode, the Type section would state "mode-invariant, one
+value" and render ONE column, whose resolved specimen line (`Clash Display · 700 · 56px · 1.5 lh`)
+was silently true for the base mode alone. Nothing on screen said the other modes differed.
+
+`hasModes` now also follows **one** hop — `hopAt` for a scalar alias, plus each of a composite's five
+part aliases — and asks whether the TARGET carries `modes`. One hop is the whole of it: a re-point
+lands exactly one hop away, and chasing to the terminal primitive answers a different question and
+would light up nearly everything.
+
+**Two things this turned up that a narrower fix would have shipped broken.**
+
+- *Widening the columns is not enough.* With the columns rendering, both still read weight 700 —
+  `typeComposite` resolved each part alias with `subNode(tree, …)` and read its base `$value`, so
+  Light and Dark printed identical text. **Two identical mode columns are worse than one**: they
+  assert the modes agree. `typeComposite` takes an `onTarget` seam that re-reads each aliased role at
+  the mode (shallow-merging its override), and Light/Dark now read 700 / 600. Note the function
+  already had a per-mode seam — `value` — for a composite carrying its *own* override; it did not
+  cover the case where the composite is identical everywhere and the variance is underneath.
+- *The old blurb copy would have become a fresh inaccuracy.* "Each mode aliases its own target" is
+  false for `type.*` — the composite names the same five roles in every mode. Sections now carry a
+  `modeSource` of `'own' | 'ref' | null` and say which: leaves that vary themselves vs. one alias set
+  whose targets vary.
+
+**Verified** by seeding `localStorage['prism3:brandInput']` (the `{v:1,input:…}` persist envelope) so
+the real bundle boots on a brand with the lever, rather than testing a copy of the logic:
+
+| brand input | Type columns | blurb |
+|---|---|---|
+| no typographic modeLevers | `Token \| Value` | mode-invariant, one value |
+| `dark.weights={strong:600}` | `Token \| Light \| Dark` | one alias set; targets vary per mode |
+| `dark.lineHeights={normal:'relaxed'}` | `Token \| Light \| Dark` | one alias set; targets vary per mode |
+
+Icon and Size stayed at one column throughout — the widening is targeted, not blanket. harbor and
+aurora render an unchanged column count in every section of both tiers.
+
+**Trap.** Verifying this through the UI is a dead end: the Typography page exposes no per-mode
+selects for a single-mode brand, so there is nothing to drive. Seed the brand input instead — and
+remember the stored blob is the versioned envelope, not a bare `BrandInput`; a bare object
+deserializes to `null` and the app silently shows the first-run start screen.
+
+---
+
+## (2026-08-04) — The deploy could go stale invisibly, and the page never said which build it was (#474)
+
+**STATUS: deploy + web (`vercel.json`, `build-site.mjs`, `plugin/build.mjs`, `main.ts`, READMEs).**
+No engine change, `out/*` byte-identical.
+
+Owner reported not seeing #466 (the L3 nested-tab underline) after it merged. It *had* merged
+(`f733aa3`) and it *was* correct — rebuilding `main` and measuring both tab groups showed the nested
+group at `track rgba(0,0,0,0) / border 0px / selected bg rgba(0,0,0,0) / weight 560 / underline`,
+exactly as intended. The screenshot showed the L2 treatment instead: the pre-#466 bundle.
+
+**Two causes, and the second is the expensive one.**
+
+*The bundle URL never changes.* `index.html` loads a fixed `/dist/main.js` — no content hash, no
+query — because `build-site.mjs` copies `index.html` **verbatim** so one absolute path resolves
+identically under the local dev server and the deploy root (#104's decision, still right). But it
+means every deploy publishes different bytes at an unchanged URL, and whether a browser notices was
+resting entirely on Vercel's *default* `cache-control`, which is nowhere in this repo. `vercel.json`
+now states it: everything revalidates. An unchanged bundle costs one 304.
+
+Note this is **not** the category #104 excluded. That entry kept `vercel.json` to two keys because
+`installCommand`/`rewrites`/`framework` are redundant overrides of things already correct by default.
+`headers` specifies something whose default we never knew. Recorded in `web/README.md` next to the
+minimalism rule, since `vercel.json` is JSON and cannot hold the reasoning itself.
+
+*Nothing on the page said which build it was.* This is what actually cost the time: answering "did it
+deploy?" required a local rebuild and a pixel measurement. `ENGINE_VERSION`/`CONTRACT_VERSION` are
+stamped into every emitted artifact and reported as the MCP `serverInfo.version` — every surface
+except the one a human looks at. The rail now carries `engine <version> · <commit>`, from
+`VERCEL_GIT_COMMIT_SHA`, falling back to `local` when not built by the deploy.
+
+**Traps.**
+- `PRISM3_BUILD` is a **required build input, not a value with a fallback.** An absent esbuild
+  `define` leaves a bare identifier in the output that throws at load. THREE entry points bundle
+  `web/src` and all three needed it: `web` `dev`, `web` `build`, `build-site.mjs`, and
+  `plugin/build.mjs` (#110 — the plugin UI *is* the shared `web/src/main.ts`, no fork). Missing the
+  plugin would have shipped a Figma plugin that white-screens while every web gate stayed green.
+- Verified both branches, not just the one that runs locally: a bare `build:site` embeds `"local"`,
+  and `VERCEL_GIT_COMMIT_SHA=abc1234567890 build:site` embeds `"abc1234"`. The deploy path is the one
+  that matters and it is the one you cannot see from a dev machine.
+- The blanket revalidate rule is safe *because* nothing in the output is content-hashed. If a hashed
+  immutable asset is added later, give it its own longer-lived rule rather than relaxing this one.
+
+---
+
+## (2026-08-04) — A stray mode badge on the token list, from a section-title collision
+
+**STATUS: web (`main.ts`).** No engine change, no `out/*` change.
+
+Owner-reported: the token list's **Icon** section carried a "SHARED · All modes" badge and no other
+section on that page did. One badge, on the one category out of ~14 whose name happened to collide.
+
+`SECTION_MODE_SCOPE` is keyed by section **title**, and `attachModeBadges` walks every `.psec` in the
+workspace matching titles against it. The token list builds its sections with
+`palSection(capitalize(category), …)`, so category `icon` minted a section titled `Icon` — the same
+string as the Style guide's `'Icon': 'shared'` entry. `Type`, `Space`, `Radius` and the rest have no
+map entry, so they stayed clean and the one collision looked like a deliberate exception.
+
+**Fixed at the root, not by renaming.** The map's own doc comment already declared its scope — "the
+six pages that carry a mode bar" — it just wasn't enforced. `attachModeBadges` now returns early on
+`!pageHasModeVaryingControl()`, the same predicate the bar itself uses. Renaming one of the two
+sections would have fixed this instance and left the next collision to be found by eye.
+
+The token list loses nothing by it: it already states its own mode scope per section, from the token
+data rather than from a name — "mode-invariant, one value" vs "each mode aliases its own target",
+computed from `$extensions.prism3.modes`. That is strictly better information than the badge.
+
+Verified: `audit:modes --check-badges` still reports 28/28 badged sections correct, and across
+Preview's three views the badges now land Style guide 7/7, Contrast contracts 0, Token list **0/10**.
+
+**Second-order note, recorded because it is the third instance this week.** This is the same defect
+shape as the palette field-alignment bug earlier today (`.pfield.slider` colliding with a standalone
+`.slider` rule): **a lookup keyed by a bare name that a second surface also uses.** Both looked
+correct at the definition site and both were invisible until something rendered wrong. Worth
+suspecting first whenever exactly one item in a list behaves differently from its neighbors.
+
+---
+
+## (2026-08-04) — Versioning: the token *names* are the contract, and a gate that cannot rewrite itself
+
+**STATUS: engine (`version.ts` + `token-contract.ts`, new) + `schema/token-contract.json` + CI +
+CLAUDE.md + docs/30.** Every `out/*` tree changed by one line — the new `generator.version` stamp.
+
+There was no versioning of any kind: no semver, no breaking-change policy, no migration path, no
+deprecation story for a renamed token. Nothing recorded which code produced a given artifact.
+
+**The framing decision, and it is the whole design: version the NAMES, not the values.** The
+engine's purpose is to change token values — that is what regenerating a brand *means* — so
+versioning the output would fire on every brand tweak and teach everyone to ignore it. A consumer
+hard-codes `prism.color.text.primary` in a stylesheet; it does not care that the primary hue moved
+four degrees, and it cares enormously if `text.primary` stops existing, because that reference then
+resolves to nothing, silently, with no build error anywhere in the chain. So there are two versions
+and they are deliberately independent: `ENGINE_VERSION` ("what code produced this?", stamped into
+every emitted tree and reported as the MCP `serverInfo.version`, bumps on any behavior change) and
+`CONTRACT_VERSION` ("can my app still resolve its references?", bumps only when the guaranteed
+name surface moves). Tying them together would either cry wolf or stay silent; separated, each can
+be strict. Full policy in `docs/30-versioning-and-compatibility.md`.
+
+### Defining "guaranteed" was the hard part, and the first attempt was vacuous
+
+The emitted set is input-dependent — extra brand colors mean extra palettes — so "the paths the
+engine emits" is not a promise, it is a function of the input. What is well-formed is the
+**intersection across a corpus** spanning both input dialects, the legacy NB fixture, and the
+sparsest input the engine accepts: **477 paths, zero `$type` disagreements.**
+
+The first cut of that intersection returned **0**, and would have shipped a gate that passed
+everything. Cause: it compared paths *with* the root included, and the root is itself a lever
+(`nbds.*` vs `prism.*`). Worth stating plainly because the failure is silent in the dangerous
+direction — **an empty gate reports success forever.** The unit tests now carry a non-vacuity floor
+(`> 400`) aimed squarely at that, rather than at the exact count the baseline file already pins.
+
+The corpus members were chosen adversarially, and two of them are load-bearing:
+
+- **`minimal`** (the three required fields, nothing else) exists to stop the number over-claiming —
+  without it, "guaranteed" would mean "what four richly-specified brands happen to share." It
+  removed **zero** paths: all 477 survive the sparsest input the engine accepts.
+- **`wendys`** (standard dialect) removed exactly one — `font.typeface.inter`, a slug derived from a
+  *value*. Precisely the class of path that should never have been promised, caught by widening the
+  corpus rather than by inspection.
+
+### The rule that makes the gate work: it must not be a `regen` artifact
+
+The tempting move is to add `token-contract.json` to `regen.ts` alongside every other generated
+file. That would destroy it. `regen` rewrites everything and `regen --check` proves the committed
+copies match — so deleting a token would rewrite the baseline to *agree with the deletion* and both
+gates would go green. #281's lesson was **no gate reads the committed artifact**; this is the next
+one along: **a gate allowed to rewrite what it reads has no memory.** The baseline is written only
+by an explicit `--accept`, which itself refuses unless `CONTRACT_VERSION` was already raised by the
+increment the diff requires — an under-bump is rejected as firmly as no bump.
+
+`DEPRECATIONS` ships **empty**, and that is the honest state. It exists because without it MAJOR is
+a dead end — you learn your build broke, not what to write instead. The gate refuses a `replacedBy`
+that is not in the live set, so an entry cannot rot into a pointer at nothing.
+
+### Mutation-tested, and the mutation found a live bug in a *different* gate
+
+Five deliberate breaks, all caught with the right classification and exit code: remove a token
+(MAJOR), add one (MINOR), retype one (MAJOR, both types reported), a dangling deprecation, and
+`--accept` on an unbumped and then an under-bumped breaking change (refused; baseline untouched).
+
+The sixth mutation is the interesting one. Keeping the baseline out of `regen` also kept it out of
+the **US-English gate**, whose scope is imported from `regen.ts` — the exemption and the blind spot
+arrived together. Naming it explicitly in `lint-us-english.ts` closed that, and then mutating
+`colors` → `colours` in the file to *prove* the coverage came back **stayed green**.
+
+Cause: `PATTERN` ended `our\b`, which matches `colour` but **not `colours`**. Every en-GB plural has
+been walking through that gate since it was written, and `ation\b` had the same hole for
+`generalisations`. The gate's own self-check never noticed because it only ever sampled the
+singular — **a self-check written from the same mental model as the scan inherits its blind spot.**
+Fixed with `s?` plus plural samples in `SELF_CHECK`, and widening it immediately caught a real
+`behaviours` shipping in `web/dist/main.js`.
+
+That last hit also retired the comments-are-exempt carve-out **for `web/src`**: only 1 of the 6
+en-GB comments in `main.ts` survived into the bundle, and *which* comments esbuild keeps is a
+bundler implementation detail. An exemption the gate cannot see is not an exemption, it is a
+coin flip — so those comments are US English now (comment-only, zero behavior change).
+
+> Every one of these was found by breaking something and watching what the gate did. Reading a gate
+> tells you what it was meant to catch; only breaking something tells you what it catches.
+
+**Verification.** `regen --check` 88 · **1339/0** unit · MCP suite 49/0 · token contract clean ·
+NB regression PASS · web+plugin typecheck/build · sandbox-clean · US-English clean (92 files).
+
+---
+
+## (2026-08-04) — The MCP write path could theme a file and give it no typography
+
+**STATUS: engine (`materialise-to-figma.ts`, `write-plan.ts`, `test.ts`) + plugin
+(`write-text-styles.ts`).** `out/*` untouched — this adds no artifact, it makes existing artifacts
+reachable.
+
+There are **two write paths** into Figma and they are supposed to be projections of one plan: the live
+plugin executor, and the CLI paste path (`materialise-to-figma.ts` → `figma_execute`). The second one
+is **the only path an MCP-driven session can use** — the plugin sandbox has no network egress, so an
+agent that wants to theme a file goes through generated plugin JS.
+
+The plugin has written **five** axes since #237. The paste path covered **two**:
+
+| axis | plugin | paste path (before) |
+|---|---|---|
+| colour — `core-palette` + `color` × 4 modes | ✓ | ✓ |
+| 9 FLOAT collections | ✓ | ✓ (#342) |
+| `core-font` + `type-sets` — 50 vars | ✓ | **✗** |
+| Text Styles — 38 | ✓ | **✗** |
+| Effect/Paint Styles — 14 | ✓ | **✗** |
+
+So an agent could theme a file over MCP and get every colour and every dimension **and no typography
+at all** — no families, no ladder, no weights, not one Text Style. Silently: each pass it *did* run
+returned success.
+
+This is the same gap #342 closed for floats, and `materialise-to-figma.ts`'s own header had already
+named the mechanism — *"an MCP-driven session could materialise colour and nothing else"* — then fixed
+one third of it. **A comment that documents a gap is not a gate.** #342 also added the axis-parity
+assertion that would have caught this, but scoped it to floats, so it passed while three axes were
+missing.
+
+### Three passes, and the plan equality that keeps them honest
+
+`font-vars`, `text-styles`, `styles` — plus `fontVarPlanFrom` / `stylesPlanFromFiles` /
+`textStylePlanFromFiles` in `write-plan.ts`: file-reading twins of the theme-built plans, mirroring
+`floatPlanFor`. The paste path reads the **emitted** `out/figma/<brand>/` files for the reason the
+float lane does — the emitted JSON is what the docs/10 §3 contract is written against, so a
+theme-rebuilt plan could disagree with the artifact under `--check`.
+
+The load-bearing assertion is not *"the passes exist"* but **"the file-read plan EQUALS the
+theme-built plan"** — asserted per axis on `nb`, the fixture both paths can build. A change to either
+reshape now fails in `test.ts` rather than in a Figma file three surfaces away.
+
+### The bug the new gate caught on its first run: `FONT_FAMILY` had no scope code
+
+`core-font` is the **only** collection that mixes types — STRING families beside FLOAT sizes and
+weights. The scope-code map was built for the float lane, where every scope is a float scope, so
+`FONT_FAMILY` wasn't in it and encoded to `'?'`. Every family variable would have pasted with
+`scopes: [undefined]`.
+
+Fixed with its own `FONT_SCOPE_CODE` (float codes + `FONT_FAMILY: 'm'`) rather than by adding to the
+float map — the same reason the float map isn't folded into the colour one: the namespaces are
+disjoint, and an unknown scope must decode to `'?'` **loudly** instead of quietly landing on a scope
+that happens to share a letter. Two assertions now cover it: no `'?'` reaches a payload, and the code
+map is a **bijection** — two scopes sharing a letter means one decodes to the other's enum, which the
+Plugin API accepts and no read-back would question.
+
+The decode also **throws** on an unknown code rather than returning `undefined`. A payload that pastes
+clean and mis-scopes is worse than one that fails.
+
+### A real divergence found while checking parity: the plugin dropped Text Style descriptions
+
+`TextStyleRow` has always carried `description` — the prose a designer reads in the style panel to
+know what a rung is *for* — and `applyTextStylePlan` never assigned it. Unnoticed while nothing else
+wrote Text Styles; the moment the paste path did, the two write paths would have disagreed about what
+a style looks like in the file. Two lines in the plugin, plus the assertion, so it stays fixed.
+
+### Traps for whoever extends this
+
+- **`text-styles` must be pasted after `font-vars`** — the one *real* cross-lane ordering rule here.
+  `setBoundVariable` resolves targets by name, so the vars must exist. Colour-before-float is only a
+  convention; this is not, and `passOrder()` is asserted.
+- **The name map must be UNFILTERED** (`getLocalVariablesAsync()`, no argument) — the #146 lesson. A
+  type-filtered fetch finds the FLOAT size/weight vars and misses the STRING family var, so families
+  silently fail to bind while sizes look fine.
+- **Skip-with-warning, never substitute-or-throw** (#237) — a paste path that threw on one missing
+  weight would lose all 38 styles instead of one. Asserted: `skipped.push` present, `throw` absent.
+- **`nb` ships no gradients**, so the Paint lane is asserted against **aurora**. A gate that only ever
+  ran `nb` would have called the gradient path covered while never executing it.
+- **#377 could still return.** The leading/tracking semantic tier nearly baked every style at 100%
+  line height, and that would be invisible. The payload is now asserted to carry a real spread
+  (105/115/125/140/150), not all-100.
+
+### What this does NOT do
+
+The **live drive is unverified** — the Desktop Bridge dropped mid-session, so nothing here has been
+pasted into a real file. Every assertion is against the generated payload, its plan, and the
+executor's own shims. The payloads are syntax-checked with `node --check` and sized under the
+`figma_execute` budget (largest new pass: 9.5KB against 45KB), but "it pastes and binds" is still
+owed. That is the next step, and #111's stated prereq.
+
+**Verification.** `regen --check` 89/89 · **1342/0** (was 1317, +25) · MCP suite 49/0 · NB regression
+PASS · plugin typography ALL PASS · web+plugin typecheck/build · 0 `node:` in the plugin bundle ·
+US-English clean (92 files).
+
+---
+
+## (2026-08-04) — The MCP decisions log ships by default (its description already said it did)
+
+**STATUS: engine (`mcp.ts`, `test.ts`).** `out/*` byte-identical — no token changed.
+
+`theme_brand`'s `include` defaulted to `[]`, so the decisions log was opt-in, grouped with `tokens`
+and `aiMetadata` under "withheld by default". **The tool's own description already claimed it
+returned "the decisions log by default."** Description and behavior disagreed, and the description
+was the correct half.
+
+The grouping was by CATEGORY when the only thing that justifies withholding is COST, and the costs
+are three orders of magnitude apart for a four-mode brand:
+
+| section | chars |
+|---|---|
+| `tokens` | 833,819 |
+| `aiMetadata` | 516,761 |
+| `notes` | **5,803** |
+
+Withholding half a megabyte is right — no client can spend that on one result. Withholding 5.8KB
+cost an agent the single most decision-relevant thing the engine produces, and cost it *silently*:
+an agent that never passes `include` got a themed brand with no indication that **fifteen** choices
+had been made on its behalf — including one the engine explicitly flags for human confirmation
+(*"action color defaults to the PRIMARY brand palette — CONFIRM this hue is the intended interactive
+color"*). This matters most for the onboarding case in #471: someone arriving through an agent with
+no `design.md` gets a complete 567-token, four-mode system from three required fields, and the audit
+trail for that is exactly what was being hidden.
+
+`include: []` still opts out of everything — this is a default, not a floor. A cost assertion guards
+the reason the default is affordable, so notes growing into a payload fails loudly rather than
+quietly making every call expensive; another asserts the description still advertises the default it
+actually has, since those drifted apart once already. Mutation-tested: reverting the default fails
+three assertions by name.
+
+> **Defaults decide what most callers actually see.** Grouping a 6KB audit trail with a 500KB
+> payload because both are "extra" is a category error that costs every caller who never reads the
+> parameter list.
+
+---
+
+## (2026-08-04) — `on-inverse.border`: the outline edge on a dark band had no contract (#467)
+
+**STATUS: engine (`modes.ts` + test) + web.** `out/*` regenerated — see below for what actually moved.
+
+The interactive family had a full inverse column — `on-inverse.fill.*`, `on-inverse.text.*`,
+`on-inverse.on-fill` — but no border. The outline edge was emitted once against `background.primary`
+(`modes.ts:442`) and then *reused* on the inverse band, so nothing ever measured that pair. All 432
+mode contracts passed without checking it. This is why #461 could switch the Style guide's outline
+**ink** to `on-inverse.text.*` but had to leave the **edge** on the page-measured token: there was
+nothing to switch to. Contracts now 432 → **444**, and the web takes the same switch for the border.
+
+**The scale claim in the issue was wrong, and the correction is the useful part of this entry.**
+Filing #467 I asserted that any brand with an action color darker than Wendy's red would fail
+outright. It doesn't. `interactive.<c>.border` is step **500** of the generated ramp, and ramp
+generation *normalizes step 500 into a lightness band* — the seed sets hue and chroma, not the step's
+lightness. Six seeds across the extremes of the gamut (deep navy `#0D2340`, pure blue `#0000FF`,
+vivid blues `#0033CC`/`#2200BB`/`#1A0099`, dark maroon `#7B0F2B`), each run through the real CLI on a
+copy of the Wendy's brief, **all** landed at page ~4.58 / inverse ~4.24. I could not construct a
+brand that fails. Wendy's `#C8102E` is the lone seed that survives to step 500 verbatim, at 5.88 page
+/ **3.30 inverse — 0.30 above the floor, and previously unverified**.
+
+So the honest framing: this is **correctness hygiene, not a latent bug proven reachable**. A role
+measured against one ground was being used on another with nothing checking, and one shipped brand
+sat a third of a point from the floor. The fix makes that a gate failure instead of a silent ship.
+Worth doing on those grounds alone — but the *values* barely move, and a reviewer expecting a
+dramatic diff should know that up front rather than go looking for one.
+
+**What actually changed in `out/*`:** only the **neutral** column. Chromatic columns re-derive to the
+same hex (step 500 already clears both grounds, so `chromatic(..., nonTextMin)` has nothing to nudge).
+Neutral takes the `pickMinPass(ramp, invRgb, ...)` branch, which picks the *lowest-passing* candidate
+against the ground it is given — so the inverse edge went from the page-derived `#83817e` (5.00 on the
+band, louder than a border is meant to be) to `#6b6865` (3.51), matching the page edge's own 3.20
+intent. That is the one place the fix visibly improves the design rather than just guarding it.
+
+**Traps.**
+- Gated by `theme.inverseContext`, like the rest of `invColumn` — a brand with the lever off must not
+  gain the role, and the existing `noInv` assertion covers that because it filters on `.on-inverse`.
+- `invColumn` already runs for the extensible `interactivePalettes` columns, so they get the border
+  for free. Don't add a second emitter next to `modes.ts:479`.
+- Don't try to reproduce a failing brand by making the seed darker — that was the wasted hour here.
+  Step 500's lightness is fixed by the ramp; a darker seed just moves the brand color to a *later*
+  step and leaves 500 a mid-tone. The only lever that would reach failure is one that pins an
+  arbitrary color at 500.
+
+---
+
+## (2026-08-04) — Nested tab groups get the L3 underline (#439's unbuilt rung)
+
+**STATUS: web.** One CSS block. `out/*` untouched.
+
+**The ladder proposed three navigation rungs and only two were ever built.** L1 (rail, raised card)
+and L2 (view tabs, filled) shipped; L3 — a tab group nested inside another — did not, so the token
+list's Primitives/Semantics segment kept rendering the *identical* filled treatment as Preview's own
+view switcher, 67px above it. Nothing said the second row lived inside the first. Owner spotted the
+omission.
+
+**Underline rather than a second grey, and the reason matters more than the look.** A third fill
+needs a value quieter than `--paper` but louder than transparent — a three-step grey ramp inside one
+component — and it breaks again the moment anyone retunes those greys. Changing the *kind* of
+emphasis cannot collide with a fill at all. The track chrome goes with it: a nested group is not a
+control surface of its own.
+
+```
+L2 outer   track #fff + 1px border   selected: filled #f2f3f6, weight 400
+L3 nested  no track, no border       selected: transparent, weight 560, 2px underline
+```
+
+Applied via the `.tok-seg` modifier that already existed on the one group that nests — no general
+depth system, because there is exactly one nesting case.
+
+Verified: both groups measured on the same page; backgrounds and track chrome now differ; no page
+errors.
+
+---
+
+## (2026-08-04) — On Preview the mode bar sits below the view switcher, and the surface picker says what it does (owner-reported)
+
+**STATUS: web.** `out/*` untouched.
+
+**The bar was making the view switcher jump.** #457 put the bar directly under the hero; #452 hides
+it on two of Preview's three views. Together those meant the Style guide / Contrast contracts / Token
+list segment moved up and down the page as you switched views — the control you are *aiming at*
+relocating itself under the cursor.
+
+**Rule: a control that changes the page outranks a control that scopes it.** The bar now anchors
+below a view switcher when one immediately follows the hero, so the segment holds still and only the
+thing that genuinely varies moves. Measured: the segment sits at y=249 on all three views, with the
+bar present on one of them.
+
+**The surface picker was named for where it sits, not what it does.** "Preview on / Page" left a
+reader guessing whether it changed the mode, the page, or the specimens. It is now **"Draw specimens
+on"**, with the label ABOVE the control like every other labelled field in the app (`pfield`) rather
+than inline, plus a hint: *"Every card, fill, button and text sample below is drawn on this surface —
+switch it to check the same system on a card or an inverse band."*
+
+That sentence is doing real work: it names the thing that changes (the ground), the things that do
+not (the specimens), and the reason anyone would touch it.
+
+Verified: order `hero → pvseg → modebar`; segment y identical across all three views; label renders
+above the select; no page errors.
+
+---
+
+## (2026-08-04) — Palettes: the Neutral row's fields were misaligned by two class-name collisions
+
+**STATUS: web (`main.ts` CSS only).** No engine change, no `out/*` change.
+
+Reported as a vertical-alignment bug on the Neutral palette row: the `SOURCE` label did not sit on the
+same line as `HUE` / `CHROMA` / `ANCHOR`, and the sliders were centered against `Custom tint` while
+their labels floated higher. Measured: **label tops 16.3px apart, control mid-lines 25.6px apart.**
+
+The diagnosis is the whole story here, and it is worth writing down because two earlier passes at this
+failed *while looking correct in the stylesheet*. Every fix attempted was an alignment fix —
+`align-items: flex-end` → `flex-start`, then `stretch` with `grid-template-rows: auto 1fr`, then
+`align-self: center` on the control row. None of them moved the label tops, and the reason is that
+**it was never an alignment problem.** The slider field is built as `el('div', 'pfield slider')` and
+its input as `className: 'range psl-range'` — and `.slider` and `.range` are *also* standalone rules
+70 lines further down the same stylesheet:
+
+- `.slider{margin-top:16px}` — that 16px *is* the label misalignment, in full. A flex container cannot
+  align away a margin on its item, so `align-items` was never going to touch it.
+- `.range{margin-top:10px}` — inflated grid row 2 from 33px to 44px, making the field 66px against the
+  Source field's 55px, which is where the 25.6px control offset came from. `.psl-range` already said
+  `margin-top:0`, but at equal specificity and *earlier* in the sheet, so it lost on source order.
+
+Both are now neutralized at `.pfield.slider` / `.pfield.slider .psl-range`, which beat the single-class
+originals on specificity rather than on position. The rules read like no-ops; there is a comment at the
+site saying they are not, because deleting them silently reintroduces the bug.
+
+One thing deliberately *not* done: `align-items: baseline` on the label/readout row. It is the better
+typographic answer and it got the labels to within 1px — but under baseline alignment the 12px readout
+has the greater top-to-baseline distance, so it sets the row's baseline and pushes the 9.5px label down.
+Which of the two wins is a function of font metrics, so it would drift with a font change. Centered is
+font-independent. Final measurement: **label-top spread 0.2px, control-mid spread 0.1px** — both
+sub-pixel, and the other four palette rows (Source + Anchor only) stayed at 0.1/0.0 throughout.
+
+Trap for whoever re-verifies this: measure `:scope > .pfield` **per `.porigin`**. An earlier probe used
+a document-wide `.pfield` query and mixed the Neutral row with a brand-palette row, which reports a
+plausible-looking offset that has nothing to do with the bug. The Anchor field is also *not* inside
+`.porigin` — it is a sibling under `.phead` — so a probe scoped only to `.porigin` misses it entirely.
 
 ---
 

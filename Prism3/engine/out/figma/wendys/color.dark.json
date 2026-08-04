@@ -774,6 +774,24 @@
       }
     },
     {
+      "name": "color/interactive/primary/on-inverse/border",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive border on a dark / inverse surface (outline on a dark hero)",
+      "value": {
+        "r": 0.7843137383460999,
+        "g": 0.062745101749897,
+        "b": 0.18039216101169586,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/500"
+      }
+    },
+    {
       "name": "color/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1149,6 +1167,24 @@
       }
     },
     {
+      "name": "color/interactive/destructive/on-inverse/border",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive border on a dark / inverse surface (outline on a dark hero)",
+      "value": {
+        "r": 0.7921568751335144,
+        "g": 0.2862745225429535,
+        "b": 0.3019607961177826,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/500"
+      }
+    },
+    {
       "name": "color/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1521,6 +1557,24 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/neutral/025"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/border",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive border on a dark / inverse surface (outline on a dark hero)",
+      "value": {
+        "r": 0.5529412031173706,
+        "g": 0.5568627715110779,
+        "b": 0.5607843399047852,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/400"
       }
     },
     {

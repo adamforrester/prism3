@@ -50,7 +50,11 @@
       "max": 360,
       "step": 1,
       "unit": "°",
-      "description": "Hue the grays lean toward (a small chroma tints them to the brand for cohesion)."
+      "description": "Hue the grays lean toward (a small chroma tints them to the brand for cohesion).",
+      "stops": {
+        "warm": 60,
+        "cool": 250
+      }
     },
     {
       "key": "neutral.chroma",
@@ -61,7 +65,13 @@
       "min": 0,
       "max": 0.03,
       "step": 0.001,
-      "description": "Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends. 0 = pure gray."
+      "description": "Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends. 0 = pure gray.",
+      "stops": {
+        "pure": 0,
+        "subtle": 0.006,
+        "tinted": 0.012,
+        "saturated": 0.02
+      }
     },
     {
       "key": "neutral.anchor",
@@ -136,7 +146,14 @@
       "min": 0,
       "max": 2,
       "step": 0.5,
-      "description": "0 = sharp, 1 = default, 2 = soft. Scales the radius ramp."
+      "description": "0 = sharp, 1 = default, 2 = soft. Scales the radius ramp.",
+      "stops": {
+        "sharp": 0,
+        "modest": 0.5,
+        "standard": 1,
+        "soft": 1.5,
+        "round": 2
+      }
     },
     {
       "key": "density",
@@ -338,7 +355,13 @@
       "min": 0,
       "max": 2,
       "step": 0.1,
-      "description": "Blur:offset dial. Low → crisp/product; high → soft/marketing."
+      "description": "Blur:offset dial. Low → crisp/product; high → soft/marketing.",
+      "stops": {
+        "crisp": 0.4,
+        "standard": 1,
+        "soft": 1.4,
+        "diffuse": 2
+      }
     },
     {
       "key": "shadow.tint",
@@ -380,7 +403,13 @@
       "max": 1920,
       "step": 40,
       "unit": "px",
-      "description": "Content max-width cap; layout is fluid below it."
+      "description": "Content max-width cap; layout is fluid below it.",
+      "stops": {
+        "narrow": 1120,
+        "standard": 1440,
+        "wide": 1680,
+        "full": 1920
+      }
     },
     {
       "key": "layout.containerNarrow",
@@ -393,7 +422,13 @@
       "max": 960,
       "step": 20,
       "unit": "px",
-      "description": "The reading-measure content column (~65–75ch) — narrower than the full container."
+      "description": "The reading-measure content column (~65–75ch) — narrower than the full container.",
+      "stops": {
+        "tight": 600,
+        "standard": 720,
+        "generous": 840,
+        "wide": 960
+      }
     },
     {
       "key": "iconContrast",

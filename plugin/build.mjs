@@ -40,7 +40,10 @@ const buildUiHtml = async () => {
     bundle: true,
     format: 'iife',
     target: 'es2020',
-    define: { PRISM3_HOST: '"figma"' },
+    // PRISM3_BUILD is required by every entry that bundles web/src (#474) — an absent define leaves a
+    // bare identifier that throws at load. The plugin ships inside a versioned manifest rather than
+    // from a URL that can go stale, so it has no commit to claim here.
+    define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: '"plugin"' },
     write: false,
     logLevel: 'silent',
   });

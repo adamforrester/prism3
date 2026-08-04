@@ -31,6 +31,7 @@ import type { ResolvedPreview } from '../../Prism3/engine/resolve-preview';
 import { resolveAllModes } from '../../Prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '../../Prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../Prism3/engine/tree';
+import { ENGINE_VERSION } from '../../Prism3/engine/version';
 import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
 import exampleBrands from '../../Prism3/schema/example-brands.json';
@@ -418,7 +419,7 @@ type ModeScope = 'per-mode' | 'shared';
 const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   // Surfaces & fills
   'Backgrounds': 'per-mode', 'Foreground fills': 'per-mode', 'Text': 'per-mode',
-  // Interactive — the three action palettes edit; the global behaviours only re-resolve
+  // Interactive — the three action palettes edit; the global behaviors only re-resolve
   'Primary actions': 'per-mode', 'Neutral actions': 'per-mode', 'Destructive actions': 'per-mode',
   'Outline button hover': 'shared', 'Icon colors': 'shared', 'Focus ring': 'shared',
   // Size & radius
@@ -904,14 +905,21 @@ const colorHexAt = (tree: TreeNode, node: TreeNode, mode: Mode, baseMode: Mode):
  *  passes it instead — a composite's mode override is a full `$value` (`{ ...value, ...parts }`), so it
  *  carries all five aliases and reads exactly the same way. Without this seam the read-out was pinned
  *  to light for every mode. */
-const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown): string => {
+/** `onTarget` re-reads each aliased ROLE at a mode. The `value` seam above covers a composite that
+ *  carries its own per-mode override; this covers the case where the composite is identical in every
+ *  mode and the variance is one hop down, which is where ALL per-mode typography actually lands
+ *  (`modeLevers.<mode>.{families,weights,lineHeights,letterSpacings}` mark `font.weight-role.strong`,
+ *  never `type.display.sm.strong`). Without it the mode columns render, and render the SAME numbers —
+ *  worse than one column, because two identical columns assert the modes agree when they do not. */
+const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown, onTarget?: (n: TreeNode) => TreeNode): string => {
   const v = (value ?? node.$value ?? {}) as any;
+  const t = (alias: unknown): TreeNode => { const n = subNode(tree, alias); return n && onTarget ? onTarget(n) : n; };
   const parts: string[] = [];
-  if (v.fontFamily) parts.push(familyOf(tree, subNode(tree, v.fontFamily)).split(',')[0].trim());
-  if (v.fontWeight) parts.push(String(numOf(tree, subNode(tree, v.fontWeight))));
-  if (v.fontSize) parts.push(`${Math.round(remPxOf(tree, subNode(tree, v.fontSize)))}px`);
-  if (v.lineHeight) parts.push(`${numOf(tree, subNode(tree, v.lineHeight))} lh`);
-  if (v.letterSpacing) { const ls = deref(tree, subNode(tree, v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em`); }
+  if (v.fontFamily) parts.push(familyOf(tree, t(v.fontFamily)).split(',')[0].trim());
+  if (v.fontWeight) parts.push(String(numOf(tree, t(v.fontWeight))));
+  if (v.fontSize) parts.push(`${Math.round(remPxOf(tree, t(v.fontSize)))}px`);
+  if (v.lineHeight) parts.push(`${numOf(tree, t(v.lineHeight))} lh`);
+  if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em`); }
   return parts.join(' · ');
 };
 /** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
@@ -999,7 +1007,13 @@ const renderPreviewTokens = (host: HTMLElement): void => {
 
   /** The resolved value as text, by `$type` — the payload for a primitive, the second line for a semantic. */
   const valueText = (node: TreeNode, m: Mode): string => {
-    if (node.$type === 'typography') return typeComposite(tree, node, valueAt(node, m));
+    // A role carrying a per-mode override is read AT `m`: shallow-merge the override over the node so
+    // the downstream deref/numOf see this mode's `$value`. Base mode and un-overridden roles fall
+    // through untouched, which is why every current brand renders byte-identically.
+    if (node.$type === 'typography') return typeComposite(tree, node, valueAt(node, m), (n) => {
+      const ov = n.$extensions?.prism3?.modes?.[m];
+      return m === baseMode || !ov || typeof ov !== 'object' ? n : { ...n, ...(ov as object) };
+    });
     if (node.$type === 'shadow') return shadowCss(valueAt(node, m)) || '—';
     const n = targetAt(node, m);
     const px = n?.$extensions?.prism3?.px;
@@ -1052,8 +1066,35 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     return wrap;
   };
 
+  /** Does what this leaf NAMES resolve differently per mode, even though the leaf carries one value?
+   *
+   *  A `type.*` composite always aliases the same five roles — `font.family.display`,
+   *  `font.weight-role.strong` and friends — so it never carries `modes` itself. Per-mode typography
+   *  is real (`modeLevers.<mode>.{families,weights,lineHeights,letterSpacings}`) but it lands on the
+   *  ROLE, not on the composite: measured, `weights:{strong:600}` puts `modes` on
+   *  `font.weight-role.strong` and on nothing else. That is the architecture working — "a mode
+   *  re-points a semantic at a different primitive, it never redefines one" — but reading only the
+   *  leaf made the Type section claim "mode-invariant, one value" and render ONE column whose
+   *  resolved specimen line (`Clash Display · 700 · 56px · 1.5 lh`) was silently true for the base
+   *  mode alone.
+   *
+   *  ONE hop, deliberately, matching `hopAt`: the question is whether what this token names differs
+   *  per mode, and a re-point lands exactly one hop away. Following the chain to the terminal
+   *  primitive would answer a different question and light up nearly everything. */
+  const refsVaryByMode = (node: TreeNode): boolean =>
+    modes.some((m) => {
+      if (hopAt(node, m)?.$extensions?.prism3?.modes) return true;
+      const v = valueAt(node, m);
+      return node.$type === 'typography' && !!v && typeof v === 'object'
+        && Object.values(v as Record<string, unknown>).some((x) =>
+          typeof x === 'string' && TOK_ALIAS.test(x) && subNode(tree, x)?.$extensions?.prism3?.modes);
+    });
+
   // Categories for the ACTIVE tier, in the generator's own order.
-  type TokSec = { cat: string; leaves: TokLeaf[]; hasModes: boolean; ns: string[] };
+  // `modeSource` separates the two ways a section earns per-mode columns, because they are not the
+  // same claim and the blurb says so: 'own' — the leaves themselves carry per-mode values or aliases;
+  // 'ref' — one alias set whose TARGETS differ per mode.
+  type TokSec = { cat: string; leaves: TokLeaf[]; hasModes: boolean; modeSource: 'own' | 'ref' | null; ns: string[] };
   const sections: TokSec[] = [];
   for (const category of Object.keys(brand).filter((k) => !k.startsWith('$'))) {
     const all: TokLeaf[] = [];
@@ -1064,7 +1105,9 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     // and never earns the shared-prefix callout that makes its stacked paths readable.
     const ns = [...new Set(leaves.flatMap((l) => [...modes.map((m) => aliasAt(l.node, m)), ...modes.flatMap((m) => compositeParts(l.node, m)).map((cp) => cp.path)]
       .filter(Boolean).map((a) => a!.split('.')[0])))].sort();
-    sections.push({ cat: category, leaves, hasModes: leaves.some((l) => l.node.$extensions?.prism3?.modes), ns });
+    const modeSource: 'own' | 'ref' | null = leaves.some((l) => l.node.$extensions?.prism3?.modes) ? 'own'
+      : leaves.some((l) => refsVaryByMode(l.node)) ? 'ref' : null;
+    sections.push({ cat: category, leaves, hasModes: modeSource !== null, modeSource, ns });
   }
 
   // ---- controls: a header ABOVE the content (doc 26), every field labelled via `pfield`. ----
@@ -1116,7 +1159,12 @@ const renderPreviewTokens = (host: HTMLElement): void => {
         ? (s.hasModes
           ? `${s.leaves.length} primitives, each with a per-mode variant — the exception to the rule below: a value that is genuinely different per mode, not a re-pointed alias.`
           : `${s.leaves.length} primitives — one value, no modes. The ramps are shared; a mode re-points a semantic at a different primitive, it never redefines one.`)
-        : `${s.leaves.length} semantics — ${s.hasModes ? 'each mode aliases its own target' : 'mode-invariant, one value'}.`);
+        // Three cases, not two. 'ref' is the one the old copy got wrong: a `type.*` composite does NOT
+        // re-alias per mode — it names the same five roles in every mode — so "each mode aliases its
+        // own target" would be a fresh inaccuracy in place of the old one. What varies is underneath it.
+        : `${s.leaves.length} semantics — ${s.modeSource === 'own' ? 'each mode aliases its own target'
+          : s.modeSource === 'ref' ? 'one alias set; what those aliases resolve to varies per mode'
+          : 'mode-invariant, one value'}.`);
     const rows = s.leaves.map((l) => ({ name: l.path, cells: (s.hasModes ? modes : [baseMode]).map((m) => tokCell(l.node, m, canShort)) }));
     const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(rows, cols)); sec.append(scroll);
     // Short paths are only honest when ONE namespace covers the table. `size.*` aliases both
@@ -1220,7 +1268,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   /** Re-home a built section's SPECIMENS onto the mode's own canvas.
    *
-   *  The specimens already rendered the mode's colours; the surface behind them stayed studio-white, so
+   *  The specimens already rendered the mode's colors; the surface behind them stayed studio-white, so
    *  Dark showed dark tokens on a white page — and the Inverse row (light cards) blended into that page,
    *  making the one row that means "a light band inside a dark UI" read as the page itself. The mismatch
    *  did not just look wrong, it inverted the meaning.
@@ -1282,12 +1330,18 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   // One picker for the view, not one per section — seven copies of the same control would be noise,
   // and the sections are read together as one system.
+  // Label ABOVE the control, matching every other labelled field in the app (`pfield`), and named for
+  // what it does rather than where it sits: "Preview on / Page" left a reader guessing whether it
+  // changed the mode, the page, or the specimens. It changes the ground the specimens are drawn on,
+  // so it says that.
   const bar = el('div', 'sg-surfbar');
-  bar.append(el('span', 'pfk', 'Preview on'));
   const sel = selectEl('cap');
   for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
   sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
-  bar.append(sel, el('span', 'sg-surfnote', `color.${surf.key}`));
+  const row = el('div', 'sg-surfrow');
+  row.append(sel, el('span', 'sg-surfnote', `color.${surf.key}`));
+  bar.append(pfield('Draw specimens on', row));
+  bar.append(el('p', 'sg-surfhint', 'Every card, fill, button and text sample below is drawn on this surface — switch it to check the same system on a card or an inverse band.'));
   host.append(bar);
 
   host.append(el('p', 'np-note', 'Hover any token pill for its resolved primitive, hex, and contrast. Modes switch from the picker above.'));
@@ -1407,11 +1461,15 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // resolves `on-inverse.text.*` for exactly this ground, so the row asks for the ink that matches
     // where it is being shown. Filled and Inverse need no such switch: their ink is `on-fill`,
     // measured against the button's own fill, which the ground behind it cannot change.
+    // The EDGE takes the same switch, for the same reason and now with a token to switch to. #461
+    // could only move the ink: the engine emitted one border, measured against the page, so the
+    // outline row kept a page-ground edge on the dark band. #467 added `on-inverse.border`.
     const otxt = (s: string) => `interactive.${c}.${onInverseGround ? 'on-inverse.' : ''}text.${s}`;
-    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, `interactive.${c}.border`), s, otxt(s), `text.${s}`));
+    const obd = `interactive.${c}.${onInverseGround ? 'on-inverse.' : ''}border`;
+    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obd), s, otxt(s), `text.${s}`));
     const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.on-inverse.fill.${s}`), paint(cur, `interactive.${c}.on-inverse.on-fill`), null, s, `interactive.${c}.on-inverse.fill.${s}`, `fill.${s}`));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
-    block.append(trow('Outline', [footLine('border', sgPill(`interactive.${c}.border`, 'border'))], outline, false));
+    block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
     // The Inverse row paints its own inverse band so the on-inverse variants have the ground they
     // were measured against. When the PREVIEW ground is already that band, painting it again is a
     // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
@@ -1574,8 +1632,8 @@ const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', c
 // binds to a REAL engine role — ENG-1/ENG-2 emit the full per-state, inverse, and overlay surface. The
 // fill · rest Source is the column's fill ANCHOR (re-derives the whole family coherently); every other
 // Source and every state is a surgical per-mode colour OVERRIDE (brandState.overrides[mode][role] =
-// {palette, step}; "Auto" clears it, reverting to the derived value). Cross-cutting behaviours (outline
-// hover, disabled, icon colours) sit at the TOP — they govern every palette. Overrides only live on the
+// {palette, step}; "Auto" clears it, reverting to the derived value). Cross-cutting behaviors (outline
+// hover, disabled, icon colors) sit at the TOP — they govern every palette. Overrides only live on the
 // customizable modes, so renderScreen renders the generated-note on the derived modes and this editor
 // never runs there.
 // A structural narrowing of the engine's `ResolvedRole`. `against` names the role this one's `ratio`
@@ -1884,7 +1942,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
   return sec;
 };
 
-// ---- lead controls + global behaviours ------------------------------------
+// ---- lead controls + global behaviors ------------------------------------
 /** An enum lever as a `.cap` select that writes the input + rebuilds (a lever change re-derives roles the
  *  matrix reads, so applyFull, not apply). */
 const iEnumSelect = (key: string): HTMLSelectElement => {
@@ -1921,7 +1979,7 @@ const neutralEmphasisLead = (): HTMLElement => {
     example: iExample(exBtn(roles['interactive.neutral.fill.rest']?.hex ?? '#eeeeee', roles['interactive.neutral.on-fill']?.hex ?? '#111111')) });
 };
 
-/** The cross-cutting behaviours grouped at the top — outline hover, disabled, icon colours — each governs
+/** The cross-cutting behaviors grouped at the top — outline hover, disabled, icon colors — each governs
  *  every palette below, so it doesn't belong to any one of them. */
 const renderGlobalBehavior = (host: HTMLElement): void => {
   const cap = el('div', 'gcap'); cap.append(el('p', 'gcap-t', 'Global action behavior'), el('p', 'gcap-d', 'These apply across every action palette below.'));
@@ -2053,7 +2111,7 @@ const renderAddAccentRow = (): HTMLElement => {
   return row;
 };
 
-/** The whole interactive editor: global behaviours, then one section per action palette, then the add row.
+/** The whole interactive editor: global behaviors, then one section per action palette, then the add row.
  *  The fill anchor is per-mode outside Light (modeAnchors); structural edits (add/remove a column) stay
  *  base-only. */
 const renderInteractiveMatrix = (host: HTMLElement): void => {
@@ -2780,7 +2838,7 @@ const renderSurfacesPage = (host: HTMLElement): void => renderScreen(host, 'surf
   // read-only specimen was a duplicate of the live editor preview — both retired here.
 }, () => []);
 
-// Interactive & action colors — the per-palette matrix (#69). Global behaviours at the top, then one
+// Interactive & action colors — the per-palette matrix (#69). Global behaviors at the top, then one
 // section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows binding
 // every fill/text/inverse/overlay/on-fill role. The per-page contrast table stays volatile below.
 const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'interactive', (h) => {
@@ -5450,6 +5508,17 @@ const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
  *  both head variants are already `justify-content:space-between` flex rows; a headless section
  *  gets the badge positioned against its own box instead. */
 const attachModeBadges = (root: HTMLElement): void => {
+  // Badges belong to the pages that carry a mode bar — the scope SECTION_MODE_SCOPE already states,
+  // now enforced instead of assumed. It was assumed, and the assumption broke: the map is keyed by
+  // section TITLE, and the token list builds its sections with `palSection(capitalize(category))`,
+  // so its `icon` category minted a section titled `Icon` that collided with the Style guide's
+  // 'Icon' entry. One stray "Shared / All modes" badge on the token list, on the one category out of
+  // ~14 whose name happened to match. The token list is a read-only listing with no bar, and it
+  // already states its own mode scope per section ("mode-invariant, one value" / "each mode aliases
+  // its own target") from the token data rather than from a name — strictly better information than
+  // the badge. Gating on the bar's own predicate fixes the collision at the root rather than by
+  // renaming one of the two sections, which would leave the next collision to be found by eye.
+  if (!pageHasModeVaryingControl()) return;
   for (const sec of [...root.querySelectorAll('.psec')] as HTMLElement[]) {
     if (sec.querySelector('.msb')) continue;
     const title = sec.querySelector('.psec-t')?.textContent?.trim();
@@ -5475,8 +5544,16 @@ function renderWorkspace(): void {
   // chrome again — which is what moving it out of the header (#432) was meant to stop. Repositioned
   // here rather than inside each page renderer for the same reason the badges are: there is more than
   // one renderer, and a new one would forget.
+  // Below the hero — and below a VIEW switcher when one immediately follows it. On Preview the
+  // Style guide / Contrast contracts / Token list segment changes what the page shows, and the bar
+  // is hidden on two of those three (#452). With the bar above the segment, switching views made
+  // the segment itself jump up and down the page; below it, the segment holds still and only the
+  // thing that actually varies moves. A control that changes the page outranks a control that
+  // scopes it.
   const hero = workspace.querySelector(':scope > .hero');
-  if (hero) hero.after(modeStripHost);
+  const next = hero?.nextElementSibling;
+  const anchorEl = next?.classList.contains('pvseg') ? next : hero;
+  if (anchorEl) anchorEl.after(modeStripHost);
   syncStuck();
 }
 
@@ -5965,6 +6042,17 @@ const build = (): void => {
     rail.append(it);
   });
   rail.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
+  // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
+  // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
+  // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
+  // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
+  // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
+  const stamp = el('p', 'rail-build');
+  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', PRISM3_BUILD));
+  stamp.title = PRISM3_BUILD === 'local'
+    ? 'Built outside the deploy — no commit to report.'
+    : `Deployed from commit ${PRISM3_BUILD}.`;
+  rail.append(stamp);
   shell.append(rail);
 
   workspace = el('section', 'ws');
@@ -6016,6 +6104,19 @@ const STYLE = `
      needs ~90px and a leading select ~130px, and its row labels are the shortest. Future tables
      (weights, leading, tracking) consume these rather than choosing their own, so the columns cannot
      drift apart. Change here, not per table. */
+  /* Shared vertical padding for the full-size form controls, so a select and a .seg standing side by
+     side in one control bar come out the same height. They did not: the select measured 40.9px and
+     the segmented control 46.9px, a visible 6px step between two fields on the same row.
+     The 6px was not arbitrary and not in the buttons — a .seg is a TRACK around its buttons, and its
+     inner button already matched the select exactly (40.9px both). The extra height is the track:
+     both controls carry a 1px border, but only the seg adds 2px of padding on each side, so it runs
+     4px taller before the button is even measured. Hence .seg-b subtracts 2px per side, NOT 3 —
+     subtracting the border as well double-counts it and lands the seg 2px SHORT, which is what the
+     first attempt did (38.9 against 40.9). Measured both times; the arithmetic is easy to get wrong
+     in the confident direction.
+     State the padding once here and both stay locked together if it ever moves. .select.sm sets its
+     own padding and is deliberately untouched — it is the compact variant, a different size. */
+  --ctl-py:9px;
   --tbl-col-name:112px; --tbl-col-mode:148px;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Roboto,sans-serif;
   --mono:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
@@ -6120,6 +6221,9 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .stage.active .stage-t b{color:var(--ink)}
 .stage-t small{color:var(--faint);font-size:11.5px}
 .rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
+/* Build identity (#474) — quiet by default, legible when you go looking for it. */
+.rail-build{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;color:var(--faint);font-size:11px;margin:12px 8px 0;user-select:text}
+.rail-build-b{font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--muted)}
 
 .hero{padding:6px 0 4px}
 .hero h1{margin:0;font-size:40px;font-weight:660;letter-spacing:-0.03em;line-height:1.08}
@@ -6167,18 +6271,39 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .prole{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
 .prole-dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
 .prm{margin-left:2px}
-.porigin{display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap}
-.pfield{display:flex;flex-direction:column;gap:7px}
-.pfield.r{margin-left:auto;align-items:flex-end}
+/* Every field is a TWO-ROW grid: the label in a row that sizes to it, the control in a common band
+   below, centered. Bottom-aligning instead (the previous align-items:flex-end) made each field hang
+   from its own baseline, so a 55px Source field and a 66px slider field put their labels 10.6px
+   apart and their controls 1.3px apart -- the ragged look #67 tried to fix by equalizing heights,
+   which only holds while every control happens to be the same height. Aligning the two ROWS is
+   height-independent. Row 2 is minmax(33px,auto) -- at least as tall as the tallest control
+   (select 33, range 32) so the controls share a band, and free to grow so a taller control on any
+   other surface using pfield is never clipped.
+   Trap, and the reason two earlier passes at this "failed" while looking correct in the stylesheet:
+   the slider field carries the generic class names .slider and .range, and BOTH of those are also
+   standalone rules further down (.slider{margin-top:16px}, .range{margin-top:10px}). The 16px was
+   the entire label misalignment -- not anything to do with flex alignment -- and the 10px inflated
+   grid row 2 to 44px, which is what made the field 66px and sent the control mid-line 25.6px off.
+   Neither is visible from these rules alone, so both are neutralized here at a specificity that
+   beats the single-class originals. Do not "simplify" them back out. */
+.porigin{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
+.pfield{display:grid;grid-template-rows:auto minmax(33px,auto);gap:7px}
+.pfield > :nth-child(2){align-self:center}
+.pfield.r{margin-left:auto;justify-items:end}
+.pfield.slider{margin-top:0}
 .pfk{font-size:9.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
 .panchor{display:inline-flex;align-items:center;height:31px;padding:0 11px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);font-size:13px;color:var(--ink)}
 .panchor.dia::before{content:"◆";color:var(--ink2);font-size:9px;margin-right:6px}
 .panchor.none,.panchor.note{color:var(--muted)}
-/* Neutral row: the Hue/Chroma slider fields match the Source/Anchor box height so every origin field is
-   equal height and bottom-aligns cleanly (no ragged labels / thin sliders floating low) — #67. */
-.pfield.slider .psl-top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;height:15px}
+/* Neutral row: row 1 is the label paired with its live readout. It sizes itself, so it comes out the
+   same height as the plain .pfk row the other fields have and the Source / Hue / Chroma labels share
+   one top edge — the previous fixed height:15px was 0.3px taller than the label it contained.
+   Centered, not baseline: under align-items:baseline the 12px readout has the greater top-to-baseline
+   distance, so IT sets the row baseline and the 9.5px label gets pushed 1px down — measured. Which
+   of the two wins is a function of the font metrics, so centering is the stable choice here. */
+.pfield.slider .psl-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .psl-val{color:var(--muted);font-size:12px;line-height:1}
-.psl-range{width:150px;accent-color:var(--ink);height:32px;margin-top:0}
+.pfield.slider .psl-range{width:150px;accent-color:var(--ink);height:32px;margin:0}
 .pfield.slider.ro{opacity:.5}
 .pramp{display:flex;flex-direction:column}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
@@ -6194,7 +6319,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    --panel thumb, matching the select's fill and type size rather than out-shouting the page.
    The principle this states: selection weight tracks SCOPE, and a display preference has none. */
 .seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-xs);padding:2px;gap:2px;background:var(--paper)}
-.seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:10px 12px;border-radius:5px;cursor:pointer}
+.seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:calc(var(--ctl-py) - 2px) 12px;border-radius:5px;cursor:pointer}
 .seg-b:hover{color:var(--ink)}
 .seg-b.on{background:var(--panel);color:var(--ink);font-weight:560;box-shadow:0 1px 2px rgba(20,22,30,.10)}
 
@@ -6227,7 +6352,7 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .lab-hex{font-size:11px;color:var(--faint)}
 /* The dashboard <select> component (doc 24 C1) — one base class owns every dropdown's cosmetics + the
    consistent chevron; sm / fill / cap are additive size/context modifiers. */
-.select{appearance:none;-webkit-appearance:none;font:inherit;font-size:13.5px;padding:9px 11px;padding-right:28px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;
+.select{appearance:none;-webkit-appearance:none;font:inherit;font-size:13.5px;padding:var(--ctl-py) 11px;padding-right:28px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2371717a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 9px center;background-size:11px}
 .select:disabled{opacity:.6}
@@ -6752,7 +6877,18 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tok-sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line2);flex:none}
 .tok-shadow{display:inline-block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;color:var(--muted)}
 /* Token list, tier split (#390). The two-line cell is the both-Show state: alias over value. */
-.tok-seg{margin:2px 0 0}
+/* L3 of the selection ladder (#439): a tab group NESTED inside another tab group. The token list's
+   Primitives/Semantics segment sits directly under Preview's own Style guide/Contrast/Token list
+   segment, and both were rendering the identical filled treatment 67px apart -- nothing said the
+   second row lived INSIDE the first.
+   Underline rather than a second gray: a third fill would need a value quieter than --paper but
+   louder than transparent, i.e. a three-step gray ramp inside one component, and it would break
+   again the moment anyone retuned those grays. Changing the KIND of emphasis cannot collide.
+   The track chrome goes too -- a nested group is not a control surface of its own. */
+.tok-seg{margin:2px 0 0;background:none;border:0;padding:0;gap:18px;border-radius:0}
+.tok-seg .pvseg-b{padding:7px 1px;border-radius:0;color:var(--muted);box-shadow:inset 0 -2px 0 transparent}
+.tok-seg .pvseg-b:hover{color:var(--ink)}
+.tok-seg .pvseg-b.on{background:none;color:var(--ink);font-weight:560;box-shadow:inset 0 -2px 0 var(--ink)}
 .tok-ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:16px 0 4px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
 .tok-two{display:flex;flex-direction:column;gap:3px}
 .tok-stack{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
@@ -6774,7 +6910,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
 /* The surface picker — one control for the whole view, above the sections it governs. */
-.sg-surfbar{display:flex;align-items:center;gap:10px;margin:12px 0 4px;flex-wrap:wrap}
+.sg-surfbar{display:flex;flex-direction:column;gap:6px;margin:12px 0 10px}
+.sg-surfrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sg-surfhint{margin:0;font-size:12.5px;line-height:1.5;color:var(--faint);max-width:62ch}
 .sg-surfbar .pfk{flex:none}
 .sg-surfnote{font-family:var(--mono);font-size:11px;color:var(--faint)}
 /* The mode's own canvas behind the specimens. Inset from the .psec so the studio shell still reads as
