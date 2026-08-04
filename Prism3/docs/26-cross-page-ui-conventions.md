@@ -149,6 +149,18 @@ ordered, and step 3 is the one that decides whether the findings are real.
   shared component "harmlessly". In `tokenPill` it took Layout from 0 wrapped pills to 5 and turned
   Surfaces' elided pills into wrapped ones. Keep it in a separate wrapping variant for the card
   grids that want it, and diff any shared-component change against `main` across every page.
+- **A two-column split is for a control beside the thing it changes.** With no control it reserves an
+  empty column and squeezes the specimen; with a control whose specimen needs the width more than
+  the adjacency (a wide table, a long generated string), stack it anyway. `controls: null` or
+  `stack: true` on a `SplitBlock`.
+- **Setting a colour inline REPLACES the ground it is meant to composite over** if the ground lives
+  in the same property. A checkerboard in `background-color` plus an inline `backgroundColor` is a
+  ramp of identical swatches — put the colour on an inner fill (the shadow tint read-out and the
+  alpha ramps both do). And note the near miss: the shorthand form of this was fixed once and the
+  fix stopped at the half that visibly recovered.
+- **A clamp floor must be in the same unit as the value it floors.** `Math.max(2, pct)` on a width
+  expressed in percent made 0px and 2px draw identically — invisible in code review, obvious on
+  screen. Prefer drawing a scale specimen at its TRUE size where the range allows it.
 - **The intrinsic-width trap.** A `nowrap` element contributes its full single-line width as
   min-content, and a column `width` is only a hint it will blow past (measured three times: #360, #369,
   #388, and again at 829px on a token pill). Cap with an explicit px `max-width`.
