@@ -27,11 +27,14 @@ export const ENGINE_VERSION = '0.1.0';
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
  * inversion is intentional rather than a typo: the code is young, the names are settled. The
- * surface is 477 paths that every brand in the corpus emits — spanning both input dialects, a
+ * surface is 480 paths that every brand in the corpus emits — spanning both input dialects, a
  * hand-built legacy system (NB) and the sparsest input the engine accepts — with zero `$type`
- * disagreements between them. That is a thing worth promising, so it is promised at 1.0.0.
+ * disagreements between them. That is a thing worth promising, so it is promised at 1.x.
+ *
+ * 1.1.0: `on-inverse.border` (primary/neutral/destructive) landed in a PR that merged while this
+ * one was in flight, adding 3 guaranteed paths — a MINOR bump, no removal or retype.
  */
-export const CONTRACT_VERSION = '1.0.0';
+export const CONTRACT_VERSION = '1.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
