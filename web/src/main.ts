@@ -2435,12 +2435,18 @@ const renderTypePreview = (): HTMLElement => {
   const wrap = el('div');
   // Faces first — every specimen below inherits from them, so seeing what is actually resolving
   // explains anything that looks wrong before you go hunting in the ramp.
-  const fam = palSection('Faces', `The family each role resolves to${rp.modes.length > 1 ? ', per mode' : ''}. Everything below is set in these.`);
+  // #415 retired the family ROLE tier; this section kept its vocabulary, so the column read `Role`
+  // over rows that are categories, and `Role` then meant two different things on one tab (here, and
+  // the weight roles below). Renamed to match the tokens it mirrors: `font.family.<category>`.
+  const fam = palSection('Typefaces', `The face each category resolves to${rp.modes.length > 1 ? ', per mode' : ''}. Everything below is set in these.`);
   const ftbl = el('div', 'mtbl');
   const fscroll = el('div', 'mtbl-scroll');
   const ft = el('table', 'mtbl-tbl');
   const fhead = el('thead'), fhtr = el('tr');
-  fhtr.append(el('th', 'mtbl-stick', 'Role'));
+  // Rows are CATEGORIES (display/title/body/…), which is what `font.family.*` is keyed by since #415.
+  // This said `Role`, so it both named the retired tier and collided with the weight-roles table below
+  // — one word, two meanings, one tab.
+  fhtr.append(el('th', 'mtbl-stick', 'Category'));
   for (const m of rp.modes) {
     const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
@@ -3008,7 +3014,7 @@ const renderTypefaceBindings = (): HTMLElement => {
   const ty = theme.typography;
   const modes = rp.modes;
   const multi = modes.length > 1;
-  const sec = palSection('Typefaces', 'Which face each category draws from. `font.family.<category>` is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a text style never names a face directly.');
+  const sec = palSection('Typefaces', 'Which face each category draws from. The font.family token for a category is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a text style never names a face directly.');
   const baseFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
   const isUnbound = (cat: string): boolean => cat === 'code' && getPath(brandState, 'typography.families.code') === null;
 

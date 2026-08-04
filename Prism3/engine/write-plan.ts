@@ -363,7 +363,7 @@ export const buildFontVarPlan = (theme: Theme): VarCollectionPlan[] => {
 export type TextStyleRow = {
   name: string;
   description: string;
-  fontFamilyVar: string;         // 'font/family/<role>' — in core-font
+  fontFamilyVar: string;         // 'font/family/<category>' — in core-font
   fontFamilyPrimary: string;     // the primary face (loadFontAsync + fontName.family)
   fontSizeVar: string;
   fontSizeCollection: 'core-font' | 'type-sets';
@@ -386,7 +386,7 @@ const boundVar = (p: FigmaTextStyle['properties']['fontSize']): { variable: stri
 
 /**
  * The Text Style plan — one `TextStyleRow` per composite. Flattens `buildFigmaTextStyles` into the
- * host-neutral shape the plugin executor consumes, resolving each family role's PRIMARY FACE from the
+ * host-neutral shape the plugin executor consumes, resolving each category's PRIMARY FACE from the
  * matching `core-font` family variable (so `loadFontAsync` + `fontName` get the real face). PURE.
  */
 export const buildTextStylePlan = (theme: Theme): TextStylePlan => {
