@@ -2667,6 +2667,13 @@ const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
   for (const k of keys) { const c = leverControl(k, perMode); if (c) stack.append(c); }
   return stack;
 };
+/** Same shape as `spacingFixedNote`: a read-only scale still gets a control column that says why it is
+ *  empty, rather than an empty column that reads as a rendering bug. */
+const primitiveScalesNote = (): HTMLElement => el('p', 'ic-modenote',
+  'Nothing to set here. The dimension grid is the fixed 4px-step ladder every geometry token resolves '
+  + 'onto — border widths and icon sizes are named aliases onto it, and radius, spacing and component '
+  + 'sizes land on its steps. Change those on the sections above; this is what they land on.');
+
 /** The Spacing grid section has no controls by design — both its levers were removed. Says why, rather
  *  than leaving an empty control column that reads as a rendering bug. */
 const spacingFixedNote = (): HTMLElement => el('p', 'ic-modenote',
@@ -2683,6 +2690,11 @@ const renderSizeRadiusPage = (host: HTMLElement): void => controlSplitPage(host,
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
     // which is more use than a section that quietly vanished.
     { title: 'Spacing grid', sub: 'The spacing rhythm — space.100 = 1× an 8px base, fixed for every brand.', controls: spacingFixedNote(), paint: paintSpacingPreview },
+    // These three scales are emitted, aliased by half the system, and were visible NOWHERE in the
+    // dashboard — a user could only find them in Preview's token list. Nothing here is settable, which
+    // is exactly why they had no home: the page is organized around levers, and a scale with no lever
+    // fell through. Read-only is the point — see what exists, and what the names resolve to.
+    { title: 'Primitive scales', sub: 'The raw grid the geometry aliases resolve onto — fixed for every brand, and read-only. Radius, spacing and component sizes all land on dimension steps.', controls: primitiveScalesNote(), paint: paintPrimitivesPreview },
   ];
 });
 
@@ -4409,6 +4421,34 @@ const paintSpacingPreview = (into: HTMLElement): void => {
   into.append(list);
 };
 
+/** The three primitive scales that had no home (review, 2026-08-04): `dimension.*` (36), the raw grid
+ *  every geometry alias resolves onto; `border-width.*` (4) and `icon.size.*` (5), both named aliases
+ *  onto it. All read-only — read off the theme, not `rp.dims`, for the reason the spacing specimen
+ *  was fixed: `rp.dims` holds only what preview COMPONENTS bind, which is a different question. */
+const paintPrimitivesPreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const scale = (label: string, rows: Array<{ ref: string; px: number }>, wrapCls: string): HTMLElement => {
+    const box = el('div', 'pv-scale');
+    box.append(el('div', 'pv-scale-t', label));
+    const list = el('div', wrapCls);
+    for (const { ref, px } of rows) {
+      const cell = el('div', 'pv-cell');
+      cell.append(tokenPill(ref), el('span', 'sp-px mono', `${px}px`));
+      list.append(cell);
+    }
+    box.append(list);
+    return box;
+  };
+  // border-width and icon.size are ALIASES onto the grid, so they are shown next to it rather than as
+  // separate scales — the point is that they resolve onto the same ladder.
+  const BW: Array<[string, number]> = [['none', 0], ['hairline', 1], ['thick', 2], ['heavy', 4]];
+  into.append(
+    scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-grid'),
+    scale('Border width', BW.map(([k, px]) => ({ ref: `border-width.${k}`, px })), 'pv-rows'),
+    scale('Icon size', theme.dims.icons.map((i) => ({ ref: `icon.size.${i.name}`, px: i.px })), 'pv-rows'),
+  );
+};
+
 /** The layout specimen: the responsive-grid axis — breakpoints (min-widths) with their column/gutter/
  *  margin grid, a base-column preview strip, and the container caps as proportional bars. The layout
  *  levers (breakpoints / columns / containers, all in the Advanced panel) have no other visible payoff.
@@ -5678,6 +5718,14 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
 .sp-list{display:flex;flex-direction:column;gap:10px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
 .sp-cell{display:flex;flex-direction:column;gap:5px}
+/* The read-only primitive scales (review). Dense wrap for the 36-step grid; one-per-row for the two
+   short alias scales, which read as lists rather than as a ladder. */
+.pv-scale{margin-bottom:16px}
+.pv-scale:last-child{margin-bottom:0}
+.pv-scale-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:7px}
+.pv-grid{display:flex;flex-wrap:wrap;gap:5px 9px}
+.pv-rows{display:flex;flex-direction:column;gap:5px}
+.pv-cell{display:flex;align-items:center;gap:6px}
 .sp-lab{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
 .sp-px{font-size:11px;color:var(--faint);flex:none}
 .sp-bar{height:12px;background:var(--ink);opacity:.55;border-radius:3px;min-width:2px}

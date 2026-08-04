@@ -7,6 +7,58 @@
 
 ---
 
+## (2026-08-04) — Token coverage: 45 primitives that existed only in Preview's token list
+
+**STATUS: web only.** Owner-raised as the follow-up to the mode-bar audit: *"identify opportunities to
+display inert tokens so users can at least see what exists."* No emitted artifact moves.
+
+**The audit that made it measurable.** For every page, count the tokens it DISPLAYS against the tokens
+its namespaces EMIT. Run against the fixture brand's own token tree:
+
+| page | shown / owned | | page | shown / owned |
+|---|---|---|---|---|
+| Elevation | 7 / 7 (100%) | | Layout | 7 / 23 (30%) |
+| Palettes | 140 / 162 (86%) | | Surfaces | 13 / 55 (23%) |
+| Size & radius | 28 / 48 (58%) | | Interactive | 21 / 92 (22%) |
+| Typography | 47 / 105 (44%) | | Motion | 7 / 34 (20%) |
+
+**Two corrections to that audit, both mine, both worth keeping.**
+1. **The first run reported Palettes at 0%.** I compared a live brand's UI against *NB's* emitted
+   tokens — and palette names are brand-specific (`citrus`/`teal` vs NB's `red`/`amber`). Regenerating
+   from the brand actually on screen moved it to 86%. **The comparison set must come from the brand
+   being rendered**, which is the fixture lesson one layer up.
+2. **The percentages conflate two different problems** and only one is the owner's concern:
+   **(a) the token is invisible** (spacing showed 4 of 18; these 45 showed nowhere) versus
+   **(b) the token is visible but unnamed** (`font.size.*` — the ladder shows all 22 steps as
+   `10 / 0.625rem`, just without the path). A user CAN see (b). Owner scoped this pass to (a) and
+   deferred (b) to a separate task — correct call, and the coverage table alone cannot tell them apart,
+   so quoting it without this caveat overstates the harm.
+
+**What shipped: `dimension.*` (36), `border-width.*` (4), `icon.size.*` (5) — 45 tokens with no home
+at all.** Emitted, aliased by half the geometry system, and findable only in Preview's token list.
+They now have a read-only **Primitive scales** section on Size & radius.
+
+**Why they had no home is the interesting part: the page is organized around LEVERS, and a scale with
+no lever fell through.** Every other section on that page pairs a control with a specimen; these three
+have nothing to set, so there was nowhere to put them. Read-only is the point, not a limitation — and
+the section says so rather than showing an empty control column (the same shape `spacingFixedNote`
+already established).
+
+**Read off `theme.dims`, never `rp.dims`** — the trap the spacing specimen fell into hours earlier:
+`rp.dims` holds only the refs preview COMPONENTS bind, which answers a different question than "what
+is the scale".
+
+**Still (a) and NOT yet placed — needs the IA call the owner has not made:** `palette.black-alpha.*` /
+`white-alpha.*` (20, the word "alpha" appears nowhere on Palettes), `opacity.*` (12) and
+`focus.ring.*` (4). 36 tokens, three plausible homes, deliberately left rather than guessed.
+
+**Verification.** `regen --check` (88) · 1277/0 · plugin typecheck/test/build · sandbox-clean ·
+US-English clean. Size & radius now renders 73 pills (was 28): dimension 36, border-width 4,
+icon.size 5, plus the 28 it already had. Zero clipped leaves, no page overflow, no console errors.
+
+---
+
+
 ## (2026-08-04) — Elevation + Size & radius review: two specimens were showing a subset
 
 **STATUS: web only.** Third and fourth pages through the doc-26 method. No emitted artifact moves.
