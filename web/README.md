@@ -98,6 +98,26 @@ one 304; a changed one is picked up on the next load rather than whenever a cach
 If you add a genuinely immutable, content-hashed asset later, give it its own longer-lived rule
 rather than relaxing this one — the blanket rule is safe precisely because nothing here is hashed.
 
+`ignoreCommand` is the second exception, added for the same reason `headers` was: it states
+something whose default we were relying on without knowing. It points at **`web/vercel-ignore.sh`**,
+which skips the build when a commit cannot change the deployed site. The script exists rather than a
+one-liner because its exit codes are inverted from intuition — **0 skips the build, 1 runs it** — and
+getting that backwards fails silently toward a stale deploy, which is the defect #474 cost a rebuild
+to diagnose. Every branch in it normalizes to one of those two codes, and any uncertainty (a shallow
+clone with no `HEAD^`, a bad ref) resolves toward *building*.
+
+What can change the site is measured, not assumed: Vercel runs `build:site`, whose bundle takes only
+`Prism3/engine/**` and `Prism3/schema/**` from outside `web/`. The Figma plugin is **not** part of
+this build, so `plugin/**` deliberately does not trigger a deploy.
+
+Only 13 of the engine's 43 `.ts` files are actually imported by that bundle, so the script names the
+other 30 as exclusions rather than naming the 13 as inclusions. That direction is the point: a new
+engine file is unlisted, so it triggers a build it may not need — wasteful but safe. Naming the 13
+would fail the other way, with a newly imported file missing from the list and its changes quietly
+shipping nothing. `npm run -w @prism3/web check:ignore` gates the list against esbuild's real
+metafile and runs in CI, so an excluded file that later becomes a bundle input fails there instead
+of going stale in production.
+
 ```bash
 npm run build:site --workspace @prism3/web   # what Vercel runs → web/public/
 ```
