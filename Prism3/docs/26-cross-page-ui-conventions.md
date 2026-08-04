@@ -109,6 +109,17 @@ ordered, and step 3 is the one that decides whether the findings are real.
   string against the emitted token tree (`buildTree`) — never invent a path. (#232 lesson: `color.primary`
   was never a leaf; the primitives live at `palette.*`.)
 
+- **A path elides in a table and wraps in a gallery.** #289's rtl left-ellipsis is right in a table
+  cell, where the column can only be so wide and siblings differ by their tail. It is wrong under a
+  gallery card, where the grid width is fixed by the *content set* (five status columns → ~148px, which
+  can never fit `color.foreground.warning`) and there is vertical room going spare. Wrap those, and put
+  a `<wbr>` after each dot so the break lands on a path boundary — `<wbr>` rather than a zero-width
+  space because it contributes nothing to `textContent`, so a copied path is still the path.
+- **A path that elides past readability is a LAYOUT bug, not a pill bug.** Surfaces reserved a `1fr`
+  whitespace spacer and then clipped `color.background.inverse.primary` to
+  `…kground.inverse.primary` in a 168px track. Breathing room is never worth buying with the
+  identifier the row exists to name — widen the track (and move the collapse breakpoint with it).
+
 ### Technical (any live-updating page)
 - **Stable-head / volatile-bands split.** Controls are built once and survive `apply()`; only the
   derived readouts + specimens repaint. This keeps open OS color dialogs and mid-drag sliders alive.
@@ -133,6 +144,8 @@ ordered, and step 3 is the one that decides whether the findings are real.
 - **A scoped `display` rule outranks the UA `[hidden]` rule.** If you write
   `.x .y{display:block}`, add `.x .y[hidden]{display:none}` or `hidden` silently stops working.
 - **Dead CSS is deleted with the control it styled**, not left inert (the `.errbar-global` lesson).
+- **The mode strip lives on the page (#432), so a probe must navigate BEFORE it sets the mode.**
+  Clicking a mode chip first is a silent no-op: the run reports Light while claiming to test Dark.
 - **Legends: a symbol vocabulary may have one; a visual treatment may not.** #404 removed a legend
   because it explained *dimming* that should not have existed. Preview's `● ○ ?` legend stays, because
   the marks **are** the data and have no in-place alternative. Don't "fix" it for consistency.
@@ -211,6 +224,11 @@ tail and could not — because that tail was itself category-derived. **That imp
 finding:** #415 had removed the only channel by which a brand could declare a face as monospace.
 The symptom was the smaller half.
 
+**An honest specimen of a bad pairing reads as a bug.** The first scrim card dimmed a text label:
+accurate (white on 40% black over a light surface clears ~2.3:1) and indistinguishable from a broken
+render. A specimen's job is to show the token doing the thing it exists for — the scrim went behind a
+panel instead. When a truthful specimen looks wrong, the composition is wrong, not the truth.
+
 **Verify with a non-vacuous control.** Assert the thing that must *not* change alongside the thing that
 must: the mono-face test pins `body` → `Medium` **and** the same brand's `display` → `Semi Bold`, so it
 fails if the mono table is ever applied globally. A test that only asserts the fix passes for the wrong
@@ -231,13 +249,13 @@ positive, and a pill whose trailing `*` reordered under `direction: rtl`). Both 
 | Page | Containers | Section headers | Token pills | Notes |
 |---|---|---|---|---|
 | Palettes | ✅ | ✅ | ✅ `palette.*` | #230–#232 — the reference implementation. Reviewed 2026-08-04 with the method above: **mode bar removed** (workspace byte-identical Light vs Dark — a ramp is mode-invariant; #268 found this and Layout together, Layout was fixed and this was missed) and **"Validation" → "Status ramps"** to match `BrandInput.status` / `palette.success\|warning\|danger\|info`. Two findings, no width defects |
-| Surfaces & fills | ✅ | ✅ | ✅ `color.*` | #68 — full-width rows (Layout A): controls left, example (228px) right, contrast pill below; per-section contrast tables (Fills + Text; Backgrounds are grounds); adjustable Inverse (A1 override); gradient names + inline Add-stop vs full-width Add-gradient; text-on-surface previews (folds #64) |
+| Surfaces & fills | ✅ | ✅ | ✅ `color.*` | #68 — full-width rows (Layout A): controls left, example (228px) right, contrast pill below; per-section contrast tables (Fills + Text; Backgrounds are grounds); adjustable Inverse (A1 override); gradient names + inline Add-stop vs full-width Add-gradient; text-on-surface previews (folds #64). Reviewed 2026-08-04: identity track 168→256px so the token path is readable (three of thirteen elided; the collapse breakpoint follows, 1120→1208), Backgrounds→Inverse and all three Text rows moved onto the shared `stepPicker` so every “Auto” names its resolved step, and the neutral step list is read off the brand's palette instead of a hardcoded copy that dropped the zero padding. Four findings, all consistency |
 | Interactive | ✅ | ✅ | ✅ `color.interactive.*` (#232) | #69 — per-palette matrix: global behaviours (outline hover / disabled / icon colours) at top, then one section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows — Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill (+ inverse). Every slot/state binds to a real engine role: fill · rest is the family anchor, everything else is an A1 per-mode override; example (300px) + contrast pill locked right, Hover/Pressed states two-up below |
 | Typography | ✅ | ✅ | ✅ `type.*` / `font.typeface.*` / `font.family.*` | **Reference implementation for the tier split and the mode rule.** Four tabs via `.pvseg` — **Primitives** (typeface library · size ladder · leading & tracking ladders) · **Semantics** (typeface bindings · weight roles · leading & tracking rungs + per mode) · **Text styles** (heading sizes · what each category is made of) · **Preview** (read-only). **#415** retired the `display|text|mono` family ROLE tier — each of the 7 categories binds a typeface directly (`font.family.<category>`), matching how Prism2's own brand-theme binds. **#416** states the per-mode rule above and removes the mode bar from the page. **#411** nudge controls are signed deltas with the resolved rung beneath. **#422/#423** derived-mode columns are readings. Reviewed end-to-end 2026-08-03; see the method section above |
 | Elevation | ✅ | ✅ | ✅ `shadow.*` | #72 — Shadow editor + Elevation-ramp specimen as `.psec`; `shadow.xs…2xl` pills |
 | Size & radius | ✅ | ✅ | ✅ `radius.*` / `size.*` | #72 — regrouped by **concept** (Corner radius · Density & size · Spacing grid), not advanced/not; Radius-ramp + Control-size specimens carry `radius.*` / `size.*.height` pills |
 | Layout | ✅ | ✅ | ✅ `breakpoint.*` / `container.*` | #72 — Breakpoints + Grid & containers as `.psec`; the Layout-grid specimen table adds a `breakpoint.*` token column and the container bars carry `container.max` / `container.narrow` pills |
 | Motion | ✅ | ✅ | ✅ `motion.*` | #72 — Tempo + Easing as `.psec` (easing promoted out of "advanced"); the Motion specimen rows carry `motion.duration.*` + `motion.easing.*` pills |
-| Preview | ✅ | ✅ | ✅ full `color.*` (#232) | token-list categories (Color / Dimension / Typography / Shadow) now `.psec` sections with tables scrolling in an `overflow-x` container; pills + master table already conformed. **Whole dashboard now on the doc-26 language.** Adds a **Style guide** sub-view (`renderPreviewStyleGuide`) — the resolved system in situ (Background / Foreground / Text color / Border / Icon / Disabled / Interactive) in `.psec` shells, driven live off the global mode picker; every full-role pill carries the resolvable `color.*` path (`sgPill` prefixes it; short leaf labels like `fill.rest` stay contextual under a namespaced block header). |
+| Preview | ✅ | ✅ | ✅ full `color.*` (#232) | token-list categories (Color / Dimension / Typography / Shadow) now `.psec` sections with tables scrolling in an `overflow-x` container; pills + master table already conformed. **Whole dashboard now on the doc-26 language.** Adds a **Style guide** sub-view (`renderPreviewStyleGuide`) — the resolved system in situ (Background / Foreground / Text color / Border / Icon / Disabled / Interactive) in `.psec` shells, driven live off the global mode picker; every full-role pill carries the resolvable `color.*` path (`sgPill` prefixes it; short leaf labels like `fill.rest` stay contextual under a namespaced block header). **Coverage audited 2026-08-04** against the resolver rather than by eye: the gallery showed **49 of 55** surfaces-vocabulary roles and now shows all 55 — Background gains a **Scrim** row, Foreground gains the **Inverse** tier (Background split Base/Inverse; Foreground had only Base), `text.on-inverse` gets a pill on the card it was already inking, and **Links** gains `focused` (the callout had enumerated three when `LINK_STATES` has four). Gallery pills wrap at `<wbr>` path boundaries rather than eliding — a 5-column status grid can never fit `color.foreground.warning`. |
 
 Update this table as each page lands.
