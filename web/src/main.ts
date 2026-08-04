@@ -6791,9 +6791,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
    Primitives/Semantics segment sits directly under Preview's own Style guide/Contrast/Token list
    segment, and both were rendering the identical filled treatment 67px apart -- nothing said the
    second row lived INSIDE the first.
-   Underline rather than a second grey: a third fill would need a value quieter than --paper but
-   louder than transparent, i.e. a three-step grey ramp inside one component, and it would break
-   again the moment anyone retuned those greys. Changing the KIND of emphasis cannot collide.
+   Underline rather than a second gray: a third fill would need a value quieter than --paper but
+   louder than transparent, i.e. a three-step gray ramp inside one component, and it would break
+   again the moment anyone retuned those grays. Changing the KIND of emphasis cannot collide.
    The track chrome goes too -- a nested group is not a control surface of its own. */
 .tok-seg{margin:2px 0 0;background:none;border:0;padding:0;gap:18px;border-radius:0}
 .tok-seg .pvseg-b{padding:7px 1px;border-radius:0;color:var(--muted);box-shadow:inset 0 -2px 0 transparent}
