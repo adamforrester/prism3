@@ -2511,13 +2511,21 @@ const renderTypePreview = (): HTMLElement => {
   const wt = el('table', 'mtbl-tbl');
   const whead = el('thead'), whtr = el('tr');
   whtr.append(el('th', 'mtbl-stick', 'Role'), el('th', 'mtbl-mode', 'Weight'));
+  // FIXED-WIDTH face columns, not `mtbl-fill`. One fill column per face made the table's width grow
+  // with the face count without bound — measured at 899px inside a 798px container on the DEFAULT
+  // two-face brand, so every brand saw the specimens clipped, and 1308px at four faces. The specimens
+  // are the entire point of this table, and they were the part cut off.
+  //
+  // The category list that used to sit in the header moves to its tooltip. It was a third copy of a
+  // fact the Semantics Typefaces table (category → face) and the Primitives library ("Binding")
+  // already carry, and it was the widest thing in the cell.
   for (const f of faces) {
-    const th = el('th', 'mtbl-fill mtbl-spec');
+    const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(f.name));
-    th.append(el('span', 'mtbl-ro', ` ${f.roles.join(' · ')}`));
-    th.title = f.stack;
+    th.title = `${f.name} — used by ${f.roles.join(', ')}\n${f.stack}`;
     whtr.append(th);
   }
+  whtr.append(el('th', 'mtbl-fill'));
   whead.append(whtr); wt.append(whead);
   const wb = el('tbody');
   for (const w of ty.weightRoles) {
@@ -2529,9 +2537,12 @@ const renderTypePreview = (): HTMLElement => {
     for (const f of faces) {
       const known = knownWeightsOf(f.name);
       const ships = !known ? null : known.includes(w.value);
-      const td = el('td', 'mtbl-fill mtbl-spec');
+      const td = el('td', 'mtbl-mode');
       td.append(el('span', 'tpw-mark ' + (ships === null ? 'unknown' : ships ? 'yes' : 'no'), ships === null ? '?' : ships ? '●' : '○'));
-      const samp = el('span', 'mtbl-spec-t tpw-samp', 'The quick brown fox');
+      // `Ag 123` rather than a sentence — the same specimen the Primitives typeface library already
+      // uses, so the two agree, and short enough that a fixed column shows it whole. A weight
+      // difference is legible in four glyphs; a sentence only bought width.
+      const samp = el('span', 'mtbl-spec-t tpw-samp', 'Ag 123');
       samp.style.fontWeight = String(w.value);
       samp.style.fontFamily = f.stack;
       td.append(samp);
@@ -2539,6 +2550,7 @@ const renderTypePreview = (): HTMLElement => {
         : ships ? `${f.name} ships ${w.value}` : `${f.name} may not ship ${w.value} — falls back to the nearest`;
       tr.append(td);
     }
+    tr.append(el('td', 'mtbl-fill'));
     wb.append(tr);
   }
   wt.append(wb); wscroll.append(wt); wtbl.append(wscroll); wsec.append(wtbl);

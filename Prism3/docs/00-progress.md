@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-08-03) — Review pass 2: "Weight roles by face" clipped at DEFAULT settings
+
+**STATUS: web only.** From the same review. No emitted artifact moves.
+
+**The measurement that made it a bug rather than a nitpick.** The table ran **899px inside a 798px
+container on the DEFAULT two-face brand** — so every brand saw it clipped out of the box, not just
+unusual ones — and **1308px at four faces**. The specimens are the entire point of the table, and they
+were the part cut off.
+
+**Why it grew without bound.** Each face column was `mtbl-fill mtbl-spec`, so column count scaled with
+the face count and every one of them wanted a full sentence at specimen size. `.mtbl-scroll` contained
+it, so nothing looked broken — it just quietly hid the content.
+
+**Fixed-width face columns + a shorter specimen.** `Ag 123` replaces `The quick brown fox` — the same
+specimen the Primitives typeface library already uses, so the two agree, and a weight difference is
+perfectly legible in four glyphs. **798px at two faces (no scroll), 1000px at four** (down from 1308,
+and scrolling at four columns is honest).
+
+**The category list in the header moved to its tooltip** — it was the widest thing in the cell and a
+THIRD copy of a fact the Semantics Typefaces table (category → face) and the Primitives library
+("Binding") already carry.
+
+**Verification.** `regen --check` (88) · 1275/0 · plugin typecheck/test/build · sandbox-clean ·
+US-English clean. Measured at two and four faces; `.tpw-samp` and `.tpw-mark` both still have live
+users, so no CSS was left inert.
+
+---
+
 ## (2026-08-03) — Review pass 1: the defects, and a capability #415 removed without noticing
 
 **STATUS: engine + web.** From a code + UI review of the typography work. No emitted artifact moves —
