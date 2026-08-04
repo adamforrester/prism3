@@ -21,6 +21,7 @@ import { resolveAllModes } from './modes';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
+import { SLIDER_STOPS, TRAITS, resolveVocabulary } from './vocabulary';
 import { leverManifest, leverGroups, buildLeverManifest, identityFields } from './levers';
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
@@ -5556,6 +5557,117 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const stamped = buildTree(brandTheme(MINIMAL_BRAND)).tree as any;
   ok(stamped.$extensions?.generator?.version === ENGINE_VERSION,
     'version: every emitted tree carries the engine version, so a suspect value can be traced to the code that produced it');
+}
+
+// --------------------------------------------------------- vocabulary (#471)
+// Named stops + personality traits. The interesting assertions are not "does 'soft' become 1.5" but
+// the three that keep the layer honest: stops land on the lever's own step grid, a trait cannot
+// target a lever that does not exist, and an explicit value always beats an inferred one.
+{
+  const schema = JSON.parse(readFileSync(resolve(HERE, '..', 'schema', 'theme-schema.json'), 'utf8'));
+  const base = { id: 'v', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  // Fail SOFT. A trait carrying a value its lever does not accept (`density: 'roomy'`) throws deep
+  // inside `componentSizes`, and an unguarded call took the entire 1,409-assertion run down with it
+  // — the static checks above had already recorded the real cause, but the report never printed, so
+  // one defect surfaced as zero. Same lesson the MCP suite learned: a suite that dies on the first
+  // defect reports one problem per run, or none. Returns null so a downstream comparison fails
+  // rather than passing vacuously.
+  const build = (extra: Record<string, unknown>): ReturnType<typeof brandTheme> | null => {
+    try { return brandTheme({ ...base, ...extra } as any); }
+    catch (e) { fails.push(`vocabulary: brandTheme threw on ${JSON.stringify(extra)} — ${(e as Error).message}`); return null; }
+  };
+  /** A build's radius value, or NaN — never undefined, so `a === b` cannot pass by both being absent. */
+  const radiusOf = (extra: Record<string, unknown>): number => build(extra)?.dims.radiusScaleValue ?? NaN;
+
+  // ---- stops are real positions on the lever they belong to ----
+  for (const [key, stops] of Object.entries(SLIDER_STOPS)) {
+    const lever = leverManifest.find((l) => l.key === key);
+    ok(lever !== undefined, `vocabulary: '${key}' names a real lever (a renamed lever must not leave stops orphaned and unadvertised)`);
+    if (!lever) continue;
+    const bad = Object.entries(stops).filter(([, v]) =>
+      (lever.min !== undefined && v < lever.min) || (lever.max !== undefined && v > lever.max)
+      || (lever.step !== undefined && Math.abs(Math.round(v / lever.step) * lever.step - v) > 1e-9));
+    ok(bad.length === 0,
+      `vocabulary: every '${key}' stop is inside the lever's range and on its step grid`
+      + (bad.length ? ` — OFF-GRID: ${bad.map(([n, v]) => `${n}=${v}`).join(', ')}` : ''));
+    ok(lever.stops === stops, `vocabulary: the '${key}' manifest entry carries the SAME stops object the engine resolves against (joined, not restated)`);
+  }
+
+  // ---- traits target real levers, with values those levers accept ----
+  const leverKeys = new Set(leverManifest.map((l) => l.key));
+  for (const [name, trait] of Object.entries(TRAITS)) {
+    const targets = Object.keys(trait.levers);
+    ok(targets.length >= 2, `vocabulary: trait '${name}' moves ${targets.length} levers — a one-lever trait would just be a slower named stop`);
+    const unknown = targets.filter((k) => !leverKeys.has(k));
+    ok(unknown.length === 0, `vocabulary: every lever trait '${name}' targets exists` + (unknown.length ? ` — UNKNOWN: ${unknown.join(', ')}` : ''));
+    for (const [lever, value] of Object.entries(trait.levers)) {
+      if (SLIDER_STOPS[lever]) {
+        ok(SLIDER_STOPS[lever][String(value)] !== undefined, `vocabulary: trait '${name}' sets ${lever} to a declared stop ('${String(value)}')`);
+      } else {
+        // A non-slider target must be a legal enum value on that lever, or the trait silently
+        // produces an input the schema rejects — a failure the author cannot see from the trait name.
+        const opts = leverManifest.find((l) => l.key === lever)?.options?.map((o) => o.value);
+        ok(opts !== undefined && opts.includes(value as string | number),
+          `vocabulary: trait '${name}' sets ${lever} to a value that lever accepts ('${String(value)}' in [${opts?.join(', ')}])`);
+      }
+    }
+    ok(trait.why.length > 20, `vocabulary: trait '${name}' cites the brief language it was read from (an uncited mapping is an invention)`);
+  }
+
+  // ---- the structural invariant ----
+  // `personality: ['soft']` and `radiusScale: 'soft'` must agree, and they do BY CONSTRUCTION because
+  // TRAITS names stops rather than restating numbers. Asserted anyway: it is the property a future
+  // edit is most likely to break by "simplifying" a trait to a literal.
+  const viaTrait = radiusOf({ personality: ['soft'] });
+  ok(Number.isFinite(viaTrait) && viaTrait === radiusOf({ radiusScale: 'soft' }),
+    "vocabulary: personality ['soft'] and radiusScale: 'soft' resolve to the same value");
+  ok(radiusOf({ radiusScale: 'round' }) === SLIDER_STOPS.radiusScale.round, 'vocabulary: a named stop resolves to its declared number');
+  ok(radiusOf({ radiusScale: 1.5 }) === 1.5, 'vocabulary: a raw number still passes straight through (stops are additive, not a replacement)');
+
+  // ---- precedence: explicit beats inferred, first trait beats later ones ----
+  ok(radiusOf({ personality: ['generous'], radiusScale: 0 }) === 0,
+    'vocabulary: an explicitly set lever beats a personality trait (an advisory layer must never overwrite a stated choice)');
+  ok(build({ personality: ['generous'], radiusScale: 0 })?.dims.density === 'spacious',
+    'vocabulary: the same trait still fills the levers the author left absent');
+  ok(radiusOf({ personality: ['soft', 'sharp'] }) === SLIDER_STOPS.radiusScale.soft,
+    'vocabulary: between conflicting traits the first listed wins (order is the stated priority)');
+  // The attribution bug this suite exists to prevent: a presence-first check reported every
+  // trait-vs-trait collision as "set explicitly", crediting the author for the engine's own choice.
+  const conflict = build({ personality: ['soft', 'sharp'] })?.notes.find((n) => n.startsWith("personality 'sharp'"));
+  ok(conflict?.includes("already set by 'soft'") === true,
+    `vocabulary: a trait-vs-trait collision is attributed to the TRAIT that won, not to the author — ${conflict?.slice(0, 90)}`);
+  const explicit = build({ personality: ['generous'], radiusScale: 0 })?.notes.find((n) => n.startsWith("personality 'generous'"));
+  ok(explicit?.includes('(set explicitly)') === true, 'vocabulary: an author-set lever IS attributed to the author');
+
+  // ---- every inference is logged, and nothing leaks downstream ----
+  ok(build({ personality: ['calm'] })?.notes.some((n) => n.startsWith("personality 'calm' →") && n.includes('[harbor:')),
+    'vocabulary: each applied trait logs what it set AND the brief language justifying it');
+  ok(build({ radiusScale: 'soft' })?.notes.some((n) => n === "radiusScale 'soft' → 1.5"), 'vocabulary: a resolved stop is logged with both the word and the number');
+  ok(build({})?.notes.every((n) => !n.startsWith('personality')), 'vocabulary: a brand that declares no personality gets no personality notes');
+  ok((resolveVocabulary({ ...base, personality: ['calm'] }).input as Record<string, unknown>).personality === undefined,
+    'vocabulary: `personality` is stripped after resolution — it is an authoring field, not a lever the theme builder should see');
+
+  // ---- unrecognized words fail loud, at BOTH enforcement points ----
+  // These bypass `build` deliberately: it swallows throws to keep the run alive, which is exactly
+  // the behaviour under test here.
+  let threwStop = false; try { brandTheme({ ...base, radiusScale: 'banana' } as any); } catch { threwStop = true; }
+  ok(threwStop, 'vocabulary: an unknown stop name throws (the author believes they set that lever)');
+  let threwTrait = false; try { brandTheme({ ...base, personality: ['playful'] } as any); } catch { threwTrait = true; }
+  ok(threwTrait, 'vocabulary: an unknown trait throws — the engine agrees with the schema enum rather than diverging from it');
+  ok(validateBrandInput({ ...base, radiusScale: 'soft' }).length === 0, 'vocabulary: the SCHEMA accepts a named stop');
+  ok(validateBrandInput({ ...base, radiusScale: 'banana' }).length > 0, 'vocabulary: the schema rejects an undeclared stop name');
+  ok(validateBrandInput({ ...base, personality: ['soft', 'generous'] }).length === 0, 'vocabulary: the schema accepts a personality list');
+  ok(validateBrandInput({ ...base, personality: ['playful'] }).length > 0, 'vocabulary: the schema rejects a trait outside the vocabulary');
+  // Contract and engine must advertise the SAME vocabulary — an agent reads the schema enum to learn
+  // what it may pass, so a schema listing a trait the engine does not implement is a broken promise.
+  ok(JSON.stringify([...(schema.properties.personality.items.enum as string[])].sort()) === JSON.stringify(Object.keys(TRAITS).sort()),
+    'vocabulary: the schema enum and TRAITS list exactly the same traits');
+  for (const key of Object.keys(SLIDER_STOPS)) {
+    const node = key.split('.').reduce<any>((n, seg) => n?.properties?.[seg], { properties: schema.properties });
+    const branch = node?.oneOf?.find((b: any) => b.type === 'string');
+    ok(JSON.stringify(branch?.enum?.slice().sort()) === JSON.stringify(Object.keys(SLIDER_STOPS[key]).sort()),
+      `vocabulary: the schema's '${key}' stop enum matches SLIDER_STOPS exactly`);
+  }
 }
 
 // ------------------------------------------------------------------- report

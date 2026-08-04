@@ -106,7 +106,17 @@ export const nonLeverFields = (brandSchema: unknown, leverKeys: Set<string>): Ar
   const required: string[] = ((brandSchema as { required?: string[] }).required) ?? [];
   return Object.entries(props)
     .filter(([k]) => !leverKeys.has(k))
-    .map(([k, v]) => ({ key: k, required: required.includes(k), type: v.type, description: v.description }));
+    // `enum` is carried through (#471). It was dropped, so `list_levers` could describe a closed set
+    // in prose but never name its members — an agent learning that `personality` takes "traits", or
+    // `modes` takes "appearance modes", still had to go read `theme_brand`'s inlined schema to find
+    // out which. The values are the discoverable part; a description that lists them in sentences is
+    // a catalogue an agent has to parse. Item-level enums (arrays) count: that is where the values
+    // actually live for both of those fields.
+    .map(([k, v]) => {
+      const items = (v as { items?: { enum?: unknown } }).items;
+      const values = v.enum ?? items?.enum;
+      return { key: k, required: required.includes(k), type: v.type, description: v.description, ...(values ? { enum: values } : {}) };
+    });
 };
 
 /** Every root key the lever manifest advertises. */

@@ -25,6 +25,8 @@
  * renders in the lever-driven form. The drift gate enforces that every *other*
  * required BrandInput field IS a lever.
  */
+import { SLIDER_STOPS } from './vocabulary';
+
 export type LeverGroup = 'color' | 'form' | 'type' | 'motion' | 'elevation' | 'layout' | 'advanced';
 /** The UI affordance a surface renders for this lever. `object`/`list` denote a
  *  structured sub-input (the surface renders a sub-form); the rest are atomic. */
@@ -45,6 +47,12 @@ export type Lever = {
   options?: { value: string | number; label: string }[];
   // list/object (informational item hint):
   itemLabel?: string;
+  /** Named stops a slider also accepts (#471) — `{ soft: 1.5 }`, so `radiusScale: 'soft'` is legal
+   *  input. Present only on the six sliders where a word genuinely names a design intent; a bare
+   *  quantity like `disabledMin` has none, deliberately. Emitted from `SLIDER_STOPS` rather than
+   *  restated, so the manifest an agent reads and the table the engine resolves against cannot
+   *  drift — the same continuity-by-source rule the rest of this file follows. */
+  stops?: Record<string, number>;
 };
 
 const enumOpts = (...pairs: [string | number, string][]): { value: string | number; label: string }[] =>
@@ -157,6 +165,16 @@ export const leverManifest: Lever[] = [
   { key: 'gradients', group: 'advanced', label: 'Gradients', control: 'toggle', default: false,
     description: 'Opt-in (off by default). On ships one default brand gradient; an explicit array ships specific ones.' },
 ];
+
+// Attach the named stops (#471) by JOINING against `SLIDER_STOPS` rather than restating them on each
+// lever. Two copies of "soft means 1.5" is exactly how the catalogue an agent reads drifts from the
+// table the engine resolves against — the same failure the `nonLeverFields` diff was written to stop.
+// `test.ts` asserts every key in SLIDER_STOPS matched a real lever, so a renamed lever cannot leave a
+// vocabulary entry orphaned and silently unadvertised.
+for (const lever of leverManifest) {
+  const stops = SLIDER_STOPS[lever.key];
+  if (stops) lever.stops = stops;
+}
 
 /** Group order + human labels for a surface's section layout. */
 export const leverGroups: { group: LeverGroup; label: string }[] = [

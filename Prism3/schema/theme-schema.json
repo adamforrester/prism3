@@ -147,8 +147,8 @@
       "additionalProperties": false,
       "required": ["hue", "chroma"],
       "properties": {
-        "hue": { "type": "number", "description": "Neutral ramp hue (deg). A small chroma tints the grays toward the brand for cohesion." },
-        "chroma": { "type": "number", "minimum": 0, "description": "Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends." },
+        "hue": { "oneOf": [ { "type": "number", "description": "Neutral ramp hue (deg). A small chroma tints the grays toward the brand for cohesion." }, { "type": "string", "enum": ["warm", "cool"], "description": "Named stop — warm 60 · cool 250." } ] },
+        "chroma": { "oneOf": [ { "type": "number", "minimum": 0, "description": "Peak neutral chroma (~0.004–0.02); tapers to near-0 at the ramp ends." }, { "type": "string", "enum": ["pure", "subtle", "tinted", "saturated"], "description": "Named stop — pure 0 · subtle 0.006 · tinted 0.012 · saturated 0.02." } ] },
         "anchor": { "$ref": "#/$defs/oklch", "description": "OPTIONAL. A pre-defined brand gray, pinned verbatim at its lightness step; the whole neutral ramp is built around it (hue/chroma from the anchor) instead of the hue/chroma cast. For a client that ships their own neutral." },
         "auto": { "type": "boolean", "description": "OPTIONAL. When set, the neutral cast hue re-derives from the brand `primary` at every build (live-follows recolor) instead of the stored `hue`. Ignored when an `anchor` is pinned. This is the default for a brand that provides no neutral." }
       },
@@ -415,7 +415,7 @@
       "additionalProperties": false,
       "description": "OPTIONAL. Shadow / elevation axis. A 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), mode-aware (full in light; reduced in dark — the surface ladder carries dark elevation, the lift-primary model).",
       "properties": {
-        "softness": { "type": "number", "default": 1, "description": "Blur:offset personality dial. Low → crisp/product; high → soft/marketing. Scales blur across the ramp." },
+        "softness": { "oneOf": [ { "type": "number", "default": 1, "description": "Blur:offset personality dial. Low → crisp/product; high → soft/marketing. Scales blur across the ramp." }, { "type": "string", "enum": ["crisp", "standard", "soft", "diffuse"], "description": "Named stop — crisp 0.4 · standard 1 · soft 1.4 · diffuse 2." } ] },
         "tint": {
           "type": "object",
           "additionalProperties": false,
@@ -434,8 +434,8 @@
       "properties": {
         "breakpoints": { "type": "array", "items": { "type": "number" }, "description": "Min-width floors (px), ascending. Names are auto sm/md/lg/xl/2xl. Default [0,768,1024,1440,1920]." },
         "columns": { "type": "number", "default": 12, "description": "Base column count (12 default; 16/24 for dense-data brands). Emitted as a 4/8/…/base ladder per breakpoint — a design grid, not the load-bearing code contract." },
-        "containerMax": { "type": "number", "default": 1440, "description": "Content max-width cap (px); layout is fluid below it." },
-        "containerNarrow": { "type": "number", "default": 720, "description": "Narrow / reading-measure container (px, ~65–75ch)." }
+        "containerMax": { "oneOf": [ { "type": "number", "default": 1440, "description": "Content max-width cap (px); layout is fluid below it." }, { "type": "string", "enum": ["narrow", "standard", "wide", "full"], "description": "Named stop — narrow 1120 · standard 1440 · wide 1680 · full 1920." } ] },
+        "containerNarrow": { "oneOf": [ { "type": "number", "default": 720, "description": "Narrow / reading-measure container (px, ~65–75ch)." }, { "type": "string", "enum": ["tight", "standard", "generous", "wide"], "description": "Named stop — tight 600 · standard 720 · generous 840 · wide 960." } ] }
       }
     },
     "gradients": {
@@ -451,8 +451,13 @@
       "default": "comfortable",
       "description": "OPTIONAL. Drives component sizes (height/padding). Default 'comfortable'."
     },
-    "radiusScale": { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." },
-    "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." }
+    "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
+    "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },
+    "personality": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["energetic", "calm", "premium", "restrained", "bold", "generous", "dense", "sharp", "soft"] },
+      "description": "OPTIONAL. Cross-cutting brand traits, in priority order — the authoring layer, not a lever. Each trait fills SEVERAL levers at once, but only ones this input leaves absent: anything set explicitly always wins, and the engine records what it declined to change. Between traits the first listed wins. Every inference lands in the decisions log, so a choice made for you is as visible as one you made yourself. The vocabulary is read from the language real briefs use ('corners are generous and the UI is dense'); engine/vocabulary.ts lists what each trait implies and cites the brief it came from."
+    }
   },
   "$defs": {
     "gradient": {

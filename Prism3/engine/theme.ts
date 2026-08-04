@@ -17,6 +17,7 @@ import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
 import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, iconSizes, IconSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
+import { resolveVocabulary } from './vocabulary';
 
 /** The appearance modes the engine can generate. `light` is the required base; the rest
  *  are opt-in (docs/11 Pillar 1). Wireframe (docs/11 §Pillar 1b) is not yet a mode. */
@@ -428,7 +429,34 @@ export type BrandInput = {
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
 };
 
-const buildDims = (baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
+/**
+ * The AUTHORING surface (#471) — what a human or agent may write — as distinct from `BrandInput`,
+ * which is the validated IR everything downstream consumes.
+ *
+ * The distinction is the whole reason the vocabulary layer is safe to add. Authors may write a
+ * named stop (`radiusScale: 'soft'`) or a cross-cutting `personality`; `resolveVocabulary` narrows
+ * both away at the top of `brandTheme`, so every consumer past that line still sees plain numbers
+ * and needs no awareness that a word was ever involved. Widening `BrandInput` itself instead would
+ * have pushed `number | string` through hundreds of arithmetic call sites — a type that lies about
+ * a value that is, by then, always a number.
+ *
+ * `BrandInput` is assignable to this, so every existing caller keeps working unchanged.
+ *
+ * Scope limit worth stating: stops resolve on TOP-LEVEL levers only. `modeLevers.<mode>.radiusScale`
+ * still takes a number, because a per-mode deviation is a precision instrument — reaching for one
+ * means you know the value you want.
+ */
+export type BrandInputAuthored =
+  Omit<BrandInput, 'neutral' | 'radiusScale' | 'shadow' | 'layout'> & {
+    neutral: { hue: number | string; chroma: number | string; anchor?: OKLCH; auto?: boolean };
+    radiusScale?: number | string;
+    shadow?: { softness?: number | string; tint?: { hue?: number; amount?: number } };
+    layout?: { breakpoints?: number[]; columns?: number; containerMax?: number | string; containerNarrow?: number | string };
+    /** Cross-cutting brand traits, resolved by `vocabulary.ts`. Fills only levers left absent. */
+    personality?: string[];
+  };
+
+const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
   // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
   // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
   // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
@@ -1535,8 +1563,16 @@ const diffAssign = <T>(map: Record<string, T>, mode: string, cand: T, baseJson: 
   return true;
 };
 
-export const brandTheme = (input: BrandInput): Theme => {
+export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   const notes: string[] = [];
+  // Descriptive vocabulary (#471) resolves FIRST, so everything downstream sees plain lever values
+  // and needs no awareness that a word was ever involved. Named stops (`radiusScale: 'soft'`) become
+  // numbers; `personality` traits fill levers the brief left absent, never one it set. Each
+  // inference lands in `notes` alongside the engine's own defaults — the whole point is that a
+  // choice made FOR the author is as visible as one they made themselves.
+  const resolved = resolveVocabulary(brandInput);
+  const input = resolved.input as BrandInput;
+  notes.push(...resolved.notes);
   const root = input.root ?? 'prism';
   // Single lowercase segment — enforce the "no two-segment namespaces" contract here
   // too (not only in the schema), since brandTheme is also called with in-memory
