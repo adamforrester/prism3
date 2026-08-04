@@ -40,7 +40,14 @@ export type MainToUi =
   /** Boot knob-rehydration (#131): the `BrandInput` persisted by the last apply, read back from the
    *  file's shared-data. The UI loads it wholesale so it opens on the persisted brand, not defaults.
    *  Sent only when a trusted blob exists (absence / drift → not sent → UI keeps defaults). */
-  | { type: 'restore-input'; input: BrandInput };
+  | { type: 'restore-input'; input: BrandInput }
+  /** The font families this Figma can load (the #113 Figma arm). Pushed once on `ui-ready` — the
+   *  list is static for the session, so there is no request/response pair. The shared UI uses it to
+   *  populate a `<datalist>` on the typeface input; it is a HINT, not a constraint (a free-typed name
+   *  is still accepted, because a brand input is a portable spec and may legitimately name a face
+   *  this machine lacks). Never persisted and never part of `BrandInput` — it is an environment fact,
+   *  not brand data. Absent on failure: the UI then keeps its plain free-text behavior. */
+  | { type: 'font-list'; families: string[] };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

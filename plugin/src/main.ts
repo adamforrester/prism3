@@ -19,6 +19,7 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { readFigmaVariables } from './read-figma';
+import { listFamilies } from './list-fonts';
 import { buildFigmaColor } from '../../Prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '../../Prism3/engine/write-plan';
 import { verifyReadback } from '../../Prism3/engine/read-back';
@@ -144,12 +145,30 @@ const restoreToUi = (): void => {
   if (input) postToUi({ type: 'restore-input', input });
 };
 
+/**
+ * Push the fonts this Figma can load up to the shared UI (the #113 Figma arm). Runs on `ui-ready`
+ * beside the read-back and the knob restore.
+ *
+ * Failure posts NOTHING, deliberately: the UI's fallback is its own free-text input, which works. An
+ * error message would report a degradation the designer cannot act on, and a partial list would be
+ * worse than none — it would make a real font look unavailable.
+ */
+const sendFonts = async (): Promise<void> => {
+  try {
+    const families = await listFamilies(figma);
+    if (families.length) postToUi({ type: 'font-list', families });
+  } catch {
+    /* no font list — the UI keeps its free-text input (which is the pre-#113 behavior) */
+  }
+};
+
 onUiMessage((msg: UiToMain) => {
   switch (msg.type) {
     case 'ui-ready':
       // UI's listener is attached — run the boot read-back (seed summary) + rehydrate the knobs.
       void seedFromFile();
       restoreToUi();
+      void sendFonts();
       return;
     case 'apply-theme':
       void applyTheme(msg.input);
