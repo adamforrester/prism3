@@ -6048,9 +6048,19 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
 .panel-head h2{margin:0;font-size:15px;font-weight:620;letter-spacing:-0.01em}
-.seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-sm);padding:2px;gap:2px}
-.seg-b{border:0;background:none;font:inherit;font-size:12px;color:var(--muted);padding:4px 12px;border-radius:5px;cursor:pointer}
-.seg-b.on{background:var(--ink);color:#fff}
+/* A segmented control is a FORM CONTROL, not a rung on the navigation ladder (#439). It was the last
+   user of the solid --ink selected fill that the mode chip just gave up — which left the loudest
+   selection treatment in the app governing whether a path prints long or short, the least
+   consequential choice on the page. Its own row is the evidence for what it is: Show (select) ·
+   Alias path (segmented) · Category (select), three controls of equal rank, with doc 26's existing
+   rule picking the form (3+ options -> select, binary -> segmented).
+   So it reads at the weight of the select beside it: a recessed --paper track with a raised
+   --panel thumb, matching the select's fill and type size rather than out-shouting the page.
+   The principle this states: selection weight tracks SCOPE, and a display preference has none. */
+.seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-xs);padding:2px;gap:2px;background:var(--paper)}
+.seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:10px 12px;border-radius:5px;cursor:pointer}
+.seg-b:hover{color:var(--ink)}
+.seg-b.on{background:var(--panel);color:var(--ink);font-weight:560;box-shadow:0 1px 2px rgba(20,22,30,.10)}
 
 /* Native color inputs: strip the browser's swatch inset so the color fills the whole control (no white gutter). */
 input[type=color]::-webkit-color-swatch-wrapper{padding:0}

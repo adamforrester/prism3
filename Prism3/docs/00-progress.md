@@ -7,6 +7,52 @@
 
 ---
 
+## (2026-08-04) — The segmented control stops out-shouting the page (#439)
+
+**STATUS: web.** Three CSS rules. `out/*` untouched.
+
+**Owner spotted that the selected-state work had never accounted for the segmented control.** It had
+not — and once the mode chip gave up its solid fill (#449), `.seg-b.on{background:var(--ink)}` became
+**the last user of the loudest selection treatment in the app**, governing whether an alias path
+prints long or short. The least consequential choice on the page had the heaviest control on it.
+
+**It was missed because it only renders on the Semantics tier** (`tokTier === 'semantic'`), so a probe
+that lands on the default tier sees an empty row and reports nothing. Worth remembering: a control
+behind a tab is invisible to a sweep that never opens the tab.
+
+**It is not a rung on the navigation ladder at all — it is a FORM CONTROL**, and its own row is the
+evidence: `Show` (select) · `Alias path` (segmented) · `Category` (select), three controls of equal
+rank. Doc 26 already carries the rule that picks between the forms — 3+ mutually-exclusive options
+take a select, a binary may take a segment — so `Show` (3) and `Category` (many) are selects and
+`Alias path` (2) is a segment. **The form was already right; only the weight was wrong.**
+
+So it now reads at the weight of the select beside it: a recessed `--paper` track with a raised
+`--panel` thumb, at the select's own type size, matched to **41px against the select's 41px** rather
+than sitting 6px shorter in a shared row.
+
+**The ladder gains a fourth tier, below the three navigation ones:**
+
+```
+L1  page          rail          raised card
+L2  view          tabs          filled + weight
+L3  nested view   inner tabs    underline
+--  control       select / segmented / slider — form weight, never nav weight
+```
+
+Which states the principle the first three were missing: **selection weight tracks SCOPE, and a
+display preference has none.** Choosing how a path prints is not navigation and should not look like
+it.
+
+**Walked into the backtick trap a second time.** The stylesheet is a TS template literal, so a
+backtick inside a CSS comment terminates the string — six of them, four `TS1005` errors. I recorded
+this in #417 and still did it. The lesson evidently needs to be a habit, not a note: **no backticks
+in any comment inside the CSS string**, even when quoting a token name.
+
+Verified: selected **17.72:1**, unselected **6.68:1**, both AA; control row 848/848 with no overflow
+after the size increase; toggling still switches; no page errors.
+
+---
+
 ## (2026-08-04) — The mode bar leaves two of Preview's three views (#439)
 
 **STATUS: web.** One condition. `out/*` untouched.
@@ -42,7 +88,7 @@ switch.
 a trip through the barless views and back (Dark → Token list → Dark); the hidden bar leaves no empty
 sticky box (`display:none`, 0px); Size & radius, Motion and Palettes unchanged; no page errors.
 
-
+---
 
 ## (2026-08-04) — Review follow-ups: the white alpha ramp was ten identical swatches
 
