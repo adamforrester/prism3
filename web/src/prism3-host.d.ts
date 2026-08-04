@@ -9,3 +9,15 @@
  * the other host's code.
  */
 declare const PRISM3_HOST: 'web' | 'figma';
+
+/**
+ * Build identity (#474). The commit the live bundle was built from, or `'local'` when it was not
+ * built by the deploy. Every esbuild entry point that bundles `web/src` MUST define it — a `define`
+ * that is merely absent leaves a bare identifier in the output and throws at load, so this is not a
+ * value with a fallback; it is a required build input.
+ *
+ * It exists because `/dist/main.js` is served from an invariant URL: nothing about the page told you
+ * which build you were looking at, so "did it deploy?" could only be answered by rebuilding locally
+ * and diffing rendered pixels. That happened, for a change that had in fact shipped correctly.
+ */
+declare const PRISM3_BUILD: string;
