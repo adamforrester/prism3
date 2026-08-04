@@ -7,6 +7,103 @@
 
 ---
 
+## (2026-08-04) — The MCP write path could theme a file and give it no typography
+
+**STATUS: engine (`materialise-to-figma.ts`, `write-plan.ts`, `test.ts`) + plugin
+(`write-text-styles.ts`).** `out/*` untouched — this adds no artifact, it makes existing artifacts
+reachable.
+
+There are **two write paths** into Figma and they are supposed to be projections of one plan: the live
+plugin executor, and the CLI paste path (`materialise-to-figma.ts` → `figma_execute`). The second one
+is **the only path an MCP-driven session can use** — the plugin sandbox has no network egress, so an
+agent that wants to theme a file goes through generated plugin JS.
+
+The plugin has written **five** axes since #237. The paste path covered **two**:
+
+| axis | plugin | paste path (before) |
+|---|---|---|
+| colour — `core-palette` + `color` × 4 modes | ✓ | ✓ |
+| 9 FLOAT collections | ✓ | ✓ (#342) |
+| `core-font` + `type-sets` — 50 vars | ✓ | **✗** |
+| Text Styles — 38 | ✓ | **✗** |
+| Effect/Paint Styles — 14 | ✓ | **✗** |
+
+So an agent could theme a file over MCP and get every colour and every dimension **and no typography
+at all** — no families, no ladder, no weights, not one Text Style. Silently: each pass it *did* run
+returned success.
+
+This is the same gap #342 closed for floats, and `materialise-to-figma.ts`'s own header had already
+named the mechanism — *"an MCP-driven session could materialise colour and nothing else"* — then fixed
+one third of it. **A comment that documents a gap is not a gate.** #342 also added the axis-parity
+assertion that would have caught this, but scoped it to floats, so it passed while three axes were
+missing.
+
+### Three passes, and the plan equality that keeps them honest
+
+`font-vars`, `text-styles`, `styles` — plus `fontVarPlanFrom` / `stylesPlanFromFiles` /
+`textStylePlanFromFiles` in `write-plan.ts`: file-reading twins of the theme-built plans, mirroring
+`floatPlanFor`. The paste path reads the **emitted** `out/figma/<brand>/` files for the reason the
+float lane does — the emitted JSON is what the docs/10 §3 contract is written against, so a
+theme-rebuilt plan could disagree with the artifact under `--check`.
+
+The load-bearing assertion is not *"the passes exist"* but **"the file-read plan EQUALS the
+theme-built plan"** — asserted per axis on `nb`, the fixture both paths can build. A change to either
+reshape now fails in `test.ts` rather than in a Figma file three surfaces away.
+
+### The bug the new gate caught on its first run: `FONT_FAMILY` had no scope code
+
+`core-font` is the **only** collection that mixes types — STRING families beside FLOAT sizes and
+weights. The scope-code map was built for the float lane, where every scope is a float scope, so
+`FONT_FAMILY` wasn't in it and encoded to `'?'`. Every family variable would have pasted with
+`scopes: [undefined]`.
+
+Fixed with its own `FONT_SCOPE_CODE` (float codes + `FONT_FAMILY: 'm'`) rather than by adding to the
+float map — the same reason the float map isn't folded into the colour one: the namespaces are
+disjoint, and an unknown scope must decode to `'?'` **loudly** instead of quietly landing on a scope
+that happens to share a letter. Two assertions now cover it: no `'?'` reaches a payload, and the code
+map is a **bijection** — two scopes sharing a letter means one decodes to the other's enum, which the
+Plugin API accepts and no read-back would question.
+
+The decode also **throws** on an unknown code rather than returning `undefined`. A payload that pastes
+clean and mis-scopes is worse than one that fails.
+
+### A real divergence found while checking parity: the plugin dropped Text Style descriptions
+
+`TextStyleRow` has always carried `description` — the prose a designer reads in the style panel to
+know what a rung is *for* — and `applyTextStylePlan` never assigned it. Unnoticed while nothing else
+wrote Text Styles; the moment the paste path did, the two write paths would have disagreed about what
+a style looks like in the file. Two lines in the plugin, plus the assertion, so it stays fixed.
+
+### Traps for whoever extends this
+
+- **`text-styles` must be pasted after `font-vars`** — the one *real* cross-lane ordering rule here.
+  `setBoundVariable` resolves targets by name, so the vars must exist. Colour-before-float is only a
+  convention; this is not, and `passOrder()` is asserted.
+- **The name map must be UNFILTERED** (`getLocalVariablesAsync()`, no argument) — the #146 lesson. A
+  type-filtered fetch finds the FLOAT size/weight vars and misses the STRING family var, so families
+  silently fail to bind while sizes look fine.
+- **Skip-with-warning, never substitute-or-throw** (#237) — a paste path that threw on one missing
+  weight would lose all 38 styles instead of one. Asserted: `skipped.push` present, `throw` absent.
+- **`nb` ships no gradients**, so the Paint lane is asserted against **aurora**. A gate that only ever
+  ran `nb` would have called the gradient path covered while never executing it.
+- **#377 could still return.** The leading/tracking semantic tier nearly baked every style at 100%
+  line height, and that would be invisible. The payload is now asserted to carry a real spread
+  (105/115/125/140/150), not all-100.
+
+### What this does NOT do
+
+The **live drive is unverified** — the Desktop Bridge dropped mid-session, so nothing here has been
+pasted into a real file. Every assertion is against the generated payload, its plan, and the
+executor's own shims. The payloads are syntax-checked with `node --check` and sized under the
+`figma_execute` budget (largest new pass: 9.5KB against 45KB), but "it pastes and binds" is still
+owed. That is the next step, and #111's stated prereq.
+
+**Verification.** `regen --check` 89/89 · **1342/0** (was 1317, +25) · MCP suite 49/0 · NB regression
+PASS · plugin typography ALL PASS · web+plugin typecheck/build · 0 `node:` in the plugin bundle ·
+US-English clean (92 files).
+
+---
+
 ## (2026-08-04) — The MCP decisions log ships by default (its description already said it did)
 
 **STATUS: engine (`mcp.ts`, `test.ts`).** `out/*` byte-identical — no token changed.

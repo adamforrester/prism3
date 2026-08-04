@@ -34,15 +34,21 @@
  *   npx tsx Prism3/engine/materialise-to-figma.ts <brand> --pass color-aliases
  *   npx tsx Prism3/engine/materialise-to-figma.ts <brand> --pass verify
  *
- * Scope today: the `core-palette` + `color` collections (what the round-trip re-test needs).
- * Other axes (dims / layout / font / shadow) can be added the same way when needed.
+ * Scope: ALL FIVE write axes the plugin executor writes — colour (`core-palette` + `color`), the nine
+ * FLOAT collections (#342), and as of #464 the typography variables (`core-font` + `type-sets`), the
+ * Text Styles, and the Effect/Paint styles. The five-vs-two asymmetry is the reason the last three
+ * landed: this CLI is the ONLY write path an MCP-driven session can use, so an agent could theme a
+ * file over MCP and get every colour and dimension and no typography at all. `test.ts` now asserts
+ * axis parity between the two paths, so the gap can't silently reopen.
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import type { FigmaCollectionFile } from './emit-figma';
-import { buildWritePlan, floatPlanFor } from './write-plan';
-import type { WritePlan, FloatCollectionPlan } from './write-plan';
+import { buildWritePlan, floatPlanFor, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, TextStylePlan } from './write-plan';
+import type { FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
+import type { FigmaTextStylesFile } from './emit-figma-font';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -70,6 +76,16 @@ const FLOAT_SCOPE_CODE: Record<string, string> = {
 };
 const encodeFloatScopes = (scopes: string[]): string =>
   scopes.map((s) => FLOAT_SCOPE_CODE[s] ?? '?').sort().join('');
+
+// `core-font` is the one collection that mixes types, so it's the one place a STRING scope appears.
+// FONT_FAMILY belongs to neither the colour nor the float namespace — a STRING variable can be
+// FONT_FAMILY or TEXT_CONTENT and never WIDTH_HEIGHT — so it gets its own entry rather than being
+// folded into the float map, for the same reason the float map isn't folded into the colour one: an
+// unknown scope must decode to '?' loudly instead of quietly landing on a scope that shares a letter.
+// The font pass encodes across BOTH maps because one collection carries both types of row.
+const FONT_SCOPE_CODE: Record<string, string> = { ...FLOAT_SCOPE_CODE, FONT_FAMILY: 'm' };
+const encodeFontScopes = (scopes: string[]): string =>
+  scopes.map((s) => FONT_SCOPE_CODE[s] ?? '?').sort().join('');
 
 const load = (brand: string, file: string): FigmaCollectionFile => {
   const p = resolve(HERE, `out/figma/${brand}/${file}`);
@@ -139,6 +155,69 @@ const floatPlans = (brand: string): FloatCollectionPlan[] =>
 /** Exported so the suite can assert the paste path covers every axis the plugin path writes —
  *  the drift check that would have caught this gap when it opened. */
 export const floatCollections = (brand: string): string[] => floatPlans(brand).map((p) => p.name);
+
+// ---- the TYPOGRAPHY + STYLE axes (#464) ------------------------------------------------
+// The same asymmetry #342 closed for floats, closed for the remaining three axes. The plugin has
+// written all five since #237 (`applyVarCollectionPlan` / `applyTextStylePlan` / `applyStylesPlan`),
+// while the paste path — the ONLY one an MCP-driven session can use — had colour and floats, so
+// `core-font`, `type-sets`, all 38 Text Styles and all 14 Effect Styles were unreachable. An agent
+// could theme a file over MCP and get every colour and dimension and no typography at all.
+//
+// Reads the EMITTED files for the same reason the float lane does: the emitted JSON is what the
+// docs/10 §3 contract is written against, and the `*FromFiles` reshapes are the same pure functions
+// the plugin path calls, so the two still can't drift.
+//
+// Ordering: `font-vars` before `text-styles`, for the reason create-before-alias holds everywhere
+// here — a Text Style's `setBoundVariable` needs `font/family/*`, `font/weight-role/*` and
+// `font-fluid/*` to already exist. `styles` is independent (Effect/Paint styles bind no variables),
+// so its position is a convention.
+
+/** `core-font` emits one file per mode (Phase D — same convention as `radius`), so BOTH the
+ *  single-file `core-font.json` and the per-mode `core-font.<mode>.json` shapes are probed. A brand
+ *  with no per-mode typography emits only the former. */
+const fontFiles = (brand: string): { font: FigmaCollectionFile[]; fluid: FigmaCollectionFile[] } => {
+  const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
+  const single = 'core-font.json';
+  // Mode names aren't known ahead of time here (they're the brand's appearance modes), so read the
+  // per-mode files by the same MODE_ORDER the colour lane uses, then fall back to the single file.
+  const perMode = MODE_ORDER.map((m) => `core-font.${m}.json`).filter((f) => existsSync(at(f)));
+  const font = perMode.length ? perMode : existsSync(at(single)) ? [single] : [];
+  const fluid = FONT_FLUID_MODES.map((m) => `type-sets.${m}.json`).filter((f) => existsSync(at(f)));
+  return { font: font.map((f) => load(brand, f)), fluid: fluid.map((f) => load(brand, f)) };
+};
+
+// The viewport modes `type-sets` emits (mirrors `emit-figma-font.ts` FONT_FLUID_MODES). Kept as a
+// local list rather than imported so this shell stays a reader of the ARTIFACTS, not of the emitter's
+// internals — and the suite asserts the two agree.
+const FONT_FLUID_MODES = ['mobile', 'desktop'] as const;
+
+const fontVarPlans = (brand: string): VarCollectionPlan[] => {
+  const { font, fluid } = fontFiles(brand);
+  return fontVarPlanFrom(font, fluid).filter((p) => p.rows.length > 0);
+};
+
+/** Exported for the same drift assertion `floatCollections` carries. */
+export const fontCollections = (brand: string): string[] => fontVarPlans(brand).map((p) => p.name);
+
+const stylesPlan = (brand: string): StylesPlan => {
+  const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
+  const empty = <T,>(collection: string): T => ({ $collection: collection, styles: [] }) as T;
+  const shadow = existsSync(at('shadow-styles.json'))
+    ? (load(brand, 'shadow-styles.json') as unknown as FigmaEffectStylesFile)
+    : empty<FigmaEffectStylesFile>('shadow-styles');
+  const gradient = existsSync(at('gradient-styles.json'))
+    ? (load(brand, 'gradient-styles.json') as unknown as FigmaPaintStylesFile)
+    : empty<FigmaPaintStylesFile>('gradient-styles');
+  return stylesPlanFromFiles(shadow, gradient);
+};
+
+const textStylePlan = (brand: string): TextStylePlan => {
+  const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
+  if (!existsSync(at('text-styles.json'))) return [];
+  const { font } = fontFiles(brand);
+  if (!font.length) return [];
+  return textStylePlanFromFiles(load(brand, 'text-styles.json') as unknown as FigmaTextStylesFile, font[0]);
+};
 
 // ---- the SC decode map + shared helpers, injected into every plugin payload -----------
 const PRELUDE = `const SC={f:'FRAME_FILL',s:'SHAPE_FILL',t:'TEXT_FILL',k:'STROKE_COLOR'};
@@ -301,6 +380,144 @@ return {bound,misses};
 })()`;
 };
 
+// ---- pass: font-vars (core-font + type-sets; MIXED type in one collection) ---------------
+// One payload for both collections and both their passes: 50 variables total, and `core-font`'s
+// weight-role aliases target `font/weight/N` in the SAME collection, so create-then-bind can be two
+// loops in one payload rather than two paste steps. (Colour needs two payloads only because of size.)
+//
+// The per-row `resolvedType` is the thing that makes this pass distinct from `dims-create`:
+// `core-font` mixes STRING (family) and FLOAT (size/weight) in ONE collection. Creating a family var
+// as FLOAT would accept no string value and fail only when a Text Style tried to bind it — so the
+// type travels per row, encoded 's'/'f', and an unknown code throws at paste time rather than
+// defaulting to either.
+const fontVarsPass = (brand: string): string => {
+  // row: [name, typeCode, scopes, description, hidden, [value per mode], [alias per mode]]
+  const F = fontVarPlans(brand).map((p) => [
+    p.name, p.modes,
+    p.rows.map((r) => [
+      r.name, r.resolvedType === 'STRING' ? 's' : 'f', encodeFontScopes(r.scopes),
+      r.description, r.hidden ? 1 : 0, r.valuesByMode, r.aliasByMode,
+    ]),
+  ]);
+  const FSC = JSON.stringify(Object.fromEntries(Object.entries(FONT_SCOPE_CODE).map(([k, v]) => [v, k])));
+  return `(async()=>{
+${PRELUDE}
+const FSC=${FSC};
+const dec=(c)=>[...c].map(x=>{const s=FSC[x];if(!s)throw new Error('unknown scope code: '+x);return s;});
+const TY={s:'STRING',f:'FLOAT'};
+const F=${JSON.stringify(F)};
+const out=[];const byNameGlobal=new Map();const modeIdsByCol={};
+// pass A: create/update every var with its literal per-mode value (aliases bind in pass B below,
+// once every target exists — the same ordering rule the colour and float lanes follow).
+for(const [cname,MODES,rows] of F){
+  let col=await findCol(cname);
+  if(!col)col=figma.variables.createVariableCollection(cname);
+  col.renameMode(col.modes[0].modeId,MODES[0]);
+  const modeIds={[MODES[0]]:col.modes[0].modeId};
+  for(let i=1;i<MODES.length;i++){const m=col.modes.find(x=>x.name===MODES[i]);modeIds[MODES[i]]=m?m.modeId:col.addMode(MODES[i]);}
+  modeIdsByCol[cname]=modeIds;
+  const have=new Map((await figma.variables.getLocalVariablesAsync()).filter(v=>v.variableCollectionId===col.id).map(v=>[v.name,v]));
+  let created=0;
+  for(const [name,ty,sc,desc,hidden,vals] of rows){
+    let v=have.get(name);
+    if(!v){v=figma.variables.createVariable(name,col,TY[ty]);created++;}
+    v.scopes=dec(sc);v.description=desc;v.hiddenFromPublishing=!!hidden;
+    MODES.forEach((m,i)=>v.setValueForMode(modeIds[m],vals[i]));
+    byNameGlobal.set(name,v);
+  }
+  out.push({collection:cname,modes:MODES,total:rows.length,created});
+}
+// pass B: the weight-role -> font/weight/N links, per mode.
+let bound=0;const misses=[];
+for(const [cname,MODES,rows] of F){
+  const modeIds=modeIdsByCol[cname];
+  for(const [name,,,,,,aliases] of rows){
+    const v=byNameGlobal.get(name);
+    if(!v){misses.push('var:'+name);continue;}
+    MODES.forEach((m,i)=>{
+      const t=aliases[i];if(!t)return;
+      const tv=byNameGlobal.get(t);
+      if(!tv){misses.push(name+' @'+m+' -> '+t);return;}
+      v.setValueForMode(modeIds[m],figma.variables.createVariableAlias(tv));bound++;
+    });
+  }
+}
+return {collections:out,bound,misses};
+})()`;
+};
+
+// ---- pass: styles (Effect Styles = shadows, Paint Styles = gradients) --------------------
+// The only pass that writes NO variables — Effect/Paint styles hold resolved values, so there's no
+// alias graph and no ordering constraint against the other passes. Both style sets are written
+// (`shadow/*` light + `shadow-dark/*` dark) because Effect Styles can't carry Figma modes; a
+// component swaps the pair by mode instead (the lane decision in `write-plan.ts`).
+const stylesPass = (brand: string): string => {
+  const { effects, paints } = stylesPlan(brand);
+  const E = effects.map((r) => [r.name, r.description, r.effects]);
+  const P = paints.map((r) => [r.name, r.description, r.paintType, r.gradientTransform, r.stops]);
+  return `(async()=>{
+const E=${JSON.stringify(E)};
+const P=${JSON.stringify(P)};
+const effectByName=new Map((await figma.getLocalEffectStylesAsync()).map(s=>[s.name,s]));
+let effectsCreated=0;
+for(const [name,desc,effects] of E){
+  let s=effectByName.get(name);
+  if(!s){s=figma.createEffectStyle();s.name=name;effectByName.set(name,s);effectsCreated++;}
+  s.description=desc;s.effects=effects;
+}
+const paintByName=new Map((await figma.getLocalPaintStylesAsync()).map(s=>[s.name,s]));
+let paintsCreated=0;
+for(const [name,desc,paintType,gradientTransform,stops] of P){
+  let s=paintByName.get(name);
+  if(!s){s=figma.createPaintStyle();s.name=name;paintByName.set(name,s);paintsCreated++;}
+  s.description=desc;
+  s.paints=[{type:paintType,gradientTransform:gradientTransform,gradientStops:stops}];
+}
+return {effects:{total:E.length,created:effectsCreated},paints:{total:P.length,created:paintsCreated}};
+})()`;
+};
+
+// ---- pass: text-styles (the only pass that must LOAD a resource) ------------------------
+// Text Styles are a third API surface (`figma.createTextStyle`), and the first write that must
+// `loadFontAsync` before `fontName` can be set. FONT FALLBACK = SKIP-WITH-WARNING (the #237 owner
+// decision, mirrored from `plugin/src/write-text-styles.ts`): a family/style that won't load is
+// recorded in `skipped[]`, never substituted with a wrong face and never thrown — so one missing
+// weight costs one style rather than the whole paste.
+//
+// Must be pasted AFTER `font-vars`: the three bound props resolve their targets by name, and the
+// name map is built from an UNFILTERED `getLocalVariablesAsync()` (the #146 lesson — a type-filtered
+// fetch would miss the STRING family var alongside the FLOAT size/weight vars).
+const textStylesPass = (brand: string): string => {
+  const T = textStylePlan(brand).map((r) => [
+    r.name, r.description, r.fontFamilyVar, r.fontFamilyPrimary, r.fontSizeVar,
+    r.fontWeightVar, r.fontStyle, r.lineHeightPct, r.letterSpacingPct, r.textCase, r.textDecoration,
+  ]);
+  return `(async()=>{
+const T=${JSON.stringify(T)};
+const byName=new Map((await figma.getLocalTextStylesAsync()).map(s=>[s.name,s]));
+const varByName=new Map((await figma.variables.getLocalVariablesAsync()).map(v=>[v.name,v]));
+let created=0,bound=0;const skipped=[],misses=[];
+for(const [name,desc,famVar,face,sizeVar,weightVar,style,lhPct,lsPct,tCase,tDec] of T){
+  try{await figma.loadFontAsync({family:face,style:style});}
+  catch(e){skipped.push({name:name,reason:'font unavailable: '+face+' '+style});continue;}
+  let s=byName.get(name);
+  if(!s){s=figma.createTextStyle();s.name=name;byName.set(name,s);created++;}
+  s.description=desc;
+  s.fontName={family:face,style:style};
+  s.lineHeight={unit:'PERCENT',value:lhPct};
+  s.letterSpacing={unit:'PERCENT',value:lsPct};
+  s.textCase=tCase;s.textDecoration=tDec;
+  for(const [field,target] of [['fontFamily',famVar],['fontSize',sizeVar],['fontWeight',weightVar]]){
+    if(!target)continue;
+    const v=varByName.get(target);
+    if(!v){misses.push(name+'.'+field+' -> '+target);continue;}
+    s.setBoundVariable(field,v);bound++;
+  }
+}
+return {total:T.length,created,bound,skipped,misses};
+})()`;
+};
+
 // ---- pass: verify (API-probe read-back; the collapse guard lives here) ------------------
 const verifyPass = (brand: string): string => {
   const modes = colourModes(brand);
@@ -350,11 +567,18 @@ return {
 // ---- CLI --------------------------------------------------------------------------------
 const PASSES: Record<string, (b: string) => string> = {
   palette: palettePass, 'color-create': colorCreatePass, 'color-aliases': colorAliasesPass,
-  'dims-create': dimsCreatePass, 'dims-aliases': dimsAliasesPass, verify: verifyPass,
+  'dims-create': dimsCreatePass, 'dims-aliases': dimsAliasesPass,
+  'font-vars': fontVarsPass, 'text-styles': textStylesPass, styles: stylesPass,
+  verify: verifyPass,
 };
-// Colour first, then floats — the two lanes don't alias each other, so the order between them is
-// a convention rather than a constraint; WITHIN each lane create-before-alias is a hard requirement.
-const ORDER = ['palette', 'color-create', 'color-aliases', 'dims-create', 'dims-aliases', 'verify'];
+// Colour, then floats, then typography, then styles — the lanes don't alias each other, so the order
+// BETWEEN them is a convention; WITHIN each lane create-before-alias is a hard requirement. The one
+// cross-lane constraint that IS real: `text-styles` after `font-vars`, because a Text Style's
+// `setBoundVariable` resolves `font/family/*`, `font/weight-role/*` and `font-fluid/*` by name.
+const ORDER = [
+  'palette', 'color-create', 'color-aliases', 'dims-create', 'dims-aliases',
+  'font-vars', 'text-styles', 'styles', 'verify',
+];
 
 /** The pass payloads, exposed so the suite can assert on what would actually be pasted rather than
  *  on a re-derivation of it. Byte-for-byte the same string the CLI prints. */

@@ -27,9 +27,9 @@ import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-col
 import type { Theme } from './theme';
 import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
 import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
-import type { FigmaEffect } from './emit-figma-styles';
+import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
 import { buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles } from './emit-figma-font';
-import type { FigmaTextStyle } from './emit-figma-font';
+import type { FigmaTextStyle, FigmaTextStylesFile } from './emit-figma-font';
 
 /** A colour value as Figma's variable API wants it (RGBA floats 0–1). */
 export type Rgba = { r: number; g: number; b: number; a: number };
@@ -271,31 +271,40 @@ export const gradientTransformFor = (
   return [[1, 0, r(cx - 0.5)], [0, 1, r(cy - 0.5)]];
 };
 
-/**
- * Reshape the shadow + gradient emit into the host-neutral styles plan. PURE (node-free builders +
- * types) — bundles into the plugin like the variable plans. Gradient stops are BAKED to resolved
- * RGBA (owner decision); the `alias`/`sampledStops` the emit carries are intentionally dropped here.
- */
-export const buildStylesPlan = (theme: Theme): StylesPlan => {
-  const shadow = buildFigmaShadow(theme);
-  const gradient = buildFigmaGradient(theme);
-
-  const effects: EffectStyleRow[] = shadow.styles.map((s) => ({
+/** The reshape itself, over already-resolved emit shapes. Both entry points below project THIS, so
+ *  the theme-built (plugin) and file-read (CLI paste) plans are the same data by construction. */
+const stylesPlanFrom = (
+  shadow: FigmaEffectStylesFile,
+  gradient: FigmaPaintStylesFile,
+): StylesPlan => ({
+  effects: shadow.styles.map((s) => ({
     name: s.name,
     description: s.description,
     effects: s.effects,
-  }));
-
-  const paints: PaintStyleRow[] = gradient.styles.map((g) => ({
+  })),
+  paints: gradient.styles.map((g) => ({
     name: g.name,
     description: g.description,
     paintType: g.paintType,
     gradientTransform: gradientTransformFor(g.paintType, g.angle, g.center),
     stops: g.stops.map((s) => ({ position: s.position, color: rgba(s.color) })),
-  }));
+  })),
+});
 
-  return { effects, paints };
-};
+/** The file-reading twin of `buildStylesPlan` — see `fontVarPlanFrom` for why the paste path reads
+ *  emitted files rather than rebuilding from a theme. */
+export const stylesPlanFromFiles = (
+  shadow: FigmaEffectStylesFile,
+  gradient: FigmaPaintStylesFile,
+): StylesPlan => stylesPlanFrom(shadow, gradient);
+
+/**
+ * Reshape the shadow + gradient emit into the host-neutral styles plan. PURE (node-free builders +
+ * types) — bundles into the plugin like the variable plans. Gradient stops are BAKED to resolved
+ * RGBA (owner decision); the `alias`/`sampledStops` the emit carries are intentionally dropped here.
+ */
+export const buildStylesPlan = (theme: Theme): StylesPlan =>
+  stylesPlanFrom(buildFigmaShadow(theme), buildFigmaGradient(theme));
 
 // ---------------------------------------------------------------------------
 // TYPOGRAPHY (#237) — `core-font`/`type-sets` VARIABLES + Text Styles. Two host-neutral plans:
@@ -344,6 +353,16 @@ const varPlanFor = (name: string, files: FigmaCollectionFile[]): VarCollectionPl
   return { name, modes, rows };
 };
 
+/** The file-reading twin of `buildFontVarPlan` — reshape already-emitted `core-font`/`type-sets`
+ *  files into the same `VarCollectionPlan[]`. Exists for the CLI paste path, which reads
+ *  `out/figma/<brand>/` rather than rebuilding from a theme (the emitted JSON is what the docs/10 §3
+ *  contract is written against, so a theme-rebuilt plan could disagree with the artifact under
+ *  `--check`). Same reshape either way, so the two write paths can't drift. */
+export const fontVarPlanFrom = (
+  font: FigmaCollectionFile[],
+  fluid: FigmaCollectionFile[],
+): VarCollectionPlan[] => [varPlanFor('core-font', font), varPlanFor('type-sets', fluid)];
+
 /**
  * The font-variable plan — `core-font` (per-mode) + `type-sets` (mobile/desktop). PURE: calls the
  * node-free `buildFigmaFont`/`buildFigmaFontFluid` and reshapes; bundles into the plugin.
@@ -389,15 +408,28 @@ const boundVar = (p: FigmaTextStyle['properties']['fontSize']): { variable: stri
  * host-neutral shape the plugin executor consumes, resolving each category's PRIMARY FACE from the
  * matching `core-font` family variable (so `loadFontAsync` + `fontName` get the real face). PURE.
  */
-export const buildTextStylePlan = (theme: Theme): TextStylePlan => {
-  const styles = buildFigmaTextStyles(theme).styles;
+export const buildTextStylePlan = (theme: Theme): TextStylePlan =>
+  textStylePlanFrom(buildFigmaTextStyles(theme), buildFigmaFont(theme)[0]);
+
+/** The file-reading twin of `buildTextStylePlan` — see `fontVarPlanFrom` for why the paste path reads
+ *  emitted files. Takes the DEFAULT-mode `core-font` file for the same reason the theme path takes
+ *  `buildFigmaFont(theme)[0]`: that's where the primary face per family var is resolved from. */
+export const textStylePlanFromFiles = (
+  textStyles: FigmaTextStylesFile,
+  coreFontDefault: FigmaCollectionFile,
+): TextStylePlan => textStylePlanFrom(textStyles, coreFontDefault);
+
+const textStylePlanFrom = (
+  file: FigmaTextStylesFile,
+  fontDefault: FigmaCollectionFile,
+): TextStylePlan => {
+  const styles = file.styles;
   // Primary face per family var name, from the Default-mode core-font family rows (value = primary face).
   // NB: we deliberately use the DEFAULT-mode face for loadFontAsync + the fontName fallback. A brand
   // with a per-mode family override (`familiesByMode`) still binds `fontFamily` to the STRING var,
   // which carries the per-mode value at render — so the Default face is the correct thing to load for
   // the style's own fallback. No shipping brand sets `familiesByMode` today, so this path is currently
   // unexercised by a fixture; a `familiesByMode` example brand would close that gap before it matters.
-  const fontDefault = buildFigmaFont(theme)[0];
   const faceByVar = new Map(
     fontDefault.variables.filter((v) => v.name.startsWith('font/family/')).map((v) => [v.name, String(v.value)] as const),
   );

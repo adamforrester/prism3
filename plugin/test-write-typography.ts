@@ -59,6 +59,7 @@ class VariablesShim {
 // ---- the in-memory text-style shim + fake font registry ------------------------------------
 class ShimTextStyle {
   name = '';
+  description = '';
   fontName: FontName = { family: '', style: '' };
   fontSize = 0;
   lineHeight: unknown = { unit: 'AUTO' };
@@ -126,6 +127,11 @@ ok(tr1.misses.length === 0 && tr1.bound === textPlan.length * 3, `every text sty
 const sample = tShim.styles[0];
 ok(!!sample.bound.fontFamily && !!sample.bound.fontSize && !!sample.bound.fontWeight, 'a text style has all three bound vars set');
 ok(sample.fontName.family !== '' && sample.fontName.style !== '', 'a text style has its baked fontName (family + style) set as the fallback');
+// The description is what a designer reads in the style panel to know what a rung is FOR. The plan has
+// always carried it and this executor dropped it until #464, where the sibling paste path started
+// writing it — so the two write paths would have disagreed on what a style looks like in the file.
+ok(tShim.styles.every((s, i) => s.description === textPlan[i].description && s.description !== ''),
+  'every text style carries its plan description (the style-panel documentation)');
 ok(tr2.created === 0 && tShim.styles.length === stylesAfterFirst, `text styles: re-run idempotent (+${tr2.created}, no duplicates)`);
 
 // --- the skip-with-warning path: a font NOT in the registry is skipped, not thrown ---

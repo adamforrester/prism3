@@ -31,8 +31,8 @@ import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION } from './mcp';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, floatCollections, passJs, passOrder } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan } from './write-plan';
+import { aliasRows, floatCollections, fontCollections, passJs, passOrder } from './materialise-to-figma';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, ComponentDef, AnatomyDef } from './component-schema';
@@ -5328,6 +5328,103 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Payload budget — the reason the colour lane is split across three passes in the first place.
   for (const name of passOrder())
     ok(Buffer.byteLength(passJs('nb', name), 'utf8') < 45_000, `materialise: pass '${name}' is inside the figma_execute budget (${Buffer.byteLength(passJs('nb', name), 'utf8')} bytes)`);
+}
+
+// ------------------------------- materialise-to-figma: the TYPOGRAPHY + STYLE paste paths (#464)
+// The same gap #342 closed for floats, for the last three axes. The plugin has written all five
+// since #237; the paste path — the only one an MCP-driven session can use — had colour and floats,
+// so `core-font`, `type-sets`, 38 Text Styles and 14 Effect Styles were unreachable over MCP. An
+// agent could theme a file and get every colour and dimension and no typography at all.
+//
+// The load-bearing assertion is not "the passes exist" but "the file-read plan EQUALS the
+// theme-built plan". Both write paths project one plan by construction; these lock that in, so a
+// change to either reshape fails here rather than in a Figma file three surfaces away.
+{
+  const t = nbTheme();
+
+  // Axis parity, the drift check that would have caught the gap when it opened.
+  const pluginFontAxes = buildFontVarPlan(t).map((p) => p.name).sort();
+  const pasteFontAxes = fontCollections('nb').sort();
+  ok(JSON.stringify(pluginFontAxes) === JSON.stringify(pasteFontAxes),
+    `materialise: the paste path covers every font collection the plugin path writes${JSON.stringify(pluginFontAxes) === JSON.stringify(pasteFontAxes) ? ` (${pasteFontAxes.join(', ')})` : ` — plugin [${pluginFontAxes}] vs paste [${pasteFontAxes}]`}`);
+
+  // PLAN EQUALITY — the file-read reshapes against the theme-built ones, per axis. `nb` is the
+  // fixture both paths can build, so this is a true equality rather than a shape comparison.
+  const rd = (f: string): unknown => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
+  const coreFont = rd('core-font.json') as Parameters<typeof fontVarPlanFrom>[0][number];
+  const fluidFiles = ['mobile', 'desktop'].map((m) => rd(`type-sets.${m}.json`) as typeof coreFont);
+  ok(JSON.stringify(fontVarPlanFrom([coreFont], fluidFiles)) === JSON.stringify(buildFontVarPlan(t)),
+    'materialise: the file-read font plan is IDENTICAL to the theme-built font plan (the two write paths cannot drift)');
+  ok(JSON.stringify(stylesPlanFromFiles(rd('shadow-styles.json') as never, rd('gradient-styles.json') as never)) === JSON.stringify(buildStylesPlan(t)),
+    'materialise: the file-read styles plan is IDENTICAL to the theme-built styles plan');
+  ok(JSON.stringify(textStylePlanFromFiles(rd('text-styles.json') as never, coreFont)) === JSON.stringify(buildTextStylePlan(t)),
+    'materialise: the file-read text-style plan is IDENTICAL to the theme-built text-style plan');
+
+  const fontVars = passJs('nb', 'font-vars');
+  const textStyles = passJs('nb', 'text-styles');
+  const styles = passJs('nb', 'styles');
+
+  // `core-font` mixes STRING (family) and FLOAT (size/weight) in ONE collection — the reason this
+  // pass carries a per-row type code where `dims-create` hardcodes 'FLOAT'. A family var created as
+  // FLOAT accepts no string value and fails only when a Text Style tries to bind it, so both codes
+  // must reach the payload, and the decode must THROW on an unknown one rather than default.
+  ok(fontVars.includes("TY={s:'STRING',f:'FLOAT'}"), 'materialise: font-vars carries both variable types (STRING family + FLOAT size/weight in one collection)');
+  ok(/,"s",/.test(fontVars) && /,"f",/.test(fontVars), 'materialise: font-vars rows use both type codes');
+  ok(/throw new Error\('unknown scope code/.test(fontVars), 'materialise: an unknown font scope code THROWS at paste time (never silently decodes to undefined)');
+  // This is the assertion that caught FONT_FAMILY having no code at all — it's a STRING scope, so the
+  // FLOAT map (built for the dims lane) never needed one, and `core-font` is the only collection that
+  // mixes the two. Every family var would have pasted with `scopes: [undefined]`.
+  ok(!/"[a-z*]*\?[a-z*]*",/.test(fontVars), 'materialise: every font scope encodes to a known code (no `?` in the payload)');
+  // The decode map is a bijection or it silently mis-scopes: two scopes sharing a letter means one
+  // decodes to the other's enum, which the Plugin API accepts and no read-back would question.
+  const codeMap = JSON.parse(fontVars.match(/const FSC=(\{[^}]*\});/)![1].replace(/(\w+):/g, '"$1":').replace(/'/g, '"')) as Record<string, string>;
+  ok(new Set(Object.values(codeMap)).size === Object.keys(codeMap).length,
+    `materialise: the font scope code map is a bijection (${Object.keys(codeMap).length} codes → ${new Set(Object.values(codeMap)).size} distinct scopes)`);
+  ok(codeMap.m === 'FONT_FAMILY', 'materialise: FONT_FAMILY (the one STRING scope) has its own code, not a float code reused');
+
+  // The weight-role aliases are intra-collection (`font/weight-role/strong` → `font/weight/700`), so
+  // one payload does create-then-bind in two loops. Every target must be created by the same pass.
+  const fontCreated = new Set<string>();
+  for (const m of fontVars.matchAll(/\["([a-z0-9/\-.]+)","[sf]"/g)) fontCreated.add(m[1]);
+  const fontTargets = new Set<string>();
+  for (const m of fontVars.matchAll(/,\["(font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
+  ok(fontCreated.size === 50, `materialise: font-vars creates all 50 typography variables (${fontCreated.size})`);
+  ok(fontTargets.size === 5 && [...fontTargets].every((x) => fontCreated.has(x)),
+    `materialise: every weight-role alias target is created by the same pass (${fontTargets.size} roles)`);
+
+  // Text Styles must be pasted AFTER the vars they bind — the one real cross-lane ordering rule.
+  ok(passOrder().indexOf('font-vars') < passOrder().indexOf('text-styles'),
+    'materialise: font-vars is pasted before text-styles (setBoundVariable resolves its targets by name)');
+  const plan = buildTextStylePlan(t);
+  const boundTargets = new Set(plan.flatMap((r) => [r.fontFamilyVar, r.fontSizeVar, r.fontWeightVar]).filter(Boolean));
+  const unreachable = [...boundTargets].filter((v) => !fontCreated.has(v));
+  ok(unreachable.length === 0, `materialise: every variable a Text Style binds is created by font-vars${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${boundTargets.size} vars)`}`);
+
+  // Skip-with-warning, not substitute-or-throw (the #237 owner decision). A paste path that threw on
+  // one missing weight would lose all 38 styles instead of one.
+  ok(/skipped\.push/.test(textStyles) && !/throw/.test(textStyles),
+    'materialise: text-styles SKIPS an unloadable font with a warning (never a wrong substituted face, never a throw)');
+  // The #146 lesson: the name map must be UNFILTERED — a type-filtered fetch misses the STRING
+  // family var while finding the FLOAT size/weight ones, so families silently fail to bind.
+  ok(/getLocalVariablesAsync\(\)/.test(textStyles) && !/getLocalVariablesAsync\('/.test(textStyles),
+    'materialise: text-styles builds its name map from an UNFILTERED getLocalVariablesAsync (STRING family + FLOAT size/weight)');
+  // #377 nearly baked every style at 100% line height silently. Assert the real spread reaches the
+  // payload rather than trusting the plan — this is the layer where that drop would have shown.
+  const lh = new Set(plan.map((r) => r.lineHeightPct));
+  ok(lh.size > 1 && !(lh.size === 1 && lh.has(100)), `materialise: text-styles carries a real line-height spread (${[...lh].sort((a, b) => a - b).join('/')}) — not all-100 (#377)`);
+  ok(plan.every((r) => r.description !== ''), 'materialise: every text-style row carries its description (the style-panel documentation)');
+
+  // Styles: BOTH shadow sets, because Effect Styles can't carry Figma modes — a component swaps the
+  // pair by mode instead. A pass that wrote only `shadow/*` would leave dark elevation unthemeable.
+  ok(styles.includes('"shadow/xs"') && styles.includes('"shadow-dark/xs"'),
+    'materialise: styles writes BOTH the light `shadow/*` and dark `shadow-dark/*` Effect Style sets');
+  ok(styles.includes('createEffectStyle') && styles.includes('createPaintStyle'),
+    'materialise: styles covers both Effect (shadow) and Paint (gradient) styles');
+  // nb ships no gradients; aurora does — so the Paint lane is only actually exercised there.
+  const aurora = passJs('aurora', 'styles');
+  ok(/GRADIENT_LINEAR/.test(aurora) && /GRADIENT_RADIAL/.test(aurora),
+    'materialise: a brand WITH gradients emits both paint types (aurora — nb ships none, so nb alone would not exercise this)');
+  ok(/gradientTransform/.test(aurora), 'materialise: the paint rows carry the computed gradientTransform (Figma positions gradients by an affine transform, not an angle)');
 }
 
 // ------------------------------------------------------------------- neutral.auto
