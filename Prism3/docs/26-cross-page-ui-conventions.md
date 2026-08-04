@@ -157,9 +157,13 @@ below is what separated them — run it per page, in this order.
 1. **Extract the token vocabulary first.** Walk `out/<brand>.tokens.json` for the namespaces the page
    owns (`font.*`, `type.*`, …). That list is the vocabulary the UI is allowed to use. Everything after
    this is a comparison against it.
-2. **Drive the page, don't read the source.** Load a brand with **4 modes and 3+ faces** (defaults hide
-   width bugs) and collect section titles, descriptions, table headers, captions, notes, option labels
-   and pills per tab.
+2. **Drive the page, don't read the source.** Load a brand with **4 modes and 3+ faces / palettes**
+   (defaults hide width bugs) and collect section titles, descriptions, table headers, captions, notes,
+   option labels and pills per tab. **Build the fixture from `schema/example-brands.json`, never from
+   memory** — an input that fails validation drops the app to the *"Start a new brand"* screen, and the
+   sweep then reports empty for every field. (Palettes pass: `brandColors: [{name, hex}]` when the real
+   shape is `{name, oklch:{l,c,h}}`.) **When a sweep returns nothing, suspect the fixture before the
+   page** — the emptiness is the tell, and plausible-looking partial data would not have been.
 3. **Measure the RENDERED page, never `textContent`.** *This is the rule that matters.* The one wrong
    finding in the whole review — "header casing is inconsistent" — came from comparing extracted
    strings; every header is `text-transform: uppercase`, so users saw nothing. Acting on it introduced
@@ -174,6 +178,11 @@ below is what separated them — run it per page, in this order.
    Collisions (one word, two meanings) and stale tier names both surface here.
 6. **Compare widths against the shared grid at the default brand, not the convenient one.** "Clips at 4
    faces" is a nice-to-have; "clips at the default 2" is a defect.
+7. **Separate container overflow from actually-clipped content, and report only the second.** A raw
+   `scrollWidth > clientWidth` sweep fires on deliberate `overflow:visible` badges and on 2px of gap
+   rounding. Re-check at the LEAF level (elements with no children) — Palettes flagged four containers
+   and **zero clipped leaves**, so nothing was reported; Typography's 899→798 had specimens genuinely
+   cut off. **A sweep that reports every anomaly is as useless as one that reports none.**
 
 **When a fix cannot find the signal it needs, the missing signal is the actual defect.** The reported
 Typography bug was a wrong Figma style name. The first fix tried to read mono-ness off the fallback
@@ -186,6 +195,10 @@ must: the mono-face test pins `body` → `Medium` **and** the same brand's `disp
 fails if the mono table is ever applied globally. A test that only asserts the fix passes for the wrong
 reason too.
 
+**Two findings is a good result on a healthy page.** Typography's pass produced eleven, Palettes' two.
+The method is not scored on volume — resist manufacturing work to look thorough, and say plainly when
+a page is in good shape.
+
 **Report findings you got wrong, in the log.** Two of mine were self-inflicted (the casing false
 positive, and a pill whose trailing `*` reordered under `direction: rtl`). Both are recorded in
 `00-progress.md` rather than quietly dropped — the next reviewer inherits the trap, not just the fix.
@@ -196,7 +209,7 @@ positive, and a pill whose trailing `*` reordered under `direction: rtl`). Both 
 
 | Page | Containers | Section headers | Token pills | Notes |
 |---|---|---|---|---|
-| Palettes | ✅ | ✅ | ✅ `palette.*` | #230–#232 — the reference implementation |
+| Palettes | ✅ | ✅ | ✅ `palette.*` | #230–#232 — the reference implementation. Reviewed 2026-08-04 with the method above: **mode bar removed** (workspace byte-identical Light vs Dark — a ramp is mode-invariant; #268 found this and Layout together, Layout was fixed and this was missed) and **"Validation" → "Status ramps"** to match `BrandInput.status` / `palette.success\|warning\|danger\|info`. Two findings, no width defects |
 | Surfaces & fills | ✅ | ✅ | ✅ `color.*` | #68 — full-width rows (Layout A): controls left, example (228px) right, contrast pill below; per-section contrast tables (Fills + Text; Backgrounds are grounds); adjustable Inverse (A1 override); gradient names + inline Add-stop vs full-width Add-gradient; text-on-surface previews (folds #64) |
 | Interactive | ✅ | ✅ | ✅ `color.interactive.*` (#232) | #69 — per-palette matrix: global behaviours (outline hover / disabled / icon colours) at top, then one section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows — Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill (+ inverse). Every slot/state binds to a real engine role: fill · rest is the family anchor, everything else is an A1 per-mode override; example (300px) + contrast pill locked right, Hover/Pressed states two-up below |
 | Typography | ✅ | ✅ | ✅ `type.*` / `font.typeface.*` / `font.family.*` | **Reference implementation for the tier split and the mode rule.** Four tabs via `.pvseg` — **Primitives** (typeface library · size ladder · leading & tracking ladders) · **Semantics** (typeface bindings · weight roles · leading & tracking rungs + per mode) · **Text styles** (heading sizes · what each category is made of) · **Preview** (read-only). **#415** retired the `display|text|mono` family ROLE tier — each of the 7 categories binds a typeface directly (`font.family.<category>`), matching how Prism2's own brand-theme binds. **#416** states the per-mode rule above and removes the mode bar from the page. **#411** nudge controls are signed deltas with the resolved rung beneath. **#422/#423** derived-mode columns are readings. Reviewed end-to-end 2026-08-03; see the method section above |
