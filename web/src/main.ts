@@ -1902,8 +1902,6 @@ const renderInteractiveMatrix = (host: HTMLElement): void => {
 // contrast contracts, read-only verification views); primitives are mode-independent so this
 // control never renders on that stage. Replaces the mode chips that used to overflow the brand
 // dropdown — the set-config (which modes exist) now lives in the "Edit modes" popover here.
-let modeMenuOpen = false;
-let outsideBoundMode = false;
 let addModeOpen = false;         // C2 — the "+ Add mode" inline form is expanded
 let addModeName = '';            // C2 — survives popover re-renders
 const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
@@ -1920,8 +1918,12 @@ const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[
 /** The mode-SET config — which modes this brand generates/exports (relocated out of the brand
  *  dropdown). Light always; dark / HC / wireframe opt-in (docs/11 Pillar 1). `+ Add mode` (a custom
  *  mode seeded from a chosen base, then tuned) is gated until the override-layer engine work lands. */
-const renderModeSetMenu = (): HTMLElement => {
-  const menu = el('div', 'mctx-menu');
+/** The mode-SET editor (which modes this brand generates + custom modes). Host-agnostic since #432:
+ *  it moved from a popover on the mode strip into the brand menu, so the caller supplies both the
+ *  repaint (the strip and the brand menu are re-rendered by different functions) and whether to drop
+ *  the popover chrome. Everything else — validation, the locked Light row, the add form — is unchanged. */
+const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => {
+  const menu = el('div', 'mctx-menu' + (inline ? ' inline' : ''));
   const modes = brandState.modes ?? ALL_MODES;
   const darkOn = modes.includes('dark');
   const hcOn = modes.includes('hc-light') || modes.includes('hc-dark');
@@ -1972,7 +1974,7 @@ const renderModeSetMenu = (): HTMLElement => {
   if (!addModeOpen) {
     const add = el('button', 'mctx-opt') as HTMLButtonElement;
     add.append(el('span', 'mctx-box'), el('span', undefined, '+ Add mode…'));
-    add.onclick = () => { addModeOpen = true; renderModeStrip(); };
+    add.onclick = () => { addModeOpen = true; repaint(); };
     menu.append(add);
   } else {
     const form = el('div', 'mctx-addform');
@@ -1994,7 +1996,7 @@ const renderModeSetMenu = (): HTMLElement => {
     const addBtn = el('button', 'mctx-addbtn', 'Add mode') as HTMLButtonElement;
     addBtn.onclick = doAdd;
     const cancel = el('button', 'mctx-addcancel', 'Cancel') as HTMLButtonElement;
-    cancel.onclick = () => { addModeOpen = false; addModeName = ''; renderModeStrip(); };
+    cancel.onclick = () => { addModeOpen = false; addModeName = ''; repaint(); };
     const btns = el('div', 'mctx-addbtns'); btns.append(addBtn, cancel);
     // #56 — label the name field and the base select (the only label used to live inside the select).
     const nameField = el('div', 'mctx-addfield'); nameField.append(el('label', 'mctx-addlab', 'Mode name'), nameIn);
@@ -2021,24 +2023,14 @@ const renderModeContext = (): HTMLElement => {
     b.append(el('span', 'mctx-mark ' + (ok ? 'ok' : 'no'), ok ? '✓' : '!'));
     b.title = (derived ? 'Auto-derived from the contrast contracts — a read-only verification view. ' : '')
       + (ok ? 'Contrast: all pairs pass in this mode.' : 'Contrast: some pairs fail in this mode.');
-    b.onclick = () => { modeMenuOpen = false; if (currentMode !== m) { currentMode = m; renderModeStrip(); renderWorkspace(); } else { renderModeStrip(); } };
+    b.onclick = () => { if (currentMode !== m) { currentMode = m; renderModeStrip(); renderWorkspace(); } else { renderModeStrip(); } };
     left.append(b);
   }
   strip.append(left);
 
-  const editWrap = el('div', 'mctx-edit-wrap');
-  const edit = el('button', 'mctx-edit' + (modeMenuOpen ? ' open' : ''), '⚙ Edit modes') as HTMLButtonElement;
-  edit.onclick = (e) => { e.stopPropagation(); modeMenuOpen = !modeMenuOpen; if (!modeMenuOpen) { addModeOpen = false; addModeName = ''; } renderModeStrip(); };
-  editWrap.append(edit);
-  if (modeMenuOpen) editWrap.append(renderModeSetMenu());
-  strip.append(editWrap);
-
-  if (!outsideBoundMode) {
-    document.addEventListener('click', (e) => {
-      if (modeMenuOpen && !(e.target as HTMLElement).closest('.modectx')) { modeMenuOpen = false; addModeOpen = false; addModeName = ''; renderModeStrip(); }
-    });
-    outsideBoundMode = true;
-  }
+  // No "Edit modes" control here any more (#432): managing WHICH modes exist is brand configuration,
+  // not a per-page action, so it lives in the brand menu. This strip is now purely a selector — which
+  // is also what lets it scroll rather than wrap, since it no longer has to reserve room for a button.
   return strip;
 };
 
@@ -5207,8 +5199,15 @@ const renderBrandMenu = (): HTMLElement => {
   setHint();
   menu.append(nsHint);
 
-  // Modes moved OUT of this dropdown (#171) — the mode set now lives in the workspace
-  // mode-context strip's "Edit modes" popover, next to the mode you're viewing.
+  // Modes are back in this dropdown (#432), reversing #171 — which had moved them to an "Edit modes"
+  // popover on the mode strip, "next to the mode you're viewing". Two things changed since: the strip
+  // moved onto the page, where a popover competes with page content rather than hanging off a header;
+  // and WHICH modes a brand generates turned out to be brand configuration, sitting more naturally
+  // beside namespace and the example brands than beside a per-page selector. Selecting a mode stays on
+  // the strip — only managing the SET moved. Rendered inline rather than as a nested popover.
+  menu.append(el('div', 'bm-div'));
+  menu.append(el('div', 'bm-cap', 'Modes'));
+  menu.append(renderModeSetMenu(renderBar, true));
 
   menu.append(el('div', 'bm-div'));
   menu.append(el('div', 'bm-cap', 'Examples'));
@@ -5625,7 +5624,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .navbtn{display:none}
 .bar-seed{font-size:11.5px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-seed.bad{color:#a12}
-.brandmenu{position:absolute;top:calc(100% + 8px);right:0;width:288px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px;z-index:20;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12)}
+/* max-height + scroll: the menu had neither, which was survivable while it was short. Folding the
+   mode set in (#432) pushed it to ~716px, and at a 700px-tall window it ran 89px past the bottom
+   of the viewport with the last items simply unreachable. Bounded to the space below the header. */
+.brandmenu{position:absolute;top:calc(100% + 8px);right:0;width:288px;max-height:calc(100vh - var(--chrome-h, 120px) - 24px);overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px;z-index:20;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12)}
 .exportmenu{width:232px}
 .bm-cap{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:4px 2px 6px}
 .bm-field{display:flex;align-items:center;gap:10px;padding:4px 2px}
@@ -6037,9 +6039,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mctx-mark.no{color:var(--danger)}
 .mctx-b.on .mctx-mark.ok{color:var(--ok-inv)}
 .mctx-b.on .mctx-mark.no{color:var(--danger-inv)}
-.mctx-edit-wrap{position:relative;flex:none}
-.mctx-edit{border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-sm);padding:6px 12px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap}
-.mctx-edit:hover,.mctx-edit.open{border-color:var(--ink);color:var(--ink)}
+/* Inline variant (#432): the same editor embedded in the brand menu, which is itself a popover —
+   so it drops the positioning, shadow, border and fixed width and simply flows in the parent. */
+.mctx-menu.inline{position:static;width:auto;padding:0;background:none;border:0;box-shadow:none;z-index:auto}
 .mctx-menu{position:absolute;right:0;top:calc(100% + 7px);width:264px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);box-shadow:0 10px 30px rgba(20,22,30,.14);padding:10px;z-index:20}
 .mctx-mcap{font-size:11px;font-weight:640;text-transform:uppercase;letter-spacing:.045em;color:var(--faint);padding:4px 6px 8px}
 .mctx-opt{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:13.5px;color:var(--ink2);padding:7px 6px;border-radius:var(--r-xs);cursor:pointer;text-align:left}
