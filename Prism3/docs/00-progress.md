@@ -267,6 +267,80 @@ primitive scales, 32 here on Palettes, 4 on Interactive. **(b) — visible but u
 
 ---
 
+## (2026-08-04) — Preview review: the exhaustive dump was not exhaustive
+
+**STATUS: web only.** `out/*` untouched — but this pass found an EMITTED-ARTIFACT inconsistency that
+is a decision to make, not a bug to quietly patch. See "the open question" below.
+
+Last page of the audit. #443 had already closed the Style guide's colour coverage (55/55), so this
+pass was the other two views and the consistency between all three.
+
+### Every dark shadow read as an em-dash, in the one view that promises completeness
+
+The Token list showed `—` in the Dark column for all 7 shadow primitives **while a dark value
+exists** — the reduced lift-primary ramp the engine derives. In the view whose entire job is "every
+resolved token", that is the worst place for a silent omission.
+
+**Root cause is a split convention in the emitted tree.** `$extensions.prism3.modes.<mode>` has two
+shapes:
+
+| shape | count | families |
+|---|---|---|
+| `{ $value, aliasOf, … }` | **441** | every colour |
+| the raw value (a layer array) | **7** | shadow, alone |
+
+`valueAt` read `ov.$value`, which is `undefined` for the array form → `shadowCss(undefined)` → `—`.
+
+### The open question — deliberately NOT resolved here
+
+The right fix is one convention. It is not made here because **the raw-array shape is load-bearing**:
+`resolve-preview.ts` and `emit-figma-styles.ts` both read it with `Array.isArray`, and
+`$extensions.prism3.modes` is a published artifact shape any downstream consumer may read. Changing
+it is a contract decision with a blast radius, not a side effect of a UI review. The UI is tolerant
+of both shapes for now, with the reasoning inline at the read site.
+
+**Ask before unifying:** whether to migrate shadow to `{ $value }` (and update both engine consumers
++ regenerate), or to document the array form as intentional for composite-valued types.
+
+### The copy contradicted the table directly beneath it
+
+Every primitive category was captioned *"N primitives — one value, no modes."* True of 9 of the 10 —
+and false of shadow, which renders **per-mode columns immediately under that sentence**. The blurb now
+reads `hasModes`, exactly as the semantic blurb beside it already did.
+
+### Two more, both about the shell rather than the data
+
+- **Shadow values truncated** (`0px 1px 2px 0px #0a0c111a, 0px 1px 3p…`) in a table with ~300px of
+  slack in the row. The `title` attribute was carrying content the view exists to *show*. The value
+  column now takes the slack and wraps; the token column shrink-wraps.
+- **Contrast contracts was the only one of the three views with no `.psec` shell** — a bare note and a
+  bare table on the page background. The doc-26 shell is what makes three views read as one
+  destination rather than three pages behind a segmented control.
+
+While wrapping it, it gained the number the view exists to produce: **"5 of 32 pairs fall below their
+floor — 5 modes affected."** Previously derivable only by scanning 32 rows × every mode for a red dot.
+Counted as **pairs**, not mode-instances — a pair failing in both modes is one problem to fix, and
+summing instances would double-report it; the instance count rides along for breadth. Verified against
+the rendered dots, not against the code that produced it: 5 rows, 5 instances, all light-mode tint
+failures.
+
+### The trap this pass added
+
+**A sweep that cannot switch what it is sweeping reports a vacuous pass.** The first tier sweep
+returned *identical* numbers for Primitives and Semantics — 10 sections, 274 rows, both "clean". The
+`.seg-b` selector never matched, so "Semantics" was Primitives measured twice. Fixed, the tiers are
+274 and 293 rows across different categories. **Two runs agreeing exactly is evidence of a broken
+probe, not a stable result** — doc 26's non-vacuous-control rule, in a new costume.
+
+Confirmed the fix against `main` with the same sweep rather than trusting the after-state: `main`
+shows **7 em-dash cells (all Shadow/col1) and 9 clipped cells**; this branch shows 0 and 0 across 567
+rows in both tiers.
+
+**Verification.** `regen --check` 88 · **1280/0** · NB regression PASS (exit 0) · web+plugin
+typecheck/build · sandbox-clean · US-English clean.
+
+---
+
 ## (2026-08-04) — Motion review: 7 of 34 tokens were visible; now all 34
 
 **STATUS: web only.** No engine change, `out/*` untouched.
