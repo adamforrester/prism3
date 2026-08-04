@@ -326,7 +326,7 @@ commit.onHostMessage((m) => {
     seedInfo = { ok: m.ok, summary: m.summary };
     if (barHost) renderBar();
   }
-  // font-list is forwarded here from the write-adapter seam; it will be consumed by Task 4 (#112).
+  // font-list (#113) is forwarded here by the write-adapter seam; it's deliberately not consumed at this point.
 });
 
 // ===========================================================================
