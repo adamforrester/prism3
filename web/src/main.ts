@@ -905,14 +905,21 @@ const colorHexAt = (tree: TreeNode, node: TreeNode, mode: Mode, baseMode: Mode):
  *  passes it instead — a composite's mode override is a full `$value` (`{ ...value, ...parts }`), so it
  *  carries all five aliases and reads exactly the same way. Without this seam the read-out was pinned
  *  to light for every mode. */
-const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown): string => {
+/** `onTarget` re-reads each aliased ROLE at a mode. The `value` seam above covers a composite that
+ *  carries its own per-mode override; this covers the case where the composite is identical in every
+ *  mode and the variance is one hop down, which is where ALL per-mode typography actually lands
+ *  (`modeLevers.<mode>.{families,weights,lineHeights,letterSpacings}` mark `font.weight-role.strong`,
+ *  never `type.display.sm.strong`). Without it the mode columns render, and render the SAME numbers —
+ *  worse than one column, because two identical columns assert the modes agree when they do not. */
+const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown, onTarget?: (n: TreeNode) => TreeNode): string => {
   const v = (value ?? node.$value ?? {}) as any;
+  const t = (alias: unknown): TreeNode => { const n = subNode(tree, alias); return n && onTarget ? onTarget(n) : n; };
   const parts: string[] = [];
-  if (v.fontFamily) parts.push(familyOf(tree, subNode(tree, v.fontFamily)).split(',')[0].trim());
-  if (v.fontWeight) parts.push(String(numOf(tree, subNode(tree, v.fontWeight))));
-  if (v.fontSize) parts.push(`${Math.round(remPxOf(tree, subNode(tree, v.fontSize)))}px`);
-  if (v.lineHeight) parts.push(`${numOf(tree, subNode(tree, v.lineHeight))} lh`);
-  if (v.letterSpacing) { const ls = deref(tree, subNode(tree, v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em`); }
+  if (v.fontFamily) parts.push(familyOf(tree, t(v.fontFamily)).split(',')[0].trim());
+  if (v.fontWeight) parts.push(String(numOf(tree, t(v.fontWeight))));
+  if (v.fontSize) parts.push(`${Math.round(remPxOf(tree, t(v.fontSize)))}px`);
+  if (v.lineHeight) parts.push(`${numOf(tree, t(v.lineHeight))} lh`);
+  if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em`); }
   return parts.join(' · ');
 };
 /** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
@@ -1000,7 +1007,13 @@ const renderPreviewTokens = (host: HTMLElement): void => {
 
   /** The resolved value as text, by `$type` — the payload for a primitive, the second line for a semantic. */
   const valueText = (node: TreeNode, m: Mode): string => {
-    if (node.$type === 'typography') return typeComposite(tree, node, valueAt(node, m));
+    // A role carrying a per-mode override is read AT `m`: shallow-merge the override over the node so
+    // the downstream deref/numOf see this mode's `$value`. Base mode and un-overridden roles fall
+    // through untouched, which is why every current brand renders byte-identically.
+    if (node.$type === 'typography') return typeComposite(tree, node, valueAt(node, m), (n) => {
+      const ov = n.$extensions?.prism3?.modes?.[m];
+      return m === baseMode || !ov || typeof ov !== 'object' ? n : { ...n, ...(ov as object) };
+    });
     if (node.$type === 'shadow') return shadowCss(valueAt(node, m)) || '—';
     const n = targetAt(node, m);
     const px = n?.$extensions?.prism3?.px;
@@ -1053,8 +1066,35 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     return wrap;
   };
 
+  /** Does what this leaf NAMES resolve differently per mode, even though the leaf carries one value?
+   *
+   *  A `type.*` composite always aliases the same five roles — `font.family.display`,
+   *  `font.weight-role.strong` and friends — so it never carries `modes` itself. Per-mode typography
+   *  is real (`modeLevers.<mode>.{families,weights,lineHeights,letterSpacings}`) but it lands on the
+   *  ROLE, not on the composite: measured, `weights:{strong:600}` puts `modes` on
+   *  `font.weight-role.strong` and on nothing else. That is the architecture working — "a mode
+   *  re-points a semantic at a different primitive, it never redefines one" — but reading only the
+   *  leaf made the Type section claim "mode-invariant, one value" and render ONE column whose
+   *  resolved specimen line (`Clash Display · 700 · 56px · 1.5 lh`) was silently true for the base
+   *  mode alone.
+   *
+   *  ONE hop, deliberately, matching `hopAt`: the question is whether what this token names differs
+   *  per mode, and a re-point lands exactly one hop away. Following the chain to the terminal
+   *  primitive would answer a different question and light up nearly everything. */
+  const refsVaryByMode = (node: TreeNode): boolean =>
+    modes.some((m) => {
+      if (hopAt(node, m)?.$extensions?.prism3?.modes) return true;
+      const v = valueAt(node, m);
+      return node.$type === 'typography' && !!v && typeof v === 'object'
+        && Object.values(v as Record<string, unknown>).some((x) =>
+          typeof x === 'string' && TOK_ALIAS.test(x) && subNode(tree, x)?.$extensions?.prism3?.modes);
+    });
+
   // Categories for the ACTIVE tier, in the generator's own order.
-  type TokSec = { cat: string; leaves: TokLeaf[]; hasModes: boolean; ns: string[] };
+  // `modeSource` separates the two ways a section earns per-mode columns, because they are not the
+  // same claim and the blurb says so: 'own' — the leaves themselves carry per-mode values or aliases;
+  // 'ref' — one alias set whose TARGETS differ per mode.
+  type TokSec = { cat: string; leaves: TokLeaf[]; hasModes: boolean; modeSource: 'own' | 'ref' | null; ns: string[] };
   const sections: TokSec[] = [];
   for (const category of Object.keys(brand).filter((k) => !k.startsWith('$'))) {
     const all: TokLeaf[] = [];
@@ -1065,7 +1105,9 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     // and never earns the shared-prefix callout that makes its stacked paths readable.
     const ns = [...new Set(leaves.flatMap((l) => [...modes.map((m) => aliasAt(l.node, m)), ...modes.flatMap((m) => compositeParts(l.node, m)).map((cp) => cp.path)]
       .filter(Boolean).map((a) => a!.split('.')[0])))].sort();
-    sections.push({ cat: category, leaves, hasModes: leaves.some((l) => l.node.$extensions?.prism3?.modes), ns });
+    const modeSource: 'own' | 'ref' | null = leaves.some((l) => l.node.$extensions?.prism3?.modes) ? 'own'
+      : leaves.some((l) => refsVaryByMode(l.node)) ? 'ref' : null;
+    sections.push({ cat: category, leaves, hasModes: modeSource !== null, modeSource, ns });
   }
 
   // ---- controls: a header ABOVE the content (doc 26), every field labelled via `pfield`. ----
@@ -1117,7 +1159,12 @@ const renderPreviewTokens = (host: HTMLElement): void => {
         ? (s.hasModes
           ? `${s.leaves.length} primitives, each with a per-mode variant — the exception to the rule below: a value that is genuinely different per mode, not a re-pointed alias.`
           : `${s.leaves.length} primitives — one value, no modes. The ramps are shared; a mode re-points a semantic at a different primitive, it never redefines one.`)
-        : `${s.leaves.length} semantics — ${s.hasModes ? 'each mode aliases its own target' : 'mode-invariant, one value'}.`);
+        // Three cases, not two. 'ref' is the one the old copy got wrong: a `type.*` composite does NOT
+        // re-alias per mode — it names the same five roles in every mode — so "each mode aliases its
+        // own target" would be a fresh inaccuracy in place of the old one. What varies is underneath it.
+        : `${s.leaves.length} semantics — ${s.modeSource === 'own' ? 'each mode aliases its own target'
+          : s.modeSource === 'ref' ? 'one alias set; what those aliases resolve to varies per mode'
+          : 'mode-invariant, one value'}.`);
     const rows = s.leaves.map((l) => ({ name: l.path, cells: (s.hasModes ? modes : [baseMode]).map((m) => tokCell(l.node, m, canShort)) }));
     const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(rows, cols)); sec.append(scroll);
     // Short paths are only honest when ONE namespace covers the table. `size.*` aliases both

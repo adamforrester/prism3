@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-04) — The token list's mode detection was one hop too shallow for `type.*`
+
+**STATUS: web (`main.ts`).** No engine change, `out/*` byte-identical.
+
+Owner asked whether type composites should be viewable per mode. Investigating it turned up a real,
+latent inaccuracy rather than a missing feature.
+
+**What was already right.** `type.*` composites genuinely are mode-invariant *as names*: measured
+through `brandTheme` → `buildTree`, setting `modeLevers.dark.weights = { strong: 600 }` marks
+`font.weight-role.strong` and **nothing else** — zero `type.*` composites carry `modes`. Same for
+`lineHeights` (`font.line-height-role.normal`) and `families` (`font.family.display`). That is the
+architecture doing exactly what the token list's own primitive blurb claims: *a mode re-points a
+semantic at a different primitive, it never redefines one.*
+
+**What was wrong.** `hasModes` read `leaves.some((l) => l.node.$extensions?.prism3?.modes)` — the leaf
+only. So for any brand that deviated type per mode, the Type section would state "mode-invariant, one
+value" and render ONE column, whose resolved specimen line (`Clash Display · 700 · 56px · 1.5 lh`)
+was silently true for the base mode alone. Nothing on screen said the other modes differed.
+
+`hasModes` now also follows **one** hop — `hopAt` for a scalar alias, plus each of a composite's five
+part aliases — and asks whether the TARGET carries `modes`. One hop is the whole of it: a re-point
+lands exactly one hop away, and chasing to the terminal primitive answers a different question and
+would light up nearly everything.
+
+**Two things this turned up that a narrower fix would have shipped broken.**
+
+- *Widening the columns is not enough.* With the columns rendering, both still read weight 700 —
+  `typeComposite` resolved each part alias with `subNode(tree, …)` and read its base `$value`, so
+  Light and Dark printed identical text. **Two identical mode columns are worse than one**: they
+  assert the modes agree. `typeComposite` takes an `onTarget` seam that re-reads each aliased role at
+  the mode (shallow-merging its override), and Light/Dark now read 700 / 600. Note the function
+  already had a per-mode seam — `value` — for a composite carrying its *own* override; it did not
+  cover the case where the composite is identical everywhere and the variance is underneath.
+- *The old blurb copy would have become a fresh inaccuracy.* "Each mode aliases its own target" is
+  false for `type.*` — the composite names the same five roles in every mode. Sections now carry a
+  `modeSource` of `'own' | 'ref' | null` and say which: leaves that vary themselves vs. one alias set
+  whose targets vary.
+
+**Verified** by seeding `localStorage['prism3:brandInput']` (the `{v:1,input:…}` persist envelope) so
+the real bundle boots on a brand with the lever, rather than testing a copy of the logic:
+
+| brand input | Type columns | blurb |
+|---|---|---|
+| no typographic modeLevers | `Token \| Value` | mode-invariant, one value |
+| `dark.weights={strong:600}` | `Token \| Light \| Dark` | one alias set; targets vary per mode |
+| `dark.lineHeights={normal:'relaxed'}` | `Token \| Light \| Dark` | one alias set; targets vary per mode |
+
+Icon and Size stayed at one column throughout — the widening is targeted, not blanket. harbor and
+aurora render an unchanged column count in every section of both tiers.
+
+**Trap.** Verifying this through the UI is a dead end: the Typography page exposes no per-mode
+selects for a single-mode brand, so there is nothing to drive. Seed the brand input instead — and
+remember the stored blob is the versioned envelope, not a bare `BrandInput`; a bare object
+deserializes to `null` and the app silently shows the first-run start screen.
+
+---
+
 ## (2026-08-04) — The deploy could go stale invisibly, and the page never said which build it was (#474)
 
 **STATUS: deploy + web (`vercel.json`, `build-site.mjs`, `plugin/build.mjs`, `main.ts`, READMEs).**
