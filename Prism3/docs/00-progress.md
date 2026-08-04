@@ -7,6 +7,35 @@
 
 ---
 
+## (2026-08-04) — Nested tab groups get the L3 underline (#439's unbuilt rung)
+
+**STATUS: web.** One CSS block. `out/*` untouched.
+
+**The ladder proposed three navigation rungs and only two were ever built.** L1 (rail, raised card)
+and L2 (view tabs, filled) shipped; L3 — a tab group nested inside another — did not, so the token
+list's Primitives/Semantics segment kept rendering the *identical* filled treatment as Preview's own
+view switcher, 67px above it. Nothing said the second row lived inside the first. Owner spotted the
+omission.
+
+**Underline rather than a second grey, and the reason matters more than the look.** A third fill
+needs a value quieter than `--paper` but louder than transparent — a three-step grey ramp inside one
+component — and it breaks again the moment anyone retunes those greys. Changing the *kind* of
+emphasis cannot collide with a fill at all. The track chrome goes with it: a nested group is not a
+control surface of its own.
+
+```
+L2 outer   track #fff + 1px border   selected: filled #f2f3f6, weight 400
+L3 nested  no track, no border       selected: transparent, weight 560, 2px underline
+```
+
+Applied via the `.tok-seg` modifier that already existed on the one group that nests — no general
+depth system, because there is exactly one nesting case.
+
+Verified: both groups measured on the same page; backgrounds and track chrome now differ; no page
+errors.
+
+---
+
 ## (2026-08-04) — On Preview the mode bar sits below the view switcher, and the surface picker says what it does (owner-reported)
 
 **STATUS: web.** `out/*` untouched.
