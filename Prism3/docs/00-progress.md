@@ -7,6 +7,93 @@
 
 ---
 
+## (2026-08-04) — Surfaces & fills review: six roles with no home, and a scrim that was never translucent
+
+**STATUS: web + engine.** One engine line (`modes.ts`), the rest web. `out/*` unchanged — see below
+for why the scrim fix moves nothing emitted.
+
+**The page is in decent shape; the review's value was in what it found *around* it.** Doc 26 says two
+findings is a good result on a healthy page. This produced four on the Surfaces page proper — all
+consistency, none behavioural — and then the token-coverage lens found a cluster that mattered more.
+
+### The Surfaces page (four, all small)
+
+- **Three of thirteen token paths were unreadable.** `.sf-id` was 168px and the longest path on the
+  page measures 252px, so #289's rtl elision rendered `color.background.inverse.primary` as
+  `…kground.inverse.primary`. The row's *fourth track is a deliberate whitespace spacer* — the layout
+  was buying breathing room with the identifier the row exists to name. Track widened to 256px, and
+  the collapse breakpoint moves 1120 → 1208 to match the new 792px hard floor.
+- **Two of three sections showed a bare "Auto".** Foreground fills used the shared `stepPicker`
+  ("Auto · neutral 050"); Backgrounds→Inverse and all three Text rows had hand-rolled copies that were
+  identical *except* that they withheld the resolved step. Both now use `stepPicker` +
+  `setFillOverride`, deleting the duplicated write-and-prune logic rather than aligning two copies.
+- **The Contrast floor's "Auto" now names its floor too.** The floor is not on the theme, but every
+  contrast-gated role records the surface it was measured `against` — so `foreground.brand.against`
+  *is* the floor name. Existing channel, no new plumbing.
+- **`NEUTRAL_STEPS` was a hardcoded copy of the neutral ramp minus its zero padding.** Backgrounds
+  offered "Neutral 50" while the fills three rows below offered "neutral 050" — the same step, two
+  renderings, one screen. Now read off the brand's palette (`050` matches the token), stored value
+  still numeric.
+
+### Six roles resolved for every mode and appeared nowhere
+
+Measured structurally against the resolver rather than by reading the UI: the Preview **Style guide**
+— whose own docstring promises *"every color role in context"* — showed **49 of 55**. The six:
+`scrim.default`, `foreground.inverse.{primary,secondary,tertiary}`, `text.on-inverse`,
+`text.link.focused`. Now 55/55.
+
+They are not a random six. **Background split Base / Inverse; Foreground had only Base**, so an entire
+surface tier was missing, and its ink with it. `text.on-inverse` was *already painting* every inverse
+card in the gallery and the Surfaces page's own Inverse example — used twice, named zero times.
+
+**Not a capability lost to a refactor, and worth being precise about that.** #69 retired an "Inverse
+surface" specimen, and its comment justifies this by pointing at the interactive matrix's on-inverse
+rows. Those are `interactive.<c>.on-inverse.*` — a *different* family. The surface-level tier was
+never shown, before or after. The tempting narrative was wrong; git said so.
+
+**`text.link.focused` had a callout actively denying it existed** — "the engine defines
+`text.link.default / hover / visited`" when `LINK_STATES` has four. Focused resolves to the same color
+as default by design (the focus ring carries the state), which is *why* it needs saying rather than
+omitting: a duplicate-looking row is exactly the thing a reader would otherwise assume was a bug.
+
+### The scrim was reported as solid black, and only rendering it could show that
+
+**The real find.** `resolveAllModes` gave `scrim.default` a `hex` of `#000000` and **no `alpha`** —
+the overlay washes set `roles[...].alpha` explicitly right below it in the same file; scrim never did.
+Every consumer of the resolved role therefore painted a 40%-black backdrop as opaque black.
+
+The DTCG emit was always correct — it aliases `black-alpha.<step>` and the alpha lives on the
+primitive — so **no artifact ever drifted and no gate could have caught it**. The bug could only
+surface where a UI rendered the *resolved* role, and nothing rendered scrim. **The token having no
+home is what hid the defect in its value.** That is the case for the (a)-class sweep stated better
+than the sweep states it for itself.
+
+Pinned by a test per mode (0.4 light / 0.6 dark, since the step is mode-dependent) with an opaque
+control (`background.primary` carries no alpha) so it fails if alpha is ever set system-wide.
+
+### Traps for whoever re-verifies this
+
+- **A count is not evidence, for the third and fourth time this session.** `alphaSwatches: 20` passed
+  while the swatches were invisible (#442); here the scrim card asserted present while it was a solid
+  black bar. Screenshot, then believe.
+- **The first scrim specimen was accurate and looked broken.** White label over 40% black on a light
+  surface clears ~2.3:1 — a pairing the scrim genuinely does not support. Redrawn as panel-over-scrim,
+  which is the token's actual job. *An honest specimen of a bad pairing reads as a bug.*
+- **Backtick in a CSS comment, again.** Same trap as #366; esbuild reported it 40 lines away.
+- **Clicking a mode chip before navigating is a silent no-op.** The strip lives on the page now
+  (#432), so a probe that sets the mode first reports Light while claiming to test Dark — it did, for
+  one run here.
+- **Gallery pills wrap, they do not elide.** The 5-column semantic grid is fixed by the status set, so
+  a ~148px card can never fit `color.foreground.warning`. `<wbr>` after each dot keeps the break on
+  path boundaries and — unlike a zero-width space — leaves a copied path clean.
+
+**Verification.** `regen --check` 88 · **1280/0** · NB regression · web+plugin typecheck/build ·
+plugin tests · sandbox-clean · US-English clean. Structural sweep across all 9 pages × pill: **0
+elided, 0 clipped leaves, 0 page overflow**, held at 1280/1220/1209/1200/1024px. Every rewired select
+verified to write, revert, and prune `overrides` back to undefined.
+
+---
+
 ## (2026-08-04) — The last 36 invisible tokens get a home (alpha, opacity, focus ring)
 
 **STATUS: web only.** Completes the (a)-class token-coverage work. No emitted artifact moves.

@@ -3462,6 +3462,18 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!!hoverCss && /^#[0-9a-f]{8}$/i.test(hoverCss), `resolved preview: overlay wash is an 8-digit (alpha) hex (got ${hoverCss})`);
   const pressedCss = rp.colors['color.interactive.primary.overlay.pressed']?.light;
   ok(!!pressedCss && pressedCss !== hoverCss, 'resolved preview: pressed wash differs from hover (20% vs 10%)');
+
+  // `scrim.default` is the OTHER translucent role, and it shipped without its alpha — its `hex` is the
+  // opaque black base, so a role view reported a 40%-black backdrop as solid black. Pinned per mode
+  // because the step is mode-dependent (40 light / 60 dark), and pinned alongside an OPAQUE control
+  // (`background.primary`, alpha absent) so the assertion fails if alpha is ever set system-wide.
+  {
+    const byMode = new Map(resolveAllModes(brandTheme({ ...pinput, modes: ['light', 'dark'] })).map((m) => [m.mode, m.roles]));
+    const scrimL = byMode.get('light')?.['scrim.default'], scrimD = byMode.get('dark')?.['scrim.default'];
+    ok(scrimL?.alpha === 0.4, `resolved role: light scrim carries alpha 0.4 (got ${scrimL?.alpha})`);
+    ok(scrimD?.alpha === 0.6, `resolved role: dark scrim carries alpha 0.6 (got ${scrimD?.alpha})`);
+    ok(byMode.get('light')?.['background.primary']?.alpha === undefined, 'resolved role: an opaque surface still carries no alpha');
+  }
 }
 // (10) EXAMPLE-BRANDS ARTIFACT (docs/09) — the browser hosts boot from
 // schema/example-brands.json (the design.md parser is node-only). Gate that the

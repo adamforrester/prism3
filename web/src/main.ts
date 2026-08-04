@@ -1050,6 +1050,12 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
     const path = label ?? `color.${k}`;
     const p = tokenPill(path);
+    // Gallery pills wrap (see .sg-pills), and a bare wrap breaks mid-segment — "color.foreground.bran /
+    // d". `<wbr>` after each dot moves the break onto the path boundaries. It is the right element
+    // rather than a zero-width space because it contributes nothing to textContent, so a path someone
+    // copies out of the pill is still the path.
+    p.textContent = '';
+    path.split('.').forEach((seg, i, all) => { p.append(i < all.length - 1 ? `${seg}.` : seg); if (i < all.length - 1) p.append(el('wbr')); });
     // Two tooltips carrying two different things, deliberately: the custom `data-sgtip` bubble reveals
     // what the role RESOLVES to (primitive step · hex · ratio), while `title` — set by tokenPill and
     // preserved here — is the full PATH, which matters now that a long path can be elided (#289).
@@ -1069,6 +1075,24 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     const lab = el('div', 'sg-lab', label); lab.style.color = paint(cur, inkRole); card.append(lab);
     if (sub) { const sb = el('div', 'sg-sub', sub); sb.style.color = paint(cur, inkRole); card.append(sb); }
     cw.append(card, pills(sgPill(k), ...extra));
+    return cw;
+  };
+  // A scrim only means anything OVER something, so the card composites it on the page surface rather
+  // than painting the alpha alone (which would read as a flat gray card and say nothing about dimming).
+  // It is drawn doing its actual job — dimming the page BEHIND a panel — rather than dimming a text
+  // label. At 40% over a light surface the scrim is a mid-gray and white text on it clears about
+  // 2.3:1: a pairing the scrim genuinely does not support, so the first cut read as a broken specimen
+  // while being perfectly accurate. Panel-over-scrim is what the token is for, and it shows the dim as
+  // a step against the undimmed panel at the same time.
+  const scrimCard = (k: string): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card sg-scrimcard');
+    card.style.background = paint(cur, 'background.primary');
+    const dim = el('div', 'sg-scrimdim'); dim.style.background = paint(cur, k);
+    const panel = el('div', 'sg-scrimpanel'); panel.style.background = paint(cur, 'foreground.primary');
+    const lab = el('div', 'sg-lab', 'Modal'); lab.style.color = paint(cur, 'text.primary');
+    panel.append(lab); dim.append(panel); card.append(dim);
+    cw.append(card, pills(sgPill(k)));
     return cw;
   };
   const borderCard = (k: string): HTMLElement => {
@@ -1092,14 +1116,23 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const SEM: Array<[string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
 
   // Background
-  const secBg = palSection('Background', 'The base page planes and their inverse counterparts.');
+  const secBg = palSection('Background', 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.');
   secBg.append(subHead('Base'), grid(3, ([['Primary', 'background.primary'], ['Secondary', 'background.secondary'], ['Tertiary', 'background.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
-  secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'background.inverse.primary'], ['Secondary', 'background.inverse.secondary'], ['Tertiary', 'background.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse'))));
+  // The Inverse Primary card carries `text.on-inverse` as an extra pill, the same pairing the Bold and
+  // Subtle rows use. That ink was painting every inverse card here AND the Surfaces page's Inverse
+  // example, and was named in neither — the one role the gallery used without ever showing.
+  secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'background.inverse.primary'], ['Secondary', 'background.inverse.secondary'], ['Tertiary', 'background.inverse.tertiary']] as Array<[string, string]>)
+    .map(([n, k], i) => surfaceCard(k, n, 'text.on-inverse', i === 0 ? 'On-inverse text' : undefined, i === 0 ? [sgPill('text.on-inverse')] : []))));
+  secBg.append(subHead('Scrim'), grid(3, [scrimCard('scrim.default')]));
   host.append(secBg);
 
   // Foreground
-  const secFg = palSection('Foreground', 'Content surfaces — the neutral ladder, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
+  const secFg = palSection('Foreground', 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
   secFg.append(subHead('Neutral'), grid(3, ([['Primary', 'foreground.primary'], ['Secondary', 'foreground.secondary'], ['Tertiary', 'foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
+  // Inverse — bold dark surfaces PLACED on the page (a dark card), as distinct from the inverse page
+  // BAND above. Background already split Base / Inverse; Foreground had only Base, so this whole tier
+  // resolved for every mode and appeared nowhere.
+  secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'foreground.inverse.primary'], ['Secondary', 'foreground.inverse.secondary'], ['Tertiary', 'foreground.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse'))));
   secFg.append(subHead('Bold'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}`, n, `text.on-${s}`, 'On-color text', [sgPill(`text.on-${s}`)]))));
   secFg.append(subHead('Subtle'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}-subtle`, n, `text.${s}`, 'On-color text', [sgPill(`text.${s}`)]))));
   host.append(secFg);
@@ -1119,7 +1152,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     ['Neutral', [['Primary', 'text.primary'], ['Secondary', 'text.secondary'], ['Tertiary', 'text.tertiary']], false],
     ['Semantic', SEM.map(([n, s]) => [n, `text.${s}`] as [string, string]), false],
     ['Semantic — subtle', SEM.map(([n, s]) => [n, `text.${s}-subtle`] as [string, string]), false],
-    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Visited', 'text.link.visited']], true],
+    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Visited', 'text.link.visited'], ['Focused', 'text.link.focused']], true],
   ];
   for (const [glab, items, ul] of tcGroups) {
     secText.append(subHead(glab));
@@ -1132,9 +1165,12 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     secText.append(g);
   }
   const callout = el('div', 'sg-callout');
+  // The old copy enumerated three link roles; `LINK_STATES` has four. Focused resolves to the same
+  // color as default BY DESIGN (the focus ring carries the state, not a color shift), which is why the
+  // row reads as a duplicate — and exactly why it needs saying rather than omitting.
   callout.append(document.createTextNode('Links draw only from the action ramp — the engine defines '));
-  callout.append(el('span', 'mono', 'text.link.default / hover / visited'));
-  callout.append(document.createTextNode(' and no neutral or accent link roles.'));
+  callout.append(el('span', 'mono', 'text.link.default / hover / visited / focused'));
+  callout.append(document.createTextNode(' and no neutral or accent link roles. Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift.'));
   secText.append(callout);
   host.append(secText);
 
@@ -3896,8 +3932,18 @@ const renderCategorySetup = (): HTMLElement => {
 // fields via setPath, and re-resolving so the specimen repaints. (The third object lever,
 // typography.families, is covered by the typography editor above.)
 
-/** The neutral ramp steps a page surface / contrast floor can name (base can also be white/black). */
-const NEUTRAL_STEPS = [25, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950];
+/** The neutral ramp steps a page surface / contrast floor can name (base can also be white/black).
+ *
+ *  Read off the brand's own neutral palette rather than hardcoded. The hardcoded list this replaces was
+ *  the same twenty steps written WITHOUT their zero padding — so the Backgrounds selects offered
+ *  "Neutral 50" while the fill selects three rows below, reading the palette directly, offered
+ *  "neutral 050" for the identical step. `050` is the one that matches the token (palette.neutral.050).
+ *  The stored value stays numeric (`SurfacesConfig.base` is a number, and Number('050') is 50); only the
+ *  label and the list's provenance change, so a brand whose ramp differs now gets its own steps. */
+const neutralStepOptions = (): Array<{ value: number; label: string }> => {
+  const pal = theme.palettes.find((p) => p.palette === theme.roleToPalette.neutral);
+  return (pal?.steps ?? []).map((s) => ({ value: Number(s.key), label: `${theme.roleToPalette.neutral} ${s.key}` }));
+};
 
 // ---- Surfaces & fills: full-width ROW layout (Layout A, #68) ----------------
 // One row per role: [56×56 swatch] [name + token pill (+desc)] [controls] [whitespace] [example, badge below].
@@ -3981,7 +4027,7 @@ const renderSurfacesEditor = (): HTMLElement => {
   const label = MODE_LABEL[mode] ?? mode;
   const sec = palSection('Backgrounds', `The surface ${label} paints on (Primary) and its contrasting Inverse band — both set per mode. Switch modes above to set each mode’s surface.`);
   const opt = (sel: HTMLSelectElement, v: string, t: string, on: boolean): void => { sel.append(optionEl(v, t, on)); };
-  const roles = (resolveAllModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, { hex: string } | undefined>;
+  const roles = (resolveAllModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, { hex: string; path?: string } | undefined>;
   const primHex = roles['background.primary']?.hex ?? (mode === 'dark' ? '#000000' : '#ffffff');
   const brandDot = roles['foreground.brand']?.hex ?? '#5e4bc3';
   // The resolved ink for THIS surface — `text.primary` is measured against `background.primary`
@@ -3994,28 +4040,35 @@ const renderSurfacesEditor = (): HTMLElement => {
     const cur = brandState.surfaces?.[mode as 'light' | 'dark'];
     const dflt: 'white' | 'black' = mode === 'dark' ? 'black' : 'white';
     const baseVal = cur?.base ?? dflt;
+    const nOpts = neutralStepOptions();
     const base = selectEl('cap');
     opt(base, 'white', 'White', baseVal === 'white');
     opt(base, 'black', 'Black', baseVal === 'black');
-    for (const s of NEUTRAL_STEPS) opt(base, String(s), `Neutral ${s}`, baseVal === s);
+    for (const s of nOpts) opt(base, String(s.value), s.label, baseVal === s.value);
     base.onchange = () => { setPath(brandState, `surfaces.${mode}.base`, base.value === 'white' || base.value === 'black' ? base.value : Number(base.value)); applyFull(); };
     // Contrast floor — the worst-case neutral bold fills validate against (auto unless pinned).
     const floorHint = 'The worst-case neutral the engine validates bold fills against on this surface — the mode’s contrast baseline. Auto derives it from the base surface; pin a step to force a specific reference.';
     const floor = selectEl('cap'); floor.title = floorHint;
-    opt(floor, '', 'Auto', cur?.floorStep == null);
-    for (const s of NEUTRAL_STEPS) opt(floor, String(s), `Neutral ${s}`, cur?.floorStep === s);
+    // "Auto" names the floor it derived, like every other Auto on the page. The floor is not on the
+    // theme directly, but every contrast-gated role records it as the surface it was measured `against`
+    // — so a bold fill, whose whole definition is "clears its ratio on the floor", is the source.
+    const autoFloor = (roles['foreground.brand'] as { against?: string } | undefined)?.against;
+    opt(floor, '', autoFloor ? `Auto · ${autoFloor.replace('.', ' ')}` : 'Auto', cur?.floorStep == null);
+    for (const s of nOpts) opt(floor, String(s.value), s.label, cur?.floorStep === s.value);
     floor.onchange = () => { setPath(brandState, `surfaces.${mode}.floorStep`, floor.value === '' ? undefined : Number(floor.value)); applyFull(); };
     const floorBlock = sfCtlBlock('Contrast floor', floor); (floorBlock.firstChild as HTMLElement).title = floorHint;
     sec.append(sfRow({
       swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
-      desc: `The surface ${label} paints on — white, black, or a tinted neutral step.`,
+      // The section head already says "the surface <mode> paints on"; the row says what it can be SET to
+      // rather than repeating the definition three lines later.
+      desc: 'White, black, or a tinted neutral step.',
       controls: sfCtl(sfCtlBlock('Base surface', base), floorBlock),
       example: sfExSurface(primHex, brandDot, 'Card on this surface', primText),
     }));
   } else {
     sec.append(sfRow({
       swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
-      desc: `The surface ${label} paints on — seeded from this custom mode’s base.`,
+      desc: 'Seeded from this custom mode’s base.',
       controls: sfCtl(sfCtlBlock('Base surface', el('span', 'sf-derived', 'Seeds from its base mode'))),
       example: sfExSurface(primHex, brandDot, 'Card on this surface', primText),
     }));
@@ -4030,20 +4083,11 @@ const renderSurfacesEditor = (): HTMLElement => {
     const nPal = theme.roleToPalette.neutral;
     const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
     const cur = brandState.overrides?.[mode]?.['background.inverse.primary']?.step;
-    const invSel = selectEl('cap');
-    opt(invSel, '', 'Auto', cur == null);
-    for (const s of nSteps) opt(invSel, s, `Neutral ${s}`, cur === s);
-    invSel.onchange = () => {
-      const v = invSel.value;
-      const ov = brandState.overrides ?? (brandState.overrides = {});
-      const forMode = ov[mode] ?? (ov[mode] = {});
-      if (v === '') {
-        delete forMode['background.inverse.primary'];
-        if (!Object.keys(forMode).length) delete ov[mode];
-        if (!Object.keys(ov).length) brandState.overrides = undefined;
-      } else forMode['background.inverse.primary'] = { palette: nPal, step: v };
-      applyFull();
-    };
+    // The shared `stepPicker`, so "Auto" NAMES the step it resolved to (`Auto · neutral 950`) exactly
+    // as the fill rows below do. A bare "Auto" is the same control minus the one fact it is holding.
+    const invSel = stepPicker(nPal, nSteps, stepKeyOf(roles['background.inverse.primary']?.path),
+      typeof cur === 'string' ? cur : undefined,
+      (step) => setFillOverride('background.inverse.primary', nPal, step));
     const onInv = roles['foreground.inverse.primary']?.hex ?? '#9481ee';
     // `text.on-inverse` is measured against `background.inverse.primary` exactly — the correct ink
     // for this band regardless of which mode's inverse this is.
@@ -4051,7 +4095,9 @@ const renderSurfacesEditor = (): HTMLElement => {
     sec.append(sfRow({
       swatchHex: invHex, name: 'Inverse', tokenPath: 'color.background.inverse.primary',
       desc: 'The contrasting band for dark heroes / inverse sections — Auto follows the generated pairing; pick a neutral step to set it for this mode.',
-      controls: sfCtl(sfCtlBlock('Base surface', invSel)),
+      // "Step", not "Base surface" — the Primary row's "Base surface" picks white/black/a neutral, this
+      // repoints a step through the override layer, which is what every other row on the page calls "Step".
+      controls: sfCtl(sfCtlBlock('Step', invSel)),
       example: sfExSurface(invHex, onInv, 'Inverse band', invText),
     }));
   }
@@ -4068,25 +4114,16 @@ const renderForegroundEditor = (): HTMLElement => {
   const sec = palSection('Text', `The text colors for ${MODE_LABEL[currentMode] ?? currentMode} — “Auto” follows the generated, contrast-placed default; pick a neutral step to override just this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the mode’s surface.`);
   const nPal = theme.roleToPalette.neutral;
   const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
-  const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; ratio?: number; min?: number } | undefined>;
+  const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
   const surfaceHex = roles['background.primary']?.hex ?? (currentMode === 'dark' ? '#000000' : '#ffffff');
   for (const [role, label] of FG_ROLES) {
     const r = roles[role]; if (!r) continue;
-    const sel = selectEl('cap');
     const cur = brandState.overrides?.[currentMode]?.[role]?.step;
-    sel.append(optionEl('', 'Auto', cur == null));
-    for (const s of nSteps) sel.append(optionEl(s, `Neutral ${s}`, cur === s));
-    sel.onchange = () => {
-      const v = sel.value;
-      const ov = brandState.overrides ?? (brandState.overrides = {});
-      const forMode = ov[currentMode] ?? (ov[currentMode] = {});
-      if (v === '') {                                          // revert to the generated baseline
-        delete forMode[role];
-        if (!Object.keys(forMode).length) delete ov[currentMode];
-        if (!Object.keys(ov).length) brandState.overrides = undefined;
-      } else forMode[role] = { palette: nPal, step: v };
-      applyFull();
-    };
+    // The shared `stepPicker` + `setFillOverride` — same control, same revert-prune, and "Auto" now
+    // names the step it landed on (`Auto · neutral 900`) as the fill rows already did. The hand-rolled
+    // copy this replaces differed from them in exactly one way: it withheld that.
+    const sel = stepPicker(nPal, nSteps, stepKeyOf(r.path), typeof cur === 'string' ? cur : undefined,
+      (step) => setFillOverride(role, nPal, step));
     sec.append(sfRow({
       swatchHex: r.hex, name: label, tokenPath: `color.${role}`,
       controls: sfCtl(sfCtlBlock('Step', sel)),
@@ -6079,7 +6116,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .astate .select{width:100%;font-size:12px;padding:6px 9px;padding-right:26px}
 @media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.aex-two{grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
-.sf-row{display:grid;grid-template-columns:56px 168px 172px 1fr 228px;gap:20px;align-items:start;padding:24px 0}
+/* The identity track is 256px, not 168px, because the token PATH has to be readable. At 168px three of
+   the page's thirteen paths elided — and #289's rtl elision keeps the tail, so
+   color.background.inverse.primary rendered as an unreadable "…kground.inverse.primary". The widest
+   path this page can show measures 252px at the pill's font; 256 clears it with slack. The width comes
+   out of track 4, which is the deliberate whitespace spacer — breathing room is not worth buying with
+   an identifier the row exists to name. */
+.sf-row{display:grid;grid-template-columns:56px 256px 172px 1fr 228px;gap:20px;align-items:start;padding:24px 0}
 .sf-row+.sf-row{border-top:1px solid var(--line)}
 .sf-sw{width:56px;height:56px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line2)}
 .sf-id{min-width:0;padding-top:2px}
@@ -6097,13 +6140,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sf-ex-fill{color:#fff;font-weight:600;font-size:13.5px}
 .sf-ex-text{font-size:14.5px}
 .sf-railnote{font-size:10.5px;color:var(--faint)}
-/* Collapses at 1120px, not 900px. The five-column layout has a HARD floor: four of its tracks are
-   fixed (56+168+172+228) and the gaps add 80, so it needs 704px of row box and cannot shrink an
-   inch below that. The row box runs viewport-400, so 704 is not available until ~1104px — every
-   width between the old 900px breakpoint and there rendered a layout that could not fit, pushing
-   .sf-ex past the panel edge and scrolling the document. 1120 leaves the spacer track a little
-   width at the boundary rather than exactly zero. */
-@media(max-width:1120px){.sf-row{grid-template-columns:56px 1fr;gap:14px}.sf-row .sf-ctl,.sf-right{grid-column:1/-1;align-items:flex-start}.sf-ex{width:100%}}
+/* Collapses at 1208px, not 900px. The five-column layout has a HARD floor: four of its tracks are
+   fixed (56+256+172+228) and the gaps add 80, so it needs 792px of row box and cannot shrink an
+   inch below that. The row box runs viewport-400, so 792 is not available until ~1192px — every
+   width below that renders a layout that cannot fit, pushing .sf-ex past the panel edge and
+   scrolling the document. 1208 leaves the spacer track a little width at the boundary rather than
+   exactly zero. (Was 1120 against a 704px floor, before the identity track widened to fit the paths.) */
+@media(max-width:1208px){.sf-row{grid-template-columns:56px 1fr;gap:14px}.sf-row .sf-ctl,.sf-right{grid-column:1/-1;align-items:flex-start}.sf-ex{width:100%}}
 .contracts{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:18px 20px}
 .contracts-sum{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px}
 .contracts-sum::-webkit-details-marker{display:none}
@@ -6153,18 +6196,34 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-grid{display:grid;gap:14px;margin-top:2px}
 .sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
 .sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}
+/* Gallery pills WRAP instead of eliding. #289's elision is right in a table cell, where a column can
+   only be so wide and siblings differ by their tail; here the grid width is fixed by the semantic set
+   (five status columns), so a ~148px card could never fit color.foreground.warning and every semantic
+   pill in the Bold and Subtle rows rendered as "…r.foreground.warning". A pill under a card has the
+   vertical room a table cell does not, so it takes a second line and stays readable. */
 .sg-pills{display:flex;gap:6px;flex-wrap:wrap}
+.sg-pills .tpill{white-space:normal;overflow:visible;direction:ltr;word-break:break-word}
 .sg-card{position:relative;min-height:118px;border-radius:var(--r);border:1px solid var(--line);padding:14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
 .sg-bcard{background:transparent!important}
 .sg-mid{justify-content:center}
 .sg-icard{min-height:104px;align-items:center;justify-content:center;background:var(--paper)}
+/* Scrim: the card is the page surface, the dim layer carries the alpha over all of it, and a small
+   panel floats on top — the token doing its real job. Padding is zeroed because the dim layer runs to
+   the card's edge. */
+.sg-scrimcard{padding:0;overflow:hidden}
+.sg-scrimdim{width:100%;flex:1;display:flex;align-items:center;justify-content:center}
+.sg-scrimpanel{border-radius:var(--r-sm);padding:14px 20px;box-shadow:0 6px 18px rgba(0,0,0,.22)}
 .sg-ico svg{width:26px;height:26px;display:block}
 .sg-lab{font-weight:640;font-size:14px;line-height:1.2}
 .sg-sub{font-size:12px;opacity:.9}
 .sg-failmk{position:absolute;top:8px;right:8px;width:15px;height:15px;border-radius:50%;background:#d21b1b;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .sg-failpill{border-color:#e6a2a2!important;color:#b42318!important}
 .sg-fx{color:#d23;font-weight:800;margin-left:3px}
-.sg-tcg{display:grid;grid-template-columns:1fr 1fr minmax(150px,190px);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:2px}
+/* Token column 244px, not 190px: the longest path here (color.text.warning-subtle) needs 211px plus the
+   cell's 30px of padding, and at 190 the -subtle and link rows wrapped to two lines while their
+   siblings did not — ragged row heights for no gain. The width comes off the two specimen columns,
+   which hold a single word each and have it to spare. */
+.sg-tcg{display:grid;grid-template-columns:1fr 1fr minmax(150px,244px);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:2px}
 .sg-tc{padding:10px 15px;display:flex;align-items:center;min-height:44px}
 .sg-tc.sg-l{background:var(--lbg)}.sg-tc.sg-r{background:var(--dbg)}.sg-tc.sg-t{background:var(--panel);border-left:1px solid var(--line)}
 .sg-tchd{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;min-height:0;padding-top:8px;padding-bottom:8px}

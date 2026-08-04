@@ -338,6 +338,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const scrimStep = hc ? (cfg.family === 'light' ? 60 : 70) : (cfg.family === 'light' ? 40 : 60);
   put('scrim.default', { path: `${ns}.black-alpha.${scrimStep}`, rgb: BLACK, ratio: 1 },
     `Scrim — ${scrimStep}% black backdrop (modals / drawers)`, 'self', 0);
+  // Record the alpha, exactly as the overlay washes below do. `hex` is the opaque BASE (black); the
+  // translucency lives only here, so a role view without it reports the scrim as solid black — which
+  // is what every consumer of `resolveAllModes` painted. The DTCG emit was always right (it aliases
+  // `black-alpha.<step>`, and the alpha is on the primitive), so no artifact ever drifted; the bug
+  // could only surface where a UI rendered the RESOLVED role, and until now nothing rendered scrim.
+  roles['scrim.default'].alpha = scrimStep / 100;
 
   // -------------------------------------------------------------- foregrounds
   // Surfaces & fills placed on the canvas. Neutral tonal ladder + inverse + bold
