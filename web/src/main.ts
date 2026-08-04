@@ -771,8 +771,27 @@ const contractTableEl = (contracts: typeof rp.contracts, paths = false): HTMLEle
 
 /** Contrast contracts — the full all-modes master table (verification of record). */
 const renderPreviewContracts = (host: HTMLElement): void => {
-  host.append(el('p', 'np-note', `Every declared a11y pair (${rp.contracts.length}), computed on the resolved colors across all modes. The per-control badges on each editing page verify the active mode at the point of edit; the per-page tables scope this to what that page governs.`));
-  host.append(contractTableEl(rp.contracts));
+  // Wrapped in a `.psec` like its two sibling views. It was the only one of the three rendering a bare
+  // note + bare table straight onto the page background — the doc-26 shell is what makes the three
+  // views read as one destination rather than three different pages behind a segmented control.
+  //
+  // The heading carries the FAILURE COUNT, because that is the question this view exists to answer and
+  // it was previously only derivable by scanning ~32 rows × every mode for a red dot. Zero is stated
+  // rather than left implicit: "all pairs clear" is the result a designer most wants confirmed.
+  // Counted as PAIRS that fail in at least one mode, not as mode-instances — a pair failing in both
+  // light and dark is one problem to fix, and summing instances would report it as two. The mode
+  // count rides along so the number stays honest about breadth.
+  const failing = rp.contracts.filter((ct) => rp.modes.some((m) => ct.byMode[m] && !ct.byMode[m]!.pass));
+  const instances = rp.contracts.reduce((n, ct) => n + rp.modes.filter((m) => ct.byMode[m] && !ct.byMode[m]!.pass).length, 0);
+  const sec = palSection('Contrast contracts',
+    `Every declared a11y pair (${rp.contracts.length}), computed on the resolved colors across all modes. The per-control badges on each editing page verify the active mode at the point of edit; the per-page tables scope this to what that page governs.`);
+  const tally = el('p', failing.length ? 'pv-tally no' : 'pv-tally ok',
+    failing.length
+      ? `${failing.length} of ${rp.contracts.length} pairs fall below their floor — ${instances} mode${instances === 1 ? '' : 's'} affected.`
+      : 'Every pair clears its floor in every mode.');
+  sec.append(tally);
+  sec.append(contractTableEl(rp.contracts));
+  host.append(sec);
 };
 
 // Token list — the resolved token set, grouped by category, value(s) per mode where they vary.
@@ -887,7 +906,17 @@ const renderPreviewTokens = (host: HTMLElement): void => {
    *  One accessor means the next reader cannot forget. */
   const valueAt = (node: TreeNode, m: Mode): unknown => {
     const ov = node.$extensions?.prism3?.modes?.[m];
-    return (m !== baseMode && ov) ? ov.$value : node.$value;
+    if (m === baseMode || !ov) return node.$value;
+    // Two override shapes exist in the emitted tree. 441 of them (every colour) are
+    // `{ $value, aliasOf, … }`; shadow's 7 are the RAW layer array. Reading only `ov.$value` made
+    // every dark shadow render as an em-dash in the one view whose job is the exhaustive dump — the
+    // table said "no dark value" for a family that has one, on all 7 rows.
+    //
+    // Tolerant here rather than corrected at the source ON PURPOSE: the raw-array shape is load
+    // bearing — `resolve-preview.ts` and `emit-figma-styles.ts` both read it with `Array.isArray`,
+    // and it is a published artifact shape. Unifying the convention is the right fix and is a
+    // decision about the emitted contract, not something to change as a side effect of a UI review.
+    return (ov as { $value?: unknown }).$value ?? ov;
   };
   /** What a leaf points at in a mode — root-relative — or undefined when it carries a value itself. */
   const aliasAt = (node: TreeNode, m: Mode): string | undefined => {
@@ -1024,9 +1053,15 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   for (const s of shown) {
     const canShort = s.ns.length === 1;
     const cols = s.hasModes ? modeLabels : ['Value'];
+    // The primitive blurb used to assert "one value, no modes" unconditionally — true of 9 of the 10
+    // primitive categories and FALSE of shadow, whose 7 leaves each carry a reduced dark variant and
+    // which renders per-mode columns directly beneath that sentence. It now reads `hasModes`, like
+    // the semantic blurb below it already did.
     const sec = palSection(s.cat.charAt(0).toUpperCase() + s.cat.slice(1),
       tokTier === 'primitive'
-        ? `${s.leaves.length} primitives — one value, no modes. The ramps are shared; a mode re-points a semantic at a different primitive, it never redefines one.`
+        ? (s.hasModes
+          ? `${s.leaves.length} primitives, each with a per-mode variant — the exception to the rule below: a value that is genuinely different per mode, not a re-pointed alias.`
+          : `${s.leaves.length} primitives — one value, no modes. The ramps are shared; a mode re-points a semantic at a different primitive, it never redefines one.`)
         : `${s.leaves.length} semantics — ${s.hasModes ? 'each mode aliases its own target' : 'mode-invariant, one value'}.`);
     const rows = s.leaves.map((l) => ({ name: l.path, cells: (s.hasModes ? modes : [baseMode]).map((m) => tokCell(l.node, m, canShort)) }));
     const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(rows, cols)); sec.append(scroll);
@@ -5959,6 +5994,16 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .stage-vol{display:flex;flex-direction:column}
 .pvhost{display:flex;flex-direction:column;gap:16px}
 .pv-tscroll{overflow-x:auto;margin-top:8px}
+/* Contract tally — the one number this view exists to produce, stated before the 32 rows rather than
+   left to be scanned out of them. */
+.pv-tally{font-size:12.5px;font-weight:600;margin:10px 0 0;padding:9px 12px;border-radius:var(--r-sm);border:1px solid var(--line)}
+.pv-tally.ok{color:var(--ok);background:var(--panel)}
+.pv-tally.no{color:var(--danger);background:var(--panel)}
+/* Shadow and typography values are long single-line strings in a table whose Token column is narrow and
+   whose row has slack to spare. Let the value column take that slack and wrap, so the exhaustive dump
+   is actually exhaustive — the title attribute was carrying content the view is supposed to SHOW. */
+.toktable td.mcol .tok-hexv{white-space:normal;word-break:break-word}
+.toktable td.pair{white-space:nowrap;width:1%}
 .type-spec{margin-bottom:8px}
 .ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
 .ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
