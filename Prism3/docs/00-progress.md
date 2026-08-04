@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-04) — The chip's ring was being clipped, and the contrast marks leave (#439, owner-reported)
+
+**STATUS: web.** `out/*` untouched.
+
+**The ring looked cut off because it was.** `box-shadow: 0 0 0 1px` paints **outside** the border box,
+and the chip lives in `.mctx-modes`, which I made scrollable in #432. **Setting `overflow-x: auto`
+makes `overflow-y` compute to `auto` as well** — per spec, `visible` on one axis becomes `auto` when
+the other is not `visible` — so the strip clips *vertically*, and the strip is exactly as tall as its
+chips. Measured: chip box `116.9–149.1`, ring wanted `115.9–150.1`, **clipped top and bottom**,
+leaving only the left and right edges. That is precisely the "double border with the corners missing"
+in the report.
+
+**Fixed with `inset` rather than by making room.** The alternatives were padding the scroller (which
+grows the sticky bar by 4px on every page) or a 2px border (which shifts the label by 1px against the
+unselected chips). An inset ring paints the *same* 2px of contiguous ink — 1px border plus 1px ring —
+entirely **within** the border box: visually identical, impossible to clip, and no outer dimension
+changes. Verified the chip now escapes its scroller by **0.0px top and bottom**.
+
+**Worth keeping as a rule: a scroll container clips both axes, whatever you asked for.** Any outset
+ring, outline or shadow inside one will be cut. This is the second defect the wrap→scroll change has
+produced, and both were invisible in source — the first was found by measuring widths, this one by
+comparing the ring's intended extent against the clip box.
+
+**The contrast marks are gone from the chips (owner decision).** A pass/fail glyph on a mode
+*selector* is theme health riding on a control that selects scope. Contrast is still reported where it
+is actionable — the contract tables, the derived-mode verdict panel, and at export — and four ticks
+that are almost always green teach nothing. `modeAllPass` stays: it still drives the read-only panel's
+verdict chip, so this removes a display, not a capability.
+
+**I argued for keeping these marks in #449 and was wrong about why.** My reasoning was that removing
+them would delete the per-mode contrast signal #54 added. It does not — the signal exists in three
+other places, all of them closer to where a contrast decision is actually made. "Do not silently
+remove a capability" was the right instinct applied to something that was not a capability.
+
+**`--ok-inv` / `--danger-inv` are now deleted.** #449 left them in place only to avoid a conflict with
+#448, which has since merged; with the mark gone they have no possible consumer. #285 measured them
+against `--ink` and the values are in this log if an inverted panel ever wants them.
+
+Verified: `inset` in the computed shadow; 0 marks in the DOM; chips read `Light · Dark · HC light
+view only · HC dark view only`; bar 52px (2px shorter without the marks); no page errors.
+
+---
+
 ## (2026-08-04) — The Style guide renders on the mode's own canvas
 
 **STATUS: web only.** `out/*` untouched.

@@ -2199,12 +2199,12 @@ const renderModeContext = (): HTMLElement => {
     const b = el('button', 'mctx-b' + (m === currentMode ? ' on' : '') + (derived ? ' derived' : '')) as HTMLButtonElement;
     b.append(el('span', 'mctx-name', MODE_LABEL[m] ?? m));
     if (derived) b.append(el('span', 'mctx-vo', 'view only'));
-    const ok = modeAllPass(m);
-    // #54 — a per-mode contrast pass/fail badge (NOT a remove control): ✓ pass · ! fail. Spell it out on
-    // hover so the mark doesn't read as "close/remove".
-    b.append(el('span', 'mctx-mark ' + (ok ? 'ok' : 'no'), ok ? '✓' : '!'));
-    b.title = (derived ? 'Auto-derived from the contrast contracts — a read-only verification view. ' : '')
-      + (ok ? 'Contrast: all pairs pass in this mode.' : 'Contrast: some pairs fail in this mode.');
+    // No per-mode contrast mark here any more (#54 retired, owner decision): a pass/fail glyph on a
+    // mode SELECTOR is theme health riding on a control that selects scope, and contrast is reported
+    // where it is actionable — the contract tables, the derived-mode panel, and at export. Four green
+    // ticks that are always green teach nothing; the same information is still one page away, and
+    // `modeAllPass` still drives the read-only panel's verdict chip.
+    if (derived) b.title = 'Auto-derived from your contrast contracts — a read-only verification view.';
     b.onclick = () => { if (currentMode !== m) { currentMode = m; renderModeStrip(); renderWorkspace(); } else { renderModeStrip(); } };
     left.append(b);
   }
@@ -5936,7 +5936,6 @@ const STYLE = `
      surfaces. The -inv pair is for INVERTED (dark) panels and is measured against --ink instead;
      darkening those would break them, which is the trap this audit exists to avoid. */
   --ok:#1a7f4b; --warn:#a35e00; --danger:#c9342f;
-  --ok-inv:#7fe0ac; --danger-inv:#ff9d97;
   /* #446 — the TINT grounds. Two verdict badges each invented their own tinted background with its
      own hardcoded darker green/red, because #285 audited the status set against --paper and --panel
      and never against a tint of the status color itself. Measured: on --paper a tint of --ok fails
@@ -6500,23 +6499,20 @@ input.toggle:disabled{opacity:.5;cursor:default}
    fill. Mode is a SCOPE, not a destination: dressing it as the loudest tab on the page made it
    heavier than the rail that chooses the page, which only got worse when the bar moved into the
    content column (#432). The ring keeps it findable without it shouting.
-   Two things fall out, and both are simplifications rather than losses:
-     · the contrast mark now always sits on a light ground, so the --ok-inv / --danger-inv overrides
-       that existed ONLY for the dark fill are gone. That leaves both TOKENS with no consumer. They
-       are deliberately not deleted here: #448 edits the same declaration block, and a needless
-       conflict costs more than two unused custom properties for one merge. Remove them after it
-       lands — #285 measured them against --ink, and the values are in the progress log if an
-       inverted panel ever wants them back;
-     · the read-only marker no longer needs a white-on-dark variant either. */
-.mctx-b.on{background:var(--panel);color:var(--ink);border-color:var(--ink);box-shadow:0 0 0 1px var(--ink);font-weight:560}
+   The read-only marker no longer needs a white-on-dark variant either. */
+/* INSET ring, not an outset one. An outset ring is painted OUTSIDE the border box, and this chip
+   lives in .mctx-modes, which scrolls (#432). Setting overflow-x:auto makes overflow-y compute
+   to auto as well -- per spec, visible on one axis becomes auto when the other is not visible --
+   so the strip clips vertically, and the strip is exactly as tall as its chips. Measured: chip
+   box 116.9-149.1, ring wanted 115.9-150.1, clipped top AND bottom, leaving the sides only.
+   Inset paints the same 2px of contiguous ink (1px border + 1px ring) entirely within the
+   border box, so it looks the same, cannot be clipped, and changes no outer dimension. */
+.mctx-b.on{background:var(--panel);color:var(--ink);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:560}
 /* "View only", not "auto": these modes are derived and the engine REFUSES per-mode levers on them,
    so the honest fact is that you cannot edit here — which is what a user needs, where "auto" only
    described how the mode was produced. Sits inside the chip rather than as a caption beneath it:
    after the wrap-to-scroll change (#432) the bar spends width freely and height not at all. */
 .mctx-vo{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:1.5;white-space:nowrap}
-.mctx-mark{font-size:12px;font-weight:700}
-.mctx-mark.ok{color:var(--ok)}
-.mctx-mark.no{color:var(--danger)}
 /* Inline variant (#432): the same editor embedded in the brand menu, which is itself a popover —
    so it drops the positioning, shadow, border and fixed width and simply flows in the parent. */
 .mctx-menu.inline{position:static;width:auto;padding:0;background:none;border:0;box-shadow:none;z-index:auto}
