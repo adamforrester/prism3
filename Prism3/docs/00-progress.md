@@ -7,6 +7,38 @@
 
 ---
 
+## (2026-08-04) — Specimen labels name the role, except where letterforms are the subject (owner-reported)
+
+**STATUS: web.** Copy only. `out/*` untouched.
+
+**One section taught three different things about what its sample text is for.** The per-mode text
+override rows read `The quick brown fox` · `Jumps over the lazy dog` · `Least-emphasis caption` —
+two halves of a pangram and one label that actually names the role. The owner picked the third, and
+it is the right one for a reason worth stating rather than just matching.
+
+**The rule: a specimen's label names what it is FOR, unless letterforms are the subject.**
+
+- These rows are **color** specimens — the subject is the ink, and the words are the only label the
+  row has. Filler wastes the one place a reader can learn what `text.secondary` is for.
+- `RAMP_SAMPLE` on the type ramp is a **type** specimen and keeps its pangram, deliberately. Its
+  existing comment explains why the string is long: the big rows clip with an ellipsis, so a shorter
+  word would show fewer real letterforms. Different subject, different right answer — so this is a
+  distinction, not an inconsistency to flatten.
+
+Changed: `Default body copy` · `Supporting detail` · `Least-emphasis caption`. Parallel, each naming
+a use, and none repeating its own row label (which already says "Primary/Secondary/Tertiary text").
+
+**`Card on this surface` → `Card`** (two call sites). The other two surface specimens in the app —
+Preview's surface picker and the fills section — already say `Card` / `Panel` / `Nested`, and the row
+description already establishes that it sits on the mode's surface. The phrase was the odd one of
+three.
+
+Verified on the running page: all six intended labels present, both pangram fragments and the old
+phrase gone from Surfaces, and the type ramp still shows its pangram on the Typography → Preview tab.
+No page errors.
+
+---
+
 ## (2026-08-04) — The mode bar sits under the page title, and stops cutting a hard edge (#439)
 
 **STATUS: web.** `out/*` untouched.

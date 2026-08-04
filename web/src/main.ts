@@ -4387,14 +4387,14 @@ const renderSurfacesEditor = (): HTMLElement => {
       // rather than repeating the definition three lines later.
       desc: 'White, black, or a tinted neutral step.',
       controls: sfCtl(sfCtlBlock('Base surface', base), floorBlock),
-      example: sfExSurface(primHex, brandDot, 'Card on this surface', primText),
+      example: sfExSurface(primHex, brandDot, 'Card', primText),
     }));
   } else {
     sec.append(sfRow({
       swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
       desc: 'Seeded from this custom mode’s base.',
       controls: sfCtl(sfCtlBlock('Base surface', el('span', 'sf-derived', 'Seeds from its base mode'))),
-      example: sfExSurface(primHex, brandDot, 'Card on this surface', primText),
+      example: sfExSurface(primHex, brandDot, 'Card', primText),
     }));
   }
 
@@ -4433,7 +4433,13 @@ const renderSurfacesEditor = (): HTMLElement => {
  *  mode via the A1 override layer. Symmetric across customizable modes (light + dark both write their
  *  own override); "Auto" = the generated default; a pick below the text floor warns (never blocks). */
 const FG_ROLES: [string, string][] = [['text.primary', 'Primary text'], ['text.secondary', 'Secondary text'], ['text.tertiary', 'Tertiary text']];
-const TEXT_SAMPLE: Record<string, string> = { 'text.primary': 'The quick brown fox', 'text.secondary': 'Jumps over the lazy dog', 'text.tertiary': 'Least-emphasis caption' };
+/* These are COLOR specimens, not type specimens, so each string names the role's USE rather than
+   being filler. Two of the three used to be halves of a pangram ("The quick brown fox" / "Jumps over
+   the lazy dog") while the third already named its use — so one section taught the reader three
+   different things about what the sample text is for. A pangram is right where letterforms are the
+   subject (see RAMP_SAMPLE, which is deliberately long enough that the big rows clip); it is wrong
+   where the subject is a colour and the words are the only label the row has. */
+const TEXT_SAMPLE: Record<string, string> = { 'text.primary': 'Default body copy', 'text.secondary': 'Supporting detail', 'text.tertiary': 'Least-emphasis caption' };
 const renderForegroundEditor = (): HTMLElement => {
   const sec = palSection('Text', `The text colors for ${MODE_LABEL[currentMode] ?? currentMode} — “Auto” follows the generated, contrast-placed default; pick a neutral step to override just this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the mode’s surface.`);
   const nPal = theme.roleToPalette.neutral;
