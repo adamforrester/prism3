@@ -132,6 +132,14 @@ ordered, and step 3 is the one that decides whether the findings are real.
   not a column type. One fill column *per face* made "Weight roles by face" grow without bound — 899px
   in a 798px container on the **default** brand, so every brand saw its specimens clipped. Shared grid
   is `112/148/148/390` = **798px**; re-measure after any cell gains content.
+- **A percentage width needs a containing block that means something.** A bar sized
+  `width: (v/max)*100%` inside a flex row also containing a fixed label resolves against the WHOLE
+  row — so only the bars wide enough to overflow get shrunk back to the space that actually exists,
+  and every narrower bar renders at an inflated fraction. Give the bar its own
+  `flex:1; min-width:0` track. Layout's container specimen overstated every ratio by ~1.5× this way.
+- **Never normalise a specimen by the value its own control sets.** `maxW = max(containerMax, …)`
+  made `container.max` 100% at every value, so the slider beside it moved nothing. Scale against an
+  independent reference (there, the widest breakpoint) or the control reads as inert.
 - **The intrinsic-width trap.** A `nowrap` element contributes its full single-line width as
   min-content, and a column `width` is only a hint it will blow past (measured three times: #360, #369,
   #388, and again at 829px on a token pill). Cap with an explicit px `max-width`.
@@ -198,6 +206,11 @@ below is what separated them — run it per page, in this order.
    sweep then reports empty for every field. (Palettes pass: `brandColors: [{name, hex}]` when the real
    shape is `{name, oklch:{l,c,h}}`.) **When a sweep returns nothing, suspect the fixture before the
    page** — the emptiness is the tell, and plausible-looking partial data would not have been.
+2b. **Compute token coverage from the brand the UI is RENDERING, not from a committed example.**
+   Emitted names can depend on brand shape — breakpoint names are floor-COUNT dependent (6 floors →
+   `xs`…`2xl`, 5 → `sm`…`2xl`), so comparing a 5-floor UI against 6-floor aurora invents a missing
+   `breakpoint.xs`. Palettes hit the same wall with NB's brand-specific palette names and a phantom
+   0% coverage. Generate the theme from the sweep's own fixture and diff against that.
 3. **Measure the RENDERED page, never `textContent`.** *This is the rule that matters.* The one wrong
    finding in the whole review — "header casing is inconsistent" — came from comparing extracted
    strings; every header is `text-transform: uppercase`, so users saw nothing. Acting on it introduced
@@ -254,7 +267,7 @@ positive, and a pill whose trailing `*` reordered under `direction: rtl`). Both 
 | Typography | ✅ | ✅ | ✅ `type.*` / `font.typeface.*` / `font.family.*` | **Reference implementation for the tier split and the mode rule.** Four tabs via `.pvseg` — **Primitives** (typeface library · size ladder · leading & tracking ladders) · **Semantics** (typeface bindings · weight roles · leading & tracking rungs + per mode) · **Text styles** (heading sizes · what each category is made of) · **Preview** (read-only). **#415** retired the `display|text|mono` family ROLE tier — each of the 7 categories binds a typeface directly (`font.family.<category>`), matching how Prism2's own brand-theme binds. **#416** states the per-mode rule above and removes the mode bar from the page. **#411** nudge controls are signed deltas with the resolved rung beneath. **#422/#423** derived-mode columns are readings. Reviewed end-to-end 2026-08-03; see the method section above |
 | Elevation | ✅ | ✅ | ✅ `shadow.*` | #72 — Shadow editor + Elevation-ramp specimen as `.psec`; `shadow.xs…2xl` pills |
 | Size & radius | ✅ | ✅ | ✅ `radius.*` / `size.*` | #72 — regrouped by **concept** (Corner radius · Density & size · Spacing grid), not advanced/not; Radius-ramp + Control-size specimens carry `radius.*` / `size.*.height` pills |
-| Layout | ✅ | ✅ | ✅ `breakpoint.*` / `container.*` | #72 — Breakpoints + Grid & containers as `.psec`; the Layout-grid specimen table adds a `breakpoint.*` token column and the container bars carry `container.max` / `container.narrow` pills |
+| Layout | ✅ | ✅ | ✅ `breakpoint.*` / `container.*` | #72 — Breakpoints + Grid & containers as `.psec`; the Layout-grid specimen table adds a `breakpoint.*` token column and the container bars carry `container.max` / `container.narrow` pills. Reviewed 2026-08-04: the container specimen was **overstating every ratio by ~1.5×** (bar percentages resolved against the whole row, including the 150px label — only the 100% bar overflowed and got shrunk back) **and** normalising `container.max` by its own value, so that slider could never move its own bar; both fixed and pinned by measured wanted-vs-got. `container.fluid` gained a row (dashed = no cap). `.ly-table` headers aligned to `.ctable` — they were the app's only `text-transform: lowercase`. The table was 500px in a 492px pane on `main` with all six headers wrapped and scrolled the document at 1100px; now fits, and scrolls in its own pane below that |
 | Motion | ✅ | ✅ | ✅ `motion.*` | #72 — Tempo + Easing as `.psec` (easing promoted out of "advanced"); the Motion specimen rows carry `motion.duration.*` + `motion.easing.*` pills |
 | Preview | ✅ | ✅ | ✅ full `color.*` (#232) | token-list categories (Color / Dimension / Typography / Shadow) now `.psec` sections with tables scrolling in an `overflow-x` container; pills + master table already conformed. **Whole dashboard now on the doc-26 language.** Adds a **Style guide** sub-view (`renderPreviewStyleGuide`) — the resolved system in situ (Background / Foreground / Text color / Border / Icon / Disabled / Interactive) in `.psec` shells, driven live off the global mode picker; every full-role pill carries the resolvable `color.*` path (`sgPill` prefixes it; short leaf labels like `fill.rest` stay contextual under a namespaced block header). **Coverage audited 2026-08-04** against the resolver rather than by eye: the gallery showed **49 of 55** surfaces-vocabulary roles and now shows all 55 — Background gains a **Scrim** row, Foreground gains the **Inverse** tier (Background split Base/Inverse; Foreground had only Base), `text.on-inverse` gets a pill on the card it was already inking, and **Links** gains `focused` (the callout had enumerated three when `LINK_STATES` has four). Gallery pills wrap at `<wbr>` path boundaries rather than eliding — a 5-column status grid can never fit `color.foreground.warning`. |
 

@@ -7,6 +7,86 @@
 
 ---
 
+## (2026-08-04) — Layout review: a specimen that overstated every ratio it drew
+
+**STATUS: web only.** No engine change, `out/*` untouched.
+
+**The headline is one bug with two halves, and neither is visible without measuring.** The container
+specimen exists to show how narrow the reading column is against the cap. It was drawing that
+relationship wrong in two independent ways at once.
+
+**Half one — the percentage resolved against the wrong box.** `.ly-cont-bar` got
+`width: (px / maxW) * 100%`, which is correct arithmetic; but the bar sat directly in a flex row
+alongside a 150px label, so the percentage resolved against the **whole row**, including the space the
+bar does not get to use. Only the 100% bar was wide enough to overflow, so only that one was
+flex-shrunk back to the 330px actually free. Every narrower bar rendered at its true fraction of the
+full 492px row. Net effect: **every ratio inflated by 492/330 ≈ 1.5**. A 720-on-1440 reading column
+drew at **75%**, not 50%. Fixed with a `.ly-cont-track` (`flex:1; min-width:0`) so a percentage means
+what it says.
+
+**Half two — the reference was the value itself.** `maxW = max(containerMax, containerNarrow)` *is*
+`containerMax` in every realistic brand, so `container.max` was 100% by construction. Measured across
+960 / 1440 / 1600 / 1920: **the bar was 330px at every value.** The Container max slider sits directly
+beside that bar and could never move it. Now scaled against the widest breakpoint — the honest
+reference (it is what "fluid" fills), and real data already on this page.
+
+Verified as arithmetic, not by eye: four (max, narrow) pairs, wanted-vs-got to two decimals, all exact.
+
+**`container.fluid` had no row** — the one member of a three-token family that appeared nowhere.
+(a)-class. It is the *default* container, and drawing it at the full track is also what it means: no
+cap. Rendered as a dashed outline so it reads as absence-of-cap rather than a third solid bar
+competing with the two that are caps. That also makes the ratio fix self-evident on screen.
+
+**`.ly-table` was a third table-header treatment, and the app's only lowercase text.** 11px/600
+`text-transform: lowercase`, against `.ctable`'s 12px/700 sentence case and `.mtbl-tbl`'s 9.5px/700
+uppercase — on a table doing precisely `.ctable`'s job (dense, read-only). Aligned to `.ctable`'s
+header typography and padding. The right-aligned numerics and bordered shell stay: those earn their
+difference, and collapsing the component wholesale would have lost them.
+
+> Checked by computed `textTransform` across all nine pages, not by reading strings — the Typography
+> pass produced a casing FALSE positive exactly that way, and acting on it caused a real regression.
+> Same claim shape, opposite verdict, because the measurement was different.
+
+**Two width defects fell out of that, one pre-existing and worse than it looked.** On `main` the
+table measured **500px inside a 492px pane with all six headers wrapped**, and at 1100px it pushed the
+whole *document* into a horizontal scroll. The 12px headers alone would have clipped the Margin
+column, so the header change forced the real fix: `.ctable` padding (7px/8px) brings it to 492, and an
+`ly-tscroll` wrapper lets it scroll in its own pane below that. **The table scrolls; the page never
+does.**
+
+### The finding that wasn't
+
+`breakpoint.xs` looked missing — aurora emits `xs`…`2xl`, the UI showed `sm`…`2xl` and pilled the 0px
+row `breakpoint.sm`. The pill is **correct**: breakpoint names are floor-COUNT dependent (6 floors →
+`xs`…`2xl`, 5 → `sm`…`2xl`), aurora declares six and the UI brand five. Comparing the UI against a
+committed example brand invents a missing token — the same mistake as the Palettes pass, where NB's
+palette names produced a phantom 0% coverage. **Coverage must be computed from the brand the UI is
+actually rendering.** Recorded rather than quietly dropped.
+
+### Coverage
+
+**7 of 23** layout tokens named on the page, but the shortfall is almost all **(b)-class**: the 15
+`grid.*` tokens are *shown as values* in the Columns / Gutter / Margin columns, just without pills.
+Deferred per the agreed scoping. The (a)-class gap was `container.fluid` alone, now closed.
+
+### Traps
+
+- **Backtick in a CSS comment, again** — third time. It is not a memory problem, it is that prose
+  about CSS wants to quote CSS. Write property names bare inside that literal.
+- **A grep for "fail" matches prose.** `nb-regression | grep -i fail` reported failure on a run whose
+  exit code was 0 and whose verdict line says PASS. Check the exit code.
+- **A container that overflows is not automatically a defect** (doc 26 step 7) — after the fix the
+  table still reports `scrollWidth > clientWidth` at 1100px, correctly, because it now scrolls. The
+  sweep had to be taught the difference between *scrolls* and *clips*, or it would have failed its own
+  fix.
+
+**Verification.** `regen --check` 88 · **1277/0** · NB regression PASS (exit 0) · web+plugin
+typecheck/build · sandbox-clean · US-English clean. Table fit and header wrapping checked across two
+brand shapes (5 and 6 breakpoints, 24 columns) × four viewports: no wrapped headers, no clipped
+leaves, **no page overflow at any width**.
+
+---
+
 ## (2026-08-04) — Surfaces & fills review: six roles with no home, and a scrim that was never translucent
 
 **STATUS: web + engine.** One engine line (`modes.ts`), the rest web. `out/*` unchanged — see below
