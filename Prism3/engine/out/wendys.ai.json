@@ -1210,6 +1210,28 @@
         }
       ]
     },
+    "interactive.primary.on-inverse.border": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.500}",
+        "dark": "{prism.palette.primary.500}",
+        "hc-light": "{prism.palette.primary.400}",
+        "hc-dark": "{prism.palette.primary.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.3
+        }
+      ]
+    },
     "interactive.destructive.on-inverse.text.rest": {
       "$description": "Destructive interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
@@ -1364,6 +1386,28 @@
         }
       ]
     },
+    "interactive.destructive.on-inverse.border": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.500}",
+        "dark": "{prism.palette.danger.500}",
+        "hc-light": "{prism.palette.danger.500}",
+        "hc-dark": "{prism.palette.danger.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 4.23
+        }
+      ]
+    },
     "interactive.neutral.on-inverse.text.rest": {
       "$description": "Neutral interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
@@ -1515,6 +1559,28 @@
           "token": "interactive.neutral.on-inverse.fill.rest",
           "min": "4.5:1",
           "ratio": 16
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.border": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.550}",
+        "dark": "{prism.palette.neutral.400}",
+        "hc-light": "{prism.palette.neutral.500}",
+        "hc-dark": "{prism.palette.neutral.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.52
         }
       ]
     },
@@ -3760,6 +3826,7 @@
         "color.interactive.primary.border",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-inverse.border",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest",
         "color.text.brand",
@@ -3795,6 +3862,7 @@
         "color.icon.link.focused",
         "color.interactive.primary.border",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.on-inverse.border",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest",
         "color.text.brand",
@@ -4023,7 +4091,8 @@
         "color.border.secondary",
         "color.field.border.hover",
         "color.field.border.rest",
-        "color.interactive.neutral.border"
+        "color.interactive.neutral.border",
+        "color.interactive.neutral.on-inverse.border"
       ]
     },
     "palette.neutral.450": {
@@ -4056,7 +4125,8 @@
         "color.border.secondary",
         "color.field.border.hover",
         "color.field.border.rest",
-        "color.interactive.neutral.border"
+        "color.interactive.neutral.border",
+        "color.interactive.neutral.on-inverse.border"
       ]
     },
     "palette.neutral.550": {
@@ -4074,6 +4144,7 @@
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.interactive.neutral.border",
+        "color.interactive.neutral.on-inverse.border",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -5153,6 +5224,7 @@
         "color.foreground.danger",
         "color.interactive.destructive.border",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.on-inverse.border",
         "color.interactive.destructive.text.rest"
       ]
     },

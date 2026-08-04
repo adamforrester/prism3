@@ -510,6 +510,18 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       }
       put(`interactive.${name}.on-inverse.on-fill`, onColor(fillRest.rgb),
         `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.on-inverse.fill.rest`, onMin);
+      // The outline EDGE on the dark band. Same anchor as the page border (step 500) but nudged
+      // against `invRgb` and declared against the inverse surface, so the contract count covers it.
+      // Without this the page border was the only one emitted and it is verified against
+      // `background.primary` only — a mid-tone clears 3:1 on BOTH grounds just inside a window
+      // (page-contrast 3.00 … ~6.48 for the emitted inverse surface), and nothing checked the far
+      // edge of it. The two nudged brands sit at 3.76/3.77 because `chromatic(..., nonTextMin)`
+      // pushes them TO the floor, which is the safe end; Wendy's brand red is naturally dark, is
+      // never nudged, clears the page at 5.88 untouched and landed 3.30 on the inverse band — 0.30
+      // from failing, with every gate green. A darker action color than that fails outright (#467).
+      put(`interactive.${name}.on-inverse.border`,
+        palette ? rated(chromatic(palette, 500, invRgb, cfg.nonTextMin), invRgb) : pickMinPass(ramp, invRgb, cfg.nonTextMin),
+        `${name} interactive border on a dark / inverse surface (outline on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
     };
     invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
     invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);

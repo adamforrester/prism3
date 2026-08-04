@@ -1413,11 +1413,15 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // resolves `on-inverse.text.*` for exactly this ground, so the row asks for the ink that matches
     // where it is being shown. Filled and Inverse need no such switch: their ink is `on-fill`,
     // measured against the button's own fill, which the ground behind it cannot change.
+    // The EDGE takes the same switch, for the same reason and now with a token to switch to. #461
+    // could only move the ink: the engine emitted one border, measured against the page, so the
+    // outline row kept a page-ground edge on the dark band. #467 added `on-inverse.border`.
     const otxt = (s: string) => `interactive.${c}.${onInverseGround ? 'on-inverse.' : ''}text.${s}`;
-    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, `interactive.${c}.border`), s, otxt(s), `text.${s}`));
+    const obd = `interactive.${c}.${onInverseGround ? 'on-inverse.' : ''}border`;
+    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obd), s, otxt(s), `text.${s}`));
     const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.on-inverse.fill.${s}`), paint(cur, `interactive.${c}.on-inverse.on-fill`), null, s, `interactive.${c}.on-inverse.fill.${s}`, `fill.${s}`));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
-    block.append(trow('Outline', [footLine('border', sgPill(`interactive.${c}.border`, 'border'))], outline, false));
+    block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
     // The Inverse row paints its own inverse band so the on-inverse variants have the ground they
     // were measured against. When the PREVIEW ground is already that band, painting it again is a
     // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still

@@ -890,6 +890,20 @@ for (const b of brands) {
     .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.on-inverse'));
   ok(noInv.length === 0, 'inverse: inverse=false emits no on-inverse inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
 
+  // (a2) the outline EDGE on the dark band (#467). Before this the border was emitted once against
+  //      `background.primary` and reused on the inverse band, so the pair was never measured — the
+  //      432 contracts all passed without checking it. This asserts the ground and the floor, which
+  //      is the whole point: it makes a failing edge a gate failure rather than a silent ship.
+  const invBdFails: string[] = [];
+  for (const m of modes)
+    for (const c of ['primary', 'neutral', 'destructive']) {
+      const r = m.roles[`interactive.${c}.on-inverse.border`];
+      if (!r) { invBdFails.push(`${m.mode}:${c}:absent`); continue; }
+      if (r.against !== 'background.inverse.primary') invBdFails.push(`${m.mode}:${c}:against=${r.against}`);
+      if (r.min > 0 && r.ratio < r.min) invBdFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
+    }
+  ok(invBdFails.length === 0, 'inverse: interactive.<color>.on-inverse.border gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
+
   // (b) neutralEmphasis 'strong' → a bold neutral fill that clears the non-text floor, on-fill still gated.
   const strong = resolveAllModes({ ...nbTheme(), neutralEmphasis: 'strong' });
   const strongFails = strong.flatMap((m) => {
