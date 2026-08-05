@@ -7,6 +7,60 @@
 
 ---
 
+## (2026-08-05) — Resolve the font style where the library is, not where the guess is (#499)
+
+**STATUS: `plugin/src/write-text-styles.ts` + `plugin/src/main.ts` + the typography harness.** **No
+engine change** — `out/*` byte-identical, fixtures untouched, no contract movement.
+
+**The measurement, which is the whole argument.** `WEIGHT_STYLE_NAME` hardcodes a Figma style name per
+numeric weight, but the spelling of a weight is per-FAMILY. Against a real 2,334-family library:
+
+| pair | spaced only | tight only | **both** |
+|---|---|---|---|
+| `Semi Bold` / `SemiBold` | 3 | 575 | **0** |
+| `Extra Bold` / `ExtraBold` | 4 | 400 | **0** |
+| `Extra Light` / `ExtraLight` | 2 | 406 | **0** |
+
+**`both` is zero in every row.** A family carries one spelling or the other, never both — so no fixed
+table can be correct and there is no safe default. The table was also internally inconsistent (600
+spaced, 800/200 tight), so *both* directions failed in practice, and it missed on Inter — the family it
+was evidently tuned to — at 800.
+
+Cost was silent: under skip-with-warning a brand hitting 600 lost those styles on 575 families for a
+**naming** reason, not a font-availability one. Harbor: 2 of 2,334 families satisfiable.
+
+**Fixed at the write layer, and the engine deliberately left alone.** The CLI has no font library to
+ask, so its emitted string cannot be better than a guess — but the plugin *does* have the real list. So
+the guess became the **preferred candidate** and the plugin resolves it against the family's actual
+styles: exact → spelling-insensitive → weight synonyms (`SemiBold` ≡ `DemiBold`, `Black` ≡ `Heavy`).
+
+> **Put the resolution where the capability is.** Changing the engine's guess would only trade one set
+> of families for another; nothing the engine can emit is right for a property it cannot observe.
+
+Keeping the engine untouched is why this carries no fixture churn and no `CONTRACT_VERSION` movement.
+
+**The negative case is load-bearing.** A family that genuinely lacks the weight resolves to
+`undefined` and still skips — #237 decided against substituting a wrong face, and a resolver that
+"helpfully" fell back to Regular would silently ship wrong typography everywhere. Asserted directly,
+and mutation-verified (returning `available[0]` on a miss fails).
+
+**Seven mutants, seven caught — but one was live until a test was added for it.** P6: the executor
+LOADED the resolved style and WROTE the plan's guess. Every count assertion passed, because counts do
+not look at the node; Figma would have been left holding a style whose `fontName` never loaded. Spotted
+by eye during the edit, then confirmed unprotected by mutation and closed with an assertion that the
+written `fontName` matches what was loaded.
+
+> **When one value is used twice, assert both uses.** A test that checks "how many were resolved" says
+> nothing about "which one was written," and the two disagreeing is exactly the failure a resolver
+> introduces that a lookup table never could.
+
+**Explicitly not in scope:** the mono carve-out (`WEIGHT_STYLE_NAME_MONO` collapsing 600→Medium). It is
+a symptom of the same root cause — a second hardcoded guess papering over the first — but removing it
+changes emitted artifacts, so it is a separate concern. With the resolver in place it is now removable
+without loss, which is worth doing deliberately rather than as a side effect here.
+
+---
+
 ## (2026-08-05) — Make the drift visible; leave the deletion decided by a human (#479, report lane)
 
 **STATUS: `plugin/src/write-figma.ts` + `plugin/src/main.ts` + the write harness.** No engine change —

@@ -86,6 +86,9 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       createTextStyle: figma.createTextStyle.bind(figma),
       loadFontAsync: figma.loadFontAsync.bind(figma),
       getLocalVariablesAsync: figma.variables.getLocalVariablesAsync.bind(figma.variables),
+      // #499: the real (family, style) pairs, so the executor can correct the engine's per-weight
+      // style-name guess against what each family actually spells it.
+      listAvailableFontsAsync: figma.listAvailableFontsAsync.bind(figma),
     };
     const ts = await applyTextStylePlan(buildTextStylePlan(theme), textApi);
     // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
@@ -113,6 +116,10 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const orphanNote = orphanCount
       ? `, ⚠️ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
+    // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
+    // rather than silently succeeding — it is the difference between "the guess was right" and "the
+    // guess was wrong and would have cost these styles before".
+    const resolvedNote = ts.resolvedStyles ? `, ${ts.resolvedStyles} font styles name-resolved` : '';
     const skippedNote = ts.skipped.length
       ? `, ⚠️ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
@@ -121,7 +128,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
-      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + orphanNote + skippedNote;
+      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + orphanNote + resolvedNote + skippedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false.
     postToUi({ type: 'apply-result', ok: misses === 0, summary });
   } catch (e) {

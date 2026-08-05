@@ -17,7 +17,7 @@
 import { buildFontVarPlan, buildTextStylePlan } from '../Prism3/engine/write-plan';
 import { brandTheme } from '../Prism3/engine/theme';
 import { applyVarCollectionPlan } from './src/write-figma';
-import { applyTextStylePlan } from './src/write-text-styles';
+import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
 import { nbTheme } from '../Prism3/engine/nb-fixture';
 
@@ -145,6 +145,84 @@ const skippedThisFont = sr.skipped.filter((s) => textPlan.find((r) => r.name ===
 ok(sr.skipped.length >= 1 && skippedThisFont.length >= 1, `unavailable font → style(s) SKIPPED with a reason (${sr.skipped.length}), not thrown`);
 ok(sr.skipped.every((s) => /font unavailable/.test(s.reason)), 'each skip carries a "font unavailable" reason');
 ok(sr.created === textPlan.length - sr.skipped.length, `only the loadable styles were created (${sr.created}/${textPlan.length})`);
+
+// ---- #499: the emitted style name is a guess, and the spelling is per-FAMILY ------------------
+// Measured against a real 2,334-family library: `Semi Bold`/`SemiBold` is 3 spaced vs 575 tight with
+// ZERO families carrying both. So no fixed table can be right, and the fix is to resolve at write
+// time against the family's real styles.
+
+ok(normStyle('Semi Bold') === normStyle('SemiBold') && normStyle('semi-bold') === 'semibold',
+  '#499 normStyle: space/case/hyphen-insensitive (Semi Bold ≡ SemiBold ≡ semi-bold)');
+
+// The measured pairs, in the direction that was actually failing: the plan says spaced, the family
+// spells it tight. These are the real style lists for these families (confirmed by loadFontAsync).
+ok(resolveFontStyle(['Regular', 'SemiBold', 'Bold'], 'Semi Bold') === 'SemiBold',
+  '#499 Roboto/Open Sans spell it SemiBold — a plan asking for `Semi Bold` now resolves');
+ok(resolveFontStyle(['Regular', 'Semi Bold', 'Bold'], 'Semi Bold') === 'Semi Bold',
+  '#499 Inter spells it `Semi Bold` — the exact match still wins, unchanged');
+ok(resolveFontStyle(['Regular', 'ExtraBold'], 'Extra Bold') === 'ExtraBold',
+  '#499 Extra Bold → ExtraBold (400 families vs 4)');
+ok(resolveFontStyle(['Regular', 'ExtraLight'], 'Extra Light') === 'ExtraLight',
+  '#499 Extra Light → ExtraLight (406 families vs 2)');
+// ...and the reverse direction, since the engine's table is tight for 800/200 and spaced for 600 —
+// it is internally inconsistent, so BOTH directions occur in practice.
+ok(resolveFontStyle(['Regular', 'Extra Bold'], 'ExtraBold') === 'Extra Bold',
+  '#499 resolves tight→spaced too (Inter spells 800 `Extra Bold`, the table emits `ExtraBold`)');
+
+// Italic rides along on the normalized string — no separate case in the resolver.
+ok(resolveFontStyle(['Regular', 'SemiBold', 'SemiBold Italic'], 'Semi Bold Italic') === 'SemiBold Italic',
+  '#499 italic resolves with its weight (Semi Bold Italic → SemiBold Italic)');
+
+// Weight synonyms: a family that calls 600 DemiBold satisfies a SemiBold request.
+ok(resolveFontStyle(['Regular', 'DemiBold'], 'Semi Bold') === 'DemiBold',
+  '#499 DemiBold satisfies a SemiBold request (equivalence class, not a directional list)');
+ok(resolveFontStyle(['Regular', 'SemiBold'], 'DemiBold') === 'SemiBold',
+  '#499 ...and symmetrically, DemiBold → SemiBold');
+ok(resolveFontStyle(['Regular', 'Heavy'], 'Black') === 'Heavy', '#499 Black ↔ Heavy');
+
+// The negative case is load-bearing: a family that genuinely lacks the weight must NOT be given a
+// substitute face. That is #237's skip-with-warning decision, and a resolver that "helpfully" fell
+// back to Regular would silently ship the wrong typography everywhere.
+ok(resolveFontStyle(['Regular', 'Bold'], 'Semi Bold') === undefined,
+  '#499 a family that truly lacks the weight resolves to undefined — no substitute face (#237 holds)');
+ok(resolveFontStyle([], 'Semi Bold') === undefined, '#499 an empty style list resolves to nothing');
+
+// End-to-end: a registry that spells 600 tight, driven through the executor. Before #499 every
+// `Semi Bold` row would have been skipped; now they write, and the count is reported.
+const tightFamily = textPlan[0].fontFamilyPrimary;
+const tightStyles = [...new Set(textPlan.map((r) => r.fontStyle.replace(/Semi Bold/g, 'SemiBold')))];
+const tightRegistry = new Set(tightStyles.map((st) => `${tightFamily}|${st}`));
+for (const r of textPlan) tightRegistry.add(`${r.fontFamilyPrimary}|${r.fontStyle.replace(/Semi Bold/g, 'SemiBold')}`);
+class TightFontsApi extends TextStylesShim {
+  async listAvailableFontsAsync(): Promise<ReadonlyArray<{ fontName: { family: string; style: string } }>> {
+    return [...tightRegistry].map((k) => {
+      const i = k.indexOf('|');
+      return { fontName: { family: k.slice(0, i), style: k.slice(i + 1) } };
+    });
+  }
+}
+const wantsSemiBold = textPlan.filter((r) => /Semi Bold/.test(r.fontStyle)).length;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies TextStylesApi
+const tightShim = new TightFontsApi(tightRegistry, new VariablesShim()) as any;
+const tightRes = await applyTextStylePlan(textPlan, tightShim);
+// The style actually WRITTEN must be the resolved one. Loading `SemiBold` and then setting
+// `Semi Bold` on the node would pass every count assertion above while leaving Figma holding a style
+// whose fontName never loaded — the two must not be allowed to disagree.
+const written = await tightShim.getLocalTextStylesAsync();
+const semiNames = new Set(textPlan.filter((r) => /Semi Bold/.test(r.fontStyle)).map((r) => r.name));
+const writtenSemi = written.filter((st: { name: string }) => semiNames.has(st.name));
+if (wantsSemiBold > 0) {
+  ok(writtenSemi.length === wantsSemiBold && writtenSemi.every((st: { fontName: { style: string } }) => st.fontName.style.indexOf('SemiBold') >= 0),
+    '#499 the WRITTEN fontName is the resolved style, not the plan guess (load and set must agree)');
+  ok(tightRes.resolvedStyles === wantsSemiBold,
+    `#499 executor corrected every spaced-spelling row (${tightRes.resolvedStyles}/${wantsSemiBold})`);
+  ok(tightRes.skipped.length === 0,
+    `#499 ...and none were skipped — before this, all ${wantsSemiBold} would have been lost to a naming mismatch`);
+} else {
+  // The NB fixture may not exercise 600; assert the mechanism is inert rather than silently vacuous.
+  ok(tightRes.resolvedStyles === 0 && tightRes.skipped.length === 0,
+    '#499 NB plan asks for no Semi Bold — resolver is inert here (asserted, not assumed)');
+}
 
 console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
