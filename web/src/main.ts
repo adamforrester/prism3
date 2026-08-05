@@ -5276,9 +5276,15 @@ const paintPrimitivesPreview = (into: HTMLElement): void => {
   // Two columns inside the now-full-width section: the 36-step grid is long and wants its own column,
   // while border-width (4) and icon size (5) are short alias lists that read better stacked beside it
   // than strung out underneath a list three times their length.
+  //
+  // The grid uses `pv-rows` — ONE column — for the same reason the alias lists do. It previously had a
+  // wrapping variant of its own, which reflowed 36 steps into three ragged columns and destroyed the
+  // one property the specimen exists to show: that this is a monotonic ladder. A reader checks a scale
+  // by running an eye down it, and wrapping turns "is the next step bigger" into a column-order puzzle.
+  // Long is correct here; the section is a reference, not a summary.
   const cols = el('div', 'pv-cols');
   const left = el('div', 'pv-col'); const right = el('div', 'pv-col');
-  left.append(scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-grid'));
+  left.append(scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-rows'));
   right.append(
     scale('Border width', BW.map(([k, px]) => ({ ref: `border-width.${k}`, px })), 'pv-rows'),
     scale('Icon size', theme.dims.icons.map((i) => ({ ref: `icon.size.${i.name}`, px: i.px })), 'pv-rows'),
@@ -6838,7 +6844,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .pv-scale{margin-bottom:16px}
 .pv-scale:last-child{margin-bottom:0}
 .pv-scale-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:7px}
-.pv-grid{display:flex;flex-wrap:wrap;gap:5px 9px}
 .pv-rows{display:flex;flex-direction:column;gap:5px}
 .pv-cell{display:flex;align-items:center;gap:6px}
 .sp-lab{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
