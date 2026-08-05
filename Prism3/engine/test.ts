@@ -27,6 +27,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
+import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -4824,10 +4825,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Version negotiation arrives per-REQUEST now. A version we speak passes; one we do not is rejected
   // with the renumbered code, and an ABSENT version is allowed (older clients never send one).
   const verOk = handleRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': LATEST_PROTOCOL_VERSION } } }, brandSchema);
-  ok((verOk?.result as any)?.tools?.length === 5, 'MCP: a request carrying a supported protocolVersion in _meta is served');
+  ok((verOk?.result as any)?.tools?.length === 6, 'MCP: a request carrying a supported protocolVersion in _meta is served');
   const verBad = handleRpc({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '1999-01-01' } } }, brandSchema);
   ok((verBad as any)?.error?.code === -32022 && Array.isArray((verBad as any)?.error?.data?.supported), 'MCP: an unsupported protocolVersion → -32022 (the reserved range) with the supported list attached');
-  ok((rpc('tools/list')?.result as any)?.tools?.length === 5, 'MCP: a request with NO protocolVersion is still served (older clients never send one)');
+  ok((rpc('tools/list')?.result as any)?.tools?.length === 6, 'MCP: a request with NO protocolVersion is still served (older clients never send one)');
 
   // ---- 2024-11-05 dual support: the old handshake still answers ------------------------------
   const init = rpc('initialize')?.result as any;
@@ -4840,13 +4841,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // tool catalogue
   const tools = (rpc('tools/list')?.result as any)?.tools as any[];
-  ok(Array.isArray(tools) && tools.map((t) => t.name).sort().join(',') === 'list_levers,score_consumption,theme_brand,theme_from_brief,validate_brand', 'MCP: tools/list advertises all five tools');
+  ok(Array.isArray(tools) && tools.map((t) => t.name).sort().join(',') === 'export_theme,list_levers,score_consumption,theme_brand,theme_from_brief,validate_brand', 'MCP: tools/list advertises all six tools');
   ok(tools.find((t) => t.name === 'theme_brand')?.inputSchema?.properties?.brand === brandSchema, 'MCP: theme_brand takes { brand, include } with the BrandInput schema under `brand`');
-  ok(toolDefs(brandSchema).length === 5, 'MCP: toolDefs is a pure function of the brand schema');
-  // Current MCP tool UX: a display title and behaviour annotations on every tool. All three are pure
-  // reads of the engine, so all three are readOnly + idempotent + closed-world.
-  ok(tools.every((t) => typeof t.title === 'string' && t.annotations?.readOnlyHint === true && t.annotations?.idempotentHint === true && t.annotations?.openWorldHint === false),
-    'MCP: every tool declares a title + readOnly/idempotent/closed-world annotations');
+  ok(toolDefs(brandSchema).length === 6, 'MCP: toolDefs is a pure function of the brand schema');
+  // Current MCP tool UX: a display title and behaviour annotations on every tool. Every tool is
+  // idempotent + closed-world; all but one are pure reads.
+  ok(tools.every((t) => typeof t.title === 'string' && t.annotations?.idempotentHint === true && t.annotations?.openWorldHint === false),
+    'MCP: every tool declares a title + idempotent/closed-world annotations');
+  // readOnlyHint is asserted by EXCEPTION rather than universally, because a client uses it to decide
+  // what to auto-approve — so both directions have to be pinned. `export_theme` writes files and must
+  // say so; everything else must keep the guarantee. Flipping either way fails here, which is the
+  // point: an annotation that silently drifts from behaviour is worse than no annotation.
+  const writers = tools.filter((t) => t.annotations?.readOnlyHint !== true).map((t) => t.name).sort();
+  ok(writers.join(',') === 'export_theme',
+    `MCP: export_theme is the ONLY non-read-only tool (got: ${writers.join(',') || 'none'})`);
+  ok(tools.find((t) => t.name === 'export_theme')?.annotations?.readOnlyHint === false,
+    'MCP: export_theme states readOnlyHint:false explicitly rather than omitting it');
   // The 52KB brand schema is inlined ONCE. Two copies made tools/list ~91,500 chars (~23k tokens) to
   // discover three tools, and the second copy told a client nothing the first had not.
   const listChars = JSON.stringify(tools).length;
@@ -6908,6 +6918,69 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'figmaArtifacts: every artifact parses as JSON');
   ok(new Set(arts.map((a) => a.path)).size === arts.length,
     'figmaArtifacts: no two artifacts claim the same path (a collision would silently drop a file)');
+}
+
+// ---- export_theme: the manifest is the result, and outDir is model-controlled ------------------
+{
+  const xbrand = { id: 'x', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  // An in-memory fake for the ExportIo port — the write path is fully exercised, no disk touched.
+  const mkFake = () => { const files = new Map<string, string>(); const dirs: string[] = [];
+    return { files, dirs, io: { mkdir: (d: string) => { dirs.push(d); }, writeFile: (q: string, c: string) => { files.set(q, c); } } }; };
+
+  // outDir is the one argument on this surface that can do damage rather than merely be wrong, so
+  // both refusals are asserted directly rather than trusted to the schema.
+  ok(!!unsafeOutDir('/etc/prism3'), 'export_theme: an absolute outDir is refused');
+  ok(!!unsafeOutDir('C:\\tokens'), 'export_theme: a Windows absolute outDir is refused');
+  ok(!!unsafeOutDir('../../etc'), 'export_theme: a `..` outDir is refused');
+  ok(!!unsafeOutDir('tokens/../../etc'), 'export_theme: `..` is refused mid-path, not just at the front');
+  ok(!!unsafeOutDir(''), 'export_theme: an empty outDir is refused');
+  ok(unsafeOutDir('./tokens') === undefined && unsafeOutDir('out/brand') === undefined,
+    'export_theme: an ordinary relative outDir is allowed');
+
+  // No port granted -> the tool refuses rather than importing fs behind the caller's back.
+  ok(mcpCallTool('export_theme', { brand: xbrand, outDir: './t' }, undefined, undefined).isError === true,
+    'export_theme: without a granted ExportIo the tool errors (purity is not bypassed)');
+
+  const f = mkFake();
+  const res = mcpCallTool('export_theme', { brand: xbrand, outDir: './tok' }, undefined, f.io);
+  ok(!res.isError, 'export_theme: writes with a granted port');
+  const manifest = res.structuredContent as { total: number; totalBytes: number };
+  ok(manifest.total === f.files.size && manifest.total > 10,
+    `export_theme: the manifest counts what was actually written (${manifest.total})`);
+  ok([...f.files.keys()].every((k) => k.startsWith('./tok/')), 'export_theme: every file lands under outDir');
+  ok(f.files.has('./tok/tokens.json') && f.files.has('./tok/ai-metadata.json'),
+    'export_theme: the DTCG tree and the agent metadata are written');
+  ok([...f.files.keys()].some((k) => k.startsWith('./tok/figma/')), 'export_theme: the Figma collection set is written');
+
+  // THE POINT OF THE TOOL: the result must not carry the payload. The non-vacuity floor matters —
+  // "the result is small" is trivially true if nothing was written, so the size of the EXPORT is
+  // asserted first and the result is compared against it.
+  const resultChars = JSON.stringify(res.structuredContent).length;
+  const writtenChars = [...f.files.values()].reduce((n, c) => n + c.length, 0);
+  ok(writtenChars > 200_000, `export_theme: the export is genuinely large (${writtenChars.toLocaleString()} chars) — the next assertion is not vacuous`);
+  ok(resultChars < 20_000, `export_theme: the RESULT is a manifest, not the content (${resultChars.toLocaleString()} vs ${writtenChars.toLocaleString()} written)`);
+  ok(manifest.totalBytes === writtenChars, 'export_theme: totalBytes reports the real byte count');
+
+  const g = mkFake();
+  mcpCallTool('export_theme', { brand: xbrand, outDir: './t2', include: ['tokens'] }, undefined, g.io);
+  ok(g.files.size === 1 && g.files.has('./t2/tokens.json'), 'export_theme: include:[tokens] writes only the DTCG tree');
+  ok(mcpCallTool('export_theme', { brand: xbrand, outDir: './t3', include: ['nope'] }, undefined, mkFake().io).isError === true,
+    'export_theme: an unknown include section errors rather than silently writing nothing');
+  ok(EXPORT_SECTIONS.length === 3, 'export_theme: three artifact families');
+
+  // A bad brand must fail BEFORE anything is written — a partial export is worse than none.
+  const h = mkFake();
+  const badRes = mcpCallTool('export_theme', { brand: { nope: true }, outDir: './t4' }, undefined, h.io);
+  ok(badRes.isError === true && h.files.size === 0,
+    'export_theme: an invalid brand writes NOTHING (validation precedes the first write)');
+  // ...and specifically via SCHEMA validation, not merely by brandTheme throwing. Mutation showed the
+  // assertion above passes either way — a throw also writes nothing — so it could not tell a
+  // structured, actionable error list from an incidental crash. The named errors are the difference
+  // between an agent that can fix its input and one that only knows it failed.
+  const badPayload = JSON.parse(badRes.content[0].text) as { error?: string; errors?: string[] };
+  ok(/schema validation/i.test(badPayload.error ?? '') && (badPayload.errors?.length ?? 0) >= 3
+     && badPayload.errors!.some((e) => /missing required 'id'/.test(e)),
+    'export_theme: the failure is a NAMED schema error list, not an incidental throw');
 }
 
 // ------------------------------------------------------------------- report

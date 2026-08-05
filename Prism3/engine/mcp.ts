@@ -32,13 +32,14 @@
  *
  * Run: `npx tsx Prism3/engine/mcp.ts`  (speaks MCP over stdin/stdout; point a client at it).
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { brandTheme, BrandInput } from './theme';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { buildLeverManifest } from './levers';
+import { figmaArtifacts } from './emit-figma';
 import { scoreConsumption, scoreContractCompliance, UsedPair } from './eval';
 import { parseDesignMd } from './design-md';
 import { ENGINE_VERSION } from './version';
@@ -241,6 +242,42 @@ export const toolDefs = (brandSchema: unknown) => [
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   },
   {
+    name: 'export_theme',
+    title: 'Write the token system to disk',
+    description: 'Generate a brand and WRITE its artifacts to a directory, returning a manifest of what was written — never the content. Use this instead of theme_brand include:["tokens"] whenever you want the actual files: the DTCG tree alone is roughly 830,000 characters for a four-mode brand, which no tool result should carry. Writes tokens.json (DTCG), ai-metadata.json, and a figma/ directory of Figma collection files. Arguments: { brand, outDir, include }. `outDir` must be a RELATIVE path. Requires a host that granted filesystem access; returns an error if not.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        // Points at theme_brand rather than inlining the 52KB brand schema a second time — the same
+        // rule score_consumption follows, and the reason tools/list has a size gate at all.
+        brand: { type: 'object', description: 'The same BrandInput you would pass to theme_brand — see that tool for the full input schema.' },
+        outDir: { type: 'string', description: 'Relative directory to write into (e.g. "./tokens"). Absolute paths and ".." segments are refused.' },
+        include: {
+          type: 'array', description: 'Artifact families to write. Defaults to all three.',
+          items: { type: 'string', enum: [...EXPORT_SECTIONS] },
+        },
+      },
+      required: ['brand', 'outDir'],
+      additionalProperties: false,
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        outDir: { type: 'string' },
+        total: { type: 'number', description: 'How many files were written.' },
+        totalBytes: { type: 'number' },
+        written: { type: 'array', items: { type: 'object', properties: { path: { type: 'string' }, bytes: { type: 'number' } }, required: ['path', 'bytes'] } },
+        sections: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['total', 'written'],
+    },
+    // The ONLY tool on this surface that is not read-only, stated rather than inherited. Clients use
+    // this annotation to decide what to auto-approve, so a writing tool that claimed readOnlyHint
+    // would be actively misleading — which is also why this is its own tool rather than a flag on
+    // theme_brand: a flag would flip the annotation's truth depending on the arguments.
+    annotations: { readOnlyHint: false, idempotentHint: true, openWorldHint: false },
+  },
+  {
     name: 'validate_brand',
     title: 'Validate a brand input',
     description: 'Validate a BrandInput against the engine schema WITHOUT generating. Returns { valid, errors } — a fast pre-flight before theme_brand. Takes the same brand object as theme_brand\'s `brand` argument; see that tool for the full input schema.',
@@ -323,7 +360,90 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
   return structured(out);
 };
 
-export const callTool = (name: string, args: any, brandSchema?: unknown): ToolResult => {
+/** The filesystem slice `export_theme` needs, injected rather than imported.
+ *
+ *  `callTool` is documented as pure, and that is worth keeping: every other tool is a function of its
+ *  arguments, which is why the MCP suite can drive the whole surface without a sandbox. A tool that
+ *  writes files cannot be pure — so the capability arrives as a PORT (the same shape the plugin uses
+ *  for `figma.*`), and a host that does not pass one simply cannot export. Purity by default, I/O by
+ *  explicit grant, and the tests drive a fake. */
+export interface ExportIo {
+  mkdir(dir: string): void;
+  writeFile(path: string, content: string): void;
+}
+
+/** Artifact families `export_theme` can write. Distinct from `THEME_SECTIONS` (what `theme_brand`
+ *  can INLINE) because the sets genuinely differ: `figma` is a whole directory of collection files
+ *  that has never been inlineable at any size, and would be meaningless as a single blob. */
+export const EXPORT_SECTIONS = ['tokens', 'aiMetadata', 'figma'] as const;
+
+/**
+ * Reject anything that escapes the caller's own directory.
+ *
+ * `outDir` is an arbitrary filesystem path chosen by a MODEL, which makes it the one argument on this
+ * surface that can do damage rather than merely be wrong. Absolute paths and `..` segments are refused
+ * outright rather than normalized: normalizing invites a "clever" caller to probe for the edge, while a
+ * flat refusal has no edge to find. A relative path under the process cwd is the entire permitted
+ * space, which is what an agent asking for `./tokens` actually wants.
+ *
+ * Deliberately NOT a `resolve()`-and-compare check — that answers "does this land inside?" *after*
+ * constructing the path, and every historical escape in this class came from a normalizer disagreeing
+ * with the filesystem about what it had constructed.
+ */
+export const unsafeOutDir = (dir: string): string | undefined => {
+  if (typeof dir !== 'string' || !dir.trim()) return 'outDir must be a non-empty string';
+  if (/^([a-zA-Z]:)?[\\/]/.test(dir)) return `outDir must be RELATIVE (got '${dir}') — absolute paths are refused`;
+  if (dir.split(/[\\/]/).some((seg) => seg === '..')) return `outDir must not contain '..' (got '${dir}')`;
+  return undefined;
+};
+
+export const callTool = (name: string, args: any, brandSchema?: unknown, io?: ExportIo): ToolResult => {
+  if (name === 'export_theme') {
+    if (!io) return text({ error: 'export_theme is unavailable: this host did not grant filesystem access.' }, true);
+    const { brand, outDir, include } = (args ?? {}) as { brand?: unknown; outDir?: string; include?: string[] };
+    const bad = unsafeOutDir(outDir as string);
+    if (bad) return text({ error: bad }, true);
+    const errors = validateBrandInput(brand);
+    if (errors.length) return text({ error: 'BrandInput failed schema validation', errors }, true);
+    let theme;
+    try { theme = brandTheme(brand as BrandInput); }
+    catch (e) { return text({ error: `brandTheme failed: ${(e as Error).message}` }, true); }
+    const want = include?.length ? include : [...EXPORT_SECTIONS];
+    const unknown = want.filter((s) => !EXPORT_SECTIONS.includes(s as never));
+    if (unknown.length) return text({ error: `unknown include section(s): ${unknown.join(', ')}. Valid: ${EXPORT_SECTIONS.join(', ')}` }, true);
+
+    const { tree } = buildTree(theme);
+    const files: { path: string; content: string }[] = [];
+    if (want.includes('tokens')) files.push({ path: 'tokens.json', content: JSON.stringify(tree, null, 2) + '\n' });
+    if (want.includes('aiMetadata')) files.push({ path: 'ai-metadata.json', content: JSON.stringify(buildAiMetadata(theme, tree), null, 2) + '\n' });
+    // The Figma collection set comes from the SAME function the committed `out/figma/**` artifacts are
+    // written from, so an export and a regen cannot disagree about what a brand emits.
+    if (want.includes('figma')) for (const a of figmaArtifacts(theme).artifacts) files.push({ path: `figma/${a.path}`, content: a.content });
+
+    const written: { path: string; bytes: number }[] = [];
+    try {
+      const dirs = new Set(files.map((f) => (f.path.includes('/') ? `${outDir}/${f.path.slice(0, f.path.lastIndexOf('/'))}` : outDir!)));
+      for (const d of dirs) io.mkdir(d);
+      for (const f of files) {
+        const p = `${outDir}/${f.path}`;
+        io.writeFile(p, f.content);
+        written.push({ path: p, bytes: f.content.length });
+      }
+    } catch (e) { return text({ error: `write failed: ${(e as Error).message}`, written }, true); }
+
+    // The MANIFEST is the result — never the content. That is the entire point of this tool: the
+    // payload it produces is ~830,000 characters for a four-mode brand, and returning any of it here
+    // would reintroduce the cost the export exists to avoid.
+    return structured({
+      id: theme.id,
+      outDir,
+      total: written.length,
+      totalBytes: written.reduce((n, w) => n + w.bytes, 0),
+      written,
+      sections: want,
+    });
+  }
+
   if (name === 'list_levers') {
     const levers = buildLeverManifest();
     // The manifest ALONE was the bug: it is the UI catalogue, not the input contract. Shipping the
@@ -382,7 +502,7 @@ export const callTool = (name: string, args: any, brandSchema?: unknown): ToolRe
 
 /** Handle one JSON-RPC message. Returns the response, or `null` for a notification
  *  (which gets no reply). Pure: `brandSchema` is injected so there is no file I/O here. */
-export const handleRpc = (req: RpcRequest, brandSchema: unknown): RpcResponse | null => {
+export const handleRpc = (req: RpcRequest, brandSchema: unknown, io?: ExportIo): RpcResponse | null => {
   const id = req.id ?? null;
   /** Every result carries `resultType: 'complete'` and identifies the server in `_meta`, both required
    *  of a 2026-07-28 server. Added unconditionally: an older client ignores fields it does not know,
@@ -431,7 +551,7 @@ export const handleRpc = (req: RpcRequest, brandSchema: unknown): RpcResponse | 
       // An unknown TOOL is a protocol error (the request names something that does not exist); a tool
       // that ran and failed is an `isError` result. -32602 per the spec's own example.
       if (!toolDefs(brandSchema).some((t) => t.name === name)) return err(-32602, `Unknown tool: ${name}`);
-      return ok(callTool(name, req.params?.arguments ?? {}, brandSchema) as unknown as Record<string, unknown>);
+      return ok(callTool(name, req.params?.arguments ?? {}, brandSchema, io) as unknown as Record<string, unknown>);
     }
     default:
       return err(-32601, `method not found: ${req.method}`);
@@ -446,6 +566,12 @@ if (isMain) {
   const here = dirname(fileURLToPath(import.meta.url));
   const brandSchema = JSON.parse(readFileSync(resolve(here, '../schema/theme-schema.json'), 'utf8'));
   const send = (msg: RpcResponse) => process.stdout.write(JSON.stringify(msg) + '\n');
+  // The one place real filesystem access is granted. `callTool` stays pure and takes this as a port,
+  // so the test suite drives the same code path with an in-memory fake and never touches a disk.
+  const fsIo: ExportIo = {
+    mkdir: (dir) => { mkdirSync(dir, { recursive: true }); },
+    writeFile: (path, content) => { writeFileSync(path, content); },
+  };
   let buf = '';
   process.stdin.setEncoding('utf8');
   process.stdin.on('data', (chunk: string) => {
@@ -459,10 +585,10 @@ if (isMain) {
       try { req = JSON.parse(line); }
       catch { send({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'parse error' } }); continue; }
       let res: RpcResponse | null;
-      try { res = handleRpc(req, brandSchema); }
+      try { res = handleRpc(req, brandSchema, fsIo); }
       catch (e) { res = { jsonrpc: '2.0', id: req.id ?? null, error: { code: -32603, message: `internal error: ${(e as Error).message}` } }; }
       if (res) send(res);
     }
   });
-  process.stderr.write(`prism3 MCP server ready (stdio) — protocols ${PROTOCOL_VERSIONS.join(', ')} — tools: list_levers, theme_brand, validate_brand\n`);
+  process.stderr.write(`prism3 MCP server ready (stdio) — protocols ${PROTOCOL_VERSIONS.join(', ')} — tools: ${toolDefs(brandSchema).map((t) => t.name).join(', ')}\n`);
 }
