@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-05) — Shipped skills are now gated, and two had already rotted (#492 step 1)
+
+**STATUS: engine (`lint-skills.ts`, new) + two `SKILL.md` fixes + CI/CLAUDE.md wiring.** No emitted
+artifact changed. `test.ts` 1580/0, `regen --check` 88/88, `lint-us-english.ts` 94 files (was 92 —
+`Prism3/skills/**` now in scope), `lint-skills.ts` clean (2 skills scanned).
+
+A `SKILL.md` is a shipped artifact that makes factual claims about the engine, and was the last
+shipped surface with no gate — `out/**`, the emitted schema contracts and `web/dist` are all scanned,
+`Prism3/skills/**` was not (#281's shape on a surface nobody had covered).
+
+The gate's first run found worse than the defect it was built for. It was written for a known drift
+(`prism3-theme` still teaching the pre-#471 adjective→lever mapping), and instead first caught
+**`prism3-consume` teaching the pre-rename `action.*` family** — `docs/20 §11` renamed `action.*` to
+`interactive.*`, and the skill whose entire job is naming tokens correctly still said
+`color.action.default`, `action.disabled`, `text.on-action`, `text.disabled`, `text.on-disabled`.
+Seven dead paths that an agent following the skill would emit as references resolving to nothing. A
+rename is a two-tier event — the token tier renamed cleanly and every existing gate stayed green,
+because none of them read the prose that teaches the names.
+
+**The obvious check (every quoted name must resolve) would not have caught the defect the gate was
+written for.** `radiusScale` resolves fine as a bare word; what rotted was the prose around it, plus
+the total absence of `personality`. So there are two scans, not one: reference-resolution (dead token
+paths, unknown MCP tool names, missing engine files) and a **coverage** check — a skill declaring
+`documents: brandInput` in its frontmatter must mention every top-level `BrandInput` property or name
+it in `omits:`. Coverage is the one that fires on the real class.
+
+Fixed: the 7 dead paths in `prism3-consume`; `prism3-theme`'s `radiusScale` doc (now names its stops)
+and its adjective step (rewritten to teach `personality` — the 9 traits, the precedence rule, and that
+judgment moved one step earlier rather than away); 14 advanced `BrandInput` properties declared in
+`prism3-theme`'s `omits:` (the per-mode override layer is studio work, not brief-authoring work).
+`Prism3/skills/**` added to CI (after the plugin steps, before US-English) and to CLAUDE.md's pre-push
+gate sequence.
+
+Mutation-tested past the PR's own table: a `not X` counter-example still exempts a genuinely dead
+path when written the way this repo actually writes them (tight, `not \`X\``); a real `omits:` removal
+is caught. One honest limitation found and left as-is rather than silently patched: the counter-example
+exemption only looks back 16 characters, so a more verbose negation phrasing than this file's own style
+would not be recognized — not reachable by anything currently written here, so not fixed speculatively.
+
+---
+
 ## (2026-08-05) — The skills survey's output was a rule, not a shopping list (#492)
 
 **STATUS: docs only (`docs/33`, new).** No engine change, no emitted artifact, no gate touched.
