@@ -3732,7 +3732,7 @@ const renderTypefaceBindings = (): HTMLElement => {
 
   const local = el('p', 'tf-note warn');
   local.innerHTML = hostFonts.length
-    ? '<b>Specimens below use fonts installed on this device.</b> The list above comes from Figma and is what applies when you write text styles — the two can differ, so a face Figma offers may still preview as the fallback here. Your emitted tokens are unaffected; they carry the name you typed.'
+    ? '<b>Previews in this table use fonts installed on this device.</b> The faces offered on <b>Primitives</b> come from Figma and are what apply when you write text styles — the two sets can differ, so a face Figma offers may still preview as the fallback here. Your emitted tokens are unaffected; they carry the name you typed.'
     : '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(local);
   return sec;

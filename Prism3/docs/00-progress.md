@@ -167,9 +167,12 @@ correct about what *this iframe* can render), and a `<datalist>` is added beside
 ### Why it matters more than a convenience
 
 `applyTextStylePlan` **skips-with-warning** by design (#237) — an unloadable family never substitutes and
-never throws. Measured against a corpus brand: a typo writes all **39** font variables and silently drops
-a subset of the **37** Text Styles. That is partial success reported after the fact, from a hand-typed
-string with no validation anywhere in the path. Discovery is the cheapest place to fix it.
+never throws. Measured against `aurora` via `buildFontVarPlan` / `buildTextStylePlan` (the plans the plugin
+actually writes, **not** the `emit-figma-font.ts` emitters — those two disagree and the difference is a
+trap): a typo writes all **50** font variables (39 `core-font` + 11 `type-sets`) and silently drops a
+subset of the **37** Text Styles. `harbor` is 49 and 38 — the counts are brand-dependent, so quote them
+with the brand or not at all. That is partial success reported after the fact, from a hand-typed string
+with no validation anywhere in the path. Discovery is the cheapest place to fix it.
 
 ### The decision, and the cost taken knowingly
 
@@ -210,6 +213,12 @@ is simply never invoked, because `webCommit.onHostMessage` is an empty no-op. A 
 plan asserted this string would be absent, and measurement disproved it: `restore-input` was already
 shipping the same way. Verify the **bridge plumbing** is absent (`pluginMessage`, `apply-theme`,
 `ui-ready`, `listAvailableFontsAsync` — all 0) rather than the message name. Do not "fix" the string.
+
+**A known, accepted rough edge.** A late `font-list` calls `renderWorkspace()`, which clears and rebuilds
+the pane — so text already typed into the add-face field is discarded and focus drops to `<body>`. The
+window is small (the list is pushed on `ui-ready`, before a human can type) but a font-heavy machine widens
+it. Left as-is deliberately: the alternative is incremental DOM patching for one field, which is more
+machinery than the race deserves. Worth revisiting if the list ever arrives later than boot.
 
 **The stated limit: no gate here has called the real API.** `listFamilies` is tested against an in-memory
 shim (dedupe collapse, sort order, empty-list, rejection) and the rest is string assertions. The shim
