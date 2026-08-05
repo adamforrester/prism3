@@ -169,3 +169,16 @@ is the #1 way the plugin drifts stale (it silently shows a week-old UI).
   re-reads `dist/ui.html` on each launch — no re-import needed.)
 - **One-shot before testing:** `npm run fresh -w @prism3/plugin` — a clean rebuild that reminds you to
   reload in Figma. Use this after pulling `main` if you're not running `watch`.
+
+### The inlining is `String.replace`, and the replacement MUST stay a function (#496)
+
+The bundle is spliced into the HTML template with `String.replace`. A replacement **string** interprets
+`$` patterns — and ~530 KB of bundled UI legitimately contains `'\\$&'` (the standard regex-escape
+idiom). As a string, that `$&` expands to the *matched text*, injecting a literal `</script>` mid-bundle
+and truncating the inlined script: the panel renders **blank**, from a build that exits 0 with both
+typechecks clean. Passing a replacer **function** suppresses `$` interpretation.
+
+So `() => \`<script>${js}</script>\`` is load-bearing — **do not collapse it back to a template
+string**; it looks identical and is not. The build asserts exactly one `</script>` and that the dev-only
+module tag did not survive, because `dist/` is a gitignored artifact no other gate reads back: without
+that assertion, this is invisible until you open Figma.
