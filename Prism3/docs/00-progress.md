@@ -7,6 +7,85 @@
 
 ---
 
+## (2026-08-05) — Chunked component-set paste: a byte budget, not a variant count (#487 step 7)
+
+**STATUS: engine (`anatomy-figma.ts`, `test.ts`).** No emitted artifact changes — this is a new paste
+*path*, not new tokens; `regen --check` stays at 88. `planSetChunks(plans, budgetBytes?)` joins
+`planSetToPluginJs`, sharing three payload strings with it rather than growing a second copy.
+Tests 1642 → **1674**.
+
+The full button set is 756 variants and one payload cannot carry it. The chunked path splits it into
+payloads that each **find-or-create** the set, skip members it already holds, append the rest, re-lay-out
+**the union**, and — on the last chunk only — declare the properties and wire every member.
+
+**Three settled assumptions died on contact with measurement, and each is a trap worth keeping.**
+
+*A count cannot bound a byte budget.* The plan said "~21 variants / ~42KB". Those are not the same
+constraint: the chunk shell is **21.3KB** where the single-shot shell is 15.6KB (find-or-create, skip,
+re-layout and the guarded read all cost bytes), so 21 slot-less variants measure **45,066 — over — on the
+very set the count came from**. And a variant costs ~1,188 bytes slot-less vs ~1,940 with both slots, so
+no single count bounds both the 108-variant grid and the full 756. Replaced with `SET_CHUNK_BYTES =
+42_000` and measured packing. The "~42KB" half of the owner's answer is what survived; the count was the
+part that could not.
+
+*The shell is not a constant.* `CHUNK`, `TOTAL` and `FIRST` are interpolated into every payload, so
+chunk 108-of-121 has a wider header than the 0-of-1 shell used to measure it — which put the full set's
+worst chunk at **42,004 against a 42,000 budget**. Fixed with a **fixpoint**: measure the shell at the
+worst-case index for the current total, re-pack, repeat (guard 8). It converges because a wider shell
+only ever yields *more* chunks and `String(n).length` grows in steps.
+
+*A read-back is only as good as the moment it samples.* The chunk body must read
+`componentPropertyDefinitions` **early** — that guarded read is how it learns the set is coherent enough
+to declare anything at all — but that snapshot predates the properties. Left stale it reported both
+properties "declared but absent" on a **correct** paste, and the noise **masked two mutations** that were
+meant to fail for unrelated reasons. It is re-read after wiring.
+
+**The defect only the live run could find, and it does not throw.** Twelve variants in three chunks ran
+clean against the real file (create → append → declare; 12 members, `appearance:3`/`state:4`, 2 properties,
+24 refs, box 496x192, `misses: []`). Then I re-pasted the *final* chunk, which the member skip does
+nothing about — and **`addComponentProperty` with a name the set already carries does not throw.** Figma
+silently creates a second property (`leadingVisual2#113:102`, `children2#113:115`) and hands back an id
+whose own name does not match the key it just made (`leadingVisual#113:102`). So a designer who re-runs
+the last step doubles every property and wires the refs to the copies, orphaning the originals — and
+every read-back in the payload still reports a clean paste. **Declaration now skips by name too**,
+reusing the existing id, which is the id the refs want anyway; a type mismatch is reported rather than
+silently shadowed. Verified live: property keys byte-identical before and after, both ids reused, 12
+members re-wired, no orphans. The generalization: *skip-by-name was applied to members because members
+were where duplication was observed; the same call shape existed one block down and nobody looked.*
+
+**#511's trap, fourth and fifth sightings — a mutation that cannot fire is indistinguishable from one
+that is not caught.** Gutting the member skip across a *fresh* chunk sequence produced zero misses,
+because nothing is ever skipped on a first run: the mutation removed a branch that never executed, which
+reads exactly like an uncaught defect. Same shape for the new property skip. Both valid forms **replay a
+chunk onto a page that already holds it** — which is precisely how a designer produces the bug.
+
+**Two probes are written as the plausible wrong implementation, not as string surgery.** The
+chunk-specific defect is a chunk deriving its grid from its *own slice*: reproduced by chunking each
+slice independently (`planSetChunks(slice, 1e9)`), which is what "call the layout function on the plans
+you were handed" produces. Every such payload is individually correct and its column indices restart at
+0, so slice 2 lands on top of slice 1 — caught by the coincident-position read-back. This is why
+`planSetChunks` takes the whole plan list and slices only the cells, and why `setLayout` returns the axis
+ordering at all.
+
+**Three stub behaviors had to be built before the harness could express the claims** — a permissive stub
+would have let each corresponding production check be deleted green: a set box that does **not** track
+its children (measured: a member at x=208 appended to a 184-wide set leaves it 184 wide, member outside
+its own box, nothing throws — so the explicit `resize` is load-bearing and its only witness is its own
+read-back); `componentPropertyDefinitions` as a **getter** that re-derives axes from current children
+*and* throws on a duplicate member name; and a shared `StubPage` across `runPayload` calls, without which
+"the page holds exactly one set" is unassertable.
+
+**Deliberately not done, and sized:** the emitted payload is **49% comments** — 11,047 bytes of the
+22.5KB shell, duplicated into all 189 chunks of the full set. Stripping them at emit would roughly halve
+the chunk count, but it also touches the single-shot path, so it is a separate concern. The comments are
+not decoration; each records a measured Figma behavior, so they belong in the source and the *emitted*
+copy is what should shrink.
+
+Packing verified across four shapes, none over budget: 108v → 7 chunks (38,181–41,988B), full 756v →
+**189 chunks (41,191–41,844B)**, 21v → 2, 1v → 23,697B.
+
+---
+
 ## (2026-08-05) — Easing curves get shape names, because the role tier took the use names
 
 **STATUS: engine + schema + web.** `out/*` regenerated. `CONTRACT_VERSION` 1.2.0 → **2.0.0** (MAJOR —
