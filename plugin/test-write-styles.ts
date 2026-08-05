@@ -32,8 +32,21 @@ const ok = (cond: boolean, label: string): void => {
 class ShimStyle {
   description = '';
   effects: readonly unknown[] = [];
-  paints: readonly unknown[] = [];
+  #paints: readonly unknown[] = [];
   constructor(public name = '') {}
+  /** Figma NORMALISES a gradient stop on assignment: a stop written with no `boundVariables` reads
+   *  back carrying `boundVariables: {}` — present and TRUTHY but empty (measured live, #236). A shim
+   *  that stored the assignment verbatim let `!stop.boundVariables` stand in for "unbound", which is
+   *  true here and FALSE in Figma, so an assertion written against it encodes a wrong belief about the
+   *  host. Normalise on write; boundness is `.color`, never truthiness of the container. */
+  get paints(): readonly unknown[] { return this.#paints; }
+  set paints(next: readonly unknown[]) {
+    this.#paints = next.map((p) => {
+      const paint = p as { gradientStops?: readonly unknown[] };
+      if (!paint.gradientStops) return p;
+      return { ...paint, gradientStops: paint.gradientStops.map((s) => ({ boundVariables: {}, ...(s as object) })) };
+    });
+  }
 }
 /** The `variables` slice the stop-binding needs. `seed` decides which palette names this "file" has —
  *  the empty case models applying gradients to a file whose palette was never written. */
@@ -154,8 +167,10 @@ const bare = await applyStylesPlan(barePlan, bareShim as any);
 ok(bare.paints.bound === 0 && bare.misses.length === totalAliasStops,
   `missing palette: 0 bound, every target reported as a miss (${bare.misses.length}/${totalAliasStops})`);
 ok(bare.misses.every((m) => m.startsWith('palette/')), 'each miss names the palette variable it wanted');
+// `!st.boundVariables` would be the wrong test: Figma normalises an unbound stop to an EMPTY
+// `boundVariables: {}`, so the container is always truthy live. Unbound means no `.color` target.
 ok(bareShim.paintStyles.length === barePlan.paints.length
-  && bareShim.paintStyles.every((s) => ((s.paints as any[])[0].gradientStops as any[]).every((st) => st.color && !st.boundVariables)),
+  && bareShim.paintStyles.every((s) => ((s.paints as any[])[0].gradientStops as any[]).every((st) => st.color && !st.boundVariables?.color)),
   'missing palette still writes every gradient with baked (unbound) stops — degraded, not broken');
 
 console.log(`\nplugin STYLES write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);

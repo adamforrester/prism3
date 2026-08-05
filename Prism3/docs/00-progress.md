@@ -259,7 +259,7 @@ an axis mismatch it would also trip on — the root cause, not the symptom.
 
 ## (2026-08-05) — Gradient stops bind to their palette variables, so gradients re-theme (#236)
 
-**STATUS: shipped.** The #151 fast-follow. Touches `Prism3/engine/write-plan.ts` (carry the alias),
+**STATUS: shipped, verified live.** The #151 fast-follow. Touches `Prism3/engine/write-plan.ts` (carry the alias),
 `Prism3/engine/read-back.ts` (a value-level check), `plugin/src/write-styles.ts` (bind the stop),
 `plugin/src/read-figma.ts` (read the binding), `plugin/src/main.ts` (report it), and the two shim tests.
 **No emitted artifact moved** — `regen --check` 88/88 and the token contract unchanged, because
@@ -330,11 +330,36 @@ Gates: `regen --check` 88/88 · unit 1629/0 · MCP 49/0 · contract unchanged (1
 PASS · all 7 plugin shim suites PASS (styles 19 assertions, read-back +7) · three typechecks · both
 builds · US-English clean (94 files). Aurora binds **4 stops across 2 gradients**, 0 misses.
 
-**Not verified live.** The payoff — change a palette variable in Figma, watch the gradient move — needs
-a real session, and the desktop bridge is shared with other lanes, so it is deliberately held pending
-owner coordination rather than driven unilaterally. What the shims *cannot* prove and only a live drive
-can: that Figma accepts `boundVariables` on a stop constructed this way (the API shape is asserted here,
-not exercised), and that it actually repaints on a variable change.
+**VERIFIED LIVE** (2026-08-05, `Prism Test File v2`, owner cleared the shared bridge). Both claims the
+shims could not reach are now settled against real Figma, driving the **shipped** executor — `write-styles.ts`
++ `read-figma.ts` were esbuild-bundled to an IIFE and run in the plugin sandbox, so this exercised the
+compiled code path rather than a hand-retyped approximation of it. Worth keeping for the next live drive:
+the sandbox has **no `fetch`** (manifest `allowedDomains`), so the bundle had to be inlined into the
+`figma_execute` call — a localhost server is not reachable from plugin code.
+
+1. **Figma accepts `boundVariables` on an inline stop.** 4/4 stops persisted with real `VariableID`s and
+   survived a *fresh* `getLocalPaintStylesAsync` (re-fetched, not the objects just written — a silent drop
+   would show there and nowhere else). Each resolved to the exact variable the plan named, and the real
+   `verifyStylesReadback` returned `ok: true` against live Figma.
+2. **It repaints.** `palette/primary/600` → hot magenta re-rendered `gradient/brand` on canvas
+   (screenshots before/after). Two controls make it conclusive rather than a global refresh: the second
+   stop (`palette/accent/500`, untouched) held its blue, and `gradient/glow` — bound to accent only — did
+   not move at all. Value restored afterward.
+
+Also confirmed live: idempotency (re-apply → 0 created, 4 re-bound, no duplicates) and the degraded path
+(a plan naming an absent variable reports the miss and still writes baked stops — no throw).
+
+**The live drive found a shim that lied, in this PR's own new test code.** Figma **normalises** a gradient
+stop on assignment: a stop written with no `boundVariables` reads back carrying `boundVariables: {}` —
+present and *truthy* but empty. The shim stored assignments verbatim, so it could never disagree with the
+executor, and the bare-palette assertion used `!st.boundVariables` as "unbound" — true in the shim, **false
+in Figma**. It passed for the wrong reason. Fixed at the source: `ShimStyle.paints` is now a setter that
+normalises stops the way Figma does, and boundness is tested as `!st.boundVariables?.color` — the container
+is always truthy live, so only the `.color` target means anything. Reverting just the assertion against the
+new shim fails, so the change is not inert. *The lesson is narrower than "shims drift": a shim that merely
+**stores** what the executor hands it cannot contradict the executor, so every assertion over it is really
+an assertion about my own beliefs about the host.* The read path was already correct (`.color?.id`), and
+`anatomy-figma.ts:654` independently uses `arr[0].boundVariables.color` — the same rule, learned separately.
 
 ---
 
