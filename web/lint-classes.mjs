@@ -58,7 +58,7 @@ const ALLOWED = new Set([
   'sg-tc sg-t sg-tcrow',
   'start-alt start-upload', 'start-card start-hero', 'start-card start-row2',
   'tf-in tf-addin',
-  'adv-bez-lab mono', 'cs-ctl-val mono', 'cs-name mono', 'fr-v mono', 'fz-clamp mono',
+  'cs-ctl-val mono', 'cs-name mono', 'fr-v mono', 'fz-clamp mono',
   'fz-name mono', 'fz-pair mono', 'lab-hex mono', 'lab-step mono', 'ly-cont-val mono',
   'ly-tick-px mono', 'mo-ez-bez mono', 'mo-meta mono', 'mo-ms-val mono', 'mo-playnote mono',
   'mo-ramp-ms mono', 'mo-spring-nums mono', 'mono tok-alias', 'mono tok-hexv', 'mtbl-name mono',

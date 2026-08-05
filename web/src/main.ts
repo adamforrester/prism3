@@ -7056,10 +7056,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .adv-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px}
 .adv-x:hover{color:#a12}
 .adv-add{border:1px dashed var(--line2);background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px;border-radius:var(--r-xs);padding:5px 10px}
-/* Same 20px top clearance — this row was appended straight after palSection's head with no top
-   spacing at all, so the bezier inputs sat flush against the description. */
-.adv-bez{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding-top:20px}
-.adv-bez-lab{font-size:11px;color:var(--faint)}
 /* Layout specimen — breakpoint/grid table + column preview + container bars. */
 .layout-spec{margin-bottom:8px}
 .ly-table{border-collapse:collapse;width:100%;font-size:12px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
