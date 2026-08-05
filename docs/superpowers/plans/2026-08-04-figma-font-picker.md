@@ -290,6 +290,7 @@ Message: `plugin: push the available font list to the UI on boot` + why it rides
 
 **Files:**
 - Modify: `web/src/write-adapter.ts` (the `onHostMessage` signature ~lines 106–112; `figmaCommit`'s listener ~lines 133–147)
+- Modify: `web/src/main.ts` — **one compiler-forced guard, nothing more.** Widening the callback union means `m.ok`/`m.summary` no longer exist on every variant, so the existing unguarded fallthrough stops compiling. Verified by reverting the guard: `tsc` fails with `Property 'summary' does not exist on type '{ kind: "font-list"; families: string[]; }'`. Wrap it as `if (m.kind === 'seed-info') { … }` — runtime behavior is unchanged, since both `seed-info` and `apply-result` already map to `kind: 'seed-info'`. Do **not** add font-list *handling* here; Task 4 owns that.
 
 **Interfaces:**
 - Consumes: the `font-list` wire message from Task 2.
