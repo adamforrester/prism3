@@ -7,6 +7,68 @@
 
 ---
 
+## (2026-08-05) — A declaration that omits its trigger is not projectable (#536 item 2)
+
+**STATUS: `component-schema.ts`, `anatomy-figma.ts`, `components/button.ts`, `test.ts`.** Stacks on
+#537. No emitter artifacts change — `out/*` byte-identical. `test.ts` 1686 → **1700**.
+
+**The defect.** `spinner` was declared `kind: 'overlay'`, `replaces: 'leadingVisual'`, and both fields
+were *validated*. `anatomy-figma.ts` had zero occurrences of `overlay`, `replaces` or `spinner`, so
+`state=pending` emitted the same three parts as `rest` and 108 variants rendered as their rest sibling.
+
+**The missing fact was WHEN.** The part said what it was and what it stood in for, and never said what
+made it appear. Projecting it would have meant hardcoding "spinner ⇒ pending" in a builder that
+deliberately keys off `kind`/`role` so it generalizes past Button.
+
+> **A declaration that omits its trigger is not projectable, however complete it looks** — and it looks
+> complete precisely because every field that exists is filled in. The validator checked the fields
+> present; nothing asked whether the set was sufficient to *use*.
+
+So `PartDef.when` is now required for overlays and validated against `states`, and the projection finds
+the active overlay by `kind` + `when` rather than by name.
+
+**Measured, before and after** (full 756-variant census, whole rendered tree compared):
+
+| | distinct | redundant |
+|---|---|---|
+| before | 324 | **432** (57.1%) |
+| after | 378 | **378** (50.0%) |
+
+The 432 reproduces #536's figure exactly, which is the check that the census is measuring the same
+thing the issue did.
+
+**Three things the stub host found that reasoning had not.** Projecting the node was maybe a third of
+the work:
+
+1. **The overlay had no ink.** The paint branch handled `box`/`text`/`slot` and fell through for
+   `overlay`, so the spinner projected into the right cell with no colour — present and invisible
+   against its own fill. It is a glyph standing in a glyph's cell, so it takes a glyph's ink.
+2. **It was an `INSTANCE_SWAP` nothing nominated** — the stub reported a placeholder frame with no
+   VECTOR inside to paint. An overlay now inherits the *replaced part's* property and swap target:
+   one cell, one INSTANCE_SWAP property, contents varying by state.
+3. **Padding asks about the CELL, not the slot.** #326 insets a side less when a glyph sits against it,
+   and a spinner is a glyph — `leading` alone would inset a pending button as though the cell it just
+   filled were empty.
+
+Only (3) was foreseeable from the def; (1) and (2) came from executing the payload against the stub,
+which is the #503 lesson holding up again: **run the generated code, do not grep it.**
+
+**A consequence asserted rather than left to be found.** Because the spinner takes the leading cell
+whether or not `leading=true`, `pending` now renders identically across the leading axis — those two
+coordinates collapse. That is *correct* (a pending button has a visual there either way) and it is a
+new duplicate pair, so it is asserted in the suite and belongs in item 1's accounting rather than
+turning up later as a surprise.
+
+**One pre-existing test had to change**, and it is worth noting why it was fair game: a paint helper
+did `children.find(c => c.name === 'leadingVisual')!` — asserting on a *part name* where it meant *the
+leading cell*. Under `pending` that name is legitimately absent. It now reads the cell positionally.
+
+**Still open in #536, untouched here:** `focus-visible` (item 3 — needs owner confirmation to reverse a
+documented def decision) and `inactive` (item 4 — has neither token nor part; the question is whether
+it should exist at all, and dropping it takes 756 → 648 for free).
+
+---
+
 ## (2026-08-05) — `export_theme`: the manifest is the result, never the payload
 
 **STATUS: `mcp.ts` + `test.ts`.** New MCP tool; no emitter change — `out/*` byte-identical.

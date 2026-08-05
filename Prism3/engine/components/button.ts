@@ -199,6 +199,7 @@ export const button: ComponentDef = {
       spinner: {
         kind: 'overlay',
         replaces: 'leadingVisual',
+        when: 'pending',
         size: 'size.{size}.icon',
         note: 'Takes the leading visual\'s position rather than the label\'s — replacing a centred label collapses the width, which the brief\'s don\'t-list prohibits explicitly.',
       },
