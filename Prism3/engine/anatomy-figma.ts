@@ -699,6 +699,17 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
  */
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
   if (!plans.length) throw new Error('planSetToPluginJs: no plans');
+  // ONE COMPONENT PER SET, and the two guards below cannot cover it. Both reason about
+  // `planComponentName`, which is built from `coord`/`size`/`slots` and deliberately carries NO
+  // component — a member name is a variant coordinate and nothing else, because Figma folds a slash
+  // prefix into the first axis key. So a plan from a different component has an identical axis shape
+  // and a distinct coordinate: it passes the axis check, passes the duplicate check, and lands in the
+  // set as a member. `set.name` comes from `plans[0].component`, so it is named after whichever plan
+  // was first and the rest disappear into it — a `chip` variant filed under `button`, reported nowhere.
+  // The property declarations then derive from the assembled nodes, so they describe the union of two
+  // components' anatomies as though it were one API.
+  const stray = plans.find((p) => p.component !== plans[0].component);
+  if (stray) throw new Error(`planSetToPluginJs: every plan must come from the same component — got '${plans[0].component}' and '${stray.component}'; the set would be named after the first and silently absorb the rest`);
   const axesOf = (p: AnatomyPlan): string =>
     planComponentName(p).split(', ').map((kv) => kv.split('=')[0]).join(',');
   const axes = axesOf(plans[0]);
