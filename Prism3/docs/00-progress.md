@@ -7,6 +7,54 @@
 
 ---
 
+## (2026-08-05) — A label that spells the path the pill prints, and a ring that never fires (#504 review)
+
+**STATUS: web (`main.ts`) + this doc.** No engine change, `out/*` byte-identical. #504 merged before its
+three review items landed, so they arrive here rather than in the PR that earned them.
+
+**The two halves of #504 were in tension and it shipped that way.** It moved the resolved token path
+into an `sgPill` *underneath* the select, and simultaneously labelled the options
+`Page Background (Primary)` / `(Secondary)` — which is `color.background.primary` transcribed into
+prose. One fact, two notations, two lines apart. It also broke the role-naming rule stated in the
+comment directly above the array, which left `Inverse` — the one option that followed the rule — reading
+as the odd one out for being short. Now `Page` / `Page, second tier` / `Inverse`. **Moving the path into
+the pill is exactly what frees the labels to be plain**; the first pass took the cost and skipped the
+benefit.
+
+**The inner white ring is removed, because it cannot do the job its comment claims.** It was
+`inset 0 0 0 1px rgba(255,255,255,.55)`, justified as keeping a near-white ground from vanishing into
+the field beside it. Composited over a white fill: `.55×255 + .45×255 = 255` — byte-identical to the
+fill it was meant to distinguish. Over the inverse ground it resolves to `146` and is plainly visible,
+which is the one ground that never needed help. Measured in the running app on the Page ground: the
+`--line2` border reads **1.118:1** against the swatch, and the swatch **1.222:1** against the field, so
+separation was already there. **A decoration invisible in the case it names and visible only in the case
+it does not is not a subtle bug — it is a comment describing a mechanism that never fires.**
+
+`View Style Guide on` → `View style guide on`: the only Title Case `pfield` label in the app (doc 29 §2b
+states the rule). `.pfk` uppercases it, so the casing was invisible in the rendered view — which is
+precisely why it survived. The string is what the next reader copies.
+
+**Recorded decision, deliberately NOT changed: `.pfk` spends the margin #355 bought.** Stripping the
+card moved `.tok-ctrls` and `.modectx` from `--panel` onto `--paper`, so `.pfk` (`--faint #6d6d74`,
+9.5px uppercase) goes 5.135:1 → **4.628:1** — measured live, matching the review's independent
+arithmetic to the third decimal. That is legal *by #355's own construction*: it states `--faint` "parks
+on the AA floor (the lightest legal value on this paper)" and that contrast is stated against `--paper`,
+"the WORSE of the two surfaces". So this is the move #355 pre-authorized. But the surviving margin is
+**0.128** on 9.5px uppercase text, and `.tok-hexv` makes the identical move: **the next thing moved onto
+`--paper` has nothing left to spend** and would need `--faint` re-derived rather than reused.
+
+**Also corrected in the #504 entry below**, both claims that were true of no tree: the `?? SG_SURFACES[0]`
+fallback was justified by a *persisted* `sgSurface`, but it is a module-level `let` serialized nowhere in
+`web/` — the fallback stays, its justification now describes what exists. And the `#484` citation was
+written before #484 landed, so `--ctl-py` was not in the tree it claimed to be fixing a regression
+against; `align-self:stretch` is orthogonal to that variable, which is why the file auto-merged over it.
+
+**Trap for whoever edits that CSS block.** It lives inside a TS template literal. Writing `` `--line2` ``
+in the comment closes the CSS string and produces `TS1005: ',' expected` 2,000 lines away — the same
+backtick trap #507 recorded, hit again in the same file within a day.
+
+---
+
 ## (2026-08-05) — The whole 21-variant set, and three bugs a clean `misses[]` could not see (#487 steps 4–5)
 
 **STATUS: `planSetToPluginJs` builds every variant and combines them into one COMPONENT_SET; the full
@@ -269,6 +317,8 @@ caption to the selection rather than trailing it. **`Card` was dropped, not rena
 component while its three neighbors described grounds, and every section already draws its own cards
 on whichever ground is picked. A persisted `sgSurface` on the retired key falls through the existing
 `?? SG_SURFACES[0]`, so no brand can land on nothing.
+*[Corrected in the entry above: the labels and the "persisted" claim were both wrong — `sgSurface` is
+serialized nowhere, and the two `Page Background (…)` labels spelled the path the pill already prints.]*
 
 **Swatch: beside the select, not inside it.** A native `option` takes no child elements and no
 generated content, and per-option `background-color` paints in the popup on some engines and never on
@@ -283,6 +333,8 @@ that asymmetry is deliberate. `aspect-ratio:1` does **not** resolve a flex item'
 drifts slightly from square is cosmetic; a height that drifts from its neighbor is the bug that was
 just reported. The first draft hand-set `height:33px` and landed 8px short of the select — recreating,
 in a brand-new control, the exact mismatch #484 had removed from the segmented one.
+*[Corrected in the entry above: the same KIND of mismatch, not the exact one — this work predates #484,
+so `--ctl-py` was not in the tree it was written against.]*
 
 ---
 

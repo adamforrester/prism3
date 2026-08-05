@@ -1319,10 +1319,16 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   //  drawn with `foreground.primary` to place it among them. It is also the ground the specimens are
   //  least often checked against — every section already renders its own cards on whichever ground is
   //  selected — so it was dropped rather than renamed (#485). An `sgSurface` still holding the retired
-  //  key falls through the `?? SG_SURFACES[0]` below, so a persisted brand cannot land on nothing.
+  //  key falls through the `?? SG_SURFACES[0]` below — defensive only: `sgSurface` is a module-level
+  //  `let` that is serialized nowhere in `web/`, so there is no persisted value to rescue today.
+  //  The labels name the ground; they do not spell the path. `Page Background (Primary)` was
+  //  `color.background.primary` transcribed into prose, and the `sgPill` below the select already prints
+  //  that path verbatim — the same fact stated twice in two notations, breaking the rule immediately
+  //  above and leaving `Inverse`, the one option that followed it, reading as the odd one out for being
+  //  short. Moving the path into the pill is what frees the labels to be plain (#504 review).
   const SG_SURFACES: SgSurface[] = [
-    { key: 'background.primary', label: 'Page Background (Primary)', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
-    { key: 'background.secondary', label: 'Page Background (Secondary)', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'background.primary', label: 'Page', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'background.secondary', label: 'Page, second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
     // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
     // borrowing a page-gated role that was never measured against this ground.
     { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse', line: 'border.inverse', line2: 'border.inverse', tiered: false },
@@ -1379,7 +1385,10 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // The resolved path uses the same token pill as every other path on the page, underneath rather
   // than trailing the control — it describes the selection, so it reads as a caption to it.
   stack.append(row, sgPill(surf.key));
-  bar.append(pfield('View Style Guide on', stack));
+  // Sentence case, like every other `pfield` label in the app. `.pfk` uppercases it, so the casing is
+  // invisible in the rendered view — but the string is what the next reader copies, and doc 29 §2b
+  // states the rule (#504 review).
+  bar.append(pfield('View style guide on', stack));
   host.append(bar);
 
   const SEM: Array<[string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
@@ -7192,10 +7201,16 @@ input.toggle:disabled{opacity:.5;cursor:default}
    WIDTH is stated, because it cannot be derived: aspect-ratio:1 does not resolve a flex item's main
    size from a STRETCHED cross size, and trying it collapsed the swatch to 2px (the borders alone).
    A width that drifts a little from square if the control height changes is cosmetic; a height that
-   drifts from its neighbor is the bug. The inner white ring keeps a near-white ground from
-   vanishing into the field it sits next to. */
+   drifts from its neighbor is the bug.
+   No inner ring. One was added to "keep a near-white ground from vanishing into the field it sits next
+   to", and it cannot do that: composited at .55 over a white fill it resolves to 255, byte-identical to
+   the fill it was meant to distinguish. Over the inverse ground it computes to 146 and IS visible, which
+   is the one ground that never needed help. The --line2 border is what actually separates the swatch
+   from the field, on every ground, and it was already there — measured 1.118:1 border-vs-swatch on the
+   Page ground, against the ~1.05 the ring would have contributed (#504 review).
+   No backticks in this block: it lives inside a TS template literal, so one closes the CSS string. */
 .sg-surfsw{align-self:stretch;width:41px;border-radius:var(--r-xs);border:1px solid var(--line2);
-  flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.55)}
+  flex:none}
 .sg-surfbar .pfk{flex:none}
 /* The mode's own canvas behind the specimens. Inset from the .psec so the studio shell still reads as
    the frame; the re-scoped custom properties (set inline) carry the theme to everything inside. */
