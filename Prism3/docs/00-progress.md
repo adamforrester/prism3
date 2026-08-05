@@ -257,6 +257,31 @@ an axis mismatch it would also trip on — the root cause, not the symptom.
 
 ---
 
+## (2026-08-05) — The dimension grid reads down, not across (web UI bug, owner-reported)
+
+**STATUS: `web/src/main.ts` only.** One class swap plus the dead CSS rule it was the only user of. No
+engine change — `out/*` byte-identical, every gate unchanged.
+
+**The bug.** Primitive scales → Dimension grid rendered its 36 steps through `.pv-grid`
+(`display:flex;flex-wrap:wrap`), which reflowed them into three ragged columns. Owner-reported, and
+worth noting it was reported with the caveat "Vercel is behind on deploys so I can't confirm whether
+it's fixed and undeployed" — so the first move was measuring the *current source*, not reading it:
+36 pills, 14 rows, **6 distinct x-positions**. Present in the code, not a deploy lag. Confirmed fixed
+the same way: 36 cells, **1 distinct x-position, 36 rows**.
+
+**Why wrapping was wrong here specifically,** since wrapping a long list is usually the friendly
+choice. This specimen exists to show that the grid is a **monotonic ladder** — that is the only claim
+it makes. Reading a scale means running an eye down it and checking each step against the last, and
+wrapping converts that into a column-order puzzle: step 12 sits beside step 26, and adjacency on
+screen stops meaning adjacency in the scale. **A layout that reflows an ordered sequence destroys the
+one property the sequence was shown for.** Length is the correct cost; the section is a reference.
+
+The fix is the class the two alias lists beside it already used (`pv-rows`), so all three scales in
+the section now share one column model — `.pv-grid` had exactly one call site and is deleted rather
+than left as a trap for the next person who reaches for it.
+
+---
+
 ## (2026-08-05) — Gradient stops bind to their palette variables, so gradients re-theme (#236)
 
 **STATUS: shipped, verified live.** The #151 fast-follow. Touches `Prism3/engine/write-plan.ts` (carry the alias),
