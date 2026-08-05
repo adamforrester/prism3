@@ -9,7 +9,8 @@
     "build": "esbuild src/main.ts --bundle --format=esm --outdir=dist --define:PRISM3_HOST=\"'web'\" --define:PRISM3_BUILD=\"'local'\" --sourcemap",
     "build:site": "node build-site.mjs",
     "typecheck": "tsc --noEmit",
-    "audit:modes": "node mode-audit.mjs"
+    "audit:modes": "node mode-audit.mjs",
+    "check:ignore": "node vercel-ignore-check.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.24.0",

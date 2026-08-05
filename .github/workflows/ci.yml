@@ -76,6 +76,14 @@ jobs:
       - name: Build web
         run: npm run -w @prism3/web build
 
+      # The Vercel Ignored Build Step (web/vercel-ignore.sh) skips a deploy when a commit touches
+      # nothing the bundle depends on. Its exclusion list is the part that can rot: an engine file
+      # that later gets imported into web/src would still be on the skip list, so its changes would
+      # ship nothing and the site would go stale with every gate green. This checks the list against
+      # esbuild's real metafile.
+      - name: Vercel ignore list matches the real bundle
+        run: npm run -w @prism3/web check:ignore
+
       # Two contexts, checked separately: the main thread (figma.*, no DOM) and the UI iframe (DOM,
       # no figma.*). CONTRIBUTING §3 documents both as a plugin gate; missing from this workflow's
       # initial cut (#298) — only Build plugin ran.

@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-04) — Deploys skip when a commit cannot change the site, and the skip list is gated
+
+**STATUS: deploy (`vercel.json`, `web/vercel-ignore.sh` + its check, CI, READMEs).** No engine
+change, `out/*` byte-identical.
+
+Prompted by hitting Vercel's free-tier ceiling — `api-deployments-free-per-day`, 100/day — hard
+enough that most of a merge batch deployed nothing. Worth recording the shape of that limit, because
+two things about it were guessed wrong at first: the deploys are **rejected, not queued** (there is
+no backlog that drains later; a rejected commit simply has no preview and needs re-triggering), and
+the window is **rolling, not calendar-day** — capacity trickled back within ~15 minutes and was
+immediately reconsumed, so previews failed intermittently rather than being blocked until midnight.
+
+**The measurement that changed the design.** The obvious rule — build when `web/**` or
+`Prism3/engine/**` changes — was written, tested against the last seven merges, and would have
+skipped **nothing**: nearly every PR touches *something* under `Prism3/engine/`, very often just
+`test.ts`. Checking esbuild's metafile instead showed the deployed bundle imports **13 of the
+engine's 43 `.ts` files**. The other 30 are CLI entry points, emitters, gates and the test suite —
+including `materialise-to-figma.ts` and `anatomy-figma.ts`, which are exactly what #478 and #482
+touched. Both of those correctly skip under the real rule; #477 and #470 still build, because
+`levers.ts` and `tree.ts` genuinely are bundled.
+
+**Exclusions, not inclusions — the direction is the whole safety argument.** Naming the 13 bundled
+files would be more precise and would rot in the *dangerous* direction: a newly imported engine file
+would be absent from the list, so its changes would skip the deploy and ship nothing. Naming the 30
+rots the safe way — a new file is unlisted, so it triggers a build it may not need. A wasted build
+is cheap; a stale deploy is the bug being fixed. `web/vercel-ignore-check.mjs` then removes the rot
+entirely by checking the list against the real metafile in CI, and it is mutation-tested: putting
+`theme.ts` on the skip list fails the gate by name.
+
+**The footgun is the exit codes**, which is why this is a script and not a one-liner in JSON.
+`ignoreCommand` uses **0 to SKIP and 1 to BUILD**, inverted from intuition, and getting it backwards
+fails silently toward exactly the stale-deploy defect #474 cost a rebuild to diagnose. Every path
+normalizes explicitly, and a `git` error (shallow clone, no `HEAD^`) resolves to *build* rather than
+being read as "nothing changed".
+
+**Trap.** `plugin/**` deliberately does NOT trigger a deploy: Vercel runs
+`build:site --workspace @prism3/web`, and the Figma plugin is not part of that build even though it
+inlines the same `web/src` UI. Adding it to the trigger list would only burn quota.
+
+---
+
 ## (2026-08-04) — The third namespace, and why `focused` must not be bound (#487 step 2)
 
 **STATUS: engine (`anatomy-figma.ts` + `test.ts`).** No emitted artifact changed. 1516/0 unit
