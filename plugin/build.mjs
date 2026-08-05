@@ -49,10 +49,28 @@ const buildUiHtml = async () => {
   });
   const js = res.outputFiles[0].text;
   // Replace the dev-only module script tag with the inlined bundle.
+  // The replacement MUST be a function, not a string (#496). A replacement string interprets `$`
+  // patterns, and the bundle legitimately contains `'\\$&'` — the standard regex-escape idiom, from
+  // `root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')` in the shared UI. As a string that `$&` expanded to
+  // the MATCHED text, injecting a literal `</script>` mid-bundle and truncating the inlined script:
+  // the panel rendered blank, on a build that exited 0 with both typechecks clean.
   const html = htmlTemplate.replace(
     /<script type="module" src="\.\/ui\.ts"><\/script>/,
-    `<script>${js}</script>`,
+    () => `<script>${js}</script>`,
   );
+  // Assert what the corruption above violated, because nothing else can see it: `dist/` is a
+  // gitignored artifact, so the bug lived only in the concatenated output — invisible to typecheck,
+  // to lint, and to every source grep. A blank panel in Figma is now a failed build instead.
+  const closers = html.split('</script>').length - 1;
+  if (closers !== 1) {
+    throw new Error(
+      `plugin/dist/ui.html: expected exactly 1 </script>, found ${closers}. The inlined bundle ` +
+        `closed its own tag early, so the UI will render blank. See #496.`,
+    );
+  }
+  if (html.includes('src="./ui.ts"')) {
+    throw new Error('plugin/dist/ui.html: the dev-only module tag survived into the build.');
+  }
   await mkdir(out, { recursive: true });
   await writeFile(resolve(out, 'ui.html'), html);
   console.log('  dist/ui.html   (shared web/src UI inlined, host=figma)');
