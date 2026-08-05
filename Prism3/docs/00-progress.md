@@ -151,6 +151,96 @@ a file you have not committed.
 
 ---
 
+## (2026-08-05) — The apply button's result had nowhere to be: one slot for two facts, and a 220px pill for 150 characters
+
+**STATUS: shipped, verified in a real browser at five widths.** Plugin + web UI; no engine change, no
+`out/*` change, no `CONTRACT_VERSION` movement. Plugin suites 7 → **8** (`test-apply-summary.ts`, new).
+
+**The ask, and why it is not the whole fix.** The Figma plugin has one button ("Apply to Figma") and the
+question was what its error handling actually does. Tracing it end to end found the counts are computed
+*correctly* and then destroyed twice on the way to the designer — the same "correct and dead" shape as
+#236, which is what makes it worth writing down rather than just patching.
+
+**Two defects, both at the seam rather than in the logic.**
+
+1. **One slot for two facts.** `web/src/write-adapter.ts` relabeled `apply-result` as `seed-info`:
+   `if (m.type === 'seed-info' || m.type === 'apply-result') cb({ kind: 'seed-info', … })`. Its
+   `onHostMessage` union had no `apply-result` kind at all, and the UI had one `seedInfo` variable. So
+   an apply overwrote the boot read-back and *rendered as* the boot read-back. Both messages carry
+   `{ok, summary}`, which is exactly why the merge looked harmless — identical shape, different
+   question. With no slot of its own there was also nowhere for `pending` to live, so a write over a
+   large file was a button that visibly did nothing and could be clicked again mid-flight.
+2. **The summary was ~150 characters into a `max-width:220px; white-space:nowrap; text-overflow:ellipsis`
+   pill.** A result reading `…, 4 misses` rendered as `palette 118 (+0), color 2…`. Measured on
+   `origin/main` before touching anything (`scrollWidth > clientWidth` → true), so this is the defect
+   observed, not inferred. `s.misses` had *just* been added to that tally by #236; it was invisible the
+   day it shipped.
+
+**What changed.** `apply-result` is its own message kind end to end, carrying a **`headline`** (≤24
+chars, for the pill) beside the full `summary` (behind a disclosure). The split is made **in the main
+thread**, where the counts exist: deriving a headline downstream would mean re-parsing the prose, and
+the next edit to that prose would silently change what the pill claims. The button gains a real pending
+state (`⋯ Applying…`, disabled — both the signal *and* the double-write guard), and a bad result
+auto-expands its detail while a clean one stays collapsed.
+
+**Rebasing this onto today's other entries sharpened the point.** #479 added an orphan count to that same
+summary with the reasoning *"drift nobody reads is drift nobody fixes"*, and #499 added a name-resolution
+count — so between the branch being cut and it landing, the string this pill was clipping grew by two more
+axes. Both were shipping into a 220px `nowrap` pill. Neither enters the headline, deliberately: three
+warning axes do not fit in 24 characters, and a pill that tries to say everything says nothing. They are
+readable now because the summary finally has somewhere to be shown.
+
+**The headline logic was extracted to `plugin/src/apply-summary.ts` purely to make it testable.**
+Nothing in the apply path had *any* coverage, because all of it lived in `plugin/src/main.ts`, which
+calls `figma.showUI` at module scope and therefore cannot be imported. That is worth noting as a shape:
+*untestable-by-construction is a property of where code lives, not of what it does.* Moving 8 lines
+bought the first test this path has ever had — and it immediately failed. The range probe over
+`[0,1,2,9,99,999,9999] × [0,1,26,999]` found `✓ applied, 999 font-skipped` at **27 characters**, past
+the very budget the field exists to enforce. Fixed the format (`999 skipped`, 22 chars), not the bound.
+A 3-digit skip count is reachable on a real file; reading the format would never have caught it.
+
+**A popover was the first shape and it was WRONG — caught by measuring, not by reading.** The detail
+started as an absolutely-positioned panel under the pill. At the narrow tier the bar wraps to two rows
+(pre-existing: brand/export/nav take row one, Apply takes row two), so at 480px the panel **covered the
+Apply button it was reporting on**. Hiding the primary CTA behind its own status is worse than the
+truncation being replaced. It is now a row in the **chrome**, which is the pattern #388 already
+established for exactly this with `errbar-global`: app-level status, mounted once, pushing content down
+rather than covering it. In flow it cannot overlap at any width, needs no `z-index`, and needs no
+outside-click dismissal — and auto-dismissing would have lost a miss report the instant the designer
+clicked the control they opened it to fix.
+
+**Verified in a real browser**, driving the `PRISM3_HOST='figma'` bundle (the shipped iframe entry, not
+a retyping) through all five states — boot seed / pending / clean / miss / throw — at 1280, 900, 640,
+480 and 380. At every width: no overlap with the CTA, nothing in the bar covered, neither pill nor
+detail truncated (`scrollWidth`/`scrollHeight` probed, not eyeballed), `aria-expanded` tracking, and
+`--chrome-h` equal to the real chrome height to the pixel, so the sticky rail and mode bar reposition
+correctly when the row opens. Zero page errors.
+
+**One incidental correction.** The comment on the Apply branch claimed it was "Absent + DCE'd on web".
+Measured: it is not. `commit.isFigma` is a *runtime* property, so `renderApplyStatus` and its class
+names ship in `web/dist/main.js`. What is eliminated is `figmaCommit`'s body in `write-adapter.ts` — no
+`pluginMessage` reaches the web bundle — so the branch is *unreachable*, not absent. Behavior is
+identical; the comment was the only thing wrong, and it is now accurate.
+
+**The larger finding, which is a decision and not code.** Four open tickets all want the same
+plugin-only host surface, and none of them says so: this apply status (#407's plugin half), the
+initial-state UX (#506 — the plugin sets `firstRun = false` and boots hardcoded `aurora` regardless of
+whether the file is empty, already Prism3'd, or full of foreign variables), the canvas style-guide
+generator as a second write action (#259), and the component tier as a third (#520, which explicitly
+asks "Figma plugin, web dashboard, or both?"). Solved separately they would produce four status
+surfaces. This change is deliberately built as the **first client** of one shared surface rather than as
+its design: `applyState` is a per-fact slot and the detail row is a chrome row, both of which a second
+action can join. Also worth recording for whoever designs it: **`figma.notify` is used nowhere in
+`plugin/src`** — the in-iframe choice was made by accident, never decided, and the tradeoff (native
+toasts survive the panel closing but cannot hold progress; in-iframe holds structure but is invisible
+when the panel is) is still open.
+
+**Deferred, on purpose.** #284 (debug/console logging strategy) — the diagnosis pain so far has been
+ours during development, not a designer's, and this change removes the specific blindness that made it
+feel urgent.
+
+---
+
 ## (2026-08-05) — The BOOLEAN path, measured live and then executed (#513's stated ceiling)
 
 **STATUS: engine (`test.ts`) + this doc.** Tests only; no production-source or `out/*` change.

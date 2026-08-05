@@ -5,13 +5,15 @@
  * the iframe runs the SHARED `web/src` UI (one UI, no fork); this controller is the write/read
  * adapter below it:
  *   • `apply-theme` (carries the live `BrandInput` from the UI's knobs) → build the colour write
- *     plan + run #108's `applyWritePlan` against `figma.variables`.
+ *     plan + run #108's `applyWritePlan` against `figma.variables`, then report `apply-result` (a
+ *     short headline for the UI's status pill + the full per-axis summary behind it).
  *   • on `ui-ready` → run #109's read-back + verify and post `seed-info` (informational: does an
  *     existing Prism3 theme in this file pass the contract).
  *
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
+import { applyHeadline, APPLY_FAILED_HEADLINE } from './apply-summary';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { UiToMain } from './messages';
@@ -129,10 +131,15 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
       `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + orphanNote + resolvedNote + skippedNote;
-    // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false.
-    postToUi({ type: 'apply-result', ok: misses === 0, summary });
+    // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
+    // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
+    // prose above is edited whenever an axis is added, and re-parsing it would make its wording
+    // load-bearing. Only misses and skipped fonts reach the headline; #479's orphan count deliberately
+    // does not, because the pill has a 24-char budget and three warning axes will not fit in it. The
+    // orphans are still readable — they are in `summary`, which now has somewhere to be shown.
+    postToUi({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary });
   } catch (e) {
-    postToUi({ type: 'apply-result', ok: false, summary: `write failed: ${(e as Error).message}` });
+    postToUi({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `write failed: ${(e as Error).message}` });
   }
 };
 

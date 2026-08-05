@@ -308,6 +308,18 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
 const commit = hostCommit();
 let seedInfo: { ok: boolean; summary: string } | null = null;   // set by the host's boot read-back (#109)
+/** The state of the Apply-to-Figma write. `null` = never run this session; `pending` = posted and the
+ *  host has not answered yet; otherwise the host's verdict.
+ *
+ *  A SEPARATE slot from `seedInfo` on purpose. Both arrive as `{ok, summary}` and both wanted the one
+ *  pill, so an apply used to overwrite the boot read-back and render as if it WERE the boot read-back —
+ *  the only surface for "what happened when I pressed the button" was a pill labelled with what was in
+ *  the file before it. And with no slot of its own there was nowhere for `pending` to live, so a write
+ *  over a large file looked like a button that did nothing. Two facts, two slots. */
+let applyState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** Whether the apply result's full detail is expanded. Collapsed by default: the headline answers the
+ *  question ninety-nine times out of a hundred, and the detail is five axes of counts. */
+let applyDetailOpen = false;
 // The font families the host can load (#113 Figma arm; empty on web and until the host answers).
 // Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
 // not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
@@ -339,6 +351,15 @@ commit.onHostMessage((m) => {
     // A plain re-render — the same path a tab click takes. The list can arrive before or after the
     // typeface page first renders, so caching plus a re-render makes the order irrelevant.
     renderWorkspace();
+    return;
+  }
+  if (m.kind === 'apply-result') {
+    applyState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    // Auto-expand a bad result. A miss means something the theme asked for is not in this file, and the
+    // headline only says how many — the detail names which axis. Making the designer click for that on
+    // the one occasion it matters is the wrong default; a clean result stays collapsed.
+    applyDetailOpen = !m.ok;
+    if (barHost) { renderBar(); syncApplyDetail(); }
     return;
   }
   if (m.kind === 'seed-info') {
@@ -6279,6 +6300,62 @@ const renderExportMenu = (): HTMLElement => {
   return menu;
 };
 
+/** The Apply-to-Figma status pill — reached only in the plugin, via the `commit.isFigma` branch.
+ *
+ *  Not dead-code-eliminated on web, whatever the branch's own comment used to claim. Measured: the web
+ *  bundle contains this function and its class names, because `isFigma` is a RUNTIME property of the
+ *  commit host, not the build-time `PRISM3_HOST` define. What IS eliminated is `figmaCommit`'s body in
+ *  `write-adapter.ts` (no `pluginMessage` reaches the web bundle), so nothing here can ever fire — the
+ *  branch is unreachable rather than absent. Behavior is identical either way; only the claim was wrong.
+ *
+ *  A headline plus an on-demand detail, NOT one line of prose. The main thread's summary is ~150
+ *  characters spanning five axes; the bar pill was `max-width:220px` with `nowrap` + ellipsis, so a
+ *  result reading "…, 4 misses" rendered as "palette 118 (+0), color 2…" — the miss count computed
+ *  correctly and then discarded by a CSS rule. The headline carries the verdict at pill scale and the
+ *  detail carries what a designer chasing a miss actually needs, wrapped rather than clipped.
+ *
+ *  Pending renders as text with no disclosure: there is nothing to expand yet, and a control that
+ *  appears and then changes meaning when the result lands is worse than one that appears with it. */
+function renderApplyStatus(state: Exclude<typeof applyState, null>): HTMLElement {
+  if (state === 'pending') return el('span', 'bar-seed', 'Writing to Figma…');
+  const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (applyDetailOpen ? ' open' : '');
+  const btn = el('button', cls) as HTMLButtonElement;
+  // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
+  // type and color), and an element with a class but no rule is a name reserved against nothing — the
+  // shape `lint:classes` exists to discourage.
+  btn.append(document.createTextNode(state.headline), el('span', 'caret', applyDetailOpen ? '▴' : '▾'));
+  // The accessible name has to carry the headline, because the caret glyph is the only other content and
+  // a screen reader would otherwise announce a bare triangle. `aria-expanded` states the disclosure, and
+  // `aria-controls` names the row it opens — which lives in the chrome, not inside this button.
+  btn.setAttribute('aria-expanded', applyDetailOpen ? 'true' : 'false');
+  btn.setAttribute('aria-controls', APPLY_DETAIL_ID);
+  btn.setAttribute('aria-label', `${state.headline} — apply details`);
+  btn.onclick = () => { applyDetailOpen = !applyDetailOpen; renderBar(); syncApplyDetail(); };
+  return btn;
+}
+
+/** The expanded apply detail — a row in the CHROME under the bar, not a popover hanging off the pill.
+ *
+ *  A popover was the first shape and it was measured wrong: at the narrow tier the bar wraps to two
+ *  rows (pre-existing — the brand/export/nav controls take row one and Apply takes row two), so an
+ *  absolutely-positioned panel under the pill covered the Apply button itself. Hiding the primary CTA
+ *  behind its own status is worse than the truncation this replaced.
+ *
+ *  The chrome row is the pattern already established for exactly this by #388's `errbar-global`: status
+ *  that belongs to the whole app rather than to a page, mounted once in the chrome, pushing content
+ *  down rather than covering it. Being in flow it cannot overlap anything at any width, needs no
+ *  z-index, and needs no outside-click dismissal — it is not an overlay. `--chrome-h` must be re-read
+ *  because everything sticky below the chrome is positioned from it. */
+const APPLY_DETAIL_ID = 'apply-detail';
+let applyDetailHost: HTMLElement | null = null;
+const syncApplyDetail = (): void => {
+  if (!applyDetailHost) return;
+  const show = applyDetailOpen && applyState !== null && applyState !== 'pending';
+  applyDetailHost.style.display = show ? '' : 'none';
+  if (show) applyDetailHost.textContent = (applyState as { summary: string }).summary;
+  syncChromeHeight();
+};
+
 /** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
  *  overloaded dropdown. Left: brandmark. Right: brand switcher (identity + examples + new +
  *  import — a brand *source*), Export (artifact *output*), and, in the plugin only, the primary
@@ -6340,12 +6417,23 @@ function renderBar(): void {
   if (navMenuOpen) nWrap.append(renderNavMenu());
   actions.append(nWrap);
 
-  // Apply to Figma — plugin-only, the primary CTA (the plugin's terminal action). Absent + DCE'd
-  // on web (`commit.isFigma` false). The #109 read-back seed status rides alongside as a pill.
+  // Apply to Figma — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on
+  // web (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
+  // eliminated; see `renderApplyStatus`). Its status is `applyState`; the #109 boot read-back keeps its own
+  // pill, shown only until the first apply, after which the write's own result is the newer fact and
+  // "what was in the file when I opened it" is no longer what the designer is asking about.
   if (commit.isFigma) {
-    if (seedInfo) actions.append(el('span', 'bar-seed' + (seedInfo.ok ? '' : ' bad'), seedInfo.summary));
-    const applyBtn = el('button', 'barbtn primary', '↳ Apply to Figma') as HTMLButtonElement;
-    applyBtn.onclick = () => commit.postTheme(lastGoodInput);
+    if (applyState) actions.append(renderApplyStatus(applyState));
+    else if (seedInfo) actions.append(el('span', 'bar-seed' + (seedInfo.ok ? '' : ' bad'), seedInfo.summary));
+    const pending = applyState === 'pending';
+    // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
+    // enough that a button which neither moves nor disables reads as broken — and a second click posts a
+    // second concurrent write over the same variables. Disabled while in flight is both the signal and
+    // the guard.
+    const applyBtn = el('button', 'barbtn primary', pending ? '⋯ Applying…' : '↳ Apply to Figma') as HTMLButtonElement;
+    applyBtn.disabled = pending;
+    // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
+    applyBtn.onclick = () => { applyState = 'pending'; applyDetailOpen = false; renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
     actions.append(applyBtn);
   }
 
@@ -6353,6 +6441,9 @@ function renderBar(): void {
 
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
+      // The apply detail is NOT dismissed here, deliberately: it is a row in the chrome rather than an
+      // overlay, so it obscures nothing and a click elsewhere is not a request to close it. Auto-closing
+      // it would also lose a miss report the moment the designer clicked the control they came to fix.
       if ((brandMenuOpen || exportMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
         brandMenuOpen = false; exportMenuOpen = false; navMenuOpen = false; importOpen = false; addModeOpen = false; addModeName = ''; renderBar();
       }
@@ -6497,6 +6588,15 @@ const build = (): void => {
   globalErrHost = el('div', 'errbar errbar-global');
   chrome.append(globalErrHost);
   syncErrorBar();
+  // The apply detail sits in the chrome for the same reason the error bar does (#388): it is app-level
+  // status, and a per-page or popover home would either be forgotten by the next page or cover the CTA
+  // it describes. Minted unconditionally — `renderApplyStatus` is plugin-only, so on web `applyState`
+  // stays null and `syncApplyDetail` keeps this hidden. Visibility is always derived, never hardcoded
+  // here: page nav re-runs `build()`, which would otherwise collapse an open detail.
+  applyDetailHost = el('div', 'applystat-detail');
+  applyDetailHost.id = APPLY_DETAIL_ID;
+  chrome.append(applyDetailHost);
+  syncApplyDetail();
   app.append(chrome);
   renderBar();
   renderModeStrip();
@@ -6654,6 +6754,21 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .navbtn{display:none}
 .bar-seed{font-size:11.5px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bar-seed.bad{color:#a12}
+/* The apply status pill + its detail row. The pill is bounded and single-line like .bar-seed — that
+   constraint is fine for a ≤24-char headline and was only wrong for the 150-char summary, which now
+   lives in the detail row below the bar. Colors come from the #285 status set on the #446 tint grounds:
+   that exact pairing (--ok on --ok-tint, --danger on --danger-tint) is what lint:contrast already
+   measures, so the pill inherits a checked ratio instead of inventing a green. */
+.applystat{display:flex;align-items:center;gap:7px;font:inherit;font-size:11.5px;font-weight:560;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:5px 10px;cursor:pointer;color:var(--ink2);white-space:nowrap}
+.applystat.ok{background:var(--ok-tint);border-color:var(--ok-edge);color:var(--ok)}
+.applystat.bad{background:var(--danger-tint);border-color:var(--danger-edge);color:var(--danger)}
+.applystat .caret{color:currentColor;opacity:.65;margin-left:0}
+/* Wrapped, not clipped — the whole point of the row. IN FLOW inside the chrome, deliberately not an
+   absolutely-positioned popover: at the narrow tier the bar wraps to two rows, and a panel hanging off
+   the pill covered the Apply button it was reporting on (measured at 480). In flow it pushes content
+   instead, so it cannot overlap anything at any width and needs no z-index. Same reasoning and same
+   home as .errbar-global (#388), and unlike that one it does carry its own rules. */
+.applystat-detail{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;line-height:1.55;color:var(--ink2)}
 /* max-height + scroll: the menu had neither, which was survivable while it was short. Folding the
    mode set in (#432) pushed it to ~716px, and at a 700px-tall window it ran 89px past the bottom
    of the viewport with the last items simply unreachable. Bounded to the space below the header. */

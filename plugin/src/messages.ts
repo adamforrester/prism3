@@ -12,6 +12,10 @@
  * `apply-theme` (carrying the live `BrandInput`); the main thread rebuilds the write plan and runs
  * #108's `applyWritePlan`, then reports `apply-result`. On boot the main thread runs #109's
  * read-back and posts `seed-info` (informational — an existing themed file's contract summary).
+ *
+ * `apply-result` and `seed-info` carry the same field shape and are deliberately DISTINCT variants.
+ * The UI's adapter used to fold them into one, which made an apply indistinguishable from the boot
+ * read-back at the receiving end — see the note on `apply-result` below.
  */
 import type { BrandInput } from '../../Prism3/engine/theme';
 
@@ -32,8 +36,16 @@ export type UiToMain =
 
 /** Messages the main thread sends TO the UI iframe. */
 export type MainToUi =
-  /** Result of an `apply-theme` write: ok + a human summary (counts / any misses) for the UI. */
-  | { type: 'apply-result'; ok: boolean; summary: string }
+  /** Result of an `apply-theme` write: ok + a human summary (counts / any misses) for the UI.
+   *
+   *  `headline` is a ≤24-char verdict for the status pill; `summary` is the full detail behind it. Two
+   *  fields rather than one because the full summary is ~150 characters of counts across five axes and
+   *  the bar has room for a pill — so the UI was clipping it to ~30 characters, i.e. computing the
+   *  miss count correctly and then throwing it away at the CSS layer. The split is HERE and not in the
+   *  UI because this is where the counts exist: deriving a headline by re-parsing the prose downstream
+   *  would make the summary's wording load-bearing, and the next edit to it would silently change what
+   *  the pill claims. */
+  | { type: 'apply-result'; ok: boolean; headline: string; summary: string }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below. */
   | { type: 'seed-info'; ok: boolean; summary: string }

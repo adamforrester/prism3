@@ -100,13 +100,21 @@ export interface HostCommit {
    *  reusing #108 verbatim. Typed loosely (`unknown`) here to avoid a web→engine type import in
    *  the DOM layer; the plugin bridge + main thread carry the real `BrandInput` type. */
   postTheme(input: unknown): void;
-  /** Register a callback for host→UI notifications: the #109 read-back seed summary, the #131
-   *  knob-rehydration (the persisted `BrandInput`, typed `unknown` here to keep this DOM layer free
-   *  of the engine type import), and the available font families (the #113 Figma arm — a plain
-   *  `string[]`, so it needs no such care). */
+  /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
+   *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
+   *  here to keep this DOM layer free of the engine type import), and the available font families
+   *  (the #113 Figma arm — a plain `string[]`, so it needs no such care).
+   *
+   *  `apply-result` and `seed-info` are SEPARATE kinds, and the distinction is the point. They carry
+   *  the same field shape, which is why this adapter used to collapse them into one — but they answer
+   *  different questions: `seed-info` is a boot fact ("what was already in this file"), `apply-result`
+   *  is the outcome of an action the designer just took. Merged, an apply overwrote the boot summary
+   *  with no way to tell which one the UI was showing, and the write's own result had no state of its
+   *  own to be pending in. One kind per fact; the UI keeps a slot per kind. */
   onHostMessage(
     cb: (
       msg:
+        | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'seed-info'; ok: boolean; summary: string }
         | { kind: 'restore-input'; input: unknown }
         | { kind: 'font-list'; families: string[]; styles: number[] },
@@ -135,10 +143,16 @@ const figmaCommit = (): HostCommit => ({
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const m = (e.data && e.data.pluginMessage) as
-        | { type?: string; ok?: boolean; summary?: string; input?: unknown; families?: unknown; styles?: unknown }
+        | { type?: string; ok?: boolean; headline?: string; summary?: string; input?: unknown; families?: unknown; styles?: unknown }
         | undefined;
       if (!m) return;
-      if (m.type === 'seed-info' || m.type === 'apply-result') {
+      if (m.type === 'apply-result') {
+        // `headline` falls back to the ok flag, not to the summary: a host build older than this one
+        // sends no headline, and letting the ~150-char summary land in the pill would restore exactly
+        // the truncation this field exists to remove.
+        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ applied' : '✗ apply failed';
+        cb({ kind: 'apply-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
+      } else if (m.type === 'seed-info') {
         cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? '') });
       } else if (m.type === 'restore-input' && m.input) {
         cb({ kind: 'restore-input', input: m.input });
