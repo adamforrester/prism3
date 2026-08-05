@@ -36,6 +36,48 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-05 — from closing the #503 review's two should-fixes
+
+### `[SKILL]` Execute the generated payload against a stub host — do not grep it
+
+The strongest gate on a code-generating engine runs the code. Five assertions on the paste payload were
+substring probes, and five could pass on a payload with the bug they named: `includes('createInstance()')`
+survived inverting the ternary, because the call remained as dead code on the unreachable branch.
+
+A stub host is cheap and pays for itself immediately. What it needs is small — name→object resolvers, nodes
+that record bindings the way the real API does, and any setter whose SHAPE is the thing under test (Figma's
+`setBoundVariableForPaint` *returns* a paint rather than mutating; a stub that mutates would let the exact
+bug it guards through). Then run the emitted string via `AsyncFunction` so it sees one binding and nothing
+from the test's scope.
+
+The assertions that become possible are the ones text probes cannot express, and the most valuable is the
+negative: **with everything resolving, the failure channel is EMPTY.** A read-back that cries wolf is as
+broken as one that stays silent, and no substring check can tell them apart.
+
+### `[GATE]` A read-back must iterate what the code DID, not what the plan declared
+
+The bind loop skips a name that does not resolve; the read-back then iterated the declared props, so every
+skipped prop collected a second, false miss saying the write was *"resolved, set, not retained"*. 13 real
+causes, 12 phantoms shadowing them. The two sets — declared and written — are identical only on the happy
+path, which is the one path where a read-back has nothing to say.
+
+### `[SKILL]` Mutation-test the harness, not just the code it guards
+
+The first mutation run against the new stub harness found a defect **in the harness**: a degrade that threw
+inside the payload took the whole suite down and reported *zero* failures rather than one
+(`review-pr.md:133`'s fail-hard trap). A harness that dies cannot tell you which assertion it would have
+failed, and the failure looks like a crash rather than a finding. Catch inside the harness, turn the throw
+into an observation, and let the gates judge it.
+
+### `[KB]` Writing a lesson down does not find its existing instances
+
+The self-documenting-string trap was recorded in `00-progress.md`, then hit twice more in the same session —
+and both live instances were two files away from the entry describing them. Documenting a pattern makes the
+*next* one recognizable; it does nothing about the ones already shipped. When a trap is worth an entry, it is
+worth a grep for the pattern across the surface it applies to, in the same sitting.
+
+---
+
 ## 2026-08-05 — from building the SKILLS GATE (#492)
 
 ### `[GATE]` The gate's first run found worse than the defect it was written for

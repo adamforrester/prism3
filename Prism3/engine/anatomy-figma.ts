@@ -448,10 +448,16 @@ const build=async(n)=>{
     node.primaryAxisSizingMode=n.primaryAxisSizingMode;
     node.counterAxisSizingMode=n.counterAxisSizingMode;
   }
+  // \`wrote\` is what was ACTUALLY set, which is not the same as what the plan declared — a name that
+  // does not resolve is skipped below. The read-back iterates this rather than the declaration, so an
+  // unresolved name reports its one true cause instead of also claiming Figma discarded a write that
+  // was never attempted.
+  const wrote=[];
   for(const [prop,varName] of Object.entries(n.bound)){
     const v=byName.get(varName);
     if(!v){misses.push(n.name+'.'+prop+' -> '+varName);continue;}
     node.setBoundVariable(prop,v);
+    wrote.push(prop);
   }
   // PAINTS — a fourth API shape. \`setBoundVariableForPaint\` RETURNS a new paint rather than mutating
   // the node, so the result must be assigned back into a fills/strokes ARRAY; forgetting the
@@ -461,12 +467,14 @@ const build=async(n)=>{
     if(!v){misses.push(n.name+'.'+where+' -> '+varName);return null;}
     return figma.variables.setBoundVariableForPaint({type:'SOLID',color:{r:0,g:0,b:0}},'color',v);
   };
-  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills');if(p)node.fills=[p];}
+  // Same reason as \`wrote\` above: only a paint that was actually assigned can have been discarded.
+  const painted={};
+  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills');if(p){node.fills=[p];painted.fills=1;}}
   if(n.paints&&n.paints.strokes){
     const p=paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
     // bind correctly and render as no border at all.
-    if(p){node.strokes=[p];if(!node.strokeWeight)node.strokeWeight=1;node.strokeAlign='INSIDE';}
+    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight)node.strokeWeight=1;node.strokeAlign='INSIDE';}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs inside the swapped instance, not on the instance itself — an
@@ -479,13 +487,13 @@ const build=async(n)=>{
   // being there — see the header note. This closes \`misses[]\`'s blind spot generically, so the next
   // silently-discarded write is reported by the paste instead of being found by probing months later.
   const got=node.boundVariables||{};
-  for(const prop of Object.keys(n.bound))
+  for(const prop of wrote)
     if(!got[prop])misses.push(n.name+'.'+prop+' -> DISCARDED (resolved, set, not retained)');
   // Paints read back too, and from the ARRAY rather than the node — a paint binding lives on the
   // paint object, so \`boundVariables.fills\` is not where it is.
   const boundPaint=(arr)=>!!(arr&&arr[0]&&arr[0].boundVariables&&arr[0].boundVariables.color);
-  if(n.paints&&n.paints.fills&&!boundPaint(node.fills))misses.push(n.name+'.fills -> DISCARDED (paint set, not retained)');
-  if(n.paints&&n.paints.strokes&&!boundPaint(node.strokes))misses.push(n.name+'.strokes -> DISCARDED (paint set, not retained)');
+  if(painted.fills&&!boundPaint(node.fills))misses.push(n.name+'.fills -> DISCARDED (paint set, not retained)');
+  if(painted.strokes&&!boundPaint(node.strokes))misses.push(n.name+'.strokes -> DISCARDED (paint set, not retained)');
   for(const c of n.children) node.appendChild(await build(c));
   return node;
 };

@@ -7,6 +7,64 @@
 
 ---
 
+## (2026-08-05) — Execute the payload instead of grepping it (#503 review follow-up)
+
+**STATUS: both should-fixes the #503 review raised across two rounds are closed, and the gate that
+proves it RUNS the payload against a stub Figma rather than reading it as text.** 1590/0, six mutations,
+all caught. The stub harness is the durable part of this entry.
+
+### The failure channel was reporting a false cause
+
+`misses[]` is the payload's only way to say something went wrong, and it lied in three places. The bind
+loop `continue`s on a name that does not resolve — correct — but the read-back then iterated
+`Object.keys(n.bound)`, the **declaration**, so a prop that was never set collected a second miss reading
+`DISCARDED (resolved, set, not retained)`. Nothing was resolved; nothing was set. Driven against an empty
+variable set: 13 real resolve-misses, 12 phantoms, each shadowing the real cause printed on the line above
+and pointing the reader at a Figma-internals mystery instead. The paint read-back repeated the shape
+verbatim. Fixed by recording what was actually written (`wrote`, `painted`) and iterating that.
+
+The lesson is narrower than "track what you wrote": **a read-back must iterate what the code DID, never
+what the plan asked for.** Those two sets are equal only on the happy path, which is the one path where
+the read-back has nothing to report.
+
+### A substring gate against a self-documenting string, instances four and five
+
+`js.includes('createInstance()')` passed with the swap ternary inverted — `target ? figma.createFrame() :
+target.createInstance()` — because the call survives as dead code on the branch that can never run. That
+inversion **is** #482's shipped bug (slots declared, empty frames pasted) in its single-token typo form,
+and the whole suite stayed green at 1567. `js.includes('findAllWithCriteria')` passed with the lookup
+narrowed to `currentPage`, the exact silent degrade the comment above it named as the thing it guarded.
+
+Both now anchor on the live branch (`node=target?target.createInstance()`, `figma.root.findAllWithCriteria`).
+That is the same trap recorded three times already this session, and worth stating plainly: **I wrote the
+rule down in the entry above and left two live instances of it two files away.** Writing a lesson down does
+not find its existing instances. Only a search for the pattern does.
+
+### The fix for the whole class: run the payload
+
+Every assertion in that block read the payload as **text**, which is why five of them could pass on a
+broken payload. So the block now executes it. `runPayload` builds a stub `figma` — variables, text styles,
+components, a `setBoundVariableForPaint` that RETURNS rather than mutates (modeling the API shape that half
+these gates exist for), and nodes that record bindings into `boundVariables` the way Figma does — and runs
+the real emitted string through `AsyncFunction`, so the payload sees exactly one binding and nothing from
+the test's scope. The gates then assert on **behavior**: with nothing resolving every miss is a resolve-miss;
+with the setter sabotaged every miss is a DISCARDED; with everything resolving `misses[]` is empty.
+
+That last one matters most and is the one a text probe can never write: **the channel is silent on a
+correct paste.** A read-back that cries wolf is as useless as one that stays quiet, and nothing before this
+could tell the two apart.
+
+### The harness walked into `review-pr.md:133` on its first mutation
+
+Narrowing the lookup to `figma.currentPage` — a real degrade, deliberately mutated to check the gate — threw
+*inside* the payload, and the uncaught throw took down the entire suite: **zero failures reported, not one.**
+Exactly the fail-hard trap the review protocol records. A harness that dies cannot tell you which assertion
+it would have failed. `runPayload` now catches and returns the throw as a miss, and the same mutation
+reports 5 failures. Worth noting the shape: **the new gate's own first mutation test found a defect in the
+gate, not in the code** — which is the argument for mutation-testing a harness and not just the thing it guards.
+
+---
+
 ## (2026-08-05) — Shipped skills are now gated, and two had already rotted (#492 step 1)
 
 **STATUS: engine (`lint-skills.ts`, new) + two `SKILL.md` fixes + CI/CLAUDE.md wiring.** No emitted
