@@ -39,7 +39,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planComponentName, figmaVarName } from './anatomy-figma';
+import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -5548,13 +5548,86 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(paintJs.includes('arr[0].boundVariables.color') && paintJs.includes('DISCARDED (paint set'),
       'anatomy/paint: paints read back off the paint object in the array — `node.boundVariables.fills` is the wrong place and would always look clean');
 
-    // The component NAME is the variant COORDINATE. `combineAsVariants` derives axes from these names,
-    // so `key=value, key=value` is a wire format between one paste and the component set the next step
-    // builds — not cosmetics. (The format changed under this PR and no existing test noticed.)
-    ok(planComponentName(skin('filled', 'hover')) === 'button/intent=primary, appearance=filled, size=medium, state=hover, leading=true, trailing=false',
+    // The component NAME is the variant COORDINATE — and ONLY the coordinate. `combineAsVariants`
+    // derives axes from these names, so `key=value, key=value` is a wire format between one paste and
+    // the component set the next step builds, not cosmetics. (The format changed under this PR and no
+    // existing test noticed until it was given these.)
+    ok(planComponentName(skin('filled', 'hover')) === 'intent=primary, appearance=filled, size=medium, state=hover, leading=true, trailing=false',
       `anatomy/paint: the component name is a Figma variant coordinate (${planComponentName(skin('filled', 'hover'))})`);
-    ok(planComponentName(lead) === 'button/size=medium, leading=true, trailing=false', `anatomy/paint: a structure-only plan names only the axes it has (${planComponentName(lead)})`);
+    ok(planComponentName(lead) === 'size=medium, leading=true, trailing=false', `anatomy/paint: a structure-only plan names only the axes it has (${planComponentName(lead)})`);
+    // NO `button/` PREFIX, measured live rather than assumed: Figma does not strip a slash prefix
+    // before parsing axes — it folds it into the FIRST AXIS KEY, so a set built from
+    // `button/intent=primary, …` comes back with a property literally named `button/intent`. The
+    // component's identity belongs on the SET; its members carry only their coordinate.
+    ok(!planComponentName(skin('filled')).includes('/'), 'anatomy/paint: a member name carries NO slash prefix — Figma folds one into the first axis key, deriving `button/intent` instead of `intent`');
+    ok(!planComponentName(lead).includes('/'), 'anatomy/paint: the structure-only name is prefix-free too — a lone component pasted today may be combined tomorrow');
     ok(planToPluginJs(skin('filled', 'hover')).includes('state=hover'), 'anatomy/paint: the coordinate reaches the payload — the axes have to be in the pasted name for combineAsVariants to find them');
+
+    // ── THE SET: 21 variants combined into one COMPONENT_SET (#487 steps 4–5) ────────────────────
+    const grid = button.variants.appearance.flatMap((ap) => button.states.map((st) =>
+      figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: ap, state: st })));
+    ok(grid.length === 21, `anatomy/set: the grid is 3 appearances x 7 states (${grid.length})`);
+    const setJs = planSetToPluginJs(grid);
+
+    // ONE payload, not N. Twenty-one round trips re-resolve every variable and style in the file, and a
+    // failure halfway leaves an uncombinable pile the next attempt collides with by name.
+    ok((setJs.match(/getLocalVariablesAsync/g) || []).length === 1, 'anatomy/set: the variable lookup happens ONCE for the whole set, not once per variant');
+    // Counted as the CALL, not the word: the payload comments on `combineAsVariants` by name, so
+    // /combineAsVariants/ found two and this assertion failed on a payload that was correct. Same trap
+    // the strokeWeight gate above records, hit again by the gate written to remember it.
+    ok((setJs.match(/figma\.combineAsVariants\(/g) || []).length === 1, 'anatomy/set: one combineAsVariants call — the set is atomic from the caller\'s point of view');
+
+    // The SHARED payload: the set path must carry byte-identical build logic to the single-component
+    // path, because the single path is the one carrying the paint/binding gates above. Two copies is
+    // exactly where a divergence rots unnoticed — the set would pass every offline check while pasting
+    // subtly different JS. Compared as substrings of each other rather than by re-asserting each detail.
+    const singleJs = planToPluginJs(grid[0]);
+    const sharedBuild = singleJs.slice(singleJs.indexOf('const build=async(n)=>{'), singleJs.indexOf('\nconst root=await build('));
+    ok(sharedBuild.length > 1000 && setJs.includes(sharedBuild), 'anatomy/set: the set payload embeds the SAME node builder as the single-component payload — one string, one set of gates');
+
+    // The component's identity is on the SET; members carry only their coordinate. Both halves matter:
+    // a prefix on a member becomes part of the first axis key (`button/intent`), and a set with no name
+    // is an unfindable `Component Set 1`.
+    ok(setJs.includes('set.name="button"'), 'anatomy/set: the component name lands on the SET');
+    ok(!/"name":"button\//.test(setJs), 'anatomy/set: no member name is prefixed — that prefix would be absorbed into the first axis key');
+
+    // Offline REFUSALS. Both are conditions Figma either accepts to produce something unusable, or
+    // fails on only after twenty-one loose components are already in the file.
+    const refuses = (label: string, re: RegExp, plans: AnatomyPlan[]) => {
+      let msg = '';
+      try { planSetToPluginJs(plans); } catch (e) { msg = (e as Error).message; }
+      ok(re.test(msg), `anatomy/set: ${label}${re.test(msg) ? '' : ` — got '${msg}'`}`);
+    };
+    refuses('an empty plan list is refused', /no plans/, []);
+    refuses('a heterogeneous set is refused offline — mixing a structure-only plan in would give some variants a `state` and not others', /same variant axes/, [grid[0], lead]);
+    refuses('two plans with the same coordinate are refused — the set would carry duplicate variants', /share a component name/, [grid[0], grid[0]]);
+
+    // GRID PLACEMENT is part of the deliverable. `combineAsVariants` PRESERVES positions, so appending
+    // every root without one produced a set 21 variants DEEP and one button tall — every binding
+    // correct, `misses` empty, axes clean, and unusable. Found live; gated here.
+    const cells: Array<{ name: string; row: number; col: number; group: string }> =
+      JSON.parse(setJs.slice(setJs.indexOf('['), setJs.indexOf('];\n') + 1));
+    ok(new Set(cells.map((c) => `${c.row},${c.col}`)).size === 21, 'anatomy/set: every variant gets its OWN grid cell — combineAsVariants preserves positions, so a shared one stacks them invisibly');
+    ok(new Set(cells.map((c) => c.row)).size === 3 && new Set(cells.map((c) => c.col)).size === 7,
+      'anatomy/set: the grid is appearance-down by state-across — the same table the color layer was verified against');
+    // Only VARYING axes get a dimension: `size` has one value here, so it is not a row of one.
+    ok(cells.every((c) => c.group === 'size=medium, leading=true, trailing=false'),
+      'anatomy/set: all 21 share one FOOTPRINT COHORT — state and appearance must not change the measured box, only size and slot fill may');
+
+    // The three LIVE read-backs. Each closes a failure that every other check in the payload is blind
+    // to, and each was written because the live paste hit it.
+    // Anchored on the COMPARISON, not the message. Matching `/footprint -> /` passed with the
+    // surrounding condition replaced by `if(false)`: the report string is still in the payload, so the
+    // gate proved a message exists and nothing about whether it can ever be emitted. Third instance of
+    // this shape today (see the strokeWeight and combineAsVariants notes) — a check that greps a
+    // generated string for the words describing a behavior tests the words.
+    ok(setJs.includes('componentPropertyDefinitions'), 'anatomy/set: the payload reads back the axes Figma actually DERIVED — a name it cannot parse is dropped silently');
+    ok(/if\(seen\.has\(pos\)\)coincident\.push\(/.test(setJs), 'anatomy/set: coincident variants are reported — a perfectly-combined stack is invisible to the binding checks');
+    ok(/if\(first\.box!==box\)footprint\.push\(/.test(setJs), 'anatomy/set: footprint drift is reported — an outline variant 2px wider than its filled sibling breaks a row of buttons and both variants are individually correct');
+    // BORDER-BOX. Figma's `strokesIncludedInLayout` defaults to ADDING the stroke to the auto-layout
+    // size; left alone, outline measured 62 where filled measured 60. It surfaced on the hug axis only —
+    // the bound (fixed) height absorbed the same 2px in silence.
+    ok(/strokesIncludedInLayout=false/.test(setJs), 'anatomy/set: strokes are excluded from layout — otherwise swapping `appearance` moves the footprint, which is the one thing a variant axis must not do');
 
     // A def whose anatomy is structurally broken must FAIL, not warn. Four shapes, each a real
     // authoring mistake rather than a synthetic one.

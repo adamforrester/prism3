@@ -36,6 +36,85 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-05 — from building the whole variant SET (#487 steps 4–5)
+
+### `[SKILL]` A per-node read-back cannot see a per-SET bug — check the properties only the whole has
+
+The paste payload reads every binding back after setting it, which caught real bugs in #503 and stayed
+silent through all three of this step's, because all three are properties of the *set* rather than of any
+node in it. Every variant was individually perfect and the set was unusable.
+
+The three, as a checklist for the next component set:
+
+1. **Axes** — read back `componentPropertyDefinitions`. Figma silently drops a member name it cannot
+   parse, so a set can come back with fewer properties than its names declared.
+2. **Positions** — two variants at one coordinate. `combineAsVariants` *preserves* member positions, so
+   appending roots without setting one stacks the whole set at the origin: 21 deep, one button tall.
+3. **Footprint** — variants that differ only in a non-geometric axis must measure the same box. An
+   `outline` variant 2px wider than its `filled` sibling breaks any row of buttons, and both variants are
+   individually correct.
+
+The shape of the lesson generalizes past Figma: **a whole has invariants its parts cannot violate
+individually.** Cardinality, uniqueness, alignment and coordinate collisions all live at the container,
+so a verification loop built entirely out of per-item checks is structurally blind to them.
+
+### `[KB]` A bound dimension conceals disagreement about that dimension
+
+The `strokesIncludedInLayout` bug showed up on the **hug** axis only. Height was bound to
+`size/md/height`, so the fixed axis absorbed the identical 2px in total silence — a component with two
+fixed axes would have hidden it completely.
+
+Worth stating plainly because it inverts the usual intuition: binding a dimension is normally the *safe*
+move. It also makes that dimension **stop reporting**. When hunting a geometry discrepancy, measure the
+axis that is free to move; the bound one will agree with you no matter what.
+
+### `[GATE]` A prefix in a variant member name becomes part of the first axis key
+
+`combineAsVariants` derives axes from member names and does **not** strip a slash prefix first. Members
+named `button/intent=primary, …` produce a set whose first property is literally `button/intent`, which
+no amount of correct token binding fixes and which a designer sees in the properties panel.
+
+So: the component's identity belongs on the **set**; members carry **only** their coordinate. Two things
+about how this was found are the transferable part. It was caught by the axis read-back written in the
+*previous* PR, on that gate's first live run — a read-back's value shows up in the step *after* the one
+that motivated it. And it was caught at **three** variants, not twenty-one, because the unknown API
+behavior got a cheap probe before the expensive paste. Probe the API you have not used at the smallest
+size that can exhibit the behavior.
+
+### `[GATE]` A substring assertion against a self-documenting generated string tests the documentation
+
+Recorded once below, hit twice more in the same session, which is why it is restated as a rule rather
+than an anecdote. `planToPluginJs` output is the one string in the engine that is both a **deliverable**
+and **heavily commented**, so any assertion that greps it for the words describing a behavior tests the
+words.
+
+It fails in both directions:
+
+- **False pass** — `ok(js.includes('strokeWeight'))` and `/footprint -> /` both survived deleting the
+  code they described. The report string is still in the payload when the condition around it is
+  `if(false)`; the gate proved a message *exists*, not that it can ever be emitted.
+- **False fail** — `(js.match(/combineAsVariants/g)||[]).length === 1` failed on a *correct* payload,
+  because the payload comments on the function by name and the count was 2.
+
+Anchor on syntax: `/node\.strokeWeight=/`, `/figma\.combineAsVariants\(/`,
+`/if\(first\.box!==box\)footprint\.push\(/`. And note the detection asymmetry — **only mutation testing
+finds the false-pass form.** Review cannot: the assertion looks correct and *is* correct about a string
+containing that word.
+
+### `[SKILL]` A probe whose measurement is insensitive to the treatment looks exactly like a pass
+
+The first footprint probe reported "does not reproduce". It was wrong: with no children,
+`primaryAxisSizingMode: 'AUTO'` falls back to a default 100px width instead of hugging, so the frame
+could not have changed width whatever the stroke did. A clean, confident, meaningless result.
+
+The fix is a habit, not a rule: **run the treatment and the known-good fix in the same probe.** The
+redone version measured filled 56, outline-unfixed 58, outline-fixed 56 — three arms, one call, and
+"reproduces" and "the fix works" both proven by the same numbers. If a probe cannot show the bug
+appearing *and* disappearing, it has not established either.
+
+Third instance of this family (see #500's control that varied in two variables, and the paste verified
+by name). They share one root: **before trusting a negative result, confirm the measurement could have
+come out the other way.**
 ## 2026-08-05 — from closing the #503 review's two should-fixes
 
 ### `[SKILL]` Execute the generated payload against a stub host — do not grep it
