@@ -3572,7 +3572,7 @@ const renderTypefaceLibrary = (): HTMLElement => {
   // the four-tab split types nothing: this is the only place a face name is entered by hand.
   const spell = el('p', 'tf-note');
   spell.innerHTML = hostFonts.length
-    ? '<b>Pick from the list, or type any name.</b> The field suggests the ' + hostFonts.length.toLocaleString('en-US') + ' font families this Figma can load, so a face you choose from it will apply cleanly. Typing a name that is not listed still works — a brand can specify a font this machine does not have — but it will be skipped when text styles are written here.'
+    ? '<b>Pick from the list, or type any name.</b> The field suggests the ' + hostFonts.length.toLocaleString('en-US') + ' font families this Figma can load, so a name chosen from it is spelled the way Figma spells it. That settles the family, not every weight: a text style still skips if the family lacks the specific weight it asks for. Typing a name that is not listed also works — a brand can specify a font this machine does not have — but nothing it needs will load here.'
     : '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
   sec.append(spell);
   // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
