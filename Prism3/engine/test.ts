@@ -5252,6 +5252,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // into `bound` type-checks, passes every offline gate, and fails only at paste time — the same
     // trap `textStyle` was given its own field to avoid. These assert the third field is real,
     // reaches the payload, and is checked against its OWN name set.
+    // Picked out of the emitted sets rather than hardcoded, so these stay real names if the ladders
+    // are renamed — a stale literal would make the cross-namespace probes below vacuously pass.
+    const labelTextStyleName = [...emittedStyles].sort()[0];
+    const someVariableName = [...emitted].sort()[0];
     const effProbe: AnatomyPlan = { ...lead, root: { ...lead.root, effectStyle: 'shadow/md' } };
     ok(planEffectStyles(effProbe.root).includes('shadow/md'), 'anatomy: planEffectStyles walks the effectStyle field (its own namespace walker, matching planTextStyles)');
     ok(planBindingErrors(effProbe, emitted, emittedStyles, emittedEffects).length === 0, 'anatomy: a real emitted effect style resolves against the effect-style set');
@@ -5259,6 +5263,33 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // style, so checking it against either would report a false MISSING — and a bogus name checked
     // against a merged set could pass by matching something in the wrong namespace.
     ok(!emitted.has('shadow/md') && !emittedStyles.has('shadow/md'), 'anatomy: an effect-style name is in NEITHER the variable nor the text-style set — the three namespaces are genuinely disjoint');
+    // ...but the assertion above is about the DATA, and the promise in `planBindingErrors`'s doc is
+    // about the FUNCTION. They are not the same claim, and the gap was real: widening the effect
+    // filter to `!effectStyles.has(s) && !textStyles?.has(s) && !emitted.has(s)` — merging exactly the
+    // three sets that comment says must stay apart — left all 1516 tests passing. Disjoint inputs
+    // cannot detect a function that stopped caring which set it was given (#493 should-fix).
+    //
+    // So each direction is probed with a name that IS legitimately emitted, just in the WRONG
+    // namespace. A merged set makes these resolve silently; separate sets reject them.
+    const crossProbes: { field: 'effectStyle' | 'textStyle'; name: string; why: string }[] = [
+      { field: 'effectStyle', name: labelTextStyleName, why: 'a TEXT-style name in effectStyle' },
+      { field: 'textStyle', name: 'shadow/md', why: 'an EFFECT-style name in textStyle' },
+      { field: 'effectStyle', name: someVariableName, why: 'a VARIABLE name in effectStyle' },
+    ];
+    for (const { field, name, why } of crossProbes) {
+      const probe: AnatomyPlan = { ...lead, root: { ...lead.root, [field]: name } };
+      ok(planBindingErrors(probe, emitted, emittedStyles, emittedEffects).length > 0,
+        `anatomy: ${why} ('${name}') is REJECTED — planBindingErrors checks each namespace against its own set, not a merged one`);
+    }
+    // The fourth direction, and the one the three above miss: they all probe a STYLE field, so
+    // merging the VARIABLE filter with the style sets survived them untouched. `bound` is
+    // `Record<string, string>`, so a style name squeezed in there type-checks — the same shape as the
+    // original `setBoundVariable('effects', …)` trap this whole field exists to prevent. Found by
+    // mutating the variable filter after the first three probes were already green, which is the
+    // argument for mutating every branch rather than only the one the finding named.
+    const boundCross: AnatomyPlan = { ...lead, root: { ...lead.root, bound: { ...lead.root.bound, fills: 'shadow/md' } } };
+    ok(planBindingErrors(boundCross, emitted, emittedStyles, emittedEffects).some((e) => /bound variable 'shadow\/md'/.test(e)),
+      'anatomy: an EFFECT-style name in `bound` is rejected as a missing VARIABLE — the variable filter is not merged with the style sets either');
     const effBogus: AnatomyPlan = { ...lead, root: { ...lead.root, effectStyle: 'shadow/nope' } };
     ok(planBindingErrors(effBogus, emitted, emittedStyles, emittedEffects).some((e) => /effect style 'shadow\/nope'/.test(e)), 'anatomy: an unemitted effect style is reported, and names the effect-style namespace in the message');
     // Both shadow ladders emit (`shadow/*` and `shadow-dark/*`). A light-only name must not be
