@@ -99,6 +99,9 @@ the words.** Only mutation testing detects this — review cannot, because the a
 - **The `.text` pressed overlay gap** (recorded in `components/button.ts` under #503) is unchanged: all
   three intents key `.text.overlay.hover` but not `.pressed`, so a pressed ghost button falls back to
   rest. One line per intent to close; left as a def question.
+
+---
+
 ## (2026-08-05) — Execute the payload instead of grepping it (#503 review follow-up)
 
 **STATUS: both should-fixes the #503 review raised across two rounds are closed, and the gate that
