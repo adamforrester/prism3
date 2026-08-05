@@ -184,3 +184,112 @@ and why it does not conflict with the contextual model.
 `button` has an `anatomy` block. `icon-button`, `field-label`, `field-message` and `text-field` do
 not — "semantically complete but not materializable", in the schema's own words. Any plan that reads
 "apply this to the catalogue" should state which defs it can actually reach.
+
+---
+
+## 2026-08-05 — prior-art survey (external skills + the Figma component API)
+
+Surveyed before writing any skill of our own, per #492's "don't write it from a sample of one".
+Sources: `figma/mcp-server-guide` (Figma's own agent skills), `firebenders/sync-figma-token-skill`,
+`travisvn/awesome-claude-skills`, and our own `adamforrester/xd-toolkit`.
+
+### `[GATE]` Figma's own guidance caps variant matrices at ~30. We plan 189, then 756.
+
+`figma-generate-library` says to cap a variant matrix at roughly **30 combinations** and split larger
+sets into sub-components. #487 §6 plans **189 today and 756 at full slots** — 6× and 25× that.
+
+This is convergent with a number we derived independently: ~866 bytes per variant against a 45KB
+paste ceiling puts 189 variants at ~16 chunks. **Two unrelated sources reaching the same conclusion
+is worth more than either alone**, so the variant count should be treated as an open question rather
+than a settled one. The likely resolution is that a Button "component" is several component sets
+split on a natural axis (per intent, or per intent × appearance), not one 189-variant monolith —
+which is also what makes a failed chunk diagnosable.
+
+*(Sourced from a summarization pass, not a direct read of the file. Confirm before it drives a
+decision — it is load-bearing.)*
+
+### `[SKILL]` Four Figma API facts we did not have
+
+Each of these is a property of the API, learned from prior art, and each would have cost a build
+cycle to discover:
+
+1. **Variants stack at (0,0) after `combineAsVariants`.** They must be grid-laid-out and resized
+   afterward. We have zero occurrences of `combineAsVariants` in the repo, so we had no knowledge of
+   what happens *after* the call.
+2. **Mutation calls must be strictly sequential** — no parallelizing writes. This constrains the
+   chunked paste directly: chunks are a queue, not a fan-out.
+3. **A state ledger belongs on disk**, recording created node IDs, never reconstructed from memory.
+   At 16–35 chunks that is not optional.
+4. **Every variable wants a scope and a code syntax.** We already derive scopes from the role family
+   (docs/10); whether we emit **code syntax** (`var(--color-bg-primary)`) is worth checking — it is
+   the field that makes a Figma variable legible to a developer reading the design file.
+
+Two of our existing calls were independently confirmed: INSTANCE_SWAP for icons rather than a variant
+per icon (#487 §4), and variables before components (our `dims-create` → `dims-aliases` ordering).
+
+### `[GATE]` Nothing checks that a live Figma file still matches what we emitted
+
+`sync-figma-token-skill`'s value is its model, not its code: drift detection with a dry run that
+**stops for approval**, alias mismatch treated as a distinct drift category, and broken-alias
+detection.
+
+We have `regen --check` for committed artifacts and `planBindingErrors` for the plan — but **every
+gate we own compares the engine to itself or to its own committed output.** Nothing verifies that the
+Figma file a designer is working in still matches the emitted artifact. That is the #281 shape one
+leg further out, and it is the gate that would catch a hand-edited variable in a client file.
+
+Two smaller patterns worth taking: `disable-model-invocation: true` for a destructive write path
+(explicit invocation only), and a stated source-format priority (DTCG first) rather than sniffing.
+
+### `[SKILL]` Licensing decides the take-vs-vendor question here, and it decides it cleanly
+
+`figma/mcp-server-guide` has **no license** — no LICENSE file, no badge, no SPDX statement. The only
+legal text is *"By using the Figma MCP server and the related resources (including these skills), you
+agree to the Figma Developer Terms."* An unlicensed repository grants no copying rights; the default
+is all rights reserved.
+
+So the rule is not a preference, it is a requirement: **learn the facts, write our own words, copy no
+text.** The API behaviours above are facts about a system and are not copyrightable; the prose that
+describes them is. Everything recorded in this section is restated, not lifted.
+
+The general policy this suggests, which holds beyond this one repo: **fork the judgment, defer on the
+API.** A skill's opinions about *how to sequence work* are ours to rewrite and improve. Its knowledge
+of *call shapes for an API we do not control* goes stale in a fork — so invoke the upstream skill at
+runtime (`figma-use` is already declared mandatory before `use_figma`) rather than restating it.
+
+### `[SKILL]` Do not vendor `figma-generate-library` — its first half contradicts this engine
+
+Its Phases 0–1 are "analyze the codebase, create variable collections, primitives, semantic tokens."
+**That is our engine's output.** An agent following it would invent a token layer instead of reading
+one that is already generated, contrast-verified and name-gated. Take its Phase 3 component mechanics
+and the gotchas above; replace Phases 0–2 with "read `out/figma/**` and the anatomy plan."
+
+This generalizes: an external DS skill almost always assumes the agent *authors* the tokens. Ours are
+generated. Any borrowed workflow needs that phase removed, not adapted.
+
+### `[KB]` `awesome-claude-skills` has nothing in this domain yet
+
+~25–30 curated skills; **none** touch design systems, tokens, Figma, component libraries or contrast.
+Worth a revisit later; nothing to take today. Notable mostly as evidence that the domain is unserved.
+
+### The xd-toolkit connection — already real, and undocumented
+
+`adamforrester/xd-toolkit` ships `extensions/ds-pack` (21 skills + a Storybook MCP),
+`extensions/ux-design-skills` (63 skills), `packages/brand-skills`, and `schema/brand/` — 17 files
+defining a **tiered** brand package (minimum / standard / comprehensive).
+
+**Prism3's "STANDARD dialect" is that pipeline's output.** `standard-design-md.ts`'s own header says
+it is "the engine's front door for a `design.md` authored by **`brand-skills`**", and Wendy's is a
+fixture in *both* repos (`Prism3/examples/wendys.design.md` ↔ xd-toolkit `tests/fixtures/wendys/`).
+The two systems already interoperate; nobody has written that down as an architectural fact, and it
+is the strongest existing answer to "where does a brand brief come from before Prism3 sees it."
+
+Two consequences worth chasing:
+- The `.brand/` schema's **tiers** map suspiciously well onto the engine's own input gradient (three
+  required fields → a full brief). Whether "standard" in that schema is *exactly* what
+  `standardToBrandInput` expects is checkable, and if it has drifted, that is a live integration bug
+  neither repo would currently catch.
+- `ds-pack`'s 21 skills are the closest prior art we have to the internal build-a-component skill
+  #492 describes, and they are ours already — no licensing question at all. **Enumerate them before
+  writing anything new.** (Not enumerated here: the subdirectory paths 404 over the public web and
+  attaching the repo to a session needs an approval this one could not prompt for.)
