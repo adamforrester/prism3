@@ -535,9 +535,9 @@ export type MotionAxis = {
 // `motionPersonality.easingRoles`; a mode deviates further via `modeLevers.<mode>.easings`.
 const EASING_ROLE_DEFAULTS = [
   { role: 'default', curve: 'standard' },
-  { role: 'enter', curve: 'enter' },
-  { role: 'exit', curve: 'exit' },
-  { role: 'emphasized', curve: 'emphasized' },
+  { role: 'enter', curve: 'decelerate' },
+  { role: 'exit', curve: 'accelerate' },
+  { role: 'emphasized', curve: 'expressive' },
 ] as const;
 const DURATION_BASE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 };
 const TEMPO_FACTOR = { snappy: 0.8, standard: 1, relaxed: 1.3 } as const;
@@ -553,12 +553,18 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
   const durationReduced: Record<string, number> = {};
   for (const [k, v] of Object.entries(duration)) durationReduced[k] = v <= 100 ? v : v <= 200 ? 50 : 0;
   const easing: Record<string, Bezier> = {
+    // Curves are named for their SHAPE, roles for their USE. They used to share names — `easing.enter`
+    // and `easing-role.enter` — which made the role table read `enter → enter` and gave a reader no way
+    // to tell which axis they were on. That was fine while the shape name did double duty as the use
+    // name; adding the role tier (#527) split the two meanings apart and left the shape tier wearing
+    // the use tier's names. `default → standard` was the only row that said anything, and it is the
+    // only one that never collided.
     linear: [0, 0, 1, 1],
-    standard: [0.2, 0, 0, 1],          // symmetric in-place (M3 standard)
-    enter: [0, 0, 0.2, 1],             // decelerate — settles into place
-    exit: [0.4, 0, 1, 1],              // accelerate — gets out of the way
-    emphasized: [0.4, 0.14, 0.3, 1],   // expressive (Carbon expressive-standard) — fixed, like every curve here
-    calm: [0.4, 0, 0.6, 1],            // a11y: soft onset for long/involuntary motion
+    standard: [0.2, 0, 0, 1],           // symmetric in-place (M3 standard)
+    decelerate: [0, 0, 0.2, 1],         // ease-out — fast, then settles into place
+    accelerate: [0.4, 0, 1, 1],         // ease-in — eases off, then leaves
+    expressive: [0.4, 0.14, 0.3, 1],    // the S-curve (Carbon expressive-standard); the comment already said so
+    calm: [0.4, 0, 0.6, 1],             // a11y: soft onset for long/involuntary motion
   };
   const spring = {
     snappy: { damping: 0.9, stiffness: 700 },   // M3 standard spatial — fast settle, no overshoot
@@ -577,9 +583,9 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
     }),
     transitions: [
       { name: 'default', duration: 'normal', easing: 'standard', desc: 'standard in-place transition' },
-      { name: 'enter', duration: 'normal', easing: 'enter', desc: 'entrance — element settles in' },
-      { name: 'exit', duration: 'fast', easing: 'exit', desc: 'exit — element accelerates out' },
-      { name: 'emphasized', duration: 'moderate', easing: 'emphasized', desc: 'expressive / hero moment' },
+      { name: 'enter', duration: 'normal', easing: 'decelerate', desc: 'entrance — element settles in' },
+      { name: 'exit', duration: 'fast', easing: 'accelerate', desc: 'exit — element accelerates out' },
+      { name: 'emphasized', duration: 'moderate', easing: 'expressive', desc: 'expressive / hero moment' },
     ],
   };
 };

@@ -262,7 +262,7 @@ const tokenPill = (path: string): HTMLElement => {
   return p;
 };
 /** A token pill that WRAPS on path boundaries, for card grids whose column width is fixed by the
- *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.emphasized`).
+ *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.expressive`).
  *
  *  Deliberately NOT folded into `tokenPill`: `<wbr>` is not inert under `white-space: nowrap` in
  *  Chromium. Putting it in the shared helper took Layout's breakpoint pills from 0 wrapped to 5 and
@@ -6960,7 +6960,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
    Every DOM assertion passed while this was happening; only a screenshot showed it. */
 .mo-ez-stage{position:relative;width:100%;height:82px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel);overflow:hidden}
 /* Card pills WRAP rather than elide. Six curves in one row makes a ~123px card, and
-   motion.easing.emphasized needs ~225px — no column width fixes that, so the label takes a second
+   motion.easing.expressive needs ~225px — no column width fixes that, so the label takes a second
    line. tokenPill's <wbr> keeps the break on a dot. (Same call as the Preview gallery's card pills.) */
 .mo-ez-card .tpill,.mo-spring-card .tpill,.mo-ms-chip .tpill,.mo-colmeta .tpill{white-space:normal;overflow:visible;direction:ltr;word-break:break-word;max-width:100%}
 .mo-ez-name{font-size:13px;font-weight:640;color:var(--ink)}

@@ -5424,8 +5424,8 @@
         "motion.transition.default"
       ]
     },
-    "motion.easing.enter": {
-      "$description": "easing enter",
+    "motion.easing.decelerate": {
+      "$description": "easing decelerate",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -5434,8 +5434,8 @@
         "motion.transition.enter"
       ]
     },
-    "motion.easing.exit": {
-      "$description": "easing exit",
+    "motion.easing.accelerate": {
+      "$description": "easing accelerate",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
@@ -5444,8 +5444,8 @@
         "motion.transition.exit"
       ]
     },
-    "motion.easing.emphasized": {
-      "$description": "easing emphasized",
+    "motion.easing.expressive": {
+      "$description": "easing expressive",
       "meaning": "Easing curve primitive (cubic-bezier)",
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
