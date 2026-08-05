@@ -7,6 +7,64 @@
 
 ---
 
+## (2026-08-05) — The US-English gate could not see the bundle, and said "clean" anyway
+
+**STATUS: engine (`lint-us-english.ts`) + this doc.** No emitted artifact changed. `regen --check`
+88/88, 1516/0 unit, MCP 49/0, contract unchanged, NB PASS, gate clean over 92 files.
+
+`lint-us-english.ts` had two ways to report a number it had not earned. `scan`'s
+`catch { return [] }` made an unreadable file indistinguishable from a clean one, and `walk` returned
+`[]` for a missing directory — so in a tree where the web bundle was never built, the gate printed
+**`✓ clean — 91 files`** having never opened `web/dist/main.js`. Trap 2 in that file's own header
+exists *specifically* because `levers.ts` prose only ships via that bundle, so the one surface the
+gate was written to protect was the one it silently skipped.
+
+**What made it reachable rather than theoretical: the two build scripts write to different places.**
+`web/package.json`'s `build` writes `web/dist` (what the gate scans); `build-site.mjs` writes
+`web/public/dist`. Running the plausible-looking one produced a confident false pass — and
+`.claude/commands/review-pr.md` was itself instructing reviewers to run `build:site` before this gate.
+It fooled the #495 reviewer for real. CI was never exposed (it runs `build` at step 77, before the
+lint at step 116), so this was a local-only hole, which is worse in one specific way: it only misleads
+the person doing the careful manual pass.
+
+Both now fail closed through a collected `blind[]` list, reported *before* any spelling result and
+fatal on its own — "clean" must mean "looked everywhere and found nothing", never "looked at whatever
+happened to exist".
+
+### The correction inside the fix, which is the part worth keeping
+
+The first attempt guarded scope with a **total-file floor** (`MIN_GATED`). That is worthless here, and
+mutation-testing is the only reason it did not ship: deleting the entire built bundle costs exactly
+**one file** (92 → 91), so any floor loose enough to permit normal growth is also loose enough to let
+the bundle vanish. Deleting the guard and re-running produced `91 files … ✓ clean`, exit 0 — the
+original bug, reintroduced past the new defense.
+
+Replaced with **`REQUIRED_SURFACES`**, which asserts each promised surface is *represented* rather
+than counting files. The question is never "how many files" but "is every surface I claim to cover
+actually in the set". Two independent guards now cover the bundle, so deleting either still fails.
+
+This is the same lesson as the plural hole in #464 one level up. There, a self-check written from the
+same mental model as the scan inherited its blind spot. Here, the existing self-check verified
+**detection** (can it still recognize `colours`?) and said nothing about **scope** (was the file
+containing it ever opened?) — every pattern sample passed while `web/dist` was absent. *A gate needs
+to prove it looked, not only that it can see.*
+
+**Also fixed: an artifact count this same blindness was propping up.** Line 321's "89 artifacts in
+sync" was wrong — CI hard-asserts 88 (`ci.yml:128`) and a clean tree reports 88. It read as correct
+because the main checkout held an untracked stray `Prism3/engine/out/Untitled`, and `regen.ts` walks
+`out/` from disk (`:59`, counting `after.size` at `:132`), so an untracked file is snapshotted,
+restored, counted as committed, and never drifts. **A stray file inflates the number CI asserts on,
+silently.** The stray is deleted; a wrong number in the log had been made to look right by it, which
+cost two sessions a re-derivation each.
+
+**The `review-pr.md` line naming the wrong build command** was deliberately left alone here — #501 was
+already rewriting that file and a second edit would have collided. #501 merged first and, on
+inspection during this rebase, turned out not to touch that line at all (its worktree-isolation
+addition landed elsewhere in the same file). Fixed as part of landing this PR: the gate line now
+correctly says `npm run build -w @prism3/web`, not `build:site`.
+
+---
+
 ## (2026-08-05) — `/review-pr` now runs in a worktree, never the shared checkout (#501)
 
 **STATUS: docs/protocol only.** No engine, source or emitted artifact touched — `CLAUDE.md` and
@@ -26,6 +84,8 @@ from `regen --check` where the main checkout often shows 89 (an untracked stray 
 `Prism3/engine/out/`, not drift). Recovery if you're on the losing end: the checkout auto-stashes
 rather than deletes — `git stash list` then `git show 'stash@{0}:<path>' > /tmp/rescue` extracts single
 files **without popping** (popping can merge two sessions' changes).
+
+---
 
 ## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
 
@@ -338,7 +398,7 @@ inlines the same `web/src` UI. Adding it to the trigger list would only burn quo
 ## (2026-08-04) — The third namespace, and why `focused` must not be bound (#487 step 2)
 
 **STATUS: engine (`anatomy-figma.ts` + `test.ts`).** No emitted artifact changed. 1516/0 unit
-(8 new), 89 artifacts in sync, MCP 49/0, contract unchanged, NB PASS.
+(8 new), 88 artifacts in sync, MCP 49/0, contract unchanged, NB PASS.
 
 Two halves of #487 step 2. One shipped as code; the other is a **finding that reverses the
 prescription**, and it is the more valuable of the two.

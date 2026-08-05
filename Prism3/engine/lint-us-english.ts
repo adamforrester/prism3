@@ -19,6 +19,16 @@
  *     list — replacing one with the other just moves the blind spot.
  *  2. SOURCE GREPS MISS WHAT SHIPS. `engine/levers.ts` prose is inlined into `web/dist/main.js`, so
  *     the built bundle is scanned directly. A `.ts` grep would have called the bundle clean.
+ *  3. NOT LOOKING READ AS LOOKING AND FINDING NOTHING — the correction this pass makes, and the trap
+ *     the first two were only half-protected from. Trap 2 puts `web/dist/main.js` in scope, but the
+ *     directory is a BUILD OUTPUT: in a tree where it was never built, `walk` returned `[]`, the file
+ *     count silently dropped, and the gate printed `✓ clean` having never opened the bundle. The two
+ *     build scripts write to different directories (`build` → `web/dist`, `build:site` →
+ *     `web/public/dist`), so running the plausible-looking one produced a confident false pass. It
+ *     fooled a reviewer on #495 while the reviewer protocol named the wrong command. `readFileSync`
+ *     had the same shape — `catch { return [] }` made an unreadable file count as a clean one.
+ *     Both now fail closed via `blind[]`. **A gate must not report a number it did not earn**, which
+ *     generalizes traps 1 and 2: each was a case of the scan being narrower than it claimed.
  *
  * SCOPE. Everything shipped is gated, and as of this pass that includes the two surfaces previously
  * carried as "reported, never fatal": the hand-authored `theme-schema.json` contract and the engine
@@ -77,9 +87,19 @@ const NOT_EN_GB = new Set([
 
 type Hit = { file: string; line: number; word: string; context: string };
 
+// Every way this gate can fail to LOOK, as opposed to look and find nothing. Collected rather than
+// thrown so one run reports all of them; a non-empty list is fatal below.
+const blind: string[] = [];
+
 const scan = (abs: string): Hit[] => {
   let txt: string;
-  try { txt = readFileSync(abs, 'utf8'); } catch { return []; }
+  // Fails CLOSED. This used to `return []`, so an unreadable file was indistinguishable from a clean
+  // one and counted toward the "N files scanned" headline — the gate reported a number it had not
+  // earned. Same family as trap 2: not looking must never read as looking and finding nothing.
+  try { txt = readFileSync(abs, 'utf8'); } catch (e) {
+    blind.push(`${relative(repo, abs)} — could not be read (${(e as Error).message})`);
+    return [];
+  }
   const hits: Hit[] = [];
   for (const re of [PATTERN, STEMS]) {
     for (const m of txt.matchAll(re)) {
@@ -101,14 +121,35 @@ const walk = (dir: string): string[] => {
   });
 };
 
+/**
+ * `walk` for a directory whose ABSENCE is itself a failure.
+ *
+ * The hole this closes: `web/dist` is a build output, so a tree where it was never built silently
+ * contributed zero files and the gate printed `✓ clean` without ever opening the bundle — while trap 2
+ * above is the whole reason the bundle is scanned at all. Worse, the two build scripts write to
+ * DIFFERENT places (`web/package.json` `build` → `web/dist`; `build-site.mjs` → `web/public/dist`), so
+ * running the wrong one produced a confident false pass. That is not hypothetical: it fooled a
+ * reviewer on #495, and the reviewer protocol was itself naming the wrong command.
+ *
+ * An empty result is treated as blindness, not cleanliness.
+ */
+const walkRequired = (dir: string, why: string): string[] => {
+  const found = walk(dir);
+  if (!found.length) blind.push(`${relative(repo, dir)} — ${why}`);
+  return found;
+};
+
 // ---- GATED: visible UI text + emitted artifact prose. A hit here fails the build. ----
 // Scope is IMPORTED from regen.ts rather than restated, so adding an emitted artifact there brings it
 // under this gate automatically instead of quietly widening the blind spot.
 const gated: string[] = [
-  ...walk(join(repo, 'Prism3/engine/out')),
+  ...walkRequired(join(repo, 'Prism3/engine/out'), 'no emitted artifacts found — run `npx tsx Prism3/engine/regen.ts`'),
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'Prism3/schema', f)),
   ...ENGINE_ARTIFACTS.map((f) => join(repo, 'Prism3/engine', f)),
-  ...walk(join(repo, 'web/dist')).filter((f) => f.endsWith('.js')),   // trap 2: what actually ships
+  // trap 2: what actually ships. REQUIRED — see walkRequired. Note `build`, not `build:site`: the
+  // latter writes web/public/dist, which this does not scan.
+  ...walkRequired(join(repo, 'web/dist'), 'the web bundle is not built — run `npm run -w @prism3/web build` (NOT build:site, which writes web/public/dist)')
+    .filter((f) => f.endsWith('.js')),
   // Converted and folded in (owner decision) — previously reported-but-not-fatal because CLAUDE.md
   // held their conversion open. Gated now: leaving a clean surface ungated only defers the regression.
   join(repo, 'Prism3/schema/theme-schema.json'),
@@ -139,8 +180,32 @@ const selfFails = SELF_CHECK.filter(({ sample, expect }) => {
   const found = [PATTERN, STEMS].some((re) => [...sample.matchAll(re)].some((m) => !NOT_EN_GB.has(m[0].toLowerCase())));
   return found !== expect;
 }).map((c) => `"${c.sample}" should${c.expect ? '' : ' NOT'} be flagged`);
+// ...and a second self-check, on SCOPE rather than detection. The one above proves the scanner can
+// still recognize `colours`; it says nothing about whether the file containing it was ever opened.
+// That is the gap trap 3 came through — every pattern sample passed while `web/dist` was absent.
+//
+// Asserted PER SURFACE, not as a total, and that distinction is the whole point. A total-count floor
+// was tried first and is worthless here: dropping the entire built bundle costs exactly ONE file
+// (92 → 91), so any floor loose enough to allow normal growth is also loose enough to let the bundle
+// vanish. Proven by deleting the guard and watching a 91-file run report `✓ clean`. The question is
+// never "how many files" but "is each surface I promise to cover actually represented".
+const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
+  { label: 'the built web bundle (web/dist/*.js) — trap 2', test: (f) => f.includes('/web/dist/') && f.endsWith('.js') },
+  { label: 'emitted artifacts (Prism3/engine/out)', test: (f) => f.includes('/Prism3/engine/out/') },
+  { label: 'the schema contract (Prism3/schema)', test: (f) => f.includes('/Prism3/schema/') },
+];
+const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
+if (missingSurfaces.length) {
+  console.error(`\n❌ the gate's SCOPE shrank — ${missingSurfaces.length} promised surface(s) are absent from the compared set:\n`);
+  for (const m of missingSurfaces) console.error(`    ${m}`);
+  console.error(`\n    Each is a surface this gate claims to cover. Unrepresented, a clean result is silence,`);
+  console.error(`    not evidence. If one is deliberately dropped, remove it from REQUIRED_SURFACES in the`);
+  console.error(`    same PR so the decision is visible.\n`);
+  process.exit(1);
+}
+
 if (selfFails.length) {
-  console.error(`\n❌ the gate's own detection is broken — it cannot see what it claims to:\n`);
+  console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
 }
@@ -148,6 +213,16 @@ if (selfFails.length) {
 const gatedHits = gated.flatMap(scan);
 const byFile = new Map<string, Hit[]>();
 for (const h of gatedHits) byFile.set(h.file, [...(byFile.get(h.file) ?? []), h]);
+
+// A surface this gate could not read is reported BEFORE any spelling result, and is fatal on its own.
+// "Clean" has to mean "looked everywhere and found nothing", never "looked at whatever happened to
+// exist" — otherwise a green run carries no information about the surfaces that were missing.
+if (blind.length) {
+  console.error(`\n❌ the gate could not see ${blind.length} shipped surface(s), so a clean result would be meaningless:\n`);
+  for (const b of blind) console.error(`    ${b}`);
+  console.error('');
+  process.exit(1);
+}
 
 console.log(`US-English gate — ${gated.length} shipped files scanned (out/, emitted schema, reports, built bundle).`);
 if (gatedHits.length) {

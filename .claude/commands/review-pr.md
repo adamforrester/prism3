@@ -83,9 +83,11 @@ mismatch with this file as the regression:
   required increment, then `token-contract.ts --accept` — which refuses unless the
   version was already bumped correctly.
 - `npx tsx Prism3/engine/lint-us-english.ts` — US English across every shipped
-  surface (~93 files). **Build the web bundle FIRST** (`npm run build:site
-  --workspace @prism3/web`): this gate scans `web/dist/main.js`, so running it
-  against a stale bundle is a false pass. Note CSS-in-JS is NOT covered by the
+  surface (~93 files). **Build the web bundle FIRST** (`npm run build
+  --workspace @prism3/web`): this gate scans `web/dist/main.js` — `build:site`
+  writes to `web/public/dist` instead and will not satisfy this gate. Running
+  against a stale or missing bundle is a false pass (fixed to fail closed in #502).
+  Note CSS-in-JS is NOT covered by the
   "code comments are exempt" carve-out — text inside `/* */` in `web/src/main.ts`'s
   CSS template literal ships verbatim into the bundle as string content.
 - `npx tsx Prism3/engine/cli.ts <example> [--fidelity]` if the CLI/dialects changed.
