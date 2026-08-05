@@ -26,10 +26,45 @@ A human can still explicitly approve one of your PRs and ask you to merge it —
 instruction overrides the rule for that PR, and merging it then is correct. What the
 rule forbids is deciding *on your own* that your own work is clean.
 
+## Review in a WORKTREE, never in the shared checkout
+Do all of it — checkout, rebase, gates, mutation tests — in a throwaway worktree, so
+you never touch the working tree someone else is editing:
+
+```bash
+git fetch origin --quiet
+git worktree add /tmp/p3-review-<n> --detach origin/main   # or the PR's head ref
+ln -s "$(git rev-parse --show-toplevel)/node_modules" /tmp/p3-review-<n>/node_modules
+# ... review entirely inside /tmp/p3-review-<n> ...
+git worktree remove /tmp/p3-review-<n> --force             # even if you bailed early
+```
+
+The symlink is required: the repo is buildless (`tsx`, no install) but a fresh
+worktree has no `node_modules`, so `npx tsx` would re-download and the
+`web`/`plugin` workspace builds would fail outright. Expect `regen --check` to
+report **88** artifacts in a clean worktree — the main checkout often shows 89
+because of an untracked stray in `Prism3/engine/out/`, which is not drift.
+
+**Why this is mandatory, not tidiness.** Checking out a branch in the shared tree
+destroys a concurrent session's uncommitted work — this happened for real on
+2026-08-05: another agent lost its edits twice to this protocol, once auto-stashed
+and once rebased onto an unrelated PR's commits. The damage is also *bidirectional*,
+which is the part that bites the review itself: this protocol mutation-tests source
+and then uses `git status` to prove the tree is clean before merging (see
+"Independent verification" below). Another session's files in that tree make that
+proof unreadable — you cannot tell your own un-restored mutation from someone
+else's work in progress, so the one check standing between a mutation test and a
+merge stops working. A worktree gives you a tree whose cleanliness means something.
+
+If you find you have already clobbered someone: their work is very likely
+auto-stashed rather than deleted. `git stash list`, then
+`git show 'stash@{0}:<path>' > /tmp/rescue` to extract single files WITHOUT
+popping — the stash may hold a mix of your work and theirs, so popping it merges
+two PRs' changes. Do not drop it; tell them it is there.
+
 ## Run the gates yourself — never take "green" on faith
-Check out the branch (rebase onto latest `main` if behind), then run and read the
-ACTUAL numbers. Baselines below are indicative and go stale — compare against what
-`main` reports today, never treat a mismatch with this file as the regression:
+Inside the worktree, run and read the ACTUAL numbers. Baselines below are
+indicative and go stale — compare against what `main` reports today, never treat a
+mismatch with this file as the regression:
 - `npx tsx Prism3/engine/regen.ts --check` — no committed artifact has drifted
   (~89 artifacts byte-match). **Run this first and never skip it: it is the ONLY
   gate that reads the committed artifacts.** Every other gate runs the engine live
@@ -114,7 +149,8 @@ Re-derive the load-bearing ones yourself:
 - **Mutation-test the source**: reintroduce the defect the PR claims to prevent and
   confirm the suite actually catches it. A guard nothing fails on is decoration. Use
   scenarios OUTSIDE the PR's stated test table, and restore the source afterwards
-  (`git status` to prove the tree is clean before merging).
+  (`git status` to prove the tree is clean before merging — which is only meaningful
+  in your own worktree; see the top of this file).
 - **Real before/after**: `git show origin/main:<path>` to reconstruct pre-fix source,
   rebuild, measure, restore, rebuild again.
 - Live MCP stdio JSON-RPC probing with brand data you chose, not the PR's examples.
