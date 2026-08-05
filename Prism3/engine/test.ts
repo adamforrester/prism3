@@ -5275,6 +5275,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       { field: 'effectStyle', name: labelTextStyleName, why: 'a TEXT-style name in effectStyle' },
       { field: 'textStyle', name: 'shadow/md', why: 'an EFFECT-style name in textStyle' },
       { field: 'effectStyle', name: someVariableName, why: 'a VARIABLE name in effectStyle' },
+      // The direction the three above miss: they cover every OTHER pairing but not text-vs-variable.
+      // Found the same way as the fourth `bound` probe below — by mutating the branch nothing named,
+      // after the probes above were already green. Merging `emitted` into the textStyle filter (or
+      // vice versa) survives all three of the original probes untouched, because none of them puts a
+      // real variable name in the `textStyle` field.
+      { field: 'textStyle', name: someVariableName, why: 'a VARIABLE name in textStyle' },
     ];
     for (const { field, name, why } of crossProbes) {
       const probe: AnatomyPlan = { ...lead, root: { ...lead.root, [field]: name } };
@@ -5290,6 +5296,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const boundCross: AnatomyPlan = { ...lead, root: { ...lead.root, bound: { ...lead.root.bound, fills: 'shadow/md' } } };
     ok(planBindingErrors(boundCross, emitted, emittedStyles, emittedEffects).some((e) => /bound variable 'shadow\/md'/.test(e)),
       'anatomy: an EFFECT-style name in `bound` is rejected as a missing VARIABLE — the variable filter is not merged with the style sets either');
+    // Same probe, the other style namespace: `boundCross` above only rules out the variable filter
+    // merging with EFFECT styles, not with TEXT styles — a separate mutation (merging only
+    // `textStyles` into the variable filter) survives it untouched.
+    const boundCrossText: AnatomyPlan = { ...lead, root: { ...lead.root, bound: { ...lead.root.bound, fills: labelTextStyleName } } };
+    ok(planBindingErrors(boundCrossText, emitted, emittedStyles, emittedEffects).some((e) => new RegExp(`bound variable '${labelTextStyleName.replace(/\//g, '\\/')}'`).test(e)),
+      'anatomy: a TEXT-style name in `bound` is rejected as a missing VARIABLE — the variable filter is not merged with the text-style set either');
     const effBogus: AnatomyPlan = { ...lead, root: { ...lead.root, effectStyle: 'shadow/nope' } };
     ok(planBindingErrors(effBogus, emitted, emittedStyles, emittedEffects).some((e) => /effect style 'shadow\/nope'/.test(e)), 'anatomy: an unemitted effect style is reported, and names the effect-style namespace in the message');
     // Both shadow ladders emit (`shadow/*` and `shadow-dark/*`). A light-only name must not be

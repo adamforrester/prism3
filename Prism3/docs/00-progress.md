@@ -281,6 +281,24 @@ Two of four were silent. Probe names are read out of the emitted sets rather tha
 renamed ladder cannot make them vacuously pass — a stale literal would reintroduce the same class of
 blindness one level down.
 
+### Reviewer found two more silent directions in the "fourth probe" logic itself
+
+Independent review mutation-tested past this PR's own table and found the pattern repeating one level
+down: the four probes above cover effect-vs-text, effect-vs-variable, and variable-vs-(effect+text
+combined), but not **text-vs-variable** in either direction. Two mutations confirmed both silent:
+
+| mutation | before this fix | after |
+|---|---|---|
+| E — merge the variable set into the **textStyle** filter | passed | 1 failed |
+| F — merge *only* `textStyles` (not `effectStyles`) into the **variable** filter | passed | 1 failed |
+
+The `boundCross` probe used an effect-style name, so it never ruled out the variable filter merging
+with `textStyles` alone; none of the three style-field probes ever placed a real variable name in the
+`textStyle` field. Same shape as the "fourth probe" section above — a fix scoped to the reported
+directions leaves the others looking covered. Two more probes added (a fifth `crossProbes` entry, and
+a `boundCrossText` alongside `boundCross`), completing all six pairwise directions across the three
+namespaces. 1571 → **1573** unit.
+
 ---
 
 ## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
