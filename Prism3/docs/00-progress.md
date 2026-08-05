@@ -7,6 +7,80 @@
 
 ---
 
+## (2026-08-05) — The BOOLEAN path, measured live and then executed (#513's stated ceiling)
+
+**STATUS: engine (`test.ts`) + this doc.** Tests only; no production-source or `out/*` change.
+`test.ts` 1630 → **1637**.
+
+#513 shipped an honest caveat: *"the `booleans` path is unit-tested through a synthetic def but not yet
+exercised live; no shipping def uses one."* This closes it, and the closing turned out to be two
+separate gaps rather than one.
+
+**The gap was not where the caveat pointed.** The existing coverage (`test.ts:5872`) calls
+`planSetProperties` and asserts a BOOLEAN is *declared*. That is the plan layer. Nothing ran
+`planSetToPluginJs` with a BOOLEAN in it, so the payload's `addComponentProperty(name,'BOOLEAN',def)`
+and its `{visible: id}` reference had no executed coverage at all — **#510's gap in miniature: a
+projection that is structurally correct and produces an unusable file.** The new `boolRun` block runs
+the real payload against the measured stub, and asserts the property comes back, the refusal branch
+reports rather than throws, and the refs are wired across *distinct* members (spread, not volume —
+#513's review lesson, applied to a `visible` ref for the same reason it applied to `characters`: a
+reference does not propagate to siblings, so a set wired once shows the toggle working on whichever
+variant a designer opens first and doing nothing on the rest).
+
+**Measured live before writing any of it**, in a real file, because four of these were assumptions:
+
+| probe | live result |
+|---|---|
+| `addComponentProperty(…,'BOOLEAN',true)` on a SET | legal, returns a `#nodeId`-suffixed key (`fullWidth#111:63`) |
+| the `visible` ref, per member | retains, like `characters` / `mainComponent` |
+| `inst.setProperties({key:false})` | `trailingVisual.visible === false` — the toggle genuinely works |
+| a BOOLEAN default of `"true"` (string) | `Property value is incompatible with component property type` |
+| a BOOLEAN default of `1` / `null` | a *differently shaped* `failed validation: … Expected boolean, received number` |
+
+That last row is why the new read-back is anchored on the word `REFUSED` and not on either message:
+**two rejections of the same kind do not have to be reported the same way**, and a check keyed on the
+message the docs suggest would pass for one bad default and miss the other. The stub already modeled
+the type refusal (`test.ts:5755`) but nothing had ever reached the payload's `catch`, so the branch
+that keeps a bad default from killing an entire paste was untested.
+
+**A contradiction I had to resolve rather than record.** The narrow probe measured instance width
+`80` both before and after the toggle; the emitter's own set measured `134 → 102`. Two readings of one
+API, so one of them was not the rule. The deciding probe: hiding a child reflows a **hug** parent
+(`AUTO: 56 → 24`) and does not move a **fixed** one (`FIXED: 120 → 120`). The emitter's container is
+`primaryAxisSizingMode: 'AUTO'`, so `134 → 102` is correct and the earlier reading was a fixed-width
+frame. **Worth the extra probe**: had I written down either number as "the behavior", the doc would
+have been half wrong with a live measurement standing behind it.
+
+**Mutation-tested against the production source**, not the payload string:
+
+| production mutation | result |
+|---|---|
+| the payload never declares a BOOLEAN | caught (`properties` read-back) |
+| only the first member is wired | 1635/2 — caught |
+| `addComponentProperty` not wrapped, so a refusal kills the paste | 1635/2 — caught |
+| the `visible` ref is never derived | 1635/2 — caught, reported as `ORPHAN` |
+
+**The trap for whoever re-verifies this.** My first attempt at the fourth mutation replaced
+`for(const r of REFS){` — which is the exact string the *pre-existing* orphan `mutate()` call searches
+for. It reported `an ORPHAN property is reported — got []`, which reads as an uncaught defect and is
+not one: `mutate()`'s own `mutated !== js` guard had fired because my edit removed its target.
+**#511's trap, third sighting: a mutation that does not apply is indistinguishable from one that is
+not caught** — and here it was worse than indistinguishable, because it failed loudly under a
+*different* assertion's name. The valid form mutates the ref *derivation*
+(`anatomy-figma.ts:754`, filtering `field !== 'visible'`) and leaves the payload's loop intact.
+
+**Not changed, deliberately:** `button.ts:241` is still `booleans: {}`. Its comment argues the case —
+`fullWidth` is layout, `isPending`/`isInactive`/`isDisabled` collapse into the state axis, `onClick`/
+`type`/`href` are behavioral, and a Figma BOOLEAN drives one node's `visible` and nothing else.
+Forcing one onto the shipping def to get coverage would contradict the def's own reasoning, so the
+tests use a probe def, as the existing plan-level coverage already did.
+
+**Next on this path:** the remaining untested leg is a def where a BOOLEAN and the state axis both
+want the same part — nothing forbids `booleans: { x: 'spinner' }` alongside `state=pending`, and the
+projection has no opinion about which wins.
+
+---
+
 ## (2026-08-05) — Per-mode easing, as a role re-point rather than a per-mode curve (#522)
 
 **STATUS: engine (`theme.ts`, `tree.ts`, `version.ts`, schema, tests) + web.** `out/*` regenerated —
