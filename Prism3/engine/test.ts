@@ -5658,8 +5658,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // read-back is meant to report.
       const mkNode = (type: string): Record<string, unknown> => {
         const node: Record<string, unknown> = {
-          type, name: '', width: 0, height: 0, boundVariables: {} as Record<string, unknown>,
+          type, name: '', height: 0, boundVariables: {} as Record<string, unknown>,
           constrainProportions: false, fills: [], strokes: [], children: [] as unknown[],
+          // BORDER-BOX modeled, because the FOOTPRINT read-back has nothing to measure otherwise.
+          // Figma's `strokesIncludedInLayout` defaults to ADDING the stroke to an auto-layout frame's
+          // hug axis, so an outlined member measures 2px wider than a filled one that shares its group
+          // — the exact #503 defect, and the only realistic way this set drifts. A stub with a constant
+          // width lets `footprint` be deleted with a green suite, since every member measures the same
+          // no matter what the payload does. `strokeWeight` starts at 0 so the payload's
+          // `if(!node.strokeWeight)` default fires, as it does live.
+          ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+          get width() {
+            const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
+            return stroked ? 2 * (node.strokeWeight as number) : 0;
+          },
           // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
           // the empty-label set #510 shipped, and the state the read-back has to be able to report.
           characters: '',
@@ -5913,6 +5925,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // An ORPHAN — declared on the set, referenced by nothing. Skipping the wiring loop entirely is the
       // cheapest way to produce one, and it must not come back clean.
       await mutate('an ORPHAN property is reported', 'for(const r of REFS){', 'for(const r of []){', /ORPHAN/);
+      // ---- the two SET-LEVEL read-backs, proven LOUD (#510 review) ----------------------------
+      // #510 added `coincident` and `footprint` and gated both by grepping the generated string for the
+      // words that describe them. The review mutated each one silent — `else seen.set(pos,c.name)` →
+      // `else {}`, and `if(!first)sizeByGroup.set(…)` → `if(!first){}` — and the suite passed both times.
+      // Executing the payload (above) did not close that: a DEAD detector on CORRECT input is correctly
+      // silent, so the clean run agrees with it. Only input that MUST produce a miss can tell the
+      // difference. Hence these two, which are the same proof-of-life the single-component path has had
+      // since #503, owed to the set path ever since.
+      //
+      // The stacking bug this set shipped, asserted through the detector that is supposed to catch it.
+      // The clean run above already fails if positions are dropped, but it fails by reporting SOME miss —
+      // it would stay green with `coincident` gutted and something else complaining. This names it.
+      await mutate('COINCIDENT members are reported — the #510 stacking bug through its own detector',
+        'c.x=at(colW,col);c.y=at(rowH,row);', 'c.x=0;c.y=0;', /layout -> .* sits on top of .* at 0,0/);
+      // FOOTPRINT drift, produced the way it actually happened rather than by moving a number: leaving
+      // `strokesIncludedInLayout` at Figma's default adds the stroke to the hug axis, so every `outline`
+      // member measures 2px wider than the `filled` members it shares a group with. That is #503's defect
+      // restored, and it is invisible on the bound axis — the height absorbs the identical 2px in silence.
+      await mutate('FOOTPRINT drift is reported — an outlined member outgrows its group when the stroke joins the layout',
+        "if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;", '',
+        /footprint -> .* measures 2x0 but .* measures 0x0/);
+
       // A swap target that does not resolve. `''` and a component key are both REFUSED by Figma, so this
       // is not a property with a blank default — it is a property that cannot be created.
       const noIcon = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [] });

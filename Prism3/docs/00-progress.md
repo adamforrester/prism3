@@ -7,6 +7,59 @@
 
 ---
 
+## (2026-08-05) — A dead detector is silent, and so is a correct one (#510 review follow-up)
+
+**STATUS: engine (`test.ts`) + this doc.** Test-only — no emitter change, `out/*` byte-identical.
+`test.ts` 1625 → **1629**.
+
+**The finding this closes.** #510's review mutated its two new set-level read-backs silent —
+`else seen.set(pos,c.name)` → `else {}` kills `coincident`, `if(!first)sizeByGroup.set(…)` → `if(!first){}`
+kills `footprint` — and the suite passed both times, because every set assertion inspected the generated
+payload as a *string*. The reviewer declined to fix it inside someone else's PR and left a full repro.
+
+**#487 step 6 built the stub the fix needed, and closed one third of the gap.** Executing the set payload
+means dropping the position assignment (`c.x=0;c.y=0` — the stacking bug verbatim) now fails. The other
+two mutations still passed, and the reason is the whole lesson: **a dead detector on correct input is
+correctly silent, so the clean run agrees with it.** Executing the payload proves the *happy path*; only
+input that MUST produce a miss can distinguish a detector that works from one that has been deleted.
+
+So each read-back now gets a positive case, mirroring the proof-of-life the single-component path has had
+since #503 — plus the stacking mutation reasserted through `coincident`'s own message, because the clean
+run fails on *any* miss and would stay green with `coincident` gutted and something else complaining.
+
+**The footprint case forced a real stub change, and that is the interesting part.** A miss has to be
+*provoked* by something the payload does, not by poking a number — so it is provoked the way the defect
+actually happened: deleting `strokesIncludedInLayout=false` lets the stroke join the auto-layout hug axis,
+and every `outline` member outgrows the `filled` members in its group. But `mkNode` gave every node a
+constant `width: 0`, so no payload behavior could move a footprint and the detector had nothing to
+measure. `width` is now a **getter** over `strokes` + `strokesIncludedInLayout`, with `strokeWeight`
+starting at `0` so the payload's own `if(!node.strokeWeight)` default fires as it does live.
+
+Which restates #503's finding from the other side: *a bound dimension conceals disagreement about that
+dimension.* The 2px drift is invisible on the height, which is bound and absorbs it in silence. It shows
+up only on the hug axis — so **a stub that models the bound axis faithfully and the hug axis as a constant
+is blind to exactly the class of defect the set-level read-backs exist for.**
+
+Each mutation is now caught by the assertion aimed at it (verified individually, not just by the failure
+count), and the clean run stays clean *because* the payload sets the flag — not because the stub cannot
+measure.
+
+**A method note, recorded because it cost time twice:** there is no engine `tsconfig.json` and CI runs no
+engine `tsc` step — `tsx` is the typecheck, exercised by `test.ts`. Reaching for
+`tsc --noEmit -p Prism3/engine` mid-verification fails with `TS5057`, and patching around it with ad-hoc
+flags produces ~10 spurious errors that look like real regressions. The pre-push sequence in CLAUDE.md is
+complete as written; anything added to it by reflex is not a gate.
+
+**Still open from #510's review, out of scope for a test-only PR.** `planSetToPluginJs` does not refuse
+plans from *different components*, but the gap is narrower than the review's note implies — measured
+rather than restated: it DOES refuse mismatched axis shapes and duplicate variant names. What slips
+through is that `planComponentName` is built from `coord`/`size`/`slots` and never includes the component,
+so two defs sharing an axis shape with distinct coords pass both guards and combine into one set named
+`plans[0].component`. Contrived while the only caller builds from a single def; cheap to close when it
+grows a second.
+
+---
+
 ## (2026-08-05) — Twenty-one perfect variants, every one of them blank (#487 step 6)
 
 **STATUS: engine (`anatomy-figma.ts`, `component-schema.ts`, `components/button.ts`, `test.ts`) + this
