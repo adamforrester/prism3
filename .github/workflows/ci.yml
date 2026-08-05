@@ -108,6 +108,13 @@ jobs:
             exit 1
           fi
 
+      # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
+      # no gate (#492) — out/**, the emitted contracts and web/dist are all scanned, Prism3/skills/**
+      # was not. Its first run found `prism3-consume` teaching the pre-rename `action.*` family,
+      # which an agent would emit as references resolving to nothing.
+      - name: Skills gate (shipped skills make true claims)
+        run: npx --yes tsx@4 Prism3/engine/lint-skills.ts
+
       # US English in shipped text. Runs AFTER the web build on purpose: `engine/levers.ts` prose is
       # inlined into `web/dist/main.js`, and a source-only grep calls that bundle clean — the trap
       # that got #302 and #310. Gates out/, the emitted schema + reports, and the built bundle; the

@@ -160,6 +160,10 @@ const gated: string[] = [
   // moment, since the comment above promises coverage follows regen. It carries prose (`note`), so
   // it is listed by hand here; any future artifact kept out of regen needs the same line.
   join(repo, 'Prism3/schema/token-contract.json'),
+  // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
+  // does — and like the token contract above it is named by hand, because skills are not a `regen`
+  // artifact and so inherit none of that list's coverage.
+  ...walk(join(repo, 'Prism3/skills')).filter((f) => f.endsWith('.md')),
 ];
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----

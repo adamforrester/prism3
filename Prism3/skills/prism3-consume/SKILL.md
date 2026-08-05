@@ -4,7 +4,7 @@ description: >-
   Build accessible, on-brand UI from a Prism3-generated token system. Teaches an
   agent to consume the generated tokens well — reference semantic roles by name
   (never invent, never reach for a raw primitive), let modes resolve themselves,
-  honour each role's avoid_when, and self-check every ink-on-surface pair against
+  honor each role's avoid_when, and self-check every ink-on-surface pair against
   its contrast floor. Portable: the same discipline applies to any Prism3 brand,
   with or without the MCP surface.
 when_to_use: >-
@@ -24,7 +24,7 @@ specifics live in the brand's `.ai.json` sidecar. The rules below hold for every
 brand.
 
 > **The one-line contract:** reference **semantic role tokens by their exact name**, let
-> **modes** resolve them, and **verify every colour pair** against its floor. Do that and
+> **modes** resolve them, and **verify every color pair** against its floor. Do that and
 > the output is compliant by construction.
 
 ## The four layers (reach for the right one)
@@ -32,7 +32,7 @@ brand.
 A Prism3 tree has layers, and you consume them from the top:
 
 1. **Type composites + weight roles** (`type.*`, `font.weight-role.*`) — the typography you apply.
-2. **Semantic colour + geometry roles** (`color.*`, `space.*`, `radius.*`, `size.*`, `border-width.*`, `focus.*`) — **this is your layer.** Everything a component needs has a role here.
+2. **Semantic color + geometry roles** (`color.*`, `space.*`, `radius.*`, `size.*`, `border-width.*`, `focus.*`) — **this is your layer.** Everything a component needs has a role here.
 3. **Metadata sidecar** (`<brand>.ai.json`) — per-role `when_to_use` / `avoid_when` / `contrast_with` / `mode_overrides`. Read it when a name isn't self-evident.
 4. **Primitives** (`palette.*`, `dimension.*`, `font.size/weight.*`) — **private.** The engine marks these `consume: "Private primitive — reference a color.* semantic token that aliases this, not the raw step."` Do not bind to them (see the one exception below).
 
@@ -47,18 +47,18 @@ for a tinted success surface, not `color.feedback.success.surface`; it's `focus.
 not `focus.ring.size`).
 
 **2. Reach for the semantic role, not the primitive.**
-Use `color.action.default`, not `palette.primary.600`. Use `space.400`, not `dimension.16`.
-The semantic token aliases the primitive *and* carries the mode behaviour and the contract.
+Use `color.interactive.primary.fill.rest`, not `palette.primary.600`. Use `space.400`, not `dimension.16`.
+The semantic token aliases the primitive *and* carries the mode behavior and the contract.
 Binding a raw primitive throws all of that away and is the #1 source of drift.
 *Exception:* `opacity.*`, `motion.*`, and `shadow.*` are consumable directly — their
 semantic layer is thin (the `.ai.json` marks them `consume: "Consumable …"`).
 
 **3. Let modes resolve — don't hardcode a mode's value.**
-A colour role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`),
+A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-dark`),
 carried in the role's `mode_overrides`. Bind the **role**; the mode drives the value. Never
 copy a resolved hex into your component — that pins one mode and breaks the others.
 
-**4. Honour `avoid_when` — it is the highest-value field.**
+**4. Honor `avoid_when` — it is the highest-value field.**
 The sidecar's `avoid_when` encodes the traps the role's *name* can't. The portable ones
 that hold across brands:
 
@@ -66,11 +66,10 @@ that hold across brands:
   border intentionally low-contrast (often well under 3:1). If you need a border that must
   read as a UI edge (a 3:1 target), use `border.secondary` or `border.focus`. A decorative
   divider is *exempt* from the 3:1 contract — don't pair it as one.
-- **`*.on-*` ink goes on its paired fill, nothing else.** `text.on-action` sits on
-  `action.default`; `text.on-danger` on `foreground.danger`. Plain `text.primary` /
+- **`*.on-*` ink goes on its paired fill, nothing else.** `interactive.primary.on-fill` sits on
+  `interactive.primary.fill.rest`; `text.on-danger` on `foreground.danger`. Plain `text.primary` /
   `text.secondary` go on surfaces (`background.*` / `foreground.*`), never on a solid vivid fill.
-- **Disabled roles are WCAG-exempt.** `text.disabled`, `action.disabled`, and any
-  `*.on-disabled` label are *not* held to 4.5:1 — disabled controls are exempt (WCAG 1.4.3).
+- **Disabled roles are WCAG-exempt.** `disabled.text`, `disabled.fill`, and `disabled.on-fill` are *not* held to 4.5:1 — disabled controls are exempt (WCAG 1.4.3).
   Treat a disabled label as `ui` (3:1 legibility) at most; do not fail your self-check on it.
 - **Subtle tints aren't solid fills.** `foreground.*-subtle` is a low-emphasis tint surface;
   body text on it still needs a real 4.5:1 check (pair the matching `text.*`, not `text.on-*`).
@@ -82,7 +81,7 @@ but only if you referenced the role.
 
 ## The self-check (do this before you finish)
 
-List every **ink-on-surface colour pairing** your component renders, each as
+List every **ink-on-surface color pairing** your component renders, each as
 `{fg, bg, kind}`:
 
 - `kind: "text"` — body copy → needs **4.5:1**
@@ -90,7 +89,7 @@ List every **ink-on-surface colour pairing** your component renders, each as
 - `kind: "ui"` — borders, icons, focus rings, large graphics → needs **3:1**
 
 Resolve `fg` and `bg` **per mode** and confirm the ratio clears the floor **in every mode**.
-Only pair colours where a real contrast contract applies — a **decorative** border
+Only pair colors where a real contrast contract applies — a **decorative** border
 (`border.primary`), a **disabled** label, and pure decoration are exempt; don't score them
 as if they were text or a 3:1 UI edge. If a pair fails, you reached for the wrong role — the
 system has a role that passes (that's what the generation-time contracts guarantee).
@@ -103,7 +102,7 @@ sidecar's `avoid_when` closes them:
 - **A card outline.** Tempting: `border.primary` as a 3:1 UI edge. Wrong — it's decorative
   (can be ~1.4:1 on the page). Either drop it from your 3:1 pairs (it's exempt decoration) or,
   if the edge must *read*, use `border.secondary` / `border.focus`.
-- **A disabled button's label.** Tempting: score `text.on-disabled` on `action.disabled` as
+- **A disabled button's label.** Tempting: score `disabled.on-fill` on `disabled.fill` as
   `text` (4.5:1). It's ~3:1 by design and **exempt** — classify it `ui`, don't fail on it.
 
 Get those two right and you match the engine's own compliance contract.

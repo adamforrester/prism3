@@ -36,6 +36,59 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-05 — from building the SKILLS GATE (#492)
+
+### `[GATE]` The gate's first run found worse than the defect it was written for
+
+It was built for a known drift: `prism3-theme` teaching an adjective→lever mapping #471 replaced. It
+found that, and first found something larger — **`prism3-consume` was teaching the pre-rename
+`action.*` family.** `docs/20 §11` renamed `action.*` to `interactive.*`; the skill that tells an
+agent which tokens to reference still named `color.action.default`, `action.disabled`,
+`text.on-action`, `text.disabled`, `text.on-disabled`. An agent following it emits references that
+resolve to nothing. Seven dead paths, in the one file whose entire job is naming tokens correctly.
+
+**A rename is a two-tier event.** The token tier renamed cleanly and every gate stayed green, because
+no gate read the prose that teaches the names.
+
+### `[SKILL]` The obvious check would not have caught the defect it was written for
+
+"Every name a skill quotes must resolve" is the natural design, and `radiusScale` resolves fine —
+what rotted was the prose around it and the total absence of `personality`. Measured *before*
+building, which is the only reason the gate has a second, different scan: a **coverage** check, where
+a skill declaring `documents: brandInput` must mention every top-level input property or name it in
+`omits:`. That is the check that fires on the real class, and reference-resolution never would have.
+
+Generalizes: **a gate built from the defect you already know will catch that defect and nothing
+adjacent.** Ask what shape the defect *is* — dead reference, or missing coverage — before choosing a
+scan, because they are different mechanisms.
+
+### `[SKILL]` A skill teaching "don't guess this name" must quote a name that doesn't resolve
+
+Unanticipated, and found on the first real run: `prism3-consume` says *"it's
+`color.foreground.success-subtle` …, not `color.feedback.success.surface`"*. Both were flagged. The
+counter-example is the most useful sentence in the file, and a naive gate punishes it. Exempted by
+detecting `not` / `never` / `rather than` / `instead of` immediately before the backtick — with a
+self-check asserting the exemption does **not** become a blanket amnesty.
+
+### `[GATE]` Reading a gate's output through `grep` turned a crash into a pass
+
+`matchAll` throws on a non-global regex. It did — and the run was piped through `grep -c`, which
+printed `0` and read as *clean*. The gate had crashed before scanning anything.
+
+Third instance of this family in one session, after `grep -i fail | tail` swallowing an exit code and
+two unguarded test helpers. **The pattern is always the same: a filter between you and a gate's real
+result.** Run a gate bare before believing it; `grep` is for reading output you have already seen
+exit 0.
+
+### `[SKILL]` A mutation that does not apply is indistinguishable from one that is not caught
+
+Mutation 1 replaced `` `color.text.primary` `` — a string the file does not contain. Zero findings,
+which reads exactly like "the gate misses dead paths". It was a no-op. Confirm the edit landed
+(`grep -c` the literal *before* mutating) or a mutation run quietly proves nothing, which is the
+failure mode mutation testing exists to prevent.
+
+---
+
 ## 2026-08-05 — from implementing `INSTANCE_SWAP` (#487 step 3)
 
 ### `[SKILL]` Verify a paste by node ID, never by component name — the file holds your old attempts

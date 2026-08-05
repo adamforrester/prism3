@@ -7,6 +7,15 @@ description: >-
   ramps / modes / contrast), the adjective → lever mapping, and the compile
   loop (run the CLI, read the contract results, fix the input, re-run). The
   authoring counterpart to prism3-consume.
+# Opts this skill into the COVERAGE check (engine/lint-skills.ts): every top-level BrandInput
+# property must appear somewhere below, or be named in `omits:`. Declared rather than inferred, so
+# a skill states what it claims to document instead of the gate guessing from prose.
+documents: brandInput
+# Deliberately out of scope for a BRIEF-authoring skill: the per-mode override layer and the
+# fine-tuning knobs are studio work done after a theme exists, not things a brand brief states.
+omits: customModes, overrides, modeAnchors, modeLevers, roleColors, disabledMin, baseMd,
+  actionAnchorStep, destructiveAnchorStep, accentPalette, interactivePalettes,
+  outlineInteraction, neutralEmphasis, inverse
 when_to_use: >-
   When creating or refining a Prism3 brand from a brief, brand guidelines, or an
   existing palette — producing the `design.md` that `Prism3/engine/cli.ts`
@@ -23,7 +32,7 @@ contract proven at generation time. You **declare the brand's identity**; the en
 **derives the system**. Do not hand-author scale steps, per-mode values, or contrast
 math — that's exactly what the engine owns, and hand-authoring it is how systems drift.
 
-> **The contract:** pin the brand's *anchors* (its exact hero colour, any accents, its
+> **The contract:** pin the brand's *anchors* (its exact hero color, any accents, its
 > neutral cast) in **OKLCH**, choose **levers** by what the brand *feels* like, then
 > **compile and read the results** — the CLI tells you every contract that passed and
 > flags every choice worth confirming. Loop until it exits clean.
@@ -38,8 +47,8 @@ write it: it's the brief's rationale and the next author's context).
 
 ```yaml
 id: <brand-slug>
-primary: { l: 0.50, c: 0.18, h: 285 }   # the hero colour, in OKLCH
-neutral: { hue: 285, chroma: 0.008 }      # the grey cast (a hint of the brand hue)
+primary: { l: 0.50, c: 0.18, h: 285 }   # the hero color, in OKLCH
+neutral: { hue: 285, chroma: 0.008 }      # the gray cast (a hint of the brand hue)
 ```
 
 That alone compiles to a full system on sensible defaults. Everything below is optional
@@ -55,10 +64,10 @@ minimal — read both, they are the reference):
 | `root` | string (default `prism`) | the brand needs its own token namespace (`nbds`, …) |
 | `brandColors` | `[{ name, oklch: {l,c,h} }]` | the brand has accents beyond the hero |
 | `actionPalette` | a `brandColors` name | interactive UI runs on an **accent**, not the hero (decouple) |
-| `status` | `{ success/warning/danger: {l,c,h,chroma} }` | the brand *specifies* status hues; omit to let the engine synthesise + carve a danger red |
+| `status` | `{ success/warning/danger: {l,c,h,chroma} }` | the brand *specifies* status hues; omit to let the engine synthesize + carve a danger red |
 | `surfaces` | `{ light: { base: 50 } }` | the page is a **tinted off-white**, not pure white (the contrast floor moves with it) |
 | `density` | `comfortable` \| `compact` \| `spacious` | a dense tool vs a roomy reading product |
-| `radiusScale` | number (`1` sharp-ish, `2` soft) | corner softness |
+| `radiusScale` | number, or a named stop: `sharp` \| `modest` \| `standard` \| `soft` \| `round` | corner softness |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
 | `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, responsive: { fluid, minViewport, maxViewport } }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **omitting it → a system-font stack** |
@@ -70,20 +79,34 @@ minimal — read both, they are the reference):
 ## How to author
 
 1. **Pin the anchors in OKLCH.** Convert the brand's exact hero hex to OKLCH and set
-   `primary`. Do the same for accents (`brandColors`). Pin the brand's *real* colours —
+   `primary`. Do the same for accents (`brandColors`). Pin the brand's *real* colors —
    the engine reproduces an anchor exactly (ΔE00 ~0) and grows the ramp around it, so
    fidelity to the brand comes from accurate anchors, not from you placing steps.
-2. **Choose the neutral cast.** `neutral: { hue, chroma }` derives a grey with a hint of
-   the brand (low chroma — 0.004–0.01). If the brand ships a *specific* grey, pin it with
+2. **Choose the neutral cast.** `neutral: { hue, chroma }` derives a gray with a hint of
+   the brand (low chroma — 0.004–0.01). If the brand ships a *specific* gray, pin it with
    `neutral: { anchor: {l,c,h} }` instead.
-3. **Decide action.** If the brand's interactive colour *is* the hero, do nothing
+3. **Decide action.** If the brand's interactive color *is* the hero, do nothing
    (`action` defaults to `primary` — the engine notes it so it stays a confirmed choice).
    If interactive UI uses an accent, set `actionPalette: <accent-name>`.
-4. **Map adjectives → levers.** This is the judgment the brief pays for: "energetic" →
-   `tempo: snappy`; "calm / considered" → `relaxed`; "a dense dashboard" → `density:
-   compact`; "premium, expansive headlines" → `typeScale: expressive` + a display face;
-   "warm, approachable" → a warm `neutral.hue` even under a cool brand. Leave everything
-   the brief doesn't speak to at its default.
+4. **Map adjectives → `personality`, and let the engine resolve them.** This used to be a
+   judgment you made silently; it is now a controlled vocabulary the engine resolves **and
+   logs**, which is the point — a choice made for the brand should be as visible as one you
+   made yourself. Read the brief's language, map it onto the traits, and set them:
+
+   ```yaml
+   personality: [energetic, premium]     # in priority order
+   ```
+
+   Nine traits — `energetic`, `calm`, `premium`, `restrained`, `bold`, `generous`, `dense`,
+   `soft`, `sharp` — each filling several levers at once. **A trait only fills a lever you
+   left absent**: anything you set explicitly always wins, and the engine records what it
+   declined to change. Between traits, the first listed wins.
+
+   Your judgment still does the real work, one step earlier: the brief says "sassy,
+   irreverent, fresh" and *you* decide that lands on `[energetic, bold]`. The vocabulary is
+   closed, so an unrecognized word is rejected rather than silently ignored — map to the
+   nearest trait rather than inventing one. Sliders take the same words directly
+   (`radiusScale: soft`), and anything the brief doesn't speak to stays at its default.
 5. **Write the prose body.** One or two paragraphs of intent — what the brand feels like,
    why action is (de)coupled, why the page is tinted. It's the rationale, and downstream
    authoring agents read it.
@@ -117,10 +140,10 @@ platform.
   above. The direct on-ramp; what you author from a brief.
 - **Standard** (a brand-skills / extraction export) — a flat top-level `colors:` hex map +
   structured type/dimension maps + an optional `x-prism3:` levers block. The same CLI
-  auto-detects it (a top-level `colors:` map ⇒ standard) and runs a colour-role classifier
+  auto-detects it (a top-level `colors:` map ⇒ standard) and runs a color-role classifier
   to derive the anchors. When you're *starting from an extraction*, keep that shape and add
   an `x-prism3:` block for the levers; run with `--fidelity` to get an observed-vs-generated
-  report (which brand values the engine reproduced vs. intentionally regularised).
+  report (which brand values the engine reproduced vs. intentionally regularized).
 
 ## If you have the MCP surface
 
