@@ -332,6 +332,279 @@ namespaces. 1571 → **1573** unit.
 
 ---
 
+## (2026-08-05) — The typeface table's widest column held three unrelated facts (#113 follow-up, round three)
+
+**STATUS: shipped (PR #507, third + fourth commits).** Owner confirmed round two working in Figma, then asked for
+a restructure of the same table: move the token path under the face name (widening that column to suit),
+which should relieve the crowding on the right so the Specimen column carries "example and fallback
+messaging only". Touches `web/src/main.ts` alone — presentation, no data change.
+
+### What the Specimen cell had accumulated
+
+Four facts shared one cell: the 22px `Ag 123` specimen, the `font.typeface.<slug>` pill, the
+`(fallback shown)` caveat round two added, and the fallback stack — plus the `×` remove button, parked
+there since #287 because the fill column is the only one that can absorb width without breaking the
+tab's 112/148/148 grid. The pill was the one that did not belong: it identifies the **face**, so it
+reads as a subtitle under the name, and its presence made the stack read as a trailing clause on it
+rather than a sentence of its own. Moving it leaves the specimen with only the two things that qualify
+the specimen, which is what was asked for.
+
+### The column had to widen, and that has a real cost
+
+`font.typeface.jetbrains-mono` is **190px** on one line against a **112px** column, so the pill could
+not simply move. Three options, all measured rather than reasoned about:
+
+1. **`tokenPillWrapping` at 112px** — tried first, because it needs no column change at all and so
+   costs no grid parity. Rejected on the measurement: it renders that path as a **four-line, 67px-tall**
+   boxed block. A path broken over four lines is harder to read than one that is elided, and the whole
+   point of moving the pill was legibility.
+2. **Widen `--tbl-col-name`** — rejected because that token is what holds this tab's four tables on one
+   column grid (#363/#404), and three of them are read-only ladders with nothing to widen *for*.
+3. **A `.tf-libtbl` class scoped to this table, 216px** — shipped. 192px of usable width (216 − 24
+   padding) fits every realistic path on one line.
+
+The cost is stated rather than hidden, because it is the first deliberate break in that grid: this
+table's mode columns now start at **552** where the ladders' start at **448**, so the Face column is the
+only column that no longer lines up down the page. And in a 560px plugin panel the container's
+horizontal overflow goes **146px → 186px**, **+40px** — an increase in a scroll that already existed.
+What makes the second tolerable is `.mtbl-stick`: scrolled fully right, the face name *and* its path are
+both still visible, measured at `left` +1px inside the container.
+
+That before-figure was first written as **83px**, and the review was right to disbelieve it. Re-measured
+in a detached worktree at `c5b5ff8` — the actual prior commit, served and driven — the before state
+(`stickW: 112`, pill still in the Specimen cell) overflows **146px** (scrollW 622, clientW 476). The
+after is 186 (scrollW 662), and 662 − 622 = 40 reconciles the delta exactly: 104px of added column
+(216 − 112) minus the ~64px the pill no longer contributes to the Specimen cell's intrinsic width. The
+The tell was sitting in the same file the whole time: round one's own CSS comment (still there, above
+`.tf-libtbl`) says "no horizontal scroll beyond the pre-existing **146px**". The right number was already
+written down twice; the new measurement contradicted it and got believed anyway, because it was fresh. The
+83 came from a **synthetic** DOM sweep against the shipped build that shrank `.mtbl-stick` back to 112px
+but left the pill in the Face cell where the new code puts it — so the "before" it measured was a state
+that never existed, missing exactly the pill width that makes the real before-number larger.
+
+### The pill still needs its cap, and its rtl still earns its keep
+
+192px is a cap, not a licence: the cell is auto-layout, so an uncapped nowrap pill would push the column
+past 216 on a long slug — the intrinsic-width trap `.mtbl-mode .tpill` already documents at 124px.
+`ibm-plex-sans-condensed` measures **246px**, so elision is still reachable, and `.tpill`'s
+`direction:rtl` is what makes it survivable: it elides from the **front**, keeping the slug that
+distinguishes the path. That was visible as a defect in the 210px attempt
+(`…nt.typeface.jetbrains-mono`) and is the correct behavior once the column is wide enough that only
+outliers hit it. `title` carries the full path either way.
+
+### Traps
+
+- **Backticks in the CSS comments broke the build twice** in this one change. `STYLE` is a template
+  literal, so a backtick inside a CSS comment terminates the string (#366). Both times the error
+  surfaced ~7,350 lines away as `TS1005: ',' expected`, which does not point at the cause. Writing
+  `--tbl-col-name` and `.tpill` bare in prose is the convention that avoids it.
+- **`tokenPillWrapping` is not a drop-in for `tokenPill`.** Its `<wbr>` is inert under
+  `white-space:nowrap`, so it needs the wrap CSS *and* `direction:ltr` to undo `.tpill`'s rtl. It was
+  the wrong choice here, but it is the right one in card grids — the distinction is column width.
+- **A regex over a row's `textContent` is not a query for that row.** Verifying the Roboto add,
+  `/Roboto/` matched **Clash Display** first, whose fallback stack contains `Roboto`. Query the name
+  cell (`.tf-libname`), not the row.
+- **The plugin's `tsconfig` is `tsconfig.ui.json`, not `tsconfig.json`.** `tsc -p plugin/tsconfig.json`
+  fails with `TS5058: path does not exist` and a **non-zero exit** that reads exactly like a type error
+  in a chained gate run. It printed "No errors found" beside `exit=1`, which is the tell.
+- **A "before" reconstructed in the DOM is not the before.** The 83px above was produced by reverting one
+  CSS declaration on the shipped page rather than by checking out and serving the prior commit. One
+  declaration was not the whole change: the pill had *moved*, and the synthetic state kept it in its new
+  cell, so the old cell's intrinsic width went unmeasured. Measuring a before costs a `git worktree add`
+  at the parent commit; inferring one costs a wrong number in a comment whose entire job is that number.
+  This is the third error in this feature with the same shape — **the harness and the truth on opposite
+  sides of a boundary** (the canvas probe vs. Figma's font list; `/Roboto/` vs. the name cell; now the
+  synthetic DOM vs. the prior build). And a corollary: **a fresh measurement that contradicts a number
+  already recorded in the same file is a conflict to resolve, not a result to write down.** 146 was two
+  lines up.
+
+### Round four: two review findings
+
+Both from the review at `097142c`; both fixed in this PR's fourth commit rather than deferred.
+
+1. **`aria-selected` was never `true` on any of 2,340 rows.** The combobox rows are created with
+   `aria-selected="false"` and the arrow keys moved only the `.on` class, so the sighted highlight tracked
+   the keyboard while assistive tech was told, on every row, that nothing was selected. `aria-selected`
+   now moves *with* `.on` in `setActive`, in both directions. It is a separate fact from
+   `aria-activedescendant` — that one says where the pointer is, `aria-selected` says which option a
+   single-select listbox currently *holds*, and a screen reader reads the second. This is precisely the
+   ARIA the control got free from `<datalist>` and the hand-roll had to re-earn; round one re-earned the
+   pointer and missed the selection.
+2. **The 83px.** Above.
+
+Verified live in the rebuilt plugin bundle with 2,340 synthetic families through the real `font-list`
+envelope: after focus 0 rows true; ArrowDown ×3 → indexes 0/1/2, `activedescendant` `tf-font-o0`/`o1`/`o2`,
+exactly **1** row true at each step and its text matching the highlighted row; ArrowUp → back to 1, still
+one; a fresh ArrowUp wraps to 2339 with one; re-filtering to `Rob` clears to **0** with no stale `true`
+left behind; Escape and a mouse pick both end at 0.
+
+### Verified
+
+Both hosts driven live. Web: path under the name unclipped (134px / 190px inside the 192 cap), name and
+pill sharing one left edge at 348, the other three tables still on 336/448/596/744, zero horizontal
+overflow at 1200px, and a range selection over the pill still returning the exact path (the copy/paste
+contract `tokenPill`'s comment protects). Plugin bundle, host list delivered through the genuine
+`{pluginMessage:{type:'font-list',…}}` envelope with counts measured from real Figma: heading "In this
+Figma", `✓ 18 styles` / `✓ 14 styles`, `(fallback shown)` inline, no pill in the Specimen cell, and the
+owner's own sequence (type `Rob` → pick Roboto → Add face) producing a Roboto row reading **✓ 36
+styles** with `font.typeface.roboto` under the name and the `×` still in the fill column.
+
+Gates: regen `--check` 88 · unit 1516/0 · MCP 49/0 · token contract unchanged (1.1.0, 480) · NB
+regression PASS · font-list reader 12/12 · three typechecks · both builds · US-English clean (92 files).
+
+---
+
+## (2026-08-05) — The font picker had to stop being a `<datalist>`, and the status column had to stop guessing (#113 follow-up)
+
+**STATUS: shipped (PR #507).** Two rounds of live owner feedback on the picker merged in #495, both
+found by loading it in real Figma. Round one: the `<datalist>` was unusable in the iframe (three
+symptoms, one cause). Round two: the library's font-status column reported "Not installed" for a face
+picked from Figma's own list. Branched from `4149887`; touches `web/src/main.ts`,
+`web/src/write-adapter.ts`, `plugin/src/{list-fonts,messages,main}.ts`, `plugin/test-list-fonts.ts`.
+
+### What the owner saw, and the single cause under it
+
+Three symptoms, reported with screenshots: the dropdown painted **dark** against a light dashboard; at
+the keystroke `Rob` it **flipped up and covered the field**, hiding the text being typed; and opened
+empty it **would not scroll**, so 2,334 families were unreachable past the first dozen.
+
+They are one bug. A `<datalist>` popup is **browser chrome** — drawn outside the page, by the browser,
+for the browser. It follows Figma's app theme (dark), it positions itself (up, over the field, when the
+iframe is short), and it does not route wheel events to page JS. Not one of the three is reachable from
+our CSS or our JS. There was no CSS to fix: nothing in `main.ts` ever tried to style it, because nothing
+*can*. **A list that must be themed, positioned and scrolled has to BE page DOM.** So the datalist is
+gone and in its place is exactly the `role="combobox"` surface the datalist was chosen to avoid.
+
+### The measurement that was true and still missed it
+
+#495's entry says *"2,334 options in a `<datalist>` is fine — measured, not assumed"*, and reports 53 ms.
+That number is real and it is still real. It measured the **`<option>` DOM**, which is the part I own.
+The popup that failed is the part I do not — and **Playwright cannot see browser chrome**, so no amount
+of driving that harness would have surfaced any of the three. The blind spot was structural, not
+sloppy: the tool and the defect lived on opposite sides of the same boundary. The generalizable form —
+*a green measurement of the half you control says nothing about the half you don't* — is worth more than
+the specific fix, because the next native control (`<select>`, date input, `alert()`) has the same seam.
+The old code comment recorded the accepted cost as "cannot be themed"; the true cost was *unusable*.
+Accepting a cost you have understated is not a decision, it is a guess that happened to be written down.
+
+### Built on `.brandmenu`, not invented
+
+The popover reuses the vocabulary the brand/export/nav menus already use — absolute-positioned page DOM,
+`max-height` + `overflow-y:auto`. That is what makes theming and scrolling **structural** rather than
+patched on: `--panel`/`--line2`/`--ink` mean it follows light and dark for free, and the max-height *is*
+the scroll. `overscroll-behavior:contain` keeps a wheel at the list's end from scrolling the panel behind
+it. Filtering is **prefix-first**: `Ro` leads with Roboto rather than any family merely containing "ro".
+
+Keyboard is hand-rolled because it now has to be: `role="listbox"`/`role="option"`,
+`aria-activedescendant`, arrows with wrap-around and `scrollIntoView({block:'nearest'})` so the highlight
+drags the scroll, Escape to close, Tab to close-and-pass-through. One subtlety worth keeping: Enter is
+**two-stage** — with a row highlighted it takes that row and does *not* commit; the next Enter submits.
+Committing on the first Enter would make an arrow-key glance destructive.
+
+### Traps for whoever touches this next
+
+**The CSS block is a template literal** (`const STYLE = \`` in `main.ts`). A backtick inside a CSS
+comment terminates the string and the build fails somewhere else entirely — my first attempt wrote
+`` `<datalist>` `` in a comment and got a TS2349 in unrelated code. No backticks in that block.
+
+**`.tf-combo` carries the flex basis, not `.tf-addin`.** The input is now nested one level deeper;
+leaving `flex:0 1 260px` on the input alone collapses the field to content width.
+
+**Rows bind `mousedown`, not `click`.** `click` fires after the input's `blur`, by which point `close()`
+has already emptied the list — the handler would never run.
+
+**Names render in the UI face, not their own** (owner decision). Self-rendering would look more like
+Figma's own picker, but `listAvailableFontsAsync` mixes locally-installed families with Figma's **cloud**
+Google Fonts, and this iframe ships `networkAccess: none` — a cloud face would silently fall back and
+read as "broken" rather than "not installed here". One consistent face tells no lie.
+
+**`plugin/dist/` is gitignored, so merging to `main` changes nothing in Figma.** It has to be rebuilt
+(`npm run build -w @prism3/plugin`) before a reload shows anything. This already wasted one round: the
+owner reloaded after #495 merged and saw a build from before the picker existed. It fails silently.
+
+### Verification
+
+Driven in a browser against a synthetic 2,340-family list pushed through the genuine
+`{pluginMessage:{type:'font-list'}}` envelope, checking the three reported failures directly: opens
+**4 px below** the field (`top - bottom = 4`, no overlap, still 4 px at `Rob`), background
+`rgb(255,255,255)` from `--panel`, and `scrollHeight 75,235` vs `clientHeight 264` → **74,973 px of real
+scroll**. Filter 64 ms; `Ro` → Roboto, Roboto Condensed, Roboto Mono in that order. Arrow trail by
+*index* not text (the synthetic list has duplicate names): 20→19→18, wrap 0→2339→0, scroll follows.
+Enter fills the field and adds **0** table rows; mousedown selects and keeps focus in the field; Escape
+closes. Zero `datalist` elements in the DOM. Gates: regen --check 88 · 1516/0 unit · MCP 49/0 · token
+contract unchanged (1.1.0, 480 guaranteed) · NB PASS · web+plugin typecheck/build · US-English clean.
+
+**Still owner-verified only in a real iframe.** A browser is not Figma's iframe — that is the whole
+lesson above. The dist build ships with this so the owner can confirm the three failures are gone where
+they were found.
+
+### Second round: the status column was answering the wrong question
+
+The owner reloaded, picked `Roboto` from the new popover, and the library row came back **⚠ Not
+installed**. Picked from Figma's own list, then told Figma doesn't have it — and both statements came
+from this panel.
+
+The column ran `fontAvailable`, a **canvas metric probe**: render the name, compare the width against
+the bare fallback. That measures *"can this iframe paint a specimen?"* On the web that is the same
+question as *"will this face load?"*. **In Figma it is not**, because Figma's list mixes
+locally-installed families with Figma **cloud** fonts and the iframe ships `networkAccess: none`. A
+cloud font cannot be painted here and loads perfectly there.
+
+Measured against the live bridge, not inferred: this Figma reports **2,334** families; `Roboto` is in
+the list with **36 styles** and `loadFontAsync` resolves it — while macOS CoreText reports 311 families
+with **no Roboto at all**. So the face is a cloud font, the probe was right about rendering and wrong
+about the thing that matters. **The column understated two of the four rows** — `JetBrains Mono` (14
+styles) had the same defect and simply hadn't been noticed yet.
+
+`fontAvailable` was not deleted, and that is the design. It is the only honest source on web, and in
+Figma it still answers one real question — *is the specimen beside it the real face or a fallback?* So
+it was **demoted, not replaced**: Figma's list owns the status column, the probe owns a `(fallback
+shown)` note on the specimen cell. Two facts, two places, neither overstated. The branch is on
+`hostFonts.length`, never a host check.
+
+**The wire now carries style counts** (`font-list` gained an optional index-parallel `styles[]`).
+A count rather than a bare tick because a listed family guarantees the **family** resolves, not the
+specific weight a text style demands — "✓ 36 styles" invites the right doubt where "✓" implies a promise
+this cannot make. `listFamilyStyleCounts` shares `listFamilies`' comparator exactly, since the combobox
+reads one and the table the other and divergent orders in one panel would be a visible bug. `sendFonts`
+calls only the counting reader: the counts carry the names, so calling both would mean a second
+`listAvailableFontsAsync` over 11,005 entries for data already in hand.
+
+**Traps this round added.**
+
+*The parallel arrays must be filtered together.* The adapter already dropped non-string family names at
+the boundary. Filtering names first and mapping counts second would shift every count by the number of
+names dropped and mis-report every family after the first bad one. It zips, then drops pairs.
+
+*`styles` is optional on the wire, and a receiver must treat it so.* An older host build sends names
+only; that lands as count 0, which renders "✓ Figma has it" rather than inventing a number.
+
+*Exact-match lookup is deliberate.* `loadFontAsync` is case- **and** whitespace-sensitive — measured:
+`Roboto` loads, `roboto`, `ROBOTO` and `" Regular"` all fail. A case-insensitive lookup here would
+report a face as loadable that the write then skips, which is the original bug wearing different clothes.
+
+*`.mtbl-spec .tf-prev` is `display:inline-block` for one reason.* The specimen is `display:block` in
+this table, which pushes the note onto its own line; the owner approved it **beside** "Ag 123".
+Verified at 560px (a narrow plugin panel) with no cell overflow and no horizontal scroll beyond the
+pre-existing 146px.
+
+**The pattern, since this is the third time.** #495 shipped a control whose failure mode lived outside
+the page; this round shipped a *verdict* whose evidence lived outside the iframe. Both passed every
+check that existed, because in each case the harness and the truth sat on opposite sides of the same
+boundary. **When the plugin makes a claim about the host, ask the host** — the bridge is right there,
+and every number in this entry came from it.
+
+**Verification.** Driven through the genuine `font-list` envelope with counts taken live from Figma:
+`Clash Display` → ⚠ Figma lacks it (correct — genuinely absent from the 2,334), `Inter` → ✓ 18 styles,
+`JetBrains Mono` → ✓ 14 styles, `Roboto` → ✓ 36 styles, each with `(fallback shown)` inline beside the
+specimen. Replayed the owner's exact sequence — type `Rob`, pick Roboto, Add face — and the new row
+reads **✓ 36 styles**. Web arm re-checked with no host list: heading still "On this device", still
+"⚠ Not installed", no combobox, plain free-text input, 0 `datalist` elements. Gates: regen --check 88 ·
+1516/0 unit · MCP 49/0 · contract unchanged · NB PASS · font-list reader 12/12 · 3 typechecks · both
+builds · US-English clean.
+
+---
+
 ## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
 
 **STATUS: docs only (`docs/32`).** No engine change yet — these are findings that must land before

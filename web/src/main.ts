@@ -311,8 +311,14 @@ let seedInfo: { ok: boolean; summary: string } | null = null;   // set by the ho
 // The font families the host can load (#113 Figma arm; empty on web and until the host answers).
 // Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
 // not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
-// machine-dependent. Read only to populate the typeface input's `<datalist>`.
+// machine-dependent. Read to drive type-ahead on the typeface input AND to answer "will this face
+// load?" in the library table.
 let hostFonts: string[] = [];
+/** `hostFonts` family → how many styles Figma has for it (0 = count unknown). Exact-match keyed on
+ *  purpose: `loadFontAsync` is case- AND whitespace-sensitive — measured against real Figma,
+ *  `Roboto` loads while `roboto`, `ROBOTO` and `" Regular"` all fail — so a case-insensitive lookup
+ *  here would claim a face will load when the write is going to skip it. */
+let hostFontStyles = new Map<string, number>();
 // Host → UI notifications: the #109 read-back seed summary, and the #131 knob-rehydration (the
 // persisted BrandInput). restore-input loads the brand wholesale (loadBrand rebuilds + re-renders),
 // so re-opening a themed Figma file boots on that brand instead of the default. loadBrand is a
@@ -329,6 +335,7 @@ commit.onHostMessage((m) => {
   }
   if (m.kind === 'font-list') {
     hostFonts = m.families;
+    hostFontStyles = new Map(m.families.map((f, i) => [f, m.styles[i] ?? 0]));
     // A plain re-render — the same path a tab click takes. The list can arrive before or after the
     // typeface page first renders, so caching plus a re-render makes the order irrelevant.
     renderWorkspace();
@@ -3388,6 +3395,59 @@ const fontAvailable = (name: string | undefined): boolean => {
     return Math.abs(_fontProbe.measureText(probe).width - w0) > 0.5;
   });
 };
+
+/** What the library table's status column reports for one face.
+ *
+ *  This used to be `fontAvailable` alone, and that was the wrong question. The canvas probe answers
+ *  *"can this iframe paint a specimen?"*; the designer needs *"will this face load when I write text
+ *  styles?"* On the web those are the same question. In the Figma iframe they are not, because
+ *  Figma's font list mixes locally-installed families with Figma CLOUD fonts and the iframe ships
+ *  `networkAccess: none` — so a cloud font cannot be painted here yet loads perfectly in Figma. The
+ *  column reported "Not installed" for a Roboto this Figma carries 36 styles of, and would have said
+ *  the same for JetBrains Mono. Understating by half the rows is worse than saying less.
+ *
+ *  So when the host has answered, its list is authoritative and the probe is demoted to what it can
+ *  honestly report: whether the SPECIMEN beside it is the real face or a fallback. Two facts, two
+ *  places, neither one lying. With no host list (web) there is only one source and the probe is it —
+ *  which is also why this branches on `hostFonts.length` rather than on any host check.
+ *
+ *  `styles` is a count, not a guarantee: a listed family resolves as a FAMILY, while a text style
+ *  demands a specific weight. Reporting "36 styles" invites the right doubt where a bare tick would
+ *  imply a promise this cannot make (see #499 for the weight-name half of that problem). */
+type FaceStatus = { ok: boolean; label: string; title: string; fallbackPreview: boolean };
+const faceStatus = (name: string): FaceStatus => {
+  const rendersHere = fontAvailable(name);
+  if (!hostFonts.length) {
+    // Web: the probe is the only source, and "installed on this device" is exactly what it measures.
+    return {
+      ok: rendersHere,
+      label: rendersHere ? '✓ Installed' : '⚠ Not installed',
+      title: rendersHere ? `${name} resolves on this device` : `${name} is not installed here — the preview falls back`,
+      fallbackPreview: !rendersHere,
+    };
+  }
+  const styles = hostFontStyles.get(name);
+  if (styles === undefined) {
+    return {
+      ok: false,
+      label: '⚠ Figma lacks it',
+      title: `This Figma cannot load "${name}", so every text style asking for it will be skipped. `
+        + 'Spelling is exact — case and spaces included.',
+      fallbackPreview: true,
+    };
+  }
+  // Count 0 means an older host sent names without counts — say less rather than invent a number.
+  const label = styles > 0 ? `✓ ${styles.toLocaleString('en-US')} ${styles === 1 ? 'style' : 'styles'}` : '✓ Figma has it';
+  return {
+    ok: true,
+    label,
+    title: styles > 0
+      ? `Figma can load ${name} (${styles.toLocaleString('en-US')} styles). That settles the family — `
+        + 'a text style still skips if the family lacks the specific weight it asks for.'
+      : `Figma can load ${name}.`,
+    fallbackPreview: !rendersHere,
+  };
+};
 const WEIGHT_NAME: Record<number, string> = {
   100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium',
   600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
@@ -3454,9 +3514,14 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const inLibrary = (name: string): boolean => library().some((n) => typefaceSlug(n) === typefaceSlug(name));
   const libBox = el('div', 'mtbl');
   const libScroll = el('div', 'mtbl-scroll');
-  const libTbl = el('table', 'mtbl-tbl');
+  // `.tf-libtbl` widens THIS table's Face column (see the CSS) — the token path moved into it, and a
+  // `font.typeface.<slug>` pill does not fit the shared 112px.
+  const libTbl = el('table', 'mtbl-tbl tf-libtbl');
   const libHead = el('thead'), libHtr = el('tr');
-  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', 'On this device'),
+  // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
+  // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
+  // device" was actively wrong in Figma — a cloud font is loadable there and absent here.
+  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', hostFonts.length ? 'In this Figma' : 'On this device'),
     el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   libHead.append(libHtr); libTbl.append(libHead);
   const libBody = el('tbody');
@@ -3469,11 +3534,22 @@ const renderTypefaceLibrary = (): HTMLElement => {
     const nm = el('span', 'tf-libname', tf.name); nm.title = tf.name;
     nc.append(nm);
     if (tf.variable) nc.append(el('span', 'tf-vf', 'Variable'));
+    // The token path belongs to the FACE, not to its specimen — it is the name a product references,
+    // so it reads as a subtitle under the name it identifies. It sat in the specimen cell until now,
+    // where it shared one paragraph with the fallback stack and the `(fallback shown)` note, and three
+    // unrelated facts in one cell made the widest column the least legible one.
+    // The ordinary nowrap `tokenPill`, NOT `tokenPillWrapping`. The wrapping variant was tried first
+    // because it fits the shared 112px and would have cost no column change at all — but measured, it
+    // renders `font.typeface.jetbrains-mono` as a FOUR-line boxed block (67px tall), and a path broken
+    // over four lines is harder to read than one that is elided. The column widens instead.
+    const pathWrap = el('span', 'tf-libpath');
+    pathWrap.append(tokenPill(`font.typeface.${tf.slug}`));
+    nc.append(pathWrap);
     tr.append(nc);
-    const ok = fontAvailable(tf.name);
+    const st = faceStatus(tf.name);
     const sc = el('td', 'mtbl-mode');
-    sc.append(el('span', 'tf-stat ' + (ok ? 'ok' : 'no'), ok ? '✓ Installed' : '⚠ Not installed'));
-    sc.title = ok ? `${tf.name} resolves on this device` : `${tf.name} is not installed here — the preview falls back`;
+    sc.append(el('span', 'tf-stat ' + (st.ok ? 'ok' : 'no'), st.label));
+    sc.title = st.title;
     tr.append(sc);
     const bc = el('td', 'mtbl-mode');
     bc.append(el('span', 'tf-usedby' + (bind.unbound ? ' unbound' : ''), bind.label));
@@ -3488,6 +3564,16 @@ const renderTypefaceLibrary = (): HTMLElement => {
     const prev = el('span', 'mtbl-spec-t tf-prev', 'Ag 123');
     prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
     pc.append(prev);
+    // The second fact, on the cell it is actually about. Once the status column reports FIGMA's verdict,
+    // "Ag 123" can be a fallback while the row reads ✓ — true, but confusing unless the specimen says
+    // so itself. Only shown when the two diverge: on a face that renders here the note would be noise,
+    // and on a face Figma lacks the status column has already said it.
+    if (st.fallbackPreview && st.ok) {
+      const fb = el('span', 'tf-fbnote', '(fallback shown)');
+      fb.title = `${tf.name} loads in Figma but is not installed on this device, so this specimen shows the fallback. `
+        + 'The written text styles use the real face.';
+      pc.append(fb);
+    }
     // Row action at the far right of the row — inside the FILL column on purpose. A fifth column, or a
     // button in any fixed-width cell, would push that cell past its token and break the 112/148/148
     // parity #363 just established; the fill column absorbs slack instead.
@@ -3501,10 +3587,11 @@ const renderTypefaceLibrary = (): HTMLElement => {
       };
       pc.append(rm);
     }
-    const meta = el('span', 'tf-fall');
-    meta.append(tokenPill(`font.typeface.${tf.slug}`));
-    meta.append(document.createTextNode(tf.stack.length > 1 ? ` Falls back to ${tf.stack.slice(1).join(', ')}` : ' No fallback stack'));
-    pc.append(meta);
+    // The specimen cell now carries the specimen and the two things that qualify it — nothing else.
+    // The token pill moved to the Face cell; without it the stack starts the line, so it names itself
+    // rather than reading as a trailing clause on the pill.
+    pc.append(el('span', 'tf-fall',
+      tf.stack.length > 1 ? `Falls back to ${tf.stack.slice(1).join(', ')}` : 'No fallback stack'));
     tr.append(pc);
     libBody.append(tr);
   }
@@ -3521,23 +3608,144 @@ const renderTypefaceLibrary = (): HTMLElement => {
   addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
   addIn.setAttribute('aria-label', 'Add a face to the library');
   // #113 (Figma arm) — when the host knows its real font list, the field becomes type-ahead over it
-  // while still accepting anything typed. `<datalist>` is deliberate over a custom combobox: it is
-  // the browser's own control, so the keyboard and screen-reader behavior are correct without a
-  // hand-rolled `role="combobox"` + `aria-activedescendant` surface. The cost is that the dropdown is
-  // browser chrome and cannot be themed to match the dashboard — accepted knowingly.
+  // while still accepting anything typed.
+  //
+  // This WAS a `<datalist>`, and that was the wrong control for an iframe. The original reasoning was
+  // sound on the web — it is the browser's own widget, so keyboard and screen-reader behavior come for
+  // free instead of from a hand-rolled `role="combobox"` — and the accepted cost was recorded as "cannot
+  // be themed". In Figma's plugin iframe the real cost was *unusable*: the popup is browser CHROME drawn
+  // outside the page, so it painted dark (following Figma's app theme, unreachable by our CSS), flipped
+  // UP over the field so the text being typed was hidden, and never received wheel events — making 2,334
+  // families impossible to scroll. None of the three is reachable from the page, which is the point: a
+  // list that must be themed, positioned and scrolled has to BE page DOM. So this is the combobox the
+  // datalist was chosen to avoid. The iframe made that trade non-optional.
+  //
+  // Built on the `.brandmenu` popover vocabulary already used by the brand/export/nav menus — same
+  // `max-height` + `overflow-y:auto` shape, so scrolling and theming are structural rather than patched.
+  //
+  // Names render in the UI face, NOT their own (owner decision). Self-rendering would look more like
+  // Figma's picker, but `listAvailableFontsAsync` mixes locally-installed families with Figma's CLOUD
+  // Google Fonts and this iframe ships `networkAccess: none` — so a cloud face would silently fall back
+  // and read as "broken" rather than "not installed here". One consistent face tells no lie.
+  //
   // A HINT, not a constraint: an unlisted name still commits, because a brand input is a portable
   // specification and may legitimately name a face this machine lacks.
-  let addList: HTMLElement | null = null;
+  let addWrap: HTMLElement | null = null;
+  // Arrow/Escape handling lives with the list, but Enter must reach `submit` (defined below) — so the
+  // combobox publishes a key hook that returns true when it CONSUMED the key, and the field's single
+  // keydown handler defers to it before falling through to submit-on-Enter.
+  let comboKey: ((e: KeyboardEvent) => boolean) | null = null;
   if (hostFonts.length) {
-    addList = el('datalist');
-    addList.id = 'tf-font-list';
-    // textContent, never innerHTML — these names are external input.
-    for (const f of hostFonts) {
-      const o = el('option') as HTMLOptionElement;
-      o.value = f;
-      addList.append(o);
-    }
-    addIn.setAttribute('list', addList.id);
+    addWrap = el('div', 'tf-combo');
+    const list = el('div', 'tf-cbolist');
+    list.id = 'tf-font-list';
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', 'Font families this Figma can load');
+    list.hidden = true;
+    addIn.setAttribute('role', 'combobox');
+    addIn.setAttribute('aria-controls', list.id);
+    addIn.setAttribute('aria-autocomplete', 'list');
+    addIn.setAttribute('aria-expanded', 'false');
+    addIn.autocomplete = 'off';                       // the browser's own history popup would re-create the overlap
+    let shown: string[] = [];
+    let active = -1;                                  // index into `shown`; -1 = nothing selected, so Enter still submits
+    const optId = (i: number) => `tf-font-o${i}`;
+    // `aria-selected` moves WITH the `.on` class, in both directions. It is a separate fact from
+    // `aria-activedescendant`: that one says where the pointer is, `aria-selected` says which option a
+    // single-select listbox currently holds, and a screen reader reads the second. Shipping it pinned to
+    // "false" at row creation (which is what this did) meant the sighted highlight tracked the arrows
+    // while AT was told, on all 2,340 rows, that nothing was selected — the one piece of the ARIA this
+    // control used to get free from `<datalist>` that the hand-roll missed.
+    const setActive = (i: number): void => {
+      const rows = Array.from(list.children) as HTMLElement[];
+      if (active >= 0 && rows[active]) {
+        rows[active].classList.remove('on');
+        rows[active].setAttribute('aria-selected', 'false');
+      }
+      active = i;
+      if (i < 0) { addIn.removeAttribute('aria-activedescendant'); return; }
+      const row = rows[i];
+      if (!row) return;
+      row.classList.add('on');
+      row.setAttribute('aria-selected', 'true');
+      addIn.setAttribute('aria-activedescendant', optId(i));
+      row.scrollIntoView({ block: 'nearest' });       // keyboard nav must drag the scroll along with it
+    };
+    const close = (): void => {
+      list.hidden = true;
+      addIn.setAttribute('aria-expanded', 'false');
+      setActive(-1);
+    };
+    const open = (): void => {
+      if (!shown.length) { close(); return; }
+      list.hidden = false;
+      addIn.setAttribute('aria-expanded', 'true');
+      // The old popup opened upward over the field. This one is page DOM below it, so the only thing
+      // that can hide it is the page scroll — ask for it to be on screen rather than assume it is.
+      list.scrollIntoView({ block: 'nearest' });
+    };
+    const paint = (q: string): void => {
+      const needle = q.trim().toLowerCase();
+      // Prefix matches first — "Ro" should lead with Roboto, not with a family that merely contains "ro".
+      const pre: string[] = [], mid: string[] = [];
+      for (const f of hostFonts) {
+        if (!needle) { pre.push(f); continue; }
+        const at = f.toLowerCase().indexOf(needle);
+        if (at === 0) pre.push(f);
+        else if (at > 0) mid.push(f);
+      }
+      shown = pre.concat(mid);
+      list.textContent = '';
+      shown.forEach((f, i) => {
+        // textContent, never innerHTML — these names are external input.
+        const row = el('div', 'tf-cbo', f);
+        row.id = optId(i);
+        row.setAttribute('role', 'option');
+        row.setAttribute('aria-selected', 'false');
+        // mousedown, not click: click fires after the input's blur, by which point the list is closed.
+        row.onmousedown = (e) => {
+          e.preventDefault();                          // keep focus in the field so Add face is one key away
+          addIn.value = f;
+          close();
+          addIn.focus();
+        };
+        list.append(row);
+      });
+      setActive(-1);
+    };
+    paint('');
+    addIn.oninput = () => { paint(addIn.value); open(); };
+    addIn.onfocus = () => { paint(addIn.value); open(); };
+    // Blur closes, but not before a row's mousedown has run — hence the mousedown handler above.
+    addIn.onblur = () => { close(); };
+    comboKey = (e: KeyboardEvent): boolean => {
+      const open_ = !list.hidden;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!open_) { paint(addIn.value); open(); if (shown.length) setActive(0); return true; }
+        if (!shown.length) return true;
+        const next = e.key === 'ArrowDown'
+          ? (active + 1) % shown.length
+          : (active <= 0 ? shown.length - 1 : active - 1);
+        setActive(next);
+        return true;
+      }
+      if (e.key === 'Escape') {
+        if (!open_) return false;                      // let Escape do whatever it does elsewhere
+        close();
+        return true;
+      }
+      // Enter with a highlighted row means "take that one" — the field fills and the list closes, and
+      // the face is NOT committed yet, so the next Enter submits. Two deliberate steps: picking a name
+      // and adding it are different decisions, and the second one is destructive-ish (it edits the brand).
+      if (e.key === 'Enter' && open_ && active >= 0 && shown[active]) {
+        addIn.value = shown[active];
+        close();
+        return true;
+      }
+      if (e.key === 'Tab' && open_) { close(); return false; }   // close, but let focus move on
+      return false;
+    };
+    addWrap.append(addIn, list);
   }
   // #405 — a SUBMIT CTA, not `.adv-add`. That class is the dashed REVEAL/add-a-row affordance (the
   // breakpoint editor's "+ Add" appends an empty slot with it, and on Palettes the same look means
@@ -3564,9 +3772,12 @@ const renderTypefaceLibrary = (): HTMLElement => {
     applyFull();
   };
   addBtn.onclick = submit;
-  addIn.onkeydown = (e) => { if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); submit(); } };
-  addRow.append(addIn, addBtn);
-  if (addList) addRow.append(addList);
+  addIn.onkeydown = (e) => {
+    const ev = e as KeyboardEvent;
+    if (comboKey && comboKey(ev)) { ev.preventDefault(); return; }
+    if (ev.key === 'Enter') { ev.preventDefault(); submit(); }
+  };
+  addRow.append(addWrap ?? addIn, addBtn);
   sec.append(addRow, addErr);
   // #414 — the spelling guidance sits with the field it describes. It lived on Semantics, which after
   // the four-tab split types nothing: this is the only place a face name is entered by hand.
@@ -3732,7 +3943,7 @@ const renderTypefaceBindings = (): HTMLElement => {
 
   const local = el('p', 'tf-note warn');
   local.innerHTML = hostFonts.length
-    ? '<b>Previews in this table use fonts installed on this device.</b> The faces offered on <b>Primitives</b> come from Figma and are what apply when you write text styles — the two sets can differ, so a face Figma offers may still preview as the fallback here. Your emitted tokens are unaffected; they carry the name you typed.'
+    ? '<b>Previews in this table use fonts installed on this device; Figma loads more than that.</b> Figma’s list mixes your installed fonts with its own cloud fonts, and this panel loads no webfonts — so a face Figma will happily write can still preview as the fallback here. The <b>In this Figma</b> column on <b>Primitives</b> reports what Figma can load, which is the fact that decides whether a text style applies. Your emitted tokens are unaffected; they carry the name you typed.'
     : '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(local);
   return sec;
@@ -7126,10 +7337,19 @@ input.toggle:disabled{opacity:.5;cursor:default}
    #360/#369/#388, measured again here at 829px vs the shared 798px grid. An explicit px cap clamps
    the intrinsic contribution; the pill already ellipsizes and carries the full path in its title attribute. */
 .mtbl-mode .tpill{max-width:124px}
-/* NOT a contrast verdict, despite the ok/no class names — this renders "✓ Installed" /
-   "⚠ Not installed" for a font face. A face the machine lacks is a WARNING (the preview falls
-   back), not a failure, so --warn is deliberate. Do not fold it into the verdict palette. */
+/* NOT a contrast verdict, despite the ok/no class names — this renders the font-status column
+   ("✓ 36 styles" / "⚠ Figma lacks it" in the plugin, "✓ Installed" / "⚠ Not installed" on web).
+   An unloadable face is a WARNING, not a failure, so --warn is deliberate. Do not fold it into
+   the verdict palette. */
 .tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--warn)}
+/* The specimen's own caveat, shown only when Figma can load a face this device cannot render — so
+   "Ag 123" is the fallback while the status column truthfully reads ✓. Faint and inline beside the
+   specimen because it qualifies THAT cell; promoting it would read as an error, which it is not. */
+.tf-fbnote{margin-left:8px;font-size:11px;color:var(--faint);white-space:nowrap;vertical-align:2px}
+/* The specimen is display:block in this table, which would push the note onto its own line. Only
+   inside .mtbl-spec, and only so the note can sit BESIDE "Ag 123" as approved — measured at 560px
+   (a narrow plugin panel) with no cell overflow and no horizontal scroll beyond the pre-existing 146px. */
+.mtbl-spec .tf-prev{display:inline-block;vertical-align:baseline}
 /* line-height must exceed the font's em box (~1.2) or descenders clip */
 .tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
 /* #415 — the resolved face per category on Text styles: a READING, not a control. Same type
@@ -7143,8 +7363,25 @@ input.toggle:disabled{opacity:.5;cursor:default}
    derived facts in the middle, specimen right. Full-width rather than cards because the
    list grows with the brand and the fallback stack needs the horizontal room. */
 /* The typeface library as a table (#363), on the same column grid as the rung tables above. */
-.tf-libname{display:block;font-size:12.5px;font-weight:650;color:var(--ink);max-width:88px;line-height:1.3;overflow-wrap:anywhere}
+/* The ONE table on this tab whose Face column is not the shared 112px: the token path now reads as a
+   subtitle under the face name, and font.typeface.jetbrains-mono is 190px on one line. Scoped by class
+   rather than by moving --tbl-col-name, because that token holds this tab's four tables on one column
+   grid (#363/#404) and three of them are read-only ladders with nothing to widen FOR. Two measured
+   costs, both accepted: this table's mode columns now start at 552 where the ladders' start at 448, so
+   the Face column is the only one that no longer lines up down the page; and in a 560px plugin panel
+   the container's existing horizontal overflow goes 146px → 186px, +40. The pinned column is what makes
+   the second one tolerable — scrolled fully right, the face name and its path are still both visible.
+   The alternative was a four-line path pill in a 112px cell (tried; less readable than an elided one). */
+.tf-libtbl .mtbl-stick{width:216px;min-width:216px}
+/* Both were capped at 88px for the 112px column; at 216 they can use it. Still capped rather than
+   free: the cell is auto-layout, so an uncapped nowrap pill would push the column past 216 on a long
+   slug — the intrinsic-width trap .mtbl-mode .tpill documents. 192 = 216 − 24 of cell padding, which
+   fits every realistic path on one line (jetbrains-mono 190); a longer one elides from the FRONT,
+   keeping the slug that identifies it, and carries the full path in its title. */
+.tf-libname{display:block;font-size:12.5px;font-weight:650;color:var(--ink);max-width:192px;line-height:1.3;overflow-wrap:anywhere}
 .tf-vf{display:block;margin-top:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tf-libpath{display:block;margin-top:5px}
+.tf-libpath .tpill{max-width:192px}
 .tf-usedby{font-size:11.5px;color:var(--ink2);display:block;max-width:124px;line-height:1.35;overflow-wrap:anywhere}
 /* An unbound face is a real state since #287, not an error — muted, never warning-colored. */
 .tf-usedby.unbound{color:var(--faint);font-style:italic}
@@ -7157,6 +7394,20 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-rm:hover{color:var(--ink)}
 .tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
 .tf-addin{flex:0 1 260px;width:auto;min-width:0}
+/* #113 follow-up — the font combobox. The datalist this replaces was browser CHROME: dark in
+   Figma's iframe, flipped UP over the field, and unscrollable at 2,334 options. Page DOM instead, on
+   the .brandmenu popover model (max-height + overflow-y:auto), which is what makes it themeable,
+   positionable and scrollable at all. The wrapper carries .tf-addin's flex basis because the INPUT is
+   now nested inside it — leaving it on the input alone would collapse the field to content width. */
+.tf-combo{position:relative;flex:0 1 260px;min-width:0}
+.tf-combo .tf-addin{flex:none;width:100%}
+.tf-cbolist{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:264px;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:4px;z-index:20;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12);overscroll-behavior:contain}
+/* Names render in the UI face by design (owner call): the host list mixes locally-installed families
+   with Figma CLOUD fonts, and networkAccess:none means a cloud face would fall back and read as
+   broken. One face is honest; a half-working specimen is not. */
+.tf-cbo{padding:6px 9px;border-radius:var(--r-xs);font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tf-cbo:hover,.tf-cbo.on{background:var(--paper)}
+.tf-cbo.on{box-shadow:inset 0 0 0 1px var(--line2)}
 .tf-adderr{font-size:12px;color:var(--danger);margin:8px 0 0}
 /* #405 — the add-face SUBMIT CTA, modelled on .bm-load (the app's existing inline solid button) so it
    reads as "commit this" rather than borrowing .adv-add's dashed reveal look. flex:none keeps its

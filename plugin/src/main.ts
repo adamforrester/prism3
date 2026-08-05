@@ -19,7 +19,7 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { readFigmaVariables } from './read-figma';
-import { listFamilies } from './list-fonts';
+import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '../../Prism3/engine/emit-figma-color';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '../../Prism3/engine/write-plan';
 import { verifyReadback } from '../../Prism3/engine/read-back';
@@ -155,8 +155,14 @@ const restoreToUi = (): void => {
  */
 const sendFonts = async (): Promise<void> => {
   try {
-    const families = await listFamilies(figma);
-    if (families.length) postToUi({ type: 'font-list', families });
+    // One read, both shapes: the counts carry the family names too, so calling `listFamilies` as well
+    // would mean a second `listAvailableFontsAsync` (11,005 entries) for data already in hand.
+    const counts = await listFamilyStyleCounts(figma);
+    if (counts.length) postToUi({
+      type: 'font-list',
+      families: counts.map((c) => c.family),
+      styles: counts.map((c) => c.styles),
+    });
   } catch {
     /* no font list — the UI keeps its free-text input (which is the pre-#113 behavior) */
   }
