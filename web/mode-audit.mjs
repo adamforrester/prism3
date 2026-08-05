@@ -94,8 +94,16 @@ const snap = () => page.evaluate(() => {
       name: (s.querySelector('.psec-t')?.textContent ?? s.querySelector('h2,h3')?.textContent ?? `section ${i + 1}`).trim(),
       ctrl: sig(s),
       html: s.innerHTML,
-      // #439 — what the section CLAIMS about itself, so --check-badges can compare claim to measurement.
-      badge: badge ? (badge.classList.contains('on') ? 'per-mode' : 'shared') : null,
+      // #439 — what the section CLAIMS about itself, so --check-badges can compare claim to
+      // measurement. THREE states since #437: the `.on` class no longer separates them, because
+      // "Editing: All modes" is also `on` (it is editable, just not per-mode). Read the key text.
+      badge: badge
+        ? (/^Non-editable/i.test(badge.textContent ?? '') ? 'none'
+          : /All modes/i.test(badge.textContent ?? '') ? 'all-modes' : 'per-mode')
+        : null,
+      // The axis the badge's third state turns on, measured the same way main.ts decides it: value
+      // editors only, buttons excluded (they play a motion preview, they do not set anything).
+      hasControls: s.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') !== null,
     };
   });
 });
@@ -125,7 +133,12 @@ for (const stage of stages) {
     // Two UI states from three verdicts: only EDITS is per-mode; displays and inert both mean
     // "the bar does not reach this", which is the distinction a user can act on.
     claims.push({ page: stage.slice(0, 22), name: s.name, verdict: v.trim(),
-                  expected: v.trim() === 'EDITS' ? 'per-mode' : 'shared', badge: s.badge });
+                  // Two axes, because the badge now states two different things (#437): does this
+                  // section vary per mode (measured here), and can anything in it be edited at all.
+                  // A section that does not vary per mode but HAS a control edits one value every
+                  // mode uses -- that is 'all-modes', not the same offer as an untouchable specimen.
+                  expected: v.trim() === 'EDITS' ? 'per-mode' : s.hasControls ? 'all-modes' : 'none',
+                  badge: s.badge });
     console.log(`   ${v}  ${s.name}${s.badge ? '' : '   (no badge)'}`);
   }
 }

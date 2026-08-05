@@ -460,18 +460,40 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
  *  Hue is reserved for the contrast verdicts (--ok / --danger, #446) — neither mode state is good or
  *  bad, so tinting one would borrow a meaning that does not apply. Fill says "the bar reaches this";
  *  dashed outline says it does not. */
-const modeScopeBadge = (scope: ModeScope): HTMLElement => {
-  const editable = scope === 'per-mode' && !DERIVED_MODES.has(currentMode);
+const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => {
+  // THREE states, not two (#437). "Shared · All modes" was covering two situations that are not the
+  // same offer to a reader: five sections whose controls edit ONE value every mode then uses
+  // (Outline button hover, Disabled, Icon colors, Easing, Motion) and six with no control at all
+  // (Focus ring, Spacing grid, Primitive scales, Elevation ramp, Duration ramp, Springs). Measured,
+  // not assumed — the six have zero inputs between them. Saying "Shared" over a control you can turn
+  // understates it; saying it over a specimen you cannot touch overstates it.
+  //
+  // Editability is detected from the rendered section rather than declared in SECTION_MODE_SCOPE, so
+  // it cannot drift: a section that gains or loses a control re-badges itself. Only the per-mode axis
+  // stays hand-declared, because no amount of DOM inspection can tell you WHICH mode a select writes
+  // to. Buttons do not count — the ones present here play a motion preview, they do not set a value.
+  const perMode = scope === 'per-mode' && !DERIVED_MODES.has(currentMode);
+  const editable = perMode || hasControls;
   const b = el('span', 'msb' + (editable ? ' on' : ''));
-  // A per-mode section is NOT editable in a derived mode — the engine refuses levers there — so the
-  // badge reads from the live mode, never from the map alone (doc 26 states this trap for columns).
-  b.append(el('span', 'msb-k', editable ? 'Editing' : 'Shared'),
-           el('span', 'msb-v', editable ? (MODE_LABEL[currentMode] ?? currentMode) : 'All modes'));
-  b.title = editable
-    ? `Controls in this section write to ${MODE_LABEL[currentMode] ?? currentMode} only.`
-    : scope === 'per-mode'
-      ? `${MODE_LABEL[currentMode] ?? currentMode} is derived — it cannot be edited. Switch to a customizable mode to edit this section.`
-      : 'One value, shared by every mode. What you see re-resolves per mode; the control does not.';
+  const mode = MODE_LABEL[currentMode] ?? currentMode;
+  if (perMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', mode));
+  else if (hasControls) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', 'All modes'));
+  else b.append(el('span', 'msb-k', 'Non-editable'));
+  b.title = perMode
+    ? `Controls in this section write to ${mode} only.`
+    : hasControls
+      ? 'Controls here set one value that every mode then uses. What you see still re-resolves per mode.'
+      // UNREACHABLE TODAY, kept as a guard, and the distinction matters — #512 rightly killed a
+      // decoration whose comment claimed a mechanism that never fired. Measured across all six bar
+      // pages in HC light: Surfaces, Interactive and Size render ZERO sections, and the only two that
+      // survive (Elevation ramp, Motion) are both `shared`. So no per-mode section is ever badged in
+      // a derived mode. This branch stays because it is not decoration but a correctness guard: if a
+      // page ever does render one there, the alternative is a badge reading "Editing HC light" over
+      // controls the engine refuses (doc 26 states this trap for columns). Re-measure before deleting
+      // it; do not assume it still cannot fire.
+      : scope === 'per-mode'
+        ? `${mode} is derived — it cannot be edited. Switch to a customizable mode to edit this section.`
+        : 'Derived from the values above. Nothing in this section is directly editable.';
   return b;
 };
 
@@ -5797,9 +5819,14 @@ const attachModeBadges = (root: HTMLElement): void => {
     const title = sec.querySelector('.psec-t')?.textContent?.trim();
     const scope = title ? SECTION_MODE_SCOPE[title] : undefined;
     if (!scope) continue;
+    // Value editors only. `button` is excluded deliberately: the buttons inside these sections play a
+    // motion preview or expand a disclosure, and counting them would badge Motion's specimen as
+    // editable. Measured across all six bar pages — every section with a real control has at least
+    // one input/select, and every section without one has zero of anything.
+    const hasControls = sec.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') !== null;
     const head = sec.querySelector('.psec-head') ?? sec.querySelector('.psec-h');
-    if (head) head.append(modeScopeBadge(scope));
-    else { sec.classList.add('psec-badged'); sec.append(modeScopeBadge(scope)); }
+    if (head) head.append(modeScopeBadge(scope, hasControls));
+    else { sec.classList.add('psec-badged'); sec.append(modeScopeBadge(scope, hasControls)); }
   }
 };
 
