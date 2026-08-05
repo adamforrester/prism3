@@ -36,6 +36,104 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-05 — from implementing `INSTANCE_SWAP` (#487 step 3)
+
+### `[SKILL]` Verify a paste by node ID, never by component name — the file holds your old attempts
+
+The read-back after the first successful paste reported the slot as a `FRAME`, i.e. the exact bug the
+paste had just fixed. It was the *previous* paste: `findOne(n => n.name === 'button/size=medium,
+leading')` matched #482's component, still sitting in the file with its empty-frame slot. Two
+components, one name, and `findOne` returns document order.
+
+The near-miss is what makes this a skill rather than a note. The next move would have been to probe
+`createComponentFromNode` for an instance-to-frame conversion that does not exist — a plausible
+hypothesis, a real API, and half an hour spent proving something already working was broken. **A
+generated artifact whose name is a function of its inputs will collide with every previous run**, and
+component names here are exactly that (`button/size=medium, leading`). So: capture the id the paste
+returns and read back by `getNodeByIdAsync`, or delete prior artifacts first. Names are for humans.
+
+Related, same root: a paste is only verified when the *binding* is shown live, not present. Present
+means `boundVariables.width` has an entry; live means moving the variable moves the node. Mutating
+`icon/size/md` to 40, watching the slot become 40×40, and restoring it is three extra lines and it is
+the difference between "the write was accepted" and "the write is load-bearing" — the same distinction
+the `constrainProportions` finding below turns on.
+
+---
+
+## 2026-08-05 — from implementing the COLOR layer (#487 step 3, second half)
+
+### `[SKILL]` Dump the whole variant grid as a table before believing a paint projection
+
+I wrote the projection, stated in a comment that it handled the appearance-specific rules, and was
+wrong about three of them at once: the overlay family was never consulted (so every `outline`/`text`
+hover and pressed resolved to its rest value and rendered pixel-identical), `text` disabled grew a fill
+*and* a border it never had, and `filled` disabled grew a border. All three were found by printing the
+21-cell grid — intent × appearance × state, one row per cell, columns for fill/stroke/ink/icon — and
+looking at it. None were found by re-reading the code, including immediately after writing it.
+
+The reason this generalizes: **over a ragged grid, a lookup that silently resolves nothing is
+indistinguishable from a lookup that correctly resolved nothing.** `outline` genuinely keys no fill, so
+`fills: undefined` on an outline button is right; it is also exactly what a missing overlay lookup
+produces. The signal is not in any single cell, it is in the *shape* of the table — two columns that
+should differ between rows and don't. A grid you can see has that shape; a grid you reason about does
+not. This applies to any per-variant projection, not just paint.
+
+### `[GATE]` A substring assertion against a self-documenting generated string tests the documentation
+
+Two of the new gates passed with the code they guarded deleted:
+`ok(js.includes('strokeWeight'))` and `ok(js.includes('setBoundVariableForPaint'))`. Both are true of
+the payload with the assignment and the call removed — because the payload carries **comments explaining
+why `strokeWeight` and `setBoundVariableForPaint` are needed**. The prose that documents a decision
+satisfies the check that the decision was implemented.
+
+`planToPluginJs` output is the one string in this engine that is both a *deliverable* and *heavily
+commented*, so every `includes()` against it is exposed to this. Anchor to syntax, not vocabulary:
+`/node\.strokeWeight=/`, `/figma\.variables\.setBoundVariableForPaint\(/`. And note what caught it —
+**mutation testing, not review**. Writing the assertion and reading it back cannot detect this, because
+the assertion looks correct and is correct about a string that contains the word. Deleting the
+implementation and expecting red is the only thing that asks the right question. Same family as the
+`lint-us-english` self-check that sampled only singulars (CLAUDE.md): a check written from the same
+mental model as the thing it checks inherits its blind spot.
+
+### `[SKILL]` One field per Figma API shape — four shapes now, and paints read back somewhere else
+
+`bound` (`setBoundVariable`), `textStyle` (`setTextStyleIdAsync`), `effectStyle`
+(`setEffectStyleIdAsync`), and now `paints` (`figma.variables.setBoundVariableForPaint`). Squeezing any
+of them into `bound` type-checks, passes every offline gate, and fails only at paste time — the whole
+argument for the split, now confirmed a third time.
+
+Paint has two wrinkles the other three do not, both worth checking on any new component:
+
+- **The setter returns a value instead of mutating.** `setBoundVariableForPaint(paint, 'color', v)`
+  hands back a *new* paint that must be assigned into the `fills`/`strokes` array. Dropping the return
+  value is a silent no-op — nothing throws, nothing lands in `misses[]`.
+- **The binding is not where you look for the others.** It lives on the paint object inside the array,
+  so `node.boundVariables.fills` is empty on a correctly bound node. Read back
+  `node.fills[0].boundVariables.color`. A read-back written by analogy with the dimension one would
+  report every paint as `DISCARDED`, or — with the polarity flipped — pass unconditionally.
+
+And **ink for a swapped icon belongs on the VECTORs inside the instance, not the instance** — an
+instance fill paints a square behind the glyph. It is a per-instance override and it survives
+`createComponentFromNode` plus one further level of instance nesting (measured). Any component with an
+icon slot needs this, so it is a field on the plan (`descendantFills`) rather than a paste-time detail.
+
+### `[KB]` Ragged is the design: `filled` restyles its fill, `outline`/`text` overlay it
+
+`filled` expresses hover as a fill change; `outline` and `text` have no fill to change, so they express
+it as a translucent overlay. In Figma **both land on the same node's `fills` array** — one array, two
+token families, selected by appearance. The KB's component research models states per appearance but
+does not name this collapse, because in CSS `background-color` and an `::after` overlay are separate
+concerns and in Figma they are one.
+
+The practical consequence for the def tier: a missing key is not necessarily a gap. `outline` keying no
+`.fill` is correct. Which means a completeness gate over paint keys cannot be a cross-product check —
+it has to know the per-appearance rule, or it will demand keys that should not exist. Related: the same
+distinction makes `disabled` cross-cutting over **intent** but not over **appearance** (one gray serves
+every intent; it must not give a ghost button a box), which the KB's "one disabled treatment" framing
+also does not distinguish.
+
+---
+
 ## 2026-08-05 — from probing a real `INSTANCE_SWAP` target (#487 step 3 prep)
 
 The owner authored two components by hand in the test file — an `FPO-default-icon` and a `focus-ring`
@@ -44,35 +142,54 @@ about. Everything below came out of that probe. Two of the four are silent-failu
 the class this file exists for: the plan asserts a capability, nothing throws, and the artifact is
 quietly wrong.
 
-### `[GATE]` An INSTANCE cannot bind both `width` and `height`, and it does not throw
+### `[GATE]` `constrainProportions` silently drops a dimension binding — and the first diagnosis was wrong
 
 `figmaAnatomyPlan` emits `bound: {width, height}` for every `slot` part, from the one
-`size.{size}.icon` key. That is correct for a `FRAME` and **wrong for an `INSTANCE`** — which is what
-a slot becomes once `INSTANCE_SWAP` is actually implemented. Measured, same variable, same two calls
-in the same order:
+`size.{size}.icon` key. Against the owner's icon component, only ONE of the two survives, and
+neither `setBoundVariable` call throws:
 
 ```
-FRAME                        → boundVariables: ["width","height"]     ✅ both
-INSTANCE (standalone)        → boundVariables: ["width"]              height dropped
-INSTANCE (in auto-layout)    → boundVariables: ["height"]             width dropped
+setBoundVariable('width', v); setBoundVariable('height', v)   → ["height"]   width dropped
+setBoundVariable('height', v); setBoundVariable('width', v)   → ["width"]    height dropped
 ```
 
-Neither `setBoundVariable` call throws. Binding one alone works; binding the second silently evicts
-the first, and **which one survives depends on the parent's `layoutMode`** — so the same plan produces
-different results depending on where the node lands.
+**The cause is `constrainProportions: true` on the node**, which the icon component has (and which
+its instances inherit). A proportion-locked node cannot hold two independent dimension bindings, so
+the second write evicts the first — plain last-write-wins. Unlock it and both bind:
 
-This is the `setBoundVariable('effects', …)` failure from #493 one turn worse. There the API simply
-did not exist, so a test could assert on its absence. Here the API exists, accepts the call, returns
-without error, and discards the write. `misses[]` cannot catch it either: that array only fills when
-`byName.get(varName)` finds nothing, and the variable resolves fine. A component pasted this way looks
-successful, reports zero misses, and has half its icon sizing missing.
+```
+FRAME      constrainProportions=true   → ["height"]            ← one dropped
+FRAME      constrainProportions=false  → ["width","height"]    ✅
+COMPONENT  constrainProportions=true   → ["height"]
+INSTANCE   constrainProportions=false  → ["width","height"]    ✅ verified tracking both axes
+```
 
-The fix is not a second binding — it is `resize()` plus `layoutSizingHorizontal`/`Vertical` on
-instances. The gate: **assert no plan emits both `width` and `height` in `bound` on a node whose type
-is `INSTANCE_SWAP`.** Generalizing past this instance: *a Figma setter that accepts a call is not a
-Figma setter that honored it.* Where a projection field maps to a setter, the probe must read the
-value back — `#493`'s three-namespaces-three-fields rule assumed a throw would announce the mismatch,
-and this is the case where nothing announces anything.
+So the fix is `node.constrainProportions = false` before binding — one line, and it applies to slots
+of every node type.
+
+**This entry originally recorded the wrong cause, and how it went wrong is the more useful finding.**
+It claimed the limitation was *INSTANCE-specific* and that *which axis survived depended on the
+parent's `layoutMode`*. Both were artifacts of the probe design. The "FRAME keeps both" control used a
+fresh `createFrame()`, which defaults to `constrainProportions: false` — so the control differed from
+the instance in **two** variables at once (node type and proportion lock) while only one was being
+attributed. And the apparent layout-mode dependence was just call order differing between the two
+probe arms. A control that varies with the treatment is not a control; had the first probe locked a
+FRAME or unlocked an INSTANCE, the real cause would have been immediate. **When a difference is
+attributed to node type, vary node type alone.**
+
+The `misses[]` point stands and is the durable one: that array only fills when `byName.get(varName)`
+finds nothing, so a binding that resolves and is then discarded is invisible to it. A component pasted
+this way looks successful, reports zero misses, and has half its icon sizing missing. Generalizing:
+*a Figma setter that accepts a call is not a Figma setter that honored it.* #493's
+three-namespaces-three-fields rule assumed a mismatch announces itself as a throw; here nothing
+announces anything, so **the gate must read the value back** — which is exactly what caught this
+correction.
+
+One more trap on the same surface, found while verifying the fix: **`resize()` clears every dimension
+binding on the node**, on FRAME, COMPONENT and INSTANCE alike. The original entry prescribed
+"`resize()` plus `layoutSizingHorizontal`/`Vertical`" as the fix, which would have destroyed the
+binding it was meant to preserve. `resize()` before binding is fine; after is not. `appendChild` into
+auto-layout and setting `layoutSizing*` are both safe — bindings survive those.
 
 ### `[GATE]` `INSTANCE_SWAP`'s default value is a node ID, not a component key
 

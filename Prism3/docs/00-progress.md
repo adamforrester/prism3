@@ -87,6 +87,148 @@ files **without popping** (popping can merge two sessions' changes).
 
 ---
 
+## (2026-08-05) — Slots become real instances, color lands, and #500's diagnosis was wrong (#487 step 3)
+
+**STATUS: `planToPluginJs` implements `INSTANCE_SWAP` and PAINT; the first colored variant is verified
+live.** Gates green; the new assertions mutation-tested (four for the swap, nine for color). Two real
+components sit in the test file's `Prism3 Components` section: `94:134` (structure only) and `95:161`
+(`primary/filled/rest`, red container, white icon ink).
+
+Three things landed. The implementation of each is the smaller part of it.
+
+### #500's finding was wrong, and its prescribed fix would have broken the thing it fixed
+
+The previous entry says an `INSTANCE` cannot hold two dimension bindings, that which axis survives
+depends on the parent's `layoutMode`, and that the fix is `resize()` + `layoutSizingHorizontal/Vertical`.
+All three are wrong. Probing the specific claim before building on it:
+
+```
+FRAME      constrainProportions=true   → ["height"]            ← one dropped
+FRAME      constrainProportions=false  → ["width","height"]    ✅
+COMPONENT  constrainProportions=true   → ["height"]
+INSTANCE   constrainProportions=false  → ["width","height"]    ✅ verified tracking BOTH axes
+```
+
+The cause is **`constrainProportions`**, not node type. A proportion-locked node cannot hold two
+independent dimension bindings; the second `setBoundVariable` evicts the first, last-write-wins, on
+FRAME, COMPONENT and INSTANCE alike. `resize()` after binding **clears every dimension binding** — so
+#500's fix would have destroyed the bindings it was meant to preserve. `appendChild` into auto-layout
+and setting `layoutSizing*` are both safe. The fix is one line, before the first bind:
+`node.constrainProportions = false`.
+
+**Why the first diagnosis was wrong is the part worth keeping.** The "FRAME keeps both" control used a
+fresh `createFrame()`, which defaults to `constrainProportions: false`. So the control differed from
+the instance in **two** variables — node type *and* proportion lock — while only one was attributed. A
+control that varies with the treatment is not a control. The apparent layout-mode dependence was just
+call order differing between the two probe arms. When a difference is attributed to node type, vary
+node type alone. (An instance inherits the lock from its main component, and the hand-authored
+`FPO-default-icon` ships locked — which is why the wrong diagnosis still pointed at a real bug.)
+
+The generalizable lesson from #500 survives intact and is now implemented rather than asserted: the
+payload **reads each binding back** after setting it and reports `DISCARDED` when the write did not
+stick. `misses[]` only ever filled when a *name* failed to resolve, so a write that resolved and was
+then thrown away was structurally invisible to it. **A Figma setter that accepts a call is not a Figma
+setter that honored it.** That read-back matters more than either specific fix above, because it is the
+one that reports the *next* silent setter instead of waiting for someone to probe for it.
+
+### The implementation
+
+`planToPluginJs` had no `INSTANCE_SWAP` branch at all — `TEXT ? createText() : createFrame()` — so
+#482 pasted empty 24×24 frames while `figmaProperties.swaps` declared swappable slots. Now: resolve
+the target by NAME, `createInstance()`, and record a miss when no target is nominated instead of
+quietly building the #482 frame. Three details that are decisions rather than mechanics:
+
+- **The target is a plan OPTION, not a def field.** `figmaAnatomyPlan(def, size, {leading: true,
+  swapTarget: 'FPO-default-icon'})`. Which component fills a slot is a fact about the *file*, not about
+  the component — the same def pastes into a file whose FPO icon is named anything — so it rides beside
+  the slot-fill flags. By NAME, for the same reason `bound` holds names: the plan stays brand-invariant
+  and the executor resolves in the live file.
+- **`loadAllPagesAsync` + `figma.root.findAllWithCriteria`**, not `currentPage.findAll`. An FPO icon
+  parked on another page would otherwise not resolve, and the failure mode is a silent degrade to a
+  placeholder frame.
+- **A missing target still builds**, but says so. Refusing would make the payload unusable in a file
+  that has no icon yet; building silently is what #482 did.
+
+Verified live rather than asserted: pasted the emitted payload verbatim (`misses: []`), then read the
+result back — `INSTANCE` of `FPO-default-icon`, `constrainProportions: false`, both axes bound. And
+because a binding that is *present* is not a binding that is *live*, moved `icon/size/md` to 40 and
+watched the slot go 40×40 on both axes, then restored it.
+
+**Trap for whoever re-verifies this.** My first read-back said the slot was a `FRAME` and I nearly
+chased a phantom bug: `findOne(name === 'button/size=medium, leading')` had returned **#482's older
+paste**, which is still in the file with the empty-frame bug. Two components share that name. Match on
+node id (mine is `94:134`), not on name — the stale one is an accidental side-by-side of the fix.
+
+**Known gap, not a bug:** the label pastes empty (0×16). Default text content is a component property
+(#487 step 6), so there is nothing yet to fill it from.
+
+### Color: a fourth API shape, and a grid that is deliberately not rectangular
+
+`figmaAnatomyPlan(def, size, {…slots, intent, appearance, state})` — one call yields one fully-colored
+variant, per the owner's choice of a **full coordinate** over a paint-map return. Omit `intent` and
+`appearance` and the plan is structure only, byte-identical to what every earlier caller got.
+
+**Paint is a fourth API shape, and it gets a fourth field.** `paints: {fills?, strokes?}` sits beside
+`bound`, `textStyle` and `effectStyle` because `setBoundVariable('fills', v)` **is not a call** — a
+paint is not a property, it is an entry in a `fills`/`strokes` *array*. The API is
+`figma.variables.setBoundVariableForPaint`, which **returns a new paint rather than mutating the node**,
+so the result must be assigned back into the array; forgetting the assignment is a no-op that throws
+nothing. That also moves where the read-back has to look: a paint binding lives on the *paint object*,
+so `node.boundVariables.fills` is empty even on a correctly bound node — the check is
+`node.fills[0].boundVariables.color`. One field per API shape, four shapes, four fields: the plan
+cannot imply a call that does not exist.
+
+**Icon ink is a fifth thing again** (`descendantFills`), because it belongs on the VECTORs *inside* the
+swapped instance — the instance's own `fills` paints a square behind the glyph. It is also the one paint
+with no variable of its own: there is no `color/interactive/{intent}/icon`, so icon ink routes through
+`on-fill`/`text.rest` and reaches the vector as a per-instance override. Verified to survive three hops
+(in-frame → `createComponentFromNode` → nested inside an outer `INSTANCE`).
+
+**The grid is ragged, and that is the design rather than a def gap.** `filled` expresses hover as a
+**fill change** (`primary.filled.fill.hover`); `outline` and `text` have no fill to change and express
+it as an **overlay** (`primary.outline.overlay.hover`). In Figma both land on the *same node's* `fills`
+array — one array, two token families reaching it depending on appearance. Hence
+`paintOf('overlay') ?? paintOf('fill')`. And `disabled` is cross-cutting over **intent** but *not* over
+**appearance**: `disabled.fill`/`disabled.border` are keyed unconditionally, so applying them blind
+gives `text` a gray box and a border it never had. A disabled *structural* paint applies only where the
+appearance has that structure at rest; ink is unconditional, because every appearance has ink.
+
+**How those three rules were found is the entry.** I had written the projection, asserted the ragged
+rules were handled, and been wrong about all three — overlay never consulted (so every `outline`/`text`
+hover and pressed rendered pixel-identical to rest), `text` disabled growing a fill *and* a border,
+`filled` disabled growing a border. What found them was not re-reading the code but **dumping the whole
+21-cell grid as a table and looking at it**. A projection over a ragged grid has one failure mode that
+reasoning does not surface: a lookup that silently resolves nothing looks exactly like a lookup that
+correctly resolved nothing. Print the grid.
+
+Two of my own *gates* had a matching flaw, caught by mutation-testing rather than by writing them:
+`includes('strokeWeight')` and `includes('setBoundVariableForPaint')` both passed with the code deleted,
+because the emitted payload carries **comments mentioning them**. **A substring assertion against a
+generated string that documents itself tests the documentation.** Both are now anchored to the
+assignment/call form.
+
+Verified live and mutating, not merely present: `container.fills` → `color/interactive/primary/fill/rest`
+resolving `{r:.81, g:.043, b:.17}` with `strokes: 0` (correct for `filled`), the slot's VECTOR →
+`primary/on-fill`, then moved `fill/rest` to green, saw `{r:0,g:1,b:0}`, restored. Screenshot confirms.
+
+**One def gap surfaced, recorded not papered over:** `primary.text.overlay.hover` exists but there is no
+`primary.text.overlay.pressed` (same for `neutral` and `destructive`), so a pressed ghost button renders
+identical to rest. That is a def-tier omission, not a projection bug — `outline` keys both. Worth
+closing in the def, and deliberately not special-cased in the projection.
+
+**Coverage note:** `planComponentName`'s format changed from a prose suffix to Figma's
+`key=value, key=value` — because `combineAsVariants` derives variant axes from component *names*, making
+the name a wire format between one paste and the next step's component set. **No existing test noticed
+the change.** It has one now.
+
+### Next
+
+The 21-variant paste (1 intent × 3 appearances × 7 states) with the icon and without the ring, then
+`combineAsVariants` over them (#487 steps 4–5). Then `plugin/src/write-components.ts` off the same
+plan, and component properties including default text (step 6).
+
+---
+
 ## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
 
 **STATUS: docs only (`docs/32`).** No engine change yet — these are findings that must land before
@@ -98,6 +240,12 @@ them live** — create an instance, make the exact calls `planToPluginJs` makes,
 That distinction is the entry: two of the four findings are invisible to any amount of reading.
 
 ### The one that matters: an INSTANCE silently refuses the second dimension
+
+> **⚠️ CORRECTED by the next entry down the file — read that one instead of this section.** The
+> silent-drop is real and the "read the value back" lesson stands, but the CAUSE below is wrong
+> (it is `constrainProportions`, not node type, and not layout mode) and the FIX below is actively
+> harmful (`resize()` clears every dimension binding). Kept rather than rewritten because the
+> *reason* it was wrong — a control that varied with the treatment — is the more useful finding.
 
 `figmaAnatomyPlan` emits `bound: {width, height}` for every `slot`, both from `size.{size}.icon`.
 Correct for a `FRAME`; wrong for an `INSTANCE`, which is what a slot becomes the moment
