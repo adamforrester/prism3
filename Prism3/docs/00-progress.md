@@ -332,6 +332,86 @@ namespaces. 1571 → **1573** unit.
 
 ---
 
+## (2026-08-05) — The typeface table's widest column held three unrelated facts (#113 follow-up, round three)
+
+**STATUS: shipped (PR #507, third commit).** Owner confirmed round two working in Figma, then asked for
+a restructure of the same table: move the token path under the face name (widening that column to suit),
+which should relieve the crowding on the right so the Specimen column carries "example and fallback
+messaging only". Touches `web/src/main.ts` alone — presentation, no data change.
+
+### What the Specimen cell had accumulated
+
+Four facts shared one cell: the 22px `Ag 123` specimen, the `font.typeface.<slug>` pill, the
+`(fallback shown)` caveat round two added, and the fallback stack — plus the `×` remove button, parked
+there since #287 because the fill column is the only one that can absorb width without breaking the
+tab's 112/148/148 grid. The pill was the one that did not belong: it identifies the **face**, so it
+reads as a subtitle under the name, and its presence made the stack read as a trailing clause on it
+rather than a sentence of its own. Moving it leaves the specimen with only the two things that qualify
+the specimen, which is what was asked for.
+
+### The column had to widen, and that has a real cost
+
+`font.typeface.jetbrains-mono` is **190px** on one line against a **112px** column, so the pill could
+not simply move. Three options, all measured rather than reasoned about:
+
+1. **`tokenPillWrapping` at 112px** — tried first, because it needs no column change at all and so
+   costs no grid parity. Rejected on the measurement: it renders that path as a **four-line, 67px-tall**
+   boxed block. A path broken over four lines is harder to read than one that is elided, and the whole
+   point of moving the pill was legibility.
+2. **Widen `--tbl-col-name`** — rejected because that token is what holds this tab's four tables on one
+   column grid (#363/#404), and three of them are read-only ladders with nothing to widen *for*.
+3. **A `.tf-libtbl` class scoped to this table, 216px** — shipped. 192px of usable width (216 − 24
+   padding) fits every realistic path on one line.
+
+The cost is stated rather than hidden, because it is the first deliberate break in that grid: this
+table's mode columns now start at **552** where the ladders' start at **448**, so the Face column is the
+only column that no longer lines up down the page. And in a 560px plugin panel the container's
+horizontal overflow goes **83px → 186px** — an increase in a scroll that already existed. What makes
+the second tolerable is `.mtbl-stick`: scrolled fully right, the face name *and* its path are both still
+visible, measured at `left` +1px inside the container.
+
+### The pill still needs its cap, and its rtl still earns its keep
+
+192px is a cap, not a licence: the cell is auto-layout, so an uncapped nowrap pill would push the column
+past 216 on a long slug — the intrinsic-width trap `.mtbl-mode .tpill` already documents at 124px.
+`ibm-plex-sans-condensed` measures **246px**, so elision is still reachable, and `.tpill`'s
+`direction:rtl` is what makes it survivable: it elides from the **front**, keeping the slug that
+distinguishes the path. That was visible as a defect in the 210px attempt
+(`…nt.typeface.jetbrains-mono`) and is the correct behavior once the column is wide enough that only
+outliers hit it. `title` carries the full path either way.
+
+### Traps
+
+- **Backticks in the CSS comments broke the build twice** in this one change. `STYLE` is a template
+  literal, so a backtick inside a CSS comment terminates the string (#366). Both times the error
+  surfaced ~7,350 lines away as `TS1005: ',' expected`, which does not point at the cause. Writing
+  `--tbl-col-name` and `.tpill` bare in prose is the convention that avoids it.
+- **`tokenPillWrapping` is not a drop-in for `tokenPill`.** Its `<wbr>` is inert under
+  `white-space:nowrap`, so it needs the wrap CSS *and* `direction:ltr` to undo `.tpill`'s rtl. It was
+  the wrong choice here, but it is the right one in card grids — the distinction is column width.
+- **A regex over a row's `textContent` is not a query for that row.** Verifying the Roboto add,
+  `/Roboto/` matched **Clash Display** first, whose fallback stack contains `Roboto`. Query the name
+  cell (`.tf-libname`), not the row.
+- **The plugin's `tsconfig` is `tsconfig.ui.json`, not `tsconfig.json`.** `tsc -p plugin/tsconfig.json`
+  fails with `TS5058: path does not exist` and a **non-zero exit** that reads exactly like a type error
+  in a chained gate run. It printed "No errors found" beside `exit=1`, which is the tell.
+
+### Verified
+
+Both hosts driven live. Web: path under the name unclipped (134px / 190px inside the 192 cap), name and
+pill sharing one left edge at 348, the other three tables still on 336/448/596/744, zero horizontal
+overflow at 1200px, and a range selection over the pill still returning the exact path (the copy/paste
+contract `tokenPill`'s comment protects). Plugin bundle, host list delivered through the genuine
+`{pluginMessage:{type:'font-list',…}}` envelope with counts measured from real Figma: heading "In this
+Figma", `✓ 18 styles` / `✓ 14 styles`, `(fallback shown)` inline, no pill in the Specimen cell, and the
+owner's own sequence (type `Rob` → pick Roboto → Add face) producing a Roboto row reading **✓ 36
+styles** with `font.typeface.roboto` under the name and the `×` still in the fill column.
+
+Gates: regen `--check` 88 · unit 1516/0 · MCP 49/0 · token contract unchanged (1.1.0, 480) · NB
+regression PASS · font-list reader 12/12 · three typechecks · both builds · US-English clean (92 files).
+
+---
+
 ## (2026-08-05) — The font picker had to stop being a `<datalist>`, and the status column had to stop guessing (#113 follow-up)
 
 **STATUS: shipped (PR #507).** Two rounds of live owner feedback on the picker merged in #495, both

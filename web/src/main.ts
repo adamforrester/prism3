@@ -3514,7 +3514,9 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const inLibrary = (name: string): boolean => library().some((n) => typefaceSlug(n) === typefaceSlug(name));
   const libBox = el('div', 'mtbl');
   const libScroll = el('div', 'mtbl-scroll');
-  const libTbl = el('table', 'mtbl-tbl');
+  // `.tf-libtbl` widens THIS table's Face column (see the CSS) — the token path moved into it, and a
+  // `font.typeface.<slug>` pill does not fit the shared 112px.
+  const libTbl = el('table', 'mtbl-tbl tf-libtbl');
   const libHead = el('thead'), libHtr = el('tr');
   // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
   // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
@@ -3532,6 +3534,17 @@ const renderTypefaceLibrary = (): HTMLElement => {
     const nm = el('span', 'tf-libname', tf.name); nm.title = tf.name;
     nc.append(nm);
     if (tf.variable) nc.append(el('span', 'tf-vf', 'Variable'));
+    // The token path belongs to the FACE, not to its specimen — it is the name a product references,
+    // so it reads as a subtitle under the name it identifies. It sat in the specimen cell until now,
+    // where it shared one paragraph with the fallback stack and the `(fallback shown)` note, and three
+    // unrelated facts in one cell made the widest column the least legible one.
+    // The ordinary nowrap `tokenPill`, NOT `tokenPillWrapping`. The wrapping variant was tried first
+    // because it fits the shared 112px and would have cost no column change at all — but measured, it
+    // renders `font.typeface.jetbrains-mono` as a FOUR-line boxed block (67px tall), and a path broken
+    // over four lines is harder to read than one that is elided. The column widens instead.
+    const pathWrap = el('span', 'tf-libpath');
+    pathWrap.append(tokenPill(`font.typeface.${tf.slug}`));
+    nc.append(pathWrap);
     tr.append(nc);
     const st = faceStatus(tf.name);
     const sc = el('td', 'mtbl-mode');
@@ -3574,10 +3587,11 @@ const renderTypefaceLibrary = (): HTMLElement => {
       };
       pc.append(rm);
     }
-    const meta = el('span', 'tf-fall');
-    meta.append(tokenPill(`font.typeface.${tf.slug}`));
-    meta.append(document.createTextNode(tf.stack.length > 1 ? ` Falls back to ${tf.stack.slice(1).join(', ')}` : ' No fallback stack'));
-    pc.append(meta);
+    // The specimen cell now carries the specimen and the two things that qualify it — nothing else.
+    // The token pill moved to the Face cell; without it the stack starts the line, so it names itself
+    // rather than reading as a trailing clause on the pill.
+    pc.append(el('span', 'tf-fall',
+      tf.stack.length > 1 ? `Falls back to ${tf.stack.slice(1).join(', ')}` : 'No fallback stack'));
     tr.append(pc);
     libBody.append(tr);
   }
@@ -7339,8 +7353,25 @@ input.toggle:disabled{opacity:.5;cursor:default}
    derived facts in the middle, specimen right. Full-width rather than cards because the
    list grows with the brand and the fallback stack needs the horizontal room. */
 /* The typeface library as a table (#363), on the same column grid as the rung tables above. */
-.tf-libname{display:block;font-size:12.5px;font-weight:650;color:var(--ink);max-width:88px;line-height:1.3;overflow-wrap:anywhere}
+/* The ONE table on this tab whose Face column is not the shared 112px: the token path now reads as a
+   subtitle under the face name, and font.typeface.jetbrains-mono is 190px on one line. Scoped by class
+   rather than by moving --tbl-col-name, because that token holds this tab's four tables on one column
+   grid (#363/#404) and three of them are read-only ladders with nothing to widen FOR. Two measured
+   costs, both accepted: this table's mode columns now start at 552 where the ladders' start at 448, so
+   the Face column is the only one that no longer lines up down the page; and in a 560px plugin panel
+   the container's existing horizontal overflow goes 83px → 186px. The pinned column is what makes the
+   second one tolerable — scrolled fully right, the face name and its path are still both visible.
+   The alternative was a four-line path pill in a 112px cell (tried; less readable than an elided one). */
+.tf-libtbl .mtbl-stick{width:216px;min-width:216px}
+/* Both were capped at 88px for the 112px column; at 216 they can use it. Still capped rather than
+   free: the cell is auto-layout, so an uncapped nowrap pill would push the column past 216 on a long
+   slug — the intrinsic-width trap .mtbl-mode .tpill documents. 192 = 216 − 24 of cell padding, which
+   fits every realistic path on one line (jetbrains-mono 190); a longer one elides from the FRONT,
+   keeping the slug that identifies it, and carries the full path in its title. */
+.tf-libname{display:block;font-size:12.5px;font-weight:650;color:var(--ink);max-width:192px;line-height:1.3;overflow-wrap:anywhere}
 .tf-vf{display:block;margin-top:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tf-libpath{display:block;margin-top:5px}
+.tf-libpath .tpill{max-width:192px}
 .tf-usedby{font-size:11.5px;color:var(--ink2);display:block;max-width:124px;line-height:1.35;overflow-wrap:anywhere}
 /* An unbound face is a real state since #287, not an error — muted, never warning-colored. */
 .tf-usedby.unbound{color:var(--faint);font-style:italic}
