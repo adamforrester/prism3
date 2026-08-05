@@ -54,7 +54,74 @@ export interface TextStylesApi {
   loadFontAsync(fontName: FontName): Promise<void>;
   /** The variable index for binding — reuses the same `getLocalVariablesAsync` the var executor uses. */
   getLocalVariablesAsync(type?: string): Promise<Variable[]>;
+  /** The real (family, style) pairs this Figma can load (#499). OPTIONAL: without it the executor uses
+   *  the plan's emitted style verbatim, which is exactly the pre-#499 behavior — so the paste path and
+   *  any older shim keep working unchanged. */
+  listAvailableFontsAsync?(): Promise<ReadonlyArray<{ fontName: { family: string; style: string } }>>;
 }
+
+/* ---- #499: the emitted style name is a GUESS, and no fixed guess can be right ------------------
+ *
+ * `WEIGHT_STYLE_NAME` in the engine hardcodes a Figma style name per numeric weight, but the spelling
+ * of a weight is per-FAMILY. Measured against a real 2,334-family library:
+ *
+ *     Semi Bold / SemiBold     →  3 spaced,  575 tight,  0 carrying BOTH
+ *     Extra Bold / ExtraBold   →  4 spaced,  400 tight,  0 carrying BOTH
+ *     Extra Light / ExtraLight →  2 spaced,  406 tight,  0 carrying BOTH
+ *
+ * `both` is zero in every row: a family carries one spelling or the other, never both, so any fixed
+ * string is wrong for whichever set it does not match and there is no safe default. The cost was real
+ * and silent — under skip-with-warning a brand asking for 600 lost those styles on 575 families for a
+ * NAMING reason, not a font-availability one (harbor: 2 of 2,334 families satisfiable).
+ *
+ * The fix is to stop guessing at write time, where the real list is in hand. The engine keeps emitting
+ * its guess — the CLI has no font library to ask, so it has nothing better — and that guess becomes the
+ * PREFERRED CANDIDATE rather than the answer. Deliberately no engine change: the emitted artifacts and
+ * fixtures stay byte-identical, and the capability split falls where the capability actually is.
+ */
+
+/** Case/space/punctuation-insensitive style key: `Semi Bold` ≡ `SemiBold` ≡ `semi-bold`. */
+export const normStyle = (s: string): string => s.toLowerCase().replace(/[\s\-_]+/g, '');
+
+/* Weight words that name the same weight. Within a class every member is interchangeable, so this is
+ * an equivalence CLASS rather than a directional fallback list — `DemiBold` should satisfy a request
+ * for `SemiBold` and vice versa. Members are matched longest-first because several are substrings of
+ * their siblings (`demi` inside `demibold`), and a short match would rewrite the wrong span. */
+const WEIGHT_SYNONYMS: string[][] = [
+  ['semibold', 'demibold', 'demi'],
+  ['extrabold', 'ultrabold'],
+  ['extralight', 'ultralight'],
+  ['black', 'heavy'],
+  ['thin', 'hairline'],
+].map((c) => [...c].sort((a, b) => b.length - a.length));
+
+/**
+ * The real style name for a desired one, given what the family actually has (#499).
+ *
+ * Three passes, narrowest first: exact, then spelling-insensitive (the measured bug), then weight
+ * synonyms. Returns `undefined` when the family genuinely lacks the weight — that is a real
+ * skip-with-warning, and collapsing it into a substitute face is the thing #237 decided not to do.
+ *
+ * Works on the normalized string throughout, so an italic suffix rides along for free:
+ * `semibolditalic` → `demibolditalic` without italic needing its own case.
+ */
+export const resolveFontStyle = (available: readonly string[], desired: string): string | undefined => {
+  const byNorm = new Map<string, string>();
+  for (const s of available) if (!byNorm.has(normStyle(s))) byNorm.set(normStyle(s), s);
+  const want = normStyle(desired);
+  const direct = byNorm.get(want);
+  if (direct) return direct;
+  for (const cls of WEIGHT_SYNONYMS) {
+    const member = cls.find((m) => want.includes(m));
+    if (!member) continue;
+    for (const alt of cls) {
+      if (alt === member) continue;
+      const hit = byNorm.get(want.replace(member, alt));
+      if (hit) return hit;
+    }
+  }
+  return undefined;
+};
 
 /** What the text-style executor did — surfaced to the UI + asserted by the harness. */
 export type TextStyleApplyResult = {
@@ -66,6 +133,10 @@ export type TextStyleApplyResult = {
   bound: number;
   /** bound target var names not found (should be empty — the var plan writes them first). */
   misses: string[];
+  /** rows whose emitted style name was corrected against the family's real styles (#499) — e.g. the
+   *  plan asked for `Semi Bold` and the family spells it `SemiBold`. Zero means every guess was already
+   *  right (or no font library was available to check against). */
+  resolvedStyles: number;
 };
 
 /**
@@ -79,17 +150,41 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
   // Unfiltered — the bound targets are STRING (family) + FLOAT (size/weight) vars (the #146 lesson).
   const varByName = new Map((await api.getLocalVariablesAsync()).map((v) => [v.name, v] as const));
 
+  // family → its real style names (#499). Fetched ONCE for the whole plan: Figma returns one entry per
+  // (family, style) pair — ~11k for a full library — and every row would otherwise re-ask. A host that
+  // does not offer the call, or one whose call fails, leaves this empty and every row falls back to the
+  // plan's emitted style, i.e. exactly the pre-#499 behavior. A resolver that cannot see the library
+  // must not be worse than no resolver.
+  const stylesByFamily = new Map<string, string[]>();
+  try {
+    for (const f of (await api.listAvailableFontsAsync?.()) ?? []) {
+      const list = stylesByFamily.get(f.fontName.family);
+      if (list) list.push(f.fontName.style);
+      else stylesByFamily.set(f.fontName.family, [f.fontName.style]);
+    }
+  } catch {
+    /* library unavailable — fall through to the emitted guess, same as before #499 */
+  }
+
   let created = 0;
+  let resolvedStyles = 0;
   let bound = 0;
   const skipped: { name: string; reason: string }[] = [];
   const misses: string[] = [];
 
   for (const row of plan) {
+    // Resolve the plan's guessed style against what this family actually has (#499). With no library
+    // in hand the guess stands unchanged. `resolveFontStyle` returning undefined means the family
+    // really lacks the weight under any spelling — keep the emitted name so the skip reason names what
+    // was ASKED FOR rather than some near-miss the resolver considered.
+    const available = stylesByFamily.get(row.fontFamilyPrimary);
+    const style = (available && resolveFontStyle(available, row.fontStyle)) || row.fontStyle;
+    if (style !== row.fontStyle) resolvedStyles++;
     // Load the font first — skip-with-warning if it (or the specific style) isn't available.
     try {
-      await api.loadFontAsync({ family: row.fontFamilyPrimary, style: row.fontStyle });
+      await api.loadFontAsync({ family: row.fontFamilyPrimary, style });
     } catch (e) {
-      skipped.push({ name: row.name, reason: `font unavailable: ${row.fontFamilyPrimary} ${row.fontStyle}${(e as Error)?.message ? ` (${(e as Error).message})` : ''}` });
+      skipped.push({ name: row.name, reason: `font unavailable: ${row.fontFamilyPrimary} ${style}${(e as Error)?.message ? ` (${(e as Error).message})` : ''}` });
       continue;
     }
 
@@ -101,7 +196,7 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     // the plan has always carried it and this executor silently dropped it, so the sibling
     // `materialise-to-figma.ts` paste path would have written it and the plugin would not.
     s.description = row.description;
-    s.fontName = { family: row.fontFamilyPrimary, style: row.fontStyle };
+    s.fontName = { family: row.fontFamilyPrimary, style };   // the RESOLVED style — must match what was loaded
     s.lineHeight = { unit: 'PERCENT', value: row.lineHeightPct };
     s.letterSpacing = { unit: 'PERCENT', value: row.letterSpacingPct };
     s.textCase = row.textCase;
@@ -121,5 +216,5 @@ export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi
     bind('fontWeight', row.fontWeightVar);
   }
 
-  return { total: plan.length, created, skipped, bound, misses };
+  return { total: plan.length, created, skipped, bound, misses, resolvedStyles };
 };
