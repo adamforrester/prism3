@@ -866,6 +866,10 @@ built.forEach((c,i)=>{
   if(!first)sizeByGroup.set(g,{box,name:PLANS[i].name});
   else if(first.box!==box)footprint.push('footprint -> '+PLANS[i].name+' measures '+box+' but '+first.name+' measures '+first.box+' (same '+g+')');
 });
-return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows.length)},${JSON.stringify(cols.length)}],axes:derived.map(k=>k+':'+(props[k].variantOptions||[]).length),properties:[...bare.keys()].map(k=>k+':'+props[bare.get(k)].type),refs:wiredRefs.length,misses:misses.concat(axisMiss,coincident,footprint,propMiss)};
+// \`wiredMembers\` alongside \`refs\` because the two answer different questions and only the second one
+// matters: \`refs\` is a push-count, so 42 writes onto ONE member satisfies it as readily as 42 spread
+// across twenty-one. Since the whole point of the per-member loop is that references do NOT propagate,
+// the number worth reporting is how many members were reached — SPREAD, not volume (#513 review).
+return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows.length)},${JSON.stringify(cols.length)}],axes:derived.map(k=>k+':'+(props[k].variantOptions||[]).length),properties:[...bare.keys()].map(k=>k+':'+props[bare.get(k)].type),refs:wiredRefs.length,wiredMembers:[...new Set(wiredRefs.map(r=>r[0]))].length,misses:misses.concat(axisMiss,coincident,footprint,propMiss)};
 `;
 };

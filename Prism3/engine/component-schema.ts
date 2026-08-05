@@ -415,8 +415,19 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // The placeholder is REQUIRED to say something. An empty default is exactly what Figma accepts and
   // what #510 shipped — 21 variants with nothing readable in them — so a def that declares a TEXT
   // property and leaves its copy blank is stating the one thing the field exists to prevent.
+  //
+  // ZERO-WIDTH characters are stripped before the test, not just whitespace. `.trim()` handles the
+  // space family including U+00A0, but `'​'.trim()` is truthy — so a zero-width space satisfied a
+  // check whose entire subject is whether the label RENDERS anything (#513 review). Nobody types one
+  // deliberately; they survive copy-paste out of design tools, which is exactly how a def gets written.
+  // The set is the invisible formatting characters rather than U+200B alone: the test is "does this
+  // advance the caret", and narrowing it to the one character that was probed would leave the next
+  // member of the same class to be found the same way.
+  // Written as \u escapes deliberately: the literal characters are INVISIBLE in source, so a reader
+  // cannot see what the class contains and a diff cannot show one being added or dropped.
+  const renders = (s: string) => s.replace(/[\u200B-\u200F\u2028-\u202E\u2060-\u2064\uFEFF]/g, '').trim();
   for (const [prop, t] of Object.entries(fp.texts ?? {})) {
-    if (!t.default || !t.default.trim()) e.push(`figmaProperties.texts.${prop}.default is empty — a TEXT property with no placeholder builds a component with an unreadable label, which is what the field exists to prevent`);
+    if (!t.default || !renders(t.default)) e.push(`figmaProperties.texts.${prop}.default is empty — a TEXT property with no placeholder builds a component with an unreadable label, which is what the field exists to prevent`);
   }
 
   return e;

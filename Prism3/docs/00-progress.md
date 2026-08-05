@@ -80,6 +80,31 @@ hug layout reacting to an override rather than a static box that happens to cont
 **Next.** The `booleans` path is covered by unit tests through a synthetic def but has not been exercised
 live, because no shipping component def uses one yet — the first one that does should paste a slice.
 
+**Review fixes (#513), both the same mistake in two places.** The should-fix: `refs === 42` asserted
+"every member is wired individually", and it could not. `refs` is `wiredRefs.length` — a **push-count**,
+so 42 writes onto one member satisfies it as readily as 42 across twenty-one, which the reviewer showed
+by replacing the loop's subject with member 0 repeated 21 times (green, twenty members inert). That is
+verbatim the scenario the assertion's own message describes, since references do **not** propagate and a
+set wired once looks correct on whichever variant a designer inspects first. `slice(0,1)` was caught only
+because 2 ≠ 42. The payload now also returns `wiredMembers` (distinct first elements of `wiredRefs`) and
+the assertion checks **spread, not volume**: `wiredMembers === 21 && refs === 42`. The reviewer's exact
+mutation now reports `1/21 distinct members reached across 42 writes`.
+
+Worth recording *why* this slipped, because the reasoning was already in this PR: the
+`addComponentProperty` finding is that a duplicate name is **renamed rather than refused**, so a count
+match proves nothing about identity — which is why the property read-back compares names verbatim. The
+same argument applies to refs one paragraph later and wasn't carried across. **A count measures volume,
+not spread**, and the two are only equal when something else guarantees the spread.
+
+The nit was the same shape at character scale: the new placeholder check rejected empty and
+whitespace-only defaults, but `'\u200B'.trim()` is truthy, so a zero-width space passed a check whose
+entire subject is whether the label **renders**. Fixed as the class rather than the character — the
+invisible formatting ranges are stripped before `.trim()` — because narrowing to the one codepoint that
+was probed leaves the next member of the same class to be found the same way. Both the character class
+and the new test case are written as `\u` escapes: literal invisible characters are unreviewable in
+source, and a diff cannot show one being added or dropped. The case is mutation-verified — reverting
+`renders()` to `.trim()` fails exactly that one assertion. `test.ts` 1624 → 1625.
+
 ---
 
 ## (2026-08-05) — A label that spells the path the pill prints, and a ring that never fires (#504 review)

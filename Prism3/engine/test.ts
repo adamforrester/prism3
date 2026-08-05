@@ -5649,7 +5649,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // describe a behavior tests the words. So run it. A stub Figma with an EMPTY variable set is the
     // realistic failure — token passes not run, or one variable renamed — and it is the case where
     // `misses[]` has to be trustworthy, because this whole design rests on it being the only channel.
-    type PayloadResult = { misses: string[]; properties?: string[]; refs?: number; axes?: string[] };
+    type PayloadResult = { misses: string[]; properties?: string[]; refs?: number; wiredMembers?: number; axes?: string[] };
     const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[] } = {}): Promise<PayloadResult> => {
       const names = new Set(opts.vars ?? []);
       const mkVar = (name: string) => ({ id: `V:${name}`, name });
@@ -5881,9 +5881,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // asserting it would gate a promise the API does not make.
       ok(JSON.stringify([...(setRun.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
         `set properties: the set comes back carrying both properties — got ${JSON.stringify(setRun.properties)}`);
-      // 21 members × 2 refs. The count matters because references do NOT propagate: wiring only the
-      // first variant leaves the other twenty inert, and looks correct on whichever one is inspected.
-      ok(setRun.refs === 42, `set properties: every member is wired individually (${setRun.refs} refs = 21 variants × 2) — a reference set on one variant does not propagate to its siblings`);
+      // 21 members × 2 refs, asserted as SPREAD and not just volume. `refs` alone is a push-count, so a
+      // loop that wired member 0 twenty-one times would satisfy `refs === 42` with twenty members left
+      // inert — the exact scenario this assertion's own message describes, since references do NOT
+      // propagate and a set wired once looks correct on whichever variant is inspected first. Same shape
+      // as this step's `addComponentProperty` finding: a duplicate name is renamed rather than refused, so
+      // a count match proves nothing about identity. That reasoning was applied to property names and
+      // initially not to refs (#513 review).
+      ok(setRun.wiredMembers === 21 && setRun.refs === 42,
+        `set properties: every member is wired individually — ${setRun.wiredMembers}/21 distinct members reached across ${setRun.refs} writes (2 each)`);
       // The AXIS READ-BACK still agrees, which is the regression this step nearly caused: non-variant
       // keys carry a `#nodeId` suffix and variant keys do not, so comparing all keys reported a mismatch
       // on a correct set the moment one TEXT property existed.
@@ -5986,6 +5992,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // produces: 21 variants, every binding resolved, nothing readable in any of them.
     brokeFp('a TEXT property with an empty default fails', /no placeholder/, { texts: { children: { part: 'label', default: '' } } });
     brokeFp('a whitespace-only default fails too — a space is not copy', /no placeholder/, { texts: { children: { part: 'label', default: '  ' } } });
+    // A ZERO-WIDTH space passed this check until #513's review probed it: `.trim()` handles the space
+    // family including U+00A0, but `'\u200B'.trim()` is truthy. It advances the caret by nothing, which
+    // is the exact condition the field exists to catch. Written as an escape because the literal
+    // character is invisible here too — a reader could not tell this case from the empty-string one.
+    brokeFp('a zero-width space fails — the test is whether the label RENDERS, not whether the string is non-empty',
+      /no placeholder/, { texts: { children: { part: 'label', default: '\u200B' } } });
     ok(figmaPropertyErrors({ ...button, anatomy: undefined }).some((x) => /requires `anatomy`/.test(x)),
       'figmaProperties gate: a projection without anatomy fails (its maps target anatomy parts)');
   }
