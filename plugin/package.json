@@ -9,7 +9,7 @@
     "watch": "node build.mjs --watch",
     "fresh": "node build.mjs && echo '\\n✅ Plugin rebuilt with the latest web/src UI — reload the plugin in Figma (no re-import needed).'",
     "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.ui.json",
-    "test": "npx tsx test-write.ts && npx tsx test-readback.ts && npx tsx test-persist.ts && npx tsx test-write-float.ts && npx tsx test-write-styles.ts && npx tsx test-write-typography.ts && npx tsx test-list-fonts.ts"
+    "test": "npx tsx test-write.ts && npx tsx test-readback.ts && npx tsx test-persist.ts && npx tsx test-write-float.ts && npx tsx test-write-styles.ts && npx tsx test-write-typography.ts && npx tsx test-list-fonts.ts && npx tsx test-apply-summary.ts"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.131.0",
