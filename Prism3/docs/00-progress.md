@@ -38,6 +38,17 @@ whichever mode the bar holds — the bar does not scope it. Reverted to `'shared
 column-per-mode tables. Claiming the bar scoped an editor it has no effect on would have been a badge
 that lies, and only the measurement knew.
 
+**Three copy defects the engine gates could never have caught — only a screenshot did.** Worth naming
+because the feature was fully working and fully green when all three were live:
+- The section still read *"the rest are generated and fixed"*, two lines above a table that substitutes
+  them per mode. The same shape as the ring #512 killed: prose asserting something the code stopped
+  doing.
+- The table's row header said **Rung**, inherited from the ladders. These are motion ROLES.
+- Every cell printed the resolved bezier, so the row never said WHICH CURVE a role resolves to — the
+  entire point of the row — repeated a 24-character string three times across, and clipped the last
+  mode column. Rows now carry the curve NAME and the options array carries the numbers; the two arrays
+  were already separate, so this needed no extra formatter.
+
 **Traps.**
 - Rows are ROLES, options are CURVES — a 4×6 relationship, unlike the ladders where rows and options
   are the same set. `renderRepointTable` grew an `options` param and a per-row `base` (role `default`

@@ -2745,7 +2745,7 @@ const renderEasingEditor = (): HTMLElement => {
   // "the Motion specimen's emphasized BAR" was a stale reference — the specimen was rebuilt as curve
   // cards and has had no bars since; the copy outlived the rendering it pointed at.
   // No backticks in visible copy — el() escapes its text, so markdown ships literally (doc 26).
-  const wrap = palSection('Easing', 'Six curves. Only “emphasized” is authored — the rest are generated and fixed. Its four control points are below, and the Motion specimen traces it on the emphasized card.');
+  const wrap = palSection('Easing', 'Six curves. Only “emphasized” is authored — the rest are generated, and no curve’s numbers change per mode. What a mode CAN change is which curve each motion role uses — the table at the foot. Its four control points are below, and the Motion specimen traces it on the emphasized card.');
   const cur = (brandState.motionPersonality?.easingEmphasized ?? theme.motion.easing.emphasized) as number[];
   const row = el('div', 'adv-bez');
   const inputs: HTMLInputElement[] = [];
@@ -2777,12 +2777,18 @@ const renderEasingEditor = (): HTMLElement => {
   if (rp.modes.length > 1) {
     const m = theme.motion;
     const curve = (k: string) => `cubic-bezier(${(m.easing[k] ?? []).join(', ')})`;
+    // Rows carry the curve NAME, options carry its numbers — the two arrays are already separate, so
+    // this needs no extra formatter. The first pass printed the bezier in every cell: it never said
+    // which curve a role resolves to (the whole point of the row), repeated a 24-character string
+    // three times across, and clipped the last column. The numbers live on the worth line under each
+    // select, and on the curve cards directly above.
     wrap.append(renderRepointTable(
       'Easing per mode',
-      m.easingRoles.map((r) => ({ key: r.role, val: curve(r.curve), base: r.curve })),
+      m.easingRoles.map((r) => ({ key: r.role, val: r.curve, base: r.curve })),
       (v) => String(v),
       'easings',
       Object.keys(m.easing).map((k) => ({ key: k, val: curve(k) })),
+      'Role',
     ));
   }
   return wrap;
@@ -4377,6 +4383,9 @@ const renderRepointTable = (
   // own key (role `default` resolves to curve `standard`), which is what the self-map skip and the
   // worth read-out must both key on rather than on the row name.
   options?: { key: string; val: number | string }[],
+  // The ladders' rows ARE rungs; easing's are motion roles. A header reading "Rung" over a column of
+  // role names is the kind of wrong only a screenshot catches.
+  rowLabel = 'Rung',
 ): HTMLElement => {
   const opts = options ?? steps;
   const modes = rp.modes;
@@ -4385,7 +4394,7 @@ const renderRepointTable = (
   const scroll = el('div', 'mtbl-scroll');
   const tbl = el('table', 'mtbl-tbl');
   const thead = el('thead'), htr = el('tr');
-  htr.append(el('th', 'mtbl-stick', 'Rung'));
+  htr.append(el('th', 'mtbl-stick', rowLabel));
   for (const m of modes) {
     const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
