@@ -1266,6 +1266,33 @@ for (const b of brands) {
   const stable = (v: any): any => Array.isArray(v) ? v.map(stable)
     : (v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])])) : v);
 
+  // (a0) modeLevers:{dark:{easings:{...}}} — the ROLE tier re-points, the curve primitive does not move.
+  //      #522: this is the invariant the whole design turns on, so it is asserted rather than assumed.
+  {
+    const rp = { ...base, modeLevers: { dark: { easings: { emphasized: 'calm' } } } } as unknown as BrandInput;
+    const mo = buildTree(brandTheme(rp)).tree[root].motion;
+    const role = mo['easing-role'].emphasized;
+    ok(role.$value === `{${root}.motion.easing.emphasized}`,
+      `D(a0): light keeps the baseline curve (got ${role.$value})`);
+    ok(role.$extensions.prism3.modes?.dark?.$value === `{${root}.motion.easing.calm}`,
+      `D(a0): dark re-points the ROLE at calm (got ${role.$extensions.prism3.modes?.dark?.$value})`);
+    ok(mo.easing.emphasized.$extensions?.prism3?.modes === undefined,
+      'D(a0): the CURVE primitive carries no per-mode override — a mode re-points, it never redefines');
+    ok(mo.transition.emphasized.$value.timingFunction === `{${root}.motion.easing-role.emphasized}`,
+      `D(a0): the transition names the role, so it inherits the re-point (got ${mo.transition.emphasized.$value.timingFunction})`);
+    ok(mo['easing-role'].default.$extensions?.prism3?.modes === undefined,
+      'D(a0): an unre-pointed role is untouched (no blanket override)');
+    // no-diff suppression, matching every other axis
+    const selfMap = { ...base, modeLevers: { dark: { easings: { emphasized: 'emphasized' } } } } as unknown as BrandInput;
+    ok(buildTree(brandTheme(selfMap)).tree[root].motion['easing-role'].emphasized.$extensions?.prism3?.modes === undefined,
+      'D(a0): a self-map is dropped — an inert declaration cannot mint an override');
+    // both halves of the reference validated, so a typo cannot resolve to nothing
+    ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { easings: { emphasized: 'nope' } } } } as unknown as BrandInput)),
+      'D(a0): an unknown CURVE is rejected');
+    ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { easings: { nope: 'calm' } } } } as unknown as BrandInput)),
+      'D(a0): an unknown ROLE is rejected');
+  }
+
   // (a) modeLevers:{dark:{radius:0}} — a non-zero rung (md) gets a dark override aliasing dimension.0;
   //     light's canonical $value is untouched, and radius.none (already 0) carries no override.
   const sharpDark = { ...base, modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput;

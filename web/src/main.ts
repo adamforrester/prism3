@@ -449,6 +449,11 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   // Elevation
   'Shadow': 'per-mode', 'Elevation ramp': 'shared',
   // Motion
+  // Easing is 'shared', not 'per-mode', and the audit is what caught the difference. Its per-mode
+  // control is a COLUMN-PER-MODE table (#522), so it edits every mode at once and its markup is
+  // identical whichever mode the bar holds — the bar does not scope it. With `hasControls` true the
+  // three-state badge renders "Editing · All modes", which is exactly the case #437 proposed that
+  // label for. Marking it 'per-mode' claimed the bar scoped an editor it has no effect on.
   'Tempo': 'per-mode', 'Easing': 'shared', 'Motion': 'shared',
   'Duration ramp': 'shared', 'Springs': 'shared',
   // Preview — read-only end to end
@@ -2765,6 +2770,21 @@ const renderEasingEditor = (): HTMLElement => {
     strip.append(card);
   }
   wrap.append(strip);
+  // Per-mode re-point (#522). The curves themselves stay mode-invariant primitives — a mode swaps
+  // which curve a ROLE resolves to, the same contract as the leading and tracking ladders, in the same
+  // table. `calm` is the case this exists for: the engine describes it as a soft onset for long or
+  // involuntary motion, which is exactly the substitution a dark or reduced-intensity mode wants.
+  if (rp.modes.length > 1) {
+    const m = theme.motion;
+    const curve = (k: string) => `cubic-bezier(${(m.easing[k] ?? []).join(', ')})`;
+    wrap.append(renderRepointTable(
+      'Easing per mode',
+      m.easingRoles.map((r) => ({ key: r.role, val: curve(r.curve), base: r.curve })),
+      (v) => String(v),
+      'easings',
+      Object.keys(m.easing).map((k) => ({ key: k, val: curve(k) })),
+    ));
+  }
   return wrap;
 };
 
@@ -4348,10 +4368,17 @@ const renderWeightRoles = (): HTMLElement => {
  *  select. Same geometry tokens as the size and weight tables so all four line up on one grid. */
 const renderRepointTable = (
   caption: string,
-  steps: { key: string; val: number }[],
-  fmt: (v: number) => string,
-  modeField: 'lineHeights' | 'letterSpacings',
+  steps: { key: string; val: number | string; base?: string }[],
+  fmt: (v: number | string) => string,
+  modeField: 'lineHeights' | 'letterSpacings' | 'easings',
+  // The ladders re-point a rung at ANOTHER RUNG, so rows and options are the same set. Easing does
+  // not: rows are the four motion ROLES and options are the six CURVES (#522). Hence the seam —
+  // `options` defaults to `steps`, and `base` names the row's baseline target when it is not the row's
+  // own key (role `default` resolves to curve `standard`), which is what the self-map skip and the
+  // worth read-out must both key on rather than on the row name.
+  options?: { key: string; val: number | string }[],
 ): HTMLElement => {
+  const opts = options ?? steps;
   const modes = rp.modes;
   const box = el('div', 'mtbl');
   box.append(el('p', 'mtbl-cap', caption));
@@ -4399,8 +4426,8 @@ const renderRepointTable = (
         // column width ellipsised "relaxed · 1.65×" down to "relaxed · 1..." — truncating the one
         // thing a cell must always say. The values are one column to the left, on every row.
         sel.append(optionEl('', 'Auto', !ov));
-        for (const t of steps) {
-          if (t.key === s.key) continue;                       // a self-map is a no-op; don't offer it
+        for (const t of opts) {
+          if (t.key === (s.base ?? s.key)) continue;           // a self-map is a no-op; don't offer it
           sel.append(optionEl(t.key, t.key, ov === t.key));
         }
         sel.setAttribute('aria-label', `${s.key} in ${MODE_LABEL[m] ?? m}`);
@@ -4412,7 +4439,7 @@ const renderRepointTable = (
         // LINE rather than into the option text because a closed select renders exactly what it lists,
         // and "relaxed · 1.65×" ellipsised to "relaxed · 1..." at this column width — truncating the one
         // thing the cell must always say. Height is the affordable axis here; width is not.
-        const worth = steps.find((t) => t.key === (ov ?? s.key));
+        const worth = opts.find((t) => t.key === (ov ?? s.base ?? s.key));
         if (worth) td.append(el('span', 'mtbl-worth mono' + (ov ? ' set' : ''), fmt(worth.val)));
       }
       tr.append(td);

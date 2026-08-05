@@ -53,6 +53,12 @@
         "additionalProperties": false,
         "properties": {
           "radius": { "type": "number", "minimum": 0, "maximum": 2, "description": "OPTIONAL. Per-mode radius scale (0=sharp corners … 1=system default … 2=very soft). Re-derives this mode's radius ramp via the same radiusScale(value, baseMd) the global lever uses; only rungs whose px differs from light carry a per-mode override." },
+          "easings": {
+            "type": "object",
+            "additionalProperties": { "type": "string", "enum": ["linear", "standard", "enter", "exit", "emphasized", "calm"] },
+            "propertyNames": { "enum": ["default", "enter", "exit", "emphasized"] },
+            "description": "OPTIONAL. Per-mode EASING RE-POINT — maps a motion ROLE to another CURVE: { \"emphasized\": \"calm\" } reads \"in this mode, transitions that would use the emphasized curve use calm instead\". Names an existing curve, never a bezier: the six curves are mode-invariant primitives and a mode re-points rather than re-anchors, the same contract as lineHeights/letterSpacings. Only a role whose curve differs from the baseline carries an override on the motion.easing-role.<role> semantic; motion.transition.* inherits via its alias. A self-map is dropped. Deep-validated by brandTheme() (role and curve must both exist)."
+          },
           "families": {
             "type": "object",
             "additionalProperties": false,

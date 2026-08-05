@@ -9251,6 +9251,52 @@
           }
         }
       },
+      "easing-role": {
+        "default": {
+          "$type": "cubicBezier",
+          "$value": "{nbds.motion.easing.standard}",
+          "$description": "easing role 'default' → standard — the intent a transition names, so a mode can substitute a curve without redefining one",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.motion.easing.standard"
+            }
+          }
+        },
+        "enter": {
+          "$type": "cubicBezier",
+          "$value": "{nbds.motion.easing.enter}",
+          "$description": "easing role 'enter' → enter — the intent a transition names, so a mode can substitute a curve without redefining one",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.motion.easing.enter"
+            }
+          }
+        },
+        "exit": {
+          "$type": "cubicBezier",
+          "$value": "{nbds.motion.easing.exit}",
+          "$description": "easing role 'exit' → exit — the intent a transition names, so a mode can substitute a curve without redefining one",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.motion.easing.exit"
+            }
+          }
+        },
+        "emphasized": {
+          "$type": "cubicBezier",
+          "$value": "{nbds.motion.easing.emphasized}",
+          "$description": "easing role 'emphasized' → emphasized — the intent a transition names, so a mode can substitute a curve without redefining one",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "nbds.motion.easing.emphasized"
+            }
+          }
+        }
+      },
       "spring": {
         "snappy": {
           "$type": "spring",
@@ -9303,7 +9349,7 @@
           "$type": "transition",
           "$value": {
             "duration": "{nbds.motion.duration.normal}",
-            "timingFunction": "{nbds.motion.easing.standard}",
+            "timingFunction": "{nbds.motion.easing-role.default}",
             "delay": "0ms"
           },
           "$description": "motion default — standard in-place transition (normal + standard)",
@@ -9317,7 +9363,7 @@
           "$type": "transition",
           "$value": {
             "duration": "{nbds.motion.duration.normal}",
-            "timingFunction": "{nbds.motion.easing.enter}",
+            "timingFunction": "{nbds.motion.easing-role.enter}",
             "delay": "0ms"
           },
           "$description": "motion enter — entrance — element settles in (normal + enter)",
@@ -9331,7 +9377,7 @@
           "$type": "transition",
           "$value": {
             "duration": "{nbds.motion.duration.fast}",
-            "timingFunction": "{nbds.motion.easing.exit}",
+            "timingFunction": "{nbds.motion.easing-role.exit}",
             "delay": "0ms"
           },
           "$description": "motion exit — exit — element accelerates out (fast + exit)",
@@ -9345,7 +9391,7 @@
           "$type": "transition",
           "$value": {
             "duration": "{nbds.motion.duration.moderate}",
-            "timingFunction": "{nbds.motion.easing.emphasized}",
+            "timingFunction": "{nbds.motion.easing-role.emphasized}",
             "delay": "0ms"
           },
           "$description": "motion emphasized — expressive / hero moment (moderate + emphasized)",
@@ -14184,7 +14230,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
