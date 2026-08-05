@@ -36,6 +36,105 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-05 — from probing a real `INSTANCE_SWAP` target (#487 step 3 prep)
+
+The owner authored two components by hand in the test file — an `FPO-default-icon` and a `focus-ring`
+component set — and the paste path was probed against them over the live bridge rather than reasoned
+about. Everything below came out of that probe. Two of the four are silent-failure findings, which is
+the class this file exists for: the plan asserts a capability, nothing throws, and the artifact is
+quietly wrong.
+
+### `[GATE]` An INSTANCE cannot bind both `width` and `height`, and it does not throw
+
+`figmaAnatomyPlan` emits `bound: {width, height}` for every `slot` part, from the one
+`size.{size}.icon` key. That is correct for a `FRAME` and **wrong for an `INSTANCE`** — which is what
+a slot becomes once `INSTANCE_SWAP` is actually implemented. Measured, same variable, same two calls
+in the same order:
+
+```
+FRAME                        → boundVariables: ["width","height"]     ✅ both
+INSTANCE (standalone)        → boundVariables: ["width"]              height dropped
+INSTANCE (in auto-layout)    → boundVariables: ["height"]             width dropped
+```
+
+Neither `setBoundVariable` call throws. Binding one alone works; binding the second silently evicts
+the first, and **which one survives depends on the parent's `layoutMode`** — so the same plan produces
+different results depending on where the node lands.
+
+This is the `setBoundVariable('effects', …)` failure from #493 one turn worse. There the API simply
+did not exist, so a test could assert on its absence. Here the API exists, accepts the call, returns
+without error, and discards the write. `misses[]` cannot catch it either: that array only fills when
+`byName.get(varName)` finds nothing, and the variable resolves fine. A component pasted this way looks
+successful, reports zero misses, and has half its icon sizing missing.
+
+The fix is not a second binding — it is `resize()` plus `layoutSizingHorizontal`/`Vertical` on
+instances. The gate: **assert no plan emits both `width` and `height` in `bound` on a node whose type
+is `INSTANCE_SWAP`.** Generalizing past this instance: *a Figma setter that accepts a call is not a
+Figma setter that honored it.* Where a projection field maps to a setter, the probe must read the
+value back — `#493`'s three-namespaces-three-fields rule assumed a throw would announce the mismatch,
+and this is the case where nothing announces anything.
+
+### `[GATE]` `INSTANCE_SWAP`'s default value is a node ID, not a component key
+
+```
+addComponentProperty(name, 'INSTANCE_SWAP', icon.key)  → throws "Property value is incompatible
+                                                          with component property type"
+addComponentProperty(name, 'INSTANCE_SWAP', icon.id)   → OK  ("leadingVisual#73:0")
+```
+
+`key` is the wrong guess in the most plausible way available: it is what `figma_search_components`
+returns, what cross-file instantiation consumes, and the stable identifier every other part of this
+workflow uses. It is not what this setter wants. Wiring then needs a second, separate step —
+`slot.componentPropertyReferences = {mainComponent: propId}` — and the returned property ID carries a
+`#nodeId` suffix that must be used verbatim, not the bare name.
+
+This one at least throws, which is why it is a footnote rather than the entry above. Worth recording
+because the error message names neither `key` nor `id` and gives a reader no direction.
+
+### `[KB]` The focus ring is an ABSOLUTE sibling — which dissolves the collision, and names the fifth part kind
+
+#493 left the ring's projection open with two options, both lossy: draw it on the target and lose
+`appearance: outline`'s border to it, or add a part. The hand-authored component answers it with a
+third: `layoutPositioning: ABSOLUTE`, zero children, `clipsContent: false`.
+
+That is strictly better than either option and was not on the list. An absolutely-positioned sibling
+has **its own stroke**, so the 550-ring/500-border/550-fill contention over one node's single stroke
+simply does not arise, and it takes no space in the row so no geometry shifts. It also confirms the
+ring must be a part after all — but a part with a property no current kind has, which is the schema
+finding: `anatomy.parts`' four kinds cannot express "does not participate in layout flow." `overlay`
+is the near miss and its validation demands `replaces:`, because its semantic is *takes another part's
+position*; the ring takes nobody's. The fifth kind is **absolute sibling of the target**, and it stays
+the first kind whose materialization needs another component to already exist in the file.
+
+The component set also carries a `color = default | inverse` axis, which lands on emitted pairs
+(`color/border/focus`, and the `color/interactive/{intent}/on-inverse/*` family) — evidence for the
+"one shared thing with a per-context parameter" reading in the entry below, from a source that had no
+reason to be arguing for it.
+
+### `[SKILL]` A hand-authored prototype encodes the structure, not the bindings — read it for the former
+
+The ring's structure is the finding above. Its bindings are all legacy or placeholder: strokes
+hardcoded (`#2D65D4` / `#AFC7F3`), radius `0`, and stroke weight bound to a **remote** variable
+(`pds/border/width/md`, from the old NB library) while Prism3's own `focus` collection emits
+`ring/width`, `ring/offset` and `ring/offset-field` unused. Likewise the icon's vector fill is a
+hardcoded gray.
+
+Neither is a defect — a component authored to demonstrate a shape is not a component authored to ship,
+and the shape is what was being communicated. But the two read very differently and an agent taking a
+handed-over artifact as authoritative will faithfully reproduce its placeholders. **Take the structure
+from a prototype and the bindings from the def.** Same shape as "a spec derived from artifacts can be
+confidently wrong about intent" below, with the polarity flipped: there the artifact was generated and
+authoritative and still wrong about *why*; here it is hand-made and provisional and exactly right
+about *what*.
+
+One binding gap is real rather than provisional, and it is the def's: there is no
+`color/interactive/{intent}/icon` variable at all. The def routes icon color through `on-fill` and
+`text.rest`, so an icon's color has to be set on the vector *inside* the instance as a per-instance
+override — a different mechanism from every other binding in the plan, and one the projection has no
+field for yet.
+
+---
+
 ## 2026-08-04 — from #487 step 2 / #493 (the third namespace, and an unbound state)
 
 ### `[SKILL]` Read the ALIAS, not the value

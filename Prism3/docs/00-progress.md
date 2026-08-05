@@ -7,6 +7,85 @@
 
 ---
 
+## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
+
+**STATUS: docs only (`docs/32`).** No engine change yet — these are findings that must land before
+step 3 writes the code they constrain. Gates untouched and green at `d8061f6`.
+
+The owner hand-authored an `FPO-default-icon` component and a `focus-ring` component set in the test
+file and opened the bridge. Rather than read them and reason, the paste path was **probed against
+them live** — create an instance, make the exact calls `planToPluginJs` makes, read the values back.
+That distinction is the entry: two of the four findings are invisible to any amount of reading.
+
+### The one that matters: an INSTANCE silently refuses the second dimension
+
+`figmaAnatomyPlan` emits `bound: {width, height}` for every `slot`, both from `size.{size}.icon`.
+Correct for a `FRAME`; wrong for an `INSTANCE`, which is what a slot becomes the moment
+`INSTANCE_SWAP` is implemented. Same variable, same two calls, same order:
+
+```
+FRAME                      → ["width","height"]   ✅
+INSTANCE (standalone)      → ["width"]            height dropped
+INSTANCE (in auto-layout)  → ["height"]           width dropped
+```
+
+**Nothing throws.** Binding one works; the second evicts the first, and which one survives depends on
+the parent's `layoutMode` — so the same plan yields different results depending on where the node
+lands. `misses[]` cannot see it either: that array fills only when `byName.get()` misses, and the
+variable resolves fine. The paste reports success with zero misses and half the icon sizing gone.
+
+This is #493's `setBoundVariable('effects', …)` trap one degree worse, and worth stating as the
+sharper form of it. There, the API did not exist — a test could assert on its absence, which is
+exactly what #493 did. Here the API exists, accepts the call, returns cleanly, and discards the
+write. **The lesson #493 drew (three namespaces, three fields) assumed a mismatch would announce
+itself as a throw.** This is the case where nothing announces anything, so the rule has to be
+stronger: where a projection field maps to a setter, the gate must read the value back, not merely
+check that the name resolves. Fix is `resize()` + `layoutSizingHorizontal/Vertical`, plus an assertion
+that no plan emits both dimensions in `bound` on an `INSTANCE_SWAP` node.
+
+Second, smaller: `INSTANCE_SWAP`'s default value is the **node ID**, not the component key —
+`icon.key` throws "Property value is incompatible with component property type." `key` is the wrong
+guess in the most plausible way possible, since it is what `figma_search_components` returns and what
+cross-file instantiation takes. Wiring is a separate step (`componentPropertyReferences.mainComponent`)
+and the returned ID carries a `#nodeId` suffix to be used verbatim.
+
+### The ring: the owner's structure beats both options #493 listed
+
+#493 left the ring open with two lossy choices — draw it on the target and lose `outline`'s border to
+it, or add a part. The authored component supplies a third: **`layoutPositioning: ABSOLUTE`**, no
+children, `clipsContent: false`. An absolute sibling has its own stroke, so the
+550-ring/500-border/550-fill contention over one node's single stroke never arises, and it consumes no
+space so no geometry moves. Nothing traded.
+
+It does confirm the ring is a part — but one whose defining property no current kind has, which is
+the schema finding. `overlay` is the near miss and its validation demands `replaces:` because its
+semantic is *takes another part's position*; the ring takes nobody's. The fifth kind is **absolute
+sibling of the target**, still the first kind whose materialization depends on another component
+already existing in the file. Its `color = default | inverse` axis also lands on emitted pairs
+(`color/border/focus` + the `on-inverse` family), independently corroborating the "one shared thing
+with a per-context parameter" reading from #493.
+
+Its *bindings*, though, are legacy: hardcoded strokes, radius 0, and stroke weight bound to a
+**remote** `pds/border/width/md` from the old NB library while Prism3's `focus` collection emits
+`ring/width`/`ring/offset`/`ring/offset-field` unused. Hence the fourth entry: **take structure from a
+prototype and bindings from the def** — a component authored to demonstrate a shape is not one
+authored to ship, and an agent treating a handed-over artifact as authoritative reproduces its
+placeholders faithfully.
+
+One genuine def-tier gap surfaced: there is no `color/interactive/{intent}/icon` variable. Icon color
+routes through `on-fill`/`text.rest`, so it must be set on the vector *inside* the instance as a
+per-instance override — a mechanism the projection has no field for.
+
+### Next
+
+Step 3 is unchanged in scope but now has two constraints it did not have: the `INSTANCE_SWAP`
+implementation must not emit paired dimension bindings, and the gate must read values back rather
+than trust resolution. Recommendation stands: build the first paste **with** the icon (it is
+load-bearing — `figmaProperties.swaps` already declares slots the payload builder has no branch for,
+so #482 shipped empty 24×24 frames) and **without** the ring, which needs the fifth `PartKind` in its
+own PR.
+---
+
 ## (2026-08-05) — The plugin panel has been rendering blank, and no gate could see it (#496)
 
 **STATUS: `plugin/build.mjs` only.** No engine change, no emitted artifact, no source change to the
@@ -63,6 +142,7 @@ arm could not have worked in any case until this landed.**
 **Verification.** Browser-verified before/after (0 children + `missing ) after argument list` →
 full UI mounted, 1 script tag, bundle parses); guard mutation-tested; plugin build + both typechecks
 clean; engine gates untouched by construction.
+
 
 ---
 
