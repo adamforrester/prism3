@@ -6007,6 +6007,58 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const noIcon = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [] });
       ok(noIcon.misses.some((m) => /property leadingVisual -> swap target FPO-default-icon/.test(m)),
         `set properties: an unresolvable swap target is reported and the property is NOT created — Figma refuses '' and the component key alike (${JSON.stringify(noIcon.misses.filter((m) => m.includes('leadingVisual')))})`);
+
+      // ---- the BOOLEAN path through the PAYLOAD, not just the plan (#513's stated ceiling) --------
+      // #513 said "the `booleans` path is unit-tested through a synthetic def but not yet exercised
+      // live", and the coverage above (`boolProps`) is `planSetProperties` only — it proves the plan
+      // DECLARES a BOOLEAN and nothing about whether the payload can create one. That is #510's gap in
+      // miniature: a projection that is structurally right and produces an unusable file. So run it, and
+      // run it against what the live API was measured to do rather than what the docs imply:
+      //   · `addComponentProperty(name,'BOOLEAN',true)` is legal on a SET and returns a `#nodeId`-suffixed key
+      //   · the `visible` reference retains PER MEMBER, like `characters` and `mainComponent`
+      //   · an instance override genuinely hides the node — `setProperties({key:false})` → `visible === false`
+      //   · and, because the container hugs, hiding the slot REFLOWS it (134 → 102 measured; a FIXED
+      //     parent does not move, which is why the earlier 80-both-ways reading was not a contradiction)
+      // Only the first two are the emitter's to guarantee; the last two are why the property is worth
+      // declaring at all, and they were verified in a real file rather than asserted here.
+      const boolGrid = (['rest', 'hover'] as const).map((state) =>
+        figmaAnatomyPlan(boolDef, 'medium', { leading: true, trailing: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state }));
+      const boolOpts = {
+        vars: boolGrid.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+        styles: boolGrid.flatMap((p) => planTextStyles(p.root)),
+        comps: ['FPO-default-icon'],
+      };
+      const boolRun = await runPayload(planSetToPluginJs(boolGrid), boolOpts);
+      ok(boolRun.misses.length === 0, `set properties: a set carrying a BOOLEAN runs CLEAN end to end${boolRun.misses.length ? ` — ${JSON.stringify(boolRun.misses)}` : ''}`);
+      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'fullWidth:BOOLEAN', 'leadingVisual:INSTANCE_SWAP']),
+        `set properties: the BOOLEAN comes back alongside the other two — got ${JSON.stringify(boolRun.properties)}`);
+      // SPREAD, for the same reason as the 21-member assertion: a `visible` reference does not propagate
+      // to siblings any more than `characters` does, so a set wired once shows the toggle working on
+      // whichever variant a designer opens first and doing nothing on the rest.
+      ok(boolRun.wiredMembers === 2 && boolRun.refs === 6,
+        `set properties: all three refs are wired on every member — ${boolRun.wiredMembers}/2 distinct members across ${boolRun.refs} writes (3 each)`);
+      // The `REFUSED` branch, which nothing reached until now. `addComponentProperty` throws when the
+      // default does not match the type, and the payload catches it into `misses` rather than letting the
+      // whole paste die — a set missing one property is recoverable, a payload that threw at byte 12781
+      // leaves a half-built set in the file. Live, the two rejections are not even shaped alike: a STRING
+      // default gives "Property value is incompatible with component property type" and a NUMBER gives a
+      // "failed validation: … Expected boolean, received number". Both are refusals, so the read-back is
+      // anchored on `REFUSED` rather than on either message.
+      await (async () => {
+        const js = planSetToPluginJs(boolGrid);
+        const mutated = js.replace('{"name":"fullWidth","type":"BOOLEAN","default":true}', '{"name":"fullWidth","type":"BOOLEAN","default":"true"}');
+        ok(mutated !== js, "set properties: the mutation for 'a BOOLEAN default of the wrong type' actually applied to the payload");
+        const r = await runPayload(mutated, boolOpts);
+        ok(r.misses.some((m) => /property fullWidth -> BOOLEAN REFUSED/.test(m)),
+          `set properties: a BOOLEAN default of the wrong type is REPORTED, not thrown — the rest of the set still builds${r.misses.some((m) => /REFUSED/.test(m)) ? '' : ` — got ${JSON.stringify(r.misses)}`}`);
+        // And it does NOT then report an orphan for the same property: `propIds` never received a key, so
+        // the wiring loop skips it. A refusal reported twice reads as two defects and sends whoever
+        // triages it looking for a second one.
+        ok(!r.misses.some((m) => /ORPHAN/.test(m)),
+          `set properties: a refused property is reported ONCE — it is never declared, so it cannot also be an orphan (${JSON.stringify(r.misses)})`);
+        ok((r.properties ?? []).includes('children:TEXT') && !(r.properties ?? []).some((p) => p.startsWith('fullWidth')),
+          `set properties: the refused property is ABSENT and the others survive — got ${JSON.stringify(r.properties)}`);
+      })();
     }
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
