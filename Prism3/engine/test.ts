@@ -5297,6 +5297,55 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(/^return \{[^}]*misses/m.test(js),
       'anatomy: the plugin payload returns its misses[] at the top level — the only channel that reports an unresolved binding');
 
+    // ---- the INSTANCE_SWAP slot (#487 step 3) --------------------------------------------------
+    // #482's paste declared swappable slots and built empty frames: the builder was
+    // `TEXT ? createText() : createFrame()` with no INSTANCE_SWAP branch at all. So the plan's own
+    // `type` field was a claim nothing honored — the same shape as the `textStyle` loss above, and
+    // the reason each of these is asserted rather than read off the code.
+    const slotNode = lead.root.children.find((c) => c.name === 'leadingVisual')!;
+    ok(slotNode.type === 'INSTANCE_SWAP', 'anatomy: a `slot` part projects to INSTANCE_SWAP, not a bare FRAME');
+    ok(js.includes('createInstance()'), 'anatomy: the payload actually INSTANTIATES a swap target — #482 declared slots and pasted empty frames');
+    // Resolved by name across the whole file. `currentPage.findAll` would miss an FPO icon parked on
+    // another page and report nothing, since a missing target degrades to a placeholder frame.
+    ok(js.includes('loadAllPagesAsync') && js.includes('findAllWithCriteria'), 'anatomy: swap targets resolve file-wide by name, not just on the current page');
+
+    // The target is a FILE fact, not a def fact — the same def pastes into a file whose FPO icon is
+    // named anything — so it rides on the plan options beside the slot-fill flags, and threads
+    // through to the payload. A plan with no target nominated must SAY so rather than quietly
+    // building the #482 frame.
+    const withIcon = figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' });
+    const iconSlot = withIcon.root.children.find((c) => c.name === 'leadingVisual')!;
+    ok(iconSlot.swapTarget === 'FPO-default-icon', 'anatomy: a nominated swap target reaches the slot node');
+    ok(planToPluginJs(withIcon).includes('FPO-default-icon'), 'anatomy: the nominated target reaches the payload by NAME (brand-invariant, resolved in the live file)');
+    ok(!slotNode.swapTarget && js.includes('none nominated'), 'anatomy: with no target nominated the payload records a miss instead of silently pasting an empty frame (#482)');
+    ok(!lead.root.swapTarget && !withIcon.root.swapTarget, 'anatomy: swapTarget lands on slot parts only — the container is not swappable');
+
+    // Every slot binds BOTH dimensions to its square artboard variable. That is the plan's intent and
+    // it is correct — but it is what made `constrainProportions` load-bearing, so assert the pairing
+    // exists rather than leaving the fix below looking like it guards nothing.
+    ok(iconSlot.bound.width === iconSlot.bound.height && !!iconSlot.bound.width,
+      `anatomy: a slot binds width AND height to the same square-artboard variable (${iconSlot.bound.width})`);
+
+    // #500 recorded this as "an INSTANCE cannot bind both width and height". That was WRONG, and the
+    // wrongness is the point: the real cause is `constrainProportions`, which bites FRAME, COMPONENT
+    // and INSTANCE alike — a proportion-locked node keeps only the LAST of two dimension bindings,
+    // last-write-wins, with no throw and nothing in `misses[]`. `createFrame()` defaults to unlocked,
+    // which is exactly why the original probe's FRAME "control" looked like it proved a node-type
+    // difference; an instance inherits the lock from its main component, and the real FPO icon ships
+    // locked. So the unlock must come BEFORE the first bind, on every node.
+    const unlockAt = js.indexOf('constrainProportions=false');
+    ok(unlockAt >= 0, 'anatomy: the payload unlocks constrainProportions — a locked node silently keeps only one of a slot\'s two dimension bindings');
+    ok(unlockAt < js.indexOf('setBoundVariable'), 'anatomy: the unlock precedes the first setBoundVariable (after it, the first binding is already gone)');
+    // #500 also prescribed `resize()` + `layoutSizing*` as the fix. `resize()` CLEARS every dimension
+    // binding, so that fix would have destroyed the binding it was meant to preserve. Gated as an
+    // absence, because a plausible wrong fix is more dangerous than no fix.
+    ok(!/\.resize\(/.test(js), 'anatomy: the payload never calls resize() — it clears every dimension binding (the fix #500 prescribed would have destroyed them)');
+    // And the generic backstop: `misses[]` only ever filled when a NAME failed to resolve, so a write
+    // that resolved and was then discarded was invisible. Reading the binding back closes that,
+    // which matters more than either specific fix above — it reports the NEXT silent setter.
+    ok(js.includes('node.boundVariables') && js.includes('DISCARDED'),
+      'anatomy: the payload reads each binding back — a setter that accepts a call is not a setter that honored it');
+
     // A def whose anatomy is structurally broken must FAIL, not warn. Four shapes, each a real
     // authoring mistake rather than a synthetic one.
     const withAnatomy = (patch: (a: AnatomyDef) => AnatomyDef): ComponentDef =>

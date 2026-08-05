@@ -36,6 +36,30 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-05 — from implementing `INSTANCE_SWAP` (#487 step 3)
+
+### `[SKILL]` Verify a paste by node ID, never by component name — the file holds your old attempts
+
+The read-back after the first successful paste reported the slot as a `FRAME`, i.e. the exact bug the
+paste had just fixed. It was the *previous* paste: `findOne(n => n.name === 'button/size=medium,
+leading')` matched #482's component, still sitting in the file with its empty-frame slot. Two
+components, one name, and `findOne` returns document order.
+
+The near-miss is what makes this a skill rather than a note. The next move would have been to probe
+`createComponentFromNode` for an instance-to-frame conversion that does not exist — a plausible
+hypothesis, a real API, and half an hour spent proving something already working was broken. **A
+generated artifact whose name is a function of its inputs will collide with every previous run**, and
+component names here are exactly that (`button/size=medium, leading`). So: capture the id the paste
+returns and read back by `getNodeByIdAsync`, or delete prior artifacts first. Names are for humans.
+
+Related, same root: a paste is only verified when the *binding* is shown live, not present. Present
+means `boundVariables.width` has an entry; live means moving the variable moves the node. Mutating
+`icon/size/md` to 40, watching the slot become 40×40, and restoring it is three extra lines and it is
+the difference between "the write was accepted" and "the write is load-bearing" — the same distinction
+the `constrainProportions` finding below turns on.
+
+---
+
 ## 2026-08-05 — from probing a real `INSTANCE_SWAP` target (#487 step 3 prep)
 
 The owner authored two components by hand in the test file — an `FPO-default-icon` and a `focus-ring`
@@ -44,35 +68,54 @@ about. Everything below came out of that probe. Two of the four are silent-failu
 the class this file exists for: the plan asserts a capability, nothing throws, and the artifact is
 quietly wrong.
 
-### `[GATE]` An INSTANCE cannot bind both `width` and `height`, and it does not throw
+### `[GATE]` `constrainProportions` silently drops a dimension binding — and the first diagnosis was wrong
 
 `figmaAnatomyPlan` emits `bound: {width, height}` for every `slot` part, from the one
-`size.{size}.icon` key. That is correct for a `FRAME` and **wrong for an `INSTANCE`** — which is what
-a slot becomes once `INSTANCE_SWAP` is actually implemented. Measured, same variable, same two calls
-in the same order:
+`size.{size}.icon` key. Against the owner's icon component, only ONE of the two survives, and
+neither `setBoundVariable` call throws:
 
 ```
-FRAME                        → boundVariables: ["width","height"]     ✅ both
-INSTANCE (standalone)        → boundVariables: ["width"]              height dropped
-INSTANCE (in auto-layout)    → boundVariables: ["height"]             width dropped
+setBoundVariable('width', v); setBoundVariable('height', v)   → ["height"]   width dropped
+setBoundVariable('height', v); setBoundVariable('width', v)   → ["width"]    height dropped
 ```
 
-Neither `setBoundVariable` call throws. Binding one alone works; binding the second silently evicts
-the first, and **which one survives depends on the parent's `layoutMode`** — so the same plan produces
-different results depending on where the node lands.
+**The cause is `constrainProportions: true` on the node**, which the icon component has (and which
+its instances inherit). A proportion-locked node cannot hold two independent dimension bindings, so
+the second write evicts the first — plain last-write-wins. Unlock it and both bind:
 
-This is the `setBoundVariable('effects', …)` failure from #493 one turn worse. There the API simply
-did not exist, so a test could assert on its absence. Here the API exists, accepts the call, returns
-without error, and discards the write. `misses[]` cannot catch it either: that array only fills when
-`byName.get(varName)` finds nothing, and the variable resolves fine. A component pasted this way looks
-successful, reports zero misses, and has half its icon sizing missing.
+```
+FRAME      constrainProportions=true   → ["height"]            ← one dropped
+FRAME      constrainProportions=false  → ["width","height"]    ✅
+COMPONENT  constrainProportions=true   → ["height"]
+INSTANCE   constrainProportions=false  → ["width","height"]    ✅ verified tracking both axes
+```
 
-The fix is not a second binding — it is `resize()` plus `layoutSizingHorizontal`/`Vertical` on
-instances. The gate: **assert no plan emits both `width` and `height` in `bound` on a node whose type
-is `INSTANCE_SWAP`.** Generalizing past this instance: *a Figma setter that accepts a call is not a
-Figma setter that honored it.* Where a projection field maps to a setter, the probe must read the
-value back — `#493`'s three-namespaces-three-fields rule assumed a throw would announce the mismatch,
-and this is the case where nothing announces anything.
+So the fix is `node.constrainProportions = false` before binding — one line, and it applies to slots
+of every node type.
+
+**This entry originally recorded the wrong cause, and how it went wrong is the more useful finding.**
+It claimed the limitation was *INSTANCE-specific* and that *which axis survived depended on the
+parent's `layoutMode`*. Both were artifacts of the probe design. The "FRAME keeps both" control used a
+fresh `createFrame()`, which defaults to `constrainProportions: false` — so the control differed from
+the instance in **two** variables at once (node type and proportion lock) while only one was being
+attributed. And the apparent layout-mode dependence was just call order differing between the two
+probe arms. A control that varies with the treatment is not a control; had the first probe locked a
+FRAME or unlocked an INSTANCE, the real cause would have been immediate. **When a difference is
+attributed to node type, vary node type alone.**
+
+The `misses[]` point stands and is the durable one: that array only fills when `byName.get(varName)`
+finds nothing, so a binding that resolves and is then discarded is invisible to it. A component pasted
+this way looks successful, reports zero misses, and has half its icon sizing missing. Generalizing:
+*a Figma setter that accepts a call is not a Figma setter that honored it.* #493's
+three-namespaces-three-fields rule assumed a mismatch announces itself as a throw; here nothing
+announces anything, so **the gate must read the value back** — which is exactly what caught this
+correction.
+
+One more trap on the same surface, found while verifying the fix: **`resize()` clears every dimension
+binding on the node**, on FRAME, COMPONENT and INSTANCE alike. The original entry prescribed
+"`resize()` plus `layoutSizingHorizontal`/`Vertical`" as the fix, which would have destroyed the
+binding it was meant to preserve. `resize()` before binding is fine; after is not. `appendChild` into
+auto-layout and setting `layoutSizing*` are both safe — bindings survive those.
 
 ### `[GATE]` `INSTANCE_SWAP`'s default value is a node ID, not a component key
 

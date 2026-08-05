@@ -87,6 +87,88 @@ files **without popping** (popping can merge two sessions' changes).
 
 ---
 
+## (2026-08-05) — Slots become real instances, and #500's diagnosis was wrong (#487 step 3)
+
+**STATUS: `planToPluginJs` implements `INSTANCE_SWAP`; the first paste is verified live.** Gates green;
+four new gate assertions mutation-tested. The component is in the test file's `Prism3 Components`
+section as a real `COMPONENT` whose leading slot is an `INSTANCE` of `FPO-default-icon`.
+
+Two things landed. The implementation is the smaller one.
+
+### #500's finding was wrong, and its prescribed fix would have broken the thing it fixed
+
+The previous entry says an `INSTANCE` cannot hold two dimension bindings, that which axis survives
+depends on the parent's `layoutMode`, and that the fix is `resize()` + `layoutSizingHorizontal/Vertical`.
+All three are wrong. Probing the specific claim before building on it:
+
+```
+FRAME      constrainProportions=true   → ["height"]            ← one dropped
+FRAME      constrainProportions=false  → ["width","height"]    ✅
+COMPONENT  constrainProportions=true   → ["height"]
+INSTANCE   constrainProportions=false  → ["width","height"]    ✅ verified tracking BOTH axes
+```
+
+The cause is **`constrainProportions`**, not node type. A proportion-locked node cannot hold two
+independent dimension bindings; the second `setBoundVariable` evicts the first, last-write-wins, on
+FRAME, COMPONENT and INSTANCE alike. `resize()` after binding **clears every dimension binding** — so
+#500's fix would have destroyed the bindings it was meant to preserve. `appendChild` into auto-layout
+and setting `layoutSizing*` are both safe. The fix is one line, before the first bind:
+`node.constrainProportions = false`.
+
+**Why the first diagnosis was wrong is the part worth keeping.** The "FRAME keeps both" control used a
+fresh `createFrame()`, which defaults to `constrainProportions: false`. So the control differed from
+the instance in **two** variables — node type *and* proportion lock — while only one was attributed. A
+control that varies with the treatment is not a control. The apparent layout-mode dependence was just
+call order differing between the two probe arms. When a difference is attributed to node type, vary
+node type alone. (An instance inherits the lock from its main component, and the hand-authored
+`FPO-default-icon` ships locked — which is why the wrong diagnosis still pointed at a real bug.)
+
+The generalizable lesson from #500 survives intact and is now implemented rather than asserted: the
+payload **reads each binding back** after setting it and reports `DISCARDED` when the write did not
+stick. `misses[]` only ever filled when a *name* failed to resolve, so a write that resolved and was
+then thrown away was structurally invisible to it. **A Figma setter that accepts a call is not a Figma
+setter that honored it.** That read-back matters more than either specific fix above, because it is the
+one that reports the *next* silent setter instead of waiting for someone to probe for it.
+
+### The implementation
+
+`planToPluginJs` had no `INSTANCE_SWAP` branch at all — `TEXT ? createText() : createFrame()` — so
+#482 pasted empty 24×24 frames while `figmaProperties.swaps` declared swappable slots. Now: resolve
+the target by NAME, `createInstance()`, and record a miss when no target is nominated instead of
+quietly building the #482 frame. Three details that are decisions rather than mechanics:
+
+- **The target is a plan OPTION, not a def field.** `figmaAnatomyPlan(def, size, {leading: true,
+  swapTarget: 'FPO-default-icon'})`. Which component fills a slot is a fact about the *file*, not about
+  the component — the same def pastes into a file whose FPO icon is named anything — so it rides beside
+  the slot-fill flags. By NAME, for the same reason `bound` holds names: the plan stays brand-invariant
+  and the executor resolves in the live file.
+- **`loadAllPagesAsync` + `figma.root.findAllWithCriteria`**, not `currentPage.findAll`. An FPO icon
+  parked on another page would otherwise not resolve, and the failure mode is a silent degrade to a
+  placeholder frame.
+- **A missing target still builds**, but says so. Refusing would make the payload unusable in a file
+  that has no icon yet; building silently is what #482 did.
+
+Verified live rather than asserted: pasted the emitted payload verbatim (`misses: []`), then read the
+result back — `INSTANCE` of `FPO-default-icon`, `constrainProportions: false`, both axes bound. And
+because a binding that is *present* is not a binding that is *live*, moved `icon/size/md` to 40 and
+watched the slot go 40×40 on both axes, then restored it.
+
+**Trap for whoever re-verifies this.** My first read-back said the slot was a `FRAME` and I nearly
+chased a phantom bug: `findOne(name === 'button/size=medium, leading')` had returned **#482's older
+paste**, which is still in the file with the empty-frame bug. Two components share that name. Match on
+node id (mine is `94:134`), not on name — the stale one is an accidental side-by-side of the fix.
+
+**Known gap, not a bug:** the label pastes empty (0×16). Default text content is a component property
+(#487 step 6), so there is nothing yet to fill it from.
+
+### Next
+
+Step 3's remaining half: the full variant coordinate on `AnatomyPlan`, and color via
+`setBoundVariableForPaint` — a fourth API shape, so expect it to have its own version of this entry.
+Then the 21-variant paste (1 intent × 3 appearances × 7 states) with the icon and without the ring.
+
+---
+
 ## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
 
 **STATUS: docs only (`docs/32`).** No engine change yet — these are findings that must land before
@@ -98,6 +180,12 @@ them live** — create an instance, make the exact calls `planToPluginJs` makes,
 That distinction is the entry: two of the four findings are invisible to any amount of reading.
 
 ### The one that matters: an INSTANCE silently refuses the second dimension
+
+> **⚠️ CORRECTED by the next entry down the file — read that one instead of this section.** The
+> silent-drop is real and the "read the value back" lesson stands, but the CAUSE below is wrong
+> (it is `constrainProportions`, not node type, and not layout mode) and the FIX below is actively
+> harmful (`resize()` clears every dimension binding). Kept rather than rewritten because the
+> *reason* it was wrong — a control that varied with the treatment — is the more useful finding.
 
 `figmaAnatomyPlan` emits `bound: {width, height}` for every `slot`, both from `size.{size}.icon`.
 Correct for a `FRAME`; wrong for an `INSTANCE`, which is what a slot becomes the moment

@@ -49,6 +49,13 @@ export type FigmaNodePlan = {
    *  type-check, pass every offline gate, and fail only at paste time. Three namespaces, three
    *  fields, three name sets in `planBindingErrors` — the symmetry is the safeguard. */
   effectStyle?: string;
+  /** For an `INSTANCE_SWAP` node: the NAME of the component to instantiate. A name, not a key or an
+   *  id, for the same reason `bound` holds names — the plan is brand-invariant and the executor
+   *  resolves against the live file. Figma has no "empty swappable slot": a slot with no target
+   *  materializes as a bare frame, which is what shipped in #482 while the plan claimed
+   *  INSTANCE_SWAP. Absent here means "no component nominated", and the payload records a miss
+   *  rather than pretending. */
+  swapTarget?: string;
   children: FigmaNodePlan[];
 };
 
@@ -94,7 +101,7 @@ const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED'
 export const figmaAnatomyPlan = (
   def: ComponentDef,
   size: string,
-  slots: { leading?: boolean; trailing?: boolean } = {},
+  slots: { leading?: boolean; trailing?: boolean; swapTarget?: string } = {},
 ): AnatomyPlan => {
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
@@ -137,6 +144,9 @@ export const figmaAnatomyPlan = (
         bound.paddingRight = varOf(trailing ? inlineVisual : p.padding.inlineLabel);
       }
     } else {
+      // Both axes, bound to the SAME variable. That is legal — an unlocked node tracks a square
+      // artboard on both axes — but it is legal only because the executor unlocks the node first;
+      // see the `constrainProportions` note in `planToPluginJs`.
       if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
     }
 
@@ -152,6 +162,7 @@ export const figmaAnatomyPlan = (
       name,
       type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : 'INSTANCE_SWAP',
       ...(textStyle ? { textStyle } : {}),
+      ...(p.kind === 'slot' && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(p.layout
         ? {
             layoutMode: p.layout.direction === 'row' ? ('HORIZONTAL' as const) : ('VERTICAL' as const),
@@ -230,6 +241,21 @@ export const planBindingErrors = (
  * A variable or text style that doesn't resolve is recorded and the build continues, so a component
  * with nothing bound still looks like a success — and a discarded return value is the difference
  * between a verified paste and a frame that merely exists. Found by pasting this for real (#111).
+ *
+ * `misses[]` HAS A BLIND SPOT, and the two fixes below both live in it (#500, corrected): it fills
+ * only when a NAME fails to resolve, so a setter that resolves its variable and then silently
+ * discards the write is invisible to it. A Figma setter that accepts a call is not a Figma setter
+ * that honored it. Hence:
+ *
+ *  - `constrainProportions=false` before binding. A proportion-locked node cannot hold two
+ *    independent dimension bindings — the second `setBoundVariable` EVICTS the first, last-write-
+ *    wins, with no throw and nothing in `misses`. It bites FRAME, COMPONENT and INSTANCE alike;
+ *    `createFrame()` happens to default to unlocked, but an instance inherits the lock from its main
+ *    component, and `FPO-default-icon` ships locked. Every slot binds `width` AND `height`, so this
+ *    is not a corner case — it is every slot in every plan.
+ *  - NO `resize()` after binding. `resize()` CLEARS every dimension binding on all three node types.
+ *    Binding then resizing loses the binding; resizing then binding is fine. (`appendChild` into
+ *    auto-layout and setting `layoutSizing*` are both safe — measured, not assumed.)
  */
 export const planToPluginJs = (plan: AnatomyPlan): string => `const PLAN=${JSON.stringify(plan.root)};
 const vars=await figma.variables.getLocalVariablesAsync();
@@ -238,12 +264,28 @@ const styles=await figma.getLocalTextStylesAsync();
 const styleByName=new Map(styles.map(s=>[s.name,s]));
 const effects=await figma.getLocalEffectStylesAsync();
 const effectByName=new Map(effects.map(s=>[s.name,s]));
+// Swap targets are resolved by NAME across the whole file, not just the current page — the FPO icon
+// lives wherever the file's author put it, and \`currentPage.findAll\` would miss it silently.
+await figma.loadAllPagesAsync();
+const comps=figma.root.findAllWithCriteria({types:['COMPONENT']});
+const compByName=new Map(comps.map(c=>[c.name,c]));
 const misses=[];
 const build=async(n)=>{
   let node;
   if(n.type==='TEXT'){node=figma.createText();}
+  else if(n.type==='INSTANCE_SWAP'){
+    // A slot with no resolvable target becomes a placeholder FRAME — but it says so. #482 shipped
+    // the frame WITHOUT saying so, because there was no INSTANCE_SWAP branch at all: the plan
+    // declared swappable slots and the paste built empty 24x24 boxes.
+    const target=n.swapTarget?compByName.get(n.swapTarget):undefined;
+    if(!n.swapTarget)misses.push(n.name+'.swapTarget -> (none nominated; built as a placeholder frame)');
+    else if(!target)misses.push(n.name+'.swapTarget -> '+n.swapTarget);
+    node=target?target.createInstance():figma.createFrame();
+  }
   else{node=figma.createFrame();node.clipsContent=false;}
   node.name=n.name;
+  // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
+  if('constrainProportions' in node)node.constrainProportions=false;
   if(n.textStyle){
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
@@ -266,6 +308,12 @@ const build=async(n)=>{
     if(!v){misses.push(n.name+'.'+prop+' -> '+varName);continue;}
     node.setBoundVariable(prop,v);
   }
+  // READ BACK. The name resolved and the setter did not throw, which is not the same as the binding
+  // being there — see the header note. This closes \`misses[]\`'s blind spot generically, so the next
+  // silently-discarded write is reported by the paste instead of being found by probing months later.
+  const got=node.boundVariables||{};
+  for(const prop of Object.keys(n.bound))
+    if(!got[prop])misses.push(n.name+'.'+prop+' -> DISCARDED (resolved, set, not retained)');
   for(const c of n.children) node.appendChild(await build(c));
   return node;
 };
