@@ -26,6 +26,8 @@ The engine core is buildless (run via `tsx`), but the repo also has two npm-work
 
 Workflow: one PR per feature branch off `main` → squash-merge → delete branch → sync `main`.
 
+**When more than one agent may be working, use a git worktree — not the shared checkout.** `git worktree add /tmp/p3-<lane> -b <branch> origin/main`, then symlink `node_modules` from the main checkout (the repo is buildless, but a fresh worktree has none, so `npx tsx` would re-download and the `web`/`plugin` builds would fail). Anything that checks out a branch in a tree someone else is editing destroys their uncommitted work: `/review-pr` did exactly that twice on 2026-08-05, once auto-stashing the other session's edits and once rebasing its branch onto an unrelated PR's commits. Recovery, if it happens to you: the checkout auto-stashes rather than deletes, so `git stash list` then `git show 'stash@{0}:<path>'` extracts single files **without popping** — popping merges two PRs' work, since the stash may hold both. Note a clean worktree reports **88** artifacts from `regen --check` where the main checkout often shows 89; the extra is an untracked stray in `Prism3/engine/out/`, not drift.
+
 **Carry the `Prism3/docs/00-progress.md` entry in the feature PR itself**, not as a follow-up. Three PRs in a row (#306, #312, #315) merged without one and needed a separate docs PR to catch up, and the entry is worth most for exactly the things a diff cannot show: the diagnosis that made the fix small, the tradeoff that was deliberate, the approach tried and discarded, and any trap waiting for whoever re-verifies this later. Write it as part of the work, while that reasoning is still in hand.
 
 ## Two parallel token formats
