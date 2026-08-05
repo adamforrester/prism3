@@ -290,6 +290,86 @@ Two consequences worth chasing:
   `standardToBrandInput` expects is checkable, and if it has drifted, that is a live integration bug
   neither repo would currently catch.
 - `ds-pack`'s 21 skills are the closest prior art we have to the internal build-a-component skill
-  #492 describes, and they are ours already — no licensing question at all. **Enumerate them before
-  writing anything new.** (Not enumerated here: the subdirectory paths 404 over the public web and
-  attaching the repo to a session needs an approval this one could not prompt for.)
+  #492 describes. **Enumerate them before writing anything new.** — *corrected below: they are
+  VENDORED third-party skills, not ours, and the tier claim above came from a stale README.*
+
+### Corrections to the section above, and what the primary sources say
+
+Two claims above were wrong, both from reading a **stale vendored copy** rather than the source. That
+is itself the lesson: *a vendored copy is a snapshot with no freshness signal, and it will be read as
+current by whoever finds it first.*
+
+1. **`ds-pack`'s skills are not ours.** They are vendored from
+   [`murphytrueman/design-system-ops`](https://github.com/murphytrueman/design-system-ops) — third
+   party, **MIT licensed**. MIT means we may adapt or vendor with attribution, so the practical
+   answer is unchanged, but "no licensing question at all" was simply false.
+2. **The minimum/standard/comprehensive tiers** come from xd-toolkit's copy, not from
+   `adamforrester/brand-skills`, whose documentation does not mention tiers at all. Treat the tier
+   model as unconfirmed.
+
+### `[SKILL]` design-system-ops (MIT, Murphy Trueman) — 34 skills, and the overlap is the finding
+
+Four categories: **Audit** (token-audit, component-audit, system-health, drift-detection,
+naming-audit, figma-variable-audit, codebase-index, system-benchmark, theme-audit, docs-coverage),
+**Govern** (contribution-workflow, deprecation-process, decision-record, change-communication,
+backlog-generator, version-bump-advisor, release-retrospective, governance-encoder, session-memory,
+codemod-generator, triage), **Document** (ai-component-description, pattern-documentation,
+token-documentation, usage-guidelines, component-decision-tree, context-engine-builder,
+metadata-schema-generator), **Validate** (design-to-code-check, accessibility-per-component,
+token-compliance, schema-validator, component-api-validator, cicd-integration).
+
+**Roughly a third of them describe work this engine already does deterministically**, and that is the
+decision rule rather than a coincidence:
+
+| skill | what we already have |
+|---|---|
+| `version-bump-advisor` | `token-contract.ts` — *refuses* an unbumped breaking change |
+| `drift-detection` | `regen --check` (88 artifacts, byte-compared) |
+| `token-compliance` / `token-audit` | `scoreContractCompliance`, `isPrimitiveRef` primitive-leak warning |
+| `component-api-validator` | `validateComponentDef` + `figmaPropertyErrors` |
+| `schema-validator` | the hand-rolled validator over `theme-schema.json` |
+| `accessibility-per-component` | the per-mode contrast contracts |
+| `deprecation-process` | the `DEPRECATIONS` table + dangling-replacement gate |
+| `cicd-integration` | `.github/workflows/ci.yml` |
+| `ai-component-description` / `context-engine-builder` | `.ai.json` + `ComponentDef.ai` |
+
+> **Where we have a gate, an LLM skill is a regression.** A skill that *advises* a semver bump is
+> strictly weaker than a command that *refuses the commit*. Point the skill at the gate; never
+> re-derive the judgment in prose.
+
+So the take is the complement: the skills earn their place exactly where we have **no** gate —
+`figma-variable-audit` (the live-Figma drift gap recorded above), `docs-coverage`, `system-benchmark`,
+`contribution-workflow`, `change-communication`, `release-retrospective`, `codemod-generator` (which
+would pair with `DEPRECATIONS` to actually apply a migration). That is a much smaller, sharper set
+than 34, and it is the set worth adapting.
+
+### The brand-skills handshake is real, and #477 just broke half of it
+
+[`adamforrester/brand-skills`](https://github.com/adamforrester/brand-skills) emits a `.brand/`
+package plus a **`design.md` following the `google-labs-code/design.md` spec** — which is exactly what
+`standard-design-md.ts` names in its own header ("a `design.md` authored by `brand-skills`"). The
+integration is real and identified precisely.
+
+The extension point Prism3 relies on is `x-prism3`, which carries eight levers (`radiusScale`,
+`typeScale`, `density`, `motionTempo`, `actionPalette`, `iconContrast`, `surfaces`, `gradients`).
+Two problems, both verified by running them:
+
+```
+NATIVE   radiusScale: 'soft'            → 1.5
+STANDARD x-prism3.radiusScale: 'soft'   → THROWS "must be a number (0=sharp … 2=soft)"
+STANDARD x-prism3.personality           → SILENTLY DROPPED (no passthrough)
+```
+
+**#477 widened the native dialect and left the standard dialect behind.** The `radiusScale` guard
+even names `soft` in its own error text as the invalid example — written when that was true, and now
+it rejects a value the engine accepts everywhere else. Worse, `personality` has no passthrough at
+all, so a brand-skills brief cannot reach the vocabulary #471 was filed to create, and fails
+*silently* — the precise failure mode that issue existed to eliminate.
+
+This is the "two enforcement points that differ" trap from `vocabulary.ts`, recurring one level up:
+not schema-vs-engine this time, but **dialect-vs-dialect**. Neither `wendys.design.md` (our only
+standard-dialect fixture) nor any test exercises `x-prism3`, which is why nothing caught it.
+
+`[GATE]` **Any lever the native dialect accepts should be reachable from `x-prism3`, and a test
+should assert the two dialects agree.** Without it, every future input-surface widening silently
+forks the two front doors again.
