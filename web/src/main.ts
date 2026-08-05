@@ -311,8 +311,14 @@ let seedInfo: { ok: boolean; summary: string } | null = null;   // set by the ho
 // The font families the host can load (#113 Figma arm; empty on web and until the host answers).
 // Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
 // not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
-// machine-dependent. Read only to populate the typeface input's `<datalist>`.
+// machine-dependent. Read to drive type-ahead on the typeface input AND to answer "will this face
+// load?" in the library table.
 let hostFonts: string[] = [];
+/** `hostFonts` family → how many styles Figma has for it (0 = count unknown). Exact-match keyed on
+ *  purpose: `loadFontAsync` is case- AND whitespace-sensitive — measured against real Figma,
+ *  `Roboto` loads while `roboto`, `ROBOTO` and `" Regular"` all fail — so a case-insensitive lookup
+ *  here would claim a face will load when the write is going to skip it. */
+let hostFontStyles = new Map<string, number>();
 // Host → UI notifications: the #109 read-back seed summary, and the #131 knob-rehydration (the
 // persisted BrandInput). restore-input loads the brand wholesale (loadBrand rebuilds + re-renders),
 // so re-opening a themed Figma file boots on that brand instead of the default. loadBrand is a
@@ -329,6 +335,7 @@ commit.onHostMessage((m) => {
   }
   if (m.kind === 'font-list') {
     hostFonts = m.families;
+    hostFontStyles = new Map(m.families.map((f, i) => [f, m.styles[i] ?? 0]));
     // A plain re-render — the same path a tab click takes. The list can arrive before or after the
     // typeface page first renders, so caching plus a re-render makes the order irrelevant.
     renderWorkspace();
@@ -3388,6 +3395,59 @@ const fontAvailable = (name: string | undefined): boolean => {
     return Math.abs(_fontProbe.measureText(probe).width - w0) > 0.5;
   });
 };
+
+/** What the library table's status column reports for one face.
+ *
+ *  This used to be `fontAvailable` alone, and that was the wrong question. The canvas probe answers
+ *  *"can this iframe paint a specimen?"*; the designer needs *"will this face load when I write text
+ *  styles?"* On the web those are the same question. In the Figma iframe they are not, because
+ *  Figma's font list mixes locally-installed families with Figma CLOUD fonts and the iframe ships
+ *  `networkAccess: none` — so a cloud font cannot be painted here yet loads perfectly in Figma. The
+ *  column reported "Not installed" for a Roboto this Figma carries 36 styles of, and would have said
+ *  the same for JetBrains Mono. Understating by half the rows is worse than saying less.
+ *
+ *  So when the host has answered, its list is authoritative and the probe is demoted to what it can
+ *  honestly report: whether the SPECIMEN beside it is the real face or a fallback. Two facts, two
+ *  places, neither one lying. With no host list (web) there is only one source and the probe is it —
+ *  which is also why this branches on `hostFonts.length` rather than on any host check.
+ *
+ *  `styles` is a count, not a guarantee: a listed family resolves as a FAMILY, while a text style
+ *  demands a specific weight. Reporting "36 styles" invites the right doubt where a bare tick would
+ *  imply a promise this cannot make (see #499 for the weight-name half of that problem). */
+type FaceStatus = { ok: boolean; label: string; title: string; fallbackPreview: boolean };
+const faceStatus = (name: string): FaceStatus => {
+  const rendersHere = fontAvailable(name);
+  if (!hostFonts.length) {
+    // Web: the probe is the only source, and "installed on this device" is exactly what it measures.
+    return {
+      ok: rendersHere,
+      label: rendersHere ? '✓ Installed' : '⚠ Not installed',
+      title: rendersHere ? `${name} resolves on this device` : `${name} is not installed here — the preview falls back`,
+      fallbackPreview: !rendersHere,
+    };
+  }
+  const styles = hostFontStyles.get(name);
+  if (styles === undefined) {
+    return {
+      ok: false,
+      label: '⚠ Figma lacks it',
+      title: `This Figma cannot load "${name}", so every text style asking for it will be skipped. `
+        + 'Spelling is exact — case and spaces included.',
+      fallbackPreview: true,
+    };
+  }
+  // Count 0 means an older host sent names without counts — say less rather than invent a number.
+  const label = styles > 0 ? `✓ ${styles.toLocaleString('en-US')} ${styles === 1 ? 'style' : 'styles'}` : '✓ Figma has it';
+  return {
+    ok: true,
+    label,
+    title: styles > 0
+      ? `Figma can load ${name} (${styles.toLocaleString('en-US')} styles). That settles the family — `
+        + 'a text style still skips if the family lacks the specific weight it asks for.'
+      : `Figma can load ${name}.`,
+    fallbackPreview: !rendersHere,
+  };
+};
 const WEIGHT_NAME: Record<number, string> = {
   100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium',
   600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
@@ -3456,7 +3516,10 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const libScroll = el('div', 'mtbl-scroll');
   const libTbl = el('table', 'mtbl-tbl');
   const libHead = el('thead'), libHtr = el('tr');
-  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', 'On this device'),
+  // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
+  // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
+  // device" was actively wrong in Figma — a cloud font is loadable there and absent here.
+  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', hostFonts.length ? 'In this Figma' : 'On this device'),
     el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
   libHead.append(libHtr); libTbl.append(libHead);
   const libBody = el('tbody');
@@ -3470,10 +3533,10 @@ const renderTypefaceLibrary = (): HTMLElement => {
     nc.append(nm);
     if (tf.variable) nc.append(el('span', 'tf-vf', 'Variable'));
     tr.append(nc);
-    const ok = fontAvailable(tf.name);
+    const st = faceStatus(tf.name);
     const sc = el('td', 'mtbl-mode');
-    sc.append(el('span', 'tf-stat ' + (ok ? 'ok' : 'no'), ok ? '✓ Installed' : '⚠ Not installed'));
-    sc.title = ok ? `${tf.name} resolves on this device` : `${tf.name} is not installed here — the preview falls back`;
+    sc.append(el('span', 'tf-stat ' + (st.ok ? 'ok' : 'no'), st.label));
+    sc.title = st.title;
     tr.append(sc);
     const bc = el('td', 'mtbl-mode');
     bc.append(el('span', 'tf-usedby' + (bind.unbound ? ' unbound' : ''), bind.label));
@@ -3488,6 +3551,16 @@ const renderTypefaceLibrary = (): HTMLElement => {
     const prev = el('span', 'mtbl-spec-t tf-prev', 'Ag 123');
     prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
     pc.append(prev);
+    // The second fact, on the cell it is actually about. Once the status column reports FIGMA's verdict,
+    // "Ag 123" can be a fallback while the row reads ✓ — true, but confusing unless the specimen says
+    // so itself. Only shown when the two diverge: on a face that renders here the note would be noise,
+    // and on a face Figma lacks the status column has already said it.
+    if (st.fallbackPreview && st.ok) {
+      const fb = el('span', 'tf-fbnote', '(fallback shown)');
+      fb.title = `${tf.name} loads in Figma but is not installed on this device, so this specimen shows the fallback. `
+        + 'The written text styles use the real face.';
+      pc.append(fb);
+    }
     // Row action at the far right of the row — inside the FILL column on purpose. A fifth column, or a
     // button in any fixed-width cell, would push that cell past its token and break the 112/148/148
     // parity #363 just established; the fill column absorbs slack instead.
@@ -3846,7 +3919,7 @@ const renderTypefaceBindings = (): HTMLElement => {
 
   const local = el('p', 'tf-note warn');
   local.innerHTML = hostFonts.length
-    ? '<b>Previews in this table use fonts installed on this device.</b> The faces offered on <b>Primitives</b> come from Figma and are what apply when you write text styles — the two sets can differ, so a face Figma offers may still preview as the fallback here. Your emitted tokens are unaffected; they carry the name you typed.'
+    ? '<b>Previews in this table use fonts installed on this device; Figma loads more than that.</b> Figma’s list mixes your installed fonts with its own cloud fonts, and this panel loads no webfonts — so a face Figma will happily write can still preview as the fallback here. The <b>In this Figma</b> column on <b>Primitives</b> reports what Figma can load, which is the fact that decides whether a text style applies. Your emitted tokens are unaffected; they carry the name you typed.'
     : '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(local);
   return sec;
@@ -7240,10 +7313,19 @@ input.toggle:disabled{opacity:.5;cursor:default}
    #360/#369/#388, measured again here at 829px vs the shared 798px grid. An explicit px cap clamps
    the intrinsic contribution; the pill already ellipsizes and carries the full path in its title attribute. */
 .mtbl-mode .tpill{max-width:124px}
-/* NOT a contrast verdict, despite the ok/no class names — this renders "✓ Installed" /
-   "⚠ Not installed" for a font face. A face the machine lacks is a WARNING (the preview falls
-   back), not a failure, so --warn is deliberate. Do not fold it into the verdict palette. */
+/* NOT a contrast verdict, despite the ok/no class names — this renders the font-status column
+   ("✓ 36 styles" / "⚠ Figma lacks it" in the plugin, "✓ Installed" / "⚠ Not installed" on web).
+   An unloadable face is a WARNING, not a failure, so --warn is deliberate. Do not fold it into
+   the verdict palette. */
 .tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--warn)}
+/* The specimen's own caveat, shown only when Figma can load a face this device cannot render — so
+   "Ag 123" is the fallback while the status column truthfully reads ✓. Faint and inline beside the
+   specimen because it qualifies THAT cell; promoting it would read as an error, which it is not. */
+.tf-fbnote{margin-left:8px;font-size:11px;color:var(--faint);white-space:nowrap;vertical-align:2px}
+/* The specimen is display:block in this table, which would push the note onto its own line. Only
+   inside .mtbl-spec, and only so the note can sit BESIDE "Ag 123" as approved — measured at 560px
+   (a narrow plugin panel) with no cell overflow and no horizontal scroll beyond the pre-existing 146px. */
+.mtbl-spec .tf-prev{display:inline-block;vertical-align:baseline}
 /* line-height must exceed the font's em box (~1.2) or descenders clip */
 .tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
 /* #415 — the resolved face per category on Text styles: a READING, not a control. Same type

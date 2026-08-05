@@ -329,11 +329,16 @@ with `textStyles` alone; none of the three style-field probes ever placed a real
 directions leaves the others looking covered. Two more probes added (a fifth `crossProbes` entry, and
 a `boundCrossText` alongside `boundCross`), completing all six pairwise directions across the three
 namespaces. 1571 → **1573** unit.
-## (2026-08-05) — The font picker had to stop being a `<datalist>` (#113 follow-up)
 
-**STATUS: shipped, one file (`web/src/main.ts`).** The picker merged yesterday in #495 was unusable in
-Figma's iframe. The owner loaded it and reported three failures; all three trace to one cause, and the
-fix is to replace the control. Branched from `4149887`.
+---
+
+## (2026-08-05) — The font picker had to stop being a `<datalist>`, and the status column had to stop guessing (#113 follow-up)
+
+**STATUS: shipped (PR #507).** Two rounds of live owner feedback on the picker merged in #495, both
+found by loading it in real Figma. Round one: the `<datalist>` was unusable in the iframe (three
+symptoms, one cause). Round two: the library's font-status column reported "Not installed" for a face
+picked from Figma's own list. Branched from `4149887`; touches `web/src/main.ts`,
+`web/src/write-adapter.ts`, `plugin/src/{list-fonts,messages,main}.ts`, `plugin/test-list-fonts.ts`.
 
 ### What the owner saw, and the single cause under it
 
@@ -410,6 +415,71 @@ contract unchanged (1.1.0, 480 guaranteed) · NB PASS · web+plugin typecheck/bu
 **Still owner-verified only in a real iframe.** A browser is not Figma's iframe — that is the whole
 lesson above. The dist build ships with this so the owner can confirm the three failures are gone where
 they were found.
+
+### Second round: the status column was answering the wrong question
+
+The owner reloaded, picked `Roboto` from the new popover, and the library row came back **⚠ Not
+installed**. Picked from Figma's own list, then told Figma doesn't have it — and both statements came
+from this panel.
+
+The column ran `fontAvailable`, a **canvas metric probe**: render the name, compare the width against
+the bare fallback. That measures *"can this iframe paint a specimen?"* On the web that is the same
+question as *"will this face load?"*. **In Figma it is not**, because Figma's list mixes
+locally-installed families with Figma **cloud** fonts and the iframe ships `networkAccess: none`. A
+cloud font cannot be painted here and loads perfectly there.
+
+Measured against the live bridge, not inferred: this Figma reports **2,334** families; `Roboto` is in
+the list with **36 styles** and `loadFontAsync` resolves it — while macOS CoreText reports 311 families
+with **no Roboto at all**. So the face is a cloud font, the probe was right about rendering and wrong
+about the thing that matters. **The column understated two of the four rows** — `JetBrains Mono` (14
+styles) had the same defect and simply hadn't been noticed yet.
+
+`fontAvailable` was not deleted, and that is the design. It is the only honest source on web, and in
+Figma it still answers one real question — *is the specimen beside it the real face or a fallback?* So
+it was **demoted, not replaced**: Figma's list owns the status column, the probe owns a `(fallback
+shown)` note on the specimen cell. Two facts, two places, neither overstated. The branch is on
+`hostFonts.length`, never a host check.
+
+**The wire now carries style counts** (`font-list` gained an optional index-parallel `styles[]`).
+A count rather than a bare tick because a listed family guarantees the **family** resolves, not the
+specific weight a text style demands — "✓ 36 styles" invites the right doubt where "✓" implies a promise
+this cannot make. `listFamilyStyleCounts` shares `listFamilies`' comparator exactly, since the combobox
+reads one and the table the other and divergent orders in one panel would be a visible bug. `sendFonts`
+calls only the counting reader: the counts carry the names, so calling both would mean a second
+`listAvailableFontsAsync` over 11,005 entries for data already in hand.
+
+**Traps this round added.**
+
+*The parallel arrays must be filtered together.* The adapter already dropped non-string family names at
+the boundary. Filtering names first and mapping counts second would shift every count by the number of
+names dropped and mis-report every family after the first bad one. It zips, then drops pairs.
+
+*`styles` is optional on the wire, and a receiver must treat it so.* An older host build sends names
+only; that lands as count 0, which renders "✓ Figma has it" rather than inventing a number.
+
+*Exact-match lookup is deliberate.* `loadFontAsync` is case- **and** whitespace-sensitive — measured:
+`Roboto` loads, `roboto`, `ROBOTO` and `" Regular"` all fail. A case-insensitive lookup here would
+report a face as loadable that the write then skips, which is the original bug wearing different clothes.
+
+*`.mtbl-spec .tf-prev` is `display:inline-block` for one reason.* The specimen is `display:block` in
+this table, which pushes the note onto its own line; the owner approved it **beside** "Ag 123".
+Verified at 560px (a narrow plugin panel) with no cell overflow and no horizontal scroll beyond the
+pre-existing 146px.
+
+**The pattern, since this is the third time.** #495 shipped a control whose failure mode lived outside
+the page; this round shipped a *verdict* whose evidence lived outside the iframe. Both passed every
+check that existed, because in each case the harness and the truth sat on opposite sides of the same
+boundary. **When the plugin makes a claim about the host, ask the host** — the bridge is right there,
+and every number in this entry came from it.
+
+**Verification.** Driven through the genuine `font-list` envelope with counts taken live from Figma:
+`Clash Display` → ⚠ Figma lacks it (correct — genuinely absent from the 2,334), `Inter` → ✓ 18 styles,
+`JetBrains Mono` → ✓ 14 styles, `Roboto` → ✓ 36 styles, each with `(fallback shown)` inline beside the
+specimen. Replayed the owner's exact sequence — type `Rob`, pick Roboto, Add face — and the new row
+reads **✓ 36 styles**. Web arm re-checked with no host list: heading still "On this device", still
+"⚠ Not installed", no combobox, plain free-text input, 0 `datalist` elements. Gates: regen --check 88 ·
+1516/0 unit · MCP 49/0 · contract unchanged · NB PASS · font-list reader 12/12 · 3 typechecks · both
+builds · US-English clean.
 
 ---
 

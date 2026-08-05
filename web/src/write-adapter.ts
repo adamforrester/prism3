@@ -109,7 +109,7 @@ export interface HostCommit {
       msg:
         | { kind: 'seed-info'; ok: boolean; summary: string }
         | { kind: 'restore-input'; input: unknown }
-        | { kind: 'font-list'; families: string[] },
+        | { kind: 'font-list'; families: string[]; styles: number[] },
     ) => void,
   ): void;
   /** Ask the host to resize its window to these outer dimensions (#144; Figma only, no-op on web,
@@ -135,7 +135,7 @@ const figmaCommit = (): HostCommit => ({
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const m = (e.data && e.data.pluginMessage) as
-        | { type?: string; ok?: boolean; summary?: string; input?: unknown; families?: unknown }
+        | { type?: string; ok?: boolean; summary?: string; input?: unknown; families?: unknown; styles?: unknown }
         | undefined;
       if (!m) return;
       if (m.type === 'seed-info' || m.type === 'apply-result') {
@@ -145,7 +145,22 @@ const figmaCommit = (): HostCommit => ({
       } else if (m.type === 'font-list' && Array.isArray(m.families)) {
         // Filter to strings at the boundary: this arrives over postMessage, so the shape is asserted
         // rather than guaranteed, and a non-string would reach `textContent` downstream.
-        cb({ kind: 'font-list', families: (m.families as unknown[]).filter((f): f is string => typeof f === 'string') });
+        //
+        // `styles` is index-parallel to `families`, so the two must be filtered TOGETHER — filtering
+        // names first and mapping counts afterwards would shift every count by the number of dropped
+        // names and mis-report every family after the first bad one. Zip, then drop pairs.
+        const rawStyles = Array.isArray(m.styles) ? (m.styles as unknown[]) : null;
+        const families: string[] = [];
+        const styles: number[] = [];
+        (m.families as unknown[]).forEach((f, i) => {
+          if (typeof f !== 'string') return;
+          families.push(f);
+          // A missing/!finite count reads as 0 = "unknown", which the UI renders as a bare tick rather
+          // than inventing a number. Older hosts send no `styles` at all, which lands here too.
+          const n = rawStyles ? rawStyles[i] : undefined;
+          styles.push(typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.floor(n) : 0);
+        });
+        cb({ kind: 'font-list', families, styles });
       }
     });
     // Listener attached — signal the main thread it can post (and run the boot read-back, #109).

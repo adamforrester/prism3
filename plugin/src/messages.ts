@@ -43,11 +43,19 @@ export type MainToUi =
   | { type: 'restore-input'; input: BrandInput }
   /** The font families this Figma can load (the #113 Figma arm). Pushed once on `ui-ready` — the
    *  list is static for the session, so there is no request/response pair. The shared UI uses it to
-   *  populate a `<datalist>` on the typeface input; it is a HINT, not a constraint (a free-typed name
+   *  drive type-ahead on the typeface input; it is a HINT, not a constraint (a free-typed name
    *  is still accepted, because a brand input is a portable spec and may legitimately name a face
    *  this machine lacks). Never persisted and never part of `BrandInput` — it is an environment fact,
-   *  not brand data. Absent on failure: the UI then keeps its plain free-text behavior. */
-  | { type: 'font-list'; families: string[] };
+   *  not brand data. Absent on failure: the UI then keeps its plain free-text behavior.
+   *
+   *  `styles` carries the per-family style count, parallel to `families` by index. It exists because
+   *  the UI's font-status column previously probed canvas metrics, which in an iframe with
+   *  `networkAccess: none` cannot see a Figma CLOUD font — it reported "Not installed" for a Roboto
+   *  this Figma has 36 styles of. Figma's list is authoritative about what a write will load, so the
+   *  column reads this instead. Two parallel arrays rather than an array of objects keeps the wire
+   *  payload small (34.5 KB of names already) and keeps the older single-array shape readable.
+   *  A receiver must treat `styles` as OPTIONAL: it is absent from any host build older than this. */
+  | { type: 'font-list'; families: string[]; styles?: number[] };
 
 /** Narrow a discriminated union by its `type` tag — the payload a handler actually receives. */
 export type OfType<U extends { type: string }, T extends U['type']> = Extract<U, { type: T }>;

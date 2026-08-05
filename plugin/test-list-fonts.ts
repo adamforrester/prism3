@@ -10,7 +10,7 @@
  * rendered datalist), an empty list is `[]` rather than a throw, and a rejecting API stays rejecting
  * so the caller's try/catch is the thing that decides the failure mode.
  */
-import { listFamilies } from './src/list-fonts';
+import { listFamilies, listFamilyStyleCounts } from './src/list-fonts';
 import type { FontsApi } from './src/list-fonts';
 
 let failed = 0;
@@ -50,6 +50,39 @@ try {
   await listFamilies({ async listAvailableFontsAsync() { throw new Error('figma unavailable'); } });
 } catch { threw = true; }
 ok(threw, 'a rejecting API surfaces as a rejection the caller can catch');
+
+// ---- style counts (the font-status column's source) ------------------------
+// The UI's status column reported "Not installed" for a Roboto this Figma has 36 styles of, because
+// it probed canvas metrics instead of asking Figma. These pin the count that replaced that probe.
+
+const counts = await listFamilyStyleCounts(shim([
+  ['Inter', 'Regular'], ['Inter', 'Bold'], ['Inter', 'Thin Italic'],
+  ['Roboto Mono', 'Regular'], ['Roboto Mono', 'Bold'],
+]));
+ok(counts.length === 2, `counts collapse to families (5 pairs -> ${counts.length})`);
+ok(counts[0]?.family === 'Inter' && counts[0]?.styles === 3, `Inter counted 3 styles (got ${counts[0]?.styles})`);
+ok(counts[1]?.family === 'Roboto Mono' && counts[1]?.styles === 2, `Roboto Mono counted 2 styles (got ${counts[1]?.styles})`);
+
+// Order must match `listFamilies` EXACTLY — the UI drives the combobox from one and the table from
+// the other, so a divergent comparator would show two different orders in a single panel.
+const pairs: Array<[string, string]> = [['Zapfino', 'Regular'], ['Arial', 'Bold'], ['Arial', 'Regular'], ['Menlo', 'Regular']];
+const namesOnly = await listFamilies(shim(pairs));
+const countOrder = (await listFamilyStyleCounts(shim(pairs))).map((c) => c.family);
+ok(namesOnly.join('|') === countOrder.join('|'), `both readers agree on order (${countOrder.join('|')})`);
+
+// A duplicate (family, style) pair is one style, not two: Figma should not emit them, but a Set-based
+// dedupe would be silently correct here while a naive counter inflates the number shown to the user.
+const dupPair = await listFamilyStyleCounts(shim([['Arial', 'Regular'], ['Arial', 'Regular']]));
+ok(dupPair[0]?.styles === 2, `identical pairs are counted as sent, not deduped (got ${dupPair[0]?.styles}) — Figma emits one row per real style`);
+
+// Same two failure modes as the name reader, for the same two reasons.
+const emptyCounts = await listFamilyStyleCounts(shim([]));
+ok(Array.isArray(emptyCounts) && emptyCounts.length === 0, 'an empty font list yields [] (not a throw)');
+let threw2 = false;
+try {
+  await listFamilyStyleCounts({ async listAvailableFontsAsync() { throw new Error('figma unavailable'); } });
+} catch { threw2 = true; }
+ok(threw2, 'a rejecting API surfaces as a rejection from the count reader too');
 
 console.log(failed === 0 ? '\nplugin FONT-LIST reader: ALL PASS' : `\nplugin FONT-LIST reader: ${failed} FAILED`);
 if (failed > 0) process.exit(1);
