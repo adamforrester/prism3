@@ -39,7 +39,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planToPluginJs, planComponentName, figmaVarName } from './anatomy-figma';
+import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planComponentName, figmaVarName } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -5304,10 +5304,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // the reason each of these is asserted rather than read off the code.
     const slotNode = lead.root.children.find((c) => c.name === 'leadingVisual')!;
     ok(slotNode.type === 'INSTANCE_SWAP', 'anatomy: a `slot` part projects to INSTANCE_SWAP, not a bare FRAME');
-    ok(js.includes('createInstance()'), 'anatomy: the payload actually INSTANTIATES a swap target — #482 declared slots and pasted empty frames');
+    // Anchored on the LIVE BRANCH, not on the call appearing somewhere. `js.includes('createInstance()')`
+    // passed with the ternary inverted — `target ? figma.createFrame() : target.createInstance()` — because
+    // the call survives as dead code on the unreachable branch. That inversion IS #482's shipped bug
+    // (slots declared, empty frames pasted) in its single-token typo form, and it kept the whole suite
+    // green. Same trap as the `strokeWeight` gate below: a substring probe against a payload that
+    // documents itself tests the text, so the assertion has to name which side of the ternary the
+    // instantiation is on.
+    ok(js.includes('node=target?target.createInstance()'), 'anatomy: the payload INSTANTIATES on the resolved branch — #482 declared slots and pasted empty frames, and an inverted ternary reproduces it exactly');
     // Resolved by name across the whole file. `currentPage.findAll` would miss an FPO icon parked on
-    // another page and report nothing, since a missing target degrades to a placeholder frame.
-    ok(js.includes('loadAllPagesAsync') && js.includes('findAllWithCriteria'), 'anatomy: swap targets resolve file-wide by name, not just on the current page');
+    // another page and report nothing, since a missing target degrades to a placeholder frame. Rooted
+    // at `figma.root` in the assertion for the same reason as above: bare `findAllWithCriteria` passed
+    // when the lookup was narrowed to `currentPage`, which is precisely the silent degrade this guards.
+    ok(js.includes('loadAllPagesAsync') && js.includes('figma.root.findAllWithCriteria'), 'anatomy: swap targets resolve file-wide by name, not just on the current page');
 
     // The target is a FILE fact, not a def fact — the same def pastes into a file whose FPO icon is
     // named anything — so it rides on the plan options beside the slot-fill flags, and threads
@@ -5480,6 +5489,108 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     broke('an orphan part fails (a materializer would silently drop it)', /unreachable/, (x) => ({ ...x, parts: { ...x.parts, container: { ...x.parts.container, children: ['label', 'trailingVisual'] } } }));
     broke('two interaction targets fail', /exactly one part must have role/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, role: 'target' } } }));
     broke('a text part carrying layout fails', /only a 'box' lays out/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, gap: 'size.{size}.gap' } } }));
+
+    // ---- the payload EXECUTED, not grepped ------------------------------------------------------
+    // Every other assertion in this block reads the payload as text, and that is the weakness three
+    // gates have now been caught by: the string documents itself, so grepping it for the words that
+    // describe a behavior tests the words. So run it. A stub Figma with an EMPTY variable set is the
+    // realistic failure — token passes not run, or one variable renamed — and it is the case where
+    // `misses[]` has to be trustworthy, because this whole design rests on it being the only channel.
+    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[] } = {}): Promise<{ misses: string[] }> => {
+      const names = new Set(opts.vars ?? []);
+      const mkVar = (name: string) => ({ id: `V:${name}`, name });
+      // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
+      // what it would see live. A node that is NOT bound stays absent from it, which is the state the
+      // read-back is meant to report.
+      const mkNode = (type: string): Record<string, unknown> => {
+        const node: Record<string, unknown> = {
+          type, name: '', width: 0, height: 0, boundVariables: {} as Record<string, unknown>,
+          constrainProportions: false, fills: [], strokes: [], children: [] as unknown[],
+          setBoundVariable(prop: string, v: { id: string }) { (node.boundVariables as Record<string, unknown>)[prop] = { id: v.id }; },
+          setTextStyleIdAsync: async () => {}, setEffectStyleIdAsync: async () => {},
+          appendChild(c: unknown) { (node.children as unknown[]).push(c); },
+          findAll: () => [],
+        };
+        return node;
+      };
+      const figmaStub = {
+        variables: {
+          getLocalVariablesAsync: async () => [...names].map(mkVar),
+          // Real Figma RETURNS a new paint rather than mutating — modeled, because the caller's
+          // assignment back into the array is the thing under test elsewhere in this block.
+          setBoundVariableForPaint: (p: object, field: string, v: { id: string }) =>
+            ({ ...p, boundVariables: { [field]: { id: v.id } } }),
+        },
+        getLocalTextStylesAsync: async () => (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name })),
+        getLocalEffectStylesAsync: async () => [],
+        loadAllPagesAsync: async () => {},
+        // A COMPONENT the payload can instantiate, so the swap path is exercised rather than always
+        // degrading to the placeholder frame. `createInstance` returns a node with a VECTOR inside,
+        // because the icon-ink paint routes to the vector and not to the instance.
+        root: { findAllWithCriteria: () => (opts.comps ?? []).map((name) => ({
+          name, createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
+        })) },
+        createText: () => mkNode('TEXT'), createFrame: () => mkNode('FRAME'),
+        combineAsVariants: () => mkNode('COMPONENT_SET'),
+        createComponentFromNode: (n: unknown) => n,
+        currentPage: { appendChild: () => {} },
+      };
+      // `AsyncFunction` because the payload is top-level `await` by design (#478 — an async IIFE
+      // returns a Promise that figma_execute drops). Constructed rather than eval'd so the payload
+      // sees exactly one binding, `figma`, and nothing from this module's scope.
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<{ misses: string[] }>;
+      // FAILS SOFT, and this is not defensive habit — it is the trap in `review-pr.md:133`, which I
+      // walked straight into: narrowing the lookup to `figma.currentPage` (a real degrade this block
+      // gates against) threw inside the payload, and an uncaught throw here takes the WHOLE suite down
+      // and reports zero failures rather than one. A harness that dies cannot tell you which assertion
+      // it would have failed. So a payload that throws becomes a miss and the gates below judge it.
+      try {
+        return await new AsyncFunction('figma', payloadJs)(figmaStub);
+      } catch (e) {
+        return { misses: [`payload THREW -> ${(e as Error).message}`] };
+      }
+    };
+
+    // Driven on a fully-SKINNED plan, so the paint read-back is in play too — that is the half the
+    // review found repeating the same defect, and a structure-only plan would not exercise it.
+    const runnable = skin('filled', 'hover');
+    // Every name this plan reaches for, derived from the plan rather than a hand-kept list — a list
+    // would drift the moment a binding is added and the "fully resolved" run would quietly stop being
+    // fully resolved while still passing.
+    const full = {
+      vars: [...planBoundVars(runnable.root), ...planPaintVars(runnable.root)],
+      styles: planTextStyles(runnable.root),
+      comps: ['FPO-default-icon'],
+    };
+    const starved = await runPayload(planToPluginJs(runnable), { styles: full.styles, comps: full.comps });
+    const phantoms = starved.misses.filter((m) => m.includes('DISCARDED'));
+    // THE FIX, stated as behavior: with no variable resolving, every miss must be a resolve-miss.
+    // Before this, the read-back iterated the DECLARED props (`Object.keys(n.bound)`) rather than the
+    // ones actually set, so each of the 13 real causes was shadowed by a phantom claiming Figma had
+    // silently discarded a write that was never attempted — pointing the reader at a Figma-internals
+    // mystery when the cause was printed on the line above. `(resolved, set, not retained)` was a
+    // false statement in that path, and the paint read-back repeated it verbatim.
+    ok(starved.misses.length > 0 && phantoms.length === 0,
+      `anatomy: with NO variable resolving, every miss is a resolve-miss — an unresolved name must not also claim Figma discarded it (${starved.misses.length} misses, ${phantoms.length} phantom)`);
+    ok(starved.misses.includes('container.fills -> color/interactive/primary/fill/hover'),
+      'anatomy: the real cause is reported plainly — the variable NAME that did not resolve, not a Figma-internals mystery');
+    // The other direction, so the gate above cannot pass by the read-back being dead. A node whose
+    // setter accepts the call and drops it is exactly what #503 built this channel for.
+    const dropped = await runPayload(planToPluginJs(runnable).replace('node.setBoundVariable(prop,v);', 'void v;'), full);
+    ok(dropped.misses.length > 0 && dropped.misses.every((m) => m.includes('DISCARDED (resolved, set, not retained)')),
+      `anatomy: a setter that silently drops the write IS reported — the read-back is live, not decorative (${dropped.misses.length} discarded)`);
+    // The paint half of the same control, because the paint read-back repeated the defect verbatim and
+    // so needs its own proof of life. `setBoundVariableForPaint` RETURNS the paint; dropping the
+    // assignment back into the array is the no-op that throws nothing.
+    const unpainted = await runPayload(planToPluginJs(runnable).replace(/node\.fills=\[p\];/, ''), full);
+    ok(unpainted.misses.some((m) => m.includes('.fills -> DISCARDED (paint set, not retained)')),
+      `anatomy: a paint that resolves and is never assigned back into the array IS reported (${JSON.stringify(unpainted.misses)})`);
+    // And with every name resolving and both setters honest, the channel is SILENT. This is the
+    // assertion that fails if the read-back ever starts crying wolf on a correct paste — which is the
+    // failure the two fixes above were about.
+    const clean = await runPayload(planToPluginJs(runnable), full);
+    ok(clean.misses.length === 0,
+      `anatomy: a fully-resolved paste reports NOTHING — misses[] stays empty when every write landed (${JSON.stringify(clean.misses)})`);
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
     // The projection above is worthless if the variables it binds can't be got into a Figma file.
