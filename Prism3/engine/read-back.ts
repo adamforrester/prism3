@@ -39,9 +39,19 @@ export type ReadbackSnapshot = {
    *  (`core-dimension`/`space`/`radius`/`size`/`border-width`/`focus`/`opacity`/`layout`). Optional
    *  so a colour-only read (pre-#146, or a partial file) still validates on the colour contract. */
   float?: Record<string, { name: string; scopes: string[]; hidden: boolean; valuesByMode: Record<string, ReadValue> }[]>;
-  /** STYLE axes (shadow/gradient lane) — local Effect + Paint style NAMES. Styles hold resolved
-   *  values (no alias graph to police), so the readback is name-level. Optional like `float`. */
-  styles?: { effects: string[]; paints: string[] };
+  /** STYLE axes (shadow/gradient lane) — local Effect + Paint style NAMES. Effect styles hold fully
+   *  resolved values, so for those the readback stays name-level. Optional like `float`.
+   *
+   *  `gradientStopBindings` is the one exception, added with #236: gradient stops DO carry an alias
+   *  graph now (each stop can bind to a `palette/*` variable), so a name-only read could not tell a
+   *  bound gradient from a baked one — and "the gradient re-themes" is precisely the property this
+   *  lane exists to guarantee. Keyed by Paint Style name; the value is the resolved target variable
+   *  NAME per stop, `null` for a stop with no binding. Optional so a pre-#236 reader still validates. */
+  styles?: {
+    effects: string[];
+    paints: string[];
+    gradientStopBindings?: Record<string, (string | null)[]>;
+  };
   /** TYPOGRAPHY (#237) — `core-font`/`type-sets` variables (same per-mode row shape as `float`) +
    *  local Text Style names. Optional like the others. */
   font?: Record<string, { name: string; scopes: string[]; hidden: boolean; valuesByMode: Record<string, ReadValue> }[]>;
@@ -59,8 +69,11 @@ export type StylesReadbackVerdict = {
     shadowDarkConsistent: boolean;
     /** gradient Paint Styles present iff the brand opts into gradients. */
     gradientsConsistent: boolean;
+    /** every gradient stop read binds to a `palette/*` variable (#236) — so the gradient re-themes.
+     *  Vacuously true when the reader supplied no bindings (pre-#236 snapshot). */
+    gradientStopsBound: boolean;
   };
-  details: { effects: string[]; paints: string[] };
+  details: { effects: string[]; paints: string[]; unboundStops: string[] };
 };
 
 /** The TYPOGRAPHY read-back verdict (#237) — name-level, like the FLOAT + styles verdicts. */
@@ -243,11 +256,18 @@ export const verifyFloatReadback = (snap: ReadbackSnapshot, expectWireframe: boo
 };
 
 /**
- * Verify the STYLE axes of a read-back snapshot (shadow/gradient lane). Name-level and light — styles
- * hold resolved values, so there's no alias graph or scope contract to police. Asserts: the light
- * shadow set is present, the dark set is present iff the brand ships dark, and gradient Paint Styles
- * are present iff the brand opts into gradients. Returns all-pass when `snap.styles` is absent (a
- * styles-less file isn't a failure). `expectDark`/`expectGradients` are brand facts the caller passes.
+ * Verify the STYLE axes of a read-back snapshot (shadow/gradient lane). Mostly name-level and light —
+ * effect styles hold resolved values, so there's no alias graph or scope contract to police there.
+ * Asserts: the light shadow set is present, the dark set is present iff the brand ships dark, and
+ * gradient Paint Styles are present iff the brand opts into gradients. Returns all-pass when
+ * `snap.styles` is absent (a styles-less file isn't a failure). `expectDark`/`expectGradients` are
+ * brand facts the caller passes.
+ *
+ * One value-level check joins them at #236: `gradientStopsBound`. Every gradient stop the reader saw a
+ * binding slot for must name a `palette/*` target, because an unbound stop is exactly the pre-#236
+ * defect — the gradient renders correctly and then silently fails to follow a re-theme. That failure
+ * is invisible to every name-level check, which is why it needs its own. Skipped (passing) when the
+ * reader supplied no `gradientStopBindings`, so a pre-#236 snapshot still validates.
  */
 export const verifyStylesReadback = (
   snap: ReadbackSnapshot,
@@ -260,12 +280,23 @@ export const verifyStylesReadback = (
   const hasDark = effects.some((n) => n.startsWith('shadow-dark/'));
   const hasGradients = paints.some((n) => n.startsWith('gradient/'));
 
+  // Stops that carry no resolved palette target, named for the report: an empty list is the pass.
+  const bindings = snap.styles?.gradientStopBindings;
+  const unboundStops: string[] = [];
+  if (bindings) {
+    for (const [style, stops] of Object.entries(bindings))
+      stops.forEach((target, i) => {
+        if (!target || !target.startsWith('palette/')) unboundStops.push(`${style} stop ${i} -> ${target ?? 'unbound'}`);
+      });
+  }
+
   const checks = {
     shadowLightPresent: snap.styles === undefined ? true : hasLight,
     shadowDarkConsistent: snap.styles === undefined ? true : hasDark === expectDark,
     gradientsConsistent: snap.styles === undefined ? true : hasGradients === expectGradients,
+    gradientStopsBound: bindings === undefined ? true : unboundStops.length === 0,
   };
-  return { ok: Object.values(checks).every(Boolean), checks, details: { effects, paints } };
+  return { ok: Object.values(checks).every(Boolean), checks, details: { effects, paints, unboundStops } };
 };
 
 /**

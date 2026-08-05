@@ -131,11 +131,20 @@ class StylesShim {
   createPaintStyle(): StyleShim { const s = new StyleShim(); this.paintStyles.push(s); return s; }
 }
 const auroraTheme = brandTheme(exampleBrands['aurora'] as unknown as BrandInput);
-const styleShim = new StylesShim();
+// One FILE, one variable table (#236): the gradient stops bind to `palette/*` variables, so the styles
+// shim's `variables` slice must be the SAME shim the colour executor wrote into — otherwise the stop
+// bindings would resolve against an empty table and the round-trip would prove nothing. So write
+// aurora's COLOUR plan first (its own shim, keeping the NB read above untouched), then its styles.
+const auroraVars = new VariablesShim();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-await applyStylesPlan(buildStylesPlan(auroraTheme), styleShim as any);
+const auroraApi = auroraVars as any;
+await applyWritePlan(buildWritePlan(buildFigmaColor(auroraTheme)), auroraApi);
+class StylesShimBound extends StylesShim { constructor(public variables: VariablesShim) { super(); } }
+const styleShim = new StylesShimBound(auroraVars);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const snap3 = await readFigmaVariables(api, styleShim as any);
+const sres = await applyStylesPlan(buildStylesPlan(auroraTheme), styleShim as any);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const snap3 = await readFigmaVariables(auroraApi, styleShim as any);
 const expectDark = auroraTheme.modes.includes('dark');
 const expectGradients = !!buildStylesPlan(auroraTheme).paints.length;
 const sverdict = verifyStylesReadback(snap3, expectDark, expectGradients);
@@ -144,6 +153,46 @@ ok(!!snap3.styles && snap3.styles.effects.some((n) => n.startsWith('shadow/')), 
 ok(sverdict.ok, 'verifyStylesReadback: contract holds' + (sverdict.ok ? '' : ` — ${Object.entries(sverdict.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
 ok(sverdict.checks.shadowDarkConsistent, 'shadow-dark/* present iff the brand ships dark');
 ok(sverdict.checks.gradientsConsistent, 'gradient Paint Styles present iff the brand opts into gradients');
+
+// ---- gradient stop bindings survive the round trip (#236) ---------------------------------
+// The write reported bindings; the READ must see them, resolved back to palette NAMES. This is the
+// pair that matters: the executor's own count is self-reported, while this crosses the Figma boundary
+// (id -> name) the way the real read does, so a binding written to a bogus id would fail here.
+const stopBindings = snap3.styles?.gradientStopBindings;
+ok(sres.paints.bound > 0 && sres.misses.length === 0,
+  `styles write bound ${sres.paints.bound} stops with 0 misses (palette written first)`);
+ok(!!stopBindings && Object.keys(stopBindings).length === snap3.styles!.paints.length,
+  `read-back carries stop bindings for every Paint Style (${Object.keys(stopBindings ?? {}).length})`);
+const readBound = Object.values(stopBindings ?? {}).flat().filter((n) => n !== null);
+ok(readBound.length === sres.paints.bound,
+  `read-back resolves every written binding to a name (${readBound.length}/${sres.paints.bound})`);
+// Per-stop identity against the PLAN, not just the `palette/` prefix. A prefix check is satisfied by a
+// reader that fabricates a plausible name, which is precisely the failure the reader's own comment
+// promises not to commit — caught by mutating `nameById.get(id) ?? null` to a constant, which passed a
+// prefix-only assertion. Compare the exact target each stop was planned to bind to.
+const auroraPaints = buildStylesPlan(auroraTheme).paints;
+const bindMismatch: string[] = [];
+for (const row of auroraPaints) {
+  const read = stopBindings?.[row.name];
+  if (!read) { bindMismatch.push(`${row.name}: absent from the read-back`); continue; }
+  row.stops.forEach((stop, i) => {
+    if (read[i] !== stop.alias) bindMismatch.push(`${row.name} stop ${i}: read ${read[i]}, planned ${stop.alias}`);
+  });
+}
+ok(bindMismatch.length === 0, 'every stop reads back bound to the EXACT variable the plan named'
+  + (bindMismatch.length ? ` — ${bindMismatch.slice(0, 3).join('; ')}` : ''));
+ok(sverdict.checks.gradientStopsBound, 'verifyStylesReadback: every gradient stop is variable-bound');
+ok(sverdict.details.unboundStops.length === 0, `no unbound stops reported (${sverdict.details.unboundStops.length})`);
+
+// And the check must be able to FAIL — a verdict that cannot go red is not a gate. Same snapshot with
+// one stop's binding knocked out: the check flips and the offending stop is named.
+const brokenSnap = {
+  ...snap3,
+  styles: { ...snap3.styles!, gradientStopBindings: { ...stopBindings, 'gradient/hero': [null, 'palette/primary/600'] } },
+};
+const bverdict = verifyStylesReadback(brokenSnap, expectDark, expectGradients);
+ok(!bverdict.checks.gradientStopsBound && bverdict.details.unboundStops.length === 1 && !bverdict.ok,
+  `an unbound stop fails the verdict and is named (${bverdict.details.unboundStops[0] ?? 'none'})`);
 
 console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

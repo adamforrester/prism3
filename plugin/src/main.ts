@@ -94,14 +94,16 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const floatCreated = f.collections.reduce((n, c) => n + c.created, 0);
     const fontVarCreated = tv.collections.reduce((n, c) => n + c.created, 0);
     const fontVarTotal = tv.collections.reduce((n, c) => n + c.total, 0);
-    const misses = r.misses.length + f.misses.length + tv.misses.length + ts.misses.length;
+    // `s.misses` joins the tally with #236: a gradient stop naming a palette variable this file does
+    // not have is the same class of failure as a dangling variable alias, and was previously invisible.
+    const misses = r.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length;
     const skippedNote = ts.skipped.length
       ? `, ⚠️ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
-      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}), ` +
+      `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
       `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + skippedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false.

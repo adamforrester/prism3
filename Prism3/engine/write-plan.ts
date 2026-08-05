@@ -206,9 +206,9 @@ export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
 // plans there's no alias graph — styles hold resolved values. Two lane decisions live here:
 //   • shadow → BOTH style sets (`shadow/*` light + `shadow-dark/*` dark), verbatim from the emit
 //     (Effect Styles can't carry Figma modes; a component swaps the pair by mode).
-//   • gradient stops → BAKED resolved RGBA (not variable-bound); the `angle`/`center` the emit
-//     carries is converted HERE into Figma's 2×3 `gradientTransform` (Figma positions gradients by
-//     an affine transform, not an angle). Variable-linked stops are a deferred fast-follow.
+//   • gradient stops → resolved RGBA **plus** the `palette/*` variable name each stop came from
+//     (#236); the `angle`/`center` the emit carries is converted HERE into Figma's 2×3
+//     `gradientTransform` (Figma positions gradients by an affine transform, not an angle).
 // ---------------------------------------------------------------------------
 
 /** Figma's gradient positioning matrix — a 2×3 affine `[[a,b,tx],[c,d,ty]]` mapping the layer's
@@ -218,14 +218,19 @@ export type GradientTransform = [[number, number, number], [number, number, numb
 /** One Effect Style to materialise (a shadow step, light or dark). Effects carry resolved RGBA. */
 export type EffectStyleRow = { name: string; description: string; effects: FigmaEffect[] };
 
-/** One Paint Style to materialise (a gradient). Stops are BAKED resolved RGBA; `gradientTransform`
- *  encodes the angle/center the emit carried. */
+/** One Paint Style to materialise (a gradient). `gradientTransform` encodes the angle/center the emit
+ *  carried. Each stop carries BOTH the resolved RGBA and the `palette/*` variable name it came from:
+ *  the executor binds the stop to that variable so the gradient re-themes live (#236), and the RGBA
+ *  remains the value Figma stores. The two are not alternatives — a bound stop still needs a colour,
+ *  and it is the correct one, so a host that cannot resolve the variable renders the right gradient
+ *  rather than nothing. `alias` is `null` for a stop the emit could not trace to a palette leaf
+ *  (an authored hex, or the `sampledStops` pre-sample), which is a normal state, not an error. */
 export type PaintStyleRow = {
   name: string;
   description: string;
   paintType: 'GRADIENT_LINEAR' | 'GRADIENT_RADIAL';
   gradientTransform: GradientTransform;
-  stops: { position: number; color: Rgba }[];
+  stops: { position: number; color: Rgba; alias: string | null }[];
 };
 
 /** The full styles plan — Effect Styles (shadows) + Paint Styles (gradients). */
@@ -287,7 +292,7 @@ const stylesPlanFrom = (
     description: g.description,
     paintType: g.paintType,
     gradientTransform: gradientTransformFor(g.paintType, g.angle, g.center),
-    stops: g.stops.map((s) => ({ position: s.position, color: rgba(s.color) })),
+    stops: g.stops.map((s) => ({ position: s.position, color: rgba(s.color), alias: s.alias })),
   })),
 });
 
@@ -300,8 +305,10 @@ export const stylesPlanFromFiles = (
 
 /**
  * Reshape the shadow + gradient emit into the host-neutral styles plan. PURE (node-free builders +
- * types) — bundles into the plugin like the variable plans. Gradient stops are BAKED to resolved
- * RGBA (owner decision); the `alias`/`sampledStops` the emit carries are intentionally dropped here.
+ * types) — bundles into the plugin like the variable plans. Gradient stops carry the resolved RGBA
+ * *and* their `palette/*` alias (#236), so the executor can bind them; `sampledStops` are still
+ * dropped here — they are the sRGB pre-sample for hosts that cannot interpolate in OKLCH, and Figma
+ * binds the canonical stops instead.
  */
 export const buildStylesPlan = (theme: Theme): StylesPlan =>
   stylesPlanFrom(buildFigmaShadow(theme), buildFigmaGradient(theme));

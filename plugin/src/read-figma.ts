@@ -23,7 +23,10 @@ import type { VariablesApi, VariableAlias, ReadVarValue } from './write-figma';
  *  `getLocalTextStylesAsync` is optional so a pre-#237 caller (styles only) still satisfies the port. */
 export interface StylesReadApi {
   getLocalEffectStylesAsync(): Promise<{ name: string }[]>;
-  getLocalPaintStylesAsync(): Promise<{ name: string }[]>;
+  /** `paints` is read for the #236 stop-binding check. Typed loosely (`readonly unknown[]`) because
+   *  Figma's `PaintStyle.paints` is a `readonly Paint[]` union far wider than gradients — the reader
+   *  narrows what it needs and ignores the rest, which is what keeps the real `figma` satisfying this. */
+  getLocalPaintStylesAsync(): Promise<{ name: string; paints?: readonly unknown[] }[]>;
   getLocalTextStylesAsync?(): Promise<{ name: string }[]>;
 }
 
@@ -122,14 +125,31 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
       });
   }
 
-  // STYLE + TEXT-STYLE NAMES — local Effect + Paint + Text style NAMES (name-level readback; styles
-  // hold resolved values, no alias graph). Only read when a styles API is supplied.
+  // STYLE + TEXT-STYLE NAMES — local Effect + Paint + Text style NAMES. Name-level for effects and
+  // text styles (they hold resolved values, no alias graph). Gradient stops are the exception since
+  // #236: their bindings are read too, because a name tells you the style exists and nothing about
+  // whether it re-themes. Only read when a styles API is supplied.
   let stylesSnap: ReadbackSnapshot['styles'] | undefined;
   let textStyles: string[] | undefined;
   if (styles) {
     const effects = (await styles.getLocalEffectStylesAsync()).map((s) => s.name);
-    const paints = (await styles.getLocalPaintStylesAsync()).map((s) => s.name);
-    stylesSnap = { effects, paints };
+    const paintStyles = await styles.getLocalPaintStylesAsync();
+    const paints = paintStyles.map((s) => s.name);
+    // Resolve each bound stop's variable ID back to its NAME, so the verdict compares names (what the
+    // plan asked for) rather than IDs (which differ per file and cannot be asserted against a plan).
+    // An ID we cannot resolve reads as `null` — the same honesty rule the dangling-alias read follows:
+    // report the gap, never fabricate a name.
+    const gradientStopBindings: Record<string, (string | null)[]> = {};
+    for (const s of paintStyles) {
+      const paint = (s.paints ?? [])[0] as { gradientStops?: readonly unknown[] } | undefined;
+      if (!paint?.gradientStops) continue;
+      gradientStopBindings[s.name] = paint.gradientStops.map((raw) => {
+        const stop = raw as { boundVariables?: { color?: { id?: string } } };
+        const id = stop.boundVariables?.color?.id;
+        return id ? nameById.get(id) ?? null : null;
+      });
+    }
+    stylesSnap = { effects, paints, ...(Object.keys(gradientStopBindings).length ? { gradientStopBindings } : {}) };
     if (styles.getLocalTextStylesAsync) textStyles = (await styles.getLocalTextStylesAsync()).map((s) => s.name);
   }
 

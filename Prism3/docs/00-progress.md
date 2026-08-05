@@ -257,6 +257,112 @@ an axis mismatch it would also trip on — the root cause, not the symptom.
 
 ---
 
+## (2026-08-05) — Gradient stops bind to their palette variables, so gradients re-theme (#236)
+
+**STATUS: shipped, verified live.** The #151 fast-follow. Touches `Prism3/engine/write-plan.ts` (carry the alias),
+`Prism3/engine/read-back.ts` (a value-level check), `plugin/src/write-styles.ts` (bind the stop),
+`plugin/src/read-figma.ts` (read the binding), `plugin/src/main.ts` (report it), and the two shim tests.
+**No emitted artifact moved** — `regen --check` 88/88 and the token contract unchanged, because
+`StylesPlan` is an in-memory hand-off, never a file.
+
+### The defect was invisible by construction
+
+#151 wrote gradient Paint Styles with **baked resolved RGBA** stops — an owner-confirmed simplification.
+The consequence: a gradient rendered *correctly* and then silently refused to follow a re-theme. Change
+`palette/primary/600` and every solid fill bound to it moves while the gradient stays exactly as
+written. Nothing reports this. Every check the lane had was **name-level** — "does a Paint Style called
+`gradient/brand` exist?" — and the answer stayed yes throughout, because the style does exist and does
+look right. *A style can be present, correct, and dead.*
+
+The emit already carried the target: `FigmaPaintStop.alias` (`palette/primary/600`), resolved in
+`emit-figma-styles.ts`. `write-plan.ts` then dropped it, and said so — "the `alias`/`sampledStops` the
+emit carries are intentionally dropped here." So the fix is plumbing, not design: stop discarding it.
+
+### Both values, not either
+
+A bound stop keeps its baked RGBA. Figma stores the colour and *overrides* it from the bound variable
+when it can resolve one, so the two are not alternatives — and the baked value is the **correct** colour,
+not a placeholder. A host that cannot resolve the variable therefore renders the right gradient rather
+than nothing. `sampledStops` are still dropped at the plan boundary: they are the sRGB pre-sample for
+hosts that cannot interpolate in OKLCH, and Figma binds the canonical stops instead.
+
+`alias: null` is an ordinary state (an authored hex, not a palette reference), so it is **not** a miss.
+Only a stop that names a target this file does not have is, and those join the apply summary's `misses`
+tally — the same class as a dangling variable alias, and previously invisible there too.
+
+### Why this needed Figma's odd corner
+
+Stop bindings go through `ColorStop.boundVariables`, built inline while assembling `gradientStops` —
+**not** `setBoundVariableForPaint`, which only handles `SolidPaint`. That asymmetry is why #151 deferred
+this rather than doing it inline. The `StylesApi` port grew a `variables` slice (nested exactly as the
+real `figma` nests it, so the global still satisfies the port with no adapter), and the name→Variable
+index is built from an **unfiltered** `getLocalVariablesAsync()` — the #146 lesson that a type-filtered
+fetch returns only that type and silently empties the index.
+
+### Four gates, and the one that was decorative until it was mutated
+
+Written to bite, then **mutation-tested** to prove they do:
+
+| mutation | caught by |
+|---|---|
+| plan drops the alias (`alias: null`) | 3 failures in styles, 5 in read-back |
+| executor never sets `boundVariables` | 2 in styles, 5 in read-back |
+| reader fabricates a name (`'palette/fake'`) | **nothing — 0 failures** |
+
+That third one is the finding. Every read-back assertion checked the name's *shape* (`startsWith('palette/')`)
+and none checked its *identity*, so a reader inventing a plausible constant passed cleanly — while the
+reader's own comment promises it will "report the gap, never fabricate a name." A prefix assertion cannot
+tell a resolved name from a well-formed lie. Replaced with a per-stop comparison against the plan's exact
+target; the mutation now fails loudly with `read palette/fake, planned palette/primary/600`.
+
+The verdict check also has an explicit **negative** test — a snapshot with one binding knocked out must
+flip `gradientStopsBound` to false and name the stop. #515 landed the same lesson one entry down: a
+detector that cannot be shown to go red is not a detector.
+
+The read-back round-trip needed one structural fix to be meaningful: it wrote NB colours but aurora
+styles, so stop bindings would have resolved against a variable table that never held them. It now
+writes aurora's colour plan into a shared shim first, then the styles — **one file, one variable table**,
+which is the only arrangement in which "the binding resolves" is a real claim.
+
+### Verified / not yet verified
+
+Gates: `regen --check` 88/88 · unit 1629/0 · MCP 49/0 · contract unchanged (1.1.0, 480) · NB regression
+PASS · all 7 plugin shim suites PASS (styles 19 assertions, read-back +7) · three typechecks · both
+builds · US-English clean (94 files). Aurora binds **4 stops across 2 gradients**, 0 misses.
+
+**VERIFIED LIVE** (2026-08-05, `Prism Test File v2`, owner cleared the shared bridge). Both claims the
+shims could not reach are now settled against real Figma, driving the **shipped** executor — `write-styles.ts`
++ `read-figma.ts` were esbuild-bundled to an IIFE and run in the plugin sandbox, so this exercised the
+compiled code path rather than a hand-retyped approximation of it. Worth keeping for the next live drive:
+the sandbox has **no `fetch`** (manifest `allowedDomains`), so the bundle had to be inlined into the
+`figma_execute` call — a localhost server is not reachable from plugin code.
+
+1. **Figma accepts `boundVariables` on an inline stop.** 4/4 stops persisted with real `VariableID`s and
+   survived a *fresh* `getLocalPaintStylesAsync` (re-fetched, not the objects just written — a silent drop
+   would show there and nowhere else). Each resolved to the exact variable the plan named, and the real
+   `verifyStylesReadback` returned `ok: true` against live Figma.
+2. **It repaints.** `palette/primary/600` → hot magenta re-rendered `gradient/brand` on canvas
+   (screenshots before/after). Two controls make it conclusive rather than a global refresh: the second
+   stop (`palette/accent/500`, untouched) held its blue, and `gradient/glow` — bound to accent only — did
+   not move at all. Value restored afterward.
+
+Also confirmed live: idempotency (re-apply → 0 created, 4 re-bound, no duplicates) and the degraded path
+(a plan naming an absent variable reports the miss and still writes baked stops — no throw).
+
+**The live drive found a shim that lied, in this PR's own new test code.** Figma **normalises** a gradient
+stop on assignment: a stop written with no `boundVariables` reads back carrying `boundVariables: {}` —
+present and *truthy* but empty. The shim stored assignments verbatim, so it could never disagree with the
+executor, and the bare-palette assertion used `!st.boundVariables` as "unbound" — true in the shim, **false
+in Figma**. It passed for the wrong reason. Fixed at the source: `ShimStyle.paints` is now a setter that
+normalises stops the way Figma does, and boundness is tested as `!st.boundVariables?.color` — the container
+is always truthy live, so only the `.color` target means anything. Reverting just the assertion against the
+new shim fails, so the change is not inert. *The lesson is narrower than "shims drift": a shim that merely
+**stores** what the executor hands it cannot contradict the executor, so every assertion over it is really
+an assertion about my own beliefs about the host.* The read path was already correct (`.color?.id`), and
+`anatomy-figma.ts:654` independently uses `arr[0].boundVariables.color` — the same rule, learned separately.
+
+---
+
 ## (2026-08-05) — A dead detector is silent, and so is a correct one (#510 review follow-up)
 
 **STATUS: engine (`test.ts`) + this doc.** Test-only — no emitter change, `out/*` byte-identical.
