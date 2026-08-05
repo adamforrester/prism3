@@ -3075,12 +3075,49 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const applied = applyXPrism3(probe, { radiusScale: 2, typeScale: 'expressive', motionTempo: 'snappy', density: 'compact' });
   ok(probe.radiusScale === 2 && probe.typography?.typeScale === 'expressive' && probe.motionPersonality?.tempo === 'snappy' && probe.density === 'compact' && applied.length === 4,
     'applyXPrism3: levers map onto BrandInput (brand-skills → engine round-trip)');
-  // M-14: a non-numeric radiusScale (`Number('soft')` → NaN) must be rejected at ingest, not
-  // slipped through to NaNpx radius tokens (NaN passes typeof-number + every min/max compare).
+  // M-14's GUARANTEE is preserved; only its example moved. The original asserted `radiusScale:
+  // 'soft'` throws, which was correct when `Number('soft')` → NaN was the only reading of it — and
+  // became the thing ENFORCING a bug the moment #471 made named stops legal natively. The property
+  // that actually matters is "nothing that isn't a real value reaches the radius ramp", so the
+  // garbage case keeps the assertion and `soft` moves to the parity block below.
+  // Fail SOFT — records the throw and returns [] rather than taking the run down. This is the THIRD
+  // time in one session that an unguarded helper turned one defect into a silent zero-assertion run,
+  // and the second time AFTER the lesson was written down. A note is evidently not enough: any helper
+  // that wraps a throwing call in this suite needs the guard built in, not remembered.
+  const xp = (x: Record<string, unknown>): string[] => {
+    try { return applyXPrism3({ id: 'p', primary: { l: 0.5, c: 0.1, h: 20 }, neutral: { hue: 20, chroma: 0.01 } } as BrandInput, x); }
+    catch (e) { fails.push(`x-prism3: applyXPrism3(${JSON.stringify(x)}) threw — ${(e as Error).message}`); return []; }
+  };
+  // Bypasses `xp` deliberately: the helper swallows throws to keep the run alive, and throwing is
+  // precisely the behaviour under test here. (Caught by running it — routed through `xp` this
+  // asserted its own opposite and reported two failures.)
   let m14ingest = false;
-  try { applyXPrism3({ id: 'p', primary: { l: 0.5, c: 0.1, h: 20 }, neutral: { hue: 20, chroma: 0.01 } } as BrandInput, { radiusScale: 'soft' }); } catch { m14ingest = true; }
-  ok(m14ingest, 'M-14: x-prism3.radiusScale="soft" throws at ingest (not a NaN radius)');
-  ok(applyXPrism3({ id: 'p', primary: { l: 0.5, c: 0.1, h: 20 }, neutral: { hue: 20, chroma: 0.01 } } as BrandInput, { radiusScale: 1.5 }).length === 1, 'M-14: a numeric radiusScale still applies');
+  try { applyXPrism3({ id: 'p', primary: { l: 0.5, c: 0.1, h: 20 }, neutral: { hue: 20, chroma: 0.01 } } as BrandInput, { radiusScale: 'banana' }); } catch { m14ingest = true; }
+  ok(m14ingest, 'M-14: an x-prism3.radiusScale that is neither a number nor a declared stop throws at ingest (not a NaN radius)');
+  ok(xp({ radiusScale: 1.5 }).length === 1, 'M-14: a numeric radiusScale still applies');
+
+  // ---- DIALECT PARITY (#471 follow-up) ------------------------------------------------------
+  // The two front doors must accept the same values for the same lever. They diverged silently:
+  // #471 widened the engine-native dialect and left `x-prism3` rejecting `'soft'` — with an error
+  // message that named `soft` as the invalid example. `vocabulary.ts` records the schema-vs-engine
+  // version of this trap; this is dialect-vs-dialect. Structural rather than spot-checked, so a
+  // stop added to SLIDER_STOPS later cannot quietly become native-only.
+  for (const [stop, value] of Object.entries(SLIDER_STOPS.radiusScale)) {
+    const viaX = xp({ radiusScale: stop });
+    const probeX = { id: 'p', primary: { l: 0.5, c: 0.1, h: 20 }, neutral: { hue: 20, chroma: 0.01 } } as BrandInput;
+    try { applyXPrism3(probeX, { radiusScale: stop }); } catch { /* recorded by xp above */ }
+    ok(probeX.radiusScale === value && viaX.length === 1,
+      `dialect parity: x-prism3.radiusScale='${stop}' resolves to ${value}, the same as the engine-native dialect`);
+  }
+  // `personality` is the vocabulary's headline affordance and a brand-skills brief is exactly the
+  // "prose, not numbers" case it exists for. It was dropped SILENTLY — no passthrough — which is
+  // the failure mode #471 was filed to eliminate.
+  const pProbe = { id: 'p', primary: { l: 0.5, c: 0.1, h: 20 }, neutral: { hue: 20, chroma: 0.01 } } as BrandInput;
+  const pApplied = applyXPrism3(pProbe, { personality: ['soft', 'generous'] });
+  ok((pProbe as any).personality?.length === 2 && pApplied.some((a) => a.startsWith('personality=')),
+    'dialect parity: x-prism3.personality passes through AND is reported as applied (it was silently dropped)');
+  ok(brandTheme(pProbe).dims.radiusScaleValue === SLIDER_STOPS.radiusScale.soft,
+    "dialect parity: a personality arriving via x-prism3 resolves identically to the native dialect (['soft'] → radiusScale soft)");
   ok(validateBrandInput({ id: 't', primary: { l: 0.5, c: 0.05, h: 200 }, neutral: { hue: 200, chroma: 0.01 }, radiusScale: NaN } as any).length > 0, 'M-14: the validator rejects a NaN number (backstop)');
   const nativeStd = parseStandardDesignMd(readFileSync(resolve(HERE, '../examples/harbor.design.md'), 'utf8'));
   ok(Object.keys(nativeStd.colors).length === 0, 'dialect detection: an engine-native brief has no top-level colors map (routes native)');
