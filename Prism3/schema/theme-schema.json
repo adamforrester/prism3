@@ -282,6 +282,12 @@
           "default": "standard",
           "description": "Scales the base duration ramp (snappy ×0.8, standard ×1.0, relaxed ×1.3)."
         },
+        "easingRoles": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "enum": ["linear", "standard", "enter", "exit", "emphasized", "calm"] },
+          "propertyNames": { "enum": ["default", "enter", "exit", "emphasized"] },
+          "description": "OPTIONAL. Which CURVE each motion role resolves to, brand-wide. The per-mode re-point in modeLevers.<mode>.easings deviates from THIS, so without it a mode could override a baseline nobody could set. Absent entries keep the engine default (default→standard, enter→enter, exit→exit, emphasized→emphasized). Deep-validated by brandTheme()."
+        },
         "easingEmphasized": {
           "type": "array",
           "items": { "type": "number" },

@@ -2789,6 +2789,7 @@ const renderEasingEditor = (): HTMLElement => {
       'easings',
       Object.keys(m.easing).map((k) => ({ key: k, val: curve(k) })),
       'Role',
+      (role, c2) => setPath(brandState, `motionPersonality.easingRoles.${role}`, c2),
     ));
   }
   return wrap;
@@ -4386,6 +4387,11 @@ const renderRepointTable = (
   // The ladders' rows ARE rungs; easing's are motion roles. A header reading "Rung" over a column of
   // role names is the kind of wrong only a screenshot catches.
   rowLabel = 'Rung',
+  // When the baseline binding lives in ANOTHER table (the two ladders), Light is a read-out and this
+  // stays undefined. Easing has no such table — its role→curve mapping was engine-fixed — so it passes
+  // a writer and Light becomes a select like every other column. Without this a mode could deviate
+  // from a baseline nobody could set: you could change Dark but not Light, which is backwards.
+  setBaseline?: (rowKey: string, curve: string | undefined) => void,
 ): HTMLElement => {
   const opts = options ?? steps;
   const modes = rp.modes;
@@ -4412,7 +4418,17 @@ const renderRepointTable = (
     tr.append(nameCell);
     for (const m of modes) {
       const td = el('td', 'mtbl-mode');
-      if (m === 'light') {
+      if (m === 'light' && setBaseline) {
+        // Light IS the baseline, and here it is settable: this select writes the brand-wide binding
+        // every other column is a substitution for.
+        const sel = selectEl('sm');
+        for (const t of opts) sel.append(optionEl(t.key, t.key, (s.base ?? s.key) === t.key));
+        sel.setAttribute('aria-label', `${s.key} baseline`);
+        sel.onchange = () => { setBaseline(s.key, sel.value); applyFull(); };
+        td.append(sel);
+        const worth = opts.find((t) => t.key === (s.base ?? s.key));
+        if (worth) td.append(el('span', 'mtbl-worth mono', fmt(worth.val)));
+      } else if (m === 'light') {
         // Light IS the baseline, so its cell can only ever resolve to the row's own rung. Showing the
         // VALUE rather than repeating the name earns the cell its width: it is the number every other
         // cell in the row is a substitution for.

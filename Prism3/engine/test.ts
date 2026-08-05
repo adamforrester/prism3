@@ -1282,6 +1282,18 @@ for (const b of brands) {
       `D(a0): the transition names the role, so it inherits the re-point (got ${mo.transition.emphasized.$value.timingFunction})`);
     ok(mo['easing-role'].default.$extensions?.prism3?.modes === undefined,
       'D(a0): an unre-pointed role is untouched (no blanket override)');
+    // The BASELINE is settable too, and a mode deviates from it — without that, a mode could override
+    // a binding nobody could set (you could change Dark but not Light).
+    {
+      const bl = { ...base, motionPersonality: { easingRoles: { default: 'calm' } } } as unknown as BrandInput;
+      const mb = buildTree(brandTheme(bl)).tree[root].motion;
+      ok(mb['easing-role'].default.$value === `{${root}.motion.easing.calm}`,
+        `D(a0): the brand-wide baseline re-points the role (got ${mb['easing-role'].default.$value})`);
+      ok(mb.easing.default === undefined && mb.easing.calm.$extensions?.prism3?.modes === undefined,
+        'D(a0): setting the baseline still does not touch any curve primitive');
+      ok(threw(() => brandTheme({ ...base, motionPersonality: { easingRoles: { default: 'nope' } } } as unknown as BrandInput)),
+        'D(a0): an unknown baseline curve is rejected');
+    }
     // no-diff suppression, matching every other axis
     const selfMap = { ...base, modeLevers: { dark: { easings: { emphasized: 'emphasized' } } } } as unknown as BrandInput;
     ok(buildTree(brandTheme(selfMap)).tree[root].motion['easing-role'].emphasized.$extensions?.prism3?.modes === undefined,

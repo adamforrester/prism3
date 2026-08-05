@@ -38,6 +38,18 @@ whichever mode the bar holds — the bar does not scope it. Reverted to `'shared
 column-per-mode tables. Claiming the bar scoped an editor it has no effect on would have been a badge
 that lies, and only the measurement knew.
 
+**The Light column was read-only, and that was a hole, not a design.** Asked *"so how does one set the
+light mode?"* — you could not. `easingRoles` was hard-coded in `buildMotion` with no lever, so a mode
+could deviate from a baseline nobody could choose: **you could change Dark but not Light.** Worse, the
+read-only Light cell carried the ladders' tooltip — *"change which ladder step binds in the table
+above"* — pointing at a table that does not exist for easing. Prose inherited from a sibling, describing
+a mechanism that was never there.
+
+`motionPersonality.easingRoles` now sets the brand-wide binding and the Light cell is a select like
+every other column, with `renderRepointTable` taking an optional `setBaseline` writer (absent for the
+two ladders, whose baseline genuinely does live in another table). Verified end to end: setting Light's
+`default` to `calm` emits `easing-role.default → motion.easing.calm`.
+
 **Three copy defects the engine gates could never have caught — only a screenshot did.** Worth naming
 because the feature was fully working and fully green when all three were live:
 - The section still read *"the rest are generated and fixed"*, two lines above a table that substitutes

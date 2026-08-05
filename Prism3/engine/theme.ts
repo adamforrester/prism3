@@ -504,6 +504,11 @@ export type Bezier = [number, number, number, number];
 export type MotionPersonality = {
   tempo?: 'snappy' | 'standard' | 'relaxed';   // scales the base duration ramp
   easingEmphasized?: Bezier;                    // optional override for the expressive curve
+  // Which CURVE each motion role resolves to, brand-wide (#522 follow-up). The per-mode re-point in
+  // `modeLevers.<mode>.easings` deviates from THIS, so without it a mode could override a baseline
+  // nobody could set — you could change Dark but not Light, which is backwards. Same shape as the
+  // per-mode map; absent entries keep the engine default.
+  easingRoles?: Partial<Record<string, string>>;
 };
 export type MotionAxis = {
   tempo: 'snappy' | 'standard' | 'relaxed';
@@ -527,6 +532,14 @@ export type MotionAxis = {
   easingRolesByMode?: Record<string, Record<string, string>>;
 };
 
+// The engine's opinion about which curve each intent starts from. A brand overrides any of them via
+// `motionPersonality.easingRoles`; a mode deviates further via `modeLevers.<mode>.easings`.
+const EASING_ROLE_DEFAULTS = [
+  { role: 'default', curve: 'standard' },
+  { role: 'enter', curve: 'enter' },
+  { role: 'exit', curve: 'exit' },
+  { role: 'emphasized', curve: 'emphasized' },
+] as const;
 const DURATION_BASE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 };
 const TEMPO_FACTOR = { snappy: 0.8, standard: 1, relaxed: 1.3 } as const;
 const round5 = (n: number) => Math.round(n / 5) * 5;
@@ -557,12 +570,12 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
     tempo, duration, durationReduced, easing, spring, stagger: round5(40 * f),
     // One source: the roles ARE the transition intents, so adding a transition adds its role and the
     // two can never drift apart.
-    easingRoles: [
-      { role: 'default', curve: 'standard' },
-      { role: 'enter', curve: 'enter' },
-      { role: 'exit', curve: 'exit' },
-      { role: 'emphasized', curve: 'emphasized' },
-    ],
+    easingRoles: EASING_ROLE_DEFAULTS.map((r) => {
+      const picked = p.easingRoles?.[r.role];
+      if (picked !== undefined && !(picked in easing))
+        throw new Error(`motionPersonality.easingRoles.${r.role}: unknown easing curve '${picked}' (have: ${Object.keys(easing).join(', ')})`);
+      return { role: r.role, curve: picked ?? r.curve };
+    }),
     transitions: [
       { name: 'default', duration: 'normal', easing: 'standard', desc: 'standard in-place transition' },
       { name: 'enter', duration: 'normal', easing: 'enter', desc: 'entrance — element settles in' },
