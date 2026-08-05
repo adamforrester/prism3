@@ -514,7 +514,7 @@ export const planComponentName = (plan: AnatomyPlan): string =>
  *    Binding then resizing loses the binding; resizing then binding is fine. (`appendChild` into
  *    auto-layout and setting `layoutSizing*` are both safe — measured, not assumed.)
  */
-export const planToPluginJs = (plan: AnatomyPlan): string => `const PLAN=${JSON.stringify(plan.root)};
+export const planToPluginJs = (plan: AnatomyPlan): string => stripPayloadComments(`const PLAN=${JSON.stringify(plan.root)};
 ${PAYLOAD_PREAMBLE}
 ${PAYLOAD_BUILD}
 const root=await build(PLAN);
@@ -525,7 +525,43 @@ comp.name=${JSON.stringify(planComponentName(plan))};
 // a caller verifying by name reads whichever one document order hands it — which is how #482's stale
 // paste masqueraded as a failure of this one (#503). The id is the only unambiguous handle.
 return {component:comp.name,id:comp.id,parts:${JSON.stringify(planPartNames(plan.root).length)},misses,codeOnly:${JSON.stringify(plan.codeOnly.length)},paints:${JSON.stringify(planPaintVars(plan.root).length)}};
-`;
+`);
+
+/**
+ * STRIP the comments on the way OUT. Every payload in this file is emitted through here.
+ *
+ * The comments are 44% of the emitted bytes — 11,047 of a 25.9KB chunk shell, and the shell is
+ * duplicated into every chunk, so the full 756-variant button paid for those 11KB 189 times. They are
+ * the reason the chunk count is what it is, and they are the one part of a payload that no Figma API
+ * ever reads. Stripping them roughly HALVES the chunk count for the full set. They stay in the source,
+ * which is where the measurements they record belong; the emitted copy is transport.
+ *
+ * The tradeoff, stated because it is real: a payload read in the Figma console is now bare JS, so
+ * anyone debugging a paste in isolation has to come back to this file for the why. That is the right
+ * direction — the source is the record — but it is a loss, not a free win.
+ *
+ * FULL-LINE `//` ONLY, and deliberately so. A general comment stripper has to lex JavaScript to know
+ * whether a `//` sits inside a string, a template literal or a regex, and getting that wrong corrupts
+ * the payload in a way that surfaces only at paste time. A line whose FIRST non-space characters are
+ * `//` cannot be inside any of those (a multi-line template literal would let one through, and this
+ * file emits none — asserted by the gate, so a future one fails here rather than silently). The two
+ * `/* *\/` blocks and the one trailing `//` left behind are ~200 bytes between them and are not worth
+ * a lexer.
+ *
+ * Blank lines go too: the comments are what the blank lines separated, so leaving them behind emits
+ * the blank paragraph breaks of prose that is no longer there.
+ *
+ * EXPORTED for the gate, and for a reason worth recording: gating it through its OUTPUT is not enough.
+ * A greedier stripper — `!l.includes('//')`, which reads like a *better* comment stripper — deletes
+ * `if(!id)continue; // ...`, a real guard, and every one of the 1,684 assertions stayed green. The
+ * payload still parsed, carried no comments, and had no backtick. Output sampling cannot see a line
+ * that is simply gone, so the pass is tested against crafted input where the answer is known.
+ */
+export const stripPayloadComments = (js: string): string =>
+  js
+    .split('\n')
+    .filter((l) => l.trim() !== '' && !l.trimStart().startsWith('//'))
+    .join('\n') + '\n';
 
 /**
  * The payload HEAD, shared verbatim by the single-component and the SET path: four name→object
@@ -872,7 +908,7 @@ const setLayout = (plans: AnatomyPlan[], fn: string) => {
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
   const { cells, props, refs, axes, rows, cols } = setLayout(plans, 'planSetToPluginJs');
 
-  return `const PLANS=${JSON.stringify(cells)};
+  return stripPayloadComments(`const PLANS=${JSON.stringify(cells)};
 const PROPS=${JSON.stringify(props)};
 const REFS=${JSON.stringify(refs)};
 ${PAYLOAD_PREAMBLE}
@@ -941,7 +977,7 @@ built.forEach((c,i)=>{
 // across twenty-one. Since the whole point of the per-member loop is that references do NOT propagate,
 // the number worth reporting is how many members were reached — SPREAD, not volume (#513 review).
 return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows)},${JSON.stringify(cols)}],axes:derived.map(k=>k+':'+(defs[k].variantOptions||[]).length),properties:[...bare.keys()].map(k=>k+':'+defs[bare.get(k)].type),refs:wiredRefs.length,wiredMembers:[...new Set(wiredRefs.map(r=>r[0]))].length,misses:misses.concat(axisMiss,coincident,footprint,propMiss)};
-`;
+`);
 };
 
 /**
@@ -1176,8 +1212,13 @@ export const planSetChunks = (
   // `name` + `root` only. `row`/`col`/`group` are all derivable from the name inside the payload, and
   // the payload's bytes are the budget this whole function exists to respect.
   const specs = cells.map((c) => ({ name: c.name, root: c.root }));
+  // STRIPPED INSIDE `emit`, not around it, because every byte the packing loop reasons about has to be a
+  // byte that ships. Stripping the finished payloads afterwards would pack against a 25.9KB shell and
+  // then ship a 14.8KB one — correct, but a third more chunks than the budget allows, and the `bytes`
+  // this function reports (the one number it exists to control) would be measuring a different string
+  // from the one it packed.
   const emit = (slice: typeof specs, index: number, total: number, last: boolean) =>
-    `const PLANS=${JSON.stringify(slice)};
+    stripPayloadComments(`const PLANS=${JSON.stringify(slice)};
 const SET_NAME=${JSON.stringify(component)};
 const CHUNK=${index};
 const TOTAL=${total};
@@ -1206,7 +1247,7 @@ ${PAYLOAD_WIRE_REFS}
 try{defs=set.componentPropertyDefinitions||{};}catch(err){/* already reported as UNREADABLE above */}
 ${PAYLOAD_PROP_READBACK}
 ${PAYLOAD_CHUNK_RETURN}
-`;
+`);
 
   // PACK BY MEASURED BYTES. The shell is emitted and measured rather than estimated, then variants are
   // added while they fit — because a per-variant average is wrong by 60% between a slot-less plan and a
