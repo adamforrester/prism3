@@ -159,6 +159,115 @@ worth a grep for the pattern across the surface it applies to, in the same sitti
 
 ## 2026-08-05 — from building the SKILLS GATE (#492)
 
+### `[GATE]` A self-check written against a REIMPLEMENTATION validates the copy, not the shipping code
+
+The gate shipped with a self-check that called a private `fakeScan` — a parallel copy of the scan
+loop, inlined 40 lines below the original. The shared regexes and sets were real, so it verified
+*those* were intact; it could not verify that anything still **called** them. A review proved the
+consequence: neuter the real `findings.push`, leave `fakeScan` alone, and the gate reports clean —
+with the exact `action.*` regression this gate was written to catch injected into a real skill file.
+
+Fixed by extracting `scanText(text, rel, findings)` and having both `scanSkill` and the self-check
+drive it. The mutation now fails the gate.
+
+**Why the original mutation test missed it, which is the sharper half:** the mutation targeted
+`DOTTED` — a constant *both* paths share. Both broke together, the gate went red, and that read as
+proof the self-check worked. **A mutation on a shared dependency cannot distinguish two code paths
+that depend on it.** Mutate the call site, not the constant.
+
+It is #281 one layer along: there, no gate read the committed artifact; here, the self-check did not
+read the live code path.
+
+**And the fix was itself partial, which is the second half of the lesson.** Extracting `scanText`
+routed the self-check through three of the four scans and left COVERAGE inside `scanSkill`,
+unreachable from any assertion — so silencing its `findings.push` and stripping `personality` from
+the skill whose job is teaching it *still* reported clean, exit 0. The defect the round had just
+fixed, surviving in the one scan the extraction did not reach. A second review caught it.
+
+> **A self-check that covers three of four scans reports the same confident silence for the fourth.**
+
+Partial coverage of a self-check is the same failure as no self-check, restricted to a smaller
+surface — and the uncovered scan is *disproportionately likely to be the interesting one*, because
+the interesting one is usually shaped differently enough to sit outside the common path. Here that
+was literal: coverage needs the file's own frontmatter, which is precisely why it did not fit
+alongside the text scans, and precisely why it is the check this gate's header calls the one that
+fires on the real defect. **When extracting for testability, enumerate the scans and check the count
+of things the self-check drives against the count that exist.**
+
+### `[GATE]` A declaration that also satisfies the check it exempts you from is unfalsifiable
+
+The coverage scan lets a skill declare `omits: <prop>` to opt a property out of the "must be
+documented" rule. A review mutated the exemption dead — `if (declaredOmit.has(prop)) continue;` →
+`if (false) continue;` — and the gate exited **0**.
+
+The cause was scope, not the exemption: the prose test ran against the **whole file**, frontmatter
+included. So `omits: personality` was itself prose *about* `personality`. Every declared omission was
+suppressed twice — by declaration, and by the declaration's own text — and only the second one ever
+mattered. The review's *suggested* replacement sample had the same hole; running it first (32 findings
+with the `omits:` line, 33 without, suppressed either way) is what redirected the fix to the root.
+
+> **When the declaration is also evidence for the thing it exempts, no test can distinguish a working
+> exemption from a deleted one.** Keep the two inputs disjoint: frontmatter DECLARES, body DOCUMENTS.
+
+**And then the part worth the entry.** Scoping the prose test to the body immediately turned 7 real
+skills red — because the `omits:` parser was `/^omits:\s*(.+)$/gm`, which under `/m` stops at the first
+newline, and `prism3-theme`'s list wraps across three YAML continuation lines. **7 of its 14
+declarations had never been parsed.** They passed anyway, because the text that failed to parse was the
+prose that covered them.
+
+> **Two bugs that cancel read as one working feature.** Neither was observable while the other stood.
+
+The heuristic to carry: **fixing a false-negative is the best moment to hunt for more of them.** A
+compensating defect is invisible by construction until its partner is removed, so the red that follows
+a detector fix is evidence about the past, not damage from the change.
+
+### `[GATE]` Proving a scan works and proving it *runs* are different claims
+
+The self-check drives `scanText` and `scanCoverage` directly — the #511 fix, and correct as far as it
+goes. It does not prove `scanSkill` still calls them. Deleting either call left **every assertion
+passing** and printed `✓ clean` over skills the gate never opened.
+
+#511 was *the self-check validated a copy instead of the shipping function*. This is one layer along:
+it validates the shipping function while the shipping **path** no longer reaches it. Extraction fixes
+the first and creates the second — the more a self-check drives units directly, the less it says about
+the composition.
+
+Closed with a wiring floor: counters incremented inside each scan, compared after the real pass against
+expectations **derived from the skill files themselves** (`dirs.length`, and the count declaring
+`documents: brandInput`) rather than hard-coded, so the floor tracks the corpus instead of needing a
+number bumped whenever a skill is added.
+
+Mutation coverage went **5 of 12 → 12 of 12**. The seven newly-caught: the omit list ignored and the
+omit list widened to a blanket amnesty, the prose test re-widened to the whole file, the wrapped-`omits:`
+parser, the greedy frontmatter strip, and all three call sites.
+
+**One mutant deserves its own note, because it passed longest.** The frontmatter strip must be lazy
+(`[\s\S]*?`); greedy would eat the body up to the *last* `---` in the file. Both shipped skills have
+exactly two `---` lines — the frontmatter delimiters — so greedy and lazy agree on every real input,
+and the mutant survived until a sample was written specifically to separate them (a property documented
+*above* a body rule: lazy keeps it, greedy eats it).
+
+> **A gate whose correctness depends on no author using a common markdown convention is one paragraph
+> away from going silent — and its own corpus cannot tell you, because the corpus is what taught it the
+> assumption.**
+
+Same shape as #464's plural blind spot in the US-English gate. The general form: *sample the inputs the
+corpus does not contain yet.*
+
+### `[GATE]` Adding a surface to a gate's scope is two edits, and the second is the one that rots
+
+`Prism3/skills/**` was added to the US-English gate's scan but not to its `REQUIRED_SURFACES` list —
+so deleting the walk dropped two files and the gate still printed a confident `clean`, exit 0. That
+is precisely the false-pass class `REQUIRED_SURFACES` exists to prevent, and CLAUDE.md already writes
+the rule: coverage follows `regen.ts` for everything *except* surfaces named by hand, and each of
+those needs its own line. The comment adding skills even said "named by hand, because skills are not
+a `regen` artifact" — and then didn't add the line.
+
+**Whenever scope is widened by hand, the widening and its guard are one change.** Also worth keeping
+the run's summary string honest: it still named four surfaces after a fifth was added, so a reader
+could not tell from the log whether skills were scanned.
+
+
 ### `[GATE]` The gate's first run found worse than the defect it was written for
 
 It was built for a known drift: `prism3-theme` teaching an adjective→lever mapping #471 replaced. It
@@ -166,7 +275,10 @@ found that, and first found something larger — **`prism3-consume` was teaching
 `action.*` family.** `docs/20 §11` renamed `action.*` to `interactive.*`; the skill that tells an
 agent which tokens to reference still named `color.action.default`, `action.disabled`,
 `text.on-action`, `text.disabled`, `text.on-disabled`. An agent following it emits references that
-resolve to nothing. Seven dead paths, in the one file whose entire job is naming tokens correctly.
+resolve to nothing. **Six distinct dead paths** across seven occurrences, in the one file whose
+entire job is naming tokens correctly. (The PR body said "seven dead paths" — that was the finding
+count, not the path count, and a review caught it. On a change whose thesis is *shipped prose must
+make true claims*, its own count is a claim worth getting right.)
 
 **A rename is a two-tier event.** The token tier renamed cleanly and every gate stayed green, because
 no gate read the prose that teaches the names.

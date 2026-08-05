@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-05) — Two bugs that cancel read as one working feature (#514, skills-gate follow-ups)
+
+**STATUS: `lint-skills.ts` + `lint-us-english.ts` + docs.** Gate-only — no emitter change, `out/*`
+byte-identical, `test.ts` unchanged at **1629**. `regen --check` 88 in sync.
+
+**The finding this closes.** The review mutated `if (declaredOmit.has(prop)) continue;` to
+`if (false) continue;` and the gate exited **0** — the `omits:` mechanism had no test that could
+fail. Their suggested replacement sample would have been vacuous for the same reason; I ran it before
+adopting it (32 findings with the `omits:` line, 33 without, `personality` suppressed either way), so
+the fix went to the root instead.
+
+**Root cause: the coverage prose test read the whole file, frontmatter included.** So `omits: personality`
+was itself prose *about* `personality`. Every declared omission was suppressed twice — once by
+declaration, once by the declaration's own text — and only the second suppression was ever load-bearing.
+
+> **A declaration that also satisfies the check it exempts you from makes the exemption unfalsifiable.**
+
+Frontmatter now DECLARES, body DOCUMENTS. Two disjoint inputs, each testable alone.
+
+**Scoping it immediately exposed a second bug the first had been hiding.** The `omits:` parser was
+`/^omits:\s*(.+)$/gm` — under `/m` that stops at the first newline, and `prism3-theme`'s list wraps
+across three YAML continuation lines. **7 of its 14 declarations were never parsed.** They passed
+anyway, because the text that failed to parse was the prose that covered them. The moment the prose
+test stopped reading frontmatter, all 7 lit up red.
+
+> **Two bugs that cancel read as one working feature.** Neither was visible while the other stood.
+
+Worth naming as a search heuristic: fixing a false-negative is the *best* time to look for more,
+because the compensating defect only becomes observable once its partner is gone. The 7 findings were
+not a regression from my change — they were seven pre-existing holes my change made visible.
+
+**Then the wiring floor, which is #511's finding one layer along.** Deleting either scan call in
+`scanSkill` left every self-check assertion passing and printed `✓ clean` over skills the gate never
+opened — because the self-check drives the scan *functions* directly. #511 was "the self-check
+validated a copy instead of the shipping function"; this is "it validates the shipping function while
+the shipping **path** no longer reaches it."
+
+> **Proving a scan works and proving it runs are different claims. Only the second is what CI buys.**
+
+`ran.text` / `ran.coverage` counters, compared after the real pass against expectations *derived from
+the skill files* (`dirs.length`; the count declaring `documents: brandInput`) rather than hard-coded —
+so adding a skill needs no number updated here.
+
+**Mutation results — 12 mutants, 12 caught** (was 5 of 12 before this change): omit list ignored /
+turned into a blanket amnesty, prose test re-widened to the whole file, wrapped-`omits:` parser, coverage
+findings silenced, greedy frontmatter strip, opt-in gate always firing, both word boundaries, and all
+three call sites (`scanText`, `scanCoverage`, `scanSkill` early-return).
+
+**A trap for whoever re-verifies this.** The lazy frontmatter strip (`[\s\S]*?`) and a greedy one agree
+on *every skill in the repo today*, because neither uses a `---` rule in its body — so that mutant
+passed until a sample was written specifically to separate them (a prop documented ABOVE a body rule:
+lazy keeps it, greedy eats it). **A gate whose correctness depends on no author using a common markdown
+convention is one paragraph away from going silent, and its own corpus cannot tell you.** Same shape as
+#464's plural blind spot: a self-check drawn from the same mental model as the scan inherits its gaps.
+
+---
+
 ## (2026-08-05) — A member name carries no component, so the set could not tell (#510 review follow-up)
 
 **STATUS: engine (`anatomy-figma.ts`, `test.ts`) + this doc.** One guard plus its test; no `out/*`
