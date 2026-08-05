@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-08-05) — `/review-pr` now runs in a worktree, never the shared checkout (#501)
+
+**STATUS: docs/protocol only.** No engine, source or emitted artifact touched — `CLAUDE.md` and
+`.claude/commands/review-pr.md` gained a worktree-isolation recipe.
+
+Multiple agents can be reviewing or building in this repo at once, and `/review-pr` was checking out
+branches directly in the shared working tree. On 2026-08-05 that destroyed a concurrent session's
+uncommitted edits twice — once auto-stashed, once rebased onto an unrelated PR's commits. The damage
+is bidirectional: this protocol also mutation-tests source and relies on `git status` to prove the
+tree is clean before merging, and another session's files in that tree make that proof unreadable —
+you can't tell your own un-restored mutation from someone else's work in progress.
+
+Fix: do all of it — checkout, rebase, gates, mutation tests — in a throwaway worktree
+(`git worktree add /tmp/p3-<lane> --detach origin/main`, symlink `node_modules` in since the repo is
+buildless and a fresh worktree has none), removed when done. A clean worktree reports **88** artifacts
+from `regen --check` where the main checkout often shows 89 (an untracked stray in
+`Prism3/engine/out/`, not drift). Recovery if you're on the losing end: the checkout auto-stashes
+rather than deletes — `git stash list` then `git show 'stash@{0}:<path>' > /tmp/rescue` extracts single
+files **without popping** (popping can merge two sessions' changes).
+
 ## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
 
 **STATUS: docs only (`docs/32`).** No engine change yet — these are findings that must land before
