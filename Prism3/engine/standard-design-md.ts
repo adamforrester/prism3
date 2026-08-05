@@ -20,6 +20,7 @@
  */
 import { parseYamlSubset } from './design-md';
 import { BrandInput } from './theme';
+import { resolveStop } from './vocabulary';
 import { classifyColors, ColorClassification } from './classify-colors';
 
 export type StandardTypeToken = {
@@ -136,11 +137,32 @@ export const deriveFamilies = (typography: StandardDesignMd['typography']): Reco
 export const applyXPrism3 = (input: BrandInput, x: Record<string, unknown>): string[] => {
   const applied: string[] = [];
   if (x.radiusScale != null) {
-    // M-14: Number('soft') is NaN, and NaN passes `typeof … === 'number'` + all min/max
-    // comparisons (they're false), so it would slip to NaNpx radius tokens. Reject at ingest.
-    const rs = Number(x.radiusScale);
-    if (!Number.isFinite(rs)) throw new Error(`x-prism3.radiusScale must be a number (0=sharp … 2=soft), got ${JSON.stringify(x.radiusScale)}`);
+    // Routed through the SHARED `resolveStop` so this dialect accepts exactly what the engine-native
+    // one does — a number, or a named stop (#471).
+    //
+    // It previously called `Number()` and rejected anything non-numeric, with an error message that
+    // named `soft` as the invalid example. That was correct when written and wrong the moment #471
+    // made `radiusScale: 'soft'` legal natively: the two front doors disagreed about the same lever,
+    // and a brief written against the engine's own documentation failed at the standard-dialect
+    // ingest. `vocabulary.ts` records the schema-vs-engine version of this trap; this is the same
+    // shape one level up — DIALECT vs DIALECT — and the fix is the same, a single shared resolver
+    // rather than two parallel implementations that agree only by attention.
+    //
+    // The M-14 guard it replaces is preserved BY the resolver: a stop name resolves, a number passes
+    // through, and anything else throws naming the valid stops. The finite check stays because
+    // `resolveStop` returns a number unexamined, and a NaN would otherwise reach the radius ramp.
+    const rs = resolveStop('radiusScale', x.radiusScale);
+    if (!Number.isFinite(rs)) throw new Error(`x-prism3.radiusScale must be a finite number or a named stop, got ${JSON.stringify(x.radiusScale)}`);
     input.radiusScale = rs; applied.push(`radiusScale=${rs}`);
+  }
+  // The vocabulary's headline affordance (#471), and the dialect that needs it MOST: a brand-skills
+  // brief is precisely the "I have prose, not numbers" case `personality` was built for. It was
+  // dropped silently here — no passthrough at all — which is the exact failure mode #471 existed to
+  // eliminate. Passed through verbatim; `brandTheme` resolves it and logs every inference, and the
+  // schema's closed enum rejects an unknown trait before it gets this far.
+  if (x.personality != null) {
+    (input as { personality?: unknown }).personality = x.personality;
+    applied.push(`personality=[${Array.isArray(x.personality) ? x.personality.join(', ') : String(x.personality)}]`);
   }
   if (x.typeScale != null) { input.typography = { ...input.typography, typeScale: x.typeScale as any }; applied.push(`typeScale=${x.typeScale}`); }
   if (x.density != null) { input.density = x.density as any; applied.push(`density=${x.density}`); }
