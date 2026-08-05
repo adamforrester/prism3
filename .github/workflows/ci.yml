@@ -84,6 +84,20 @@ jobs:
       - name: Vercel ignore list matches the real bundle
         run: npm run -w @prism3/web check:ignore
 
+      # The studio enforces contrast on every brand it GENERATES; this holds it to the same bar for
+      # the chrome it renders those contracts in. #355 fixed a real failure there by hand and parked
+      # the ink tiers ON the AA floor, which is a correct decision with no memory. Static by design:
+      # measuring what renders needs a browser and this repo does not depend on Playwright (#333), so
+      # a runtime check could not run here at all. The token values are where the budget lives.
+      - name: Studio chrome clears its own contrast floors
+        run: npm run -w @prism3/web lint:contrast
+
+      # Four defects in one session were the same shape: a class name meaning one thing here and
+      # another there, invisible at the definition site. This makes a NEW multi-rule pairing fail
+      # until someone looks at it — a forcing function, not a proof. See the file header.
+      - name: No unreviewed class-name collisions
+        run: npm run -w @prism3/web lint:classes
+
       # Two contexts, checked separately: the main thread (figma.*, no DOM) and the UI iframe (DOM,
       # no figma.*). CONTRIBUTING §3 documents both as a plugin gate; missing from this workflow's
       # initial cut (#298) — only Build plugin ran.

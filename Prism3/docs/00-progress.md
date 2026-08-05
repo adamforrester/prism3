@@ -7,6 +7,65 @@
 
 ---
 
+## (2026-08-05) — Two gates for two defect classes this session kept producing
+
+**STATUS: web (two new lint scripts + CI + one dead rule removed).** No engine change, `out/*`
+byte-identical.
+
+Both were shipped as gates rather than fixes because both defect classes had already been *fixed by
+hand once* and came straight back — the repo's own lesson (#281, #502) is that an unenforced decision
+has no memory.
+
+### 1. `lint:contrast` — the studio held to the bar it enforces
+
+The dashboard gates contrast on every brand it generates and, until now, on none of the chrome it
+renders those contracts in. #355 fixed a real failure there by hand — `--faint` at 2.31:1, `--muted`
+at 4.36:1, the studio failing its own bar — and parked the ink tiers **on** the AA floor. Correct, and
+with nothing counting the margin as it got spent. It then got spent: #504 moved `.pfield`/`.tok-hexv`
+from `--panel` onto `--paper`, taking `--faint` 5.135 → 4.628.
+
+Sixteen pairings now checked on every push. **It immediately surfaced something thinner than the one
+that prompted it:** `--ok` on `--paper` is **4.526 — margin +0.026**, against `.pfield`'s 0.128. That
+is pre-existing (#285 chose those values; #446 measured `--ok` on `--paper` at "4.53, at the floor")
+and legal, but nothing was watching it and the whole budget is 0.026.
+
+**Static on purpose.** Measuring what actually renders needs a browser and this repo deliberately does
+not depend on Playwright (#333) — `mode-audit.mjs` cannot run in CI, so a runtime check would be a
+gate nobody runs. The budget lives in the token *values*, and those are declared in one `:root` block.
+
+Mutation-tested both ways, because a gate that prints FAIL and exits 0 is decoration: lightening
+`--faint` by one step → exit **1**; renaming `--ok-tint` so a pairing goes unresolvable → exit **1**
+(a pairing it cannot resolve is a failure, not a skip — #502's hole, one file over).
+
+### 2. `lint:classes` — a name that means two things
+
+Four defects this session had one shape: `.pfield.slider` silently picking up `.slider{margin-top:16px}`
+(#464), `.psl-range` losing to `.range` on source order (#464), the token list's `Icon` section
+colliding with the Style guide's `'Icon'` map key (#473), and the `.seg` track chrome (#484). Each
+looked correct at its definition site and was only findable by looking at a render.
+
+The gate flags an element minted with **two or more classes that each own a top-level single-class
+rule** — the `pfield slider` shape exactly. Two mechanical exemptions keep it maintainable (composable
+utilities; a modifier sharing its base's stem, which cannot collide because the prefix scopes it), and
+everything else is an explicit `ALLOWED` entry — the same idiom as `NOT_EN_GB`.
+
+**Be clear about what it is: a forcing function, not a proof.** It names the *pairing*, not which of
+the two classes is the offender, and it cannot see the title-map collision at all (that is
+`--check-badges`). Its value is that a new pairing fails until someone looks, and looking means
+reading what the second class's standalone rule declares. `pfield slider` would have been that moment.
+
+Run against `main` it flagged **exactly one** pairing out of 796 mints: `pfield slider`. Rather than
+allowlist the one case the gate exists to catch — which would have gutted its demonstration value —
+the collision was **removed**: `.slider{margin-top:16px}` had exactly one consumer, `pfield slider`,
+which cancelled it via `.pfield.slider{margin-top:0}`. A rule whose only user neutralizes it is dead;
+both lines are gone. Palette alignment re-measured after: label-top spread **0.2px**, control-mid
+**0.1px** — identical to what #464 achieved.
+
+A stale `ALLOWED` entry is also fatal, in the other direction: an exemption for a pairing that no
+longer exists leaves the name free to come back meaning something else with the gate still quiet.
+
+---
+
 ## (2026-08-05) — Two bugs that cancel read as one working feature (#514, skills-gate follow-ups)
 
 **STATUS: `lint-skills.ts` + `lint-us-english.ts` + docs.** Gate-only — no emitter change, `out/*`
