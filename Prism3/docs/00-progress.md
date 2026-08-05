@@ -143,6 +143,91 @@ arm could not have worked in any case until this landed.**
 full UI mounted, 1 script tag, bundle parses); guard mutation-tested; plugin build + both typechecks
 clean; engine gates untouched by construction.
 
+---
+
+## (2026-08-04) — The typeface field learns what Figma can actually load (#113, Figma arm)
+
+**STATUS: plugin + shared UI (`plugin/src/list-fonts.ts`, `plugin/src/main.ts`, `plugin/src/messages.ts`,
+`web/src/write-adapter.ts`, `web/src/main.ts`).** No engine change, no emitted artifact moved — this is
+entirely a host-capability arm.
+
+### The diagnosis that made it small
+
+An availability signal already existed. `fontAvailable()`'s canvas probe drives the **"On this device"**
+column on Primitives, so the first instinct is "this is already handled." It is not, for two reasons that
+compound: the probe answers **verification**, not **discovery** — you must already know the name to ask
+about it, and the whole failure mode is not knowing it. And inside the plugin the probe measures the
+**iframe's** fonts, which is a different set from the one Figma will load when writing Text Styles. It was
+answering a different question from the one that decides whether the write succeeds.
+
+So the change is additive, not a replacement: the probe and the column stay exactly as they are (they are
+correct about what *this iframe* can render), and a `<datalist>` is added beside them reporting what
+*Figma* can load. Both are true; conflating them is what would be wrong.
+
+### Why it matters more than a convenience
+
+`applyTextStylePlan` **skips-with-warning** by design (#237) — an unloadable family never substitutes and
+never throws. Measured against a corpus brand: a typo writes all **39** font variables and silently drops
+a subset of the **37** Text Styles. That is partial success reported after the fact, from a hand-typed
+string with no validation anywhere in the path. Discovery is the cheapest place to fix it.
+
+### The decision, and the cost taken knowingly
+
+`<input list>` + `<datalist>` as a **single native control**, over a hand-rolled combobox. The browser's own
+keyboard and screen-reader behavior comes for free rather than being reimplemented as `role="combobox"` +
+`aria-activedescendant` — in an accessibility-domain repo, hand-rolling that is the expensive option, not
+the cheap one. The price: the dropdown is **browser chrome and cannot be themed** to match the dashboard.
+The owner accepted this explicitly. Font names travel as `option.value`, never `innerHTML` — they are
+external input.
+
+### The escape hatch is the design, not a leftover
+
+An unlisted, free-typed name still commits. `BrandInput` is a **portable specification**: it may
+legitimately name a face the machine open right now does not have, and hard-blocking would let one laptop's
+font situation constrain a brand. The datalist is a hint. Validation-on-commit would defeat the point, so
+it is deliberately absent — if a later pass "fixes" this by rejecting unlisted names, it has broken the
+feature, not tightened it.
+
+### The copy change is the substance, not a nicety
+
+This is the part that would be easy to drop as polish. The existing spelling note sends the user to **macOS
+Font Book** to hand-copy a name — correct on web, and *wrong advice* inside Figma, where an authoritative
+list is sitting in the field. The local-fonts warning likewise asserts "the dashboard loads no webfonts",
+a statement about the web host that reads as false in Figma. Shipping the picker without the copy would
+leave the UI contradicting itself in the exact moment the user is deciding whether to trust the field. Both
+notes now branch on **`hostFonts.length`** — never on a runtime host check, since the host swap is the
+build-time `PRISM3_HOST` define.
+
+### Traps for whoever re-verifies this
+
+**`plugin/tsconfig.main.json` has an explicit `include` array.** A new plugin file omitted from it is
+silently **untypechecked** — so the no-`dom`-lib guarantee that makes context violations compile errors
+quietly does not apply to it. `list-fonts.ts` was added to it deliberately. This fails open, not closed.
+
+**`"font-list"` appears in `web/dist/main.js`, and that is correct.** The `PRISM3_HOST` define eliminates
+`figmaCommit`'s *body*, but the `onHostMessage` callback is ordinary `main.ts` code — it ships on web and
+is simply never invoked, because `webCommit.onHostMessage` is an empty no-op. A pre-flight check in the
+plan asserted this string would be absent, and measurement disproved it: `restore-input` was already
+shipping the same way. Verify the **bridge plumbing** is absent (`pluginMessage`, `apply-theme`,
+`ui-ready`, `listAvailableFontsAsync` — all 0) rather than the message name. Do not "fix" the string.
+
+**The stated limit: no gate here has called the real API.** `listFamilies` is tested against an in-memory
+shim (dedupe collapse, sort order, empty-list, rejection) and the rest is string assertions. The shim
+proves the *logic*; only a live drive proves the **payload shape**. This is the same gap that produced the
+`FONT_FAMILY`-scope bug on the sibling MCP branch — a correct plan with an untested payload. The
+figma-console MCP bridge was running but had no plugin open, so **the live drive is NOT done** and is
+recorded as outstanding rather than inferred from green shims.
+
+**Verification.** regen --check 88 · 1508/0 unit · MCP 49/0 · token contract unchanged · NB PASS ·
+web+plugin typecheck/build · US-English clean (92 files) · plugin font-list shim ALL PASS.
+**Live Figma drive: NOT performed** — needs the owner or a connected Desktop Bridge.
+
+### Deferred, deliberately not absorbed
+
+Per-style/weight validation (which would retire the hardcoded weight map), the web-side
+`queryLocalFonts()` arm of #113, and the per-mode family override selects. #113 stays **open** — this is
+its Figma arm only.
+
 
 ---
 
