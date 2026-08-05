@@ -39,7 +39,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -5622,6 +5622,63 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // /combineAsVariants/ found two and this assertion failed on a payload that was correct. Same trap
     // the strokeWeight gate above records, hit again by the gate written to remember it.
     ok((setJs.match(/figma\.combineAsVariants\(/g) || []).length === 1, 'anatomy/set: one combineAsVariants call — the set is atomic from the caller\'s point of view');
+
+    // ── COMMENTS ARE STRIPPED ON THE WAY OUT, and stay in the source ─────────────────────────────
+    // Two halves, and BOTH are the assertion. That the payload carries no comments is only half the
+    // claim — a strip pass that had accidentally been applied to the SOURCE strings, or a payload
+    // rewritten to drop its explanations, would satisfy it just as well. So the source is read off disk
+    // and asserted to still be heavily commented. What is being gated is the SPLIT: prose in the
+    // source, none in the transport.
+    const figmaSrc = readFileSync(resolve(HERE, 'anatomy-figma.ts'), 'utf8');
+    const chunkJs = planSetChunks(grid, 26_000)[0].js;
+    // `.trimEnd()` before splitting: every payload ends in a newline, so the final split entry is the
+    // empty string and a naive blank-line count is off by one on a correct payload.
+    const proseLines = (s: string) => s.trimEnd().split('\n').filter((l) => l.trimStart().startsWith('//') || l.trimStart().startsWith('*')).length;
+    const blankLines = (s: string) => s.trimEnd().split('\n').filter((l) => l.trim() === '').length;
+    for (const [label, js] of [['single', planToPluginJs(grid[0])], ['set', setJs], ['chunk', chunkJs]] as [string, string][])
+      ok(proseLines(js) === 0 && blankLines(js) === 0,
+        `anatomy/payload: the emitted ${label} payload carries no comment lines and no blank lines — 44% of a chunk's bytes were prose, duplicated into every chunk (${proseLines(js)} comment, ${blankLines(js)} blank)`);
+    // Counting `*`-led JSDoc lines as well as `//`, because most of this file's prose is JSDoc and a
+    // `//`-only count reads 243 where the real figure is four times that — the threshold would then be
+    // measuring the wrong thing, tuned to pass rather than to detect.
+    ok(proseLines(figmaSrc) > 500,
+      `anatomy/payload: the SOURCE still carries its comments — the strip is an emit-time pass, not a deletion (${proseLines(figmaSrc)} comment lines)`);
+
+    // THE STRIPPER'S OWN PRECONDITION. It removes a line whose first non-space characters are `//`,
+    // which is safe for exactly one reason: such a line cannot be inside a string, a regex or a
+    // template literal — unless a payload contains a MULTI-LINE template literal, in which case a
+    // `//`-leading line inside it is data and deleting it corrupts the payload. No payload has one
+    // today. Asserted rather than trusted, because the failure would surface at paste time, in Figma,
+    // as a syntax error in a 40KB string — and the fix would be a lexer.
+    for (const [label, js] of [['single', planToPluginJs(grid[0])], ['set', setJs], ['chunk', chunkJs]] as [string, string][])
+      ok(!js.includes('`'),
+        `anatomy/payload: the ${label} payload contains no backtick — the strip pass is only safe while no template literal spans lines (add a lexer before adding one)`);
+
+    // THE PASS ITSELF, on crafted input. Every assertion above samples the pass's OUTPUT, and output
+    // sampling is blind to the one failure that matters: a line that is simply GONE. Measured — a
+    // greedier stripper (`!l.includes('//')`, which reads like a better comment stripper) deletes
+    // `if(!id)continue; // ...` from the payload, a real guard, and all 1,684 assertions stayed green.
+    // The result parsed, carried no comments, and had no backtick. So the two directions are asserted
+    // on input whose correct answer is known, not inferred from a 25KB string.
+    ok(stripPayloadComments('// gone\nkept();\n') === 'kept();\n', 'anatomy/payload: strip removes a full-line comment');
+    ok(stripPayloadComments('a();\n\nb();\n') === 'a();\nb();\n', 'anatomy/payload: strip removes blank lines — they separated prose that is no longer there');
+    ok(stripPayloadComments('  // indented\nkept();\n') === 'kept();\n', 'anatomy/payload: an INDENTED comment goes too — most of the payload prose is inside a block');
+    ok(stripPayloadComments('kept(); // trailing\n') === 'kept(); // trailing\n',
+      'anatomy/payload: a line with code BEFORE the // is kept ENTIRELY — the greedy version deletes `if(!id)continue;`, a real guard, and no output-sampling gate can see it');
+    ok(stripPayloadComments("s=\"http://x\";\n") === "s=\"http://x\";\n", 'anatomy/payload: a // inside a string literal is not a comment and its line survives');
+    ok(stripPayloadComments('a();\n/* block */\nb();\n') === 'a();\n/* block */\nb();\n',
+      'anatomy/payload: a /* */ block is left alone — knowing where one ENDS needs a lexer, and the two in the payload are ~200 bytes');
+
+    // AND IT STILL RUNS. Stripping is a text pass over a string that Figma evaluates, so "parses" is
+    // the only claim worth making here and it is not implied by any assertion above: every gate in this
+    // file that greps the payload is satisfied by a string that would throw on evaluation. Parsed as
+    // the async function body `figma_execute` wraps it in, so top-level `await` is legal.
+    const AsyncFn = Object.getPrototypeOf(async function () {}).constructor as new (body: string) => unknown;
+    for (const [label, js] of [['single', planToPluginJs(grid[0])], ['set', setJs], ['chunk', chunkJs]] as [string, string][]) {
+      let err = '';
+      try { new AsyncFn(js); } catch (e) { err = (e as Error).message; }
+      ok(err === '', `anatomy/payload: the stripped ${label} payload is still valid JS as an async function body${err && ` — ${err}`}`);
+    }
 
     // The SHARED payload: the set path must carry byte-identical build logic to the single-component
     // path, because the single path is the one carrying the paint/binding gates above. Two copies is

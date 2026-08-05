@@ -7,6 +7,79 @@
 
 ---
 
+## (2026-08-05) — Strip the payload's prose on the way out: 189 chunks → 58 (#487 step 8)
+
+**STATUS: engine (`anatomy-figma.ts`, `test.ts`).** No emitted artifact changes — the pasteable payload
+is not a committed artifact, so `regen --check` stays at 88 and `token-contract --check` is untouched. All
+three emitters now return through one `stripPayloadComments` pass: `planToPluginJs`, `planSetToPluginJs`
+and `planSetChunks`. Tests 1690 (from 1674).
+
+**The measurement.** 44% of an emitted chunk was prose — 11,047 bytes of comments in a 25,889-byte
+payload — and the shell is duplicated into *every* chunk, so the full 756-variant button paid for those
+11KB 189 times. Stripping them:
+
+| payload | before | after |
+|---|---|---|
+| single component | 9,123 B | 5,383 B |
+| 21-variant set (single-shot) | 32,203 B | 23,918 B |
+| **full 756 button, chunked** | **189 chunks** | **58 chunks** |
+
+Better than the ~95 I predicted last session, because the prediction was linear and the packing is not:
+the shell shrank *and* each chunk then had ~14KB more room for variants, so both terms moved. All 756
+variants are still covered exactly once, and the worst chunk measures 41,918 against the 42,000 budget.
+
+**Stripping happens INSIDE `emit`, not around it, and this is the part worth remembering.** Wrapping the
+finished payloads instead is the obvious refactor and it is wrong: packing would measure a 25.9KB shell
+and ship a 12.2KB one — correct output, a third more chunks than needed, and the `bytes` this function
+reports (the one number it exists to control) would describe a different string from the one it packed.
+An existing gate caught this when it was tried as a mutation ("packing FILLS each payload rather than
+padding to a count"), which is the second time #510's layout gate has caught something it was not
+written for.
+
+**FULL-LINE `//` ONLY, deliberately.** A general stripper has to lex JavaScript to know whether a `//`
+is inside a string, a regex or a template literal, and being wrong corrupts the payload in a way that
+surfaces only at paste time, in Figma, as a syntax error inside a 40KB string. A line whose *first*
+non-space characters are `//` cannot be inside any of those — **unless** a payload contains a multi-line
+template literal, in which case a `//`-leading continuation line is *data*. None does today; that is now
+asserted (the payload must contain no backtick at all) rather than assumed, so whoever adds one fails
+here instead of in Figma.
+The two `/* */` blocks and the one trailing `//` that survive are ~200 bytes between them and are not
+worth a lexer.
+
+### The gate had a hole, and only mutation testing found it
+
+The first version of this gate asserted three things about the *output*: no comment lines, no backtick,
+still parses as an async function body. Then the plausible-wrong implementation was tried —
+`!l.includes('//')`, which reads like a *better* comment stripper — and **all 1,684 assertions stayed
+green** while it deleted `if(!id)continue;` from the payload, a real guard, along with its trailing
+comment. The result parsed. It carried no comments. It had no backtick. Every gate was satisfied by a
+payload missing a line of logic.
+
+**Output sampling is blind to a line that is simply gone.** You cannot notice an absence in a 25KB string
+you are only grepping for presence. So `stripPayloadComments` is now exported and tested directly on
+crafted input where the answer is known — both directions, including `kept(); // trailing` surviving
+*entirely* and a `//` inside a string literal not counting. Six assertions, and the greedy mutation now
+fails two of them.
+
+This is the same family as the `lint-us-english` self-check that sampled only singulars and the
+`strokeWeight` gate satisfied by the comment explaining `strokeWeight`: **a check written from the same
+mental model as the thing it checks inherits its blind spot.** Third sighting, and the shape is now
+specific enough to state as a rule — *when a pass DELETES, gate the pass, not its output.* Presence is
+observable downstream; absence is not.
+
+Two smaller things the same session's mutations settled: gutting the source's prose fails the gate
+(the assertion has two halves — no prose in the transport, and prose still in the source, because a
+strip accidentally applied to the source strings would satisfy the first half alone), and a multi-line
+template literal with a `//`-leading line produces a payload that **still parses** while having lost
+data — so the backtick precondition is doing work the parse check cannot.
+
+**The tradeoff, stated because it is real.** The comments were the only record of measured Figma
+behavior visible to someone reading a pasted payload in the console. That knowledge now lives only in
+the source, which is where it belongs — the emitted copy is transport — but debugging a paste in
+isolation now means coming back to `anatomy-figma.ts`. A loss, not a free win.
+
+---
+
 ## (2026-08-05) — Chunked component-set paste: a byte budget, not a variant count (#487 step 7)
 
 **STATUS: engine (`anatomy-figma.ts`, `test.ts`).** No emitted artifact changes — this is a new paste
