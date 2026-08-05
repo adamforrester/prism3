@@ -319,6 +319,10 @@ garbage-input assertion moved to `'banana'`.
 PR's own table (setting `personality` on the input but not reporting it in `applied[]`, a
 silent-success variant) also fails, confirming the report path is asserted as well as the write path.
 
+---
+
+## (2026-08-05) — The US-English gate could not see the bundle, and said "clean" anyway
+
 **STATUS: engine (`lint-us-english.ts`) + this doc.** No emitted artifact changed. `regen --check`
 88/88, 1516/0 unit, MCP 49/0, contract unchanged, NB PASS, gate clean over 92 files.
 
