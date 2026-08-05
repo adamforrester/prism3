@@ -7,7 +7,38 @@
 
 ---
 
-## (2026-08-05) — The US-English gate could not see the bundle, and said "clean" anyway
+## (2026-08-05) — The two brand-brief dialects disagreed about the values they accept (#477 follow-up)
+
+**STATUS: engine (`standard-design-md.ts`) + `test.ts`.** No emitted artifact changed. `test.ts`
+1573 → **1580** unit (7 new), `regen --check` 88/88, MCP 49/0, contract unchanged, NB PASS.
+
+#471/#477 widened the engine-native dialect with named slider stops (`radiusScale: 'soft'`) and
+`personality`, and left the STANDARD dialect's `x-prism3` block behind — found while establishing that
+`adamforrester/brand-skills` is the producer of the STANDARD dialect (#496's adoption-plan work).
+Verified by running it, not inferred:
+
+```
+NATIVE   radiusScale: 'soft'          → 1.5
+STANDARD x-prism3.radiusScale: 'soft' → THROWS "must be a number (0=sharp … 2=soft)"
+STANDARD x-prism3.personality         → SILENTLY DROPPED
+```
+
+The `radiusScale` guard named `soft` in its own error text as the invalid example — correct when
+written, wrong the moment named stops became legal. `personality` had no passthrough at all, so a
+brand-skills brief could not reach the vocabulary #471 created, and failed silently — exactly the
+failure mode that issue existed to eliminate. Nothing caught either: neither `wendys.design.md` (the
+only standard-dialect fixture, no `x-prism3` block) nor any test exercised `x-prism3`'s values.
+
+Same shape as `vocabulary.ts`'s "two enforcement points that differ" one level up — dialect vs dialect
+rather than schema vs engine. Same fix: `x-prism3.radiusScale` now routes through the shared
+`resolveStop`; `personality` passes through to be resolved and logged by `brandTheme`. M-14's guarantee
+is preserved, only its example moved — `radiusScale: 'soft'` no longer throws (it's legal now), so the
+garbage-input assertion moved to `'banana'`.
+
+**Reviewer's note (mutation-tested independently):** reverting either half of the fix — the
+`resolveStop` routing or the `personality` passthrough — fails the suite; a third mutation outside the
+PR's own table (setting `personality` on the input but not reporting it in `applied[]`, a
+silent-success variant) also fails, confirming the report path is asserted as well as the write path.
 
 **STATUS: engine (`lint-us-english.ts`) + this doc.** No emitted artifact changed. `regen --check`
 88/88, 1516/0 unit, MCP 49/0, contract unchanged, NB PASS, gate clean over 92 files.
