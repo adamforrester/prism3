@@ -43,7 +43,7 @@ the skill's first phase.
 **On the Figma repo specifically:** no LICENSE file, no badge, no SPDX statement — only *"By using
 the Figma MCP server and the related resources (including these skills), you agree to the Figma
 Developer Terms."* An unlicensed repository grants no copying rights. So the rule there is a
-requirement, not a preference: **learn the facts, write our own words, copy no text.** API behaviours
+requirement, not a preference: **learn the facts, write our own words, copy no text.** API behaviors
 are facts about a system and are not copyrightable; the prose describing them is.
 
 This generalizes into a policy worth keeping: **fork the judgment, defer on the API.** A skill's
@@ -53,7 +53,9 @@ declared mandatory before `use_figma`) rather than restating what it knows.
 
 ## 3. `design-system-ops` — the overlap map
 
-Applying §1's rule to all 34 skills. **Do not adopt** (a gate already exists):
+Applying §1's rule, skill by skill. The three buckets below name **33** of the repo's 34 — 14 already
+gated, 7 worth adapting, 12 left — and the counts are stated because they are the argument: if the
+tables and the conclusion disagree, one of them is wrong. **Do not adopt** (a gate already exists):
 
 | their skill | our gate |
 |---|---|
@@ -83,8 +85,10 @@ Applying §1's rule to all 34 skills. **Do not adopt** (a gate already exists):
 `governance-encoder`, `component-decision-tree`, `pattern-documentation`, `usage-guidelines`,
 `design-to-code-check`, `system-health`, `codebase-index`, `component-audit`.
 
-That is **~5 to adopt out of 34** — and the small number is the point. It reflects how much of this
-work Prism3 has already made mechanical.
+That is **7 to adapt out of 34, and only 3 of those touch the engine** (`figma-variable-audit`,
+`codemod-generator`, `docs-coverage`) — the other 4 are practice-facing. The small number is the point:
+it reflects how much of this work Prism3 has already made mechanical. Two in five of the 34 land in the
+gated column outright.
 
 ## 4. Our own skills: the gate comes first
 
@@ -107,7 +111,8 @@ So the order is not negotiable:
 3. **Then write the internal `build-component` lane**, and not before a second component has gone
    through the pipeline. Button is a sample of one; a skill written now would encode its accidents as
    rules. `docs/32` is the backlog it should draw from.
-4. **Then adapt the five** from §3, starting with `figma-variable-audit`.
+4. **Then adapt the seven** from §3 — the three engine-facing ones first, starting with
+   `figma-variable-audit`.
 
 ## 5. `brand-skills` — already integrated, and worth stating as architecture
 
