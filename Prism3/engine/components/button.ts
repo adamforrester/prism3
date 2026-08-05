@@ -115,6 +115,11 @@ export const button: ComponentDef = {
     'primary.text.label': 'color.interactive.primary.text.rest',
     'primary.text.icon': 'color.interactive.primary.text.rest',
     'primary.text.overlay.hover': 'color.interactive.primary.overlay.hover',
+    // FINDING (open, all three intents): `.text` keys an overlay for HOVER but not for PRESSED, while
+    // `.outline` keys both. Surfaced by the #487 step-3 grid dump — a pressed ghost button falls back
+    // to its rest value and renders identical to it. `color.interactive.*.overlay.pressed` exists and
+    // is already bound by `.outline`, so closing this is one line per intent; left open deliberately
+    // rather than special-cased in the projection, which is right to report what the def keys.
     'primary.on-inverse.label': 'color.interactive.primary.on-inverse.text.rest',
 
     // neutral — the workhorse default; now carries hover/pressed like every colour (v1 gap CLOSED)

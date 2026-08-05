@@ -39,7 +39,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planEffectStyles, planToPluginJs, figmaVarName } from './anatomy-figma';
+import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planToPluginJs, planComponentName, figmaVarName } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -5345,6 +5345,127 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // which matters more than either specific fix above — it reports the NEXT silent setter.
     ok(js.includes('node.boundVariables') && js.includes('DISCARDED'),
       'anatomy: the payload reads each binding back — a setter that accepts a call is not a setter that honored it');
+
+    // ---- the COLOR layer (#487 step 3, second half) ---------------------------------------------
+    // Paint is opt-in by coordinate: every caller before this asked for structure and must still get
+    // exactly structure, with no paints anywhere. That is the regression these two guard.
+    ok(planPaintVars(lead.root).length === 0, 'anatomy: a plan with no intent/appearance carries NO paints — structure-only stays structure-only');
+    ok(Object.keys(lead.coord).length === 0, 'anatomy: a structure-only plan\'s coord is empty — a gate can tell "legitimately unpainted" from "dropped the paints"');
+
+    // A typo'd coordinate must THROW. Resolving no paint keys at all would otherwise emit a
+    // structurally perfect, entirely unpainted component — the silent-success shape of #482 and #500.
+    const throws = (label: string, f: () => unknown) => {
+      let threw = false;
+      try { f(); } catch { threw = true; }
+      ok(threw, `anatomy: ${label}`);
+    };
+    throws('an undeclared intent throws rather than resolving no paints', () => figmaAnatomyPlan(button, 'medium', { intent: 'nope', appearance: 'filled' }));
+    throws('an undeclared appearance throws', () => figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'nope' }));
+    throws('an undeclared state throws', () => figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state: 'nope' }));
+    // The def keys paint as `{intent}.{appearance}.*`, so half a coordinate resolves nothing at all.
+    throws('intent without appearance throws — half a coordinate keys no paint', () => figmaAnatomyPlan(button, 'medium', { intent: 'primary' }));
+    throws('appearance without intent throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'filled' }));
+
+    // A skinned plan, read part by part. `target`/`text`/`slot` each take paint by KIND, so these
+    // three also assert the projection is not keyed off Button's part names.
+    const skin = (appearance: string, state?: string, intent = 'primary') =>
+      figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent, appearance, ...(state ? { state } : {}) });
+    const parts = (p: AnatomyPlan) => ({
+      box: p.root.paints ?? {},
+      ink: (p.root.children.find((c) => c.name === 'label')!.paints ?? {}),
+      icon: p.root.children.find((c) => c.name === 'leadingVisual')!.descendantFills,
+    });
+
+    const filledRest = parts(skin('filled'));
+    ok(filledRest.box.fills === figmaVarName(button.tokens['primary.filled.fill']), `anatomy/paint: the target box takes the rest fill (${filledRest.box.fills})`);
+    ok(!filledRest.box.strokes, 'anatomy/paint: `filled` keys no border, so the box carries no stroke — an unfilled slot, not a dropped binding');
+    ok(filledRest.ink.fills === figmaVarName(button.tokens['primary.filled.label']), 'anatomy/paint: the text part takes label ink');
+    // The ink lands on the VECTORs inside the instance, not on the instance's own fills — an instance
+    // fill paints a square behind the glyph. Its own field for exactly that reason.
+    ok(filledRest.icon === figmaVarName(button.tokens['primary.filled.icon']), 'anatomy/paint: icon ink rides `descendantFills` (the vector inside the instance), not the instance\'s own fills');
+    ok(!skin('filled').root.children.find((c) => c.name === 'leadingVisual')!.paints, 'anatomy/paint: the slot node itself carries no paints — its fill would be a square behind the glyph');
+
+    // State is a SUFFIX and it is tried first; the unqualified key is the rest value, so a state that
+    // does not restyle a part correctly falls back to it. Both halves asserted — a lookup that only
+    // ever tried the suffix would leave `pending` unpainted.
+    ok(parts(skin('filled', 'hover')).box.fills === figmaVarName(button.tokens['primary.filled.fill.hover']), 'anatomy/paint: a state-qualified key wins over the unqualified one');
+    ok(parts(skin('filled', 'pending')).box.fills === figmaVarName(button.tokens['primary.filled.fill']), 'anatomy/paint: a state the def does not restyle falls back to the rest value (a pending button\'s fill is its rest fill)');
+    ok(parts(skin('filled', 'rest')).box.fills === parts(skin('filled')).box.fills, 'anatomy/paint: an explicit `rest` and an omitted state resolve identically');
+
+    // THE GRID IS RAGGED, AND THAT IS THE DESIGN. `filled` expresses hover as a FILL CHANGE; `outline`
+    // and `text` have no fill to change and express it as an OVERLAY — which in Figma is a fill on the
+    // same node. One `fills` array, two token families reaching it depending on appearance. This is
+    // the rule I claimed to have applied and had not: before the fix, every `outline`/`text` hover and
+    // pressed rendered pixel-identical to its rest, because nothing consulted the overlay keys.
+    const outlineRest = parts(skin('outline'));
+    ok(!outlineRest.box.fills, 'anatomy/paint: `outline` keys no fill at rest — the box is transparent');
+    ok(outlineRest.box.strokes === figmaVarName(button.tokens['primary.outline.border']), 'anatomy/paint: `outline` takes a border where `filled` takes none');
+    ok(parts(skin('outline', 'hover')).box.fills === figmaVarName(button.tokens['primary.outline.overlay.hover']), 'anatomy/paint: `outline` hover reaches the box through the OVERLAY family, in the same fills slot the fill would use');
+    ok(parts(skin('outline', 'hover')).box.strokes === outlineRest.box.strokes, 'anatomy/paint: the overlay does not displace the border — hover keeps the rest stroke');
+    const textRest = parts(skin('text'));
+    ok(!textRest.box.fills && !textRest.box.strokes, 'anatomy/paint: `text` keys neither fill nor border — a ghost button is genuinely unpainted at rest');
+    ok(parts(skin('text', 'hover')).box.fills === figmaVarName(button.tokens['primary.text.overlay.hover']), 'anatomy/paint: `text` hover paints its overlay too');
+
+    // `disabled` is cross-cutting over INTENT (docs/20 §7) — one treatment, so the lookup switches
+    // namespace rather than falling back within the interactive one. A disabled destructive button
+    // must not tint toward red.
+    const disFilled = parts(skin('filled', 'disabled'));
+    ok(disFilled.box.fills === figmaVarName(button.tokens['disabled.fill']), 'anatomy/paint: disabled switches to the cross-cutting namespace');
+    ok(parts(skin('filled', 'disabled', 'destructive')).box.fills === disFilled.box.fills, 'anatomy/paint: disabled does NOT tint by intent — destructive and primary land on the same gray');
+    // But cross-cutting over intent is NOT cross-cutting over appearance, and this is the second bug
+    // the grid dump caught. `disabled.fill` and `disabled.border` are keyed unconditionally, so
+    // applying them blind gave `text` a gray box and a border it never had — a disabled ghost button
+    // rendering as a filled one. A disabled STRUCTURAL paint applies only where the appearance has
+    // that structure at rest; ink is unconditional, because every appearance has ink.
+    ok(!disFilled.box.strokes, 'anatomy/paint: `filled` disabled grows no border — it had none at rest (bug 2 of 3 from the grid dump)');
+    ok(parts(skin('outline', 'disabled')).box.strokes === figmaVarName(button.tokens['disabled.border']) && !parts(skin('outline', 'disabled')).box.fills,
+      'anatomy/paint: `outline` disabled takes the disabled BORDER and still no fill — structure follows the appearance, not the state');
+    const disText = parts(skin('text', 'disabled'));
+    ok(!disText.box.fills && !disText.box.strokes, 'anatomy/paint: `text` disabled stays unpainted — no gray box on a ghost button (bug 3 of 3)');
+    ok(disText.ink.fills === figmaVarName(button.tokens['disabled.label']) && disText.icon === figmaVarName(button.tokens['disabled.icon']),
+      'anatomy/paint: disabled INK is unconditional — every appearance has ink even when it has no structure');
+
+    // Paints resolve against the SAME variable namespace as `bound`, so they must ride
+    // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.
+    ok(planBoundVars(skin('filled').root).includes(filledRest.box.fills!), 'anatomy/paint: paints ride planBoundVars — they share the variable namespace, so the emit gate sees them');
+    ok(planPaintVars(skin('filled').root).length === 3 && planPaintVars(lead.root).length === 0, 'anatomy/paint: planPaintVars isolates just the paints (box + ink + icon on a filled variant)');
+    // And the whole grid cross-checked against what the engine EMITS. Every intent × appearance ×
+    // state, not a sample: the ragged keys mean a coordinate can resolve a variable no emitter writes.
+    const gridErrs: string[] = [];
+    let painted = 0;
+    for (const i of button.variants.intent) for (const ap of button.variants.appearance) for (const st of button.states) {
+      const p = figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st });
+      if (planPaintVars(p.root).length === 0) gridErrs.push(`${i}/${ap}/${st} resolved NO paints at all`);
+      else painted++;
+      gridErrs.push(...planBindingErrors(p, emitted, emittedStyles, emittedEffects));
+    }
+    ok(gridErrs.length === 0, `anatomy/paint: every variant in the grid paints, and every paint variable is emitted (${painted} variants)${gridErrs.length ? ` — ${[...new Set(gridErrs)].slice(0, 4).join('; ')}` : ''}`);
+
+    // The payload must APPLY the paints, through the FOURTH API shape. `setBoundVariableForPaint`
+    // RETURNS a new paint rather than mutating the node, so the result has to be assigned back into a
+    // fills/strokes ARRAY — forgetting the assignment is a no-op that throws nothing.
+    const paintJs = planToPluginJs(skin('outline', 'hover'));
+    ok(/figma\.variables\.setBoundVariableForPaint\(/.test(paintJs), 'anatomy/paint: the payload binds paints through setBoundVariableForPaint');
+    ok(!/setBoundVariable\(\s*['"](fills|strokes)/.test(paintJs), 'anatomy/paint: the payload never tries setBoundVariable for fills/strokes — a paint is an array entry, not a property, so that API does not exist');
+    ok(/node\.fills=\[/.test(paintJs) && /node\.strokes=\[/.test(paintJs), 'anatomy/paint: the returned paint is assigned BACK into the array — the setter does not mutate the node');
+    // A stroke variable with no strokeWeight binds correctly and renders as no border at all. Matched
+    // as the ASSIGNMENT, not the word: the payload's own comment says "strokeWeight", so
+    // `includes('strokeWeight')` passed with the assignment deleted — a substring check against a
+    // string that carries prose about itself tests the prose.
+    ok(/node\.strokeWeight=/.test(paintJs), 'anatomy/paint: a bound stroke gets a weight — otherwise the border binds and paints nothing visible');
+    ok(paintJs.includes("x.type==='VECTOR'"), 'anatomy/paint: icon ink is applied to the VECTORs inside the instance, not to the instance');
+    // Read back from the ARRAY, not the node: a paint binding lives on the paint object, so
+    // `node.boundVariables.fills` is not where it is — the read-back would silently always pass.
+    ok(paintJs.includes('arr[0].boundVariables.color') && paintJs.includes('DISCARDED (paint set'),
+      'anatomy/paint: paints read back off the paint object in the array — `node.boundVariables.fills` is the wrong place and would always look clean');
+
+    // The component NAME is the variant COORDINATE. `combineAsVariants` derives axes from these names,
+    // so `key=value, key=value` is a wire format between one paste and the component set the next step
+    // builds — not cosmetics. (The format changed under this PR and no existing test noticed.)
+    ok(planComponentName(skin('filled', 'hover')) === 'button/intent=primary, appearance=filled, size=medium, state=hover, leading=true, trailing=false',
+      `anatomy/paint: the component name is a Figma variant coordinate (${planComponentName(skin('filled', 'hover'))})`);
+    ok(planComponentName(lead) === 'button/size=medium, leading=true, trailing=false', `anatomy/paint: a structure-only plan names only the axes it has (${planComponentName(lead)})`);
+    ok(planToPluginJs(skin('filled', 'hover')).includes('state=hover'), 'anatomy/paint: the coordinate reaches the payload — the axes have to be in the pasted name for combineAsVariants to find them');
 
     // A def whose anatomy is structurally broken must FAIL, not warn. Four shapes, each a real
     // authoring mistake rather than a synthetic one.

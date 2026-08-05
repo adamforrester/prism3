@@ -87,13 +87,14 @@ files **without popping** (popping can merge two sessions' changes).
 
 ---
 
-## (2026-08-05) — Slots become real instances, and #500's diagnosis was wrong (#487 step 3)
+## (2026-08-05) — Slots become real instances, color lands, and #500's diagnosis was wrong (#487 step 3)
 
-**STATUS: `planToPluginJs` implements `INSTANCE_SWAP`; the first paste is verified live.** Gates green;
-four new gate assertions mutation-tested. The component is in the test file's `Prism3 Components`
-section as a real `COMPONENT` whose leading slot is an `INSTANCE` of `FPO-default-icon`.
+**STATUS: `planToPluginJs` implements `INSTANCE_SWAP` and PAINT; the first colored variant is verified
+live.** Gates green; the new assertions mutation-tested (four for the swap, nine for color). Two real
+components sit in the test file's `Prism3 Components` section: `94:134` (structure only) and `95:161`
+(`primary/filled/rest`, red container, white icon ink).
 
-Two things landed. The implementation is the smaller one.
+Three things landed. The implementation of each is the smaller part of it.
 
 ### #500's finding was wrong, and its prescribed fix would have broken the thing it fixed
 
@@ -161,11 +162,70 @@ node id (mine is `94:134`), not on name — the stale one is an accidental side-
 **Known gap, not a bug:** the label pastes empty (0×16). Default text content is a component property
 (#487 step 6), so there is nothing yet to fill it from.
 
+### Color: a fourth API shape, and a grid that is deliberately not rectangular
+
+`figmaAnatomyPlan(def, size, {…slots, intent, appearance, state})` — one call yields one fully-colored
+variant, per the owner's choice of a **full coordinate** over a paint-map return. Omit `intent` and
+`appearance` and the plan is structure only, byte-identical to what every earlier caller got.
+
+**Paint is a fourth API shape, and it gets a fourth field.** `paints: {fills?, strokes?}` sits beside
+`bound`, `textStyle` and `effectStyle` because `setBoundVariable('fills', v)` **is not a call** — a
+paint is not a property, it is an entry in a `fills`/`strokes` *array*. The API is
+`figma.variables.setBoundVariableForPaint`, which **returns a new paint rather than mutating the node**,
+so the result must be assigned back into the array; forgetting the assignment is a no-op that throws
+nothing. That also moves where the read-back has to look: a paint binding lives on the *paint object*,
+so `node.boundVariables.fills` is empty even on a correctly bound node — the check is
+`node.fills[0].boundVariables.color`. One field per API shape, four shapes, four fields: the plan
+cannot imply a call that does not exist.
+
+**Icon ink is a fifth thing again** (`descendantFills`), because it belongs on the VECTORs *inside* the
+swapped instance — the instance's own `fills` paints a square behind the glyph. It is also the one paint
+with no variable of its own: there is no `color/interactive/{intent}/icon`, so icon ink routes through
+`on-fill`/`text.rest` and reaches the vector as a per-instance override. Verified to survive three hops
+(in-frame → `createComponentFromNode` → nested inside an outer `INSTANCE`).
+
+**The grid is ragged, and that is the design rather than a def gap.** `filled` expresses hover as a
+**fill change** (`primary.filled.fill.hover`); `outline` and `text` have no fill to change and express
+it as an **overlay** (`primary.outline.overlay.hover`). In Figma both land on the *same node's* `fills`
+array — one array, two token families reaching it depending on appearance. Hence
+`paintOf('overlay') ?? paintOf('fill')`. And `disabled` is cross-cutting over **intent** but *not* over
+**appearance**: `disabled.fill`/`disabled.border` are keyed unconditionally, so applying them blind
+gives `text` a gray box and a border it never had. A disabled *structural* paint applies only where the
+appearance has that structure at rest; ink is unconditional, because every appearance has ink.
+
+**How those three rules were found is the entry.** I had written the projection, asserted the ragged
+rules were handled, and been wrong about all three — overlay never consulted (so every `outline`/`text`
+hover and pressed rendered pixel-identical to rest), `text` disabled growing a fill *and* a border,
+`filled` disabled growing a border. What found them was not re-reading the code but **dumping the whole
+21-cell grid as a table and looking at it**. A projection over a ragged grid has one failure mode that
+reasoning does not surface: a lookup that silently resolves nothing looks exactly like a lookup that
+correctly resolved nothing. Print the grid.
+
+Two of my own *gates* had a matching flaw, caught by mutation-testing rather than by writing them:
+`includes('strokeWeight')` and `includes('setBoundVariableForPaint')` both passed with the code deleted,
+because the emitted payload carries **comments mentioning them**. **A substring assertion against a
+generated string that documents itself tests the documentation.** Both are now anchored to the
+assignment/call form.
+
+Verified live and mutating, not merely present: `container.fills` → `color/interactive/primary/fill/rest`
+resolving `{r:.81, g:.043, b:.17}` with `strokes: 0` (correct for `filled`), the slot's VECTOR →
+`primary/on-fill`, then moved `fill/rest` to green, saw `{r:0,g:1,b:0}`, restored. Screenshot confirms.
+
+**One def gap surfaced, recorded not papered over:** `primary.text.overlay.hover` exists but there is no
+`primary.text.overlay.pressed` (same for `neutral` and `destructive`), so a pressed ghost button renders
+identical to rest. That is a def-tier omission, not a projection bug — `outline` keys both. Worth
+closing in the def, and deliberately not special-cased in the projection.
+
+**Coverage note:** `planComponentName`'s format changed from a prose suffix to Figma's
+`key=value, key=value` — because `combineAsVariants` derives variant axes from component *names*, making
+the name a wire format between one paste and the next step's component set. **No existing test noticed
+the change.** It has one now.
+
 ### Next
 
-Step 3's remaining half: the full variant coordinate on `AnatomyPlan`, and color via
-`setBoundVariableForPaint` — a fourth API shape, so expect it to have its own version of this entry.
-Then the 21-variant paste (1 intent × 3 appearances × 7 states) with the icon and without the ring.
+The 21-variant paste (1 intent × 3 appearances × 7 states) with the icon and without the ring, then
+`combineAsVariants` over them (#487 steps 4–5). Then `plugin/src/write-components.ts` off the same
+plan, and component properties including default text (step 6).
 
 ---
 

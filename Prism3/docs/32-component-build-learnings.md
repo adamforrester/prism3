@@ -60,6 +60,80 @@ the `constrainProportions` finding below turns on.
 
 ---
 
+## 2026-08-05 — from implementing the COLOR layer (#487 step 3, second half)
+
+### `[SKILL]` Dump the whole variant grid as a table before believing a paint projection
+
+I wrote the projection, stated in a comment that it handled the appearance-specific rules, and was
+wrong about three of them at once: the overlay family was never consulted (so every `outline`/`text`
+hover and pressed resolved to its rest value and rendered pixel-identical), `text` disabled grew a fill
+*and* a border it never had, and `filled` disabled grew a border. All three were found by printing the
+21-cell grid — intent × appearance × state, one row per cell, columns for fill/stroke/ink/icon — and
+looking at it. None were found by re-reading the code, including immediately after writing it.
+
+The reason this generalizes: **over a ragged grid, a lookup that silently resolves nothing is
+indistinguishable from a lookup that correctly resolved nothing.** `outline` genuinely keys no fill, so
+`fills: undefined` on an outline button is right; it is also exactly what a missing overlay lookup
+produces. The signal is not in any single cell, it is in the *shape* of the table — two columns that
+should differ between rows and don't. A grid you can see has that shape; a grid you reason about does
+not. This applies to any per-variant projection, not just paint.
+
+### `[GATE]` A substring assertion against a self-documenting generated string tests the documentation
+
+Two of the new gates passed with the code they guarded deleted:
+`ok(js.includes('strokeWeight'))` and `ok(js.includes('setBoundVariableForPaint'))`. Both are true of
+the payload with the assignment and the call removed — because the payload carries **comments explaining
+why `strokeWeight` and `setBoundVariableForPaint` are needed**. The prose that documents a decision
+satisfies the check that the decision was implemented.
+
+`planToPluginJs` output is the one string in this engine that is both a *deliverable* and *heavily
+commented*, so every `includes()` against it is exposed to this. Anchor to syntax, not vocabulary:
+`/node\.strokeWeight=/`, `/figma\.variables\.setBoundVariableForPaint\(/`. And note what caught it —
+**mutation testing, not review**. Writing the assertion and reading it back cannot detect this, because
+the assertion looks correct and is correct about a string that contains the word. Deleting the
+implementation and expecting red is the only thing that asks the right question. Same family as the
+`lint-us-english` self-check that sampled only singulars (CLAUDE.md): a check written from the same
+mental model as the thing it checks inherits its blind spot.
+
+### `[SKILL]` One field per Figma API shape — four shapes now, and paints read back somewhere else
+
+`bound` (`setBoundVariable`), `textStyle` (`setTextStyleIdAsync`), `effectStyle`
+(`setEffectStyleIdAsync`), and now `paints` (`figma.variables.setBoundVariableForPaint`). Squeezing any
+of them into `bound` type-checks, passes every offline gate, and fails only at paste time — the whole
+argument for the split, now confirmed a third time.
+
+Paint has two wrinkles the other three do not, both worth checking on any new component:
+
+- **The setter returns a value instead of mutating.** `setBoundVariableForPaint(paint, 'color', v)`
+  hands back a *new* paint that must be assigned into the `fills`/`strokes` array. Dropping the return
+  value is a silent no-op — nothing throws, nothing lands in `misses[]`.
+- **The binding is not where you look for the others.** It lives on the paint object inside the array,
+  so `node.boundVariables.fills` is empty on a correctly bound node. Read back
+  `node.fills[0].boundVariables.color`. A read-back written by analogy with the dimension one would
+  report every paint as `DISCARDED`, or — with the polarity flipped — pass unconditionally.
+
+And **ink for a swapped icon belongs on the VECTORs inside the instance, not the instance** — an
+instance fill paints a square behind the glyph. It is a per-instance override and it survives
+`createComponentFromNode` plus one further level of instance nesting (measured). Any component with an
+icon slot needs this, so it is a field on the plan (`descendantFills`) rather than a paste-time detail.
+
+### `[KB]` Ragged is the design: `filled` restyles its fill, `outline`/`text` overlay it
+
+`filled` expresses hover as a fill change; `outline` and `text` have no fill to change, so they express
+it as a translucent overlay. In Figma **both land on the same node's `fills` array** — one array, two
+token families, selected by appearance. The KB's component research models states per appearance but
+does not name this collapse, because in CSS `background-color` and an `::after` overlay are separate
+concerns and in Figma they are one.
+
+The practical consequence for the def tier: a missing key is not necessarily a gap. `outline` keying no
+`.fill` is correct. Which means a completeness gate over paint keys cannot be a cross-product check —
+it has to know the per-appearance rule, or it will demand keys that should not exist. Related: the same
+distinction makes `disabled` cross-cutting over **intent** but not over **appearance** (one gray serves
+every intent; it must not give a ghost button a box), which the KB's "one disabled treatment" framing
+also does not distinguish.
+
+---
+
 ## 2026-08-05 — from probing a real `INSTANCE_SWAP` target (#487 step 3 prep)
 
 The owner authored two components by hand in the test file — an `FPO-default-icon` and a `focus-ring`
