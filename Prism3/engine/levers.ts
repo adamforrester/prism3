@@ -124,9 +124,6 @@ export const leverManifest: Lever[] = [
   { key: 'motionPersonality.tempo', group: 'motion', label: 'Motion tempo', control: 'enum', default: 'standard',
     options: enumOpts(['snappy', 'Snappy'], ['standard', 'Standard'], ['relaxed', 'Relaxed']),
     description: 'Scales the duration ramp (snappy ×0.8, standard ×1.0, relaxed ×1.3). Reduce-motion is derived.' },
-  { key: 'motionPersonality.easingEmphasized', group: 'motion', label: 'Emphasized easing', control: 'list', advanced: true, itemLabel: 'cubic-bezier value',
-    description: 'Optional 4-number cubic-bezier override for the expressive easing curve.' },
-
   // ---- ELEVATION ----
   { key: 'shadow.softness', group: 'elevation', label: 'Shadow softness', control: 'slider', default: 1, min: 0, max: 2, step: 0.1,
     description: 'Blur:offset dial. Low → crisp/product; high → soft/marketing.' },

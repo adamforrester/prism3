@@ -7,6 +7,95 @@
 
 ---
 
+## (2026-08-05) — Per-mode easing, as a role re-point rather than a per-mode curve (#522)
+
+**STATUS: engine (`theme.ts`, `tree.ts`, `version.ts`, schema, tests) + web.** `out/*` regenerated —
+four new token names. `CONTRACT_VERSION` 1.1.0 → **1.2.0** (MINOR, additive); `ENGINE_VERSION` → 0.2.0.
+
+A mode can now say *"transitions that would use `emphasized` use `calm` instead"*. `calm` is described
+in the engine as **"a11y: soft onset for long/involuntary motion"**, which is the case that makes this
+worth having at all.
+
+**The design changed twice, and both corrections are the point.**
+
+*First:* I scoped this as `modeLevers.<mode>.easingEmphasized` — a per-mode bezier, citing the `shadow`
+precedent. Two things were wrong. I claimed *"there is nothing to re-point to"*; there are five other
+curves, one of which (`calm`) is the strongest argument for the feature. And every per-mode override
+the engine emits sits on a token marked `semantic` (150 in harbor) or `composite` (7) — **zero on a
+bare primitive** — while `motion.easing.*` carries no role marking at all. Tuning the numbers per mode
+would have made this the first mode-varying primitive in the system. The owner picked the re-point.
+
+So there is now an **`easing-role` tier**: `motion.easing-role.<role> → {motion.easing.<curve>}`, and
+`motion.transition.*` names the role instead of the curve. This is `font.weight-role.*` applied to
+motion — that tier exists for exactly this reason, so a mode can move `strong` without touching
+`font.weight.700`. Asserted directly in `test.ts`: the curve primitive must carry **no** per-mode
+override, and the transition must resolve through the role.
+
+*Second:* I marked the section `SECTION_MODE_SCOPE['Easing'] = 'per-mode'` and **the audit caught it**.
+The control is a COLUMN-PER-MODE table, so it edits every mode at once and its markup is identical
+whichever mode the bar holds — the bar does not scope it. Reverted to `'shared'`, which with
+`hasControls` true renders **"Editing · All modes"**: precisely the label #437 proposed for the
+column-per-mode tables. Claiming the bar scoped an editor it has no effect on would have been a badge
+that lies, and only the measurement knew.
+
+**The Light column was read-only, and that was a hole, not a design.** Asked *"so how does one set the
+light mode?"* — you could not. `easingRoles` was hard-coded in `buildMotion` with no lever, so a mode
+could deviate from a baseline nobody could choose: **you could change Dark but not Light.** Worse, the
+read-only Light cell carried the ladders' tooltip — *"change which ladder step binds in the table
+above"* — pointing at a table that does not exist for easing. Prose inherited from a sibling, describing
+a mechanism that was never there.
+
+`motionPersonality.easingRoles` now sets the brand-wide binding and the Light cell is a select like
+every other column, with `renderRepointTable` taking an optional `setBaseline` writer (absent for the
+two ladders, whose baseline genuinely does live in another table). Verified end to end: setting Light's
+`default` to `calm` emits `easing-role.default → motion.easing.calm`.
+
+**The per-curve bezier editor is gone, and the evidence is why.** Owner: *"why is emphasized the only
+one that's editable? Better to not allow any and just let the user switch off the defaults per mode."*
+Agreed, and the measurement settled it — **no brand had ever authored it.** aurora, harbor, nb and
+wendys all emitted the identical default `[0.4, 0.14, 0.3, 1]`. The rare capability had shipped while
+the common one (which curve a role uses) was not settable at all until the two commits above.
+
+So `motionPersonality.easingEmphasized` is retired: the lever, the four-input editor, the schema
+property. The curve set is now curated the way the type-size ladder is — you pick from it, you do not
+author it. A brand that genuinely needs its own curve should get a **seventh named curve** in the set,
+not a role whose numbers drift away from what its name says.
+
+*The cost, stated:* two brands sharing a tempo and the same role assignments now have byte-identical
+motion. Motion character comes from tempo + role choice, not a signature curve. For a white-label
+engine that is the right trade, but it is a real capability removal and not a tidy-up.
+
+*One behavior worth knowing:* `motionPersonality` is `additionalProperties: false`, so a stale
+`easingEmphasized` is now **rejected**, not ignored. That is asserted in `test.ts` — silently dropping
+it would leave a brand believing it had set a curve. `out/*` is byte-identical because nobody set it.
+
+**Three copy defects the engine gates could never have caught — only a screenshot did.** Worth naming
+because the feature was fully working and fully green when all three were live:
+- The section still read *"the rest are generated and fixed"*, two lines above a table that substitutes
+  them per mode. The same shape as the ring #512 killed: prose asserting something the code stopped
+  doing.
+- The table's row header said **Rung**, inherited from the ladders. These are motion ROLES.
+- Every cell printed the resolved bezier, so the row never said WHICH CURVE a role resolves to — the
+  entire point of the row — repeated a 24-character string three times across, and clipped the last
+  mode column. Rows now carry the curve NAME and the options array carries the numbers; the two arrays
+  were already separate, so this needed no extra formatter.
+
+**Traps.**
+- Rows are ROLES, options are CURVES — a 4×6 relationship, unlike the ladders where rows and options
+  are the same set. `renderRepointTable` grew an `options` param and a per-row `base` (role `default`
+  resolves to curve `standard`), because the self-map skip and the worth read-out must key on the row's
+  baseline TARGET, not its name. Both default to the old behavior, so the two ladder tables are
+  byte-identical.
+- **A Playwright row selector matched the wrong row.** `.filter({hasText:'emphasized'})` hit the
+  `default` row, because that row's select *contains an option* named `emphasized`. The first
+  end-to-end run therefore "proved" the write landed on the wrong role — a probe bug that looked
+  exactly like a product bug. Target the name cell (`.mtbl-name`), never the row text, in any table
+  whose cells are selects.
+- Both halves of the reference are validated at resolve time (unknown role and unknown curve each
+  throw), because a typo would otherwise resolve to nothing with no error anywhere.
+
+---
+
 ## (2026-08-05) — A per-role override layer cannot preserve a between-role relationship
 
 **STATUS: `web/src/main.ts` only.** The Text section showed **3 of 23** `color.text.*` roles. No engine

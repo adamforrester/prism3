@@ -5242,6 +5242,7 @@
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
+        "motion.easing-role.default",
         "motion.transition.default"
       ]
     },
@@ -5251,6 +5252,7 @@
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
+        "motion.easing-role.enter",
         "motion.transition.enter"
       ]
     },
@@ -5260,6 +5262,7 @@
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
+        "motion.easing-role.exit",
         "motion.transition.exit"
       ]
     },
@@ -5269,6 +5272,7 @@
       "tier": "primitive",
       "consume": "Consumable — motion durations/easings/springs are used directly; transitions compose them.",
       "aliased_by": [
+        "motion.easing-role.emphasized",
         "motion.transition.emphasized"
       ]
     },

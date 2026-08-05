@@ -1266,6 +1266,45 @@ for (const b of brands) {
   const stable = (v: any): any => Array.isArray(v) ? v.map(stable)
     : (v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])])) : v);
 
+  // (a0) modeLevers:{dark:{easings:{...}}} — the ROLE tier re-points, the curve primitive does not move.
+  //      #522: this is the invariant the whole design turns on, so it is asserted rather than assumed.
+  {
+    const rp = { ...base, modeLevers: { dark: { easings: { emphasized: 'calm' } } } } as unknown as BrandInput;
+    const mo = buildTree(brandTheme(rp)).tree[root].motion;
+    const role = mo['easing-role'].emphasized;
+    ok(role.$value === `{${root}.motion.easing.emphasized}`,
+      `D(a0): light keeps the baseline curve (got ${role.$value})`);
+    ok(role.$extensions.prism3.modes?.dark?.$value === `{${root}.motion.easing.calm}`,
+      `D(a0): dark re-points the ROLE at calm (got ${role.$extensions.prism3.modes?.dark?.$value})`);
+    ok(mo.easing.emphasized.$extensions?.prism3?.modes === undefined,
+      'D(a0): the CURVE primitive carries no per-mode override — a mode re-points, it never redefines');
+    ok(mo.transition.emphasized.$value.timingFunction === `{${root}.motion.easing-role.emphasized}`,
+      `D(a0): the transition names the role, so it inherits the re-point (got ${mo.transition.emphasized.$value.timingFunction})`);
+    ok(mo['easing-role'].default.$extensions?.prism3?.modes === undefined,
+      'D(a0): an unre-pointed role is untouched (no blanket override)');
+    // The BASELINE is settable too, and a mode deviates from it — without that, a mode could override
+    // a binding nobody could set (you could change Dark but not Light).
+    {
+      const bl = { ...base, motionPersonality: { easingRoles: { default: 'calm' } } } as unknown as BrandInput;
+      const mb = buildTree(brandTheme(bl)).tree[root].motion;
+      ok(mb['easing-role'].default.$value === `{${root}.motion.easing.calm}`,
+        `D(a0): the brand-wide baseline re-points the role (got ${mb['easing-role'].default.$value})`);
+      ok(mb.easing.default === undefined && mb.easing.calm.$extensions?.prism3?.modes === undefined,
+        'D(a0): setting the baseline still does not touch any curve primitive');
+      ok(threw(() => brandTheme({ ...base, motionPersonality: { easingRoles: { default: 'nope' } } } as unknown as BrandInput)),
+        'D(a0): an unknown baseline curve is rejected');
+    }
+    // no-diff suppression, matching every other axis
+    const selfMap = { ...base, modeLevers: { dark: { easings: { emphasized: 'emphasized' } } } } as unknown as BrandInput;
+    ok(buildTree(brandTheme(selfMap)).tree[root].motion['easing-role'].emphasized.$extensions?.prism3?.modes === undefined,
+      'D(a0): a self-map is dropped — an inert declaration cannot mint an override');
+    // both halves of the reference validated, so a typo cannot resolve to nothing
+    ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { easings: { emphasized: 'nope' } } } } as unknown as BrandInput)),
+      'D(a0): an unknown CURVE is rejected');
+    ok(threw(() => brandTheme({ ...base, modeLevers: { dark: { easings: { nope: 'calm' } } } } as unknown as BrandInput)),
+      'D(a0): an unknown ROLE is rejected');
+  }
+
   // (a) modeLevers:{dark:{radius:0}} — a non-zero rung (md) gets a dark override aliasing dimension.0;
   //     light's canonical $value is untouched, and radius.none (already 0) carries no override.
   const sharpDark = { ...base, modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput;
@@ -4128,8 +4167,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(validateBrandInput({ ...input, typography: { ...(input.typography ?? {}), titleFloor: 17 } as any }).length > 0, 'CR-04: titleFloor:17 rejected (numeric enum [16,18] now enforced)');
   ok(validateBrandInput({ ...input, typography: { ...(input.typography ?? {}), titleFloor: 18 } as any }).length === 0, 'CR-04: titleFloor:18 accepted (in enum)');
   // minItems / maxItems (never checked before)
-  ok(validateBrandInput({ ...input, motionPersonality: { easingEmphasized: [0.2, 0] } as any }).length > 0, 'CR-04: easingEmphasized [0.2,0] rejected (minItems 4)');
-  ok(validateBrandInput({ ...input, motionPersonality: { easingEmphasized: [0.2, 0, 0.4, 1] } as any }).length === 0, 'CR-04: a 4-length easing accepted');
+  // The per-curve bezier editor was removed: the six curves are curated, and a role picks among them.
+  // `motionPersonality` is additionalProperties:false, so a stale `easingEmphasized` is REJECTED rather
+  // than silently ignored — which is the behavior worth asserting, since silently dropping it would
+  // leave a brand thinking it had set a curve.
+  ok(validateBrandInput({ ...input, motionPersonality: { easingEmphasized: [0.2, 0, 0.4, 1] } as any }).length > 0, 'CR-04: the retired easingEmphasized is rejected, not ignored');
+  ok(validateBrandInput({ ...input, motionPersonality: { easingRoles: { emphasized: 'calm' } } as any }).length === 0, 'CR-04: easingRoles accepts a known curve');
+  ok(validateBrandInput({ ...input, motionPersonality: { easingRoles: { emphasized: 'nope' } } as any }).length > 0, 'CR-04: easingRoles rejects an unknown curve at the schema layer');
   // families.variable is boolean|per-face-object — a string matches neither
   ok(validateBrandInput({ ...input, typography: { families: { variable: 'yes' } } as any }).length > 0, 'CR-04: families.variable:"yes" rejected (boolean|object, not string)');
   ok(validateBrandInput({ ...input, typography: { families: { variable: { display: true } } } as any }).length === 0, 'CR-04: families.variable per-face object accepted');

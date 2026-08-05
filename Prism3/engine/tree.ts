@@ -578,7 +578,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   collect(m);
   for (const mm of Object.values(motionByMode)) collect(mm);
 
-  const motion: Record<string, any> = { 'duration-ms': {}, duration: {}, 'duration-reduced': {}, easing: {}, spring: {}, transition: {} };
+  const motion: Record<string, any> = { 'duration-ms': {}, duration: {}, 'duration-reduced': {}, easing: {}, 'easing-role': {}, spring: {}, transition: {} };
   for (const v of [...msValues].sort((a, b) => a - b))
     motion['duration-ms'][String(v)] = durLeaf(v, `duration primitive — ${v}ms (literal; the semantic tier names the use)`);
 
@@ -602,7 +602,28 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const [k, v] of Object.entries(m.durationReduced)) motion['duration-reduced'][k] = durSemantic(v as number, `reduce-motion ${k} — ${v}ms${v === 0 ? ' (eliminated — substitute a cross-fade)' : ''}`, (mm) => mm.durationReduced[k], (mode, mv) => `motion tempo lever override — ${mode} (reduce-motion ${k} → ${mv}ms)`);
   for (const [k, v] of Object.entries(m.easing)) motion.easing[k] = bezierLeaf(v, `easing ${k}${k === 'calm' ? ' — accessibility: soft onset for long/involuntary motion' : ''}`);
   for (const [k, v] of Object.entries(m.spring)) motion.spring[k] = springLeaf(v, `spring ${k} — damping ${v.damping}, stiffness ${v.stiffness}`);
-  for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing.${t.easing}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${t.easing})`);
+  // The ROLE tier (#522) — `easing-role.<role> → {motion.easing.<curve>}`. It exists so a mode can
+  // re-point an intent at a different curve without redefining the curve, exactly as
+  // `font.weight-role.*` lets a mode move `strong` without touching `font.weight.700`. Every per-mode
+  // override in the system sits on a semantic or composite; the curve primitives stay mode-invariant.
+  for (const r of m.easingRoles) {
+    const leaf: Token = {
+      $type: 'cubicBezier', $value: `{${root}.motion.easing.${r.curve}}`,
+      $description: `easing role '${r.role}' → ${r.curve} — the intent a transition names, so a mode can substitute a curve without redefining one`,
+      $extensions: { prism3: { role: 'semantic', aliasOf: `${root}.motion.easing.${r.curve}` } },
+    };
+    const modeOverrides: Record<string, unknown> = {};
+    for (const [mode, map] of Object.entries(m.easingRolesByMode ?? {})) {
+      const curve = map[r.role];
+      if (!curve || curve === r.curve) continue;          // same curve → no diff → no override
+      modeOverrides[mode] = { $value: `{${root}.motion.easing.${curve}}`, aliasOf: `${root}.motion.easing.${curve}`, note: `motion easing re-point — ${mode} (${r.role} → ${curve})` };
+    }
+    if (Object.keys(modeOverrides).length) (leaf.$extensions.prism3 as Record<string, unknown>).modes = modeOverrides;
+    motion['easing-role'][r.role] = leaf;
+  }
+  // Transitions now name the ROLE, not the curve, so a per-mode re-point reaches every consumer of
+  // `motion.transition.*` for free — the same way they already inherit per-mode duration.
+  for (const t of m.transitions) motion.transition[t.name] = transitionLeaf(`${root}.motion.duration.${t.duration}`, `${root}.motion.easing-role.${t.name}`, `motion ${t.name} — ${t.desc} (${t.duration} + ${t.easing})`);
   motion.stagger = durSemantic(m.stagger, `stagger standard — ${m.stagger}ms between siblings`, (mm) => mm.stagger, (mode, mv) => `motion tempo lever override — ${mode} (stagger → ${mv}ms)`);
 
   // ---- typography axis — primitive tier (Phase 1) ----

@@ -82,6 +82,18 @@ export type ModeLevers = {
   // The motion analog of radius: one lever re-derives the whole ramp. Mirrors the global `tempo` enum;
   // e.g. a `marketing` custom mode runs `relaxed` while the app mode stays `snappy`.
   tempo?: 'snappy' | 'standard' | 'relaxed';
+  // Per-mode EASING RE-POINT (#522) — maps a motion ROLE to another CURVE: `{ emphasized: 'calm' }`
+  // reads "in this mode, transitions that would use the emphasized curve use calm instead". Identical
+  // contract to `lineHeights` / `letterSpacings`: it names an existing curve, never a number, because
+  // the six curves are mode-invariant primitives and a mode re-points rather than re-anchors.
+  //
+  // This is why it is a re-point and not a per-mode bezier. Every per-mode override the engine emits
+  // sits on a token marked `semantic` or `composite` — 157 of them in harbor, none on a bare primitive
+  // — and `motion.easing.*` carries no role marking. Tuning the curve numbers per mode would have made
+  // this the first mode-varying primitive in the system. `calm` exists precisely for the case that
+  // motivates this ('a11y: soft onset for long/involuntary motion'), so there is something worth
+  // pointing AT — which is the part I had wrong when I first scoped it.
+  easings?: Partial<Record<string, string>>;
   // Per-mode SHADOW personality — a different blur `softness` and/or `tint` (hue + amount) for this mode.
   // Same shape as the global `shadow` lever. Re-derives this mode's shadow ramp via the same buildShadow
   // the baseline uses, picking the mode's appearance layer-set (a dark/dark-based mode gets the reduced
@@ -396,7 +408,7 @@ export type BrandInput = {
   actionAnchorStep?: number;
   destructiveAnchorStep?: number;
   /** Motion personality (schema-optional #6). `tempo` scales the duration ramp;
-   *  `easingEmphasized` overrides the expressive curve. Reduce-motion variants are
+   *  The six curves are fixed; `easingRoles` picks which one a role uses. Reduce-motion variants are
    *  always derived. Omit for the 'standard' tempo. */
   motionPersonality?: MotionPersonality;
   /** Typography axis lever. `families` supply the face each text CATEGORY draws from (a
@@ -491,7 +503,11 @@ const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale:
 export type Bezier = [number, number, number, number];
 export type MotionPersonality = {
   tempo?: 'snappy' | 'standard' | 'relaxed';   // scales the base duration ramp
-  easingEmphasized?: Bezier;                    // optional override for the expressive curve
+  // Which CURVE each motion role resolves to, brand-wide (#522 follow-up). The per-mode re-point in
+  // `modeLevers.<mode>.easings` deviates from THIS, so without it a mode could override a baseline
+  // nobody could set — you could change Dark but not Light, which is backwards. Same shape as the
+  // per-mode map; absent entries keep the engine default.
+  easingRoles?: Partial<Record<string, string>>;
 };
 export type MotionAxis = {
   tempo: 'snappy' | 'standard' | 'relaxed';
@@ -506,8 +522,23 @@ export type MotionAxis = {
   // transitions are tempo-invariant, so they're not duplicated. Composites (motion.transition.*) reference
   // motion.duration.<role> by alias, so they inherit per-mode. Absent ⇒ byte-identical.
   motionByMode?: Record<string, { tempo: string; duration: Record<string, number>; durationReduced: Record<string, number>; stagger: number }>;
+  // The ROLE tier (#522): which curve each motion intent uses. Derived from `transitions` so the two
+  // cannot disagree — a transition names its role, the role names the curve. Exists so a mode has a
+  // semantic to re-point WITHOUT redefining `motion.easing.*`, the same job `font.weight-role.*` does
+  // for `font.weight.*`.
+  easingRoles: { role: string; curve: string }[];
+  // Only modes that actually re-point get an entry; absent ⇒ byte-identical emit.
+  easingRolesByMode?: Record<string, Record<string, string>>;
 };
 
+// The engine's opinion about which curve each intent starts from. A brand overrides any of them via
+// `motionPersonality.easingRoles`; a mode deviates further via `modeLevers.<mode>.easings`.
+const EASING_ROLE_DEFAULTS = [
+  { role: 'default', curve: 'standard' },
+  { role: 'enter', curve: 'enter' },
+  { role: 'exit', curve: 'exit' },
+  { role: 'emphasized', curve: 'emphasized' },
+] as const;
 const DURATION_BASE: Record<string, number> = { instant: 50, fast: 100, normal: 200, moderate: 300, slow: 500, slower: 800 };
 const TEMPO_FACTOR = { snappy: 0.8, standard: 1, relaxed: 1.3 } as const;
 const round5 = (n: number) => Math.round(n / 5) * 5;
@@ -526,7 +557,7 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
     standard: [0.2, 0, 0, 1],          // symmetric in-place (M3 standard)
     enter: [0, 0, 0.2, 1],             // decelerate — settles into place
     exit: [0.4, 0, 1, 1],              // accelerate — gets out of the way
-    emphasized: p.easingEmphasized ?? [0.4, 0.14, 0.3, 1],  // expressive (Carbon expressive-standard)
+    emphasized: [0.4, 0.14, 0.3, 1],   // expressive (Carbon expressive-standard) — fixed, like every curve here
     calm: [0.4, 0, 0.6, 1],            // a11y: soft onset for long/involuntary motion
   };
   const spring = {
@@ -536,6 +567,14 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
   };
   return {
     tempo, duration, durationReduced, easing, spring, stagger: round5(40 * f),
+    // One source: the roles ARE the transition intents, so adding a transition adds its role and the
+    // two can never drift apart.
+    easingRoles: EASING_ROLE_DEFAULTS.map((r) => {
+      const picked = p.easingRoles?.[r.role];
+      if (picked !== undefined && !(picked in easing))
+        throw new Error(`motionPersonality.easingRoles.${r.role}: unknown easing curve '${picked}' (have: ${Object.keys(easing).join(', ')})`);
+      return { role: r.role, curve: picked ?? r.curve };
+    }),
     transitions: [
       { name: 'default', duration: 'normal', easing: 'standard', desc: 'standard in-place transition' },
       { name: 'enter', duration: 'normal', easing: 'enter', desc: 'entrance — element settles in' },
@@ -1939,6 +1978,26 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     }
   }
   if (Object.keys(motionByMode).length) motion.motionByMode = motionByMode;
+  // Per-mode EASING RE-POINT (#522) — role → another curve, validated against what actually exists so a
+  // typo cannot resolve to nothing. Self-maps are dropped, the same no-diff suppression every other axis
+  // uses, so an inert declaration cannot mint a mode entry or a spurious override.
+  const CURVES = Object.keys(motion.easing);
+  const ROLES = motion.easingRoles.map((r) => r.role);
+  const easingRolesByMode: Record<string, Record<string, string>> = {};
+  for (const [m, lev] of Object.entries(modeLevers)) {
+    const pairs = Object.entries(lev?.easings ?? {}).filter(([, v]) => v) as [string, string][];
+    for (const [role, curve] of pairs) {
+      if (!ROLES.includes(role)) throw new Error(`modeLevers.${m}.easings: unknown motion role '${role}' (have: ${ROLES.join(', ')})`);
+      if (!CURVES.includes(curve)) throw new Error(`modeLevers.${m}.easings.${role}: unknown easing curve '${curve}' (have: ${CURVES.join(', ')})`);
+    }
+    const base = Object.fromEntries(motion.easingRoles.map((r) => [r.role, r.curve]));
+    const diff = pairs.filter(([role, curve]) => curve !== base[role]);
+    if (diff.length) easingRolesByMode[m] = Object.fromEntries(diff);
+  }
+  if (Object.keys(easingRolesByMode).length) {
+    motion.easingRolesByMode = easingRolesByMode;
+    notes.push(`motion easing re-points: ${Object.entries(easingRolesByMode).map(([m, r]) => `${m} (${Object.entries(r).map(([k, v]) => `${k}→${v}`).join(', ')})`).join('; ')} — the role points at a different curve in that mode; the curve primitives stay mode-invariant.`);
+  }
   const shadow = buildShadow(input.neutral.hue, input.shadow);
   notes.push(`shadow: 6-step ramp (xs–2xl) + inset, 2-layer (key+ambient), softness ${shadow.softness}; tinted base (hue ${shadow.tint.hue}, amount ${shadow.tint.amount}${shadow.tint.amount === 0 ? ' = pure black' : ''}). Mode-aware, LIFT-primary: full shadow in light; reduced (faded, top-weighted) in dark — the surface ladder carries dark elevation. Composite shadow → Figma Effect Style.`);
   // Per-mode SHADOW (Phase D): a customizable mode overriding `shadow` re-derives its ramp via the SAME
@@ -2181,7 +2240,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   return {
     id: input.id, root, namespace: `${root}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
     ...(customModes.length ? { customModes } : {}),
-    ...(Object.keys(radiusByMode).length || Object.keys(familiesByMode).length || Object.keys(weightRolesByMode).length || Object.keys(lineHeightRepointByMode).length || Object.keys(letterSpacingRepointByMode).length || Object.keys(motionByMode).length || Object.keys(shadowByMode).length || Object.keys(sizesByMode).length ? { modeLevers } : {}),
+    ...(Object.keys(radiusByMode).length || Object.keys(familiesByMode).length || Object.keys(weightRolesByMode).length || Object.keys(lineHeightRepointByMode).length || Object.keys(letterSpacingRepointByMode).length || Object.keys(motionByMode).length || Object.keys(easingRolesByMode).length || Object.keys(shadowByMode).length || Object.keys(sizesByMode).length ? { modeLevers } : {}),
     roleAnchorStep: { brand: anchorStep, neutral: 500, success: 500, warning: 500, danger: 500, info: 500, action: actionAnchorStep },
     surfaces: input.surfaces,
     overrides: input.overrides,

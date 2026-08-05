@@ -449,6 +449,11 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   // Elevation
   'Shadow': 'per-mode', 'Elevation ramp': 'shared',
   // Motion
+  // Easing is 'shared', not 'per-mode', and the audit is what caught the difference. Its per-mode
+  // control is a COLUMN-PER-MODE table (#522), so it edits every mode at once and its markup is
+  // identical whichever mode the bar holds — the bar does not scope it. With `hasControls` true the
+  // three-state badge renders "Editing · All modes", which is exactly the case #437 proposed that
+  // label for. Marking it 'per-mode' claimed the bar scoped an editor it has no effect on.
   'Tempo': 'per-mode', 'Easing': 'shared', 'Motion': 'shared',
   'Duration ramp': 'shared', 'Springs': 'shared',
   // Preview — read-only end to end
@@ -2740,18 +2745,14 @@ const renderEasingEditor = (): HTMLElement => {
   // "the Motion specimen's emphasized BAR" was a stale reference — the specimen was rebuilt as curve
   // cards and has had no bars since; the copy outlived the rendering it pointed at.
   // No backticks in visible copy — el() escapes its text, so markdown ships literally (doc 26).
-  const wrap = palSection('Easing', 'Six curves. Only “emphasized” is authored — the rest are generated and fixed. Its four control points are below, and the Motion specimen traces it on the emphasized card.');
-  const cur = (brandState.motionPersonality?.easingEmphasized ?? theme.motion.easing.emphasized) as number[];
-  const row = el('div', 'adv-bez');
-  const inputs: HTMLInputElement[] = [];
-  const commit = (): void => { const vals = inputs.map((x) => Number(x.value)); if (vals.length === 4 && vals.every((v) => Number.isFinite(v))) { setPath(brandState, 'motionPersonality.easingEmphasized', vals); apply(); } };
-  row.append(tokenPill('motion.easing.emphasized'));
-  ['x1', 'y1', 'x2', 'y2'].forEach((lab, i) => {
-    const inp = numberField({ className: 'adv-num', step: '0.01', value: String(cur[i] ?? [0.4, 0.14, 0.3, 1][i]) });
-    inp.onchange = commit; inputs.push(inp);
-    row.append(el('span', 'adv-bez-lab mono', lab), inp);
-  });
-  wrap.append(row);
+  const wrap = palSection('Easing', 'Six curves, fixed — no curve’s numbers are authored or change per mode. What you choose is which curve each motion role uses: once for the brand, and per mode where a mode wants to differ. The Motion specimen traces the emphasized card.');
+  // The four-input bezier editor for `emphasized` was removed here. It was the only curve whose numbers
+  // could be hand-tuned, which made the section inconsistent with itself — and no brand had ever used
+  // it: aurora, harbor, nb and wendys all emitted the identical default [0.4, 0.14, 0.3, 1]. The rare
+  // capability had shipped while the common one (which curve a role uses) was not settable at all.
+  // The curve set is now curated the way the type-size ladder is: you pick from it, you do not author
+  // it. A brand that genuinely needs its own curve should get a seventh NAMED curve in the set, not a
+  // role whose numbers drift away from what its name says.
   // Every curve, drawn. `linear` and `calm` appeared NOWHERE in the app before this — the section was
   // titled "Easing" and showed one of six. `calm` in particular is an accessibility role (soft onset
   // for long/involuntary motion), which is not a thing to leave undiscoverable.
@@ -2765,6 +2766,28 @@ const renderEasingEditor = (): HTMLElement => {
     strip.append(card);
   }
   wrap.append(strip);
+  // Per-mode re-point (#522). The curves themselves stay mode-invariant primitives — a mode swaps
+  // which curve a ROLE resolves to, the same contract as the leading and tracking ladders, in the same
+  // table. `calm` is the case this exists for: the engine describes it as a soft onset for long or
+  // involuntary motion, which is exactly the substitution a dark or reduced-intensity mode wants.
+  if (rp.modes.length > 1) {
+    const m = theme.motion;
+    const curve = (k: string) => `cubic-bezier(${(m.easing[k] ?? []).join(', ')})`;
+    // Rows carry the curve NAME, options carry its numbers — the two arrays are already separate, so
+    // this needs no extra formatter. The first pass printed the bezier in every cell: it never said
+    // which curve a role resolves to (the whole point of the row), repeated a 24-character string
+    // three times across, and clipped the last column. The numbers live on the worth line under each
+    // select, and on the curve cards directly above.
+    wrap.append(renderRepointTable(
+      'Easing per mode',
+      m.easingRoles.map((r) => ({ key: r.role, val: r.curve, base: r.curve })),
+      (v) => String(v),
+      'easings',
+      Object.keys(m.easing).map((k) => ({ key: k, val: curve(k) })),
+      'Role',
+      (role, c2) => setPath(brandState, `motionPersonality.easingRoles.${role}`, c2),
+    ));
+  }
   return wrap;
 };
 
@@ -4348,17 +4371,32 @@ const renderWeightRoles = (): HTMLElement => {
  *  select. Same geometry tokens as the size and weight tables so all four line up on one grid. */
 const renderRepointTable = (
   caption: string,
-  steps: { key: string; val: number }[],
-  fmt: (v: number) => string,
-  modeField: 'lineHeights' | 'letterSpacings',
+  steps: { key: string; val: number | string; base?: string }[],
+  fmt: (v: number | string) => string,
+  modeField: 'lineHeights' | 'letterSpacings' | 'easings',
+  // The ladders re-point a rung at ANOTHER RUNG, so rows and options are the same set. Easing does
+  // not: rows are the four motion ROLES and options are the six CURVES (#522). Hence the seam —
+  // `options` defaults to `steps`, and `base` names the row's baseline target when it is not the row's
+  // own key (role `default` resolves to curve `standard`), which is what the self-map skip and the
+  // worth read-out must both key on rather than on the row name.
+  options?: { key: string; val: number | string }[],
+  // The ladders' rows ARE rungs; easing's are motion roles. A header reading "Rung" over a column of
+  // role names is the kind of wrong only a screenshot catches.
+  rowLabel = 'Rung',
+  // When the baseline binding lives in ANOTHER table (the two ladders), Light is a read-out and this
+  // stays undefined. Easing has no such table — its role→curve mapping was engine-fixed — so it passes
+  // a writer and Light becomes a select like every other column. Without this a mode could deviate
+  // from a baseline nobody could set: you could change Dark but not Light, which is backwards.
+  setBaseline?: (rowKey: string, curve: string | undefined) => void,
 ): HTMLElement => {
+  const opts = options ?? steps;
   const modes = rp.modes;
   const box = el('div', 'mtbl');
   box.append(el('p', 'mtbl-cap', caption));
   const scroll = el('div', 'mtbl-scroll');
   const tbl = el('table', 'mtbl-tbl');
   const thead = el('thead'), htr = el('tr');
-  htr.append(el('th', 'mtbl-stick', 'Rung'));
+  htr.append(el('th', 'mtbl-stick', rowLabel));
   for (const m of modes) {
     const th = el('th', 'mtbl-mode');
     th.append(document.createTextNode(MODE_LABEL[m] ?? m));
@@ -4376,7 +4414,17 @@ const renderRepointTable = (
     tr.append(nameCell);
     for (const m of modes) {
       const td = el('td', 'mtbl-mode');
-      if (m === 'light') {
+      if (m === 'light' && setBaseline) {
+        // Light IS the baseline, and here it is settable: this select writes the brand-wide binding
+        // every other column is a substitution for.
+        const sel = selectEl('sm');
+        for (const t of opts) sel.append(optionEl(t.key, t.key, (s.base ?? s.key) === t.key));
+        sel.setAttribute('aria-label', `${s.key} baseline`);
+        sel.onchange = () => { setBaseline(s.key, sel.value); applyFull(); };
+        td.append(sel);
+        const worth = opts.find((t) => t.key === (s.base ?? s.key));
+        if (worth) td.append(el('span', 'mtbl-worth mono', fmt(worth.val)));
+      } else if (m === 'light') {
         // Light IS the baseline, so its cell can only ever resolve to the row's own rung. Showing the
         // VALUE rather than repeating the name earns the cell its width: it is the number every other
         // cell in the row is a substitution for.
@@ -4399,8 +4447,8 @@ const renderRepointTable = (
         // column width ellipsised "relaxed · 1.65×" down to "relaxed · 1..." — truncating the one
         // thing a cell must always say. The values are one column to the left, on every row.
         sel.append(optionEl('', 'Auto', !ov));
-        for (const t of steps) {
-          if (t.key === s.key) continue;                       // a self-map is a no-op; don't offer it
+        for (const t of opts) {
+          if (t.key === (s.base ?? s.key)) continue;           // a self-map is a no-op; don't offer it
           sel.append(optionEl(t.key, t.key, ov === t.key));
         }
         sel.setAttribute('aria-label', `${s.key} in ${MODE_LABEL[m] ?? m}`);
@@ -4412,7 +4460,7 @@ const renderRepointTable = (
         // LINE rather than into the option text because a closed select renders exactly what it lists,
         // and "relaxed · 1.65×" ellipsised to "relaxed · 1..." at this column width — truncating the one
         // thing the cell must always say. Height is the affordable axis here; width is not.
-        const worth = steps.find((t) => t.key === (ov ?? s.key));
+        const worth = opts.find((t) => t.key === (ov ?? s.base ?? s.key));
         if (worth) td.append(el('span', 'mtbl-worth mono' + (ov ? ' set' : ''), fmt(worth.val)));
       }
       tr.append(td);
@@ -7008,10 +7056,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .adv-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px}
 .adv-x:hover{color:#a12}
 .adv-add{border:1px dashed var(--line2);background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px;border-radius:var(--r-xs);padding:5px 10px}
-/* Same 20px top clearance — this row was appended straight after palSection's head with no top
-   spacing at all, so the bezier inputs sat flush against the description. */
-.adv-bez{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding-top:20px}
-.adv-bez-lab{font-size:11px;color:var(--faint)}
 /* Layout specimen — breakpoint/grid table + column preview + container bars. */
 .layout-spec{margin-bottom:8px}
 .ly-table{border-collapse:collapse;width:100%;font-size:12px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
