@@ -7,6 +7,57 @@
 
 ---
 
+## (2026-08-05) — Control bars stop looking like content, and the surface picker says what it does
+
+**STATUS: web (`main.ts`).** No engine change, `out/*` byte-identical.
+
+Owner: the Preview control bars "don't seem like filters or adjustments to the content below."
+Measured, and the measurement was the whole argument: `.tok-ctrls` rendered `background
+rgb(255,255,255)`, `border 1px`, `radius 10` — **byte-for-byte the section card directly beneath it.**
+It read as a sibling of the content because it was rendering as one.
+
+**Flush right was proposed and rejected, with a mock.** The bar spans the full 850px content column
+and the fields are ~500px of it; pushed right they detach from the tabs above and the content below
+and float in an empty gutter. Right-alignment reads as "secondary adjustment" only when paired with
+something on the left of the same line, and there is nothing there. Alignment was never what failed.
+
+**A correction worth recording.** The first read was "the token list bar is the outlier." It is not —
+**the mode bar is also a white card**, so two of three were cards and the Style guide's bare picker
+was the odd one out. That flips which way "be consistent" points, which is why both directions were
+mocked (`claude.ai/code/artifact/37414e6b` — four treatments shot from the running app, not redrawn)
+before anything was built. All-cards loses: on the Style guide you then cross three identical white
+cards before reaching a single specimen. **All-bare wins** — cards mean exactly one thing, content.
+
+Safe for the sticky bar because the opaque ground lives on `.modebar`, the sticky **host**, not on
+`.modectx`. Verified at scroll 700: `bg rgb(242,243,246)`, `.stuck` still fires with its shadow.
+Margins are now `18px 0 8px` on both bars — asymmetric, so proximity groups each with the content it
+scopes. `.sg-surfbar` had been `12px 0 10px`, near-symmetric, which is part of why it floated.
+
+**The picker, same pass.** It was named for furniture and buried in prose: three lines of copy below
+it plus a stray "Hover any token pill…" line under that. Now `View Style Guide on`, options named for
+the roles they are (`Page Background (Primary)` / `(Secondary)` / `Inverse`), both hint blocks gone,
+and the resolved path moved into the shared token pill *underneath* the control so it reads as a
+caption to the selection rather than trailing it. **`Card` was dropped, not renamed** — it described a
+component while its three neighbors described grounds, and every section already draws its own cards
+on whichever ground is picked. A persisted `sgSurface` on the retired key falls through the existing
+`?? SG_SURFACES[0]`, so no brand can land on nothing.
+
+**Swatch: beside the select, not inside it.** A native `option` takes no child elements and no
+generated content, and per-option `background-color` paints in the popup on some engines and never on
+the closed control — an in-select swatch would work on some machines and silently not on others. The
+alternative is a custom listbox: owning keyboard, ARIA and focus for a three-item picker. Beside costs
+nothing and always paints. Verified it tracks the ground exactly across all three options
+(`#e9e9e8` / `#dcdbdb` / `#0e0d0c`, each equal to the rendered `.sg-ground`).
+
+**Trap.** The swatch's HEIGHT is row-driven (`align-self:stretch`) but its WIDTH is a stated 41px, and
+that asymmetry is deliberate. `aspect-ratio:1` does **not** resolve a flex item's main size from a
+*stretched* cross size — trying it collapsed the swatch to **2px**, the borders alone. A width that
+drifts slightly from square is cosmetic; a height that drifts from its neighbor is the bug that was
+just reported. The first draft hand-set `height:33px` and landed 8px short of the select — recreating,
+in a brand-new control, the exact mismatch #484 had removed from the segmented one.
+
+---
+
 ## (2026-08-05) — The two brand-brief dialects disagreed about the values they accept (#477 follow-up)
 
 **STATUS: engine (`standard-design-md.ts`) + `test.ts`.** No emitted artifact changed. `test.ts`
