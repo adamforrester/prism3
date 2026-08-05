@@ -22,7 +22,7 @@
  */
 
 /** The code. Bumps on any behaviour change — including one that only moves values. */
-export const ENGINE_VERSION = '0.2.0';
+export const ENGINE_VERSION = '0.3.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -34,7 +34,7 @@ export const ENGINE_VERSION = '0.2.0';
  * 1.1.0: `on-inverse.border` (primary/neutral/destructive) landed in a PR that merged while this
  * one was in flight, adding 3 guaranteed paths — a MINOR bump, no removal or retype.
  */
-export const CONTRACT_VERSION = '1.2.0';
+export const CONTRACT_VERSION = '2.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

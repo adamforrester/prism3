@@ -1272,11 +1272,11 @@ for (const b of brands) {
     const rp = { ...base, modeLevers: { dark: { easings: { emphasized: 'calm' } } } } as unknown as BrandInput;
     const mo = buildTree(brandTheme(rp)).tree[root].motion;
     const role = mo['easing-role'].emphasized;
-    ok(role.$value === `{${root}.motion.easing.emphasized}`,
+    ok(role.$value === `{${root}.motion.easing.expressive}`,
       `D(a0): light keeps the baseline curve (got ${role.$value})`);
     ok(role.$extensions.prism3.modes?.dark?.$value === `{${root}.motion.easing.calm}`,
       `D(a0): dark re-points the ROLE at calm (got ${role.$extensions.prism3.modes?.dark?.$value})`);
-    ok(mo.easing.emphasized.$extensions?.prism3?.modes === undefined,
+    ok(mo.easing.expressive.$extensions?.prism3?.modes === undefined,
       'D(a0): the CURVE primitive carries no per-mode override — a mode re-points, it never redefines');
     ok(mo.transition.emphasized.$value.timingFunction === `{${root}.motion.easing-role.emphasized}`,
       `D(a0): the transition names the role, so it inherits the re-point (got ${mo.transition.emphasized.$value.timingFunction})`);
@@ -1295,7 +1295,9 @@ for (const b of brands) {
         'D(a0): an unknown baseline curve is rejected');
     }
     // no-diff suppression, matching every other axis
-    const selfMap = { ...base, modeLevers: { dark: { easings: { emphasized: 'emphasized' } } } } as unknown as BrandInput;
+    // A self-map is now role → ITS OWN BASELINE CURVE rather than a literal `x: 'x'`, because curves are
+    // named for shape and roles for use. The suppression keys on the resolved baseline, not on the name.
+    const selfMap = { ...base, modeLevers: { dark: { easings: { emphasized: 'expressive' } } } } as unknown as BrandInput;
     ok(buildTree(brandTheme(selfMap)).tree[root].motion['easing-role'].emphasized.$extensions?.prism3?.modes === undefined,
       'D(a0): a self-map is dropped — an inert declaration cannot mint an override');
     // both halves of the reference validated, so a typo cannot resolve to nothing

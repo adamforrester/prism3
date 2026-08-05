@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-05) — Easing curves get shape names, because the role tier took the use names
+
+**STATUS: engine + schema + web.** `out/*` regenerated. `CONTRACT_VERSION` 1.2.0 → **2.0.0** (MAJOR —
+three paths renamed); `ENGINE_VERSION` → 0.3.0.
+
+Owner, reading the new role table: *"the axis for these are named the same as the items they are
+selecting. Enter selects Enter, Exit selects Exit."* Three of the four roles collided with a curve:
+
+```
+roles :  default, enter, exit, emphasized
+curves:  linear, standard, enter, exit, emphasized, calm
+```
+
+**The curves were the mis-named tier.** A curve is a SHAPE; `enter`/`exit` name a USE. That was fine
+while the shape name did double duty — there was no other "enter" concept. Adding the role tier (#527)
+split the two meanings apart and left the shape tier wearing the use tier's names. Telling detail:
+`default → standard` was the only row that read as a decision, and it is the only one that never
+collided.
+
+Renamed to what the code comments already called them: `enter → decelerate` (ease-out), `exit →
+accelerate` (ease-in), `emphasized → expressive` (the comment literally said *"expressive (Carbon
+expressive-standard)"*). The table now reads `enter → decelerate`, `exit → accelerate`,
+`emphasized → expressive` — every row states a choice, and `exit = decelerate` becomes visibly
+deliberate instead of indistinguishable from the default.
+
+**MAJOR, taken deliberately.** Three paths removed, three added; the gate refused `--accept` until
+`CONTRACT_VERSION` was raised, which is the mechanism working. Justified because there are no
+consumers yet — first iteration — and the cost only grows. **Rejected: keeping the old names as
+aliases.** It avoids the bump and leaves two names for one curve, which is worse in a design system
+than the collision was.
+
+**Not folded into #527**, on the owner's call: PRs here are reviewed as they are opened, and a
+reviewer should not have one change underneath them. #527 merged first, so this landed clean off
+`main` with no rebase — the separation cost nothing.
+
+**A test caught what the rename means.** `easings: { emphasized: 'emphasized' }` — the self-map case —
+stopped resolving, because `emphasized` is no longer a curve. That is the rename working, not a
+regression: a self-map is now role → **its own baseline curve** (`emphasized: 'expressive'`) rather
+than a literal `x: 'x'`. The suppression always keyed on the resolved baseline, so only the fixture
+changed.
+
+---
+
 ## (2026-08-05) — Resolve the font style where the library is, not where the guess is (#499)
 
 **STATUS: `plugin/src/write-text-styles.ts` + `plugin/src/main.ts` + the typography harness.** **No

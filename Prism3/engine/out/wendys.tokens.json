@@ -10396,7 +10396,7 @@
             }
           }
         },
-        "enter": {
+        "decelerate": {
           "$type": "cubicBezier",
           "$value": [
             0,
@@ -10404,14 +10404,14 @@
             0.2,
             1
           ],
-          "$description": "easing enter",
+          "$description": "easing decelerate",
           "$extensions": {
             "prism3": {
               "generated": true
             }
           }
         },
-        "exit": {
+        "accelerate": {
           "$type": "cubicBezier",
           "$value": [
             0.4,
@@ -10419,14 +10419,14 @@
             1,
             1
           ],
-          "$description": "easing exit",
+          "$description": "easing accelerate",
           "$extensions": {
             "prism3": {
               "generated": true
             }
           }
         },
-        "emphasized": {
+        "expressive": {
           "$type": "cubicBezier",
           "$value": [
             0.4,
@@ -10434,7 +10434,7 @@
             0.3,
             1
           ],
-          "$description": "easing emphasized",
+          "$description": "easing expressive",
           "$extensions": {
             "prism3": {
               "generated": true
@@ -10471,34 +10471,34 @@
         },
         "enter": {
           "$type": "cubicBezier",
-          "$value": "{prism.motion.easing.enter}",
-          "$description": "easing role 'enter' → enter — the intent a transition names, so a mode can substitute a curve without redefining one",
+          "$value": "{prism.motion.easing.decelerate}",
+          "$description": "easing role 'enter' → decelerate — the intent a transition names, so a mode can substitute a curve without redefining one",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.motion.easing.enter"
+              "aliasOf": "prism.motion.easing.decelerate"
             }
           }
         },
         "exit": {
           "$type": "cubicBezier",
-          "$value": "{prism.motion.easing.exit}",
-          "$description": "easing role 'exit' → exit — the intent a transition names, so a mode can substitute a curve without redefining one",
+          "$value": "{prism.motion.easing.accelerate}",
+          "$description": "easing role 'exit' → accelerate — the intent a transition names, so a mode can substitute a curve without redefining one",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.motion.easing.exit"
+              "aliasOf": "prism.motion.easing.accelerate"
             }
           }
         },
         "emphasized": {
           "$type": "cubicBezier",
-          "$value": "{prism.motion.easing.emphasized}",
-          "$description": "easing role 'emphasized' → emphasized — the intent a transition names, so a mode can substitute a curve without redefining one",
+          "$value": "{prism.motion.easing.expressive}",
+          "$description": "easing role 'emphasized' → expressive — the intent a transition names, so a mode can substitute a curve without redefining one",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.motion.easing.emphasized"
+              "aliasOf": "prism.motion.easing.expressive"
             }
           }
         }
@@ -10572,7 +10572,7 @@
             "timingFunction": "{prism.motion.easing-role.enter}",
             "delay": "0ms"
           },
-          "$description": "motion enter — entrance — element settles in (normal + enter)",
+          "$description": "motion enter — entrance — element settles in (normal + decelerate)",
           "$extensions": {
             "prism3": {
               "role": "composite"
@@ -10586,7 +10586,7 @@
             "timingFunction": "{prism.motion.easing-role.exit}",
             "delay": "0ms"
           },
-          "$description": "motion exit — exit — element accelerates out (fast + exit)",
+          "$description": "motion exit — exit — element accelerates out (fast + accelerate)",
           "$extensions": {
             "prism3": {
               "role": "composite"
@@ -10600,7 +10600,7 @@
             "timingFunction": "{prism.motion.easing-role.emphasized}",
             "delay": "0ms"
           },
-          "$description": "motion emphasized — expressive / hero moment (moderate + emphasized)",
+          "$description": "motion emphasized — expressive / hero moment (moderate + expressive)",
           "$extensions": {
             "prism3": {
               "role": "composite"
@@ -15450,7 +15450,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
