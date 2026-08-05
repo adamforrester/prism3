@@ -7,6 +7,52 @@
 
 ---
 
+## (2026-08-05) — #438 decided: what should be per-mode, one verdict per row
+
+**STATUS: docs only.** No code, no `out/*` change. Closes the decision #438 asked for; the two rows
+that became work are #521 and #522.
+
+**Question 1 — is anything reachable in the engine but not the UI? No.** All nine `modeLevers` axes
+have a control: `radius` / `density` / `tempo` via `renderPerModeSelect`, `shadow` via the per-mode
+sliders, and `families` / `weights` / `lineHeights` / `letterSpacings` / `typeSizes` as a column per
+mode on Typography. The worry #438 opened with — something reachable in the engine but not the UI, the
+shape that kept per-mode composites invisible until #398 shipped the control and #400 the rendering —
+does not apply. Closed, with the caveat that this is true of the axes that *exist*; question 2 is
+about the ones that do not.
+
+**Question 2 — 24 sections, 19 correct as-is.** Full table in the review artifact
+(`claude.ai/code/artifact/63b86fd0`). The rows worth recording:
+
+| row | verdict | why |
+|---|---|---|
+| Outline button hover, Disabled, Icon colors | **keep** — now stated | Each is a *strategy* (overlay kind, disabled kind, icon family), not a value. A strategy differing per mode means the same control behaving differently in Light and Dark. The resolved colors already re-derive. Coherent all along; never written down, which is what let them read as gaps. |
+| Elevation ramp, Duration ramp, Springs | **keep** | Derived-only by design. Editing a ramp directly would let it contradict the lever that generates it. |
+| Motion (reduced-motion) | **keep** | A global accessibility posture, not a per-mode value. |
+| Preview (all 7) | **keep** | Read-only by design — the verification surface, not an editor. |
+| **Spacing grid, Primitive scales** | **keep, owner's call** | Both inert and control-free since #406, and I recommended moving them to Primitives. Owner overruled, with the better argument: **the spacing variables are semantics, not primitives**, so a Primitives/Semantics split would put them on the wrong side. Recorded because the recommendation was wrong for a reason worth keeping — "inert" describes mode-behavior, and does not imply "primitive". |
+| **Focus ring** | **make per-mode → #521, blocked on a question** | |
+| **Easing** | **make per-mode → #522, shape to confirm** | |
+
+**Both of the two that became work turned out larger than #438's framing implied**, which is the part
+worth carrying forward:
+
+- **Focus ring is not a lever at all.** No `focus` key in `levers.ts` or `BrandInput` — the four values
+  are engine constants whose descriptions carry WCAG 2.4.13 as the justification (`width` 2px is *the
+  floor*, not a default). So "per-mode editable" is two capabilities: global editability, then per-mode.
+  And the thing most likely to need adapting **already adapts** — `color.border.focus` varies across
+  all four modes (`primary.600 / 550 / 700 / 300`). What would become editable is *geometry*. #521 asks
+  what problem that solves before building a lever whose main new power is going under an a11y floor.
+- **Only one easing curve is authored.** Five of the six are generated and fixed; `emphasized` is the
+  lone lever. Per-mode easing therefore means overriding that one curve — the `shadow` precedent (same
+  shape as global), deliberately *not* the `lineHeights` re-point pattern, because there is nothing to
+  re-point to when the alternatives are generated. #522 confirms before building.
+
+**Method note.** Both were found by reading the emitted tokens and the lever manifest rather than the
+issue text. #438 listed Easing and Focus ring as verdict rows on equal footing with the others; neither
+is, and building either from the issue's framing would have produced the wrong thing.
+
+---
+
 ## (2026-08-05) — The mode badge gets its third state, and one branch admits it never fires (#437)
 
 **STATUS: web (`main.ts` + `mode-audit.mjs`).** No engine change, `out/*` byte-identical.
