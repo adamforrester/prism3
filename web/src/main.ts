@@ -4802,6 +4802,51 @@ const renderSurfacesEditor = (): HTMLElement => {
  *  mode via the A1 override layer. Symmetric across customizable modes (light + dark both write their
  *  own override); "Auto" = the generated default; a pick below the text floor warns (never blocks). */
 const FG_ROLES: [string, string][] = [['text.primary', 'Primary text'], ['text.secondary', 'Secondary text'], ['text.tertiary', 'Tertiary text']];
+
+/* The other TWENTY `color.text.*` roles, which this section governs and did not show. The neutral ladder
+   above is three of twenty-three; the section titled "Text" was silently a section about neutral ink.
+   Split by what a control could mean, because "editable vs derived" turns out to be the wrong axis —
+   NOTHING here is authored. Even the ladder's picker sets no color: it repoints the role to a palette
+   STEP and the engine re-gates from there. So every row is derived, and the real question is which ones
+   have a step worth repointing.
+
+   PALETTE-ANCHORED — the role sits on its own palette at a contrast-gated step, so the same repoint the
+   ladder already offers applies, just keyed to that role's palette instead of neutral (exactly what the
+   Foreground fills editor does). `link.default` is here and its states are not: `modes.ts` walks hover
+   +1 and visited +2 off this base, so repointing the base moves the set coherently and repointing the
+   states individually would let them cross. */
+const TEXT_PALETTE_ROLES: Array<{ role: string; label: string; paletteKey: string; desc: string; sample: string }> = [
+  { role: 'text.brand', label: 'Brand ink', paletteKey: 'brand', desc: 'Brand-colored text — the ink form of the brand color, not the fill.', sample: 'Brand emphasis' },
+  { role: 'text.success', label: 'Success ink', paletteKey: 'success', desc: 'Success message text.', sample: 'Saved successfully' },
+  { role: 'text.warning', label: 'Warning ink', paletteKey: 'warning', desc: 'Warning message text.', sample: 'Check this before continuing' },
+  { role: 'text.danger', label: 'Danger ink', paletteKey: 'danger', desc: 'Error message text.', sample: 'Something went wrong' },
+  { role: 'text.info', label: 'Info ink', paletteKey: 'info', desc: 'Informational message text.', sample: 'For your reference' },
+  { role: 'text.brand-subtle', label: 'Brand ink, muted', paletteKey: 'brand', desc: 'The quiet variant — lower emphasis, ungated by design (a judgment call, not a contract).', sample: 'Brand, quietly' },
+  { role: 'text.success-subtle', label: 'Success ink, muted', paletteKey: 'success', desc: 'The quiet success variant.', sample: 'Success, quietly' },
+  { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning', desc: 'The quiet warning variant.', sample: 'Warning, quietly' },
+  { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger', desc: 'The quiet danger variant.', sample: 'Danger, quietly' },
+  { role: 'text.info-subtle', label: 'Info ink, muted', paletteKey: 'info', desc: 'The quiet info variant.', sample: 'Info, quietly' },
+  { role: 'text.link.default', label: 'Link', paletteKey: 'action', desc: 'Link ink at rest. Hover and visited walk one and two steps from here, so this row moves all four.', sample: 'A link in running text' },
+];
+
+/* DERIVED — shown, never editable, and the reason is per-role rather than a blanket policy. Each carries
+   the derivation in `why`, because a read-only row that does not say what decides it just looks broken.
+
+   `on-*` is the sharp case: it is `onColor(fill)`, a binary black/white pick whose whole job is clearing
+   AA against the fill beneath it. A step picker there would offer a list on which every entry except the
+   computed one fails the contract the role exists to satisfy — a control that can only be used wrongly is
+   worse than no control. The link states follow `link.default` by construction (see above). */
+const TEXT_DERIVED_ROLES: Array<{ role: string; label: string; from: string; why: string; onRole?: string; sample: string }> = [
+  { role: 'text.on-brand', label: 'On brand fill', from: 'Follows the brand fill', why: 'Black or white, whichever clears AA on the brand fill — repoint Foreground fills › Brand to move it.', onRole: 'foreground.brand', sample: 'On brand' },
+  { role: 'text.on-success', label: 'On success fill', from: 'Follows the success fill', why: 'Black or white, whichever clears AA on the success fill.', onRole: 'foreground.success', sample: 'On success' },
+  { role: 'text.on-warning', label: 'On warning fill', from: 'Follows the warning fill', why: 'Black or white, whichever clears AA on the warning fill.', onRole: 'foreground.warning', sample: 'On warning' },
+  { role: 'text.on-danger', label: 'On danger fill', from: 'Follows the danger fill', why: 'Black or white, whichever clears AA on the danger fill.', onRole: 'foreground.danger', sample: 'On danger' },
+  { role: 'text.on-info', label: 'On info fill', from: 'Follows the info fill', why: 'Black or white, whichever clears AA on the info fill.', onRole: 'foreground.info', sample: 'On info' },
+  { role: 'text.on-inverse', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'background.inverse.primary', sample: 'On inverse' },
+  { role: 'text.link.hover', label: 'Link — hover', from: 'Link, one step on', why: 'Link walked one palette step. Repoint Link above to move it.', sample: 'Hovered link' },
+  { role: 'text.link.visited', label: 'Link — visited', from: 'Link, two steps on', why: 'Link walked two palette steps. Repoint Link above to move it.', sample: 'Visited link' },
+  { role: 'text.link.focused', label: 'Link — focused', from: 'Link, unchanged', why: 'Identical to Link at rest by design — focus is carried by the ring, not a color shift.', sample: 'Focused link' },
+];
 /* These are COLOR specimens, not type specimens, so each string names the role's USE rather than
    being filler. Two of the three used to be halves of a pangram ("The quick brown fox" / "Jumps over
    the lazy dog") while the third already named its use — so one section taught the reader three
@@ -4809,12 +4854,42 @@ const FG_ROLES: [string, string][] = [['text.primary', 'Primary text'], ['text.s
    subject (see RAMP_SAMPLE, which is deliberately long enough that the big rows clip); it is wrong
    where the subject is a colour and the words are the only label the row has. */
 const TEXT_SAMPLE: Record<string, string> = { 'text.primary': 'Default body copy', 'text.secondary': 'Supporting detail', 'text.tertiary': 'Least-emphasis caption' };
+/** Repoint the whole link set from the one Link control, preserving the relationship the ENGINE builds.
+ *
+ *  Measured before writing this, and the measurement changed the design. `modes.ts` derives hover and
+ *  visited by walking one and two palette steps off `link.default` — but it does that while BUILDING the
+ *  baseline, and the override layer runs afterwards, per role. So a lone `text.link.default` override
+ *  does not propagate. It does something worse than nothing: repointing rest to `primary.750` leaves
+ *  hover at `600`, so hovering makes the link LIGHTER and focused stops matching rest. The generated
+ *  relationship is not merely lost, it is inverted, and every value involved still looks individually
+ *  reasonable — nothing in the resolved output says the set stopped being a set.
+ *
+ *  **A per-role override layer cannot preserve a between-role relationship; whoever offers the control
+ *  owns re-establishing it.** So this writes all four entries from one pick — the same +1/+2 walk, index
+ *  clamped at the ramp end — which is what lets the derived rows honestly say they follow Link.
+ *
+ *  "Auto" clears all four, so reverting is symmetric with every other picker in the section. */
+const LINK_ROLES = ['text.link.default', 'text.link.hover', 'text.link.visited', 'text.link.focused'] as const;
+const setLinkOverride = (palette: string, steps: string[], step: string | undefined): void => {
+  if (step === undefined) {                                   // Auto — revert the whole set together
+    for (const r of LINK_ROLES) setFillOverride(r, palette, undefined);
+    return;
+  }
+  const i = steps.indexOf(step);
+  const at = (n: number): string => steps[Math.min(i + n, steps.length - 1)];
+  setFillOverride('text.link.default', palette, step);
+  setFillOverride('text.link.hover', palette, at(1));
+  setFillOverride('text.link.visited', palette, at(2));
+  setFillOverride('text.link.focused', palette, step);         // focus is carried by the ring, not a shift
+};
+
 const renderForegroundEditor = (): HTMLElement => {
-  const sec = palSection('Text', `The text colors for ${MODE_LABEL[currentMode] ?? currentMode} — “Auto” follows the generated, contrast-placed default; pick a neutral step to override just this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the mode’s surface.`);
+  const sec = palSection('Text', `Every text color for ${MODE_LABEL[currentMode] ?? currentMode} — the neutral ladder, the semantic and link inks, and the derived inks that follow other decisions. “Auto” follows the generated, contrast-placed default; pick a step to override just this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the surface it is rated against.`);
   const nPal = theme.roleToPalette.neutral;
   const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
   const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
   const surfaceHex = roles['background.primary']?.hex ?? (currentMode === 'dark' ? '#000000' : '#ffffff');
+  sec.append(subHead('Neutral ladder'));
   for (const [role, label] of FG_ROLES) {
     const r = roles[role]; if (!r) continue;
     const cur = brandState.overrides?.[currentMode]?.[role]?.step;
@@ -4830,7 +4905,52 @@ const renderForegroundEditor = (): HTMLElement => {
       badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
     }));
   }
-  const ct = sectionContrastRoles('The text-on-surface legibility pairs this section governs, computed on the resolved colors across every mode — the per-row badge verifies the active mode at the point of edit.', FG_ROLES);
+  // The palette-anchored inks — same control as the ladder above, keyed to each role's own palette.
+  sec.append(subHead('Semantic & link ink'));
+  for (const { role, label, paletteKey, desc, sample } of TEXT_PALETTE_ROLES) {
+    const r = roles[role]; if (!r) continue;
+    const palette = (theme.roleToPalette as Record<string, string>)[paletteKey] ?? paletteKey;
+    const steps = (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
+    if (!steps.length) continue;
+    const cur = brandState.overrides?.[currentMode]?.[role]?.step;
+    const sel = stepPicker(palette, steps, stepKeyOf(r.path), typeof cur === 'string' ? cur : undefined,
+      role === 'text.link.default' ? (step) => setLinkOverride(palette, steps, step) : (step) => setFillOverride(role, palette, step));
+    sec.append(sfRow({
+      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
+      controls: sfCtl(sfCtlBlock('Step', sel)),
+      example: sfExText(r.hex, sample, surfaceHex),
+      // The muted variants are ungated on purpose (min 0), so they get no badge rather than a
+      // meaningless one — `contrastBadge` against a zero floor would render a pass that means nothing.
+      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
+    }));
+  }
+
+  // Derived rows. Same row shape as everything above — swatch, name, token path, example, badge — so the
+  // value is as legible here as anywhere else; only the control slot differs. Showing these read-only
+  // rather than hiding them is the point: a role absent from the editor reads as a role that does not
+  // exist, which is how twenty of twenty-three went unnoticed in the first place.
+  sec.append(subHead('Derived — not editable'));
+  for (const { role, label, from, why, onRole, sample } of TEXT_DERIVED_ROLES) {
+    const r = roles[role]; if (!r) continue;
+    // Paint the sample on the surface this ink is actually rated against, not the page ground — white
+    // on-brand ink previewed on a white page is invisible, and would look like a bug in the value.
+    const on = onRole ? roles[onRole]?.hex : undefined;
+    sec.append(sfRow({
+      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc: why,
+      controls: sfCtl(sfCtlBlock('Source', el('span', 'sf-derived', from))),
+      example: sfExText(r.hex, sample, on ?? surfaceHex),
+      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
+    }));
+  }
+
+  // Every graded pair the section governs, not just the ladder's three — the table claimed to cover
+  // "this section" while listing a fifth of it. `sectionContrastRoles` already filters to roles that
+  // carry a floor, so the ungated muted variants drop out on their own.
+  const ct = sectionContrastRoles('The text-on-surface legibility pairs this section governs, computed on the resolved colors across every mode — the per-row badge verifies the active mode at the point of edit.', [
+    ...FG_ROLES,
+    ...TEXT_PALETTE_ROLES.map((t) => [t.role, t.label] as [string, string]),
+    ...TEXT_DERIVED_ROLES.map((t) => [t.role, t.label] as [string, string]),
+  ]);
   if (ct) sec.append(ct);
   return sec;
 };

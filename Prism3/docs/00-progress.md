@@ -7,6 +7,57 @@
 
 ---
 
+## (2026-08-05) — A per-role override layer cannot preserve a between-role relationship
+
+**STATUS: `web/src/main.ts` only.** The Text section showed **3 of 23** `color.text.*` roles. No engine
+change — `out/*` byte-identical, every gate unchanged.
+
+**Owner-reported, and the framing changed on inspection.** The obvious reading is "3 editable, 20
+missing, decide which become editable." But nothing in the section is authored: the ladder's picker sets
+no color either — it repoints the role to a palette STEP and the engine re-gates from there. **All 23 are
+derived.** The real question is which roles have a step worth repointing, and that splits three ways:
+
+| group | n | control |
+|---|---|---|
+| neutral ladder | 3 | step on the neutral palette — shipped |
+| palette-anchored (semantic, `-subtle`, `link.default`) | 11 | step on *that role's* palette — added |
+| contrast-forced (`on-*`, `on-inverse`, link states) | 9 | read-only row + derivation note — added |
+
+`on-*` is the case that settles the policy: it is `onColor(fill)`, a binary black/white pick whose only
+job is clearing AA on the fill beneath it. A step picker there would offer a list where every entry but
+the computed one fails the contract the role exists for. **A control that can only be used wrongly is
+worse than no control** — so it gets a row, a value, a badge and a reason, and no picker.
+
+**The finding worth the entry, caught by testing a claim I had already written into the UI.** The copy
+said repointing Link moves hover and visited. `modes.ts` does derive them by walking ±1/±2 off
+`link.default` — but it does that while building the BASELINE, and the override layer runs afterwards,
+per role. So a lone `text.link.default` override does not propagate. Measured:
+
+```
+baseline                        default 550  hover 600  visited 650  focused 550
+override link.default -> 750    default 750  hover 600  visited 650  focused 550
+```
+
+Not merely unpropagated — **inverted**. Rest is now darker than hover, so hovering makes the link
+lighter, and focused no longer matches rest. Every value still looks individually reasonable; nothing in
+the resolved output says the set stopped being a set. That is the same shape as #487 step 4's per-node
+read-backs missing a per-SET bug, arriving from the other direction:
+
+> **A per-role override layer cannot preserve a between-role relationship. Whoever offers the control
+> owns re-establishing it.**
+
+So the Link picker writes all four entries from one pick — same +1/+2 walk, index clamped at the ramp
+end — which is what makes the derived rows' "follows Link" true rather than aspirational. Verified
+through the real UI, not just the engine: one pick moves four rows monotonically with focus matching
+rest, "Auto" reverts all four to baseline exactly, and a semantic pick leaves the link set untouched.
+
+**Also worth recording: the US-English gate caught this PR.** `Brand-coloured text` was headed for
+visible UI copy, and a second hit was a `web/src` code comment — the carve-out #464 retired precisely
+because esbuild inlines those into the bundle. The gate earned its keep on the exact class it was
+widened for.
+
+---
+
 ## (2026-08-05) — #438 decided: what should be per-mode, one verdict per row
 
 **STATUS: docs only.** No code, no `out/*` change. Closes the decision #438 asked for; the two rows
