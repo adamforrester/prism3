@@ -164,8 +164,17 @@ export type FigmaProperties = {
    *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
    *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
   booleans?: Record<string, string>;
-  /** prop name → `kind: 'text'` part. TEXT property. */
-  texts?: Record<string, string>;
+  /** prop name → the `kind: 'text'` part it drives, plus the PLACEHOLDER the component ships with.
+   *
+   *  THE ODD SHAPE OUT, and deliberately so: `booleans` and `swaps` are bare part names because
+   *  Figma's `addComponentProperty` needs a `defaultValue` those two can DERIVE — a swap defaults to
+   *  the node id of the target the plan already nominates (`AnatomyPlan.swapTarget`), and a boolean
+   *  defaults to the visibility of the part as built. A TEXT property has no such source. Figma
+   *  accepts `''`, and a set of 21 empty buttons is what #510 shipped: structurally perfect, every
+   *  binding resolved, and unreadable on the canvas. So the copy is stated HERE rather than in the
+   *  emitter, for the same reason every other name in this file is — the def is what a second brand
+   *  overrides, and a placeholder hard-coded in the payload is one no def can change. */
+  texts?: Record<string, { part: string; default: string }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT. */
   swaps?: Record<string, string>;
 };
@@ -380,6 +389,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   // ---- the part-targeting maps ----
   const propNames = new Set((def.props ?? []).map((p) => p.name));
   const claimed = new Map<string, string>();
+  // Takes `prop → part name`. `texts` carries a second field and is normalized to this shape by its
+  // caller below, rather than this helper learning two shapes — the relational checks are identical
+  // for all three maps and the difference is one field, so the narrower helper is the honest one.
   const checkMap = (label: string, map: Record<string, string> | undefined, kind?: PartKind, requireOptional = false): void => {
     for (const [prop, part] of Object.entries(map ?? {})) {
       if (!propNames.has(prop)) e.push(`figmaProperties.${label}: '${prop}' is not a declared prop`);
@@ -396,9 +408,27 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       claimed.set(part, `${label}.${prop}`);
     }
   };
-  checkMap('texts', fp.texts, 'text');
+  checkMap('texts', Object.fromEntries(Object.entries(fp.texts ?? {}).map(([p, t]) => [p, t.part])), 'text');
   checkMap('swaps', fp.swaps, 'slot');
   checkMap('booleans', fp.booleans, undefined, true);
+
+  // The placeholder is REQUIRED to say something. An empty default is exactly what Figma accepts and
+  // what #510 shipped — 21 variants with nothing readable in them — so a def that declares a TEXT
+  // property and leaves its copy blank is stating the one thing the field exists to prevent.
+  //
+  // ZERO-WIDTH characters are stripped before the test, not just whitespace. `.trim()` handles the
+  // space family including U+00A0, but `'​'.trim()` is truthy — so a zero-width space satisfied a
+  // check whose entire subject is whether the label RENDERS anything (#513 review). Nobody types one
+  // deliberately; they survive copy-paste out of design tools, which is exactly how a def gets written.
+  // The set is the invisible formatting characters rather than U+200B alone: the test is "does this
+  // advance the caret", and narrowing it to the one character that was probed would leave the next
+  // member of the same class to be found the same way.
+  // Written as \u escapes deliberately: the literal characters are INVISIBLE in source, so a reader
+  // cannot see what the class contains and a diff cannot show one being added or dropped.
+  const renders = (s: string) => s.replace(/[\u200B-\u200F\u2028-\u202E\u2060-\u2064\uFEFF]/g, '').trim();
+  for (const [prop, t] of Object.entries(fp.texts ?? {})) {
+    if (!t.default || !renders(t.default)) e.push(`figmaProperties.texts.${prop}.default is empty — a TEXT property with no placeholder builds a component with an unreadable label, which is what the field exists to prevent`);
+  }
 
   return e;
 };

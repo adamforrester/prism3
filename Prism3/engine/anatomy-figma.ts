@@ -62,6 +62,21 @@ export type FigmaNodePlan = {
    *  `textStyle` and `effectStyle` — one field per API shape, so the plan cannot imply a call that
    *  does not exist. */
   paints?: { fills?: string; strokes?: string };
+  /** The PLACEHOLDER copy for a `TEXT` node, from `figmaProperties.texts[*].default`.
+   *
+   *  On the node rather than looked up in the payload, because the payload builds nodes and knows
+   *  only what the plan tells it. Absent on every other node type — a `characters` write on a FRAME
+   *  throws — and absent on a TEXT node the def declares no TEXT property for, which is the case
+   *  where an empty label is the correct output rather than an oversight. */
+  characters?: string;
+  /** Which Figma COMPONENT PROPERTY this node is driven by, and through which field:
+   *  `characters` for a TEXT property, `mainComponent` for an INSTANCE_SWAP, `visible` for a BOOLEAN.
+   *
+   *  The value here is the PROP NAME (`children`), not Figma's property id (`children#104:25`). The
+   *  id does not exist until `addComponentProperty` runs in the live file and embeds a node id that
+   *  differs on every paste, so a plan holding one would not be brand-invariant — the same argument
+   *  `bound` holds names rather than `VariableID:*`. The payload maps name → returned id. */
+  propertyRef?: { field: 'characters' | 'mainComponent' | 'visible'; prop: string };
   /** For an `INSTANCE_SWAP` node: the paint for VECTOR descendants INSIDE the instance.
    *
    *  Its own field because the instance's own `fills` would paint a background square behind the
@@ -77,6 +92,23 @@ export type FigmaNodePlan = {
  *  plan carries no paints at all, which is what every caller before #487 step 3 wanted and still
  *  gets. Present, and the plan is one fully-skinned variant. */
 export type VariantCoord = { intent?: string; appearance?: string; state?: string };
+
+/**
+ * One Figma COMPONENT PROPERTY to declare on the assembled set (#487 step 6).
+ *
+ * Names, not ids, for the reason `FigmaNodePlan.propertyRef` gives. `default` is deliberately typed
+ * as the union Figma's `addComponentProperty` accepts *for the corresponding type* — measured, not
+ * assumed: an `INSTANCE_SWAP` default is a node **id** string (`'73:37'`), and `key`, `''`, `null`
+ * and `undefined` are each rejected with *"Property value is incompatible"*. So a swap's default
+ * cannot be computed offline at all, and this carries the target's NAME for the payload to resolve.
+ */
+export type FigmaPropertyPlan =
+  | { name: string; type: 'TEXT'; default: string }
+  | { name: string; type: 'BOOLEAN'; default: boolean }
+  /** `swapTarget` is a component NAME; the payload resolves it to the node id Figma demands. A
+   *  target that does not resolve makes the property unbuildable rather than merely undefaulted,
+   *  which is why the payload reports it as a miss instead of substituting something. */
+  | { name: string; type: 'INSTANCE_SWAP'; swapTarget: string };
 
 export type AnatomyPlan = {
   component: string;
@@ -198,6 +230,21 @@ export const figmaAnatomyPlan = (
     return !p?.optional;
   };
 
+  // PART NAME → the component property that drives it, inverted from the def's prop-keyed maps.
+  // Inverted here rather than searched per node because the invariant "one node carries at most one
+  // property kind" is already enforced by `figmaPropertyErrors`, so a Map is the shape that matches
+  // the rule — a second claim on a part would overwrite rather than accumulate, and the gate that
+  // would have caught it runs earlier.
+  const fp = def.figmaProperties;
+  const drivenBy = new Map<string, FigmaNodePlan['propertyRef']>();
+  const placeholder = new Map<string, string>();
+  for (const [prop, t] of Object.entries(fp?.texts ?? {})) {
+    drivenBy.set(t.part, { field: 'characters', prop });
+    placeholder.set(t.part, t.default);
+  }
+  for (const [prop, part] of Object.entries(fp?.swaps ?? {})) drivenBy.set(part, { field: 'mainComponent', prop });
+  for (const [prop, part] of Object.entries(fp?.booleans ?? {})) drivenBy.set(part, { field: 'visible', prop });
+
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
     const kids = (p.children ?? []).filter(present).map((c) => node(c, a.parts[c]));
@@ -263,9 +310,17 @@ export const figmaAnatomyPlan = (
       descendantFills = paintOf('icon');
     }
 
+    // The placeholder lands only on a TEXT node, and only where the def declares a TEXT property for
+    // that part. A `characters` write on a FRAME throws, and a text part with no declared property is
+    // a part whose copy nothing is claiming to own.
+    const chars = p.kind === 'text' ? placeholder.get(name) : undefined;
+    const propertyRef = drivenBy.get(name);
+
     return {
       name,
       type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : 'INSTANCE_SWAP',
+      ...(chars !== undefined ? { characters: chars } : {}),
+      ...(propertyRef ? { propertyRef } : {}),
       ...(textStyle ? { textStyle } : {}),
       ...(p.kind === 'slot' && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
@@ -314,6 +369,58 @@ const paintVarsOwn = (n: FigmaNodePlan): string[] =>
  *  actually carries paints — the check that a coordinate resolved to something. */
 export const planPaintVars = (n: FigmaNodePlan): string[] =>
   [...paintVarsOwn(n), ...n.children.flatMap(planPaintVars)];
+
+/** Every node in a plan carrying a `propertyRef`, depth-first. */
+const refNodes = (n: FigmaNodePlan): FigmaNodePlan[] =>
+  [...(n.propertyRef ? [n] : []), ...n.children.flatMap(refNodes)];
+
+/**
+ * The COMPONENT PROPERTIES to declare on a set — derived from the nodes the plans actually BUILD,
+ * not from the def's declaration.
+ *
+ * That direction is the whole point, and it is a live finding rather than a preference. Button's def
+ * declares `swaps` for BOTH visuals, but #510's grid is uniformly `leading=true, trailing=false`, so
+ * no member has a trailing node. Declaring from the def would add a `trailingVisual` property that
+ * no node in the set references — which Figma accepts, shows in the properties panel, and does
+ * nothing at all when a designer changes it. Deriving from the built nodes cannot produce one.
+ *
+ * The reverse orphan — a node referencing a property nothing declared — is the one direction Figma
+ * checks for us: `componentPropertyReferences` THROWS on an unknown name. So this returns the
+ * closure of what the plans reference, and the payload's read-back covers what Figma then did with it.
+ *
+ * Refuses a CONTRADICTION rather than picking a winner: two plans in one set whose same-named
+ * property disagrees on type or placeholder is a def-tier or caller-tier error, and a set carrying
+ * whichever the iteration order happened to reach last would be silently wrong in a file.
+ */
+export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => {
+  const byName = new Map<string, FigmaPropertyPlan>();
+  for (const plan of plans) {
+    for (const n of refNodes(plan.root)) {
+      const ref = n.propertyRef!;
+      let prop: FigmaPropertyPlan;
+      if (ref.field === 'characters') {
+        // The placeholder is the node's own `characters`, so the property's default and the text a
+        // member actually shows cannot disagree — they are one value read once.
+        prop = { name: ref.prop, type: 'TEXT', default: n.characters ?? '' };
+      } else if (ref.field === 'mainComponent') {
+        // No target nominated means no id for Figma to default to, and `''` is rejected outright — so
+        // the property is not emitted and the payload says so, rather than a swap property that
+        // exists and defaults to nothing.
+        if (!n.swapTarget) continue;
+        prop = { name: ref.prop, type: 'INSTANCE_SWAP', swapTarget: n.swapTarget };
+      } else {
+        // The node EXISTS in this plan, so the part is present — an absent optional part builds no
+        // node and therefore no reference. `true` is read off that fact, not assumed.
+        prop = { name: ref.prop, type: 'BOOLEAN', default: true };
+      }
+      const prev = byName.get(prop.name);
+      if (prev && JSON.stringify(prev) !== JSON.stringify(prop))
+        throw new Error(`planSetProperties: '${prop.name}' is declared two different ways across the set — ${JSON.stringify(prev)} vs ${JSON.stringify(prop)}`);
+      byName.set(prop.name, prop);
+    }
+  }
+  return [...byName.values()];
+};
 
 /** Every Figma text style a plan applies. */
 export const planTextStyles = (n: FigmaNodePlan): string[] =>
@@ -465,7 +572,24 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
   if(n.textStyle){
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
-    else await node.setTextStyleIdAsync(st.id);
+    else{
+      // The STYLE'S OWN font, loaded before the style is applied. \`setTextStyleIdAsync\` pulls in a
+      // family/style pair (\`Inter Semi Bold\`) that need not be the one \`createText\` starts on, and
+      // Figma requires a font to be loaded before any text write. Loading here rather than once at the
+      // top because the plan is what knows which styles it uses, and a hard-coded \`Inter Regular\`
+      // would be a guess about a brand's typography.
+      try{await figma.loadFontAsync(st.fontName);}catch(err){misses.push(n.name+'.font -> '+st.fontName.family+' '+st.fontName.style+' ('+err.message+')');}
+      await node.setTextStyleIdAsync(st.id);
+    }
+  }
+  // The PLACEHOLDER, after the style so the copy is set on a node already carrying the right font.
+  // Both orders work (measured — the style survives a prior \`characters\` write, and vice versa), so
+  // this one is chosen for reading order rather than necessity.
+  if(typeof n.characters==='string'){
+    try{node.characters=n.characters;}catch(err){misses.push(n.name+'.characters -> '+JSON.stringify(n.characters)+' ('+err.message+')');}
+    // READ BACK, same discipline as the bindings: a text node that silently kept nothing is exactly
+    // the empty-label set this step exists to stop shipping.
+    if(node.characters!==n.characters)misses.push(n.name+'.characters -> DISCARDED (set '+JSON.stringify(n.characters)+', reads '+JSON.stringify(node.characters)+')');
   }
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
@@ -549,6 +673,23 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
  * components that the next attempt then collides with by name. Building and combining in a single
  * call makes the whole set atomic from the caller's point of view.
  *
+ * COMPONENT PROPERTIES ARE PART OF THE DELIVERABLE TOO, and for the same reason (#487 step 6). The set
+ * #510 pasted was correct on every check this payload had — 21 variants, all bindings resolved, axes
+ * clean, no coincidence, no footprint drift — and every button in it was BLANK, because nothing wrote
+ * `characters` and nothing declared a TEXT property. The four things measured live before writing this,
+ * each of which the obvious implementation gets wrong:
+ *
+ *  - `addComponentProperty` is legal on a SET and on a standalone component, and THROWS on a member
+ *    ("Can only set component property definitions on a product component"). So it runs after the
+ *    combine, which also avoids the id rewrite the combine performs on properties declared before it.
+ *  - an `INSTANCE_SWAP` default must be a node **id**. The component `key`, `''`, `null` and
+ *    `undefined` are each rejected, so an unresolved target means no property rather than a blank one.
+ *  - `componentPropertyReferences` do NOT propagate across members. Wiring the first variant leaves the
+ *    other twenty inert — visibly fine on whichever variant a designer inspects first.
+ *  - non-variant keys come back from `componentPropertyDefinitions` with a `#nodeId` SUFFIX, variant
+ *    keys do not. The pre-existing axis read-back compared all keys, so adding one TEXT property made
+ *    it report an axis mismatch on a correct set. It now filters `type === 'VARIANT'`.
+ *
  * LAYOUT IS PART OF THE DELIVERABLE, learned the hard way: `combineAsVariants` PRESERVES each member's
  * position, so appending twenty-one roots without setting one produced a set 21 variants deep and one
  * button tall, every member at the origin. Nothing was wrong with it — every binding resolved, `misses`
@@ -591,7 +732,19 @@ export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
     group: `size=${p.size}, leading=${p.slots.leading}, trailing=${p.slots.trailing}`,
   }));
 
+  // The properties to declare, derived from the nodes the plans BUILD (see `planSetProperties`), and
+  // the part→property wiring the payload applies per member. `REFS` is deduped by part because every
+  // member carries the same anatomy — the payload loops members, so a per-plan list would wire each
+  // node twenty-one times over.
+  const props = planSetProperties(plans);
+  const refs = new Map<string, { part: string; field: string; prop: string }>();
+  for (const plan of plans)
+    for (const n of refNodes(plan.root))
+      if (props.some((p) => p.name === n.propertyRef!.prop)) refs.set(n.name, { part: n.name, ...n.propertyRef! });
+
   return `const PLANS=${JSON.stringify(cells)};
+const PROPS=${JSON.stringify(props)};
+const REFS=${JSON.stringify([...refs.values()])};
 ${PAYLOAD_PREAMBLE}
 ${PAYLOAD_BUILD}
 const built=[];
@@ -619,12 +772,78 @@ built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row)
 // caller's first sign of trouble — by then twenty-one loose components are already in the file.
 const set=figma.combineAsVariants(built,figma.currentPage);
 set.name=${JSON.stringify(plans[0].component)};
+// COMPONENT PROPERTIES (#487 step 6). On the SET, and only after combining — measured, not read:
+// \`addComponentProperty\` on a member throws "Can only set component property definitions on a product
+// component", so there is no per-variant path to fall back to. Declaring before the combine works via
+// the standalone-component route and the ids are then REWRITTEN by \`combineAsVariants\` (\`children#103:19\`
+// became \`children#103:21\`), which is a second reason to do it after: an id captured before the combine
+// is stale by the time a reference needs it.
+const propIds=new Map();
+for(const p of PROPS){
+  let def;
+  if(p.type==='INSTANCE_SWAP'){
+    // Figma demands a NODE ID here. \`key\`, \`''\`, \`null\` and \`undefined\` are each rejected with
+    // "Property value is incompatible with component property type" — so an unresolvable target is not
+    // a missing default, it is a property that cannot be created at all.
+    const target=compByName.get(p.swapTarget);
+    if(!target){misses.push('property '+p.name+' -> swap target '+p.swapTarget+' (not found; property not created)');continue;}
+    def=target.id;
+  }else def=p.default;
+  try{propIds.set(p.name,set.addComponentProperty(p.name,p.type,def));}
+  catch(err){misses.push('property '+p.name+' -> '+p.type+' REFUSED ('+err.message+')');}
+}
+// WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant left every
+// sibling's \`componentPropertyReferences\` empty, so a set wired once looks correct on the variant a
+// designer happens to inspect and is inert on the other twenty.
+const wiredRefs=[];
+for(const member of set.children){
+  for(const r of REFS){
+    const node=member.findOne(x=>x.name===r.part);
+    // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
+    // legitimate case, not an error. \`planSetProperties\` only ever declares a property some node
+    // references, so a part missing everywhere would leave the property undeclared instead.
+    if(!node)continue;
+    const id=propIds.get(r.prop);
+    if(!id)continue; // the property itself failed above and already reported its own cause
+    try{
+      node.componentPropertyReferences=Object.assign({},node.componentPropertyReferences||{},{[r.field]:id});
+      wiredRefs.push([member.name,r.part,r.field,id]);
+    }catch(err){misses.push('ref '+member.name+'/'+r.part+'.'+r.field+' -> '+r.prop+' ('+err.message+')');}
+  }
+}
+// READ BACK every reference. Figma throws on a reference naming an unknown property, so this covers the
+// other direction — a reference the setter ACCEPTED and did not retain, the same blind spot \`misses\`
+// had for variable bindings before #503.
+for(const [mName,part,field,id] of wiredRefs){
+  const member=set.children.find(c=>c.name===mName);
+  const node=member?member.findOne(x=>x.name===part):null;
+  const got=node&&node.componentPropertyReferences?node.componentPropertyReferences[field]:undefined;
+  if(got!==id)misses.push('ref '+mName+'/'+part+'.'+field+' -> DISCARDED (set '+id+', reads '+got+')');
+}
 // READ BACK the axes Figma actually derived. A name it cannot parse is dropped silently, so a set can
 // come back with fewer properties than the names claimed — present is not parsed.
 const props=set.componentPropertyDefinitions||{};
-const derived=Object.keys(props).sort();
+// VARIANT ONLY, and this is load-bearing rather than tidiness: non-variant properties come back with a
+// NODE-ID SUFFIX (\`children#104:25\`) while variant keys do not, so the moment step 6 added a TEXT
+// property this comparison started reporting an axis mismatch on a perfectly correct set. Measured live.
+const derived=Object.keys(props).filter(k=>props[k].type==='VARIANT').sort();
 const expected=${JSON.stringify(axes.split(','))}.sort();
 const axisMiss=JSON.stringify(derived)!==JSON.stringify(expected)?['axes -> derived ['+derived.join(',')+'] but the names declared ['+expected.join(',')+']']:[];
+// READ BACK the component properties. Two failures live here that nothing else in this payload sees.
+const propMiss=[];
+// ONE: a DUPLICATE name is accepted silently and RENAMED — declaring \`children\` twice produced
+// \`children\` and \`children2\`, no throw. So the check is that each declared name came back verbatim
+// (the \`#nodeId\` suffix stripped), not that the count matches.
+const bare=new Map();
+for(const k of Object.keys(props))if(props[k].type!=='VARIANT')bare.set(k.split('#')[0],k);
+for(const p of PROPS)if(propIds.has(p.name)&&!bare.has(p.name))propMiss.push('property '+p.name+' -> declared but absent from the set (Figma may have renamed it)');
+// TWO: an ORPHAN — a property no node references. Figma shows it in the properties panel and changing
+// it does nothing, which is indistinguishable from a broken component to the designer holding it.
+const referenced=new Set();
+for(const member of set.children)
+  for(const n of [member].concat(member.findAll(()=>true)))
+    for(const id of Object.values(n.componentPropertyReferences||{}))referenced.add(id);
+for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+name+' -> ORPHAN (declared on the set, referenced by no node — it appears in the panel and does nothing)');
 // READ BACK the LAYOUT too. Two variants at one position is the signature of a set that combined
 // perfectly and is unusable, and it is invisible to every other check in this payload.
 const seen=new Map();
@@ -647,6 +866,10 @@ built.forEach((c,i)=>{
   if(!first)sizeByGroup.set(g,{box,name:PLANS[i].name});
   else if(first.box!==box)footprint.push('footprint -> '+PLANS[i].name+' measures '+box+' but '+first.name+' measures '+first.box+' (same '+g+')');
 });
-return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows.length)},${JSON.stringify(cols.length)}],axes:derived.map(k=>k+':'+(props[k].variantOptions||[]).length),misses:misses.concat(axisMiss,coincident,footprint)};
+// \`wiredMembers\` alongside \`refs\` because the two answer different questions and only the second one
+// matters: \`refs\` is a push-count, so 42 writes onto ONE member satisfies it as readily as 42 spread
+// across twenty-one. Since the whole point of the per-member loop is that references do NOT propagate,
+// the number worth reporting is how many members were reached — SPREAD, not volume (#513 review).
+return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows.length)},${JSON.stringify(cols.length)}],axes:derived.map(k=>k+':'+(props[k].variantOptions||[]).length),properties:[...bare.keys()].map(k=>k+':'+props[bare.get(k)].type),refs:wiredRefs.length,wiredMembers:[...new Set(wiredRefs.map(r=>r[0]))].length,misses:misses.concat(axisMiss,coincident,footprint,propMiss)};
 `;
 };

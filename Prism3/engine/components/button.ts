@@ -231,7 +231,10 @@ export const button: ComponentDef = {
     stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'] },
     // Slot CONTENT, so a designer can pick the icon. Slot PRESENCE is a variant question (§4).
     swaps: { leadingVisual: 'leadingVisual', trailingVisual: 'trailingVisual' },
-    texts: { children: 'label' },
+    // "Button" is the placeholder, and it lives here rather than in the payload: the def is the layer
+    // a second brand overrides. Figma accepts an empty TEXT default, which is what #510's set shipped —
+    // 21 structurally perfect variants with nothing readable in any of them.
+    texts: { children: { part: 'label', default: 'Button' } },
     // Empty, and stated rather than omitted. `fullWidth` is layout; `isPending`/`isInactive`/
     // `isDisabled` collapse into the state axis; `onClick`/`type`/`href` are behavioral. A Figma
     // BOOLEAN drives one node's `visible` and nothing else, and none of those are that.

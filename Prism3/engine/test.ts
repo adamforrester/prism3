@@ -39,7 +39,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -5649,7 +5649,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // describe a behavior tests the words. So run it. A stub Figma with an EMPTY variable set is the
     // realistic failure — token passes not run, or one variable renamed — and it is the case where
     // `misses[]` has to be trustworthy, because this whole design rests on it being the only channel.
-    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[] } = {}): Promise<{ misses: string[] }> => {
+    type PayloadResult = { misses: string[]; properties?: string[]; refs?: number; wiredMembers?: number; axes?: string[] };
+    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[] } = {}): Promise<PayloadResult> => {
       const names = new Set(opts.vars ?? []);
       const mkVar = (name: string) => ({ id: `V:${name}`, name });
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
@@ -5659,10 +5660,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const node: Record<string, unknown> = {
           type, name: '', width: 0, height: 0, boundVariables: {} as Record<string, unknown>,
           constrainProportions: false, fills: [], strokes: [], children: [] as unknown[],
+          // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
+          // the empty-label set #510 shipped, and the state the read-back has to be able to report.
+          characters: '',
+          componentPropertyReferences: null as Record<string, string> | null,
           setBoundVariable(prop: string, v: { id: string }) { (node.boundVariables as Record<string, unknown>)[prop] = { id: v.id }; },
           setTextStyleIdAsync: async () => {}, setEffectStyleIdAsync: async () => {},
           appendChild(c: unknown) { (node.children as unknown[]).push(c); },
-          findAll: () => [],
+          // Walks descendants for real, rather than returning `[]`. The set payload finds each part by
+          // NAME inside every member to wire its property reference, so a stub that finds nothing would
+          // let the whole wiring loop no-op and every assertion below pass on an empty set of writes.
+          findAll(pred?: (n: unknown) => boolean) {
+            const all: unknown[] = [];
+            const walk = (n: Record<string, unknown>) => {
+              for (const c of (n.children as Record<string, unknown>[]) ?? []) { all.push(c); walk(c); }
+            };
+            walk(node);
+            return pred ? all.filter(pred) : all;
+          },
+          findOne(pred: (n: unknown) => boolean) { return (node.findAll as (p?: unknown) => unknown[])(pred)[0] ?? null; },
         };
         return node;
       };
@@ -5674,24 +5690,86 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           setBoundVariableForPaint: (p: object, field: string, v: { id: string }) =>
             ({ ...p, boundVariables: { [field]: { id: v.id } } }),
         },
-        getLocalTextStylesAsync: async () => (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name })),
+        // `fontName` on every style, because the payload loads the STYLE'S font before writing text —
+        // `setTextStyleIdAsync` pulls in a family/style pair that need not be what `createText` starts on.
+        getLocalTextStylesAsync: async () => (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: { family: 'Inter', style: 'Semi Bold' } })),
+        loadFontAsync: async () => {},
         getLocalEffectStylesAsync: async () => [],
         loadAllPagesAsync: async () => {},
         // A COMPONENT the payload can instantiate, so the swap path is exercised rather than always
         // degrading to the placeholder frame. `createInstance` returns a node with a VECTOR inside,
         // because the icon-ink paint routes to the vector and not to the instance.
-        root: { findAllWithCriteria: () => (opts.comps ?? []).map((name) => ({
-          name, createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
+        // `id` as well as `name`, because an INSTANCE_SWAP property's default must be a node ID —
+        // the component key, `''`, `null` and `undefined` are all refused by the live API.
+        root: { findAllWithCriteria: () => (opts.comps ?? []).map((name, i) => ({
+          name, id: `73:${37 + i}`,
+          createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
         })) },
         createText: () => mkNode('TEXT'), createFrame: () => mkNode('FRAME'),
-        combineAsVariants: () => mkNode('COMPONENT_SET'),
+        // A REAL set: it holds the members it combined, and it models `addComponentProperty` the way the
+        // live API was measured to behave (#487 step 6). Four behaviors, each of which the payload has a
+        // read-back for, and each of which a permissive stub would let pass silently:
+        //  · non-VARIANT keys come back with a `#nodeId` SUFFIX; VARIANT keys do not
+        //  · a DUPLICATE name is accepted and RENAMED (`children` → `children2`), with no throw
+        //  · an `INSTANCE_SWAP` default must be a node id — `''` / a key / null are refused
+        //  · `componentPropertyReferences` naming an unknown property THROWS
+        combineAsVariants: (members: Record<string, unknown>[]) => {
+          const set = mkNode('COMPONENT_SET');
+          set.children = members;
+          const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
+          // The axes Figma derives from the member NAMES — the wire format `planComponentName` emits.
+          for (const m of members)
+            for (const kv of String(m.name).split(', ')) {
+              const [k, v] = kv.split('=');
+              const d = (defs[k] ??= { type: 'VARIANT', variantOptions: [] });
+              if (!d.variantOptions!.includes(v)) d.variantOptions!.push(v);
+            }
+          let seq = 100;
+          set.componentPropertyDefinitions = defs;
+          set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
+            if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
+              throw new Error('in addComponentProperty: Property value is incompatible with component property type');
+            if (type === 'BOOLEAN' && typeof defaultValue !== 'boolean')
+              throw new Error('in addComponentProperty: Property value is incompatible with component property type');
+            // Renamed, not refused — the behavior that makes a count-based read-back useless.
+            let bare = name;
+            while (Object.keys(defs).some((k) => k.split('#')[0] === bare)) bare = /\d$/.test(bare) ? bare.replace(/\d$/, (d) => String(+d + 1)) : `${bare}2`;
+            const key = `${bare}#103:${seq++}`;
+            defs[key] = { type, defaultValue };
+            return key;
+          };
+          set.declaredIds = () => Object.keys(defs);
+          // Called at RUN time (the payload runs after this whole closure is built), so the reference
+          // guard sees the definitions this set actually holds.
+          guardRefs(set);
+          return set;
+        },
         createComponentFromNode: (n: unknown) => n,
         currentPage: { appendChild: () => {} },
+      };
+      // A reference naming a property that does not exist THROWS in real Figma, and that is the one
+      // direction we get for free — so the stub enforces it too, on every node. Installed here rather
+      // than in `mkNode` because it needs the set that owns the definitions, which does not exist yet
+      // when a node is built.
+      const guardRefs = (set: Record<string, unknown>) => {
+        for (const n of [set, ...(set.findAll as () => Record<string, unknown>[])()]) {
+          let held: Record<string, string> | null = null;
+          Object.defineProperty(n, 'componentPropertyReferences', {
+            configurable: true,
+            get: () => held,
+            set: (v: Record<string, string>) => {
+              const known = (set.declaredIds as () => string[])();
+              for (const id of Object.values(v ?? {}))
+                if (!known.includes(id)) throw new Error(`in set_componentPropertyReferences: Could not find a component property with name: '${id}'`);
+              held = v;
+            },
+          });
+        }
       };
       // `AsyncFunction` because the payload is top-level `await` by design (#478 — an async IIFE
       // returns a Promise that figma_execute drops). Constructed rather than eval'd so the payload
       // sees exactly one binding, `figma`, and nothing from this module's scope.
-      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<{ misses: string[] }>;
+      const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor as new (...a: string[]) => (f: unknown) => Promise<PayloadResult>;
       // FAILS SOFT, and this is not defensive habit — it is the trap in `review-pr.md:133`, which I
       // walked straight into: narrowing the lookup to `figma.currentPage` (a real degrade this block
       // gates against) threw inside the payload, and an uncaught throw here takes the WHOLE suite down
@@ -5744,6 +5822,103 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const clean = await runPayload(planToPluginJs(runnable), full);
     ok(clean.misses.length === 0,
       `anatomy: a fully-resolved paste reports NOTHING — misses[] stays empty when every write landed (${JSON.stringify(clean.misses)})`);
+
+    // ---- COMPONENT PROPERTIES on the assembled set (#487 step 6) --------------------------------
+    // #510's set passed every check above and shipped 21 BLANK buttons: nothing wrote `characters` and
+    // nothing declared a TEXT property. So these gates are all about the two channels that failure had
+    // no representation in — the placeholder copy, and the property definitions on the set.
+    {
+      const props = planSetProperties(grid);
+      const names = props.map((p) => p.name).sort();
+      // DERIVED FROM THE NODES BUILT, not from the def — the finding that changed this design. Button's
+      // def declares `swaps` for BOTH visuals, and this grid is uniformly `leading=true, trailing=false`,
+      // so a def-driven list would declare a `trailingVisual` property no node in the set references.
+      // Figma accepts that, shows it in the panel, and it does nothing when a designer changes it.
+      ok(JSON.stringify(names) === JSON.stringify(['children', 'leadingVisual']),
+        `set properties: derived from the nodes BUILT, so an unbuilt slot declares nothing — got [${names.join(', ')}], and trailingVisual is correctly absent from a leading-only grid`);
+      ok(props.some((p) => p.type === 'TEXT' && p.name === 'children' && p.default === 'Button'),
+        'set properties: the TEXT placeholder comes from the def (`Button`), not the payload — the def is the layer a second brand overrides');
+      ok(props.some((p) => p.type === 'INSTANCE_SWAP' && p.name === 'leadingVisual' && p.swapTarget === 'FPO-default-icon'),
+        'set properties: the swap carries the target NAME — Figma demands a node id, which only the live file can supply');
+      // Nothing to declare is a legitimate answer, not an empty-list bug: a def with no property maps
+      // at all must produce zero properties rather than a set of undriven ones.
+      const bareDef: ComponentDef = { ...button, figmaProperties: undefined };
+      const barePlan = figmaAnatomyPlan(bareDef, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' });
+      ok(planSetProperties([barePlan]).length === 0 && barePlan.root.children.every((c) => c.propertyRef === undefined),
+        'set properties: a def declaring no figmaProperties projects NO properties and no refs — the projection is opt-in, as it was before this step');
+      // A def that declares `booleans` yields one, so the BOOLEAN path is exercised rather than merely
+      // permitted by Button happening to have none.
+      const boolDef: ComponentDef = { ...button, figmaProperties: { ...button.figmaProperties!, booleans: { fullWidth: 'trailingVisual' } } };
+      const boolProps = planSetProperties([figmaAnatomyPlan(boolDef, 'medium', { leading: true, trailing: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })]);
+      ok(boolProps.some((p) => p.type === 'BOOLEAN' && p.name === 'fullWidth' && p.default === true),
+        'set properties: a declared BOOLEAN projects, defaulting to `true` because the node EXISTS in the plan — an absent optional part builds no node and so declares nothing');
+      // And a contradiction is refused rather than resolved by iteration order.
+      const otherCopy: ComponentDef = { ...button, figmaProperties: { ...button.figmaProperties!, texts: { children: { part: 'label', default: 'Other' } } } };
+      let contradiction = '';
+      try { planSetProperties([grid[0], figmaAnatomyPlan(otherCopy, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })]); }
+      catch (e) { contradiction = (e as Error).message; }
+      ok(/declared two different ways/.test(contradiction),
+        `set properties: two plans disagreeing on one property are REFUSED — a set carrying whichever the loop reached last would be silently wrong in a file${contradiction ? '' : ' (no throw)'}`);
+
+      // The PLACEHOLDER reaches the plan and the payload.
+      ok(grid[0].root.children.some((c) => c.name === 'label' && c.characters === 'Button'),
+        'set properties: the placeholder rides on the TEXT NODE — the payload builds nodes and knows only what the plan tells it');
+      ok(!grid[0].root.children.some((c) => c.type !== 'TEXT' && c.characters !== undefined),
+        'set properties: only a TEXT node carries `characters` — the write throws on a FRAME');
+
+      // EXECUTED, not grepped. Everything below runs the real payload against the measured stub.
+      // Every name the WHOLE grid reaches for, not one coordinate's: `full` is derived from a single
+      // skinned plan, and the 21 members span three appearances × seven states, so reusing it would
+      // starve the run of most of its paints and drown the property misses in resolve misses.
+      const fullSet = {
+        vars: grid.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+        styles: grid.flatMap((p) => planTextStyles(p.root)),
+        comps: ['FPO-default-icon'],
+      };
+      const setRun = await runPayload(planSetToPluginJs(grid), fullSet);
+      ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
+      // Sorted, because the order `componentPropertyDefinitions` returns is Figma's to choose and
+      // asserting it would gate a promise the API does not make.
+      ok(JSON.stringify([...(setRun.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
+        `set properties: the set comes back carrying both properties — got ${JSON.stringify(setRun.properties)}`);
+      // 21 members × 2 refs, asserted as SPREAD and not just volume. `refs` alone is a push-count, so a
+      // loop that wired member 0 twenty-one times would satisfy `refs === 42` with twenty members left
+      // inert — the exact scenario this assertion's own message describes, since references do NOT
+      // propagate and a set wired once looks correct on whichever variant is inspected first. Same shape
+      // as this step's `addComponentProperty` finding: a duplicate name is renamed rather than refused, so
+      // a count match proves nothing about identity. That reasoning was applied to property names and
+      // initially not to refs (#513 review).
+      ok(setRun.wiredMembers === 21 && setRun.refs === 42,
+        `set properties: every member is wired individually — ${setRun.wiredMembers}/21 distinct members reached across ${setRun.refs} writes (2 each)`);
+      // The AXIS READ-BACK still agrees, which is the regression this step nearly caused: non-variant
+      // keys carry a `#nodeId` suffix and variant keys do not, so comparing all keys reported a mismatch
+      // on a correct set the moment one TEXT property existed.
+      ok(setRun.axes?.length === 6 && !setRun.misses.some((m) => m.includes('axes ->')),
+        `set properties: the axis read-back is unaffected — it filters type === 'VARIANT', because non-variant keys come back suffixed (${JSON.stringify(setRun.axes)})`);
+
+      // MUTATION-TESTED, one per new read-back. Each of these passes if the check is dead.
+      const mutate = async (label: string, from: string | RegExp, to: string, want: RegExp) => {
+        const js = planSetToPluginJs(grid);
+        const mutated = js.replace(from as string, to);
+        ok(mutated !== js, `set properties: the mutation for '${label}' actually applied to the payload`);
+        const r = await runPayload(mutated, fullSet);
+        ok(r.misses.some((m) => want.test(m)), `set properties: ${label}${r.misses.some((m) => want.test(m)) ? '' : ` — got ${JSON.stringify(r.misses)}`}`);
+      };
+      // The placeholder never written — #510's exact failure, now a reported miss rather than a set a
+      // designer opens and finds blank.
+      await mutate('a placeholder that is never written IS reported', 'node.characters=n.characters;', 'void 0;', /characters -> DISCARDED/);
+      // A reference the setter accepts and drops. Figma throws on an unknown property NAME, so this is
+      // the other half — the silent-discard blind spot `misses` had for variables before #503.
+      await mutate('a reference that is set and not retained IS reported', 'node.componentPropertyReferences=Object.assign', 'node.ignored=Object.assign', /ref .* -> DISCARDED/);
+      // An ORPHAN — declared on the set, referenced by nothing. Skipping the wiring loop entirely is the
+      // cheapest way to produce one, and it must not come back clean.
+      await mutate('an ORPHAN property is reported', 'for(const r of REFS){', 'for(const r of []){', /ORPHAN/);
+      // A swap target that does not resolve. `''` and a component key are both REFUSED by Figma, so this
+      // is not a property with a blank default — it is a property that cannot be created.
+      const noIcon = await runPayload(planSetToPluginJs(grid), { ...fullSet, comps: [] });
+      ok(noIcon.misses.some((m) => /property leadingVisual -> swap target FPO-default-icon/.test(m)),
+        `set properties: an unresolvable swap target is reported and the property is NOT created — Figma refuses '' and the component key alike (${JSON.stringify(noIcon.misses.filter((m) => m.includes('leadingVisual')))})`);
+    }
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
     // The projection above is worthless if the variables it binds can't be got into a Figma file.
@@ -5808,11 +5983,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     brokeFp('silently dropping a state fails', /under-represents the def/, { stateAxis: { name: 'state', values: button.states.filter((s) => s !== 'inactive') } });
     brokeFp('a state axis named like a variant axis fails', /collides with a variants axis/, { stateAxis: { name: 'size', values: button.states } });
     brokeFp('an INSTANCE_SWAP pointed at a text node fails', /is kind 'text', expected 'slot'/, { swaps: { leadingVisual: 'label' } });
-    brokeFp('a TEXT property pointed at a slot fails', /is kind 'slot', expected 'text'/, { texts: { children: 'leadingVisual' } });
-    brokeFp('a property pointed at a part that does not exist fails', /does not exist in anatomy.parts/, { texts: { children: 'ghost' } });
-    brokeFp('a property keyed on an undeclared prop fails', /is not a declared prop/, { texts: { notAProp: 'label' } });
+    brokeFp('a TEXT property pointed at a slot fails', /is kind 'slot', expected 'text'/, { texts: { children: { part: 'leadingVisual', default: 'Button' } } });
+    brokeFp('a property pointed at a part that does not exist fails', /does not exist in anatomy.parts/, { texts: { children: { part: 'ghost', default: 'Button' } } });
+    brokeFp('a property keyed on an undeclared prop fails', /is not a declared prop/, { texts: { notAProp: { part: 'label', default: 'Button' } } });
     brokeFp('a BOOLEAN toggling a REQUIRED part fails', /anatomy must allow the part to be absent/, { booleans: { fullWidth: 'label' } });
-    brokeFp('two property kinds on one node fails', /carries at most one property kind/, { texts: { children: 'label' }, booleans: { fullWidth: 'label' } });
+    brokeFp('two property kinds on one node fails', /carries at most one property kind/, { texts: { children: { part: 'label', default: 'Button' } }, booleans: { fullWidth: 'label' } });
+    // The PLACEHOLDER is required to say something. Figma accepts `''` and #510's set is what that
+    // produces: 21 variants, every binding resolved, nothing readable in any of them.
+    brokeFp('a TEXT property with an empty default fails', /no placeholder/, { texts: { children: { part: 'label', default: '' } } });
+    brokeFp('a whitespace-only default fails too — a space is not copy', /no placeholder/, { texts: { children: { part: 'label', default: '  ' } } });
+    // A ZERO-WIDTH space passed this check until #513's review probed it: `.trim()` handles the space
+    // family including U+00A0, but `'\u200B'.trim()` is truthy. It advances the caret by nothing, which
+    // is the exact condition the field exists to catch. Written as an escape because the literal
+    // character is invisible here too — a reader could not tell this case from the empty-string one.
+    brokeFp('a zero-width space fails — the test is whether the label RENDERS, not whether the string is non-empty',
+      /no placeholder/, { texts: { children: { part: 'label', default: '\u200B' } } });
     ok(figmaPropertyErrors({ ...button, anatomy: undefined }).some((x) => /requires `anatomy`/.test(x)),
       'figmaProperties gate: a projection without anatomy fails (its maps target anatomy parts)');
   }
