@@ -7,6 +7,40 @@
 
 ---
 
+## (2026-08-05) — The skills survey's output was a rule, not a shopping list (#492)
+
+**STATUS: docs only (`docs/33`, new).** No engine change, no emitted artifact, no gate touched.
+
+`docs/33-skills-adoption-plan.md` records what to adopt from the available skill ecosystem. The useful
+finding was not the adopt list — it was the deciding rule, **where we have a gate, an LLM skill is a
+regression.** A skill that *advises* a semver bump is strictly weaker than `token-contract.ts --accept`,
+which refuses to record a breaking change until `CONTRACT_VERSION` was already raised. Applied to
+`murphytrueman/design-system-ops`'s 34 skills, that rule sends 14 straight to the gated column and
+leaves 7 worth adapting — of which only 3 touch the engine. The number being small is the result, not a
+disappointment.
+
+Two things worth keeping beyond the list:
+
+- **`prism3-theme` is stale and nothing caught it.** Its line 82 still teaches "map adjectives → levers
+  — the judgment the brief pays for", which #471 replaced with a vocabulary the engine resolves *and
+  logs*; line 61 still documents `radiusScale` as number-only. Skills are a shipped surface with **no
+  gate**, unlike `out/**`, the emitted schema contracts and `web/dist`, which the US-English scan
+  already covers. So §4 orders the work gate-first: make every lever/token/prop name a skill quotes
+  resolve against the live manifest, and every CLI line it prints actually run, *before* fixing the
+  prose — otherwise the same drift returns.
+- **An integration nobody has named is an integration nobody tests.** Writing §5 (that
+  `adamforrester/brand-skills` is the producer of the `design.md` `standard-design-md.ts` consumes)
+  surfaced a live defect in the handshake: `x-prism3` rejected the named stops the native dialect
+  accepts and dropped `personality` silently. Fixed separately in #508. The shipped fixture carries no
+  `x-prism3` block, so the exact point where the two systems meet was entirely unexercised.
+
+Deliberately left open rather than guessed: whether the `.brand/` schema's tiers correspond to anything
+`standardToBrandInput` reads, and whether the internal `build-component` lane is a command or a skill —
+the latter decided once for the class, and **not until a second component has been through the
+pipeline**, since Button is a sample of one and a skill written now would encode its accidents as rules.
+
+---
+
 ## (2026-08-05) — Control bars stop looking like content, and the surface picker says what it does
 
 **STATUS: web (`main.ts`).** No engine change, `out/*` byte-identical.
