@@ -7,6 +7,91 @@
 
 ---
 
+## (2026-08-04) — The third namespace, and why `focused` must not be bound (#487 step 2)
+
+**STATUS: engine (`anatomy-figma.ts` + `test.ts`).** No emitted artifact changed. 1516/0 unit
+(8 new), 89 artifacts in sync, MCP 49/0, contract unchanged, NB PASS.
+
+Two halves of #487 step 2. One shipped as code; the other is a **finding that reverses the
+prescription**, and it is the more valuable of the two.
+
+### Shipped: `effectStyle`, a third peer field
+
+`FigmaNodePlan` carried `bound` (variables) and `textStyle` (Figma TEXT styles). Elevation — the
+legacy sheet's `filled elevated` — is a Figma **EFFECT style**, applied with
+`setEffectStyleIdAsync`. That is a third namespace, so it gets a third field, for exactly the reason
+`textStyle` got the second: **there is no `setBoundVariable('effects', …)`**. An effect squeezed into
+`bound` would type-check, satisfy every offline gate, and fail only at paste time — against a live
+file, where the diagnosis is expensive. Three namespaces, three fields, three name sets in
+`planBindingErrors`.
+
+The gate's own trap is worth stating, because it is what a merged name set would have hidden: the
+engine emits **both** shadow ladders (`shadow/*` and `shadow-dark/*`, 14 styles). Against one merged
+set, a light-only name looks satisfiable by its dark twin. An assertion now pins that `shadow/md` is
+in *neither* the variable nor the text-style set — the disjointness is checked, not assumed. The
+payload is asserted to call `setEffectStyleIdAsync` and asserted **not** to attempt
+`setBoundVariable('effects', …)`; a plan field nothing honors is a claim, not a projection.
+
+### The reversal: binding `fill/focused` would have been wrong
+
+The handoff prescribed "bind `focused` — the token is emitted and `button.ts` binds it zero times,
+so the projection promises a focused variant that renders pixel-identical to rest." The premise is
+accurate. The conclusion is not, and the def was already right.
+
+Read the emitted aliases, not just the values:
+
+```
+color/interactive/primary/fill/hover     → palette/red/600
+color/interactive/primary/fill/focused   → palette/red/600     ← the SAME alias
+color/border/focus                       → palette/red/550
+```
+
+`fill/focused` is not merely *equal* to `fill/hover` — it **aliases the same palette step**, in all
+three intents and all four modes (12/12 checked). So binding it would not have fixed
+"focused renders identically to rest"; it would have made focused render identically to **hover**,
+which is a worse answer that also looks like progress.
+
+Because focus in this system is not a fill change at all. The def already says so: `focus-ring →
+color.border.focus` (`palette/red/550`, a *different* step), plus `ring-width` and `ring-offset`. A
+focused button keeps its rest fill and gains a **ring**. The correct step-2 action was therefore not
+"bind the emitted token" but "bind the ring the def already declares" — and the emitted
+`fill/focused` is arguably a token-tier artifact with no consumer, which is its own finding.
+
+**What blocks it, and why this is design not typing.** The ring is `color/border/focus` with a
+2px width and a 2px offset. Under `appearance: outline` the border is *already* a stroke
+(`color/interactive/{intent}/border` → `palette/red/500`). One Figma node has **one** stroke, one
+weight, one color. So ring and border compete for the same property, at three *different* palette
+steps (550 ring / 500 border / 550 rest fill). Honest options: a dedicated ring part outside the
+target, or accept that focused-outline shows the ring and loses the border. Both are real
+projections; neither is a one-line binding. Left undone deliberately rather than guessed — and
+`anatomy.codeOnly` already carries the adjacent admission (the `:focus-visible` *condition* cannot
+cross the Figma leg even when the geometry can).
+
+**Also verified, and it widens the same point:** `focus-visible`, `pending` and `inactive` bind
+**nothing at all** — three of the seven values #488's state axis declares. Only `rest`, `hover`,
+`pressed` and `disabled` have bindings. So the axis over-promises by three, not one. `pending` at
+least has structure to fall back on (`anatomy.parts.spinner`); `inactive` has neither token nor part.
+
+### The lesson, generalized
+
+**Read the alias, not the value** — and where a state has no binding, ask what the def binds
+*instead* before concluding the binding is missing. Two emitted names with equal values may be one
+palette step wearing two hats, and "the token exists but is unbound" is as often a correct def as a
+gap. The step-2 instruction was written from the *emitted name list*, which showed `fill/focused`
+present and unused; the def's own `focus-ring` slot, which explains why, is one file away. This is
+the same shape as `docs/32`'s "validate the spec against the def before building from it", now with
+a second instance: a spec derived from artifacts can be confidently, checkably wrong about intent.
+
+### Next
+
+Step 3 remains load-bearing and unchanged: `AnatomyPlan` carries `{component, size, slots}` with
+**zero** `color/*` bindings (14 bound vars, all geometry), so #488's 189 declared variants are not
+producible. Note colors will need `setBoundVariableForPaint` — a *fourth* API shape, already used in
+`emit-figma-color.ts`, and not what `bound`'s `setBoundVariable` does. The focus-ring projection
+above should be settled as part of step 3, not before it.
+
+---
+
 ## (2026-08-04) — The Figma component-property projection (#487 step 1)
 
 **STATUS: engine (`component-schema.ts` + `components/button.ts` + `test.ts`).** No emitted artifact

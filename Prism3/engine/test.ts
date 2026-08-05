@@ -39,7 +39,8 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planToPluginJs, figmaVarName } from './anatomy-figma';
+import { figmaAnatomyPlan, planBindingErrors, planPartNames, planBoundVars, planEffectStyles, planToPluginJs, figmaVarName } from './anatomy-figma';
+import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
 import { fieldLabel } from './components/field-label';
@@ -5230,16 +5231,43 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // the DTCG tree does not imply the variable reaches a Figma collection — those are two emitters.
     const emitted = new Set<string>();
     const emittedStyles = new Set<string>();
+    // Effect styles live in a THIRD namespace (`setEffectStyleIdAsync`). Read into their own set —
+    // see below for the assertion that a merged set would have let through.
+    const emittedEffects = new Set<string>();
     for (const f of readdirSync(resolve(HERE, 'out/figma/nb'))) {
       if (!f.endsWith('.json')) continue;
       const j = JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
       for (const v of j.variables ?? []) emitted.add(v.name);
-      for (const s of j.styles ?? []) emittedStyles.add(s.name);
+      for (const s of j.styles ?? []) (f.startsWith('shadow') ? emittedEffects : emittedStyles).add(s.name);
     }
     ok(emitted.size > 0 && emittedStyles.size > 0, `anatomy: read the emitted Figma names (${emitted.size} variables, ${emittedStyles.size} styles)`);
+    ok(emittedEffects.size > 0, `anatomy: read the emitted Figma EFFECT styles (${emittedEffects.size}) — a third namespace, kept apart from variables and text styles`);
     const bindErrs = button.variants.size.flatMap((s) =>
-      [[false, false], [true, false], [true, true]].map(([l, t]) => planBindingErrors(figmaAnatomyPlan(button, s, { leading: l, trailing: t }), emitted, emittedStyles)).flat());
+      [[false, false], [true, false], [true, true]].map(([l, t]) => planBindingErrors(figmaAnatomyPlan(button, s, { leading: l, trailing: t }), emitted, emittedStyles, emittedEffects)).flat());
     ok(bindErrs.length === 0, `anatomy: every bound variable + text style exists in the emitted Figma set${bindErrs.length ? ` — MISSING: ${[...new Set(bindErrs)].slice(0, 4).join(', ')}` : ''}`);
+
+    // ---- the effect-style namespace (#487 step 2) ----------------------------------------------
+    // Elevation (`filled elevated` on the legacy sheet) is a Figma EFFECT style, applied with
+    // `setEffectStyleIdAsync`. There is no `setBoundVariable('effects', …)`, so an effect squeezed
+    // into `bound` type-checks, passes every offline gate, and fails only at paste time — the same
+    // trap `textStyle` was given its own field to avoid. These assert the third field is real,
+    // reaches the payload, and is checked against its OWN name set.
+    const effProbe: AnatomyPlan = { ...lead, root: { ...lead.root, effectStyle: 'shadow/md' } };
+    ok(planEffectStyles(effProbe.root).includes('shadow/md'), 'anatomy: planEffectStyles walks the effectStyle field (its own namespace walker, matching planTextStyles)');
+    ok(planBindingErrors(effProbe, emitted, emittedStyles, emittedEffects).length === 0, 'anatomy: a real emitted effect style resolves against the effect-style set');
+    // A merged name set is the failure this guards: `shadow/md` is not a variable and not a text
+    // style, so checking it against either would report a false MISSING — and a bogus name checked
+    // against a merged set could pass by matching something in the wrong namespace.
+    ok(!emitted.has('shadow/md') && !emittedStyles.has('shadow/md'), 'anatomy: an effect-style name is in NEITHER the variable nor the text-style set — the three namespaces are genuinely disjoint');
+    const effBogus: AnatomyPlan = { ...lead, root: { ...lead.root, effectStyle: 'shadow/nope' } };
+    ok(planBindingErrors(effBogus, emitted, emittedStyles, emittedEffects).some((e) => /effect style 'shadow\/nope'/.test(e)), 'anatomy: an unemitted effect style is reported, and names the effect-style namespace in the message');
+    // Both shadow ladders emit (`shadow/*` and `shadow-dark/*`). A light-only name must not be
+    // satisfiable by its dark twin, which is the other thing a merged set would have blurred.
+    ok(emittedEffects.has('shadow/md') && emittedEffects.has('shadow-dark/md'), 'anatomy: both shadow ladders emit as effect styles (light + dark are distinct names, not one mode-aware style)');
+    // The payload must actually APPLY it. A plan field nothing honors is a claim, not a projection.
+    const effJs = planToPluginJs(effProbe);
+    ok(effJs.includes('getLocalEffectStylesAsync') && effJs.includes('setEffectStyleIdAsync'), 'anatomy: the plugin payload applies effect styles through their own API, not setBoundVariable');
+    ok(!/setBoundVariable\(\s*['"]effects/.test(effJs), 'anatomy: the payload never tries setBoundVariable for effects — that API does not exist and would fail only at paste time');
 
     // The label's composite type is a Figma TEXT STYLE, not a variable — a different API and a
     // different namespace. It first projected into nothing at all (the plan carried an empty

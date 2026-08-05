@@ -43,6 +43,12 @@ export type FigmaNodePlan = {
    *  and a different namespace. Carried as its own field rather than squeezed into `bound`, so the
    *  plan can't imply a binding call that would fail at paste time. */
   textStyle?: string;
+  /** Elevation is a Figma EFFECT STYLE (`setEffectStyleIdAsync`), a THIRD namespace — not a
+   *  variable and not a text style. It gets its own field for exactly the reason `textStyle` does:
+   *  `setBoundVariable('effects', …)` is not an API, so an effect squeezed into `bound` would
+   *  type-check, pass every offline gate, and fail only at paste time. Three namespaces, three
+   *  fields, three name sets in `planBindingErrors` — the symmetry is the safeguard. */
+  effectStyle?: string;
   children: FigmaNodePlan[];
 };
 
@@ -181,24 +187,32 @@ export const planBoundVars = (n: FigmaNodePlan): string[] =>
 export const planTextStyles = (n: FigmaNodePlan): string[] =>
   [...(n.textStyle ? [n.textStyle] : []), ...n.children.flatMap(planTextStyles)];
 
+/** Every Figma effect style a plan applies. Its own walker, matching `planTextStyles` — see
+ *  `FigmaNodePlan.effectStyle` for why the three namespaces stay apart. */
+export const planEffectStyles = (n: FigmaNodePlan): string[] =>
+  [...(n.effectStyle ? [n.effectStyle] : []), ...n.children.flatMap(planEffectStyles)];
+
 /**
  * Cross-check a plan against what the engine actually EMITS. This is the gate that makes the
  * projection more than an assertion about itself: `emitted` is read out of
  * `out/figma/<brand>/*.json`, so a binding that resolves in the token tree but never reaches a
  * Figma collection is caught here rather than in a live file at paste time.
  *
- * Variables and text styles are checked against SEPARATE sets on purpose — they are separate
- * namespaces in Figma, and a single merged set would let a text style pass by matching a
- * variable of the same name (or, more likely, mask the fact that one of the two was never
- * emitted at all).
+ * Variables, text styles and effect styles are checked against SEPARATE sets on purpose — they are
+ * three separate namespaces in Figma, and a single merged set would let one pass by matching
+ * another of the same name (or, more likely, mask the fact that one of them was never emitted at
+ * all). Note that the shadow styles emit under BOTH `shadow/*` and `shadow-dark/*`, so a merged
+ * set would also make a light-mode-only name look satisfiable.
  */
 export const planBindingErrors = (
   plan: AnatomyPlan,
   emitted: Set<string>,
   textStyles?: Set<string>,
+  effectStyles?: Set<string>,
 ): string[] => [
   ...[...new Set(planBoundVars(plan.root))].filter((v) => !emitted.has(v)).map((v) => `bound variable '${v}' is not in the emitted Figma variables`),
   ...(textStyles ? [...new Set(planTextStyles(plan.root))].filter((s) => !textStyles.has(s)).map((s) => `text style '${s}' is not in the emitted Figma text styles`) : []),
+  ...(effectStyles ? [...new Set(planEffectStyles(plan.root))].filter((s) => !effectStyles.has(s)).map((s) => `effect style '${s}' is not in the emitted Figma effect styles`) : []),
 ];
 
 /**
@@ -222,6 +236,8 @@ const vars=await figma.variables.getLocalVariablesAsync();
 const byName=new Map(vars.map(v=>[v.name,v]));
 const styles=await figma.getLocalTextStylesAsync();
 const styleByName=new Map(styles.map(s=>[s.name,s]));
+const effects=await figma.getLocalEffectStylesAsync();
+const effectByName=new Map(effects.map(s=>[s.name,s]));
 const misses=[];
 const build=async(n)=>{
   let node;
@@ -232,6 +248,11 @@ const build=async(n)=>{
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);
     else await node.setTextStyleIdAsync(st.id);
+  }
+  if(n.effectStyle){
+    const ef=effectByName.get(n.effectStyle);
+    if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);
+    else await node.setEffectStyleIdAsync(ef.id);
   }
   if(n.layoutMode){
     node.layoutMode=n.layoutMode;
