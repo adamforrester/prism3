@@ -106,11 +106,27 @@ const SNAKE = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/;
 
 type Finding = { file: string; kind: string; detail: string };
 
-const scanSkill = (dir: string, findings: Finding[]): void => {
-  const path = join(skillsDir, dir, 'SKILL.md');
-  if (!existsSync(path)) return;
-  const text = readFileSync(path, 'utf8');
-  const rel = relative(repo, path);
+/**
+ * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
+ * rather than a copy of it.
+ *
+ * That split is the fix for a real defect, and the defect is worth stating: the first cut's
+ * self-check called a private `fakeScan` — a reimplementation of this loop, 40 lines below it. The
+ * shared regexes and sets were real, so it verified that *those* were intact, and could not verify
+ * that anything still CALLED them. Neutering the `findings.push` here left `fakeScan` untouched, all
+ * assertions passed, and the gate reported clean while the exact `action.*` regression this file was
+ * written to catch walked straight through.
+ *
+ * **A self-check written against a reimplementation validates the copy, not the shipping code.** It
+ * is #281 one layer along — there, no gate read the committed artifact; here, the self-check did not
+ * read the live code path.
+ *
+ * Worth recording alongside it, because it is why the original mutation test missed this: the
+ * mutation targeted `DOTTED`, a constant BOTH paths share, so both broke together and the pass read
+ * as proof. **A mutation on a shared dependency cannot distinguish two code paths that depend on it.**
+ * Mutate the call site, not the constant.
+ */
+export const scanText = (text: string, rel: string, findings: Finding[]): void => {
   for (const m of text.matchAll(/`([^`\n]+)`/g)) {
     const raw = m[1].trim();
     if (!raw || FILE_EXT.test(raw) || raw.startsWith('.') || /[\s/:<>{}|[\]()]/.test(raw)) continue;
@@ -143,6 +159,18 @@ const scanSkill = (dir: string, findings: Finding[]): void => {
     if (!existsSync(resolve(repo, m[0]))) findings.push({ file: rel, kind: 'missing file', detail: `${m[0]} does not exist` });
   }
 
+};
+
+/** Read one skill and run every check over it. Thin on purpose: the per-text scanning lives in
+ *  `scanText` so the self-check exercises the same function CI does, and check 4 is here because it
+ *  needs the file to declare `documents:` in its own frontmatter. */
+const scanSkill = (dir: string, findings: Finding[]): void => {
+  const path = join(skillsDir, dir, 'SKILL.md');
+  if (!existsSync(path)) return;
+  const text = readFileSync(path, 'utf8');
+  const rel = relative(repo, path);
+  scanText(text, rel, findings);
+
   // 4. COVERAGE — the check that catches the real class. Opt-in per skill, so a new skill declares
   //    what it documents rather than the gate guessing from prose.
   if (/^documents:\s*brandInput\s*$/m.test(text)) {
@@ -163,33 +191,33 @@ const scanSkill = (dir: string, findings: Finding[]): void => {
 };
 
 // ---- SELF-CHECK: can the gate still see what it claims to? ---------------------------------------
-// Without this, deleting a scan makes the gate go QUIET rather than fail — the exact way `greyscale`
-// survived the US-English gate for 90 file-scans. Samples are written to exercise each scan
-// INDEPENDENTLY, and deliberately NOT from the same phrasing the scans were written against.
+// Drives `scanText` — the SHIPPING function — not a copy of it. The first cut called a private
+// reimplementation, so neutering the real scan left every assertion passing and the gate reported
+// clean with the `action.*` regression it exists to catch walking straight through. A self-check
+// written against a reimplementation validates the copy, not the shipping code.
+//
+// Samples are phrased deliberately unlike the scans' own vocabulary, and each scan is exercised in
+// BOTH directions — a true positive and a false positive — so neither widening nor narrowing can
+// pass unnoticed.
+const sampleScan = (body: string): Finding[] => { const f: Finding[] = []; scanText(body, 'self-check', f); return f; };
+
 const selfCheck = (): string[] => {
   const bad: string[] = [];
-  const probeFindings: Finding[] = [];
-  const fakeScan = (body: string): Finding[] => {
-    const f: Finding[] = [];
-    for (const m of body.matchAll(/`([^`\n]+)`/g)) {
-      const raw = m[1].trim();
-      if (!raw || FILE_EXT.test(raw) || raw.startsWith('.') || /[\s/:<>{}|[\]()]/.test(raw)) continue;
-      if (DOTTED.test(raw) && !TOKEN_PATHS.has(raw) && !LEVER_KEYS.has(raw)) f.push({ file: 'sample', kind: 'dead token path', detail: raw });
-      else if (SNAKE.test(raw) && !TOOL_NAMES.has(raw) && !AI_FIELDS.has(raw)) f.push({ file: 'sample', kind: 'unknown identifier', detail: raw });
-    }
-    return f;
-  };
-  if (!fakeScan('use `color.text.nonexistent` here').length) bad.push('a dead token path is no longer detected');
-  if (fakeScan('use `color.text.primary` here').length) bad.push('a VALID token path is now falsely flagged');
-  if (fakeScan('set `neutral.hue` in the brief').length) bad.push('a VALID LEVER KEY is now falsely flagged (dotted, but an input field not a token)');
-  if (!fakeScan('call `theme_bland` first').length) bad.push('an unknown snake_case identifier is no longer detected');
-  if (fakeScan('call `theme_brand` first').length) bad.push('a VALID MCP tool name is now falsely flagged');
-  if (fakeScan('see `design.md` and `.ai.json`').length) bad.push('a filename is now falsely flagged');
-  // The counter-example exemption must NOT become a blanket amnesty: a dead name still fails when
-  // it is presented positively, and only passes when the prose is explicitly warning against it.
-  if (!/\b(?:not|never|rather than|instead of)\s+$/i.test('it is X, not ')) bad.push('the counter-example detector no longer recognizes "not"');
-  if (/\b(?:not|never|rather than|instead of)\s+$/i.test('use ')) bad.push('the counter-example detector fires on ordinary prose');
-  probeFindings.length = 0;
+  if (!sampleScan('use `color.text.nonexistent` here').length) bad.push('a dead token path is no longer detected');
+  if (sampleScan('use `color.text.primary` here').length) bad.push('a VALID token path is now falsely flagged');
+  if (sampleScan('set `neutral.hue` in the brief').length) bad.push('a VALID LEVER KEY is now falsely flagged (dotted, but an input field not a token)');
+  if (!sampleScan('call `theme_bland` first').length) bad.push('an unknown snake_case identifier is no longer detected');
+  if (sampleScan('call `theme_brand` first').length) bad.push('a VALID MCP tool name is now falsely flagged');
+  if (sampleScan('see `design.md` and `.ai.json`').length) bad.push('a filename is now falsely flagged');
+  // The counter-example exemption must NOT become a blanket amnesty: a dead name still fails when it
+  // is presented positively, and passes only when the prose explicitly warns against it. Both
+  // directions asserted through the real scan, so the exemption cannot quietly widen.
+  if (sampleScan('reach for that, not `color.feedback.success.surface`').length) bad.push('a counter-example is no longer exempted');
+  if (!sampleScan('reach for `color.feedback.success.surface`').length) bad.push('the counter-example exemption became a blanket amnesty (a dead name passes when stated POSITIVELY)');
+  // A missing engine file is check 3, and it runs over the same text — sampled so deleting that loop
+  // is not silent either.
+  if (!sampleScan('run Prism3/engine/does-not-exist.ts now').length) bad.push('a missing engine-file reference is no longer detected');
+  if (sampleScan('run Prism3/engine/cli.ts now').length) bad.push('a REAL engine file is now falsely flagged');
   return bad;
 };
 

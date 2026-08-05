@@ -159,6 +159,39 @@ worth a grep for the pattern across the surface it applies to, in the same sitti
 
 ## 2026-08-05 — from building the SKILLS GATE (#492)
 
+### `[GATE]` A self-check written against a REIMPLEMENTATION validates the copy, not the shipping code
+
+The gate shipped with a self-check that called a private `fakeScan` — a parallel copy of the scan
+loop, inlined 40 lines below the original. The shared regexes and sets were real, so it verified
+*those* were intact; it could not verify that anything still **called** them. A review proved the
+consequence: neuter the real `findings.push`, leave `fakeScan` alone, and the gate reports clean —
+with the exact `action.*` regression this gate was written to catch injected into a real skill file.
+
+Fixed by extracting `scanText(text, rel, findings)` and having both `scanSkill` and the self-check
+drive it. The mutation now fails the gate.
+
+**Why the original mutation test missed it, which is the sharper half:** the mutation targeted
+`DOTTED` — a constant *both* paths share. Both broke together, the gate went red, and that read as
+proof the self-check worked. **A mutation on a shared dependency cannot distinguish two code paths
+that depend on it.** Mutate the call site, not the constant.
+
+It is #281 one layer along: there, no gate read the committed artifact; here, the self-check did not
+read the live code path.
+
+### `[GATE]` Adding a surface to a gate's scope is two edits, and the second is the one that rots
+
+`Prism3/skills/**` was added to the US-English gate's scan but not to its `REQUIRED_SURFACES` list —
+so deleting the walk dropped two files and the gate still printed a confident `clean`, exit 0. That
+is precisely the false-pass class `REQUIRED_SURFACES` exists to prevent, and CLAUDE.md already writes
+the rule: coverage follows `regen.ts` for everything *except* surfaces named by hand, and each of
+those needs its own line. The comment adding skills even said "named by hand, because skills are not
+a `regen` artifact" — and then didn't add the line.
+
+**Whenever scope is widened by hand, the widening and its guard are one change.** Also worth keeping
+the run's summary string honest: it still named four surfaces after a fifth was added, so a reader
+could not tell from the log whether skills were scanned.
+
+
 ### `[GATE]` The gate's first run found worse than the defect it was written for
 
 It was built for a known drift: `prism3-theme` teaching an adjective→lever mapping #471 replaced. It
@@ -166,7 +199,10 @@ found that, and first found something larger — **`prism3-consume` was teaching
 `action.*` family.** `docs/20 §11` renamed `action.*` to `interactive.*`; the skill that tells an
 agent which tokens to reference still named `color.action.default`, `action.disabled`,
 `text.on-action`, `text.disabled`, `text.on-disabled`. An agent following it emits references that
-resolve to nothing. Seven dead paths, in the one file whose entire job is naming tokens correctly.
+resolve to nothing. **Six distinct dead paths** across seven occurrences, in the one file whose
+entire job is naming tokens correctly. (The PR body said "seven dead paths" — that was the finding
+count, not the path count, and a review caught it. On a change whose thesis is *shipped prose must
+make true claims*, its own count is a claim worth getting right.)
 
 **A rename is a two-tier event.** The token tier renamed cleanly and every gate stayed green, because
 no gate read the prose that teaches the names.

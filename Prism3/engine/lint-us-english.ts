@@ -197,6 +197,12 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the built web bundle (web/dist/*.js) — trap 2', test: (f) => f.includes('/web/dist/') && f.endsWith('.js') },
   { label: 'emitted artifacts (Prism3/engine/out)', test: (f) => f.includes('/Prism3/engine/out/') },
   { label: 'the schema contract (Prism3/schema)', test: (f) => f.includes('/Prism3/schema/') },
+  // Skills joined the scope but not this list, which is the same false-pass class the guard exists
+  // for: deleting the skills walk dropped 2 files, and the gate still printed a confident `clean`.
+  // CLAUDE.md already writes the rule — coverage follows `regen.ts` for everything EXCEPT surfaces
+  // named by hand, and each of those needs its own line here. Skills are the second such surface,
+  // and the comment adding them said so without adding the line.
+  { label: 'shipped skills (Prism3/skills/**/SKILL.md)', test: (f) => f.includes('/Prism3/skills/') },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
@@ -228,7 +234,7 @@ if (blind.length) {
   process.exit(1);
 }
 
-console.log(`US-English gate — ${gated.length} shipped files scanned (out/, emitted schema, reports, built bundle).`);
+console.log(`US-English gate — ${gated.length} shipped files scanned (out/, emitted schema, reports, shipped skills, built bundle).`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} en-GB spelling(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {
