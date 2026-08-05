@@ -178,6 +178,22 @@ that depend on it.** Mutate the call site, not the constant.
 It is #281 one layer along: there, no gate read the committed artifact; here, the self-check did not
 read the live code path.
 
+**And the fix was itself partial, which is the second half of the lesson.** Extracting `scanText`
+routed the self-check through three of the four scans and left COVERAGE inside `scanSkill`,
+unreachable from any assertion — so silencing its `findings.push` and stripping `personality` from
+the skill whose job is teaching it *still* reported clean, exit 0. The defect the round had just
+fixed, surviving in the one scan the extraction did not reach. A second review caught it.
+
+> **A self-check that covers three of four scans reports the same confident silence for the fourth.**
+
+Partial coverage of a self-check is the same failure as no self-check, restricted to a smaller
+surface — and the uncovered scan is *disproportionately likely to be the interesting one*, because
+the interesting one is usually shaped differently enough to sit outside the common path. Here that
+was literal: coverage needs the file's own frontmatter, which is precisely why it did not fit
+alongside the text scans, and precisely why it is the check this gate's header calls the one that
+fires on the real defect. **When extracting for testability, enumerate the scans and check the count
+of things the self-check drives against the count that exist.**
+
 ### `[GATE]` Adding a surface to a gate's scope is two edits, and the second is the one that rots
 
 `Prism3/skills/**` was added to the US-English gate's scan but not to its `REQUIRED_SURFACES` list —

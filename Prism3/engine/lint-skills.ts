@@ -161,18 +161,22 @@ export const scanText = (text: string, rel: string, findings: Finding[]): void =
 
 };
 
-/** Read one skill and run every check over it. Thin on purpose: the per-text scanning lives in
- *  `scanText` so the self-check exercises the same function CI does, and check 4 is here because it
- *  needs the file to declare `documents:` in its own frontmatter. */
-const scanSkill = (dir: string, findings: Finding[]): void => {
-  const path = join(skillsDir, dir, 'SKILL.md');
-  if (!existsSync(path)) return;
-  const text = readFileSync(path, 'utf8');
-  const rel = relative(repo, path);
-  scanText(text, rel, findings);
-
-  // 4. COVERAGE — the check that catches the real class. Opt-in per skill, so a new skill declares
-  //    what it documents rather than the gate guessing from prose.
+/**
+ * 4. COVERAGE — the check that fires on the real class, opt-in per skill so a skill declares what it
+ * documents rather than the gate guessing from prose.
+ *
+ * A SEPARATE exported function for the same reason `scanText` is one, and it took a second review to
+ * finish the job: the first fix routed the self-check through three of the four scans and left this
+ * one inside `scanSkill`, unreachable from any assertion. Silencing its `findings.push` and stripping
+ * `personality` from the skill whose job is teaching it still reported clean, exit 0 — the very
+ * defect the previous round fixed, surviving in the one scan the extraction did not reach.
+ *
+ * **A self-check that covers three of four scans reports the same confident silence for the fourth.**
+ * Partial coverage of a self-check is the same failure as no self-check, restricted to a smaller
+ * surface — and the untested scan is disproportionately likely to be the interesting one, because the
+ * interesting one is usually the one shaped differently enough to sit outside the common path.
+ */
+export const scanCoverage = (text: string, rel: string, findings: Finding[]): void => {
   if (/^documents:\s*brandInput\s*$/m.test(text)) {
     const schema = JSON.parse(readFileSync(resolve(repo, 'Prism3/schema/theme-schema.json'), 'utf8'));
     const declaredOmit = new Set(
@@ -188,6 +192,17 @@ const scanSkill = (dir: string, findings: Finding[]): void => {
       }
     }
   }
+};
+
+/** Read one skill and run every check over it. Thin on purpose: both scans are exported functions so
+ *  the self-check exercises exactly what CI does. */
+const scanSkill = (dir: string, findings: Finding[]): void => {
+  const path = join(skillsDir, dir, 'SKILL.md');
+  if (!existsSync(path)) return;
+  const text = readFileSync(path, 'utf8');
+  const rel = relative(repo, path);
+  scanText(text, rel, findings);
+  scanCoverage(text, rel, findings);
 };
 
 // ---- SELF-CHECK: can the gate still see what it claims to? ---------------------------------------
@@ -218,6 +233,23 @@ const selfCheck = (): string[] => {
   // is not silent either.
   if (!sampleScan('run Prism3/engine/does-not-exist.ts now').length) bad.push('a missing engine-file reference is no longer detected');
   if (sampleScan('run Prism3/engine/cli.ts now').length) bad.push('a REAL engine file is now falsely flagged');
+
+  // Scan 4, driven through the shipping `scanCoverage`. Left out of the first fix, which is exactly
+  // why it is here: the scan the self-check does not reach is the one that goes quiet.
+  const sampleCoverage = (body: string): Finding[] => { const f: Finding[] = []; scanCoverage(body, 'self-check', f); return f; };
+  const everyProp = Object.keys(
+    JSON.parse(readFileSync(resolve(repo, 'Prism3/schema/theme-schema.json'), 'utf8')).properties,
+  ).join(', ');
+  if (!sampleCoverage('---\ndocuments: brandInput\n---\n\nthis skill documents nothing at all').length) {
+    bad.push('an uncovered input surface is no longer detected (the scan that catches the class this gate exists for)');
+  }
+  if (sampleCoverage(`---\ndocuments: brandInput\nomits: ${everyProp}\n---\n\nall declared`).length) {
+    bad.push('a fully declared `omits:` list is now falsely flagged');
+  }
+  // The opt-in must stay opt-in: a skill that does NOT declare `documents:` is not held to coverage.
+  if (sampleCoverage('---\nname: something\n---\n\nno documents declaration here').length) {
+    bad.push('coverage now fires on a skill that never opted in');
+  }
   return bad;
 };
 
