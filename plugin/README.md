@@ -139,6 +139,30 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   a throw that aborts the write). The font variables write regardless.
 - ⏭ **Variable-linked gradient stops** (#236) and per-(category,size) links remain the only deferred bits.
 
+## Scope (#113 — offer the font list the host can actually load)
+
+- ✅ **The reader + its port** — node-free `plugin/src/list-fonts.ts`: a structural `FontsApi` (so the global
+  `figma` satisfies it with **no cast**) and `listFamilies`, which dedupes `listAvailableFontsAsync()` to
+  sorted family names. It deliberately does **not** catch — the caller owns the failure mode. Shim-tested
+  via `plugin/test-list-fonts.ts` (dedupe, sort, empty-list, rejection stays a rejection).
+- ✅ **Pushed on boot** — `main.ts` sends the new `{ type: 'font-list'; families }` message on `ui-ready`,
+  wrapped in a try/catch that stays silent: if the list cannot be read the UI simply keeps its free-text
+  input. Forwarded to the shared UI through the `figmaCommit` seam in `web/src/write-adapter.ts`, which
+  filters the array to strings at the boundary.
+- ✅ **A native `<datalist>`, chosen over a custom combobox** — the browser's own keyboard and
+  screen-reader behavior instead of a hand-rolled `role="combobox"` + `aria-activedescendant`. **Cost taken
+  knowingly:** the dropdown is browser chrome and cannot be themed to match the dashboard. Names travel as
+  `option.value`, never `innerHTML` — they are external input.
+- ✅ **A hint, never a constraint** — an unlisted, free-typed name still commits. `BrandInput` is a portable
+  specification and may legitimately name a face this machine lacks, so there is deliberately **no
+  validation on commit**; rejecting unlisted names would break the feature, not tighten it. `hostFonts`
+  never enters `BrandInput` and is never persisted — it is an environment fact about one machine.
+- ✅ **Host-conditional guidance copy** — the "find the name in Font Book" advice is correct on web and
+  *wrong* in Figma, where the authoritative list is in the field. Both notes branch on `hostFonts.length`,
+  never on a runtime host check.
+- ⏭ **Per-style/weight validation** (which would retire the hardcoded weight map), the web-side
+  `queryLocalFonts()` arm, and per-mode family override selects are deferred; #113 stays open.
+
 ## Run
 
 ```bash

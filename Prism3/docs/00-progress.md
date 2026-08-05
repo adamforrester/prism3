@@ -143,6 +143,134 @@ arm could not have worked in any case until this landed.**
 full UI mounted, 1 script tag, bundle parses); guard mutation-tested; plugin build + both typechecks
 clean; engine gates untouched by construction.
 
+---
+
+## (2026-08-04) — The typeface field learns what Figma can actually load (#113, Figma arm)
+
+**STATUS: plugin + shared UI (`plugin/src/list-fonts.ts`, `plugin/src/main.ts`, `plugin/src/messages.ts`,
+`web/src/write-adapter.ts`, `web/src/main.ts`).** No engine change, no emitted artifact moved — this is
+entirely a host-capability arm.
+
+### The diagnosis that made it small
+
+An availability signal already existed. `fontAvailable()`'s canvas probe drives the **"On this device"**
+column on Primitives, so the first instinct is "this is already handled." It is not, for two reasons that
+compound: the probe answers **verification**, not **discovery** — you must already know the name to ask
+about it, and the whole failure mode is not knowing it. And inside the plugin the probe measures the
+**iframe's** fonts, which is a different set from the one Figma will load when writing Text Styles. It was
+answering a different question from the one that decides whether the write succeeds.
+
+So the change is additive, not a replacement: the probe and the column stay exactly as they are (they are
+correct about what *this iframe* can render), and a `<datalist>` is added beside them reporting what
+*Figma* can load. Both are true; conflating them is what would be wrong.
+
+### Why it matters more than a convenience
+
+`applyTextStylePlan` **skips-with-warning** by design (#237) — an unloadable family never substitutes and
+never throws. Measured against `aurora` via `buildFontVarPlan` / `buildTextStylePlan` (the plans the plugin
+actually writes, **not** the `emit-figma-font.ts` emitters — those two disagree and the difference is a
+trap): a typo writes all **50** font variables (39 `core-font` + 11 `type-sets`) and silently drops a
+subset of the **37** Text Styles. `harbor` is 49 and 38 — the counts are brand-dependent, so quote them
+with the brand or not at all. That is partial success reported after the fact, from a hand-typed string
+with no validation anywhere in the path. Discovery is the cheapest place to fix it.
+
+### The decision, and the cost taken knowingly
+
+`<input list>` + `<datalist>` as a **single native control**, over a hand-rolled combobox. The browser's own
+keyboard and screen-reader behavior comes for free rather than being reimplemented as `role="combobox"` +
+`aria-activedescendant` — in an accessibility-domain repo, hand-rolling that is the expensive option, not
+the cheap one. The price: the dropdown is **browser chrome and cannot be themed** to match the dashboard.
+The owner accepted this explicitly. Font names travel as `option.value`, never `innerHTML` — they are
+external input.
+
+### The escape hatch is the design, not a leftover
+
+An unlisted, free-typed name still commits. `BrandInput` is a **portable specification**: it may
+legitimately name a face the machine open right now does not have, and hard-blocking would let one laptop's
+font situation constrain a brand. The datalist is a hint. Validation-on-commit would defeat the point, so
+it is deliberately absent — if a later pass "fixes" this by rejecting unlisted names, it has broken the
+feature, not tightened it.
+
+### The copy change is the substance, not a nicety
+
+This is the part that would be easy to drop as polish. The existing spelling note sends the user to **macOS
+Font Book** to hand-copy a name — correct on web, and *wrong advice* inside Figma, where an authoritative
+list is sitting in the field. The local-fonts warning likewise asserts "the dashboard loads no webfonts",
+a statement about the web host that reads as false in Figma. Shipping the picker without the copy would
+leave the UI contradicting itself in the exact moment the user is deciding whether to trust the field. Both
+notes now branch on **`hostFonts.length`** — never on a runtime host check, since the host swap is the
+build-time `PRISM3_HOST` define.
+
+### Traps for whoever re-verifies this
+
+**`plugin/tsconfig.main.json` has an explicit `include` array.** A new plugin file omitted from it is
+silently **untypechecked** — so the no-`dom`-lib guarantee that makes context violations compile errors
+quietly does not apply to it. `list-fonts.ts` was added to it deliberately. This fails open, not closed.
+
+**`"font-list"` appears in `web/dist/main.js`, and that is correct.** The `PRISM3_HOST` define eliminates
+`figmaCommit`'s *body*, but the `onHostMessage` callback is ordinary `main.ts` code — it ships on web and
+is simply never invoked, because `webCommit.onHostMessage` is an empty no-op. A pre-flight check in the
+plan asserted this string would be absent, and measurement disproved it: `restore-input` was already
+shipping the same way. Verify the **bridge plumbing** is absent (`pluginMessage`, `apply-theme`,
+`ui-ready`, `listAvailableFontsAsync` — all 0) rather than the message name. Do not "fix" the string.
+
+**A known, accepted rough edge.** A late `font-list` calls `renderWorkspace()`, which clears and rebuilds
+the pane — so text already typed into the add-face field is discarded and focus drops to `<body>`. The
+window is small (the list is pushed on `ui-ready`, before a human can type) but a font-heavy machine widens
+it. Left as-is deliberately: the alternative is incremental DOM patching for one field, which is more
+machinery than the race deserves. Worth revisiting if the list ever arrives later than boot.
+
+### The live drive, and the four things only it could find
+
+The shims proved the *logic*; the payload shape needed the real API — the same gap that produced the
+`FONT_FAMILY`-scope bug on the sibling MCP branch. The drive is now **done** (Desktop Bridge, "Prism Test
+File v2", 2026-08-04) and it earned its keep: every finding below was invisible to a green shim.
+
+**The payload shape holds, and the list is an order of magnitude larger than assumed.**
+`listAvailableFontsAsync()` returns `{fontName:{family,style}}` — 11,005 entries collapsing to **2,334
+unique families**, a 34.5 KB wire payload. `listFamilies` was replayed verbatim over the real data:
+sorted, deduped, all strings, 0 empties, 0 names containing HTML characters (so the `textContent`
+discipline is belt-and-braces, not load-bearing — keep it anyway). The plan's *shape* assumptions were
+right; its *scale* assumption was not, and two defects followed from that.
+
+**2,334 options in a `<datalist>` is fine — measured, not assumed.** This was the real risk, since the
+owner approved `<input list>` when the list was imagined to be dozens. Driven through the genuine
+`font-list` wire path into the plugin build: the panel renders all options in **53 ms**, typing costs
+**under 0.1 ms per keystroke** (filtering is native, in browser chrome), and the DOM lands at ~2,970
+nodes total. No virtualization needed. Had this gone the other way the control choice itself would have
+had to go back to the owner.
+
+**The count needed a thousands separator.** `2334 font families` reads as a version number. Only a
+four-digit count shows this; every shim used a handful of fonts.
+
+**My own copy overclaimed, and the drive is what caught it.** "A face you choose from it will apply
+cleanly" is false: the datalist offers **families**, while `buildTextStylePlan` demands family **+ a
+specific `fontStyle`**. Of 2,334 real families, 2,173 carry `Regular` but only 660 carry `Medium` — so
+**619** satisfy aurora's demand and **2** satisfy harbor's. Picking a listed family and still getting a
+skipped style is the *common* case. The note now says the list settles the family, not every weight.
+
+**Harbor's 2 is a pre-existing engine bug → #499.** `WEIGHT_STYLE_NAME` hardcodes `600: 'Semi Bold'`,
+but across 2,334 families the spelling splits 3 spaced / **575 tight** (`SemiBold`) — and **`both` is 0
+in every spelling pair** (`Semi Bold`/`SemiBold`, `Extra Bold`/`ExtraBold`, `Extra Light`/`ExtraLight`).
+A family carries one variant or the other, never both, so **no single hardcoded table can be correct** —
+the spelling is per-family. The table looks calibrated against Inter, yet Inter has `Extra Bold` while
+the table emits `ExtraBold`, so it misses even on its own reference family. Confirmed by `loadFontAsync`
+rather than inferred: `Roboto`/`Semi Bold` fails, `Roboto`/`SemiBold` loads. Filed separately, not
+absorbed — it is engine-emit lane, pre-existing, and wants an owner decision for the CLI path that has no
+font library to interrogate. The `WEIGHT_STYLE_NAME_MONO` 600→Medium carve-out is a second guess papering
+over the first and should fall out for free once the name is resolved from the family's real styles.
+
+**Verification.** regen --check 88 · 1508/0 unit · MCP 49/0 · token contract unchanged · NB PASS ·
+web+plugin typecheck/build · US-English clean (92 files) · plugin font-list shim ALL PASS.
+**Live Figma drive: DONE** — payload shape grounded, 2,334-option datalist measured at 53 ms, picked font
+loads, misspelled font throws exactly as the skip path expects (`Robotto` → "could not be loaded").
+
+### Deferred, deliberately not absorbed
+
+Per-style/weight validation (which would retire the hardcoded weight map — now filed as **#499** with the
+measurement that proves a fixed table cannot work), the web-side `queryLocalFonts()` arm of #113, and the
+per-mode family override selects. #113 stays **open** — this is its Figma arm only.
+
 
 ---
 

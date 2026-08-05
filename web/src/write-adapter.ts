@@ -100,14 +100,16 @@ export interface HostCommit {
    *  reusing #108 verbatim. Typed loosely (`unknown`) here to avoid a web→engine type import in
    *  the DOM layer; the plugin bridge + main thread carry the real `BrandInput` type. */
   postTheme(input: unknown): void;
-  /** Register a callback for host→UI notifications: the #109 read-back seed summary, and the #131
+  /** Register a callback for host→UI notifications: the #109 read-back seed summary, the #131
    *  knob-rehydration (the persisted `BrandInput`, typed `unknown` here to keep this DOM layer free
-   *  of the engine type import — the UI casts it to `BrandInput`). */
+   *  of the engine type import), and the available font families (the #113 Figma arm — a plain
+   *  `string[]`, so it needs no such care). */
   onHostMessage(
     cb: (
       msg:
         | { kind: 'seed-info'; ok: boolean; summary: string }
-        | { kind: 'restore-input'; input: unknown },
+        | { kind: 'restore-input'; input: unknown }
+        | { kind: 'font-list'; families: string[] },
     ) => void,
   ): void;
   /** Ask the host to resize its window to these outer dimensions (#144; Figma only, no-op on web,
@@ -133,13 +135,17 @@ const figmaCommit = (): HostCommit => ({
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const m = (e.data && e.data.pluginMessage) as
-        | { type?: string; ok?: boolean; summary?: string; input?: unknown }
+        | { type?: string; ok?: boolean; summary?: string; input?: unknown; families?: unknown }
         | undefined;
       if (!m) return;
       if (m.type === 'seed-info' || m.type === 'apply-result') {
         cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? '') });
       } else if (m.type === 'restore-input' && m.input) {
         cb({ kind: 'restore-input', input: m.input });
+      } else if (m.type === 'font-list' && Array.isArray(m.families)) {
+        // Filter to strings at the boundary: this arrives over postMessage, so the shape is asserted
+        // rather than guaranteed, and a non-string would reach `textContent` downstream.
+        cb({ kind: 'font-list', families: (m.families as unknown[]).filter((f): f is string => typeof f === 'string') });
       }
     });
     // Listener attached — signal the main thread it can post (and run the boot read-back, #109).

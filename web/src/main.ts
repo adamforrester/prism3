@@ -308,6 +308,11 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
 const commit = hostCommit();
 let seedInfo: { ok: boolean; summary: string } | null = null;   // set by the host's boot read-back (#109)
+// The font families the host can load (#113 Figma arm; empty on web and until the host answers).
+// Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
+// not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
+// machine-dependent. Read only to populate the typeface input's `<datalist>`.
+let hostFonts: string[] = [];
 // Host → UI notifications: the #109 read-back seed summary, and the #131 knob-rehydration (the
 // persisted BrandInput). restore-input loads the brand wholesale (loadBrand rebuilds + re-renders),
 // so re-opening a themed Figma file boots on that brand instead of the default. loadBrand is a
@@ -322,8 +327,17 @@ commit.onHostMessage((m) => {
     loadBrand(m.input as BrandInput);
     return;
   }
-  seedInfo = { ok: m.ok, summary: m.summary };
-  if (barHost) renderBar();
+  if (m.kind === 'font-list') {
+    hostFonts = m.families;
+    // A plain re-render — the same path a tab click takes. The list can arrive before or after the
+    // typeface page first renders, so caching plus a re-render makes the order irrelevant.
+    renderWorkspace();
+    return;
+  }
+  if (m.kind === 'seed-info') {
+    seedInfo = { ok: m.ok, summary: m.summary };
+    if (barHost) renderBar();
+  }
 });
 
 // ===========================================================================
@@ -3506,6 +3520,25 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const addIn = el('input', 'tf-in tf-addin') as HTMLInputElement;   // tf-in carries the shared field treatment; tf-addin only constrains width
   addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
   addIn.setAttribute('aria-label', 'Add a face to the library');
+  // #113 (Figma arm) — when the host knows its real font list, the field becomes type-ahead over it
+  // while still accepting anything typed. `<datalist>` is deliberate over a custom combobox: it is
+  // the browser's own control, so the keyboard and screen-reader behavior are correct without a
+  // hand-rolled `role="combobox"` + `aria-activedescendant` surface. The cost is that the dropdown is
+  // browser chrome and cannot be themed to match the dashboard — accepted knowingly.
+  // A HINT, not a constraint: an unlisted name still commits, because a brand input is a portable
+  // specification and may legitimately name a face this machine lacks.
+  let addList: HTMLElement | null = null;
+  if (hostFonts.length) {
+    addList = el('datalist');
+    addList.id = 'tf-font-list';
+    // textContent, never innerHTML — these names are external input.
+    for (const f of hostFonts) {
+      const o = el('option') as HTMLOptionElement;
+      o.value = f;
+      addList.append(o);
+    }
+    addIn.setAttribute('list', addList.id);
+  }
   // #405 — a SUBMIT CTA, not `.adv-add`. That class is the dashed REVEAL/add-a-row affordance (the
   // breakpoint editor's "+ Add" appends an empty slot with it, and on Palettes the same look means
   // "tap to expose fields"). Here the field is already exposed, so the dashed form promised "this will
@@ -3533,11 +3566,14 @@ const renderTypefaceLibrary = (): HTMLElement => {
   addBtn.onclick = submit;
   addIn.onkeydown = (e) => { if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); submit(); } };
   addRow.append(addIn, addBtn);
+  if (addList) addRow.append(addList);
   sec.append(addRow, addErr);
   // #414 — the spelling guidance sits with the field it describes. It lived on Semantics, which after
   // the four-tab split types nothing: this is the only place a face name is entered by hand.
   const spell = el('p', 'tf-note');
-  spell.innerHTML = '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
+  spell.innerHTML = hostFonts.length
+    ? '<b>Pick from the list, or type any name.</b> The field suggests the ' + hostFonts.length.toLocaleString('en-US') + ' font families this Figma can load, so a name chosen from it is spelled the way Figma spells it. That settles the family, not every weight: a text style still skips if the family lacks the specific weight it asks for. Typing a name that is not listed also works — a brand can specify a font this machine does not have — but nothing it needs will load here.'
+    : '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
   sec.append(spell);
   // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
   // role binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
@@ -3695,7 +3731,9 @@ const renderTypefaceBindings = (): HTMLElement => {
   tbl.append(tb); scroll.append(tbl); box.append(scroll); sec.append(box);
 
   const local = el('p', 'tf-note warn');
-  local.innerHTML = '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
+  local.innerHTML = hostFonts.length
+    ? '<b>Previews in this table use fonts installed on this device.</b> The faces offered on <b>Primitives</b> come from Figma and are what apply when you write text styles — the two sets can differ, so a face Figma offers may still preview as the fallback here. Your emitted tokens are unaffected; they carry the name you typed.'
+    : '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
   sec.append(local);
   return sec;
 };
