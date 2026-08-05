@@ -17,7 +17,7 @@
 import { buildFigmaColor } from '../Prism3/engine/emit-figma-color';
 import { buildWritePlan } from '../Prism3/engine/write-plan';
 import { nbThemeFrom } from '../Prism3/engine/theme';
-import { applyWritePlan } from './src/write-figma';
+import { applyWritePlan, orphansOf } from './src/write-figma';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -125,6 +125,51 @@ ok(!!bg && new Set(bgTargets).size > 1,
   `background/primary aliases a distinct palette step per mode (collapse-guard: ${bgTargets.join(' / ')})`);
 ok(bgTargets.every((t) => typeof t === 'string' && t.startsWith('palette/')),
   'background/primary alias targets are palette primitives (cross-collection resolution)');
+
+// ---- #479: orphan REPORT — renames leave ghosts, and the write path cannot see them ------------
+// Create-or-update-by-name is idempotent for adds/edits and structurally blind to a rename: the new
+// name is created, the old one is never touched. So a file written before a rename still carries it.
+// Both halves matter and are asserted separately — reported, AND still present afterwards. Testing
+// only the report would pass on an implementation that deleted them, which is the outcome this lane
+// deliberately does not ship. (Verified by mutation: simulating a prune lane fails the two
+// "NOT deleted" assertions, so the restraint is enforced rather than merely intended.)
+
+// The unit, first: the set difference itself, including the direction that must NOT flag.
+ok(orphansOf(['a', 'b', 'c'], ['a', 'c']).join() === 'b', 'orphansOf: a name in the file but not the plan is an orphan');
+ok(orphansOf(['a'], ['a', 'b']).length === 0, 'orphansOf: a name in the PLAN but not the file is NOT an orphan (that is a create)');
+ok(orphansOf(['z', 'a'], []).join() === 'a,z', 'orphansOf: sorted, so two runs diff cleanly');
+
+// Now end-to-end against a shim pre-seeded with the two ghost shapes the live drive actually found:
+// a stale leaf at a path that is now a group, and a whole pre-rename palette family.
+const ghostShim = new VariablesShim();
+const ghostPal = ghostShim.createVariableCollection('core-palette');
+const ghostCol = ghostShim.createVariableCollection('color');
+ghostShim.createVariable('palette/accent/550', ghostPal);              // pre-rename palette generation
+ghostShim.createVariable('color/interactive/primary/text', ghostCol);  // flat leaf, now a group
+const ghostNames = ['palette/accent/550', 'color/interactive/primary/text'];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+const gr = await applyWritePlan(plan, ghostShim as any);
+const reported = gr.orphans.flatMap((o) => o.names);
+for (const g of ghostNames) ok(reported.includes(g), `#479 orphan reported: ${g}`);
+ok(gr.orphans.every((o) => typeof o.name === 'string'),
+  '#479 orphans are reported per collection, so a reader can tell which collection drifted');
+
+// The restraint half — nothing was destroyed.
+const survivors = new Set(ghostShim.vars.map((v) => v.name));
+for (const g of ghostNames) ok(survivors.has(g), `#479 orphan NOT deleted (report-only): ${g}`);
+
+// And a clean file reports zero rather than reporting nothing — "checked, none" must be
+// distinguishable from "never checked", or a silenced report reads exactly like a clean file.
+const cleanShim = new VariablesShim();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+const first = await applyWritePlan(plan, cleanShim as any);
+ok(first.orphans.length === 2 && first.orphans.every((o) => o.names.length === 0),
+  '#479 a fresh file reports both collections with zero orphans (present-and-empty, not absent)');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+const second = await applyWritePlan(plan, cleanShim as any);
+ok(second.orphans.every((o) => o.names.length === 0),
+  '#479 re-applying the SAME plan creates no orphans — idempotent, so the report has no false positives');
 
 console.log(`\nplugin write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

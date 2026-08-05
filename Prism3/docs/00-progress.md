@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-08-05) — Make the drift visible; leave the deletion decided by a human (#479, report lane)
+
+**STATUS: `plugin/src/write-figma.ts` + `plugin/src/main.ts` + the write harness.** No engine change —
+`out/*` byte-identical, every engine gate unchanged.
+
+**The structural cause.** The Figma write path is create-or-update-by-name: correct and idempotent for
+adds and edits, and **structurally unable to see a rename**. The new name is created; the old one is
+simply never touched again. So every rename in the engine's history is still sitting in any file
+written before it — measured live in Prism Test File v2 as `core-palette` 222 against a 122-row plan (a
+whole pre-rename palette generation) and `color/interactive` 69 against 63 (flat leaves stranded when
+they became stateful slots). **Every one of those runs reported success.**
+
+**Scoped to the report, deliberately.** The issue names the gating decision: deleting a variable a
+designer may have bound to a layer is destructive and unrecoverable from the engine's side. The
+detector cannot tell a stale ghost from a variable someone is co-authoring — both are just "a name the
+plan does not contain" — so a prune lane needs an explicit opt-in plus a *the plan fully owns this
+collection* precondition. Both stay open, along with the higher-value fix (a rename map that MIGRATES a
+variable, keeping its id and therefore every existing binding, instead of orphan-and-recreate).
+
+> **Making drift visible and deciding what to destroy are separable, and only the first is safe to do
+> without an owner.** Shipping the detector now also means the prune lane, whenever it lands, starts
+> from a measured list rather than a guess.
+
+**The data was already in hand**, which is why this is small: `upsertCollection` already returns the
+collection's existing name→Variable map, so an orphan is that key set minus the plan's row names. One
+helper, one field per executor, one line in the summary.
+
+**Two implementation notes worth keeping.** The pre-existing name set is snapshotted *before* the create
+loop rather than read after — reading after happens to give the same answer today only because created
+names are by definition planned, and a snapshot says what is meant instead of relying on that. And a
+clean collection reports `names: []` rather than being omitted: **"checked, found none" must be
+distinguishable from "never checked"**, or a silenced detector reads exactly like a clean file (the same
+false-pass shape as #281 and the skills gate's wiring floor).
+
+**Mutation-verified, including the restraint.** Six mutants, six caught: detection always-empty,
+direction inverted (planned-but-absent wrongly flagged as an orphan — that is a *create*), sort dropped,
+snapshot emptied, a collection silently unreported, and — the one that matters most — **simulating a
+prune lane fails the two "NOT deleted" assertions.** The report-only property is enforced, not merely
+intended, so the destructive decision cannot be made by accident later.
+
+**Self-inflicted trap, recorded because it nearly cost the tests:** `git checkout <file>` to revert a
+deliberately-broken mutant discards *all* uncommitted work in that file, including the new tests it was
+being used to validate. Copy to the scratchpad and restore from there; `git checkout` is not an undo for
+a file you have not committed.
+
+---
+
 ## (2026-08-05) — The BOOLEAN path, measured live and then executed (#513's stated ceiling)
 
 **STATUS: engine (`test.ts`) + this doc.** Tests only; no production-source or `out/*` change.

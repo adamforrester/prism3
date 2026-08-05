@@ -97,6 +97,22 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // `s.misses` joins the tally with #236: a gradient stop naming a palette variable this file does
     // not have is the same class of failure as a dangling variable alias, and was previously invisible.
     const misses = r.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length;
+    // Orphan report (#479): variables in a collection the plan owns that the plan does not contain.
+    // The write path is create-or-update-by-name, so it cannot see a rename — the new name is created
+    // and the old one is never touched again. Reported, never deleted: this cannot distinguish a stale
+    // ghost from a variable a designer is co-authoring, and deleting one they have bound to a layer is
+    // unrecoverable from here. Surfaced in the summary rather than a return field alone, because drift
+    // nobody reads is drift nobody fixes — the live file had ~106 ghosts across two collections and
+    // every prior run reported success.
+    const allOrphans = [
+      ...r.orphans,
+      ...f.collections.map((c) => ({ name: c.name, names: c.orphans })),
+      ...tv.collections.map((c) => ({ name: c.name, names: c.orphans })),
+    ].filter((o) => o.names.length);
+    const orphanCount = allOrphans.reduce((n, o) => n + o.names.length, 0);
+    const orphanNote = orphanCount
+      ? `, ⚠️ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
+      : '';
     const skippedNote = ts.skipped.length
       ? `, ⚠️ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
@@ -105,7 +121,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
-      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + skippedNote;
+      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + orphanNote + skippedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false.
     postToUi({ type: 'apply-result', ok: misses === 0, summary });
   } catch (e) {
