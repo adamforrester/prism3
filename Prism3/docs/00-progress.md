@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-08-05) — The mode badge gets its third state, and one branch admits it never fires (#437)
+
+**STATUS: web (`main.ts` + `mode-audit.mjs`).** No engine change, `out/*` byte-identical.
+
+Owner, reading the shipped badge: *"Does 'Shared: All Modes' allow for editing? Should it be
+'Editing: All modes'?"* Yes to the first, which is why the second is right — and measuring it showed
+the single badge was covering two situations that are not the same offer to a reader.
+
+Of the 12 sections badged `Shared · All modes`, **five have controls and six have none**:
+
+| controls (edit one value every mode uses) | no control at all |
+|---|---|
+| Outline button hover (1), Disabled (2), Icon colors (1), Easing (4), Motion (1) | Focus ring, Spacing grid, Primitive scales, Elevation ramp, Duration ramp, Springs |
+
+Saying "Shared" over a control you can turn understates it; saying it over a specimen you cannot
+touch overstates it. Three states now: **`Editing <mode>`** (9), **`Editing All modes`** (5),
+**`Non-editable`** (6) — the split #437 asked for, arrived at from the owner's reading rather than
+from the issue text.
+
+**Editability is detected from the rendered section, not declared.** `SECTION_MODE_SCOPE` stays
+hand-written for the per-mode axis, because no DOM inspection can tell you *which* mode a select
+writes to — but whether a control exists is right there, so a section that gains or loses one
+re-badges itself. Buttons deliberately do not count: the ones in these sections play a motion preview.
+Measured across all six bar pages — every section with a real control has at least one input/select,
+every section without has zero of anything, so the split is clean rather than a judgment call.
+
+**A branch that never fires, kept and labelled as such.** `scope: 'per-mode'` viewed in a derived mode
+should read `Non-editable` — and it is **unreachable today**. Measured in HC light: Surfaces,
+Interactive and Size render **zero** sections, and the only two that survive anywhere (Elevation ramp,
+Motion) are both `shared`. So no per-mode section is ever badged in a derived mode.
+
+It stays, and the comment says plainly that it cannot currently run. #512 was right to kill a
+decoration whose comment claimed a mechanism that never fired; the distinction here is that this is a
+**correctness guard**, not decoration — if a page ever does render a per-mode section in a derived
+mode, the alternative is a badge reading "Editing HC light" over controls the engine refuses. Written
+down so the next reader re-measures instead of assuming, in either direction.
+
+**The audit needed the new axis too.** `--check-badges` read `.on` to tell the two states apart, and
+`Editing All modes` is also `on` — so all five re-badged sections came back as mismatches on the first
+run. It now reads the badge's key text for three states and measures `hasControls` the same way
+`main.ts` does, deriving `expected` from both axes. Back to **28/28**.
+
+Mutation-tested, because a gate that cannot fail is not a gate: forcing `hasControls = false` made
+five sections claim `Non-editable` over live controls, and the audit exited **1** naming all five.
+
+---
+
 ## (2026-08-05) — Two gates for two defect classes this session kept producing
 
 **STATUS: web (two new lint scripts + CI + one dead rule removed).** No engine change, `out/*`
