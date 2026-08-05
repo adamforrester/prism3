@@ -199,6 +199,7 @@ and the new test case are written as `\u` escapes: literal invisible characters 
 source, and a diff cannot show one being added or dropped. The case is mutation-verified — reverting
 `renders()` to `.trim()` fails exactly that one assertion. `test.ts` 1624 → 1625.
 
+---
 
 ## (2026-08-05) — A label that spells the path the pill prints, and a ring that never fires (#504 review)
 
