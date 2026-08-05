@@ -7,6 +7,51 @@
 
 ---
 
+## (2026-08-05) — A corpus proves what the corpus contains (brand artifact-set extraction)
+
+**STATUS: `emit-figma.ts` + `test.ts`.** Pure motion — `out/*` **byte-identical**, zero committed
+artifacts rewritten by a full regen. `test.ts` 1630 → **1637**.
+
+**Why.** Two MCP payload-delivery lanes both need the same answer — *given a `Theme`, what files does
+this brand produce and what is in them* — and neither could have it. That logic lived **inline in
+`emit-figma.ts`'s `isMain` block**: filename derivation, content and `writeFileSync` interleaved in one
+pass, reachable only by running the module as a script. `figmaArtifacts(theme)` now returns
+`{ artifacts: {path, content}[], summary }`; `isMain` is a five-line writer over it.
+
+The summary line comes back from the same pass deliberately — computing it separately would build every
+collection twice and let the counts drift from the files they describe.
+
+**The finding, which is the part worth keeping.** `regen --check` proves byte-identity across
+nb/aurora/wendys, and that felt like total coverage. It is not: **all three brands take the
+single-file branch of both per-mode conditionals.** No corpus brand has per-mode typography, and none
+opts into wireframe — so `core-font.<mode>.json` and `radius.<mode>.json` were emitted by code that
+nothing exercised, before or after this change.
+
+> **A corpus proves what the corpus contains.** And the asymmetry is not random: both conventions
+> exist so that a brand *not* using the feature stays byte-identical to the pre-feature world — which
+> means the single-file branch is the one every fixture already pins, and the per-mode branch is
+> structurally the one nothing covers.
+
+Mutation made it concrete, and the two gates turn out to be genuinely complementary rather than
+redundant:
+
+| mutant | `test.ts` | `regen --check` |
+|---|---|---|
+| trailing newline dropped | caught | caught |
+| indent 2 → 4 | passed | caught |
+| per-mode font branch collapsed | caught | **passed** |
+| per-mode radius branch collapsed | caught | **passed** |
+
+Two mutations survive `regen --check` entirely, and one survives the unit tests. Neither gate alone
+would have held this extraction; the new tests exist precisely for the half that byte-identity cannot
+reach.
+
+**Trap for whoever touches the serializer:** two-space indent and the trailing newline are *load-bearing
+formatting*, not style — `regen --check` compares bytes. Hence one `json()` helper rather than inline
+`JSON.stringify` calls that can individually drift.
+
+---
+
 ## (2026-08-05) — A count derived from a declaration cannot detect that the declaration is incomplete (#536 item 5)
 
 **STATUS: `component-schema.ts`, `components/button.ts`, `test.ts`.** Def-tier only — no emitter

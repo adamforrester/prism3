@@ -26,7 +26,7 @@ import { leverManifest, leverGroups, buildLeverManifest, identityFields } from '
 import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
-import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
+import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
@@ -6870,6 +6870,44 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(JSON.stringify(branch?.enum?.slice().sort()) === JSON.stringify(Object.keys(SLIDER_STOPS[key]).sort()),
       `vocabulary: the schema's '${key}' stop enum matches SLIDER_STOPS exactly`);
   }
+}
+
+// ---- figmaArtifacts: the per-mode FILENAME conventions regen cannot see ------------------------
+// `regen --check` proves this extraction is byte-identical, but only over nb/aurora/wendys — and all
+// three take the SINGLE-FILE branch of both conditionals. So the byte proof covers half of each `if`,
+// and the per-mode halves (`core-font.<mode>.json`, `radius.<mode>.json`) had no coverage at all.
+//
+// That asymmetry is the point worth keeping: a corpus proves what the corpus contains. These two
+// conventions exist so a brand NOT using the feature stays byte-identical to the pre-feature world,
+// which means the single-file branch is the one everything already tests and the per-mode branch is
+// the one nothing did.
+{
+  const base = { id: 't', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const pathsOf = (input: unknown): string[] => figmaArtifacts(brandTheme(input as never)).artifacts.map((a) => a.path);
+
+  const plain = pathsOf(base);
+  ok(plain.filter((p) => /^core-font\./.test(p)).join() === 'core-font.json',
+    'figmaArtifacts: a brand with no per-mode typography emits ONE core-font.json (pre-Phase-D byte shape)');
+  ok(plain.filter((p) => /^radius\./.test(p)).join() === 'radius.json',
+    'figmaArtifacts: a non-wireframe brand emits ONE radius.json (pre-Pillar-1b byte shape)');
+
+  const perModeFont = pathsOf({ ...base, families: { body: 'Inter', display: 'Inter' }, modeLevers: { dark: { families: { body: 'Georgia' } } } });
+  ok(perModeFont.filter((p) => /^core-font\./.test(p)).sort().join() === 'core-font.Default.json,core-font.dark.json',
+    'figmaArtifacts: a per-mode FAMILY override switches core-font to per-mode filenames');
+
+  const wire = pathsOf({ ...base, modes: ['light', 'dark', 'wireframe'] });
+  ok(wire.filter((p) => /^radius\./.test(p)).sort().join() === 'radius.Default.json,radius.wireframe.json',
+    'figmaArtifacts: a wireframe brand switches radius to per-mode filenames');
+
+  // Content shape: every artifact is a path plus the exact bytes, trailing newline included — the
+  // formatting `regen --check` compares. A caller writing these must need no post-processing.
+  const arts = figmaArtifacts(brandTheme(base as never)).artifacts;
+  ok(arts.length > 10 && arts.every((a) => a.path.endsWith('.json') && a.content.endsWith('\n')),
+    `figmaArtifacts: every artifact is a .json path with a trailing newline (${arts.length} files)`);
+  ok(arts.every((a) => { try { JSON.parse(a.content); return true; } catch { return false; } }),
+    'figmaArtifacts: every artifact parses as JSON');
+  ok(new Set(arts.map((a) => a.path)).size === arts.length,
+    'figmaArtifacts: no two artifacts claim the same path (a collision would silently drop a file)');
 }
 
 // ------------------------------------------------------------------- report

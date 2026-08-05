@@ -115,6 +115,86 @@ export { buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, fontStyleNam
 // ---------------------------------------------------------------------------
 
 
+/** One emitted file: a path relative to the brand's Figma directory, and the exact bytes to write. */
+export type FigmaArtifact = { path: string; content: string };
+
+/** The serializer every Figma artifact goes through. Two-space indent + a trailing newline is the
+ *  committed convention; `regen --check` compares BYTES, so this is load-bearing formatting, not
+ *  style. It exists as one function so the write path and any future reader cannot disagree. */
+const json = (v: unknown): string => JSON.stringify(v, null, 2) + '\n';
+
+/**
+ * Every Figma file a brand emits — as data, not as a side effect.
+ *
+ * Extracted from the `isMain` block below, which had the filename conventions, the content and the
+ * `writeFileSync` calls interleaved in one pass, reachable only by running this module as a script.
+ * Two lanes need the same answer to *"what files does this brand produce, and what is in them"* —
+ * writing them to a caller-chosen directory, and serving them without a filesystem at all — and a
+ * script body can serve neither. Deriving both from one function is what stops them disagreeing about
+ * what a brand's artifact set even is.
+ *
+ * Paths are relative to the brand's own directory (`core-palette.json`, not `out/figma/nb/…`), so the
+ * caller owns the root. The per-mode filename rules are the interesting part and are preserved
+ * exactly: a brand with no per-mode typography emits one `core-font.json`, one with overrides emits
+ * `core-font.<mode>.json`; radius follows the same shape. Both conventions exist so that a brand not
+ * using the feature emits byte-identical output to the pre-feature world, which is precisely the
+ * property a careless extraction would destroy.
+ *
+ * Returns the summary line too, built from the same pass — computing it separately would mean
+ * building every collection twice and inviting the counts to drift from the files they describe.
+ */
+export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summary: string } => {
+  const artifacts: FigmaArtifact[] = [];
+  const add = (path: string, value: unknown): void => { artifacts.push({ path, content: json(value) }); };
+
+  const { palette, color } = buildFigmaColor(theme);
+  // Filenames follow the $collection label (so the core-*/type-sets rename carries through).
+  add(`${palette.$collection}.json`, palette);
+  for (const c of color) add(`${c.$collection}.${c.$mode}.json`, c);
+
+  // core-font is per-mode (Phase D): a brand with no per-mode typography emits ONE `core-font.json`
+  // (byte-identical to pre-D); a brand overriding font family/weight per mode emits per-mode
+  // filenames `core-font.<mode>.json`, matching the colour/radius per-mode convention.
+  const fontFiles = buildFigmaFont(theme);
+  if (fontFiles.length === 1) add('core-font.json', fontFiles[0]);
+  else for (const f of fontFiles) add(`core-font.${f.$mode}.json`, f);
+
+  const fluid = buildFigmaFontFluid(theme);
+  for (const f of fluid) add(`${f.$collection}.${f.$mode}.json`, f);
+
+  const textStyles = buildFigmaTextStyles(theme);
+  add('text-styles.json', textStyles);
+
+  const dims = buildFigmaDims(theme);
+  // Radius is per-mode (docs/11 Pillar 1b): a non-wireframe brand emits ONE Default-mode file at
+  // `radius.json` (byte-identical to the pre-1b world); a wireframe-opted-in brand emits per-mode
+  // filenames `radius.Default.json` + `radius.wireframe.json`, matching the colour axis convention.
+  for (const [key, val] of Object.entries(dims)) {
+    if (key === 'radius') {
+      const arr = val as FigmaCollectionFile[];
+      if (arr.length === 1) add('radius.json', arr[0]);
+      else for (const c of arr) add(`radius.${c.$mode}.json`, c);
+    } else {
+      const coll = val as FigmaCollectionFile;
+      add(`${coll.$collection}.json`, coll);
+    }
+  }
+  const dimsCount = (Object.values(dims) as (FigmaCollectionFile | FigmaCollectionFile[])[]).reduce((n, v) => {
+    if (Array.isArray(v)) return n + v[0].variables.length; // radius: count once (same names across modes)
+    return n + v.variables.length;
+  }, 0);
+
+  const layout = buildFigmaLayout(theme);
+  for (const l of layout) add(`layout.${l.$mode}.json`, l);
+  const shadows = buildFigmaShadow(theme);
+  add('shadow-styles.json', shadows);
+  const gradients = buildFigmaGradient(theme);
+  add('gradient-styles.json', gradients);
+
+  const summary = `palette ${palette.variables.length} + color ${color.length}×${color[0].variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
+  return { artifacts, summary };
+};
+
 // ---------------------------------------------------------------------- I/O
 const here = dirname(fileURLToPath(import.meta.url));
 const isMain = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
@@ -142,45 +222,8 @@ if (isMain) {
   for (const { id, theme } of brands) {
     const dir = resolve(here, 'out/figma', id);
     mkdirSync(dir, { recursive: true });
-    const { palette, color } = buildFigmaColor(theme);
-    // Filenames follow the $collection label (so the core-*/type-sets rename carries through).
-    writeFileSync(resolve(dir, `${palette.$collection}.json`), JSON.stringify(palette, null, 2) + '\n');
-    for (const c of color) writeFileSync(resolve(dir, `${c.$collection}.${c.$mode}.json`), JSON.stringify(c, null, 2) + '\n');
-    // core-font is per-mode (Phase D): a brand with no per-mode typography emits ONE `core-font.json`
-    // (byte-identical to pre-D); a brand overriding font family/weight per mode emits per-mode
-    // filenames `core-font.<mode>.json`, matching the colour/radius per-mode convention.
-    const fontFiles = buildFigmaFont(theme);
-    if (fontFiles.length === 1) writeFileSync(resolve(dir, `core-font.json`), JSON.stringify(fontFiles[0], null, 2) + '\n');
-    else for (const f of fontFiles) writeFileSync(resolve(dir, `core-font.${f.$mode}.json`), JSON.stringify(f, null, 2) + '\n');
-    const fluid = buildFigmaFontFluid(theme);
-    for (const f of fluid) writeFileSync(resolve(dir, `${f.$collection}.${f.$mode}.json`), JSON.stringify(f, null, 2) + '\n');
-    const textStyles = buildFigmaTextStyles(theme);
-    writeFileSync(resolve(dir, 'text-styles.json'), JSON.stringify(textStyles, null, 2) + '\n');
-    const dims = buildFigmaDims(theme);
-    // Radius is per-mode (docs/11 Pillar 1b): a non-wireframe brand emits ONE
-    // Default-mode file at `radius.json` (byte-identical to the pre-1b world);
-    // a wireframe-opted-in brand emits per-mode filenames `radius.Default.json`
-    // + `radius.wireframe.json`, matching the colour axis convention.
-    for (const [key, val] of Object.entries(dims)) {
-      if (key === 'radius') {
-        const arr = val as FigmaCollectionFile[];
-        if (arr.length === 1) writeFileSync(resolve(dir, `radius.json`), JSON.stringify(arr[0], null, 2) + '\n');
-        else for (const c of arr) writeFileSync(resolve(dir, `radius.${c.$mode}.json`), JSON.stringify(c, null, 2) + '\n');
-      } else {
-        const coll = val as FigmaCollectionFile;
-        writeFileSync(resolve(dir, `${coll.$collection}.json`), JSON.stringify(coll, null, 2) + '\n');
-      }
-    }
-    const dimsCount = (Object.values(dims) as (FigmaCollectionFile | FigmaCollectionFile[])[]).reduce((n, v) => {
-      if (Array.isArray(v)) return n + v[0].variables.length; // radius: count once (same names across modes)
-      return n + v.variables.length;
-    }, 0);
-    const layout = buildFigmaLayout(theme);
-    for (const l of layout) writeFileSync(resolve(dir, `layout.${l.$mode}.json`), JSON.stringify(l, null, 2) + '\n');
-    const shadows = buildFigmaShadow(theme);
-    writeFileSync(resolve(dir, 'shadow-styles.json'), JSON.stringify(shadows, null, 2) + '\n');
-    const gradients = buildFigmaGradient(theme);
-    writeFileSync(resolve(dir, 'gradient-styles.json'), JSON.stringify(gradients, null, 2) + '\n');
-    console.log(`[figma] ${id}: palette ${palette.variables.length} + color ${color.length}×${color[0].variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`);
+    const { artifacts, summary } = figmaArtifacts(theme);
+    for (const a of artifacts) writeFileSync(resolve(dir, a.path), a.content);
+    console.log(`[figma] ${id}: ${summary}`);
   }
 }
