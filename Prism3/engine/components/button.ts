@@ -229,7 +229,19 @@ export const button: ComponentDef = {
     // (`active`, `focused`, `loading`) are deliberately NOT codified: they are that sheet's names
     // for `pressed`, `focus-visible` and `pending`, and it has no equivalent for `inactive` at all.
     stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'] },
-    // Slot CONTENT, so a designer can pick the icon. Slot PRESENCE is a variant question (§4).
+    // Slot PRESENCE (§4) — the axis `planComponentName` has been emitting all along. Declaring it
+    // takes the projected surface from 189 to 756, which is what the emitter already produced; the
+    // gap was in the declaration, not the emitter.
+    //
+    // An axis rather than a BOOLEAN because presence changes the CONTAINER's geometry: #326's
+    // slot-aware inset sets `paddingLeft = leading ? inlineVisual : inlineLabel` per side, and a
+    // Figma BOOLEAN drives one node's `visible` and can touch nothing above it. `booleans` staying
+    // stated-empty below is the same finding read from the other end.
+    slotAxes: [
+      { name: 'leading', part: 'leadingVisual' },
+      { name: 'trailing', part: 'trailingVisual' },
+    ],
+    // Slot CONTENT, so a designer can pick the icon — orthogonal to presence above.
     swaps: { leadingVisual: 'leadingVisual', trailingVisual: 'trailingVisual' },
     // "Button" is the placeholder, and it lives here rather than in the payload: the def is the layer
     // a second brand overrides. Figma accepts an empty TEXT default, which is what #510's set shipped —

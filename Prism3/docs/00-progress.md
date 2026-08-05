@@ -7,6 +7,53 @@
 
 ---
 
+## (2026-08-05) — A count derived from a declaration cannot detect that the declaration is incomplete (#536 item 5)
+
+**STATUS: `component-schema.ts`, `components/button.ts`, `test.ts`.** Def-tier only — no emitter
+change, `out/*` byte-identical. `test.ts` 1660 → **1686**.
+
+**The gap.** `planComponentName` has always appended `leading=`/`trailing=` to a variant's name, but
+`button.figmaProperties` declared only `variantAxes: [intent, appearance, size]` plus `stateAxis`. So
+the **declared** surface computed 189 variants while the **emitted** surface produced 756, and the
+def's own `codeOnly` admitted the axis "does not exist in this def yet."
+
+**Why nothing caught it, which is the transferable part.** The projection gate asserted
+`projected === 189`, where `projected` was computed as `variantAxes × stateAxis` — *the same
+declaration it was checking*. It agreed with itself, perfectly, while the emitter did something else
+entirely.
+
+> **A count derived from a declaration cannot detect that the declaration is incomplete.** It can only
+> confirm the declaration is self-consistent, which it always is.
+
+Same family as #281 (no gate read the committed artifact) and the skills-gate wiring floor (nothing
+proved the scan was still called): in each case the check and the thing checked were the same object.
+
+**Fixed at the class, not the instance.** `figmaAxisNames(def)` returns every declared axis name, and
+the gate now parses a REAL plan's emitted name and compares the two sets. Any axis added to either side
+without the other fails — for the next axis, not just this one. `figmaVariantCount(def)` derives the
+projection instead of restating it, so the number moves when the declaration does.
+
+**`slotAxes` is a third declaration field, for the reason `stateAxis` was a second:** an axis whose
+values do not come from `variants` cannot be listed in `variantAxes`, which validates its entries
+against that map. Slot presence comes from `anatomy.parts`.
+
+And it is a variant axis rather than a BOOLEAN because presence changes the CONTAINER's geometry —
+#326's slot-aware inset sets `paddingLeft = leading ? inlineVisual : inlineLabel` per side, and a Figma
+BOOLEAN drives one node's `visible` and nothing above it. `booleans: {}` staying stated-empty is the
+same finding from the other end.
+
+**Mutation: 4 mutants, 4 caught — including the original bug itself.** Deleting `slotAxes` entirely
+(exactly the state that shipped) now fails, as does declaring only one of the two emitted axes,
+dropping slot axes from the count, and dropping them from `figmaAxisNames`. That last one matters: it
+is the mutation that would let declared-vs-emitted silently agree again.
+
+**Not in this PR** — items 1–4 of #536 (the 432 duplicate variants) are def-tier *decisions*: the
+spinner projection, whether `inactive` should exist, and the focus-ring reversal that needs owner
+confirmation. This one was picked first because the issue's own ordering says so, and because an honest
+declared surface is what makes reasoning about the other four possible.
+
+---
+
 ## (2026-08-05) — Strip the payload's prose on the way out: 189 chunks → 58 (#487 step 8)
 
 **STATUS: engine (`anatomy-figma.ts`, `test.ts`).** No emitted artifact changes — the pasteable payload
