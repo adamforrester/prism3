@@ -3521,23 +3521,134 @@ const renderTypefaceLibrary = (): HTMLElement => {
   addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
   addIn.setAttribute('aria-label', 'Add a face to the library');
   // #113 (Figma arm) — when the host knows its real font list, the field becomes type-ahead over it
-  // while still accepting anything typed. `<datalist>` is deliberate over a custom combobox: it is
-  // the browser's own control, so the keyboard and screen-reader behavior are correct without a
-  // hand-rolled `role="combobox"` + `aria-activedescendant` surface. The cost is that the dropdown is
-  // browser chrome and cannot be themed to match the dashboard — accepted knowingly.
+  // while still accepting anything typed.
+  //
+  // This WAS a `<datalist>`, and that was the wrong control for an iframe. The original reasoning was
+  // sound on the web — it is the browser's own widget, so keyboard and screen-reader behavior come for
+  // free instead of from a hand-rolled `role="combobox"` — and the accepted cost was recorded as "cannot
+  // be themed". In Figma's plugin iframe the real cost was *unusable*: the popup is browser CHROME drawn
+  // outside the page, so it painted dark (following Figma's app theme, unreachable by our CSS), flipped
+  // UP over the field so the text being typed was hidden, and never received wheel events — making 2,334
+  // families impossible to scroll. None of the three is reachable from the page, which is the point: a
+  // list that must be themed, positioned and scrolled has to BE page DOM. So this is the combobox the
+  // datalist was chosen to avoid. The iframe made that trade non-optional.
+  //
+  // Built on the `.brandmenu` popover vocabulary already used by the brand/export/nav menus — same
+  // `max-height` + `overflow-y:auto` shape, so scrolling and theming are structural rather than patched.
+  //
+  // Names render in the UI face, NOT their own (owner decision). Self-rendering would look more like
+  // Figma's picker, but `listAvailableFontsAsync` mixes locally-installed families with Figma's CLOUD
+  // Google Fonts and this iframe ships `networkAccess: none` — so a cloud face would silently fall back
+  // and read as "broken" rather than "not installed here". One consistent face tells no lie.
+  //
   // A HINT, not a constraint: an unlisted name still commits, because a brand input is a portable
   // specification and may legitimately name a face this machine lacks.
-  let addList: HTMLElement | null = null;
+  let addWrap: HTMLElement | null = null;
+  // Arrow/Escape handling lives with the list, but Enter must reach `submit` (defined below) — so the
+  // combobox publishes a key hook that returns true when it CONSUMED the key, and the field's single
+  // keydown handler defers to it before falling through to submit-on-Enter.
+  let comboKey: ((e: KeyboardEvent) => boolean) | null = null;
   if (hostFonts.length) {
-    addList = el('datalist');
-    addList.id = 'tf-font-list';
-    // textContent, never innerHTML — these names are external input.
-    for (const f of hostFonts) {
-      const o = el('option') as HTMLOptionElement;
-      o.value = f;
-      addList.append(o);
-    }
-    addIn.setAttribute('list', addList.id);
+    addWrap = el('div', 'tf-combo');
+    const list = el('div', 'tf-cbolist');
+    list.id = 'tf-font-list';
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', 'Font families this Figma can load');
+    list.hidden = true;
+    addIn.setAttribute('role', 'combobox');
+    addIn.setAttribute('aria-controls', list.id);
+    addIn.setAttribute('aria-autocomplete', 'list');
+    addIn.setAttribute('aria-expanded', 'false');
+    addIn.autocomplete = 'off';                       // the browser's own history popup would re-create the overlap
+    let shown: string[] = [];
+    let active = -1;                                  // index into `shown`; -1 = nothing selected, so Enter still submits
+    const optId = (i: number) => `tf-font-o${i}`;
+    const setActive = (i: number): void => {
+      const rows = Array.from(list.children) as HTMLElement[];
+      if (active >= 0 && rows[active]) rows[active].classList.remove('on');
+      active = i;
+      if (i < 0) { addIn.removeAttribute('aria-activedescendant'); return; }
+      const row = rows[i];
+      if (!row) return;
+      row.classList.add('on');
+      addIn.setAttribute('aria-activedescendant', optId(i));
+      row.scrollIntoView({ block: 'nearest' });       // keyboard nav must drag the scroll along with it
+    };
+    const close = (): void => {
+      list.hidden = true;
+      addIn.setAttribute('aria-expanded', 'false');
+      setActive(-1);
+    };
+    const open = (): void => {
+      if (!shown.length) { close(); return; }
+      list.hidden = false;
+      addIn.setAttribute('aria-expanded', 'true');
+      // The old popup opened upward over the field. This one is page DOM below it, so the only thing
+      // that can hide it is the page scroll — ask for it to be on screen rather than assume it is.
+      list.scrollIntoView({ block: 'nearest' });
+    };
+    const paint = (q: string): void => {
+      const needle = q.trim().toLowerCase();
+      // Prefix matches first — "Ro" should lead with Roboto, not with a family that merely contains "ro".
+      const pre: string[] = [], mid: string[] = [];
+      for (const f of hostFonts) {
+        if (!needle) { pre.push(f); continue; }
+        const at = f.toLowerCase().indexOf(needle);
+        if (at === 0) pre.push(f);
+        else if (at > 0) mid.push(f);
+      }
+      shown = pre.concat(mid);
+      list.textContent = '';
+      shown.forEach((f, i) => {
+        // textContent, never innerHTML — these names are external input.
+        const row = el('div', 'tf-cbo', f);
+        row.id = optId(i);
+        row.setAttribute('role', 'option');
+        row.setAttribute('aria-selected', 'false');
+        // mousedown, not click: click fires after the input's blur, by which point the list is closed.
+        row.onmousedown = (e) => {
+          e.preventDefault();                          // keep focus in the field so Add face is one key away
+          addIn.value = f;
+          close();
+          addIn.focus();
+        };
+        list.append(row);
+      });
+      setActive(-1);
+    };
+    paint('');
+    addIn.oninput = () => { paint(addIn.value); open(); };
+    addIn.onfocus = () => { paint(addIn.value); open(); };
+    // Blur closes, but not before a row's mousedown has run — hence the mousedown handler above.
+    addIn.onblur = () => { close(); };
+    comboKey = (e: KeyboardEvent): boolean => {
+      const open_ = !list.hidden;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!open_) { paint(addIn.value); open(); if (shown.length) setActive(0); return true; }
+        if (!shown.length) return true;
+        const next = e.key === 'ArrowDown'
+          ? (active + 1) % shown.length
+          : (active <= 0 ? shown.length - 1 : active - 1);
+        setActive(next);
+        return true;
+      }
+      if (e.key === 'Escape') {
+        if (!open_) return false;                      // let Escape do whatever it does elsewhere
+        close();
+        return true;
+      }
+      // Enter with a highlighted row means "take that one" — the field fills and the list closes, and
+      // the face is NOT committed yet, so the next Enter submits. Two deliberate steps: picking a name
+      // and adding it are different decisions, and the second one is destructive-ish (it edits the brand).
+      if (e.key === 'Enter' && open_ && active >= 0 && shown[active]) {
+        addIn.value = shown[active];
+        close();
+        return true;
+      }
+      if (e.key === 'Tab' && open_) { close(); return false; }   // close, but let focus move on
+      return false;
+    };
+    addWrap.append(addIn, list);
   }
   // #405 — a SUBMIT CTA, not `.adv-add`. That class is the dashed REVEAL/add-a-row affordance (the
   // breakpoint editor's "+ Add" appends an empty slot with it, and on Palettes the same look means
@@ -3564,9 +3675,12 @@ const renderTypefaceLibrary = (): HTMLElement => {
     applyFull();
   };
   addBtn.onclick = submit;
-  addIn.onkeydown = (e) => { if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); submit(); } };
-  addRow.append(addIn, addBtn);
-  if (addList) addRow.append(addList);
+  addIn.onkeydown = (e) => {
+    const ev = e as KeyboardEvent;
+    if (comboKey && comboKey(ev)) { ev.preventDefault(); return; }
+    if (ev.key === 'Enter') { ev.preventDefault(); submit(); }
+  };
+  addRow.append(addWrap ?? addIn, addBtn);
   sec.append(addRow, addErr);
   // #414 — the spelling guidance sits with the field it describes. It lived on Semantics, which after
   // the four-tab split types nothing: this is the only place a face name is entered by hand.
@@ -7157,6 +7271,20 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tf-rm:hover{color:var(--ink)}
 .tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
 .tf-addin{flex:0 1 260px;width:auto;min-width:0}
+/* #113 follow-up — the font combobox. The datalist this replaces was browser CHROME: dark in
+   Figma's iframe, flipped UP over the field, and unscrollable at 2,334 options. Page DOM instead, on
+   the .brandmenu popover model (max-height + overflow-y:auto), which is what makes it themeable,
+   positionable and scrollable at all. The wrapper carries .tf-addin's flex basis because the INPUT is
+   now nested inside it — leaving it on the input alone would collapse the field to content width. */
+.tf-combo{position:relative;flex:0 1 260px;min-width:0}
+.tf-combo .tf-addin{flex:none;width:100%}
+.tf-cbolist{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:264px;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:4px;z-index:20;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12);overscroll-behavior:contain}
+/* Names render in the UI face by design (owner call): the host list mixes locally-installed families
+   with Figma CLOUD fonts, and networkAccess:none means a cloud face would fall back and read as
+   broken. One face is honest; a half-working specimen is not. */
+.tf-cbo{padding:6px 9px;border-radius:var(--r-xs);font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tf-cbo:hover,.tf-cbo.on{background:var(--paper)}
+.tf-cbo.on{box-shadow:inset 0 0 0 1px var(--line2)}
 .tf-adderr{font-size:12px;color:var(--danger);margin:8px 0 0}
 /* #405 — the add-face SUBMIT CTA, modelled on .bm-load (the app's existing inline solid button) so it
    reads as "commit this" rather than borrowing .adv-add's dashed reveal look. flex:none keeps its

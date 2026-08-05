@@ -329,6 +329,87 @@ with `textStyles` alone; none of the three style-field probes ever placed a real
 directions leaves the others looking covered. Two more probes added (a fifth `crossProbes` entry, and
 a `boundCrossText` alongside `boundCross`), completing all six pairwise directions across the three
 namespaces. 1571 → **1573** unit.
+## (2026-08-05) — The font picker had to stop being a `<datalist>` (#113 follow-up)
+
+**STATUS: shipped, one file (`web/src/main.ts`).** The picker merged yesterday in #495 was unusable in
+Figma's iframe. The owner loaded it and reported three failures; all three trace to one cause, and the
+fix is to replace the control. Branched from `4149887`.
+
+### What the owner saw, and the single cause under it
+
+Three symptoms, reported with screenshots: the dropdown painted **dark** against a light dashboard; at
+the keystroke `Rob` it **flipped up and covered the field**, hiding the text being typed; and opened
+empty it **would not scroll**, so 2,334 families were unreachable past the first dozen.
+
+They are one bug. A `<datalist>` popup is **browser chrome** — drawn outside the page, by the browser,
+for the browser. It follows Figma's app theme (dark), it positions itself (up, over the field, when the
+iframe is short), and it does not route wheel events to page JS. Not one of the three is reachable from
+our CSS or our JS. There was no CSS to fix: nothing in `main.ts` ever tried to style it, because nothing
+*can*. **A list that must be themed, positioned and scrolled has to BE page DOM.** So the datalist is
+gone and in its place is exactly the `role="combobox"` surface the datalist was chosen to avoid.
+
+### The measurement that was true and still missed it
+
+#495's entry says *"2,334 options in a `<datalist>` is fine — measured, not assumed"*, and reports 53 ms.
+That number is real and it is still real. It measured the **`<option>` DOM**, which is the part I own.
+The popup that failed is the part I do not — and **Playwright cannot see browser chrome**, so no amount
+of driving that harness would have surfaced any of the three. The blind spot was structural, not
+sloppy: the tool and the defect lived on opposite sides of the same boundary. The generalizable form —
+*a green measurement of the half you control says nothing about the half you don't* — is worth more than
+the specific fix, because the next native control (`<select>`, date input, `alert()`) has the same seam.
+The old code comment recorded the accepted cost as "cannot be themed"; the true cost was *unusable*.
+Accepting a cost you have understated is not a decision, it is a guess that happened to be written down.
+
+### Built on `.brandmenu`, not invented
+
+The popover reuses the vocabulary the brand/export/nav menus already use — absolute-positioned page DOM,
+`max-height` + `overflow-y:auto`. That is what makes theming and scrolling **structural** rather than
+patched on: `--panel`/`--line2`/`--ink` mean it follows light and dark for free, and the max-height *is*
+the scroll. `overscroll-behavior:contain` keeps a wheel at the list's end from scrolling the panel behind
+it. Filtering is **prefix-first**: `Ro` leads with Roboto rather than any family merely containing "ro".
+
+Keyboard is hand-rolled because it now has to be: `role="listbox"`/`role="option"`,
+`aria-activedescendant`, arrows with wrap-around and `scrollIntoView({block:'nearest'})` so the highlight
+drags the scroll, Escape to close, Tab to close-and-pass-through. One subtlety worth keeping: Enter is
+**two-stage** — with a row highlighted it takes that row and does *not* commit; the next Enter submits.
+Committing on the first Enter would make an arrow-key glance destructive.
+
+### Traps for whoever touches this next
+
+**The CSS block is a template literal** (`const STYLE = \`` in `main.ts`). A backtick inside a CSS
+comment terminates the string and the build fails somewhere else entirely — my first attempt wrote
+`` `<datalist>` `` in a comment and got a TS2349 in unrelated code. No backticks in that block.
+
+**`.tf-combo` carries the flex basis, not `.tf-addin`.** The input is now nested one level deeper;
+leaving `flex:0 1 260px` on the input alone collapses the field to content width.
+
+**Rows bind `mousedown`, not `click`.** `click` fires after the input's `blur`, by which point `close()`
+has already emptied the list — the handler would never run.
+
+**Names render in the UI face, not their own** (owner decision). Self-rendering would look more like
+Figma's own picker, but `listAvailableFontsAsync` mixes locally-installed families with Figma's **cloud**
+Google Fonts, and this iframe ships `networkAccess: none` — a cloud face would silently fall back and
+read as "broken" rather than "not installed here". One consistent face tells no lie.
+
+**`plugin/dist/` is gitignored, so merging to `main` changes nothing in Figma.** It has to be rebuilt
+(`npm run build -w @prism3/plugin`) before a reload shows anything. This already wasted one round: the
+owner reloaded after #495 merged and saw a build from before the picker existed. It fails silently.
+
+### Verification
+
+Driven in a browser against a synthetic 2,340-family list pushed through the genuine
+`{pluginMessage:{type:'font-list'}}` envelope, checking the three reported failures directly: opens
+**4 px below** the field (`top - bottom = 4`, no overlap, still 4 px at `Rob`), background
+`rgb(255,255,255)` from `--panel`, and `scrollHeight 75,235` vs `clientHeight 264` → **74,973 px of real
+scroll**. Filter 64 ms; `Ro` → Roboto, Roboto Condensed, Roboto Mono in that order. Arrow trail by
+*index* not text (the synthetic list has duplicate names): 20→19→18, wrap 0→2339→0, scroll follows.
+Enter fills the field and adds **0** table rows; mousedown selects and keeps focus in the field; Escape
+closes. Zero `datalist` elements in the DOM. Gates: regen --check 88 · 1516/0 unit · MCP 49/0 · token
+contract unchanged (1.1.0, 480 guaranteed) · NB PASS · web+plugin typecheck/build · US-English clean.
+
+**Still owner-verified only in a real iframe.** A browser is not Figma's iframe — that is the whole
+lesson above. The dist build ships with this so the owner can confirm the three failures are gone where
+they were found.
 
 ---
 
