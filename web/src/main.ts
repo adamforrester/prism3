@@ -1314,13 +1314,18 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
    *  inverse band, where the system defines exactly one on-color role. Getting this wrong would
    *  re-create, per surface, the contrast regression the ground fix just removed. */
   type SgSurface = { key: string; label: string; ink: string; line: string; line2: string; tiered: boolean };
+  //  Options are named for the ROLE each one is, not for a piece of furniture: "Card" described a
+  //  component while its three neighbors described grounds, and a reader had to know that a card is
+  //  drawn with `foreground.primary` to place it among them. It is also the ground the specimens are
+  //  least often checked against — every section already renders its own cards on whichever ground is
+  //  selected — so it was dropped rather than renamed (#485). An `sgSurface` still holding the retired
+  //  key falls through the `?? SG_SURFACES[0]` below, so a persisted brand cannot land on nothing.
   const SG_SURFACES: SgSurface[] = [
-    { key: 'background.primary', label: 'Page', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
-    { key: 'background.secondary', label: 'Page — second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
-    { key: 'foreground.primary', label: 'Card', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'background.primary', label: 'Page Background (Primary)', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'background.secondary', label: 'Page Background (Secondary)', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
     // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
     // borrowing a page-gated role that was never measured against this ground.
-    { key: 'background.inverse.primary', label: 'Inverse band', ink: 'text.on-inverse', line: 'border.inverse', line2: 'border.inverse', tiered: false },
+    { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse', line: 'border.inverse', line2: 'border.inverse', tiered: false },
   ];
   const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
 
@@ -1359,13 +1364,23 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const sel = selectEl('cap');
   for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
   sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
+  const stack = el('div', 'sg-surfstack');
   const row = el('div', 'sg-surfrow');
-  row.append(sel, el('span', 'sg-surfnote', `color.${surf.key}`));
-  bar.append(pfield('Draw specimens on', row));
-  bar.append(el('p', 'sg-surfhint', 'Every card, fill, button and text sample below is drawn on this surface — switch it to check the same system on a card or an inverse band.'));
+  // The swatch sits BESIDE the select, not inside it. A native `option` cannot carry a swatch — it
+  // takes no child elements and no generated content, and per-option `background-color` renders in
+  // the popup on some engines and never on the closed control, so an in-select swatch would show
+  // the chosen ground on some machines and nothing on others. The alternative is a custom listbox,
+  // which means owning keyboard interaction, ARIA and focus management for a three-item picker.
+  // Beside it costs nothing and always paints. The ring matters: a white ground on a white select
+  // would otherwise be an invisible swatch.
+  const sw = el('span', 'sg-surfsw');
+  sw.style.background = paint(cur, surf.key);
+  row.append(sw, sel);
+  // The resolved path uses the same token pill as every other path on the page, underneath rather
+  // than trailing the control — it describes the selection, so it reads as a caption to it.
+  stack.append(row, sgPill(surf.key));
+  bar.append(pfield('View Style Guide on', stack));
   host.append(bar);
-
-  host.append(el('p', 'np-note', 'Hover any token pill for its resolved primitive, hex, and contrast. Modes switch from the picker above.'));
 
   const SEM: Array<[string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
 
@@ -6921,7 +6936,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .gr-ed-nameinput{font:inherit;font-size:15px;font-weight:620;color:var(--ink);background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-xs);padding:6px 10px;width:150px}
 /* Mode-context strip (#171) — one mode at a time; sticky so the context stays reachable while
    scrolling the stage. The whole stage below reflects the selected mode. */
-.modectx{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0;padding:9px 12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.modectx{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0;padding:0}
+/* Control bars are BARE (#485). A white card is what a CONTENT section looks like, so a control bar
+   wearing one reads as a sibling of the thing it operates rather than as the operator: .tok-ctrls
+   rendered background #ffffff / border 1px / radius 10, byte-for-byte the section card directly
+   below it. Stripping the card leaves cards meaning exactly one thing. Safe for the sticky bar
+   because the opaque ground lives on .modebar, the sticky HOST, not on .modectx -- scrolled content
+   is still occluded and .stuck still carries the shadow. */
 /* Scroll, never wrap. Wrapping was affordable in the header, where the bar owned the full window
    width; in the content column it is narrower, so a brand with several modes wrapped to a second
    row and spent real vertical space on every page — worst on mobile, where it was already a
@@ -7138,7 +7159,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tok-seg .pvseg-b{padding:7px 1px;border-radius:0;color:var(--muted);box-shadow:inset 0 -2px 0 transparent}
 .tok-seg .pvseg-b:hover{color:var(--ink)}
 .tok-seg .pvseg-b.on{background:none;color:var(--ink);font-weight:560;box-shadow:inset 0 -2px 0 var(--ink)}
-.tok-ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:16px 0 4px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.tok-ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:18px 0 8px}
 .tok-two{display:flex;flex-direction:column;gap:3px}
 .tok-stack{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
 .tok-alias{color:var(--ink2);font-size:11.5px;white-space:nowrap}
@@ -7159,11 +7180,23 @@ input.toggle:disabled{opacity:.5;cursor:default}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
 /* The surface picker — one control for the whole view, above the sections it governs. */
-.sg-surfbar{display:flex;flex-direction:column;gap:6px;margin:12px 0 10px}
-.sg-surfrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.sg-surfhint{margin:0;font-size:12.5px;line-height:1.5;color:var(--faint);max-width:62ch}
+.sg-surfbar{display:flex;flex-direction:column;gap:6px;margin:18px 0 8px}
+/* Asymmetric on purpose, matching .tok-ctrls: more room above than below, so proximity groups the
+   bar with the content it scopes. The old 12/10 was near-symmetric and left it floating between. */
+.sg-surfrow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+.sg-surfstack{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+/* HEIGHT comes from the row, not from a number: align-self:stretch takes the swatch to whatever the
+   select beside it measures. A hard 33px was 8px short of the select and reproduced, in a brand new
+   control, the exact mismatch #484 had just removed from the segmented one — so the dimension that
+   was complained about is the one that must not be hand-set.
+   WIDTH is stated, because it cannot be derived: aspect-ratio:1 does not resolve a flex item's main
+   size from a STRETCHED cross size, and trying it collapsed the swatch to 2px (the borders alone).
+   A width that drifts a little from square if the control height changes is cosmetic; a height that
+   drifts from its neighbor is the bug. The inner white ring keeps a near-white ground from
+   vanishing into the field it sits next to. */
+.sg-surfsw{align-self:stretch;width:41px;border-radius:var(--r-xs);border:1px solid var(--line2);
+  flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.55)}
 .sg-surfbar .pfk{flex:none}
-.sg-surfnote{font-family:var(--mono);font-size:11px;color:var(--faint)}
 /* The mode's own canvas behind the specimens. Inset from the .psec so the studio shell still reads as
    the frame; the re-scoped custom properties (set inline) carry the theme to everything inside. */
 .sg-ground{margin-top:14px;padding:18px 18px 20px;border-radius:var(--r);border:1px solid var(--line);
