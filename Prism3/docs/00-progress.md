@@ -334,7 +334,7 @@ namespaces. 1571 → **1573** unit.
 
 ## (2026-08-05) — The typeface table's widest column held three unrelated facts (#113 follow-up, round three)
 
-**STATUS: shipped (PR #507, third commit).** Owner confirmed round two working in Figma, then asked for
+**STATUS: shipped (PR #507, third + fourth commits).** Owner confirmed round two working in Figma, then asked for
 a restructure of the same table: move the token path under the face name (widening that column to suit),
 which should relieve the crowding on the right so the Specimen column carries "example and fallback
 messaging only". Touches `web/src/main.ts` alone — presentation, no data change.
@@ -366,9 +366,21 @@ not simply move. Three options, all measured rather than reasoned about:
 The cost is stated rather than hidden, because it is the first deliberate break in that grid: this
 table's mode columns now start at **552** where the ladders' start at **448**, so the Face column is the
 only column that no longer lines up down the page. And in a 560px plugin panel the container's
-horizontal overflow goes **83px → 186px** — an increase in a scroll that already existed. What makes
-the second tolerable is `.mtbl-stick`: scrolled fully right, the face name *and* its path are both still
-visible, measured at `left` +1px inside the container.
+horizontal overflow goes **146px → 186px**, **+40px** — an increase in a scroll that already existed.
+What makes the second tolerable is `.mtbl-stick`: scrolled fully right, the face name *and* its path are
+both still visible, measured at `left` +1px inside the container.
+
+That before-figure was first written as **83px**, and the review was right to disbelieve it. Re-measured
+in a detached worktree at `c5b5ff8` — the actual prior commit, served and driven — the before state
+(`stickW: 112`, pill still in the Specimen cell) overflows **146px** (scrollW 622, clientW 476). The
+after is 186 (scrollW 662), and 662 − 622 = 40 reconciles the delta exactly: 104px of added column
+(216 − 112) minus the ~64px the pill no longer contributes to the Specimen cell's intrinsic width. The
+The tell was sitting in the same file the whole time: round one's own CSS comment (still there, above
+`.tf-libtbl`) says "no horizontal scroll beyond the pre-existing **146px**". The right number was already
+written down twice; the new measurement contradicted it and got believed anyway, because it was fresh. The
+83 came from a **synthetic** DOM sweep against the shipped build that shrank `.mtbl-stick` back to 112px
+but left the pill in the Face cell where the new code puts it — so the "before" it measured was a state
+that never existed, missing exactly the pill width that makes the real before-number larger.
 
 ### The pill still needs its cap, and its rtl still earns its keep
 
@@ -395,6 +407,36 @@ outliers hit it. `title` carries the full path either way.
 - **The plugin's `tsconfig` is `tsconfig.ui.json`, not `tsconfig.json`.** `tsc -p plugin/tsconfig.json`
   fails with `TS5058: path does not exist` and a **non-zero exit** that reads exactly like a type error
   in a chained gate run. It printed "No errors found" beside `exit=1`, which is the tell.
+- **A "before" reconstructed in the DOM is not the before.** The 83px above was produced by reverting one
+  CSS declaration on the shipped page rather than by checking out and serving the prior commit. One
+  declaration was not the whole change: the pill had *moved*, and the synthetic state kept it in its new
+  cell, so the old cell's intrinsic width went unmeasured. Measuring a before costs a `git worktree add`
+  at the parent commit; inferring one costs a wrong number in a comment whose entire job is that number.
+  This is the third error in this feature with the same shape — **the harness and the truth on opposite
+  sides of a boundary** (the canvas probe vs. Figma's font list; `/Roboto/` vs. the name cell; now the
+  synthetic DOM vs. the prior build). And a corollary: **a fresh measurement that contradicts a number
+  already recorded in the same file is a conflict to resolve, not a result to write down.** 146 was two
+  lines up.
+
+### Round four: two review findings
+
+Both from the review at `097142c`; both fixed in this PR's fourth commit rather than deferred.
+
+1. **`aria-selected` was never `true` on any of 2,340 rows.** The combobox rows are created with
+   `aria-selected="false"` and the arrow keys moved only the `.on` class, so the sighted highlight tracked
+   the keyboard while assistive tech was told, on every row, that nothing was selected. `aria-selected`
+   now moves *with* `.on` in `setActive`, in both directions. It is a separate fact from
+   `aria-activedescendant` — that one says where the pointer is, `aria-selected` says which option a
+   single-select listbox currently *holds*, and a screen reader reads the second. This is precisely the
+   ARIA the control got free from `<datalist>` and the hand-roll had to re-earn; round one re-earned the
+   pointer and missed the selection.
+2. **The 83px.** Above.
+
+Verified live in the rebuilt plugin bundle with 2,340 synthetic families through the real `font-list`
+envelope: after focus 0 rows true; ArrowDown ×3 → indexes 0/1/2, `activedescendant` `tf-font-o0`/`o1`/`o2`,
+exactly **1** row true at each step and its text matching the highlighted row; ArrowUp → back to 1, still
+one; a fresh ArrowUp wraps to 2339 with one; re-filtering to `Rob` clears to **0** with no stale `true`
+left behind; Escape and a mouse pick both end at 0.
 
 ### Verified
 

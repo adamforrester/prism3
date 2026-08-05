@@ -3650,14 +3650,24 @@ const renderTypefaceLibrary = (): HTMLElement => {
     let shown: string[] = [];
     let active = -1;                                  // index into `shown`; -1 = nothing selected, so Enter still submits
     const optId = (i: number) => `tf-font-o${i}`;
+    // `aria-selected` moves WITH the `.on` class, in both directions. It is a separate fact from
+    // `aria-activedescendant`: that one says where the pointer is, `aria-selected` says which option a
+    // single-select listbox currently holds, and a screen reader reads the second. Shipping it pinned to
+    // "false" at row creation (which is what this did) meant the sighted highlight tracked the arrows
+    // while AT was told, on all 2,340 rows, that nothing was selected — the one piece of the ARIA this
+    // control used to get free from `<datalist>` that the hand-roll missed.
     const setActive = (i: number): void => {
       const rows = Array.from(list.children) as HTMLElement[];
-      if (active >= 0 && rows[active]) rows[active].classList.remove('on');
+      if (active >= 0 && rows[active]) {
+        rows[active].classList.remove('on');
+        rows[active].setAttribute('aria-selected', 'false');
+      }
       active = i;
       if (i < 0) { addIn.removeAttribute('aria-activedescendant'); return; }
       const row = rows[i];
       if (!row) return;
       row.classList.add('on');
+      row.setAttribute('aria-selected', 'true');
       addIn.setAttribute('aria-activedescendant', optId(i));
       row.scrollIntoView({ block: 'nearest' });       // keyboard nav must drag the scroll along with it
     };
@@ -7359,8 +7369,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
    grid (#363/#404) and three of them are read-only ladders with nothing to widen FOR. Two measured
    costs, both accepted: this table's mode columns now start at 552 where the ladders' start at 448, so
    the Face column is the only one that no longer lines up down the page; and in a 560px plugin panel
-   the container's existing horizontal overflow goes 83px → 186px. The pinned column is what makes the
-   second one tolerable — scrolled fully right, the face name and its path are still both visible.
+   the container's existing horizontal overflow goes 146px → 186px, +40. The pinned column is what makes
+   the second one tolerable — scrolled fully right, the face name and its path are still both visible.
    The alternative was a four-line path pill in a 112px cell (tried; less readable than an elided one). */
 .tf-libtbl .mtbl-stick{width:216px;min-width:216px}
 /* Both were capped at 88px for the 112px column; at 216 they can use it. Still capped rather than
