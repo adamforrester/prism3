@@ -38,7 +38,7 @@ import { aliasRows, floatCollections, fontCollections, passJs, passOrder } from 
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
@@ -6396,8 +6396,34 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // The count, stated so a change to any axis has to move a number a reviewer can see. 189 today;
     // ×4 once the slot-presence axis §4 calls for exists, which is the 756 the issue should carry
     // (its 648 assumed six states).
-    const projected = fp.variantAxes.reduce((n, a) => n * button.variants[a].length, 1) * (fp.stateAxis?.values.length ?? 1);
-    ok(projected === 189, `figmaProperties: Button projects ${projected} variants today (3 intent × 3 appearance × 3 size × 7 state); ×4 slots later = ${projected * 4}`);
+    const projected = figmaVariantCount(button);
+    ok(projected === 756, `figmaProperties: Button projects ${projected} variants (3 intent × 3 appearance × 3 size × 7 state × 2 leading × 2 trailing)`);
+
+    // THE GATE THAT WOULD HAVE CAUGHT THE GAP, and the reason the count above is now derived rather
+    // than restated. `projected === 189` was computed from `variantAxes × stateAxis` — the same
+    // declaration it was checking — so it agreed with itself while `planComponentName` emitted two
+    // axes nobody had declared. A count derived from a declaration cannot detect that the declaration
+    // is incomplete; only comparing it against what the EMITTER produces can.
+    //
+    // Parses the real plan name rather than trusting a list, so any axis added to either side without
+    // the other shows up here — for the next axis, not just this one.
+    const emittedAxes = planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, trailing: true, intent: 'primary', appearance: 'filled', state: 'rest' }))
+      .split(', ').map((kv) => kv.split('=')[0]);
+    ok(emittedAxes.slice().sort().join(',') === figmaAxisNames(button).slice().sort().join(','),
+      `figmaProperties: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(button).join(', ')}] vs emitted [${emittedAxes.join(', ')}])`);
+    ok(emittedAxes.length === 6, `figmaProperties: six axes reach the Figma name (${emittedAxes.join(', ')})`);
+
+    // Slot presence is only a question for a part that can be absent — an axis over a mandatory part
+    // would emit a `false` coordinate no plan can build.
+    const slotOnRequired = figmaPropertyErrors({ ...button, figmaProperties: { ...fp, slotAxes: [{ name: 'lab', part: 'label' }] } } as ComponentDef);
+    ok(slotOnRequired.some((x) => /is not optional/.test(x)),
+      'figmaProperties gate: a slot axis over a NON-optional part fails');
+    const slotOnGhost = figmaPropertyErrors({ ...button, figmaProperties: { ...fp, slotAxes: [{ name: 'x', part: 'nope' }] } } as ComponentDef);
+    ok(slotOnGhost.some((x) => /does not exist in anatomy.parts/.test(x)),
+      'figmaProperties gate: a slot axis over a part that does not exist fails');
+    const slotCollide = figmaPropertyErrors({ ...button, figmaProperties: { ...fp, slotAxes: [{ name: 'state', part: 'leadingVisual' }] } } as ComponentDef);
+    ok(slotCollide.some((x) => /collides with an axis/.test(x)),
+      'figmaProperties gate: a slot axis colliding with the state axis fails');
 
     // BOOLEAN is stated-empty on purpose. #487 §5: a schema listing booleans it cannot honor is
     // worse than one admitting there are none — and a Figma BOOLEAN drives one node's `visible`,

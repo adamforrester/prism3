@@ -160,6 +160,23 @@ export type FigmaProperties = {
   /** `states` projects as one MORE variant axis, under this name, over these values. Separate from
    *  `variantAxes` because `states` is its own top-level field, not a member of `variants`. */
   stateAxis?: { name: string; values: string[] };
+  /** Slot PRESENCE projects as one boolean-valued variant axis per slot — `leading=true` etc.
+   *
+   *  A third declaration field for the same reason `stateAxis` is a second: an axis whose values do
+   *  not come from `variants` cannot be named in `variantAxes`, which validates its entries against
+   *  that map. Slot presence comes from `anatomy.parts`.
+   *
+   *  It is a VARIANT axis and not a BOOLEAN, and that is the crux rather than a detail: a Figma
+   *  BOOLEAN drives one node's `visible` and cannot touch an ancestor's padding, while #326's
+   *  slot-aware inset sets `paddingLeft = leading ? inlineVisual : inlineLabel` per side. Presence
+   *  changes the container's GEOMETRY, so it has to be an axis. `booleans` staying stated-empty is
+   *  the same finding from the other end.
+   *
+   *  This axis existed in the EMITTER before it existed here: `planComponentName` has always appended
+   *  `leading=`/`trailing=`, so the declared surface computed 189 variants while the emitter produced
+   *  756 — and the count gate asserted the 189, which read as agreement. `figmaAxisNames` is the fix
+   *  for the class, not just the instance. */
+  slotAxes?: { name: string; part: string }[];
   /** prop name → part name. BOOLEAN property; drives that one part's `visible`. An empty object is
    *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
    *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
@@ -340,6 +357,39 @@ export const validateComponentDef = (
  * fails at creation time in someone's file. Caught here, it is a failing unit test with no Figma
  * account involved.
  */
+/**
+ * Every axis name this def declares, in the order Figma will show them.
+ *
+ * Exists so the DECLARED surface and the EMITTED surface can be compared instead of hand-counted.
+ * The projection count was previously asserted as a literal (`projected === 189`) computed from
+ * `variantAxes × stateAxis` — which is a restatement of the declaration, not a check against the
+ * emitter. `planComponentName` had been appending `leading=`/`trailing=` the whole time, so the real
+ * surface was 756; the gate agreed with the declaration and neither noticed the other.
+ *
+ * **A count derived from a declaration cannot detect that the declaration is incomplete.** Comparing
+ * these NAMES against the ones a real plan emits can, and does so for any axis added later rather
+ * than only for this one.
+ */
+export const figmaAxisNames = (def: ComponentDef): string[] => {
+  const fp = def.figmaProperties;
+  if (!fp) return [];
+  return [
+    ...(fp.variantAxes ?? []),
+    ...(fp.stateAxis?.name ? [fp.stateAxis.name] : []),
+    ...(fp.slotAxes ?? []).map((s) => s.name),
+  ];
+};
+
+/** How many variants the declared surface projects — the product of every axis's cardinality.
+ *  Slot axes are boolean, so each doubles. Derived rather than restated, so adding an axis moves
+ *  this number without anyone remembering to. */
+export const figmaVariantCount = (def: ComponentDef): number => {
+  const fp = def.figmaProperties;
+  if (!fp) return 0;
+  const variants = (fp.variantAxes ?? []).reduce((n, a) => n * ((def.variants?.[a]?.length) ?? 1), 1);
+  return variants * (fp.stateAxis?.values.length ?? 1) * 2 ** ((fp.slotAxes ?? []).length);
+};
+
 export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   const fp = def.figmaProperties;
   if (!fp) return [];
@@ -383,6 +433,21 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     const codeOnly = (def.anatomy?.codeOnly ?? []).join(' ');
     for (const s of missing) {
       if (!codeOnly.includes(s)) e.push(`state '${s}' is not in the Figma state axis and is not explained in anatomy.codeOnly — a silently dropped state under-represents the def`);
+    }
+  }
+
+  // ---- the slot-presence axes ----
+  if (fp.slotAxes) {
+    const taken = new Set<string>([...(fp.variantAxes ?? []), ...(fp.stateAxis?.name ? [fp.stateAxis.name] : [])]);
+    for (const { name, part } of fp.slotAxes) {
+      if (!name) e.push('figmaProperties.slotAxes: every entry needs a name');
+      if (taken.has(name)) e.push(`figmaProperties.slotAxes: '${name}' collides with an axis of the same name`);
+      taken.add(name);
+      const p = parts[part];
+      if (!p) e.push(`figmaProperties.slotAxes.${name} → part '${part}' does not exist in anatomy.parts`);
+      // Presence is only a question for a part that can be absent. An axis over a part the anatomy
+      // says is always there would emit a `false` coordinate the plan cannot actually build.
+      else if (!p.optional) e.push(`figmaProperties.slotAxes.${name} → part '${part}' is not optional — presence is not a question for a part that is always there`);
     }
   }
 
