@@ -7,6 +7,159 @@
 
 ---
 
+## (2026-08-05) — The whole 21-variant set, and three bugs a clean `misses[]` could not see (#487 steps 4–5)
+
+**STATUS: `planSetToPluginJs` builds every variant and combines them into one COMPONENT_SET; the full
+21-variant button is verified live.** `misses: []`, 21 variants, six clean axes, a 3×7 grid, all 21
+measuring exactly 60×48, and a mutated `radius/md` moves the pasted node. Gates green; 13 mutations
+run against the new assertions, all caught. The set is `101:510` in the test file's `Prism3 Components`
+section, beside the structure-only `94:134`.
+
+Stacked on #503, which was still open — the set builder is a separate concern from the paint layer.
+
+### Every bug this step found was invisible to the checks that already existed
+
+The color layer shipped with a generic read-back: after each write, read it back and report what did
+not survive. That caught real bugs and it stayed silent through all three of this step's, because all
+three are properties of the **set**, not of any node in it. Each variant was individually perfect.
+
+**1. `combineAsVariants` folds a slash prefix into the first axis key.** Members named
+`button/intent=primary, …` produced a set whose first property was literally **`button/intent`** — not
+`intent`. Figma does not strip the prefix before parsing axes. Caught by the axis read-back written in
+#503, on its first live run, at three variants rather than twenty-one. Confirmed by a controlled probe:
+the same two components renamed without the prefix derived a clean `intent`. So the component's identity
+now lives on the SET (`set.name = plan.component`) and members carry **only** their coordinate. The
+structure-only path uses the same prefix-free name deliberately — a lone component pasted today may be
+combined tomorrow, and a name that only works before combining is a trap.
+
+**2. `combineAsVariants` PRESERVES positions, so the first set was 21 variants deep and one button
+tall.** Every root was appended without a position, so all 21 landed on the origin; combining stacked
+them. `misses` empty, axes clean, bindings live, unusable — 62×48 for a set that should be 564×192.
+Layout is part of the deliverable, not decoration. The payload now lays out a grid before combining
+(offline row/col assignment, measured column pitch because a hug-width button is as wide as its label),
+and reads the layout back: **two variants at one position** is now reported.
+
+**3. Figma's `strokesIncludedInLayout` defaults to content-box, so outline measured 62 where filled
+measured 60.** Swapping `appearance` moved the footprint — the one thing a variant axis must not do.
+Fixed with `strokesIncludedInLayout = false` and gated by a **footprint cohort** read-back: variants
+differing only in `state`/`appearance` must measure the same box; `size` and slot fill may differ.
+
+**The trap in #3 is worth more than the fix.** It surfaced on the *hug* axis only. The height was
+**bound** to `size/md/height`, so the fixed axis absorbed the same 2px in complete silence — a component
+with two fixed axes would have hidden it entirely. A bound dimension does not just set a value, it
+**conceals** disagreement about that value.
+
+### A substring gate against a self-documenting string, three times in one session
+
+#503 recorded this once: `ok(js.includes('strokeWeight'))` passed with `node.strokeWeight=1` deleted,
+because the payload *comments* on strokeWeight. It happened twice more here, and both are instructive
+because I had just written the lesson down.
+
+- `(setJs.match(/combineAsVariants/g)||[]).length === 1` **failed on a correct payload** — the payload's
+  own comment mentions the function, so the count was 2. A false negative this time, not a false
+  positive; the flaw cuts both ways.
+- `/footprint -> /` and `/sits on top of/` both **survived mutation**: replacing the surrounding
+  condition with `if(false)` left the report string in the payload untouched. Those two gates proved a
+  message *exists* and nothing about whether it can ever be emitted.
+
+All three now anchor on syntax — `/figma\.combineAsVariants\(/`, `/if\(first\.box!==box\)footprint\.push\(/`.
+The rule, stated to survive the next time: **`planToPluginJs` output is the one string in the engine that
+is both a deliverable and heavily commented, so grepping it for the words that describe a behavior tests
+the words.** Only mutation testing detects this — review cannot, because the assertion looks correct and
+*is* correct about a string containing that word.
+
+### Verification notes
+
+- **Probed `combineAsVariants` at 3 variants before paying for 21.** The API's behavior was the unknown,
+  so the expensive paste should not be what discovers it. This is what caught the prefix bug cheaply.
+- **The first footprint probe was invalid and said so.** With no children, `primaryAxisSizingMode: 'AUTO'`
+  fell back to a default 100px width instead of hugging, so the treatment could not move it and the probe
+  reported `fires: false`. Redone with a real child, all three arms in one run: filled 56, outline
+  unfixed 58 (reproduces), outline fixed 56. Same trap as #500's bad control — a probe whose measurement
+  is insensitive to the treatment proves nothing, and it looks exactly like a pass.
+- **Two NUL bytes** got written into `anatomy-figma.ts` where `join(' ')` was intended (`join('\x00')`).
+  Harmless by luck — the same separator on both sides of the comparison, so grouping still matched —
+  which is precisely why it would have survived indefinitely. Found by reading the bytes back after an
+  Edit failed to match a string I had just written.
+- **Shared payload, verified byte-identical.** `PAYLOAD_PREAMBLE`/`PAYLOAD_BUILD` were extracted so the
+  single-component and set paths share the build logic verbatim; the extraction was confirmed a pure
+  refactor via `git stash` + diff, and a gate now asserts the set payload *embeds* the single path's
+  builder. Two copies is exactly where a divergence rots unnoticed: the set path would pass every
+  offline check while pasting subtly different JS, and the single path is the one carrying the paint
+  gates.
+
+### Still open, deliberately
+
+- **Nine of the 21 rows are pixel-identical to their `rest` sibling** — `focus-visible`, `pending` and
+  `inactive` across all three appearances. All three are defensible, each for a *different* reason, and
+  none is a projection bug: `focus-ring-offset` is in `codeOnly` (the `:focus-visible` *condition* is not
+  expressible in Figma), `pending` replaces `leadingVisual` with a spinner overlay this step does not
+  build, and `inactive` is `aria-disabled` — semantics, not paint. Reported rather than papered over,
+  but a designer opening the set will see nine duplicates and should be told why.
+- **The `.text` pressed overlay gap** (recorded in `components/button.ts` under #503) is unchanged: all
+  three intents key `.text.overlay.hover` but not `.pressed`, so a pressed ghost button falls back to
+  rest. One line per intent to close; left as a def question.
+
+---
+
+## (2026-08-05) — Execute the payload instead of grepping it (#503 review follow-up)
+
+**STATUS: both should-fixes the #503 review raised across two rounds are closed, and the gate that
+proves it RUNS the payload against a stub Figma rather than reading it as text.** 1590/0, six mutations,
+all caught. The stub harness is the durable part of this entry.
+
+### The failure channel was reporting a false cause
+
+`misses[]` is the payload's only way to say something went wrong, and it lied in three places. The bind
+loop `continue`s on a name that does not resolve — correct — but the read-back then iterated
+`Object.keys(n.bound)`, the **declaration**, so a prop that was never set collected a second miss reading
+`DISCARDED (resolved, set, not retained)`. Nothing was resolved; nothing was set. Driven against an empty
+variable set: 13 real resolve-misses, 12 phantoms, each shadowing the real cause printed on the line above
+and pointing the reader at a Figma-internals mystery instead. The paint read-back repeated the shape
+verbatim. Fixed by recording what was actually written (`wrote`, `painted`) and iterating that.
+
+The lesson is narrower than "track what you wrote": **a read-back must iterate what the code DID, never
+what the plan asked for.** Those two sets are equal only on the happy path, which is the one path where
+the read-back has nothing to report.
+
+### A substring gate against a self-documenting string, instances four and five
+
+`js.includes('createInstance()')` passed with the swap ternary inverted — `target ? figma.createFrame() :
+target.createInstance()` — because the call survives as dead code on the branch that can never run. That
+inversion **is** #482's shipped bug (slots declared, empty frames pasted) in its single-token typo form,
+and the whole suite stayed green at 1567. `js.includes('findAllWithCriteria')` passed with the lookup
+narrowed to `currentPage`, the exact silent degrade the comment above it named as the thing it guarded.
+
+Both now anchor on the live branch (`node=target?target.createInstance()`, `figma.root.findAllWithCriteria`).
+That is the same trap recorded three times already this session, and worth stating plainly: **I wrote the
+rule down in the entry above and left two live instances of it two files away.** Writing a lesson down does
+not find its existing instances. Only a search for the pattern does.
+
+### The fix for the whole class: run the payload
+
+Every assertion in that block read the payload as **text**, which is why five of them could pass on a
+broken payload. So the block now executes it. `runPayload` builds a stub `figma` — variables, text styles,
+components, a `setBoundVariableForPaint` that RETURNS rather than mutates (modeling the API shape that half
+these gates exist for), and nodes that record bindings into `boundVariables` the way Figma does — and runs
+the real emitted string through `AsyncFunction`, so the payload sees exactly one binding and nothing from
+the test's scope. The gates then assert on **behavior**: with nothing resolving every miss is a resolve-miss;
+with the setter sabotaged every miss is a DISCARDED; with everything resolving `misses[]` is empty.
+
+That last one matters most and is the one a text probe can never write: **the channel is silent on a
+correct paste.** A read-back that cries wolf is as useless as one that stays quiet, and nothing before this
+could tell the two apart.
+
+### The harness walked into `review-pr.md:133` on its first mutation
+
+Narrowing the lookup to `figma.currentPage` — a real degrade, deliberately mutated to check the gate — threw
+*inside* the payload, and the uncaught throw took down the entire suite: **zero failures reported, not one.**
+Exactly the fail-hard trap the review protocol records. A harness that dies cannot tell you which assertion
+it would have failed. `runPayload` now catches and returns the throw as a miss, and the same mutation
+reports 5 failures. Worth noting the shape: **the new gate's own first mutation test found a defect in the
+gate, not in the code** — which is the argument for mutation-testing a harness and not just the thing it guards.
+
+---
+
 ## (2026-08-05) — Shipped skills are now gated, and two had already rotted (#492 step 1)
 
 **STATUS: engine (`lint-skills.ts`, new) + two `SKILL.md` fixes + CI/CLAUDE.md wiring.** No emitted
@@ -165,6 +318,10 @@ garbage-input assertion moved to `'banana'`.
 `resolveStop` routing or the `personality` passthrough — fails the suite; a third mutation outside the
 PR's own table (setting `personality` on the input but not reporting it in `applied[]`, a
 silent-success variant) also fails, confirming the report path is asserted as well as the write path.
+
+---
+
+## (2026-08-05) — The US-English gate could not see the bundle, and said "clean" anyway
 
 **STATUS: engine (`lint-us-english.ts`) + this doc.** No emitted artifact changed. `regen --check`
 88/88, 1516/0 unit, MCP 49/0, contract unchanged, NB PASS, gate clean over 92 files.

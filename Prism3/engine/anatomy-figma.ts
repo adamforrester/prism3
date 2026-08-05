@@ -348,28 +348,33 @@ export const planBindingErrors = (
 ];
 
 /**
- * The component's Figma name, which is also its VARIANT COORDINATE.
+ * The variant COORDINATE — `key=value, key=value`, and nothing else.
  *
- * `combineAsVariants` derives the axes from these names — `state=hover` in the name becomes a `state`
- * property with `hover` among its values — so this is not cosmetic: it is the wire format between one
- * paste and the component set the next step builds. Hence `key=value, key=value` after the slash,
- * Figma's own convention, rather than the prose suffix the structure-only version used.
+ * `combineAsVariants` derives a set's axes from its members' names, so this is a wire format rather
+ * than a label: `state=hover` in the name becomes a `state` property with `hover` among its values.
+ *
+ * **NO `button/` PREFIX, and this is load-bearing.** Figma does not strip a slash prefix before
+ * parsing the axes — it makes the prefix part of the FIRST AXIS KEY. A set built from
+ * `button/intent=primary, …` comes back with a property literally named **`button/intent`**, which no
+ * amount of correct token binding fixes and which a designer sees in the properties panel. Measured
+ * live, not read: the same two components renamed without the prefix derive a clean `intent`. So the
+ * component's identity lives on the SET (`set.name = plan.component`), and its members carry only
+ * their coordinate. The single-component path uses the same name for one reason — a lone component
+ * pasted today may be combined tomorrow, and a name that only works before combining is a trap.
  *
  * Slot fill stays a BOOLEAN-ish axis (`leading=true`) because #326's asymmetric padding makes slot
  * presence a real variant rather than a toggle — #487 §4, and the reason a boolean property cannot
  * carry it.
  */
-export const planComponentName = (plan: AnatomyPlan): string => {
-  const axes = [
+export const planComponentName = (plan: AnatomyPlan): string =>
+  [
     ...(plan.coord.intent ? [`intent=${plan.coord.intent}`] : []),
     ...(plan.coord.appearance ? [`appearance=${plan.coord.appearance}`] : []),
     `size=${plan.size}`,
     ...(plan.coord.state ? [`state=${plan.coord.state}`] : []),
     `leading=${plan.slots.leading}`,
     `trailing=${plan.slots.trailing}`,
-  ];
-  return `${plan.component}/${axes.join(', ')}`;
-};
+  ].join(', ');
 
 /**
  * The SHELL: plan → plugin JS for `figma_execute`. Mirrors `materialise-to-figma.ts` — the
@@ -403,7 +408,27 @@ export const planComponentName = (plan: AnatomyPlan): string => {
  *    auto-layout and setting `layoutSizing*` are both safe — measured, not assumed.)
  */
 export const planToPluginJs = (plan: AnatomyPlan): string => `const PLAN=${JSON.stringify(plan.root)};
-const vars=await figma.variables.getLocalVariablesAsync();
+${PAYLOAD_PREAMBLE}
+${PAYLOAD_BUILD}
+const root=await build(PLAN);
+figma.currentPage.appendChild(root);
+const comp=figma.createComponentFromNode(root);
+comp.name=${JSON.stringify(planComponentName(plan))};
+// The NODE ID, not the name. Two runs of the same plan produce two identically-named components, so
+// a caller verifying by name reads whichever one document order hands it — which is how #482's stale
+// paste masqueraded as a failure of this one (#503). The id is the only unambiguous handle.
+return {component:comp.name,id:comp.id,parts:${JSON.stringify(planPartNames(plan.root).length)},misses,codeOnly:${JSON.stringify(plan.codeOnly.length)},paints:${JSON.stringify(planPaintVars(plan.root).length)}};
+`;
+
+/**
+ * The payload HEAD, shared verbatim by the single-component and the SET path: four name→object
+ * resolvers, one per Figma namespace, plus `misses[]`.
+ *
+ * Shared rather than copied because the single-component payload is the one carrying thirteen gate
+ * assertions, so a second copy is exactly where a divergence would rot unnoticed — the SET path would
+ * pass every offline check while pasting subtly different JS. One string, one set of gates.
+ */
+const PAYLOAD_PREAMBLE = `const vars=await figma.variables.getLocalVariablesAsync();
 const byName=new Map(vars.map(v=>[v.name,v]));
 const styles=await figma.getLocalTextStylesAsync();
 const styleByName=new Map(styles.map(s=>[s.name,s]));
@@ -414,8 +439,14 @@ const effectByName=new Map(effects.map(s=>[s.name,s]));
 await figma.loadAllPagesAsync();
 const comps=figma.root.findAllWithCriteria({types:['COMPONENT']});
 const compByName=new Map(comps.map(c=>[c.name,c]));
-const misses=[];
-const build=async(n)=>{
+const misses=[];`;
+
+/**
+ * The recursive node builder, also shared. Every hard-won detail lives in here — the unlock before
+ * binding, the four API shapes, and the two read-backs — which is the other half of why this is one
+ * string: those are the lines a divergent copy would silently lose.
+ */
+const PAYLOAD_BUILD = `const build=async(n)=>{
   let node;
   if(n.type==='TEXT'){node=figma.createText();}
   else if(n.type==='INSTANCE_SWAP'){
@@ -448,10 +479,16 @@ const build=async(n)=>{
     node.primaryAxisSizingMode=n.primaryAxisSizingMode;
     node.counterAxisSizingMode=n.counterAxisSizingMode;
   }
+  // \`wrote\` is what was ACTUALLY set, which is not the same as what the plan declared — a name that
+  // does not resolve is skipped below. The read-back iterates this rather than the declaration, so an
+  // unresolved name reports its one true cause instead of also claiming Figma discarded a write that
+  // was never attempted.
+  const wrote=[];
   for(const [prop,varName] of Object.entries(n.bound)){
     const v=byName.get(varName);
     if(!v){misses.push(n.name+'.'+prop+' -> '+varName);continue;}
     node.setBoundVariable(prop,v);
+    wrote.push(prop);
   }
   // PAINTS — a fourth API shape. \`setBoundVariableForPaint\` RETURNS a new paint rather than mutating
   // the node, so the result must be assigned back into a fills/strokes ARRAY; forgetting the
@@ -461,12 +498,19 @@ const build=async(n)=>{
     if(!v){misses.push(n.name+'.'+where+' -> '+varName);return null;}
     return figma.variables.setBoundVariableForPaint({type:'SOLID',color:{r:0,g:0,b:0}},'color',v);
   };
-  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills');if(p)node.fills=[p];}
+  // Same reason as \`wrote\` above: only a paint that was actually assigned can have been discarded.
+  const painted={};
+  if(n.paints&&n.paints.fills){const p=paint(n.paints.fills,'fills');if(p){node.fills=[p];painted.fills=1;}}
   if(n.paints&&n.paints.strokes){
     const p=paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
     // bind correctly and render as no border at all.
-    if(p){node.strokes=[p];if(!node.strokeWeight)node.strokeWeight=1;node.strokeAlign='INSIDE';}
+    // BORDER-BOX, and \`strokesIncludedInLayout\` defaults the other way. Left at Figma's default the
+    // stroke is ADDED to the auto-layout size, so an outline button measured 62 wide where the filled
+    // one measured 60 — swapping \`appearance\` moved the footprint, which is the one thing a variant
+    // axis must not do. It showed up on the hug axis only: the fixed (bound) height absorbed the same
+    // 2px silently, so a component with two fixed axes would have hidden this completely.
+    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs inside the swapped instance, not on the instance itself — an
@@ -479,22 +523,130 @@ const build=async(n)=>{
   // being there — see the header note. This closes \`misses[]\`'s blind spot generically, so the next
   // silently-discarded write is reported by the paste instead of being found by probing months later.
   const got=node.boundVariables||{};
-  for(const prop of Object.keys(n.bound))
+  for(const prop of wrote)
     if(!got[prop])misses.push(n.name+'.'+prop+' -> DISCARDED (resolved, set, not retained)');
   // Paints read back too, and from the ARRAY rather than the node — a paint binding lives on the
   // paint object, so \`boundVariables.fills\` is not where it is.
   const boundPaint=(arr)=>!!(arr&&arr[0]&&arr[0].boundVariables&&arr[0].boundVariables.color);
-  if(n.paints&&n.paints.fills&&!boundPaint(node.fills))misses.push(n.name+'.fills -> DISCARDED (paint set, not retained)');
-  if(n.paints&&n.paints.strokes&&!boundPaint(node.strokes))misses.push(n.name+'.strokes -> DISCARDED (paint set, not retained)');
+  if(painted.fills&&!boundPaint(node.fills))misses.push(n.name+'.fills -> DISCARDED (paint set, not retained)');
+  if(painted.strokes&&!boundPaint(node.strokes))misses.push(n.name+'.strokes -> DISCARDED (paint set, not retained)');
   for(const c of n.children) node.appendChild(await build(c));
   return node;
-};
-const root=await build(PLAN);
-figma.currentPage.appendChild(root);
-const comp=figma.createComponentFromNode(root);
-comp.name=${JSON.stringify(planComponentName(plan))};
-// The NODE ID, not the name. Two runs of the same plan produce two identically-named components, so
-// a caller verifying by name reads whichever one document order hands it — which is how #482's stale
-// paste masqueraded as a failure of this one (#503). The id is the only unambiguous handle.
-return {component:comp.name,id:comp.id,parts:${JSON.stringify(planPartNames(plan.root).length)},misses,codeOnly:${JSON.stringify(plan.codeOnly.length)},paints:${JSON.stringify(planPaintVars(plan.root).length)}};
+};`;
+
+/**
+ * A plan SET → one payload that pastes every variant and combines them into a COMPONENT_SET.
+ *
+ * `combineAsVariants` derives the variant axes from the component NAMES, which is why
+ * `planComponentName` emits `key=value, key=value` — the name is the wire format between the paste
+ * and the set, not decoration. Combining requires every member to declare the SAME axis keys, so this
+ * refuses a heterogeneous set offline (a structure-only plan mixed in with skinned ones would
+ * otherwise produce a set whose `state` property exists on some variants and not others, which Figma
+ * accepts and no designer can use).
+ *
+ * ONE payload, not N. Twenty-one round trips would each re-resolve every variable, style and
+ * component in the file — and, worse, a failure halfway leaves an uncombinable pile of loose
+ * components that the next attempt then collides with by name. Building and combining in a single
+ * call makes the whole set atomic from the caller's point of view.
+ *
+ * LAYOUT IS PART OF THE DELIVERABLE, learned the hard way: `combineAsVariants` PRESERVES each member's
+ * position, so appending twenty-one roots without setting one produced a set 21 variants deep and one
+ * button tall, every member at the origin. Nothing was wrong with it — every binding resolved, `misses`
+ * came back empty, the axes derived cleanly — and it was unusable. The grid below is computed offline
+ * (the engine knows the coordinate; the payload only knows widths) and `coincident` reads it back, so
+ * the next stacking bug is reported rather than seen.
+ */
+export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
+  if (!plans.length) throw new Error('planSetToPluginJs: no plans');
+  const axesOf = (p: AnatomyPlan): string =>
+    planComponentName(p).split(', ').map((kv) => kv.split('=')[0]).join(',');
+  const axes = axesOf(plans[0]);
+  const odd = plans.find((p) => axesOf(p) !== axes);
+  if (odd) throw new Error(`planSetToPluginJs: every plan must declare the same variant axes — got '${axes}' and '${axesOf(odd)}' (${planComponentName(odd)})`);
+  const names = plans.map(planComponentName);
+  if (new Set(names).size !== names.length) throw new Error('planSetToPluginJs: two plans share a component name — the set would have duplicate variants');
+
+  // GRID PLACEMENT. Only the axes that actually vary get a dimension — a `size` axis with one value is
+  // not a row of one, it is not a row. The LAST varying axis becomes the columns and the rest combine
+  // into rows, which for a button lands on `state` across and `appearance` down: the same table shape
+  // as the grid dump the color layer was verified against, so a designer reads the set the way the
+  // implementer read the plan.
+  const keys = axes.split(',');
+  const valuesOf = (p: AnatomyPlan) => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
+  const vals = plans.map(valuesOf);
+  const varying = keys.filter((k) => new Set(vals.map((v) => v[k])).size > 1);
+  const colKey = varying[varying.length - 1];
+  const rowKeys = varying.slice(0, -1);
+  const order = (list: string[]) => { const seen: string[] = []; for (const x of list) if (!seen.includes(x)) seen.push(x); return seen; };
+  const cols = colKey ? order(vals.map((v) => v[colKey])) : [''];
+  const rows = order(vals.map((v) => rowKeys.map((k) => v[k]).join(' ')));
+  const cells = plans.map((p, i) => ({
+    name: names[i],
+    root: p.root,
+    row: rows.indexOf(rowKeys.map((k) => vals[i][k]).join(' ')),
+    col: colKey ? cols.indexOf(vals[i][colKey]) : 0,
+    // The FOOTPRINT COHORT — the variants that must measure the same. `size` and slot fill legitimately
+    // change a button's box; `state` and `appearance` must not, so those share a group and the payload
+    // compares measured sizes within it.
+    group: `size=${p.size}, leading=${p.slots.leading}, trailing=${p.slots.trailing}`,
+  }));
+
+  return `const PLANS=${JSON.stringify(cells)};
+${PAYLOAD_PREAMBLE}
+${PAYLOAD_BUILD}
+const built=[];
+for(const spec of PLANS){
+  const root=await build(spec.root);
+  figma.currentPage.appendChild(root);
+  const comp=figma.createComponentFromNode(root);
+  comp.name=spec.name;
+  built.push(comp);
+}
+// LAY OUT BEFORE COMBINING — see the header note. Column pitch is measured rather than assumed because
+// the widths are only known here: a hug-width button is as wide as its label, so a fixed pitch either
+// overlaps the long ones or strands the short ones.
+const GAP=24;
+const colW=[],rowH=[];
+built.forEach((c,i)=>{
+  const {row,col}=PLANS[i];
+  colW[col]=Math.max(colW[col]||0,c.width);
+  rowH[row]=Math.max(rowH[row]||0,c.height);
+});
+const at=(arr,n)=>arr.slice(0,n).reduce((a,b)=>a+(b||0)+GAP,0);
+built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row);});
+// COMBINE. The axes come from the names above; \`combineAsVariants\` throws rather than degrading if
+// they disagree, so the offline check in \`planSetToPluginJs\` is what keeps that from being the
+// caller's first sign of trouble — by then twenty-one loose components are already in the file.
+const set=figma.combineAsVariants(built,figma.currentPage);
+set.name=${JSON.stringify(plans[0].component)};
+// READ BACK the axes Figma actually derived. A name it cannot parse is dropped silently, so a set can
+// come back with fewer properties than the names claimed — present is not parsed.
+const props=set.componentPropertyDefinitions||{};
+const derived=Object.keys(props).sort();
+const expected=${JSON.stringify(axes.split(','))}.sort();
+const axisMiss=JSON.stringify(derived)!==JSON.stringify(expected)?['axes -> derived ['+derived.join(',')+'] but the names declared ['+expected.join(',')+']']:[];
+// READ BACK the LAYOUT too. Two variants at one position is the signature of a set that combined
+// perfectly and is unusable, and it is invisible to every other check in this payload.
+const seen=new Map();
+const coincident=[];
+for(const c of set.children){
+  const pos=c.x+','+c.y;
+  if(seen.has(pos))coincident.push('layout -> '+c.name+' sits on top of '+seen.get(pos)+' at '+pos);
+  else seen.set(pos,c.name);
+}
+// READ BACK the FOOTPRINT. Changing \`state\` or \`appearance\` must not move the box: an outline button
+// two pixels wider than its filled sibling makes a row of buttons fail to align, and nothing else here
+// notices because both variants are individually correct. Caught exactly this — Figma's
+// \`strokesIncludedInLayout\` defaults to adding the border to the auto-layout size.
+const sizeByGroup=new Map();
+const footprint=[];
+built.forEach((c,i)=>{
+  const g=PLANS[i].group;
+  const box=Math.round(c.width)+'x'+Math.round(c.height);
+  const first=sizeByGroup.get(g);
+  if(!first)sizeByGroup.set(g,{box,name:PLANS[i].name});
+  else if(first.box!==box)footprint.push('footprint -> '+PLANS[i].name+' measures '+box+' but '+first.name+' measures '+first.box+' (same '+g+')');
+});
+return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows.length)},${JSON.stringify(cols.length)}],axes:derived.map(k=>k+':'+(props[k].variantOptions||[]).length),misses:misses.concat(axisMiss,coincident,footprint)};
 `;
+};
