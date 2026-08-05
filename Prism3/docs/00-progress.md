@@ -8073,7 +8073,9 @@ review needed a running process, there was no link to send anyone, and PRs had n
 - **Two manual steps (owner):** authorise the Vercel GitHub app and import `adamforrester/prism3`
   (Root Directory = repo root, then Deploy), then disable Deployment Protection in Settings — new projects
   default to `ssoProtection` enabled, which puts prod + preview URLs behind a login wall. Can't be granted by
-  an agent. Prod URL to be added to `web/README.md` once it exists.
+  an agent. Prod URL added to `web/README.md` 2026-08-05: <https://prism3-ds.vercel.app/>. Its absence
+  until then was load-bearing in #474 — with no URL recorded, "did it deploy?" could not be answered
+  from outside the repo at all.
 - **Spec/plan:** `docs/superpowers/specs/2026-07-29-web-vercel-deploy-design.md`,
   `docs/superpowers/plans/2026-07-29-web-vercel-deploy.md`.
 

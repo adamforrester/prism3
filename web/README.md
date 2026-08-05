@@ -79,8 +79,26 @@ touch `node:` and would not bundle for the browser.
 
 ## Deploy
 
+**Production: <https://prism3-ds.vercel.app/>**
+
 The dashboard is a **static site** — the engine runs client-side, there is no backend, and
 `main.ts` makes no network calls at runtime. It deploys to Vercel from this monorepo.
+
+**Which build is live is answerable from the page itself.** The rail's foot carries
+`engine <version> · <commit>` — the short `VERCEL_GIT_COMMIT_SHA` the bundle was built from, or
+`local` when it was not built by the deploy (#474). Check it before assuming a merged change is
+missing: `/dist/main.js` is served from a fixed URL, so a stale bundle and a fresh one look identical,
+and a shipped change was once reported missing on exactly that basis.
+
+The same answer from outside, without opening a browser:
+
+```bash
+curl -s https://prism3-ds.vercel.app/dist/main.js | grep -oE '"[0-9a-f]{7}"' | head -1
+```
+
+If that commit is behind `main`, look at the deploy rather than the code. `ignoreCommand` (below)
+skips builds for commits that cannot change the site, so being a few commits behind is expected —
+being behind a commit that **did** touch `web/src/**` is not.
 
 The deploy contract lives in the repo-root **`vercel.json`**, so it is reviewable in git rather than
 hidden in dashboard settings. It is deliberately minimal — no `installCommand`, `rewrites` or
