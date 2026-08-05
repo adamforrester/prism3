@@ -7,6 +7,65 @@
 
 ---
 
+## (2026-08-05) — The plugin panel has been rendering blank, and no gate could see it (#496)
+
+**STATUS: `plugin/build.mjs` only.** No engine change, no emitted artifact, no source change to the
+UI itself. 19 lines: a one-line fix and an assertion.
+
+### The bug
+
+`build.mjs` inlines the bundled shared UI into `dist/ui.html` by passing it as the **replacement
+string** to `String.replace`. A replacement string interprets `$` patterns — and the bundle
+legitimately contains `"\\$&"`, the standard regex-escape idiom, from `web/src/main.ts`:
+
+```js
+const rootRe = new RegExp('^' + root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.');
+```
+
+That `$&` means *the matched text*, so it expanded to the whole matched
+`<script type="module" src="./ui.ts"></script>` — injecting a literal `</script>` into the middle of
+the inlined script and closing the tag early. Measured, not inferred: **2** closing tags instead of 1,
+the page throwing `missing ) after argument list`, `#app` with **0** children, and the rest of the
+bundle rendering as visible source text. Fix: pass a replacer **function**, which suppresses `$`
+interpretation. Verified in a browser both ways — 0 children before, the full UI mounted after.
+
+### Why this is the interesting part
+
+**Every gate was green while the shipped artifact was broken.** The plugin build exited 0. Both
+typechecks passed. Lint passed. No source grep could find it, because *the source is correct* — the
+corruption existed only in the concatenated output, and `dist/` is a gitignored build artifact that
+nothing reads back.
+
+This is the failure class CLAUDE.md already names for the US-English gate — *"source greps miss what
+ships"* — one artifact further along. The lesson generalizes past this file: **an artifact no gate
+reads back is an artifact with no memory** (cf. principle 5 on `token-contract.json`, and #281's *no
+gate reads the committed artifact*). Three separate incidents now, same shape.
+
+So the durable half of this commit is not the `() =>`, it is the assertion after it: exactly one
+`</script>`, and the dev-only module tag must not survive. A blank panel is now a **failed build with
+a named cause** rather than something discovered by opening Figma. Mutation-tested — reverting the
+one-line fix with the guard in place fails the build and prints the diagnosis.
+
+### The trap for whoever touches this next
+
+**Do not "simplify" the replacer function back to a template string.** It looks identical and is not.
+Any `$&`, `$1`, or `` $` `` anywhere in ~530 KB of bundled UI re-triggers this, and the failure is
+silent at build time. The guard now catches it, which is the only reason the shape is safe to leave.
+
+### How it was found, and what it says about verification
+
+It surfaced during an adversarial review of #495 (the Figma font picker), by an agent that built the
+plugin and *loaded the page* rather than reading the diff. #495 had honestly recorded "live Figma
+drive NOT performed" — and that unperformed step is exactly what had been hiding this. The shim
+tests, the string assertions and the typechecks were all true and all blind to it. **#495's Figma
+arm could not have worked in any case until this landed.**
+
+**Verification.** Browser-verified before/after (0 children + `missing ) after argument list` →
+full UI mounted, 1 script tag, bundle parses); guard mutation-tested; plugin build + both typechecks
+clean; engine gates untouched by construction.
+
+---
+
 ## (2026-08-04) — Deploys skip when a commit cannot change the site, and the skip list is gated
 
 **STATUS: deploy (`vercel.json`, `web/vercel-ignore.sh` + its check, CI, READMEs).** No engine
