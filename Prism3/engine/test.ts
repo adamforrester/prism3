@@ -39,7 +39,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -5706,9 +5706,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // describe a behavior tests the words. So run it. A stub Figma with an EMPTY variable set is the
     // realistic failure — token passes not run, or one variable renamed — and it is the case where
     // `misses[]` has to be trustworthy, because this whole design rests on it being the only channel.
-    type PayloadResult = { misses: string[]; properties?: string[]; refs?: number; wiredMembers?: number; axes?: string[] };
-    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[] } = {}): Promise<PayloadResult> => {
+    type PayloadResult = { misses: string[]; properties?: string[]; refs?: number; wiredMembers?: number; axes?: string[]; variants?: number; added?: number; size?: [number, number]; set?: string | null; chunk?: number; of?: number };
+    // A PAGE that outlives one run, for the CHUNKED path only (`opts.page`). Every other caller passes
+    // nothing and gets a fresh empty page, exactly as before — but a chunked paste's whole premise is
+    // that call N finds what call N-1 left in the file, so a stub that forgets between runs cannot
+    // exercise it at all. Handing the same object to several `runPayload` calls models the one thing
+    // separate `figma_execute` calls actually share: the document.
+    type StubPage = { children: Record<string, unknown>[] };
+    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage } = {}): Promise<PayloadResult> => {
       const names = new Set(opts.vars ?? []);
+      const page = opts.page;
+      // Members LEAVE the page when they join a set, as they do live. Without this the page keeps every
+      // loose component too, and `set.children` and the page would disagree about who owns what — which
+      // is the state a re-paste's skip-by-name check reads.
+      const takeFromPage = (kids: Record<string, unknown>[]) => {
+        if (!page) return;
+        for (const k of kids) { const i = page.children.indexOf(k); if (i >= 0) page.children.splice(i, 1); }
+      };
       const mkVar = (name: string) => ({ id: `V:${name}`, name });
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
       // what it would see live. A node that is NOT bound stays absent from it, which is the state the
@@ -5785,16 +5799,51 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         combineAsVariants: (members: Record<string, unknown>[]) => {
           const set = mkNode('COMPONENT_SET');
           set.children = members;
+          takeFromPage(members);
+          // A SET RESIZES, and its box does NOT follow its members. Modeled because that is the whole
+          // reason the chunked payload calls `resize` at all: appending a member at x=208 to a 184-wide
+          // set leaves it 184 wide, with the new member outside its own box, and nothing throws. A stub
+          // whose width tracked its children would let the `resize` call be deleted with a green suite.
+          let w = 0, h = 0;
+          Object.defineProperties(set, {
+            width: { configurable: true, get: () => w },
+            height: { configurable: true, get: () => h },
+          });
+          set.resize = (nw: number, nh: number) => { w = nw; h = nh; };
+          // APPEND, which re-derives the axes from the new member's name — measured live: appending
+          // `state=pressed` to a `state=rest|hover` set extends that axis rather than being ignored.
+          // Guarded here too, because a node cannot be in two parents.
+          set.appendChild = (c: Record<string, unknown>) => {
+            (set.children as Record<string, unknown>[]).push(c);
+            takeFromPage([c]);
+            guardRefs({ ...set, declaredIds: set.declaredIds, findAll: () => [c, ...((c.findAll as () => unknown[])?.() ?? [])] } as Record<string, unknown>);
+          };
           const defs: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
-          // The axes Figma derives from the member NAMES — the wire format `planComponentName` emits.
-          for (const m of members)
-            for (const kv of String(m.name).split(', ')) {
-              const [k, v] = kv.split('=');
-              const d = (defs[k] ??= { type: 'VARIANT', variantOptions: [] });
-              if (!d.variantOptions!.includes(v)) d.variantOptions!.push(v);
-            }
           let seq = 100;
-          set.componentPropertyDefinitions = defs;
+          // A GETTER, not a snapshot, for two reasons the chunked path depends on. The axes Figma derives
+          // come from the member NAMES (the wire format `planComponentName` emits), so a set that gained
+          // members by `appendChild` must report the wider axis — a snapshot taken at combine time would
+          // report chunk 1's axes forever and the chunked payload's per-chunk axis read-back would be
+          // checking nothing. And a DUPLICATE member name makes this getter THROW live ("Component set
+          // has existing errors") while `addComponentProperty` keeps succeeding, which is precisely the
+          // trap the payload's try/catch exists for; a stub that returned definitions anyway would let
+          // that guard be deleted green.
+          Object.defineProperty(set, 'componentPropertyDefinitions', {
+            configurable: true,
+            get: () => {
+              const kids = set.children as Record<string, unknown>[];
+              const names = kids.map((m) => String(m.name));
+              if (new Set(names).size !== names.length) throw new Error('in get_componentPropertyDefinitions: Component set has existing errors');
+              const out: Record<string, { type: string; defaultValue?: unknown; variantOptions?: string[] }> = {};
+              for (const n of names)
+                for (const kv of n.split(', ')) {
+                  const [k, v] = kv.split('=');
+                  const d = (out[k] ??= { type: 'VARIANT', variantOptions: [] });
+                  if (!d.variantOptions!.includes(v)) d.variantOptions!.push(v);
+                }
+              return Object.assign(out, defs);
+            },
+          });
           set.addComponentProperty = (name: string, type: string, defaultValue: unknown) => {
             if (type === 'INSTANCE_SWAP' && typeof defaultValue !== 'string')
               throw new Error('in addComponentProperty: Property value is incompatible with component property type');
@@ -5811,10 +5860,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // Called at RUN time (the payload runs after this whole closure is built), so the reference
           // guard sees the definitions this set actually holds.
           guardRefs(set);
+          // Into the PAGE, so a later chunk's `findOne` can find it — and only when a page was supplied,
+          // which keeps every pre-existing caller on exactly the stub it had.
+          page?.children.push(set);
           return set;
         },
         createComponentFromNode: (n: unknown) => n,
-        currentPage: { appendChild: () => {} },
+        // A page a payload can SEARCH, not just append to. The chunked path finds its set here by name
+        // and type, so `findOne` has to be real; a stub returning `null` would send every chunk down the
+        // combine branch and build N separate sets while every assertion below still passed.
+        currentPage: {
+          appendChild: (c: Record<string, unknown>) => { page?.children.push(c); },
+          get children() { return page?.children ?? []; },
+          findOne: (pred: (n: unknown) => boolean) => (page?.children ?? []).find(pred) ?? null,
+        },
       };
       // A reference naming a property that does not exist THROWS in real Figma, and that is the one
       // direction we get for free — so the stub enforces it too, on every node. Installed here rather
@@ -6061,6 +6120,184 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         ok((r.properties ?? []).includes('children:TEXT') && !(r.properties ?? []).some((p) => p.startsWith('fullWidth')),
           `set properties: the refused property is ABSENT and the others survive — got ${JSON.stringify(r.properties)}`);
       })();
+      // ---- CHUNKED pasting: one set across N `figma_execute` calls ------------------------------
+      // #487 §6's ceiling, closed. The full Button is 756 variants ≈ 944KB against a ~45KB paste limit,
+      // so the set has to accumulate across calls — and every check the single-shot payload gets for
+      // free (the grid, the properties, the footprint cohort) becomes something a chunk has to derive
+      // from what is already in the FILE. Run rather than grepped, and run as a SEQUENCE against one
+      // shared page, because "chunk 2 finds what chunk 1 left" is the only claim that matters and a
+      // single-payload harness cannot express it at all.
+      {
+        // The 4-state × 3-appearance × 3-intent × 3-size set — 108 variants, all of which bind cleanly
+        // today. Deliberately NOT the full 756: `focus-visible` is pixel-identical to `rest` and
+        // `pending` never builds its spinner, so those states would test the chunking machinery against
+        // content known to be wrong. Chunking is the unproven thing; prove it against correct content.
+        const states4 = ['rest', 'hover', 'pressed', 'disabled'];
+        const big = button.variants.intent.flatMap((i) => button.variants.appearance.flatMap((ap) =>
+          button.variants.size.flatMap((sz) => states4.map((st) =>
+            figmaAnatomyPlan(button, sz, { leading: true, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st })))));
+        ok(big.length === 108, `chunked: the exercise set is 3 intents x 3 appearances x 3 sizes x 4 bindable states (${big.length})`);
+        const chunks = planSetChunks(big);
+        ok(chunks.length > 1, `chunked: 108 variants do not fit one payload — ${chunks.length} chunks`);
+        // THE BUDGET IS THE WHOLE POINT. An over-budget chunk is rejected by the transport AFTER its
+        // predecessors have already landed, which leaves a half-built set — so this is the one property
+        // that must hold before anything is pasted, and it is asserted on the MEASURED payload rather
+        // than on the estimate that packed it.
+        const over = chunks.filter((c) => c.bytes > SET_CHUNK_BYTES);
+        ok(over.length === 0, `chunked: every payload is inside the byte budget${over.length ? ` — OVER: ${over.map((c) => `#${c.index + 1}=${c.bytes}`).join(', ')}` : ` (largest ${Math.max(...chunks.map((c) => c.bytes))}/${SET_CHUNK_BYTES})`}`);
+        // Every variant exactly once. A packing loop that dropped or duplicated one would still produce
+        // chunks that each paste cleanly — and a duplicate is the specific input that POISONS the set.
+        const packed = chunks.flatMap((c) => c.variants);
+        ok(packed.length === 108 && new Set(packed).size === 108,
+          `chunked: every variant is packed exactly once — ${packed.length} placed, ${new Set(packed).size} distinct`);
+        ok(JSON.stringify(packed) === JSON.stringify(big.map(planComponentName)),
+          'chunked: packing preserves plan ORDER — the grid ordering the chunks derive their cells from is the whole set\'s, not a slice\'s');
+        // A COUNT-BASED split would not have held. Measured, because this is why the budget is bytes:
+        // a variant costs ~1,188 bytes slot-less and ~1,940 with both slots, so no single count bounds
+        // both this set and the full 756. Asserted as the spread it actually is.
+        const counts = [...new Set(chunks.map((c) => c.variants.length))];
+        ok(chunks.every((c) => c.bytes <= SET_CHUNK_BYTES) && chunks.slice(0, -1).every((c) => c.bytes > SET_CHUNK_BYTES * 0.9),
+          `chunked: packing FILLS each payload rather than padding to a count — ${chunks.map((c) => `${c.variants.length}v/${c.bytes}B`).join(' ')} (variant counts seen: ${counts.join(',')})`);
+
+        // The SEQUENCE, against one page. Names/styles/comps derived from the whole set, as the
+        // single-shot run does — a per-chunk list would starve later chunks of paints they legitimately
+        // need and drown the real misses.
+        const bigOpts = {
+          vars: big.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: big.flatMap((p) => planTextStyles(p.root)),
+          comps: ['FPO-default-icon'],
+        };
+        const page: { children: Record<string, unknown>[] } = { children: [] };
+        const runs: PayloadResult[] = [];
+        for (const c of chunks) runs.push(await runPayload(c.js, { ...bigOpts, page }));
+        const dirty = runs.flatMap((r, i) => r.misses.map((m) => `#${i + 1}: ${m}`));
+        ok(dirty.length === 0, `chunked: all ${chunks.length} chunks run CLEAN in sequence${dirty.length ? ` — ${JSON.stringify(dirty.slice(0, 6))}` : ''}`);
+        // ONE set, not N. The failure this guards is the plausible one: a `findOne` that misses sends
+        // every chunk down the combine branch, and the result is N separate sets that each pass every
+        // check inside their own payload.
+        ok(page.children.length === 1 && page.children[0].type === 'COMPONENT_SET',
+          `chunked: the page holds exactly ONE component set when it is done — got ${JSON.stringify(page.children.map((c) => c.type))}`);
+        ok(runs[runs.length - 1].variants === 108,
+          `chunked: the finished set holds all 108 members — the last chunk counts ${runs[runs.length - 1].variants}`);
+        ok(runs.every((r, i) => r.added === chunks[i].variants.length),
+          `chunked: each chunk builds exactly its own slice — added ${JSON.stringify(runs.map((r) => r.added))} vs packed ${JSON.stringify(chunks.map((c) => c.variants.length))}`);
+        // The AXES accumulate. Each member declares all five axis KEYS and only some of the values, so
+        // this is the assertion that `appendChild` re-derives rather than being ignored — measured live
+        // (`state:rest|hover` + `state=pressed` → three options) and the premise the whole append design
+        // rests on.
+        ok(JSON.stringify(runs[runs.length - 1].axes?.slice().sort()) === JSON.stringify(['appearance:3', 'intent:3', 'leading:1', 'size:3', 'state:4', 'trailing:1'].sort()),
+          `chunked: appending EXTENDS the axes — the finished set derives every value from every chunk (${JSON.stringify(runs[runs.length - 1].axes)})`);
+        // PROPERTIES ONLY ON THE LAST CHUNK, and wired across every member of the finished set — not
+        // just the 18 that chunk arrived with. `combineAsVariants` rewrites property ids, so this is
+        // both why they are declared last and why declaring them early would be undetectable offline.
+        ok(runs.slice(0, -1).every((r) => (r.properties ?? []).length === 0),
+          `chunked: no chunk but the last declares a property — combineAsVariants rewrites ids, so an early declaration holds ids the combine has invalidated (${JSON.stringify(runs.map((r) => r.properties?.length))})`);
+        ok(JSON.stringify([...(runs[runs.length - 1].properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
+          `chunked: the finished set carries both properties — got ${JSON.stringify(runs[runs.length - 1].properties)}`);
+        ok(runs[runs.length - 1].wiredMembers === 108 && runs[runs.length - 1].refs === 216,
+          `chunked: every one of the 108 members is wired, not just the last chunk's 18 — ${runs[runs.length - 1].wiredMembers} members across ${runs[runs.length - 1].refs} writes`);
+        // THE SET'S BOX. Appending does NOT grow it (measured: a member at x=208 appended to a 184-wide
+        // set leaves it 184 wide, with the member outside its own box, and nothing throws), so the
+        // `resize` is load-bearing and its own mutation below proves the check can fail.
+        const [w, h] = runs[runs.length - 1].size ?? [0, 0];
+        ok(w > 0 && h > 0, `chunked: the set is resized to contain its members — appending does not grow the frame (${w}x${h})`);
+
+        // A RE-PASTE is idempotent. This is not hygiene: `combineAsVariants` accepts a duplicate member
+        // name SILENTLY and the resulting set then throws on `componentPropertyDefinitions` while
+        // `addComponentProperty` keeps succeeding — so without the skip, re-running one chunk produces a
+        // set that looks buildable and dies on read-back.
+        const replay = await runPayload(chunks[1].js, { ...bigOpts, page });
+        ok(replay.variants === 108 && replay.added === 0,
+          `chunked: re-pasting a chunk adds NOTHING — the set still holds 108, ${replay.added} added (a duplicate member name poisons the whole set silently)`);
+        ok(replay.misses.every((m) => /ALREADY PRESENT/.test(m)) && replay.misses.length === chunks[1].variants.length,
+          `chunked: and it says so, once per skipped member — ${replay.misses.length} skips for ${chunks[1].variants.length} members`);
+        ok(page.children.length === 1, 'chunked: a re-paste does not leave loose components beside the set');
+        // AND SO IS RE-PASTING THE *LAST* CHUNK, which is a second, sharper hazard the member skip does
+        // nothing about. Measured live on the 12-variant set: `addComponentProperty` with a name the set
+        // already carries does NOT throw — Figma silently creates a SECOND property (`leadingVisual2`,
+        // `children2`) and returns an id whose own name does not even match the key it made
+        // (`leadingVisual#113:102` for the key `leadingVisual2#113:102`). So a designer who re-runs the
+        // final step would double every property and wire the refs to the copies, orphaning the originals,
+        // and every read-back in the payload would still report a clean paste. Hence declaration skips by
+        // name too, reusing the existing id — which is the id the refs want anyway.
+        const replayLast = await runPayload(chunks[chunks.length - 1].js, { ...bigOpts, page });
+        ok(JSON.stringify([...(replayLast.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
+          `chunked: re-pasting the LAST chunk leaves exactly two properties — not four, and none named 'children2' (${JSON.stringify(replayLast.properties)})`);
+        ok(!replayLast.misses.some((m) => /ORPHAN/.test(m)) && replayLast.wiredMembers === 108,
+          `chunked: and the refs still point at the original properties — no orphans, ${replayLast.wiredMembers} members wired${replayLast.misses.some((m) => /ORPHAN/.test(m)) ? ` — got ${JSON.stringify(replayLast.misses.filter((m) => /ORPHAN/.test(m)).slice(0, 3))}` : ''}`);
+        // The MUTATION, and it needs the replay for the same reason the duplicate-name one did: on a first
+        // paste nothing is ever already declared, so gutting this branch across a fresh sequence removes
+        // code that never runs. #511's trap, fifth sighting.
+        {
+          const js = chunks[chunks.length - 1].js.replace('const already=byBareName.get(p.name);', 'const already=undefined;');
+          ok(js !== chunks[chunks.length - 1].js, "chunked: the mutation for 'a re-declared property' actually applied");
+          const p: { children: Record<string, unknown>[] } = { children: [] };
+          const rs: PayloadResult[] = [];
+          for (const c of chunks) rs.push(await runPayload(c.js, { ...bigOpts, page: p }));
+          const again = await runPayload(js, { ...bigOpts, page: p });
+          ok((again.properties ?? []).length === 4 || (again.properties ?? []).some((s) => /2:/.test(s)),
+            `chunked: without the skip, a re-declared property is silently DUPLICATED rather than refused — ${JSON.stringify(again.properties)}`);
+          ok(again.misses.some((m) => /ORPHAN/.test(m)),
+            `chunked: and the originals are left orphaned, which the read-back names${again.misses.some((m) => /ORPHAN/.test(m)) ? '' : ` — got ${JSON.stringify(again.misses.slice(0, 5))}`}`);
+        }
+
+        // MUTATION-TESTED. Same discipline as the single-shot path, and the same reason: every claim
+        // above is a read-back, and a read-back that cannot fail is decoration. Each mutation is applied
+        // to the CHUNK sequence and run against a FRESH page, because a mutation's whole point is that
+        // the run diverges from the clean one.
+        const mutateChunks = async (label: string, from: string, to: string, want: RegExp) => {
+          const mutated = chunks.map((c) => ({ ...c, js: c.js.replace(from, to) }));
+          ok(mutated.some((m, i) => m.js !== chunks[i].js), `chunked: the mutation for '${label}' actually applied`);
+          const p: { children: Record<string, unknown>[] } = { children: [] };
+          const rs: PayloadResult[] = [];
+          for (const c of mutated) rs.push(await runPayload(c.js, { ...bigOpts, page: p }));
+          const all = rs.flatMap((r) => r.misses);
+          ok(all.some((m) => want.test(m)), `chunked: ${label}${all.some((m) => want.test(m)) ? '' : ` — got ${JSON.stringify(all.slice(0, 5))}`}`);
+        };
+        // THE CHUNK-SPECIFIC DEFECT, and the one no single-payload test could produce: a chunk that
+        // derives the grid ordering from its OWN slice instead of the whole set. Reproduced not by string
+        // surgery but by writing the plausible wrong implementation — chunk each slice INDEPENDENTLY,
+        // which is what "call the layout function on the plans you were handed" produces. Every such
+        // payload is individually correct and its column indices restart at 0, so the second slice lands
+        // exactly on top of the first. This is the reason `planSetChunks` takes the full plan list and
+        // slices only the cells, and the reason `setLayout` returns the axis ordering at all.
+        {
+          const perSlice = chunks.map((c) => planSetChunks(big.filter((p) => c.variants.includes(planComponentName(p))), 1e9));
+          ok(perSlice.every((s) => s.length === 1), 'chunked: the wrong-implementation probe emits one payload per slice, as a per-slice chunker would');
+          const p: { children: Record<string, unknown>[] } = { children: [] };
+          const rs: PayloadResult[] = [];
+          for (const s of perSlice) rs.push(await runPayload(s[0].js, { ...bigOpts, page: p }));
+          const stacked = rs.flatMap((r) => r.misses).filter((m) => /sits on top of/.test(m));
+          ok(stacked.length > 0,
+            `chunked: a slice-local grid STACKS members, and the layout read-back says so — ${stacked.length ? stacked[0] : `got ${JSON.stringify(rs.flatMap((r) => r.misses).slice(0, 4))}`}`);
+        }
+        // The RESIZE deleted. Appending does not grow the frame, so without this the set ends up smaller
+        // than its own contents — invisible to every binding, property and axis check in the payload.
+        await mutateChunks('a set that is never resized is reported', 'set.resize(', 'void(', /set -> BOX .* does not contain/);
+        // A DUPLICATE member name — and it takes a RE-PASTE to produce one, which is the whole reason the
+        // skip exists. My first attempt gutted the skip across a fresh sequence and came back with no
+        // misses at all: on a first run nothing is ever skipped, so the mutation removed a branch that
+        // never executed. That reads as an uncaught defect and is not one — #511's trap, fourth sighting:
+        // A MUTATION THAT CANNOT FIRE IS INDISTINGUISHABLE FROM ONE THAT IS NOT CAUGHT. The valid form
+        // replays a chunk onto the set that already holds it, which is exactly how a designer would
+        // produce this by re-running a step.
+        const dupJs = chunks[1].js.replace('if(have.has(spec.name)){', 'if(false){');
+        ok(dupJs !== chunks[1].js, "chunked: the mutation for 'a duplicate member name' actually applied");
+        const dup = await runPayload(dupJs, { ...bigOpts, page });
+        ok(dup.misses.some((m) => /set -> UNREADABLE/.test(m)),
+          `chunked: a duplicate member name is REPORTED rather than throwing — combineAsVariants accepts it silently and only the definitions getter complains, naming no member${dup.misses.some((m) => /UNREADABLE/.test(m)) ? '' : ` — got ${JSON.stringify(dup.misses.slice(0, 4))}`}`);
+        // And the poisoned set declares NOTHING. Declaring on it would succeed (`addComponentProperty`
+        // keeps working on a set whose getters throw), burying the one legible cause under a dozen
+        // consequences — so the payload empties `PROPS`/`REFS` when the read fails.
+        ok((dup.properties ?? []).length === 0 && !dup.misses.some((m) => /ORPHAN|declared but absent/.test(m)),
+          `chunked: a poisoned set declares no properties — addComponentProperty would still succeed, and every one would report a second failure (${JSON.stringify(dup.properties)})`);
+        // The FOOTPRINT cohort SPLIT ACROSS CHUNKS. `state` and `appearance` must not move the box, and
+        // those are exactly the siblings a chunk boundary separates — so the footprint read-back has to
+        // compare the whole set rather than one chunk, and this proves it does.
+        await mutateChunks('footprint drift is caught even when the cohort is split across chunks',
+          "if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;", '',
+          /footprint -> .* measures 2x0 but .* measures 0x0/);
+      }
     }
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------

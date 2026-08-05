@@ -659,6 +659,105 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
 };`;
 
 /**
+ * DECLARE the component properties on a live set. Expects `set`, `PROPS`, `compByName` and `misses`
+ * in scope; leaves `propIds`.
+ *
+ * Shared by the single-shot and the CHUNKED payload for the same reason `PAYLOAD_PREAMBLE` is shared,
+ * and with more at stake: every hard-won detail below (the id must come from *after* the combine, an
+ * INSTANCE_SWAP default must be a node id, a refusal must not kill the paste) is a line a second copy
+ * would silently lose while passing every offline check.
+ */
+const PAYLOAD_DECLARE_PROPS = `// COMPONENT PROPERTIES (#487 step 6). On the SET, and only after combining — measured, not read:
+// \`addComponentProperty\` on a member throws "Can only set component property definitions on a product
+// component", so there is no per-variant path to fall back to. Declaring before the combine works via
+// the standalone-component route and the ids are then REWRITTEN by \`combineAsVariants\` (\`children#103:19\`
+// became \`children#103:21\`), which is a second reason to do it after: an id captured before the combine
+// is stale by the time a reference needs it.
+// SKIP BY NAME, exactly as the chunked path skips members it already built — and for a sharper reason.
+// Measured live: re-declaring an existing property does NOT throw. Figma silently creates a SECOND
+// property (\`leadingVisual2#113:102\`) and hands back an id whose own name does not match the key it just
+// made (\`leadingVisual#113:102\`). So a re-pasted final chunk would double every property and wire the
+// refs to the copies, orphaning the originals — a corrupted panel reported as a clean paste. A property
+// that is already present with the right type is REUSED; its id is what the refs need anyway.
+let declared={};
+try{declared=set.componentPropertyDefinitions||{};}catch(err){/* already reported as UNREADABLE above */}
+const byBareName=new Map();
+for(const k of Object.keys(declared))if(declared[k].type!=='VARIANT')byBareName.set(k.split('#')[0],k);
+const propIds=new Map();
+for(const p of PROPS){
+  const already=byBareName.get(p.name);
+  if(already){
+    if(declared[already].type===p.type){propIds.set(p.name,already);continue;}
+    misses.push('property '+p.name+' -> ALREADY on the set as '+declared[already].type+' but this paste declares '+p.type+' (left alone; declaring it again would silently create a second property called '+p.name+'2)');
+    continue;
+  }
+  let def;
+  if(p.type==='INSTANCE_SWAP'){
+    // Figma demands a NODE ID here. \`key\`, \`''\`, \`null\` and \`undefined\` are each rejected with
+    // "Property value is incompatible with component property type" — so an unresolvable target is not
+    // a missing default, it is a property that cannot be created at all.
+    const target=compByName.get(p.swapTarget);
+    if(!target){misses.push('property '+p.name+' -> swap target '+p.swapTarget+' (not found; property not created)');continue;}
+    def=target.id;
+  }else def=p.default;
+  try{propIds.set(p.name,set.addComponentProperty(p.name,p.type,def));}
+  catch(err){misses.push('property '+p.name+' -> '+p.type+' REFUSED ('+err.message+')');}
+}`;
+
+/**
+ * WIRE the part→property references, per member, then read every one back. Expects `set`, `REFS`,
+ * `propIds` and `misses`; leaves `wiredRefs`.
+ */
+const PAYLOAD_WIRE_REFS = `// WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant left every
+// sibling's \`componentPropertyReferences\` empty, so a set wired once looks correct on the variant a
+// designer happens to inspect and is inert on the other twenty.
+const wiredRefs=[];
+for(const member of set.children){
+  for(const r of REFS){
+    const node=member.findOne(x=>x.name===r.part);
+    // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
+    // legitimate case, not an error. \`planSetProperties\` only ever declares a property some node
+    // references, so a part missing everywhere would leave the property undeclared instead.
+    if(!node)continue;
+    const id=propIds.get(r.prop);
+    if(!id)continue; // the property itself failed above and already reported its own cause
+    try{
+      node.componentPropertyReferences=Object.assign({},node.componentPropertyReferences||{},{[r.field]:id});
+      wiredRefs.push([member.name,r.part,r.field,id]);
+    }catch(err){misses.push('ref '+member.name+'/'+r.part+'.'+r.field+' -> '+r.prop+' ('+err.message+')');}
+  }
+}
+// READ BACK every reference. Figma throws on a reference naming an unknown property, so this covers the
+// other direction — a reference the setter ACCEPTED and did not retain, the same blind spot \`misses\`
+// had for variable bindings before #503.
+for(const [mName,part,field,id] of wiredRefs){
+  const member=set.children.find(c=>c.name===mName);
+  const node=member?member.findOne(x=>x.name===part):null;
+  const got=node&&node.componentPropertyReferences?node.componentPropertyReferences[field]:undefined;
+  if(got!==id)misses.push('ref '+mName+'/'+part+'.'+field+' -> DISCARDED (set '+id+', reads '+got+')');
+}`;
+
+/**
+ * READ BACK the component properties. Expects `set`, `PROPS`, `propIds` and `defs` (the definitions
+ * already read off the set); leaves `bare` and `propMiss`.
+ */
+const PAYLOAD_PROP_READBACK = `// READ BACK the component properties. Two failures live here that nothing else in this payload sees.
+const propMiss=[];
+// ONE: a DUPLICATE name is accepted silently and RENAMED — declaring \`children\` twice produced
+// \`children\` and \`children2\`, no throw. So the check is that each declared name came back verbatim
+// (the \`#nodeId\` suffix stripped), not that the count matches.
+const bare=new Map();
+for(const k of Object.keys(defs))if(defs[k].type!=='VARIANT')bare.set(k.split('#')[0],k);
+for(const p of PROPS)if(propIds.has(p.name)&&!bare.has(p.name))propMiss.push('property '+p.name+' -> declared but absent from the set (Figma may have renamed it)');
+// TWO: an ORPHAN — a property no node references. Figma shows it in the properties panel and changing
+// it does nothing, which is indistinguishable from a broken component to the designer holding it.
+const referenced=new Set();
+for(const member of set.children)
+  for(const n of [member].concat(member.findAll(()=>true)))
+    for(const id of Object.values(n.componentPropertyReferences||{}))referenced.add(id);
+for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+name+' -> ORPHAN (declared on the set, referenced by no node — it appears in the panel and does nothing)');`;
+
+/**
  * A plan SET → one payload that pastes every variant and combines them into a COMPONENT_SET.
  *
  * `combineAsVariants` derives the variant axes from the component NAMES, which is why
@@ -697,8 +796,17 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
  * (the engine knows the coordinate; the payload only knows widths) and `coincident` reads it back, so
  * the next stacking bug is reported rather than seen.
  */
-export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
-  if (!plans.length) throw new Error('planSetToPluginJs: no plans');
+/**
+ * The offline half of a set paste: validate the plans, compute the grid, derive the properties.
+ *
+ * Extracted so the single-shot and CHUNKED payloads compute the SAME layout from the SAME rules.
+ * That is the point rather than tidiness: the grid is computed from the plans a caller passes, so a
+ * chunk given a slice would place its members as though the slice were the whole set — `col` indices
+ * restart at 0 and chunk 2 lands on top of chunk 1. Chunked pasting therefore hands the FULL plan
+ * list to this and slices the *cells*, which keeps every member's coordinate absolute.
+ */
+const setLayout = (plans: AnatomyPlan[], fn: string) => {
+  if (!plans.length) throw new Error(`${fn}: no plans`);
   // ONE COMPONENT PER SET, and the two guards below cannot cover it. Both reason about
   // `planComponentName`, which is built from `coord`/`size`/`slots` and deliberately carries NO
   // component — a member name is a variant coordinate and nothing else, because Figma folds a slash
@@ -709,14 +817,14 @@ export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
   // The property declarations then derive from the assembled nodes, so they describe the union of two
   // components' anatomies as though it were one API.
   const stray = plans.find((p) => p.component !== plans[0].component);
-  if (stray) throw new Error(`planSetToPluginJs: every plan must come from the same component — got '${plans[0].component}' and '${stray.component}'; the set would be named after the first and silently absorb the rest`);
+  if (stray) throw new Error(`${fn}: every plan must come from the same component — got '${plans[0].component}' and '${stray.component}'; the set would be named after the first and silently absorb the rest`);
   const axesOf = (p: AnatomyPlan): string =>
     planComponentName(p).split(', ').map((kv) => kv.split('=')[0]).join(',');
   const axes = axesOf(plans[0]);
   const odd = plans.find((p) => axesOf(p) !== axes);
-  if (odd) throw new Error(`planSetToPluginJs: every plan must declare the same variant axes — got '${axes}' and '${axesOf(odd)}' (${planComponentName(odd)})`);
+  if (odd) throw new Error(`${fn}: every plan must declare the same variant axes — got '${axes}' and '${axesOf(odd)}' (${planComponentName(odd)})`);
   const names = plans.map(planComponentName);
-  if (new Set(names).size !== names.length) throw new Error('planSetToPluginJs: two plans share a component name — the set would have duplicate variants');
+  if (new Set(names).size !== names.length) throw new Error(`${fn}: two plans share a component name — the set would have duplicate variants`);
 
   // GRID PLACEMENT. Only the axes that actually vary get a dimension — a `size` axis with one value is
   // not a row of one, it is not a row. The LAST varying axis becomes the columns and the rest combine
@@ -753,9 +861,20 @@ export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
     for (const n of refNodes(plan.root))
       if (props.some((p) => p.name === n.propertyRef!.prop)) refs.set(n.name, { part: n.name, ...n.propertyRef! });
 
+  // `rowKeys`/`colKey` and the two ORDERED value lists ride along for the chunked path. It re-derives
+  // each member's cell from the member NAME instead of being handed a name→cell map, because the map is
+  // the one thing that does not fit: 756 entries of name+group is ~121KB shipped into a 45KB payload.
+  // The name is already the coordinate (that is why `planComponentName` exists), so the ordering is the
+  // only thing a chunk genuinely cannot derive — and that is four short arrays.
+  return { cells, props, refs: [...refs.values()], axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols };
+};
+
+export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
+  const { cells, props, refs, axes, rows, cols } = setLayout(plans, 'planSetToPluginJs');
+
   return `const PLANS=${JSON.stringify(cells)};
 const PROPS=${JSON.stringify(props)};
-const REFS=${JSON.stringify([...refs.values()])};
+const REFS=${JSON.stringify(refs)};
 ${PAYLOAD_PREAMBLE}
 ${PAYLOAD_BUILD}
 const built=[];
@@ -783,78 +902,18 @@ built.forEach((c,i)=>{const {row,col}=PLANS[i];c.x=at(colW,col);c.y=at(rowH,row)
 // caller's first sign of trouble — by then twenty-one loose components are already in the file.
 const set=figma.combineAsVariants(built,figma.currentPage);
 set.name=${JSON.stringify(plans[0].component)};
-// COMPONENT PROPERTIES (#487 step 6). On the SET, and only after combining — measured, not read:
-// \`addComponentProperty\` on a member throws "Can only set component property definitions on a product
-// component", so there is no per-variant path to fall back to. Declaring before the combine works via
-// the standalone-component route and the ids are then REWRITTEN by \`combineAsVariants\` (\`children#103:19\`
-// became \`children#103:21\`), which is a second reason to do it after: an id captured before the combine
-// is stale by the time a reference needs it.
-const propIds=new Map();
-for(const p of PROPS){
-  let def;
-  if(p.type==='INSTANCE_SWAP'){
-    // Figma demands a NODE ID here. \`key\`, \`''\`, \`null\` and \`undefined\` are each rejected with
-    // "Property value is incompatible with component property type" — so an unresolvable target is not
-    // a missing default, it is a property that cannot be created at all.
-    const target=compByName.get(p.swapTarget);
-    if(!target){misses.push('property '+p.name+' -> swap target '+p.swapTarget+' (not found; property not created)');continue;}
-    def=target.id;
-  }else def=p.default;
-  try{propIds.set(p.name,set.addComponentProperty(p.name,p.type,def));}
-  catch(err){misses.push('property '+p.name+' -> '+p.type+' REFUSED ('+err.message+')');}
-}
-// WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant left every
-// sibling's \`componentPropertyReferences\` empty, so a set wired once looks correct on the variant a
-// designer happens to inspect and is inert on the other twenty.
-const wiredRefs=[];
-for(const member of set.children){
-  for(const r of REFS){
-    const node=member.findOne(x=>x.name===r.part);
-    // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
-    // legitimate case, not an error. \`planSetProperties\` only ever declares a property some node
-    // references, so a part missing everywhere would leave the property undeclared instead.
-    if(!node)continue;
-    const id=propIds.get(r.prop);
-    if(!id)continue; // the property itself failed above and already reported its own cause
-    try{
-      node.componentPropertyReferences=Object.assign({},node.componentPropertyReferences||{},{[r.field]:id});
-      wiredRefs.push([member.name,r.part,r.field,id]);
-    }catch(err){misses.push('ref '+member.name+'/'+r.part+'.'+r.field+' -> '+r.prop+' ('+err.message+')');}
-  }
-}
-// READ BACK every reference. Figma throws on a reference naming an unknown property, so this covers the
-// other direction — a reference the setter ACCEPTED and did not retain, the same blind spot \`misses\`
-// had for variable bindings before #503.
-for(const [mName,part,field,id] of wiredRefs){
-  const member=set.children.find(c=>c.name===mName);
-  const node=member?member.findOne(x=>x.name===part):null;
-  const got=node&&node.componentPropertyReferences?node.componentPropertyReferences[field]:undefined;
-  if(got!==id)misses.push('ref '+mName+'/'+part+'.'+field+' -> DISCARDED (set '+id+', reads '+got+')');
-}
+${PAYLOAD_DECLARE_PROPS}
+${PAYLOAD_WIRE_REFS}
 // READ BACK the axes Figma actually derived. A name it cannot parse is dropped silently, so a set can
 // come back with fewer properties than the names claimed — present is not parsed.
-const props=set.componentPropertyDefinitions||{};
+const defs=set.componentPropertyDefinitions||{};
 // VARIANT ONLY, and this is load-bearing rather than tidiness: non-variant properties come back with a
 // NODE-ID SUFFIX (\`children#104:25\`) while variant keys do not, so the moment step 6 added a TEXT
 // property this comparison started reporting an axis mismatch on a perfectly correct set. Measured live.
-const derived=Object.keys(props).filter(k=>props[k].type==='VARIANT').sort();
+const derived=Object.keys(defs).filter(k=>defs[k].type==='VARIANT').sort();
 const expected=${JSON.stringify(axes.split(','))}.sort();
 const axisMiss=JSON.stringify(derived)!==JSON.stringify(expected)?['axes -> derived ['+derived.join(',')+'] but the names declared ['+expected.join(',')+']']:[];
-// READ BACK the component properties. Two failures live here that nothing else in this payload sees.
-const propMiss=[];
-// ONE: a DUPLICATE name is accepted silently and RENAMED — declaring \`children\` twice produced
-// \`children\` and \`children2\`, no throw. So the check is that each declared name came back verbatim
-// (the \`#nodeId\` suffix stripped), not that the count matches.
-const bare=new Map();
-for(const k of Object.keys(props))if(props[k].type!=='VARIANT')bare.set(k.split('#')[0],k);
-for(const p of PROPS)if(propIds.has(p.name)&&!bare.has(p.name))propMiss.push('property '+p.name+' -> declared but absent from the set (Figma may have renamed it)');
-// TWO: an ORPHAN — a property no node references. Figma shows it in the properties panel and changing
-// it does nothing, which is indistinguishable from a broken component to the designer holding it.
-const referenced=new Set();
-for(const member of set.children)
-  for(const n of [member].concat(member.findAll(()=>true)))
-    for(const id of Object.values(n.componentPropertyReferences||{}))referenced.add(id);
-for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+name+' -> ORPHAN (declared on the set, referenced by no node — it appears in the panel and does nothing)');
+${PAYLOAD_PROP_READBACK}
 // READ BACK the LAYOUT too. Two variants at one position is the signature of a set that combined
 // perfectly and is unusable, and it is invisible to every other check in this payload.
 const seen=new Map();
@@ -881,6 +940,322 @@ built.forEach((c,i)=>{
 // matters: \`refs\` is a push-count, so 42 writes onto ONE member satisfies it as readily as 42 spread
 // across twenty-one. Since the whole point of the per-member loop is that references do NOT propagate,
 // the number worth reporting is how many members were reached — SPREAD, not volume (#513 review).
-return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows.length)},${JSON.stringify(cols.length)}],axes:derived.map(k=>k+':'+(props[k].variantOptions||[]).length),properties:[...bare.keys()].map(k=>k+':'+props[bare.get(k)].type),refs:wiredRefs.length,wiredMembers:[...new Set(wiredRefs.map(r=>r[0]))].length,misses:misses.concat(axisMiss,coincident,footprint,propMiss)};
+return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height],grid:[${JSON.stringify(rows)},${JSON.stringify(cols)}],axes:derived.map(k=>k+':'+(defs[k].variantOptions||[]).length),properties:[...bare.keys()].map(k=>k+':'+defs[bare.get(k)].type),refs:wiredRefs.length,wiredMembers:[...new Set(wiredRefs.map(r=>r[0]))].length,misses:misses.concat(axisMiss,coincident,footprint,propMiss)};
 `;
+};
+
+/**
+ * The body of a CHUNK payload: find-or-create the set, append this chunk's members, re-lay-out and
+ * re-size the whole set, then read back everything a chunk can see. Expects the emitted `PLANS`,
+ * `PROPS_ALL`, `REFS_ALL`, `SET_NAME`, `LAST`, `FIRST`, `EXPECTED_AXES`, `ROW_KEYS`, `ROW_LABELS`,
+ * `COL_KEY`, `COL_VALS` and the two shared payload halves.
+ *
+ * WHY IT RE-LAYS-OUT MEMBERS IT DID NOT BUILD. The column pitch is measured, not computed — a
+ * hug-width button is as wide as its label, and only Figma knows that. A chunk measures its own
+ * members and no others, so a chunk that positioned only its own would place them against a pitch
+ * derived from a fifth of the set and overlap everything already there. Measuring the union
+ * (`set.children` ∪ the new members) and re-writing every position makes each chunk's layout correct
+ * for the members present and self-correcting as later chunks widen a column: the last chunk lays out
+ * the finished grid. It also means the set's box is derived rather than predicted, so nothing offline
+ * has to guess a final size.
+ *
+ * WHY IT DERIVES EACH CELL FROM THE MEMBER NAME. The alternative is shipping a name→cell map, and the
+ * map is the one thing that does not fit — 756 entries is ~121KB into a 45KB payload. The name already
+ * IS the coordinate (that is what `planComponentName` is for), so only the axis ORDERING has to travel,
+ * which is four short arrays. As a side effect a member this generator never built — a designer's
+ * manual copy — parses to no cell and is reported instead of being silently dragged somewhere.
+ */
+const PAYLOAD_CHUNK_BODY = `// FIND OR CREATE. Append mode is chosen by what is in the FILE, not by the chunk index: a re-run of
+// chunk 0 against a set that already exists must append (and then skip everything by name) rather than
+// combine a second set beside the first.
+let set=figma.currentPage.findOne(n=>n.type==='COMPONENT_SET'&&n.name===SET_NAME);
+if(!set&&!FIRST){
+  // RETURN, not continue. Every read-back below reasons about \`set.children\`, so carrying on would
+  // bury one legible cause under a dozen null-dereference consequences.
+  misses.push('set -> '+SET_NAME+' NOT FOUND on this page (chunk '+(CHUNK+1)+' of '+TOTAL+' appends into the set chunk 1 creates — paste the chunks in order)');
+  return {set:null,chunk:CHUNK+1,of:TOTAL,added:0,variants:0,misses};
+}
+// SKIP BY NAME. \`combineAsVariants\` accepts a DUPLICATE member name silently, and the set it returns
+// then THROWS on \`componentPropertyDefinitions\` and \`variantGroupProperties\` while
+// \`addComponentProperty\` still succeeds — so a re-run without this produces a set that looks buildable
+// and dies on read-back. Skipping makes a re-paste idempotent; the guarded read below catches a
+// duplicate that arrives any other way.
+const have=new Set(set?set.children.map(c=>c.name):[]);
+const fresh=[];
+for(const spec of PLANS){
+  if(have.has(spec.name)){misses.push('member '+spec.name+' -> ALREADY PRESENT (skipped; this chunk has run before)');continue;}
+  const root=await build(spec.root);
+  figma.currentPage.appendChild(root);
+  const comp=figma.createComponentFromNode(root);
+  comp.name=spec.name;
+  fresh.push(comp);
+}
+if(!set){
+  if(fresh.length===0){
+    misses.push('set -> nothing to combine (chunk 1 built no members)');
+    return {set:null,chunk:CHUNK+1,of:TOTAL,added:0,variants:0,misses};
+  }
+  // COMBINE, once, on the first chunk only. Every later member joins by \`appendChild\`, which re-derives
+  // the axes correctly — measured: appending \`state=pressed\` to a \`state=rest|hover\` set extends that
+  // axis, and appending \`size=lg\` extends the other one.
+  set=figma.combineAsVariants(fresh,figma.currentPage);
+  set.name=SET_NAME;
+}else for(const c of fresh)set.appendChild(c);
+let members=set.children.slice();
+// LAY OUT. Cells derived from the names — see the header note.
+const GAP=24;
+const cellOf=(name)=>{
+  const v={};
+  for(const kv of name.split(', ')){const i=kv.indexOf('=');if(i>0)v[kv.slice(0,i)]=kv.slice(i+1);}
+  const row=ROW_LABELS.indexOf(ROW_KEYS.map(k=>v[k]).join(' '));
+  const col=COL_KEY?COL_VALS.indexOf(v[COL_KEY]):0;
+  return {row,col,group:'size='+v.size+', leading='+v.leading+', trailing='+v.trailing};
+};
+const cells=members.map(c=>cellOf(c.name));
+const colW=[],rowH=[];
+members.forEach((c,i)=>{
+  const {row,col}=cells[i];
+  if(row<0||col<0)return;
+  colW[col]=Math.max(colW[col]||0,c.width);
+  rowH[row]=Math.max(rowH[row]||0,c.height);
+});
+const at=(arr,n)=>arr.slice(0,n).reduce((a,b)=>a+(b||0)+GAP,0);
+const stray=[];
+members.forEach((c,i)=>{
+  const {row,col}=cells[i];
+  // A member whose name is not a coordinate this generator emits. Left where it is rather than moved
+  // to a guessed cell, and reported — it is someone's manual edit, and silently relocating it is worse
+  // than leaving it visible.
+  if(row<0||col<0){stray.push('member '+c.name+' -> NOT A GENERATED VARIANT (left in place; it will not follow the grid)');return;}
+  c.x=at(colW,col);c.y=at(rowH,row);
+});
+// RESIZE, because appending does NOT grow the set's frame. Measured: appending a member at x=208 to a
+// 184-wide set leaves the set 184 wide, with the new member outside its own box — nothing throws, and
+// no read-back in the single-shot payload would ever notice, because that payload never appends.
+const wantW=Math.max(1,at(colW,colW.length)-GAP),wantH=Math.max(1,at(rowH,rowH.length)-GAP);
+if(colW.length&&rowH.length)set.resize(wantW,wantH);
+// READ BACK THE BOX, because \`resize\` is the one call here with no other witness. Appending does not
+// grow the frame, so a set that is never resized ends up SMALLER than its own contents — members
+// sitting outside the box that owns them — and every binding, property, axis and footprint check in
+// this payload passes on it. Compared against the offline expectation rather than against the members,
+// so it also catches a resize that ran and landed somewhere else.
+const boxMiss=[];
+if(colW.length&&rowH.length&&(Math.round(set.width)<Math.round(wantW)||Math.round(set.height)<Math.round(wantH)))
+  boxMiss.push('set -> BOX '+Math.round(set.width)+'x'+Math.round(set.height)+' does not contain its '+members.length+' members ('+Math.round(wantW)+'x'+Math.round(wantH)+' needed; appending does NOT grow the frame)');
+// READ BACK the definitions, GUARDED. A duplicate member name poisons this getter (see above), so an
+// unguarded read throws with no indication of which member caused it — and takes the whole paste's
+// report with it, including the misses already collected.
+let defs={},readable=false;
+try{defs=set.componentPropertyDefinitions||{};readable=true;}
+catch(err){misses.push('set -> UNREADABLE ('+err.message+') — two members almost certainly share a name, which combineAsVariants accepts silently');}
+// The axes are checked on EVERY chunk, not just the last: each member declares the full set of axis
+// KEYS (only the values are partial), so a name Figma cannot parse is visible from the first chunk on —
+// which is where it is cheap to fix, rather than after thirty-five more have landed.
+const derived=readable?Object.keys(defs).filter(k=>defs[k].type==='VARIANT').sort():[];
+const axisMiss=readable&&JSON.stringify(derived)!==JSON.stringify(EXPECTED_AXES.slice().sort())?['axes -> derived ['+derived.join(',')+'] but the names declared ['+EXPECTED_AXES.join(',')+']']:[];
+// PROPERTIES AND REFS ARE THE LAST CHUNK'S JOB, and only on a readable set. \`combineAsVariants\`
+// REWRITES property ids, so anything declared before the final member joins holds ids that the
+// combine has already invalidated. Emptied rather than skipped when unreadable: the UNREADABLE miss
+// above is the single cause, and declaring properties on a poisoned set would bury it under a dozen
+// consequences.
+const PROPS=readable?PROPS_ALL:[];
+const REFS=readable?REFS_ALL:[];`;
+
+/** The tail of a CHUNK payload: the two layout read-backs and the report. */
+const PAYLOAD_CHUNK_RETURN = `// READ BACK the LAYOUT. Two variants at one position is the signature of a set that combined perfectly
+// and is unusable, and it is invisible to every other check here.
+const seen=new Map();
+const coincident=[];
+for(const c of members){
+  const pos=c.x+','+c.y;
+  if(seen.has(pos))coincident.push('layout -> '+c.name+' sits on top of '+seen.get(pos)+' at '+pos);
+  else seen.set(pos,c.name);
+}
+// READ BACK the FOOTPRINT, across the WHOLE set rather than this chunk. That is the point of doing it
+// here: \`state\` and \`appearance\` must not move the box, and those siblings are exactly the members a
+// chunk boundary is likely to separate — a cohort split across two chunks is one no single-chunk check
+// would ever compare.
+const sizeByGroup=new Map();
+const footprint=[];
+members.forEach((c,i)=>{
+  const g=cells[i].group;
+  const box=Math.round(c.width)+'x'+Math.round(c.height);
+  const first=sizeByGroup.get(g);
+  if(!first)sizeByGroup.set(g,{box,name:c.name});
+  else if(first.box!==box)footprint.push('footprint -> '+c.name+' measures '+box+' but '+first.name+' measures '+first.box+' (same '+g+')');
+});
+// \`added\` and \`variants\` both, because a chunk that skipped everything and a chunk that built its
+// whole slice are indistinguishable from the running total alone — and the first is the one worth
+// noticing, since it means this chunk had already been pasted.
+return {set:set.name,id:set.id,chunk:CHUNK+1,of:TOTAL,added:fresh.length,variants:members.length,size:[set.width,set.height],axes:derived.map(k=>k+':'+(defs[k].variantOptions||[]).length),properties:[...bare.keys()].map(k=>k+':'+defs[bare.get(k)].type),refs:wiredRefs.length,wiredMembers:[...new Set(wiredRefs.map(r=>r[0]))].length,misses:misses.concat(stray,boxMiss,axisMiss,coincident,footprint,propMiss)};`;
+
+/**
+ * The per-payload BYTE budget for a chunked paste, against `figma_execute`'s ~45KB ceiling.
+ *
+ * BYTES, NOT A VARIANT COUNT — and that is a correction, not a preference. The obvious constant is "21
+ * variants", the size proven clean live twice (#513's grid, #528's BOOLEAN set, 42,040 B; 24 measured
+ * 45,804 and was already over). It does not survive contact with the chunked payload, for two
+ * independent reasons measured while writing this:
+ *
+ *  - the CHUNK shell is 21.3KB where the single-shot shell is 15.6KB (a chunk carries the find-or-skip
+ *    logic, the axis ordering and the guarded read-back), so 21 slot-less variants measure 45,066 —
+ *    over, on the very set the count was inherited from;
+ *  - a variant's own cost swings ~60% with the plan. A slot-less button serializes to ~1,188 bytes and
+ *    a leading+trailing one to ~1,940, so 18 variants of the FULL button measure 56,276 while 18 of
+ *    the 4-state set measure 41,702. No single count is right for both.
+ *
+ * So a count cannot bound the thing the ceiling is actually about, and the failure mode is the bad one:
+ * an over-budget payload is rejected by the transport *after* the caller has already pasted the chunks
+ * before it, leaving a half-built set. `planSetChunks` packs to this budget instead, so a chunk that
+ * would not fit becomes two chunks that do — decided offline, where it costs nothing.
+ *
+ * 42,000 rather than 45,000 because 42,040 is the largest payload with a *proven* live paste behind it,
+ * and the remaining ~3KB is the margin for what the byte count cannot see (transport framing, and the
+ * one variant whose label is longer than any measured here).
+ */
+export const SET_CHUNK_BYTES = 42_000;
+
+/**
+ * A plan set → N payloads that build the same COMPONENT_SET across SEPARATE `figma_execute` calls.
+ *
+ * WHY THIS EXISTS. `planSetToPluginJs` is one payload, and #487 §6 measured the ceiling it runs
+ * into: the full Button is 756 variants ≈ 944KB against a 45KB paste limit. So the set has to
+ * accumulate across calls, and the two hard parts are both things the single-shot payload gets for
+ * free — the LAYOUT (a chunk handed a slice would place its members as though the slice were the
+ * whole set, so chunk 2 lands on top of chunk 1) and the PROPERTIES (declared once, at the end,
+ * because `combineAsVariants` rewrites property ids and `addComponentProperty` throws on a member).
+ *
+ * THE SHAPE, chosen after measuring both candidates live:
+ *
+ *   chunk 0     build its members → `combineAsVariants` → the set exists and is READABLE
+ *   chunk 1..n  find the set by name → skip members already present → append → `set.resize(…)`
+ *   final       declare the properties, wire every member, read everything back
+ *
+ * The alternative — stage every chunk's components in a frame and combine at the very end — also
+ * works (measured), but leaves no usable set until the last call, so a half-finished run is a frame
+ * of loose components rather than a partial button a designer can open. Appending into the live set
+ * keeps every intermediate state valid.
+ *
+ * FIVE live measurements this rests on, none of which the docs state:
+ *
+ *  - APPENDING EXTENDS THE AXES. `set.appendChild(comp)` with a new value on an existing axis
+ *    (`state=pressed`) or a new value on another axis (`size=lg`) both re-derive correctly:
+ *    `size:md → size:md|lg`. So a set does not have to be built in one combine to be coherent.
+ *  - THE SET'S FRAME DOES NOT GROW. Appending a member at x=208 to a 184-wide set leaves it 184
+ *    wide — the member is outside its own set's box. Nothing throws and no read-back in the
+ *    single-shot payload would notice, because that payload never appends. Hence the explicit
+ *    `resize` per chunk.
+ *  - A DUPLICATE NAME IS ACCEPTED AND POISONS THE SET. `combineAsVariants` takes two members named
+ *    `state=rest` without complaint, and the resulting set then THROWS on both
+ *    `componentPropertyDefinitions` and `variantGroupProperties` ("Component set has existing
+ *    errors") while `addComponentProperty` still SUCCEEDS. So a re-run produces a set that looks
+ *    buildable and dies on read-back. Two defenses, because either alone is insufficient: each
+ *    chunk skips names already present (so a re-run is idempotent), AND the read-back is guarded so
+ *    a duplicate arriving any other way — a designer's manual copy, a rename — is reported as a
+ *    miss instead of throwing with no indication of which member caused it.
+ *  - POSITIONS SURVIVE. `combineAsVariants` preserves each member's x/y, and so does `appendChild`
+ *    followed by setting them. That is what makes a computed grid usable at all.
+ *  - A STAGING FRAME ALSO WORKS. Positions survive the eventual combine and duplicates are skippable
+ *    by name across separate calls — the option was measured, not assumed away, and rejected for the
+ *    reason above.
+ *
+ * Returns one payload per chunk with its measured byte size — measured, because the size a chunk turns
+ * out to be is the one number this function exists to control, and reporting the estimate it packed
+ * against instead would hide exactly the case worth seeing.
+ */
+export const planSetChunks = (
+  plans: AnatomyPlan[],
+  budgetBytes: number = SET_CHUNK_BYTES,
+): { index: number; total: number; variants: string[]; js: string; bytes: number }[] => {
+  // The FULL plan list, so the ordering every chunk derives its cells from is the whole set's. Calling
+  // `setLayout` per slice instead would compute `rowLabels`/`colVals` from a fifth of the members, so a
+  // later chunk's `col` indices would restart at 0 and it would land on top of the first — #510's
+  // stacking bug, reintroduced one chunk at a time.
+  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals } = setLayout(plans, 'planSetChunks');
+
+  // `name` + `root` only. `row`/`col`/`group` are all derivable from the name inside the payload, and
+  // the payload's bytes are the budget this whole function exists to respect.
+  const specs = cells.map((c) => ({ name: c.name, root: c.root }));
+  const emit = (slice: typeof specs, index: number, total: number, last: boolean) =>
+    `const PLANS=${JSON.stringify(slice)};
+const SET_NAME=${JSON.stringify(component)};
+const CHUNK=${index};
+const TOTAL=${total};
+const FIRST=${index === 0};
+const EXPECTED_AXES=${JSON.stringify(axes.split(','))};
+const ROW_KEYS=${JSON.stringify(rowKeys)};
+const ROW_LABELS=${JSON.stringify(rowLabels)};
+const COL_KEY=${JSON.stringify(colKey)};
+const COL_VALS=${JSON.stringify(colVals)};
+// Empty until the FINAL chunk: \`combineAsVariants\` rewrites property ids, so anything declared before
+// the last member joins holds ids the combine has already invalidated.
+const PROPS_ALL=${JSON.stringify(last ? props : [])};
+const REFS_ALL=${JSON.stringify(last ? refs : [])};
+${PAYLOAD_PREAMBLE}
+${PAYLOAD_BUILD}
+${PAYLOAD_CHUNK_BODY}
+${PAYLOAD_DECLARE_PROPS}
+${PAYLOAD_WIRE_REFS}
+// RE-READ the definitions, because the read above happened BEFORE the properties existed.
+// The single-shot payload reads once, after declaring, and gets this for free; the chunked one
+// has to read early — the guarded read is how it learns whether the set is coherent enough to declare
+// anything at all — so the snapshot it took is a set with no properties on it. Left stale, the read-back
+// reported both properties "declared but absent from the set (Figma may have renamed it)" on a perfectly
+// correct paste, and, worse, that noise MASKED two mutations that were supposed to fail loudly for
+// entirely different reasons. A read-back is only as good as the moment it samples.
+try{defs=set.componentPropertyDefinitions||{};}catch(err){/* already reported as UNREADABLE above */}
+${PAYLOAD_PROP_READBACK}
+${PAYLOAD_CHUNK_RETURN}
+`;
+
+  // PACK BY MEASURED BYTES. The shell is emitted and measured rather than estimated, then variants are
+  // added while they fit — because a per-variant average is wrong by 60% between a slot-less plan and a
+  // leading+trailing one, and the point is to be right about the payload that actually ships.
+  const pack = (shell: number) => {
+    const groups: (typeof specs)[] = [];
+    let cur: typeof specs = [];
+    let size = shell;
+    for (const spec of specs) {
+      // `+1` for the comma this variant adds to the `PLANS` array literal. One byte per variant, and it
+      // is the only part of a chunk's size that is not inside `spec` itself.
+      const cost = JSON.stringify(spec).length + 1;
+      // ALWAYS at least one variant per chunk, even one that does not fit. A single plan bigger than the
+      // whole budget is a real if distant possibility, and an empty chunk would loop forever — whereas a
+      // one-variant over-budget chunk is reported by its own `bytes` and fails visibly at the transport.
+      if (cur.length && size + cost > budgetBytes) { groups.push(cur); cur = []; size = shell; }
+      cur.push(spec);
+      size += cost;
+    }
+    if (cur.length) groups.push(cur);
+    return groups;
+  };
+  // THE SHELL IS NOT A CONSTANT, and this cost four bytes at 121 chunks before it was measured. The
+  // header interpolates `CHUNK`, `TOTAL` and `FIRST`, so a payload's own index widens it: measuring the
+  // shell as chunk 1-of-1 charges `0`, `1` and `true`, while chunk 108-of-121 spends two more digits on
+  // each number and one more character on `false`. Five bytes, invisible below ~10 chunks and enough to
+  // push the full 756-variant button's worst chunk to 42,004 against a 42,000 budget.
+  //
+  // So the shell is measured at the WORST case for a given total — a non-first chunk at the widest index
+  // — and that total is what packing produces, hence the fixpoint. It converges because a wider shell
+  // only ever yields more chunks, `String(n).length` grows in steps, and the loop is bounded by that
+  // width; the cap is a backstop, not a limit anything real reaches.
+  let groups = pack(emit([], 0, 1, false).length);
+  for (let guard = 0; guard < 8; guard++) {
+    const shell = emit([], groups.length - 1, groups.length, false).length;
+    const next = pack(shell);
+    if (next.length === groups.length) { groups = next; break; }
+    groups = next;
+  }
+
+  // The LAST chunk declares the properties, so it carries `PROPS_ALL`/`REFS_ALL` and is heavier than the
+  // packing loop assumed. It is also the chunk most likely to be short, so this normally costs nothing —
+  // but if it does overflow, split one variant off the end rather than ship a chunk over budget.
+  const lastGroup = groups[groups.length - 1];
+  if (lastGroup.length > 1 && emit(lastGroup, groups.length - 1, groups.length, true).length > budgetBytes)
+    groups.push([lastGroup.pop()!]);
+
+  return groups.map((slice, i) => {
+    const js = emit(slice, i, groups.length, i === groups.length - 1);
+    return { index: i, total: groups.length, variants: slice.map((c) => c.name), js, bytes: js.length };
+  });
 };
