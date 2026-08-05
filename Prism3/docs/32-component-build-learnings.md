@@ -118,36 +118,66 @@ Twice now, in suites written after the lesson. An invalid enum in a traits table
 real cause, but the report never printed. Fail soft: record the throw, return a sentinel that cannot
 compare equal to anything, keep going.
 
-### `[KB]` Where does "inverse / on-color" live — the component or the container?
+### `[KB]` Inverse / on-color — RESOLVED, after an analysis error worth recording
 
-Unresolved, and the most interesting open question of the batch. Our own research (`docs/20 §9`)
-reframed inverse as a **surface context**, explicitly to escape Prism2's hand-mirroring (60 of 122
-action tokens). The field is split: Material 3 and Carbon apply it contextually; Adobe Spectrum makes
-it a Button prop (`staticColor`) — because context cannot be computed when the ground is a
-photograph, which is a case the contextual model genuinely cannot serve.
+**Decision.** The `on-inverse.*` token family **stays**. Code gets container scoping; Figma gets a
+variant axis; the tokens are the same either side.
 
-The consumer lens the KB does not carry: **our components are consumed by CMS component developers**
-(Drupal / AEM / Sitecore / SFCC) building larger authorable components. A content author toggles
-"dark background" on a *container* — a hero, a promo band. If inverse is a Button property, that
-setting must be threaded from the container into every nested button, and then into headings, links,
-icons and dividers too — Prism2's mirroring problem re-emerging one tier up, as a variant of every
-component rather than a token twin. If inverse is container-scoped context, the author's single
-toggle maps to one attribute and every descendant adapts.
+The error that produced the wrong answer first: **"container-scoped" was conflated with
+"mode-swapped".** They are not the same mechanism. In CSS a container scope *selects which named
+token to use* —
 
-So the question is not "is inverse a Button variant" but **"at which tier does inverse live"** — and
-the CMS-authoring lens argues for the container. Figma does not force a deviation here: modes set on
-an ancestor frame cascade to nested instances, which is the same context mechanism, and is already
-the established pattern for dark (#487 §2).
+```css
+.hero--inverse .btn { color: var(--prism-color-interactive-primary-on-inverse-text-rest); }
+```
 
-The cost is what makes it a decision rather than a conclusion: the engine emits `on-inverse.*` as
-distinct **names**, `CONTRACT_VERSION` went to 1.1.0 *adding* `on-inverse.border`, and collapsing
-those into modes would remove ~23 guaranteed paths — a MAJOR contract event plus a deprecation table.
+— so the named mirror is not the alternative to scoping, it is **the vocabulary the scope switches
+between.** That yields container scoping (one author toggle, no threading into every nested button)
+*and* explicit named tokens, with no modes involved. Both halves of what looked like a trade.
 
-Two things worth feeding back to the KB regardless of which way it goes: the **CMS-authoring lens on
+**What the taxonomy actually contains** (measured on aurora, 597 tokens, 33 mentioning inverse):
+
+| | count | what it is |
+|---|---|---|
+| **A — surfaces** | 6 | `background.inverse.*`, `foreground.inverse.*` — what a *container* paints itself |
+| **B — the mirror** | 26 | `text/icon.on-inverse` + 8 slots × 3 interactive columns — ink and fill *for use on* that surface |
+
+A is required by any model — it is what the dark band's background is set to. B was the only thing
+ever in question: **5.4% of the 480-path guaranteed surface, growing ~8 names per interactive column.**
+
+**Why B stays, in the order the arguments actually weigh:**
+
+1. **Agent legibility, and we already argued this against someone else.** `docs/13 §1` criticises
+   Astryx for being "intent-poor… a props-table-plus; ours is a decision surface." A mode-based
+   inverse makes the inverse ink **unnameable** — no token to point an agent at, gate on, or attach
+   an `avoid_when` to. Choosing modes would move us toward the thing we called out.
+2. **White-label portability.** Every brand gets the same names with different generated values.
+   A mode-based inverse means every engagement's Figma file needs its mode structure set up
+   correctly — per-brand setup risk, landing on the people least equipped to absorb it.
+3. **No mode doubling.** Inverse is explicitly *not* dark (`docs/20 §9`: a light-only brand still
+   needs it). So as modes it would not reuse dark — a light-only brand would need **2** modes and a
+   four-mode brand **8**. As names: zero new modes.
+4. **Training cost is real and asymmetric.** "On a dark band use `text.on-inverse`" is one sentence.
+   Figma mode-scoping on an ancestor frame is a mechanism most design teams do not use.
+
+**Where Figma deviates, deliberately.** Figma has no CSS-scope equivalent, so it needs *something*:
+a variant axis, which is the mechanism designers already know. That is an intentional deviation from
+the code API (which needs no button prop, because the scope does it) and belongs in `codeOnly` — the
+general rule this file already records, applied.
+
+**The residual discipline:** add `on-inverse` slots *deliberately*, per component need, rather than
+mirroring the whole interactive family by reflex. And it is still untested whether a brand-declared
+`interactivePalettes` column gets an inverse treatment — no corpus brand exercises it.
+
+**Still worth feeding back to the KB**, both independent of the decision: the **CMS-authoring lens on
 component API design** (the KB's component research assumes an app developer, not a CMS component
-developer with a content author downstream), and the observation that **a contextual model needs an
-explicit escape hatch for non-token grounds** (imagery, video) — which is what Spectrum's
-`staticColor` actually is, and why it is not in conflict with the contextual model.
+developer with a content author downstream), and that **a contextual model needs an explicit escape
+hatch for non-token grounds** (imagery, video) — which is what Spectrum's `staticColor` actually is,
+and why it does not conflict with the contextual model.
+
+> The transferable lesson is the error, not the answer: **naming a mechanism ("context") is not the
+> same as choosing an implementation of it.** The first framing lost a whole design because one
+> implementation of context got mistaken for context itself.
 
 ### `[SKILL]` Only one of five defs is materializable
 
