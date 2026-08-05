@@ -4167,8 +4167,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(validateBrandInput({ ...input, typography: { ...(input.typography ?? {}), titleFloor: 17 } as any }).length > 0, 'CR-04: titleFloor:17 rejected (numeric enum [16,18] now enforced)');
   ok(validateBrandInput({ ...input, typography: { ...(input.typography ?? {}), titleFloor: 18 } as any }).length === 0, 'CR-04: titleFloor:18 accepted (in enum)');
   // minItems / maxItems (never checked before)
-  ok(validateBrandInput({ ...input, motionPersonality: { easingEmphasized: [0.2, 0] } as any }).length > 0, 'CR-04: easingEmphasized [0.2,0] rejected (minItems 4)');
-  ok(validateBrandInput({ ...input, motionPersonality: { easingEmphasized: [0.2, 0, 0.4, 1] } as any }).length === 0, 'CR-04: a 4-length easing accepted');
+  // The per-curve bezier editor was removed: the six curves are curated, and a role picks among them.
+  // `motionPersonality` is additionalProperties:false, so a stale `easingEmphasized` is REJECTED rather
+  // than silently ignored — which is the behavior worth asserting, since silently dropping it would
+  // leave a brand thinking it had set a curve.
+  ok(validateBrandInput({ ...input, motionPersonality: { easingEmphasized: [0.2, 0, 0.4, 1] } as any }).length > 0, 'CR-04: the retired easingEmphasized is rejected, not ignored');
+  ok(validateBrandInput({ ...input, motionPersonality: { easingRoles: { emphasized: 'calm' } } as any }).length === 0, 'CR-04: easingRoles accepts a known curve');
+  ok(validateBrandInput({ ...input, motionPersonality: { easingRoles: { emphasized: 'nope' } } as any }).length > 0, 'CR-04: easingRoles rejects an unknown curve at the schema layer');
   // families.variable is boolean|per-face-object — a string matches neither
   ok(validateBrandInput({ ...input, typography: { families: { variable: 'yes' } } as any }).length > 0, 'CR-04: families.variable:"yes" rejected (boolean|object, not string)');
   ok(validateBrandInput({ ...input, typography: { families: { variable: { display: true } } } as any }).length === 0, 'CR-04: families.variable per-face object accepted');

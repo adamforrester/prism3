@@ -50,6 +50,25 @@ every other column, with `renderRepointTable` taking an optional `setBaseline` w
 two ladders, whose baseline genuinely does live in another table). Verified end to end: setting Light's
 `default` to `calm` emits `easing-role.default → motion.easing.calm`.
 
+**The per-curve bezier editor is gone, and the evidence is why.** Owner: *"why is emphasized the only
+one that's editable? Better to not allow any and just let the user switch off the defaults per mode."*
+Agreed, and the measurement settled it — **no brand had ever authored it.** aurora, harbor, nb and
+wendys all emitted the identical default `[0.4, 0.14, 0.3, 1]`. The rare capability had shipped while
+the common one (which curve a role uses) was not settable at all until the two commits above.
+
+So `motionPersonality.easingEmphasized` is retired: the lever, the four-input editor, the schema
+property. The curve set is now curated the way the type-size ladder is — you pick from it, you do not
+author it. A brand that genuinely needs its own curve should get a **seventh named curve** in the set,
+not a role whose numbers drift away from what its name says.
+
+*The cost, stated:* two brands sharing a tempo and the same role assignments now have byte-identical
+motion. Motion character comes from tempo + role choice, not a signature curve. For a white-label
+engine that is the right trade, but it is a real capability removal and not a tidy-up.
+
+*One behavior worth knowing:* `motionPersonality` is `additionalProperties: false`, so a stale
+`easingEmphasized` is now **rejected**, not ignored. That is asserted in `test.ts` — silently dropping
+it would leave a brand believing it had set a curve. `out/*` is byte-identical because nobody set it.
+
 **Three copy defects the engine gates could never have caught — only a screenshot did.** Worth naming
 because the feature was fully working and fully green when all three were live:
 - The section still read *"the rest are generated and fixed"*, two lines above a table that substitutes

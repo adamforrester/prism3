@@ -2745,18 +2745,14 @@ const renderEasingEditor = (): HTMLElement => {
   // "the Motion specimen's emphasized BAR" was a stale reference — the specimen was rebuilt as curve
   // cards and has had no bars since; the copy outlived the rendering it pointed at.
   // No backticks in visible copy — el() escapes its text, so markdown ships literally (doc 26).
-  const wrap = palSection('Easing', 'Six curves. Only “emphasized” is authored — the rest are generated, and no curve’s numbers change per mode. What a mode CAN change is which curve each motion role uses — the table at the foot. Its four control points are below, and the Motion specimen traces it on the emphasized card.');
-  const cur = (brandState.motionPersonality?.easingEmphasized ?? theme.motion.easing.emphasized) as number[];
-  const row = el('div', 'adv-bez');
-  const inputs: HTMLInputElement[] = [];
-  const commit = (): void => { const vals = inputs.map((x) => Number(x.value)); if (vals.length === 4 && vals.every((v) => Number.isFinite(v))) { setPath(brandState, 'motionPersonality.easingEmphasized', vals); apply(); } };
-  row.append(tokenPill('motion.easing.emphasized'));
-  ['x1', 'y1', 'x2', 'y2'].forEach((lab, i) => {
-    const inp = numberField({ className: 'adv-num', step: '0.01', value: String(cur[i] ?? [0.4, 0.14, 0.3, 1][i]) });
-    inp.onchange = commit; inputs.push(inp);
-    row.append(el('span', 'adv-bez-lab mono', lab), inp);
-  });
-  wrap.append(row);
+  const wrap = palSection('Easing', 'Six curves, fixed — no curve’s numbers are authored or change per mode. What you choose is which curve each motion role uses: once for the brand, and per mode where a mode wants to differ. The Motion specimen traces the emphasized card.');
+  // The four-input bezier editor for `emphasized` was removed here. It was the only curve whose numbers
+  // could be hand-tuned, which made the section inconsistent with itself — and no brand had ever used
+  // it: aurora, harbor, nb and wendys all emitted the identical default [0.4, 0.14, 0.3, 1]. The rare
+  // capability had shipped while the common one (which curve a role uses) was not settable at all.
+  // The curve set is now curated the way the type-size ladder is: you pick from it, you do not author
+  // it. A brand that genuinely needs its own curve should get a seventh NAMED curve in the set, not a
+  // role whose numbers drift away from what its name says.
   // Every curve, drawn. `linear` and `calm` appeared NOWHERE in the app before this — the section was
   // titled "Easing" and showed one of six. `calm` in particular is an accessibility role (soft onset
   // for long/involuntary motion), which is not a thing to leave undiscoverable.

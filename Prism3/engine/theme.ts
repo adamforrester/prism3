@@ -408,7 +408,7 @@ export type BrandInput = {
   actionAnchorStep?: number;
   destructiveAnchorStep?: number;
   /** Motion personality (schema-optional #6). `tempo` scales the duration ramp;
-   *  `easingEmphasized` overrides the expressive curve. Reduce-motion variants are
+   *  The six curves are fixed; `easingRoles` picks which one a role uses. Reduce-motion variants are
    *  always derived. Omit for the 'standard' tempo. */
   motionPersonality?: MotionPersonality;
   /** Typography axis lever. `families` supply the face each text CATEGORY draws from (a
@@ -503,7 +503,6 @@ const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale:
 export type Bezier = [number, number, number, number];
 export type MotionPersonality = {
   tempo?: 'snappy' | 'standard' | 'relaxed';   // scales the base duration ramp
-  easingEmphasized?: Bezier;                    // optional override for the expressive curve
   // Which CURVE each motion role resolves to, brand-wide (#522 follow-up). The per-mode re-point in
   // `modeLevers.<mode>.easings` deviates from THIS, so without it a mode could override a baseline
   // nobody could set — you could change Dark but not Light, which is backwards. Same shape as the
@@ -558,7 +557,7 @@ const buildMotion = (p: MotionPersonality = {}): MotionAxis => {
     standard: [0.2, 0, 0, 1],          // symmetric in-place (M3 standard)
     enter: [0, 0, 0.2, 1],             // decelerate — settles into place
     exit: [0.4, 0, 1, 1],              // accelerate — gets out of the way
-    emphasized: p.easingEmphasized ?? [0.4, 0.14, 0.3, 1],  // expressive (Carbon expressive-standard)
+    emphasized: [0.4, 0.14, 0.3, 1],   // expressive (Carbon expressive-standard) — fixed, like every curve here
     calm: [0.4, 0, 0.6, 1],            // a11y: soft onset for long/involuntary motion
   };
   const spring = {
