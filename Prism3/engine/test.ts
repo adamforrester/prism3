@@ -5601,6 +5601,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     refuses('an empty plan list is refused', /no plans/, []);
     refuses('a heterogeneous set is refused offline — mixing a structure-only plan in would give some variants a `state` and not others', /same variant axes/, [grid[0], lead]);
     refuses('two plans with the same coordinate are refused — the set would carry duplicate variants', /share a component name/, [grid[0], grid[0]]);
+    // A plan from a DIFFERENT COMPONENT, which neither guard above can see: both reason about
+    // `planComponentName`, and that name carries no component by design (a slash prefix would be
+    // absorbed into the first axis key). So a foreign plan has the same axis shape and a distinct
+    // coordinate — it passes both, and `set.name` takes `plans[0].component`, so it is named after
+    // whichever plan came first while the rest vanish into it. Built by re-`id`ing the real def rather
+    // than hand-rolling a plan, because the point is that a genuine second component collides: the
+    // axis keys are identical, so nothing about the shape distinguishes them. Measured before the
+    // guard existed — `[button, chip]` returned a payload with `set.name="button"` and the chip inside.
+    refuses('a plan from another component is refused — same axis shape, distinct coordinate, so neither guard above sees it',
+      /same component — got 'button' and 'chip'/,
+      [grid[0], figmaAnatomyPlan({ ...button, id: 'chip' }, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'hover' })]);
 
     // GRID PLACEMENT is part of the deliverable. `combineAsVariants` PRESERVES positions, so appending
     // every root without one produced a set 21 variants DEEP and one button tall — every binding

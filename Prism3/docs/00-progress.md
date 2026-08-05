@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-05) — A member name carries no component, so the set could not tell (#510 review follow-up)
+
+**STATUS: engine (`anatomy-figma.ts`, `test.ts`) + this doc.** One guard plus its test; no `out/*`
+change. `test.ts` 1629 → **1630**.
+
+The last open finding from #510's review, and the reason it stayed open through two PRs is that it reads
+as contrived — the only caller builds from a single def. It is not contrived, it is *unreachable today*
+and cheap now. `planSetToPluginJs` had two refusals, and **both reason about `planComponentName`**: same
+axis shape, and no duplicate coordinates. That name deliberately carries **no component** — #487 step 3
+measured that Figma folds a slash prefix into the first axis key, so `button/intent=primary` yields a
+property literally named `button/intent`, and a member name became a bare coordinate for that reason.
+
+Which makes the two guards structurally blind to a foreign plan: it has an *identical* axis shape and a
+*distinct* coordinate, so it satisfies both and lands in the set as a member. `set.name` is
+`plans[0].component`, so the set is named after whichever plan came first and the rest disappear into it.
+**Measured before writing the guard**, with a second def built by re-`id`ing the real one — because the
+point is that a genuine second component collides, not a hand-rolled fixture:
+
+```
+b.component = "button"   c.component = "chip"
+axis keys equal?  true      names distinct?  true
+>>> ACCEPTED. set.name = "button"   ← a chip variant, filed under button
+```
+
+The downstream consequence is worse than the name. #513 derives the property declarations from the
+**assembled nodes** rather than the def — the right call, since a def-derived list can declare orphans —
+but the same property means a mixed set describes the *union* of two anatomies as though it were one
+component's API. A def-driven list would at least have had one def to be wrong about.
+
+**The generalization worth keeping:** *a value deliberately narrowed for one consumer cannot be the basis
+for a check that needs the part that was removed.* The coordinate-only name is correct for
+`combineAsVariants` and correct on the member. Two guards then built themselves on it and inherited its
+omission, and neither is wrong on its own terms — they answer the questions they ask. So the new guard
+reads `p.component` directly instead of parsing a name that was defined not to contain it.
+
+Mutation-verified: replacing the `stray` lookup with `undefined` fails exactly one assertion, the new
+one. The refusal fires *before* the axis check, so a mixed set reports the component mismatch rather than
+an axis mismatch it would also trip on — the root cause, not the symptom.
+
+---
+
 ## (2026-08-05) — A dead detector is silent, and so is a correct one (#510 review follow-up)
 
 **STATUS: engine (`test.ts`) + this doc.** Test-only — no emitter change, `out/*` byte-identical.
