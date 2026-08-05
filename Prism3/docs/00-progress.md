@@ -7,6 +7,81 @@
 
 ---
 
+## (2026-08-05) — Twenty-one perfect variants, every one of them blank (#487 step 6)
+
+**STATUS: engine (`anatomy-figma.ts`, `component-schema.ts`, `components/button.ts`, `test.ts`) + this
+doc.** No `out/*` change — this is emitter-side only. Verified live: a 6-variant appearance×state slice
+pasted with `misses: []`, both properties declared, 12 refs wired, and **readable buttons** (see below).
+
+**The bug that named this step.** #510's set was correct on every check the payload had: 21 variants,
+6 axes derived, every variable binding read back, no coincident members, uniform footprint per group.
+And every button in it was **blank** — `figma.createText()` starts with `characters === ''`, and nothing
+in the plan ever wrote anything into it. A component set can pass a structural gate completely and still
+be unusable, because "unusable" here is a fact about *legibility*, not structure. So step 6 is two things
+at once: declare the three component-property kinds on the set, and give the TEXT one something to say.
+
+**Where the placeholder lives, and why it isn't in the emitter.** `FigmaProperties.texts` changed from
+`Record<string, string>` to `Record<string, {part, default}>` — the odd shape out among `booleans` and
+`swaps`, deliberately. Those two can *derive* the `defaultValue` that `addComponentProperty` demands: a
+swap defaults to the node id of the target the plan already nominates, a boolean to the visibility of the
+part as built. TEXT has no such source. Figma accepts `''` without complaint, which is exactly how #510
+shipped. The copy therefore belongs in the **def** — the layer a second brand overrides — not hard-coded
+in the payload where no def could reach it. `component-schema.ts` now rejects an empty or whitespace-only
+default, because a def that declares a TEXT property and leaves its copy blank is stating the one thing
+the field exists to prevent.
+
+**The redesign: derive properties from the built nodes, not from the def.** The first version walked
+`def.figmaProperties` and declared one property per entry. Button's def declares `swaps` for *both*
+visuals, but #510's grid is uniformly `leading=true, trailing=false` — so that version added a
+`trailingVisual` property no node in the set references. Figma **accepts** it, shows it in the panel, and
+it does nothing when a designer changes it. `planSetProperties()` now walks the *plans* and collects only
+the properties that some built node actually points at, and refuses (throws) if two members declare the
+same name two different ways. **A list derived from the def can declare orphans; a list derived from the
+nodes cannot.** The `ORPHAN` read-back stays anyway — it catches the same class from the other direction.
+
+**Seven things measured against the live API, four of which changed the code.** Each probe created and
+removed its own nodes in one call and confirmed `0` remaining. Reading the docs would have shipped three
+of these wrong:
+- `addComponentProperty` is legal on a SET and on a standalone component and **throws on a member**
+  ("Can only set component property definitions on a product component"). Declaring *before* the combine
+  works — but `combineAsVariants` **rewrites the ids** (`children#103:19` → `children#103:21`), so
+  declaring after is the only correct order.
+- An `INSTANCE_SWAP` default must be a node **`id`**. The component `key`, `''`, `null` and `undefined`
+  are each rejected — so an unresolved swap target means *no property*, not a blank one.
+- `componentPropertyReferences` **do not propagate across members**. Wiring the first variant leaves the
+  other twenty inert, and correct on whichever variant a designer happens to inspect first. Hence the
+  per-member loop, and `refs` in the return is a count (12 for six members × two properties), not a flag.
+- A **duplicate property name is renamed, not refused** (`falsy_TEXT` → `falsy_TEXT2`, no throw). So the
+  read-back verifies the names came back **verbatim**; a count match would have passed a rename.
+
+**The trap: a suffix asymmetry silently broke a passing gate.** Non-VARIANT keys come back from
+`componentPropertyDefinitions` with a `#nodeId` suffix (`children#104:25`); VARIANT keys do **not**. The
+pre-existing axis read-back compared *all* keys against the declared axis names — so the moment a single
+TEXT property existed, it reported an axis mismatch on a perfectly correct set. Filtering
+`type === 'VARIANT'` fixes it. **Adding a feature broke a gate that was watching something else**, and
+only measuring the suffix caught it before it ran. Anything reading those keys must split on `#`.
+
+Figma validates one direction for us: a reference naming an unknown property **throws**. The other
+direction — a reference accepted and silently dropped — is the blind spot `misses[]` had for variable
+bindings before #503, so it got its own read-back too. Every new read-back is **mutation-tested**: break
+the mechanism in the generated payload, assert the miss appears, and assert the mutation *applied*
+(`mutated !== js`) so a stale `replace` target can't make the gate vacuously pass. A gate that greps a
+generated string tests the words, not the behavior.
+
+**Live verification.** The plugin sandbox has **no network** (`fetch` to a localhost server fails), and
+`figma_execute` takes no path — so a payload can only be inlined. The full 21-variant build is 34,413
+bytes minified, which is transcription risk with no verification gain, so the live check ran a 6-variant
+`appearance × {rest, disabled}` slice: the one thing the earlier 2-variant proof could **not** show is
+whether the label color tracks the appearance. It does — white on filled, red on outline and text, gray
+across the whole disabled column, stroke on outline only. An instance also responded to
+`setProperties({children: 'Add to bag'})` by changing the text **and growing its width**, which is the
+hug layout reacting to an override rather than a static box that happens to contain the right glyphs.
+
+**Next.** The `booleans` path is covered by unit tests through a synthetic def but has not been exercised
+live, because no shipping component def uses one yet — the first one that does should paste a slice.
+
+---
+
 ## (2026-08-05) — A label that spells the path the pill prints, and a ring that never fires (#504 review)
 
 **STATUS: web (`main.ts`) + this doc.** No engine change, `out/*` byte-identical. #504 merged before its
