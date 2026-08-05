@@ -229,6 +229,78 @@ plan, and component properties including default text (step 6).
 
 ---
 
+## (2026-08-05) — The namespace separation was documented, asserted about, and ungated (#493 follow-up)
+
+**STATUS: tests only (`test.ts`).** No production code and no emitted artifact changed. 1516 → **1520**
+unit (4 new), `regen --check` 88/88, NB PASS, MCP 49/0, contract unchanged.
+
+`planBindingErrors`'s doc comment (`anatomy-figma.ts:201-205`) promises variables, text styles and
+effect styles are checked against **separate** sets, because "a single merged set would let one pass by
+matching another of the same name". #493's review found that promise ungated and merged it anyway:
+
+```ts
+.filter((s) => !effectStyles.has(s) && !textStyles?.has(s) && !emitted.has(s))
+```
+
+**All 1516 tests passed.** Reconfirmed against current `main` before writing anything — the defect was
+live, not stale.
+
+### Why the existing test could not catch it
+
+The suite already asserted the namespaces are disjoint:
+
+```ts
+ok(!emitted.has('shadow/md') && !emittedStyles.has('shadow/md'), …)
+```
+
+That is a claim about the **data**. The doc's promise is about the **function**. Disjoint inputs cannot
+detect a function that stopped caring which set it was handed — the sets stay disjoint either way. Four
+probes now push a name that IS legitimately emitted, just in the wrong namespace, so a merged set makes
+them resolve silently while separate sets reject them.
+
+### The fourth probe, which the finding did not name
+
+Three probes covered the style fields and Mutation A duly failed. Then merging the **variable** filter
+with the style sets passed all three untouched — every probe exercised a style field, so that branch was
+still unguarded. `bound` is `Record<string, string>`, so an effect name squeezed in there type-checks:
+the exact shape of the `setBoundVariable('effects', …)` trap the `effectStyle` field was created to
+prevent. A fourth probe covers it.
+
+*Found by mutating a branch the finding did not mention, after the first three probes were already
+green.* The argument for mutating every branch rather than only the one a review named — a fix scoped to
+the reported case would have shipped looking complete.
+
+| mutation | on `main` | now |
+|---|---|---|
+| A — merge all three sets into the effect filter | 1516/0 **passed** | 2 failed |
+| B — merge effects into the text-style filter | 1 failed | 1 failed |
+| C — disable the effect check entirely (`false ?`) | 3 failed | 3 failed |
+| D — merge the style sets into the **variable** filter | 1519/0 **passed** | 1 failed |
+
+Two of four were silent. Probe names are read out of the emitted sets rather than hardcoded, so a
+renamed ladder cannot make them vacuously pass — a stale literal would reintroduce the same class of
+blindness one level down.
+
+### Reviewer found two more silent directions in the "fourth probe" logic itself
+
+Independent review mutation-tested past this PR's own table and found the pattern repeating one level
+down: the four probes above cover effect-vs-text, effect-vs-variable, and variable-vs-(effect+text
+combined), but not **text-vs-variable** in either direction. Two mutations confirmed both silent:
+
+| mutation | before this fix | after |
+|---|---|---|
+| E — merge the variable set into the **textStyle** filter | passed | 1 failed |
+| F — merge *only* `textStyles` (not `effectStyles`) into the **variable** filter | passed | 1 failed |
+
+The `boundCross` probe used an effect-style name, so it never ruled out the variable filter merging
+with `textStyles` alone; none of the three style-field probes ever placed a real variable name in the
+`textStyle` field. Same shape as the "fourth probe" section above — a fix scoped to the reported
+directions leaves the others looking covered. Two more probes added (a fifth `crossProbes` entry, and
+a `boundCrossText` alongside `boundCross`), completing all six pairwise directions across the three
+namespaces. 1571 → **1573** unit.
+
+---
+
 ## (2026-08-05) — Two silent paste failures, found by probing a real swap target (#487 step 3 prep)
 
 **STATUS: docs only (`docs/32`).** No engine change yet — these are findings that must land before
