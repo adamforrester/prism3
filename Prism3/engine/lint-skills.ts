@@ -106,6 +106,10 @@ const SNAKE = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/;
 
 type Finding = { file: string; kind: string; detail: string };
 
+/** How many times each scan actually RAN. See the wiring floor at the bottom of this file — the
+ *  self-check can prove a scan works without proving anything still calls it. */
+const ran = { text: 0, coverage: 0 };
+
 /**
  * Scan one skill's TEXT. Split out from `scanSkill` so the self-check can drive **this** function
  * rather than a copy of it.
@@ -127,6 +131,7 @@ type Finding = { file: string; kind: string; detail: string };
  * Mutate the call site, not the constant.
  */
 export const scanText = (text: string, rel: string, findings: Finding[]): void => {
+  ran.text++;
   for (const m of text.matchAll(/`([^`\n]+)`/g)) {
     const raw = m[1].trim();
     if (!raw || FILE_EXT.test(raw) || raw.startsWith('.') || /[\s/:<>{}|[\]()]/.test(raw)) continue;
@@ -178,16 +183,34 @@ export const scanText = (text: string, rel: string, findings: Finding[]): void =
  */
 export const scanCoverage = (text: string, rel: string, findings: Finding[]): void => {
   if (/^documents:\s*brandInput\s*$/m.test(text)) {
+    ran.coverage++;
     const schema = JSON.parse(readFileSync(resolve(repo, 'Prism3/schema/theme-schema.json'), 'utf8'));
     const declaredOmit = new Set(
       // `/gm`, not `/m` — `matchAll` THROWS on a non-global regex. It did, and the crash was hidden
       // because the run was piped through `grep -c`, which reported `0` and read as "clean".
-      [...text.matchAll(/^omits:\s*(.+)$/gm)].flatMap((m) => m[1].split(',').map((s) => s.trim())),
+      //
+      // The `(?:\r?\n[ \t]+.*)*` tail reads YAML's line continuation: a long `omits:` list wraps onto
+      // indented following lines, and `(.+)$` under `/m` stops at the first newline — so 7 of
+      // `prism3-theme`'s 14 declared omissions were silently never parsed. Nothing surfaced it,
+      // because those 7 were then "covered" by the prose scan reading the frontmatter that declared
+      // them. **Two bugs that cancel read as one working feature**; fixing the scope of the prose
+      // test is what made this one visible at all.
+      [...text.matchAll(/^omits:[ \t]*(.*(?:\r?\n[ \t]+.*)*)/gm)].flatMap((m) =>
+        m[1].split(',').map((s) => s.trim()).filter(Boolean),
+      ),
     );
+    // The prose test reads the BODY only, and that boundary is the whole mechanism — not tidiness.
+    // Scanning the full text let `omits: personality` count as prose about `personality`, so every
+    // declared omission was suppressed twice and `declaredOmit` was never the reason. Dead code that
+    // looks live: replacing the `continue` below with `if (false)` still exited 0, because the prose
+    // path caught everything the omit path was supposed to. **A declaration that also satisfies the
+    // check it exempts you from makes the exemption unfalsifiable.** Keep the two inputs disjoint —
+    // frontmatter DECLARES, body DOCUMENTS — and each one is testable on its own.
+    const body = text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, '');
     for (const prop of Object.keys(schema.properties)) {
       if (declaredOmit.has(prop)) continue;
       // Word-boundary match so `surfaces` does not satisfy `surface`.
-      if (!new RegExp(`\\b${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text)) {
+      if (!new RegExp(`\\b${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(body)) {
         findings.push({ file: rel, kind: 'uncovered input surface', detail: `\`${prop}\` is a BrandInput property this skill never mentions — document it, or add it to the frontmatter \`omits:\` list` });
       }
     }
@@ -246,6 +269,68 @@ const selfCheck = (): string[] => {
   if (sampleCoverage(`---\ndocuments: brandInput\nomits: ${everyProp}\n---\n\nall declared`).length) {
     bad.push('a fully declared `omits:` list is now falsely flagged');
   }
+  // `omits:` asserted on ONE property, in both directions, against a body that mentions nothing. The
+  // all-props sample above cannot tell "the omit list works" from "the omit list is ignored and the
+  // body happened to cover everything" — with the frontmatter in scope it could not tell them apart
+  // at all, since the list WAS the body. Here the omitted prop must vanish and its neighbours must
+  // remain, so neither dropping the exemption nor widening it into an amnesty can pass.
+  const someProp = Object.keys(
+    JSON.parse(readFileSync(resolve(repo, 'Prism3/schema/theme-schema.json'), 'utf8')).properties,
+  )[0];
+  const oneOmitted = sampleCoverage(`---\ndocuments: brandInput\nomits: ${someProp}\n---\n\nnothing documented`);
+  if (oneOmitted.some((f) => f.detail.includes(`\`${someProp}\``))) {
+    bad.push(`a property declared in \`omits:\` (${someProp}) is still flagged — the omit list is not being consulted`);
+  }
+  if (!oneOmitted.length) {
+    bad.push('declaring ONE property in `omits:` now exempts the whole skill — the omit list became a blanket amnesty');
+  }
+  // SCOPE, asserted directly: a property named only in the FRONTMATTER — and not declared in
+  // `omits:` — is not documented, and must still be flagged. This is the assertion that fails if the
+  // prose test is ever widened back to the whole file, and it needs to exist separately because
+  // widening it is silent from every other direction: the two `omits:` assertions above still pass
+  // under that change, since their props are exempt by declaration either way. Widening the scope is
+  // precisely what made the omit list unfalsifiable, so the scope gets its own tripwire.
+  if (
+    !sampleCoverage(`---\ndocuments: brandInput\nsummary: this skill is all about ${someProp}\n---\n\nnothing documented`)
+      .some((f) => f.detail.includes(`\`${someProp}\``))
+  ) {
+    bad.push(`a property mentioned ONLY in frontmatter (${someProp}) now counts as documented — the prose scan is reading the frontmatter again, which is what made \`omits:\` unfalsifiable`);
+  }
+  // The word boundary the scan's own comment claims, asserted rather than trusted. One sample covers
+  // both edges: with either `\b` dropped, one of the two glued forms below starts matching and the
+  // prop reads as documented. Cheap, and the failure it prevents is the quiet kind — a prop counted
+  // as covered because some unrelated longer word happens to contain it.
+  if (
+    !sampleCoverage(`---\ndocuments: brandInput\n---\n\nzzz${someProp} and ${someProp}zzz\n`)
+      .some((f) => f.detail.includes(`\`${someProp}\``))
+  ) {
+    bad.push(`\`${someProp}\` glued inside a longer word now counts as documenting it — the coverage match lost a word boundary`);
+  }
+  // The frontmatter strip must be LAZY — stop at the closing `---`, not at the last one in the file.
+  // Neither shipped skill uses a `---` rule in its body today, so greedy and lazy agree on every real
+  // input and nothing would surface the difference until a skill grew one and quietly lost every
+  // paragraph above it. A gate whose correctness depends on no skill using a horizontal rule is one
+  // markdown convention away from going silent, so the sample below documents a prop ABOVE a body
+  // rule: lazy keeps it, greedy eats it.
+  const allButSome = Object.keys(
+    JSON.parse(readFileSync(resolve(repo, 'Prism3/schema/theme-schema.json'), 'utf8')).properties,
+  ).filter((p) => p !== someProp).join(', ');
+  if (
+    sampleCoverage(`---\ndocuments: brandInput\nomits: ${allButSome}\n---\n\ncovers ${someProp} in full\n\n---\n\nclosing\n`).length
+  ) {
+    bad.push('a property documented ABOVE a body `---` rule is flagged as uncovered — the frontmatter strip went greedy and ate the body');
+  }
+  // A WRAPPED `omits:` list, because the real skill's is wrapped and half of it was being dropped.
+  // The prop under test sits on the continuation line, where `(.+)$` cannot reach it.
+  const lastProp = Object.keys(
+    JSON.parse(readFileSync(resolve(repo, 'Prism3/schema/theme-schema.json'), 'utf8')).properties,
+  ).at(-1)!;
+  if (
+    sampleCoverage(`---\ndocuments: brandInput\nomits: ${someProp},\n  ${lastProp}\n---\n\nnothing documented`)
+      .some((f) => f.detail.includes(`\`${lastProp}\``))
+  ) {
+    bad.push(`a property on a WRAPPED \`omits:\` continuation line (${lastProp}) is still flagged — the parser stops at the first line`);
+  }
   // The opt-in must stay opt-in: a skill that does NOT declare `documents:` is not held to coverage.
   if (sampleCoverage('---\nname: something\n---\n\nno documents declaration here').length) {
     bad.push('coverage now fires on a skill that never opted in');
@@ -262,6 +347,9 @@ if (selfFails.length) {
 
 const dirs = existsSync(skillsDir) ? readdirSync(skillsDir).filter((d) => existsSync(join(skillsDir, d, 'SKILL.md'))) : [];
 const findings: Finding[] = [];
+// Snapshot AFTER the self-check, which drives both scans with samples — the floor below asks what the
+// real skills exercised, not what the samples did.
+const before = { ...ran };
 for (const d of dirs) scanSkill(d, findings);
 
 console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}).`);
@@ -269,6 +357,31 @@ console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}
 // skills are clean.
 if (dirs.length === 0) {
   console.error('\n❌ no skills found under Prism3/skills — the layout moved, or the scan is pointed at nothing.');
+  process.exit(1);
+}
+
+// ---- WIRING FLOOR: did the scans the self-check validated actually run on the real skills? --------
+// The self-check proves each scan WORKS. Nothing above proves anything still CALLS it. Deleting
+// either call in `scanSkill` leaves every assertion passing — the self-check invokes the functions
+// directly — and the gate prints "clean" over skills it never opened. That is #511's finding one
+// layer along: there the self-check validated a copy instead of the shipping function; here it
+// validates the shipping function while the shipping PATH no longer reaches it. **Proving a scan
+// works and proving it runs are different claims, and only the second one is what CI buys.**
+//
+// Both expectations are derived from the skill files themselves rather than hard-coded, so adding a
+// skill does not need a number updated here — the floor tracks the corpus.
+const optedIn = dirs.filter((d) => /^documents:\s*brandInput\s*$/m.test(readFileSync(join(skillsDir, d, 'SKILL.md'), 'utf8')));
+const wiring: string[] = [];
+if (ran.text - before.text !== dirs.length) {
+  wiring.push(`the reference scan ran ${ran.text - before.text}× over ${dirs.length} skill(s) — it is no longer called for every skill`);
+}
+if (ran.coverage - before.coverage !== optedIn.length) {
+  wiring.push(`the coverage scan engaged ${ran.coverage - before.coverage}× but ${optedIn.length} skill(s) declare \`documents: brandInput\` (${optedIn.join(', ') || 'none'})`);
+}
+if (wiring.length) {
+  console.error('\n❌ the skills gate is no longer wired to the skills it scanned:\n');
+  for (const w of wiring) console.error(`    ${w}`);
+  console.error('\n  A self-check proves a scan works; it cannot prove anything still calls it.');
   process.exit(1);
 }
 if (findings.length) {
