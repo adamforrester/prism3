@@ -6553,8 +6553,8 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    (select 33, range 32) so the controls share a band, and free to grow so a taller control on any
    other surface using pfield is never clipped.
    Trap, and the reason two earlier passes at this "failed" while looking correct in the stylesheet:
-   the slider field carries the generic class names .slider and .range, and BOTH of those are also
-   standalone rules further down (.slider{margin-top:16px}, .range{margin-top:10px}). The 16px was
+   the slider field carries the generic class names .slider and .range. BOTH were standalone rules
+   further down (.slider{margin-top:16px}, .range{margin-top:10px}). The 16px was
    the entire label misalignment -- not anything to do with flex alignment -- and the 10px inflated
    grid row 2 to 44px, which is what made the field 66px and sent the control mid-line 25.6px off.
    Neither is visible from these rules alone, so both are neutralized here at a specificity that
@@ -6563,7 +6563,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .pfield{display:grid;grid-template-rows:auto minmax(33px,auto);gap:7px}
 .pfield > :nth-child(2){align-self:center}
 .pfield.r{margin-left:auto;justify-items:end}
-.pfield.slider{margin-top:0}
 .pfk{font-size:9.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
 .panchor{display:inline-flex;align-items:center;height:31px;padding:0 11px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);font-size:13px;color:var(--ink)}
 .panchor.dia::before{content:"◆";color:var(--ink2);font-size:9px;margin-right:6px}
@@ -6605,7 +6604,6 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .addbtn{margin-top:14px;border:1px dashed var(--line2);background:none;border-radius:var(--r-sm);padding:9px 15px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;width:100%}
 .addbtn:hover{border-color:var(--ink);color:var(--ink)}
 
-.slider{margin-top:16px}
 .slider-top{display:flex;align-items:baseline;justify-content:space-between;font-size:13px;color:var(--ink2)}
 .slider-top .val{color:var(--muted);font-size:12.5px}
 .range{width:100%;margin-top:10px;accent-color:var(--ink)}

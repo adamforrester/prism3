@@ -10,6 +10,8 @@
     "build:site": "node build-site.mjs",
     "typecheck": "tsc --noEmit",
     "audit:modes": "node mode-audit.mjs",
+    "lint:contrast": "node lint-contrast.mjs",
+    "lint:classes": "node lint-classes.mjs",
     "check:ignore": "node vercel-ignore-check.mjs"
   },
   "devDependencies": {
