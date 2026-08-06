@@ -3973,6 +3973,18 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
             const key = outlineFillRole(method, color, st);
             if (key !== null && m.roles[key] === undefined) missing.push(`${m.mode} via helper: ${key}`);
             if (key === null && family !== null) missing.push(`${m.mode} helper returned null for an emitting method`);
+            // ...and it must resolve to the STATE THAT WAS ASKED FOR, which "it resolves" does not
+            // imply: `subtle-fill.hover` resolves perfectly well when the caller asked for `pressed`.
+            // Found by review mutation, not by writing this gate: a one-token slip inside the helper
+            // (`state === 'pressed' ? 'hover' : state`) passed all 1852 tests. The result is visible
+            // and wrong — on harbor/light the two fills are distinct (hover #d3dedd, pressed #c2d1d1),
+            // so pressed would paint as hover. That is the SAME SHAPE as the bug this gate closes:
+            // a plausible-looking render rather than an error, which is exactly why #575 went unseen.
+            // Asserted against the family the helper itself returned, so it constrains the state axis
+            // without re-deriving the family and re-introducing the tautology the comment in modes.ts
+            // warns about.
+            if (key !== null && key !== `interactive.${color}.${family}.${st}`)
+              missing.push(`${m.mode} helper key ${key} ≠ requested ${color}.${st}`);
           }
         }
       }

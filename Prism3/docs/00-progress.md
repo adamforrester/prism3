@@ -76,13 +76,31 @@ first run). Rewritten as a per-brand count with the assertion that at least one 
 reaching zero is then a prompt to check whether the engine has started gating the tint for both grounds,
 in which case the per-state switch is dead code.
 
+**Review found the one escape route left, and it is worth recording how.** Independent review replicated
+every number here, then ran a mutation I had not: the helper returning the *right family* but the
+**wrong state key** (`state === 'pressed' ? 'hover' : state`). It passed all **1852** tests. (10h)
+asserted the helper's key *resolves* — and `subtle-fill.hover` resolves perfectly well when the caller
+asked for `pressed`. Reproduced here before accepting it, then closed with one assertion inside the same
+loop, checked against the family the helper itself returned so the state axis is constrained without
+re-deriving the family (which would rebuild the tautology the emitter comment warns about). N4 now fires
+10 failures naming `helper key … ≠ requested …`.
+
+The lesson is narrower and sharper than "add more assertions": **"the key resolves" is a weaker claim
+than "the key is right", and on a namespace where every sibling key also resolves, the weaker claim is
+nearly vacuous.** The wrong state would have painted pressed as hover — on harbor/light two genuinely
+distinct fills (`#d3dedd` vs `#c2d1d1`) — which is the *same shape* as the bug this entry is about: a
+plausible render rather than an error. A gate written to catch "reads a role that does not exist" was
+blind to "reads the wrong role that does exist", and those are one character apart in the helper.
+
 **Mutations:** wrong family in the helper → 10 failures; lying `opaque` flag → 5; `none` emitting a
-family → 5. **The honest gap:** reverting the *web* fix alone leaves every engine gate green, because
+family → 5; wrong state key → **0 before review, 10 after**. **The honest gap:** reverting the *web* fix alone leaves every engine gate green, because
 the web has no test suite (#333). The compile-error property covers *adding a method*; it cannot cover a
 new consumer that hardcodes a family. That is #333's cost, stated plainly rather than papered over.
 
 regen **88 in sync** (no artifact changed — the check that confirms this is a read-only fix), test.ts
-**+40** (1812 → 1852), contract unchanged at 2.0.0 / guaranteed 484, MCP 49/49, NB regression 11/11,
+**+55** (1797 → 1852 — measured against this branch's merge-base, not a stale local run: (10h) is
+5 brands × 3 methods × 3 assertions = 45, (10h-ii) is 5 × 2 = 10), contract unchanged at 2.0.0 /
+guaranteed 484, MCP 49/49, NB regression 11/11,
 US-English 94 files, lint-classes clean, lint-skills clean, `audit:modes --check-badges` 28/28.
 
 ---
