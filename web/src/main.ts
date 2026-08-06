@@ -28,7 +28,7 @@ import type { Lever } from '../../Prism3/engine/levers';
 import { previewSpec } from '../../Prism3/engine/preview';
 import { resolvePreview } from '../../Prism3/engine/resolve-preview';
 import type { ResolvedPreview } from '../../Prism3/engine/resolve-preview';
-import { resolveAllModes } from '../../Prism3/engine/modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole } from '../../Prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '../../Prism3/engine/design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../Prism3/engine/tree';
 import { ENGINE_VERSION } from '../../Prism3/engine/version';
@@ -1546,11 +1546,20 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // tiers qualify — what matters is that the ground is the dark one the `on-inverse` family was
   // measured against, not which collection it came from.
   const onInverseGround = surf.key.includes('inverse');
+  const outlineFill = outlineFillFamily(theme.outlineInteraction);
   const paletteBlock = (nm: string, c: string): HTMLElement => {
     const block = el('div', 'sg-pblock');
     const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
     const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`));
-    const bgFor: Record<string, string> = { rest: 'transparent', hover: paint(cur, `interactive.${c}.overlay.hover`), pressed: paint(cur, `interactive.${c}.overlay.pressed`) };
+    // Each state's hover fill comes from whichever family the METHOD emits — `outlineFillRole`, the
+    // same helper the emitter branches on, not a second copy of the mapping. Reading `overlay.*`
+    // unconditionally is #288, and it was still here: under `solid-tint` the overlay role does not
+    // exist, `paint()` returns 'transparent' for a missing role, and the row rendered the `none`
+    // treatment. Two of three methods therefore looked identical on the surface a designer hands a
+    // developer as the reference — and `none` was only "right" by accident.
+    const fillRole = (s: string): string | null => (s === 'rest' ? null : outlineFillRole(theme.outlineInteraction, c, s));
+    const bgFor: Record<string, string> = Object.fromEntries(
+      STATES.map((s) => { const k = fillRole(s); return [s, k ? paint(cur, k) : 'transparent']; }));
     // The OUTLINE ink is the one role here measured against the PAGE rather than against its own
     // fill, so it is the one that breaks when the preview ground stops being the page. On the
     // inverse band `interactive.<c>.text.rest` rendered #0e0d0c on #0e0d0c — 1.00:1, the identical
@@ -1561,9 +1570,25 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // The EDGE takes the same switch, for the same reason and now with a token to switch to. #461
     // could only move the ink: the engine emitted one border, measured against the page, so the
     // outline row kept a page-ground edge on the dark band. #467 added `on-inverse.border`.
-    const otxt = (s: string) => `interactive.${c}.${onInverseGround ? 'on-inverse.' : ''}text.${s}`;
-    const obd = `interactive.${c}.${onInverseGround ? 'on-inverse.' : ''}border`;
-    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obd), s, otxt(s), `text.${s}`));
+    //
+    // The switch is PER STATE, not per row, and fixing the fill above is what forced that. The wash
+    // is translucent, so a hovered control on the inverse band is still on the band and the
+    // `on-inverse` ink is right for all three states. The `solid-tint` fill is an OPAQUE palette
+    // step: it covers the band, so from `hover` onward the ground is a page-tuned tint and the
+    // band's ink is measured against something that is no longer there. Probed across the corpus —
+    // 5 brands × 4 modes × {primary, destructive} × {hover, pressed} — the inverse ink on that tint
+    // fails 3:1 in **79 of 80** combinations, worst 1.32:1. The engine gates the tint against the
+    // control's own PAGE ink for that state (worst 4.51:1 across 120 rows), so the page ink is not a
+    // fallback here, it is the measured-correct answer. Reading the right role and keeping the
+    // row-wide ink switch would have traded a visible bug for an invisible one — the exact
+    // gated-ground/painted-ground family as #63, #570 and #573.
+    const onBand = (s: string): boolean => onInverseGround && !(outlineFill.opaque && fillRole(s));
+    const otxt = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}text.${s}`;
+    const obdFor = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}border`;
+    // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
+    // reader is looking at when they read the label.
+    const obd = obdFor('rest');
+    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
     const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.on-inverse.fill.${s}`), paint(cur, `interactive.${c}.on-inverse.on-fill`), null, s, `interactive.${c}.on-inverse.fill.${s}`, `fill.${s}`));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
     block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
@@ -2130,11 +2155,18 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   // overlay role unconditionally, which rendered solid-tint identically to none — and once that was
   // made conditional there was still nothing to read, because the engine emitted no solid-tint token
   // for any brand (#288). Both halves are fixed now, so the example tracks the method for real.
-  const ohWash = theme.outlineInteraction === 'overlay-neutral' && roles['interactive.primary.overlay.hover']
-    ? rgbaOf(roles['interactive.primary.overlay.hover'])
-    : theme.outlineInteraction === 'solid-tint' && roles['interactive.primary.subtle-fill.hover']
-      ? roles['interactive.primary.subtle-fill.hover'].hex     // opaque — a real palette step, no alpha
-      : 'transparent';
+  //
+  // The mapping itself now comes from `outlineFillRole` rather than being spelled out here a second
+  // time. It WAS spelled out twice, and the copy in the style guide was the one that never got the
+  // fix (#575) — so the duplication was not hypothetical, it shipped the same bug to the surface a
+  // designer hands a developer. `opaque` still branches locally, because it decides how to PAINT
+  // (a translucent wash needs `rgbaOf` to composite honestly; an opaque step is its own hex).
+  const ohRole = outlineFillRole(theme.outlineInteraction, 'primary', 'hover');
+  const ohRes = ohRole ? roles[ohRole] : undefined;
+  const ohWash = !ohRes ? 'transparent'
+    : outlineFillFamily(theme.outlineInteraction).opaque
+      ? ohRes.hex              // opaque — a real palette step, no alpha
+      : rgbaOf(ohRes);
   oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
     example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
   host.append(oh);
