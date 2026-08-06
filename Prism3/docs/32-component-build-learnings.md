@@ -36,6 +36,87 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-06 — from the slot × size live probe (#536 item 6)
+
+### `[SKILL]` The 30 s `figma_execute` ceiling is a TRANSPORT limit — measure before optimizing the wrong layer
+
+A 25,960-byte payload (12 variants, one chunk, inside the byte budget) timed out at 30,000 ms **twice**,
+both times at member index 6. The obvious reading — the Figma work is too slow, so make it cheaper — is
+wrong, and every optimization it suggests is wasted.
+
+What the measurements said, once taken instead of assumed:
+
+| operation | cost |
+|---|---|
+| all 12 members built, appended, componentized | **1,009 ms** |
+| the same loop again, with a 20 KB inline literal alongside | **1,417 ms** |
+| `combineAsVariants` on 12 roots | 5 ms |
+| `componentPropertyDefinitions` read | 2 ms |
+| `loadFontAsync` / `setTextStyleIdAsync` | 0–2 ms / 1.4 ms |
+| one member through the real recursion | ~97 ms |
+
+So ~1.4 s of Figma work sat inside a call that could not finish in 30 s. The time goes to MCP transport
+on the payload, which is the same ceiling #536 item 7 found at 45 KB from the other direction — and it
+means **the byte budget is not the only limit a payload has to respect.** The fix is not smaller work
+per call, it is *fewer phases* per call: splitting the one payload into build+combine → properties+refs
+→ layout+read-back completed immediately, with no change to what any phase did.
+
+Two things made this diagnosable at all, both worth reaching for by default:
+
+- **Checkpoint into `figma.root.setPluginData` before you need it.** A timed-out call returns *nothing* —
+  no partial result, no stack, no logs. Plugin data survives the timeout, and reading back
+  `{"stage":"build","i":6}` is what turned "it hangs" into "it hangs at a specific, reproducible index."
+- **Run the identical loop with ballast as a control.** Rebuilding the same 12 members in a hand-written
+  loop took 1 s; adding an unused 20 KB literal kept it at 1.4 s. The first run proves the work is cheap;
+  the second proves the *source size alone* isn't the trigger either, which is what points at transport
+  rather than at parse.
+
+The generalization: **an operation timing out does not tell you which layer is slow.** A per-phase
+timing table is a few minutes of work and it is the difference between splitting the call (right) and
+rewriting the builder (wasted).
+
+### `[GATE]` A timed-out paste leaves nodes mid-construction, not just finished ones
+
+Cleanup after the first timeout removed 7 components and a loose `container` FRAME — and missed an
+orphaned `label` TEXT node created *inside* an unfinished `build()` call. The second paste then found it
+by name and the run was polluted before it started.
+
+A recursive builder is holding partial trees at every depth when it dies, so **sweep by every node type
+the builder can create, not by the names it finished.** The names you know about are exactly the ones
+that got far enough to be named.
+
+### `[KB]` `getVariableById` is unavailable under `documentAccess: dynamic-page`
+
+`figma.variables.getVariableById` throws *Cannot call with documentAccess: dynamic-page* — it must be
+`getVariableByIdAsync`. Read-back code hits this hardest, because a 12-member sweep asks for the same
+handful of variables repeatedly; cache by id, or the async version turns one read into dozens.
+
+This is the same class as `findAll` → `findAllWithCriteria` and `loadAllPagesAsync`: the dynamic-page
+migration removed the *synchronous* accessor while leaving the name in every older snippet and in most
+model priors. When a Figma read throws about `documentAccess`, look for the `…Async` twin first.
+
+### `[SKILL]` A live probe verifies the run it was part of, and nothing after it
+
+Item 6 was framed as a verification gap rather than a defect — every previous live paste had run at
+`size=medium, leading=true, trailing=false`, so three claims had shipped unobserved: `size` as a real
+three-value Figma axis, `trailing=true` at all, and both slots at once. The 12-variant grid pasted clean
+(12 members, 6 axes, 3 properties, 24 refs, `misses: []`) with the per-side padding correct on canvas at
+every size.
+
+The trap is stopping there. A green probe is a *measurement*, and the next refactor cannot see it. The
+offline expectation — 12 distinct names, one chunk, the full 12-cell padding table, three geometrically
+distinct sizes — is now in `test.ts`, which is what makes the finding survive.
+
+Writing it down also found the hole the probe had only walked past: `trailing: true` appeared nowhere in
+`test.ts` without `leading: true` beside it. The three asserted cells pin (0,0), (1,0) and (1,1) and
+leave **(0,1) free** — precisely where *each side reads its own slot* and *either side pulls in when any
+slot is filled* diverge. Mutating the emitter to `leadingFilled || trailingFilled` passed all 1,756
+assertions. **A truth table with one free cell looks fully covered**, because every row present agrees;
+enumerate the cells rather than the interesting-looking cases. (Note a plain side-*swap* was already
+caught — the first mutation tried, and the reason this note names the real gap instead of that one.)
+
+---
+
 ## 2026-08-05 — from building the whole variant SET (#487 steps 4–5)
 
 ### `[SKILL]` A per-node read-back cannot see a per-SET bug — check the properties only the whole has
