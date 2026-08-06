@@ -76,6 +76,9 @@ on the rebase onto #569's corrected head), regen 88 in sync, MCP
 49/49, NB regression 11/11 (mean ΔE00 1.95), US-English 94 files, lint-classes + lint-skills clean.
 Browser-verified on harbor (the worst case) including the owner's exact repro: pinned `text.danger` at
 500 reports `3.76 ✗` while muted beside it reports `large text 3:1 · 3.23:1 ✓`.
+
+---
+
 ## (2026-08-06) — A white page exposed semantic ink gated against the wrong ground (#63 closed)
 
 **STATUS: `Prism3/engine/modes.ts`, `test.ts`, `version.ts`, `examples/aurora.design.md`,
