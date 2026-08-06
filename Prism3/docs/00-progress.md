@@ -7,6 +7,90 @@
 
 ---
 
+## (2026-08-06) — Two Interactive sections, both wrong for the same reason: nobody checked WHERE (#561, #562)
+
+**STATUS: `web/src/main.ts`, `web/mode-audit.mjs`, `web/lint-classes.mjs`.** Two owner-reported bugs on
+the Interactive page. No engine change; `out/*` byte-identical, contract untouched.
+
+**#562 — the mode badge flush against the border on four sections.** `attachModeBadges` has always had
+two mount paths: prefer a `.psec-head` (a flex row, `justify-content:space-between`, inside the
+section's `20px 24px` padding, and it reflows to a column under 720px), else `position:absolute;
+top:0;right:0` against the section box. Outline button hover, Disabled, Icon colors and Focus ring
+appended their title straight to a bare `.psec`, so all four took the fallback. Measured **1/1** on
+those four against **21/25** on every section that used `palSection`. Fixed by having the four call
+`palSection` like the other 24 — i.e. by **deleting the special case, not by giving it insets** — so
+`.psec-badged` and its rule are gone.
+
+**The fallback is still there, and is now correct.** It could have been removed outright (nothing
+reaches it today). It was kept and taught to *build* a head instead: the entire value of a post-render
+pass is the comment above it — *"a pass over the rendered DOM cannot be forgotten by code that does not
+know it exists."* That guarantee buys nothing if what a forgetful new builder falls back to is
+misplaced. So a headless section now gets a real `.psec-head` minted around its existing `.psec-t`/
+`.psec-d`, which is the shape it should have had.
+
+**The gate is the actual finding.** The badges already had a gate — `audit:modes --check-badges`, which
+compares the badge each section *renders* against the mode-sensitivity it *measures*, and it was green
+through all of this. Every check it made was about whether a badge exists and what it says.
+
+> **Existence and correctness of content are not placement.** Four badges were on the right sections
+> saying the right thing in the wrong place, and the only instrument that caught it was the owner's eye.
+
+`--check-badges` now also measures each badge's offset from its section's resolved padding box (read off
+`getComputedStyle`, not a literal 20/24, so a padding change doesn't need this number changed too) and
+fails on a negative on either axis. Verified against the pre-fix bundle from `origin/main`: it reports
+exactly the four reported sections at `top -20px, right -24px`, and nothing else across all 28 badged
+sections on the six bar pages. `>= 0` rather than `== padding` is deliberate — a taller title legitimately
+pushes the badge down the flex cross-axis (measured 71–130px at 380–620px), but nothing may escape above
+or right.
+
+**#561 — "the Disabled example is static."** Right, and for three compounding reasons rather than one:
+
+| | | |
+|---|---|---|
+| **fill never moves** | `disabled.fill` is `prism.palette.neutral.200`, a fixed rung | 1 distinct fill across *every* legal control combination; inks give 3 |
+| **release-only** | the specimen sat outside `.stage-vol`, so `oninput` couldn't reach it | mid-drag: label read `4.5`, ink still `rgb(104,104,108)` |
+| **no receipt** | the one two-up specimen whose whole subject is a ratio | every slot row has had a `.cbadge`; all three two-up lead rows had none |
+
+Each alone reads as "static"; together they read as broken. **The section was not broken — its copy was
+lying and its evidence was missing.** It promised "how much contrast disabled controls keep" while only
+the label is contrast-gated.
+
+Three fixes, in the order that mattered:
+
+1. **The contrast receipt** — `iBadge(roles['disabled.on-fill'])`. Zero new machinery; `iExample`/
+   `iBadge`/`contrastBadge` were all already there and already wired for the slot rows. This is what
+   makes the floor legible at all: the ink only re-picks a rung when the floor crosses one, so the
+   number moves on every stop even where the swatch barely does.
+2. **Live drag** — `oninput` now writes the value, calls `rebuild()` (DOM-free) and swaps just this
+   specimen node. The old comment correctly ruled out `applyFull()` on `oninput` (it rebuilds the
+   workspace and would destroy the slider mid-gesture); it did not rule out a targeted repaint. Release
+   still commits through `applyFull` so the mode strip's per-mode marks and the other palettes catch up
+   in one pass. Verified the slider survives the drag and the specimen tracks it: `3.09:1 ✓` →
+   `4.54:1 ✓` *mid-drag*, not on release.
+3. **The copy** — says the fill is a fixed step of the neutral ramp and these controls set the label
+   contrast. Converts "broken" into "working as designed".
+
+**Not fixed, deliberately, and flagged for the owner:** `disabledMin` is `step: 0.5` over `3–4.5`, and
+the top two stops both resolve to `neutral.650` — measured `4.54:1` at both `4` and `4.5`, so a quarter
+of the dial is a no-op. That is a `levers.ts` change (engine surface, near the schema) rather than a web
+fix, and finer steps trade perceptible feedback against *more* stops that land between rungs. The
+receipt at least makes the no-op visible now instead of mysterious. Left as a decision, not an assumption.
+
+**A structural side effect worth knowing about.** `twoUp` used to mint `aex aex-two` on one element;
+`.aex` is the column that stacks a specimen over its receipt, so a two-up wanting a receipt needs the
+row and the column to be two boxes. Nesting **unconditionally** (rather than only when a badge is
+passed) keeps one layout to reason about and **retired an entry from `lint:classes`'s allowlist** — the
+alternative was a ternary the scanner cannot read, which is the allowlist being evaded rather than
+satisfied. Two dead rules went with it: `.aex-two`'s `grid-column:1/-1` under 900px (it is no longer a
+grid child) and `.psec-badged`.
+
+**Gates.** regen `--check` 88/88 · engine tests **1745**/0 · MCP 49/0 · contract unchanged (2.0.0, 484
+guaranteed) · 7 plugin suites ALL PASS · three typechecks clean · web + plugin builds · `lint:classes`
+clean (57 entries, one fewer) · `lint:contrast` clean · `lint-skills` · US-English 94 files clean ·
+`audit:modes --check-badges` 28/28 badges correct **and inside their padding**.
+
+---
+
 ## (2026-08-05) — A declaration that omits its trigger is not projectable (#536 item 2)
 
 **STATUS: `component-schema.ts`, `anatomy-figma.ts`, `components/button.ts`, `test.ts`.** Stacks on
