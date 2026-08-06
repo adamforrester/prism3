@@ -169,16 +169,23 @@ export const button: ComponentDef = {
   //  · The brief's "container/target" and "layout container" are ONE part. In the brief they are
   //    separate paragraphs because CSS lets them be separate concerns; in both Figma auto-layout
   //    and `inline-flex` they are the same node, and splitting them would emit a redundant frame.
-  //  · The focus ring is NOT a part. The brief calls it "its own concern" — meaning it must not be
-  //    the element border — but it is a stroke-with-offset on the target, not a node. Making it a
-  //    part would put something in the child tree that a materializer has nowhere to place.
+  //  · The focus ring IS a part, and this REVERSES the decision recorded here through #493 (#536
+  //    item 3). The old reasoning was that a ring is "a stroke-with-offset on the target, not a node",
+  //    so a part would put something in the child tree a materializer has nowhere to place. Both
+  //    halves were wrong, and the second is what mattered: the ring is a node — an ABSOLUTELY
+  //    positioned sibling — and a materializer places it precisely because it takes no cell in the row.
+  //    What forced the reversal was the cost the old decision carried, measured rather than argued:
+  //    `appearance=outline, state=focus-visible` emitted its REST border and no ring at all, and all
+  //    108 focus-visible rows were byte-identical to their rest sibling. A ring drawn on the target
+  //    instead would have to win the target's single stroke away from outline's border. An absolute
+  //    sibling has its own, so nothing is traded — see `parts.focusRing`.
   anatomy: {
     root: 'container',
     parts: {
       container: {
         kind: 'box',
         role: 'target',
-        children: ['leadingVisual', 'label', 'trailingVisual'],
+        children: ['leadingVisual', 'label', 'trailingVisual', 'focusRing'],
         // justify: center is the CONSTANT (docs/28 §5.2). Primer ties alignment to purpose —
         // centre for CTAs, left for selection toggles — but that would make `align` the first
         // LAYOUT prop in ComponentDef, a precedent propagating across ~40 components. Deferred
@@ -203,6 +210,13 @@ export const button: ComponentDef = {
         size: 'size.{size}.icon',
         note: 'Takes the leading visual\'s position rather than the label\'s — replacing a centred label collapses the width, which the brief\'s don\'t-list prohibits explicitly.',
       },
+      focusRing: {
+        kind: 'absolute',
+        when: 'focus-visible',
+        nests: 'focus-ring',
+        inset: 'ring-offset',
+        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its OWN stroke — which is what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with `appearance=outline`\'s border for the single stroke a Figma node has, at three different palette steps (550 ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody\'s component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field` already emits separately.',
+      },
     },
     derived: {
       'min-width': 'height × minWidthMultiplier — Spectrum computes it rather than authoring it, so a short label ("OK") cannot produce a stubby button',
@@ -212,7 +226,8 @@ export const button: ComponentDef = {
     // hold, so it is recorded rather than silently lost in the projection.
     codeOnly: [
       'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame.',
-      'focus-ring-offset — expressible as a Figma stroke, but the `:focus-visible` CONDITION is not; a materialized button carries the ring geometry with no way to say when it appears.',
+      'focus-ring-offset — the ring GEOMETRY now projects (an absolute sibling nesting the shared `focus-ring`), but its offset is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` to a number and writes it. Every bound paint re-themes when a brand changes; an already-pasted ring does not move. The `:focus-visible` CONDITION remains unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
+      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. The consequence worth naming: `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens` and only `ring-offset` reaches a Figma node, so the engine cannot gate the ring\'s own colour or weight against the emitted variables — it verifies that a ring is nominated and where it sits, and nothing more. Accepted deliberately, because the alternative is authoring the ring N ways in N hosts; the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and a shared component is where it belongs.',
       'min-width derivation — resolved to a literal at emit, so the Figma component holds a frozen number rather than the live height×multiplier relationship.',
       'width (auto | full) — declared as a variant axis but deliberately NOT projected into Figma (#487 §4). A designer resizes an auto-layout frame; a variant axis for it doubles the whole set to buy nothing a drag does not already do.',
       'modifiers (leading-visual | trailing-visual | pending) — not projected as-is. Slot CONTENT is an INSTANCE_SWAP property, and `pending` is already a value on the state axis, so projecting this axis would duplicate one and mis-model the other. Slot PRESENCE still needs its own variant axis before #326\'s split inline padding can survive the Figma leg — that axis does not exist in this def yet, so it is not claimed here.',

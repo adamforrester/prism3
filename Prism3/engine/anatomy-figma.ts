@@ -30,7 +30,12 @@ import { expandKey } from './component-schema';
  *  translation layer between the gate and the thing it claims to verify. */
 export type FigmaNodePlan = {
   name: string;
-  type: 'FRAME' | 'TEXT' | 'INSTANCE_SWAP';
+  /** `NESTED_INSTANCE` is an instance of a component that must ALREADY EXIST in the file, and it is a
+   *  peer of `INSTANCE_SWAP` rather than a flag on it because the two differ in every consequence: a
+   *  swap is a slot the *consumer* repoints and carries a component PROPERTY, while a nested instance
+   *  is structure the *host* fixes and carries none. Collapsing them would hand the designer a
+   *  swappable focus ring. */
+  type: 'FRAME' | 'TEXT' | 'INSTANCE_SWAP' | 'NESTED_INSTANCE';
   layoutMode?: 'HORIZONTAL' | 'VERTICAL';
   primaryAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
   counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
@@ -85,6 +90,34 @@ export type FigmaNodePlan = {
    *  `on-fill` / `text.rest` and reaches the vector as a per-instance override. Verified to survive
    *  `createComponentFromNode` and nesting one level deeper into an instance. */
   descendantFills?: string;
+  /** For a `NESTED_INSTANCE`: the NAME of the component to instantiate, and the whole reason this node
+   *  type exists. A name for the same reason `bound` holds names — the plan is brand-invariant.
+   *
+   *  Distinct from `swapTarget` even though both resolve a component by name, because the failure modes
+   *  are opposite. An unresolvable `swapTarget` degrades to a placeholder frame, which is a slot the
+   *  designer can still fill. An unresolvable `nestTarget` must NOT: a frame in the ring's place is an
+   *  unstroked, invisible box that reads as a successfully built focus ring, so the payload records the
+   *  miss and builds nothing at all. **A missing shared component is the expected failure of this kind**
+   *  — it is the first kind that can fail because of what is absent from the FILE rather than the plan. */
+  nestTarget?: string;
+  /** For a `NESTED_INSTANCE`: taken out of the auto-layout flow, sized to its parent's bounds grown by
+   *  the `inset` variable's value on every side.
+   *
+   *  A variable NAME, like every other geometry field — but it is the one name here that will NOT be
+   *  bound, and the distinction is the whole content of this field. Figma's `x`/`y` accept no variable
+   *  binding, so the payload resolves this name to the variable's **value** and writes a number. It is
+   *  deliberately not in `bound`, which would imply a `setBoundVariable('x', …)` that does not exist —
+   *  the same argument `textStyle` and `effectStyle` got their own fields for, and the strongest form of
+   *  it, since here the setter would take the call and drop the write.
+   *
+   *  A NAME rather than a resolved number because **the plan must stay brand-invariant**: freezing the
+   *  number at plan time would make a plan that only works for the brand that built it, breaking the
+   *  property every other field in this type preserves. The freezing still happens — it just happens at
+   *  paste, in the file, against that file's own variables. So a brand changing `focus.ring.offset`
+   *  re-themes every bound paint and does NOT move an already-pasted ring, which is a real ceiling and
+   *  is admitted in `codeOnly`. Carrying the name also keeps this value inside `planBindingErrors`,
+   *  instead of it being the one geometry binding in the projection exempt from the emit gate. */
+  absoluteInset?: string;
   children: FigmaNodePlan[];
 };
 
@@ -244,6 +277,12 @@ export const figmaAnatomyPlan = (
     if (name === 'leadingVisual') return leading;
     if (name === 'trailingVisual') return trailing;
     const p = a.parts[name];
+    // An `absolute` part is state-gated exactly as an overlay is — it appears on its `when` state and
+    // nowhere else. Read off `when` rather than from a name, so the ring's presence follows the same
+    // rule the spinner's does and a second def gets it for free. This is what closes #536 item 3's
+    // measured symptom: `state=focus-visible` emitted a plan byte-identical to `rest` in all 108 rows,
+    // because the ring was not a part at all and nothing else distinguishes focus.
+    if (p?.kind === 'absolute') return !!p.when && p.when === state;
     return !p?.optional;
   };
 
@@ -297,6 +336,14 @@ export const figmaAnatomyPlan = (
         bound.paddingLeft = varOf(leadingFilled ? inlineVisual : p.padding.inlineLabel);
         bound.paddingRight = varOf(trailingFilled ? inlineVisual : p.padding.inlineLabel);
       }
+    } else if (p.kind === 'absolute') {
+      // NOTHING in `bound`, deliberately. An absolute part's geometry is its position and its size, and
+      // Figma binds neither: `x`/`y` take no variable, and its size is its parent's grown by the inset
+      // rather than a value of its own. So the one geometry fact travels in `absoluteInset` — see the
+      // field's note for why a name that will never be bound still has to be a name.
+      //
+      // A `size` binding is not read here even if a def declares one: an absolute part is sized BY its
+      // parent, so a square artboard binding would fight the stretch and win on one axis silently.
     } else {
       // Both axes, bound to the SAME variable. That is legal — an unlocked node tracks a square
       // artboard on both axes — but it is legal only because the executor unlocks the node first;
@@ -362,7 +409,9 @@ export const figmaAnatomyPlan = (
 
     return {
       name,
-      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : 'INSTANCE_SWAP',
+      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : p.kind === 'absolute' ? 'NESTED_INSTANCE' : 'INSTANCE_SWAP',
+      ...(p.kind === 'absolute' && p.nests ? { nestTarget: p.nests } : {}),
+      ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       ...(chars !== undefined ? { characters: chars } : {}),
       ...(propertyRef ? { propertyRef } : {}),
       ...(textStyle ? { textStyle } : {}),
@@ -403,11 +452,21 @@ export const planPartNames = (n: FigmaNodePlan): string[] => [n.name, ...n.child
  *  styles got their own walkers because they check against their own name sets, and a paint does
  *  not. Getting this wrong the other way would silently exempt every paint from the emit gate. */
 export const planBoundVars = (n: FigmaNodePlan): string[] =>
-  [...Object.values(n.bound), ...paintVarsOwn(n), ...n.children.flatMap(planBoundVars)];
+  [...Object.values(n.bound), ...paintVarsOwn(n), ...readVarsOwn(n), ...n.children.flatMap(planBoundVars)];
 
 /** This node's own paint variables (not its children's). */
 const paintVarsOwn = (n: FigmaNodePlan): string[] =>
   [n.paints?.fills, n.paints?.strokes, n.descendantFills].filter((x): x is string => !!x);
+
+/** Every variable name a plan REFERENCES without binding — today just `absoluteInset`, which Figma's
+ *  `x`/`y` cannot bind but which the payload still resolves by name to read a value.
+ *
+ *  Folded into `planBoundVars` rather than given a separate check, because the question the emit gate
+ *  asks is "does this name exist in the emitted variables" and the answer does not depend on which
+ *  setter consumes it. Keeping it out would have made the one geometry value on the new part kind the
+ *  only one in the projection nothing verified — and an unresolvable inset silently positions a focus
+ *  ring flush against the border it exists to be distinguishable from. */
+const readVarsOwn = (n: FigmaNodePlan): string[] => (n.absoluteInset ? [n.absoluteInset] : []);
 
 /** Every paint variable a plan binds, depth-first. Exported for the gate that asserts a skinned plan
  *  actually carries paints — the check that a coordinate resolved to something. */
@@ -645,6 +704,16 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     else if(!target)misses.push(n.name+'.swapTarget -> '+n.swapTarget);
     node=target?target.createInstance():figma.createFrame();
   }
+  else if(n.type==='NESTED_INSTANCE'){
+    // A SHARED component the file must already have — the first node type that can fail because of
+    // what is absent from the FILE rather than from the plan.
+    // NO placeholder frame, and this is the opposite call from INSTANCE_SWAP above deliberately. An
+    // unstroked frame in a focus ring's place is invisible and reads as a ring that built fine; a slot's
+    // placeholder is a box a designer can still fill. So a missing ring builds NOTHING and says so.
+    const nested=compByName.get(n.nestTarget);
+    if(!nested){misses.push(n.name+'.nestTarget -> '+n.nestTarget+' (not in this file; nothing built — publish the shared component first)');return null;}
+    node=nested.createInstance();
+  }
   else{node=figma.createFrame();node.clipsContent=false;}
   node.name=n.name;
   // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
@@ -734,7 +803,48 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
   const boundPaint=(arr)=>!!(arr&&arr[0]&&arr[0].boundVariables&&arr[0].boundVariables.color);
   if(painted.fills&&!boundPaint(node.fills))misses.push(n.name+'.fills -> DISCARDED (paint set, not retained)');
   if(painted.strokes&&!boundPaint(node.strokes))misses.push(n.name+'.strokes -> DISCARDED (paint set, not retained)');
-  for(const c of n.children) node.appendChild(await build(c));
+  // FLOW CHILDREN FIRST, absolute ones after — two passes, because an absolute child is positioned
+  // against its parent's FINAL size and the parent hugs its flow content. Positioning inside one loop
+  // would read \`node.width\` mid-append and silently make the result depend on the part's ORDER in the
+  // def: correct while the ring is declared last, and quietly wrong the day someone reorders \`children\`.
+  const absolutes=[];
+  for(const c of n.children){
+    const kid=await build(c);
+    // A NESTED_INSTANCE whose shared component is missing returns null — the child is skipped and the
+    // rest of the tree still builds, so the paste reports one precise miss instead of failing whole.
+    if(!kid)continue;
+    node.appendChild(kid);
+    if(c.absoluteInset)absolutes.push([c,kid]);
+  }
+  // Applied by the PARENT, because every fact here is about the child's relationship to it:
+  // \`layoutPositioning\` is only meaningful inside an auto-layout parent, and the parent's size is what
+  // the inset is measured from.
+  for(const [c,kid] of absolutes){
+    const v=byName.get(c.absoluteInset);
+    if(!v){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset);continue;}
+    kid.layoutPositioning='ABSOLUTE';
+    // The VALUE, read from the variable, because \`x\`/\`y\` accept no binding — the one place in this
+    // payload where a resolved number is written instead of a binding, and the reason the plan carries a
+    // name rather than a number (the plan stays brand-invariant; the freeze happens here, per file).
+    // \`resolveForConsumer\` rather than reading \`valuesByMode\`: the value is itself an ALIAS to a
+    // dimension primitive, and the raw map hands back a VARIABLE_ALIAS object rather than a number.
+    const off=v.resolveForConsumer(kid).value;
+    if(typeof off!=='number'){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset+' resolved to '+JSON.stringify(off)+', not a number');continue;}
+    // Grown on every side: a ring at offset 2 sits 2px OUTSIDE its target, so it is 2×offset larger
+    // than the parent and starts at -offset.
+    // \`resize\` is safe HERE and nowhere else in this payload: it clears dimension bindings, and an
+    // absolute part binds none (its size IS the parent's, so \`bound\` is empty by construction — gated).
+    kid.resize(node.width+off*2,node.height+off*2);
+    kid.x=-off;kid.y=-off;
+    // STRETCH on both axes so the ring tracks its target when a designer resizes a variant. Without it
+    // the ring keeps the size it was pasted at and widening the button leaves it behind — silently,
+    // because it looks correct at the one size it was built.
+    kid.constraints={horizontal:'STRETCH',vertical:'STRETCH'};
+    // READ BACK, the same discipline as every other setter here. \`layoutPositioning\` is rejected on a
+    // child of a non-auto-layout parent, and an absolute child that quietly stayed in the flow ADDS a
+    // cell to the row — the one thing the ring must not do to its host's geometry.
+    if(kid.layoutPositioning!=='ABSOLUTE')misses.push(c.name+'.layoutPositioning -> DISCARDED (set ABSOLUTE, reads '+kid.layoutPositioning+'; the ring would take a cell in the row)');
+  }
   return node;
 };`;
 

@@ -70,7 +70,8 @@ export type PartKind =
   | 'box'      // a layout container — the only kind that carries layout/padding/gap
   | 'text'     // a text node; carries a type binding
   | 'slot'     // swappable content (icon / avatar / counter / spinner) — instance-swap in Figma
-  | 'overlay'; // occupies another part's position rather than its own row cell
+  | 'overlay'  // occupies another part's position rather than its own row cell
+  | 'absolute'; // takes NO position in the flow — an absolutely-positioned sibling of its siblings
 
 /** How a part sizes on each axis. Figma's auto-layout vocabulary, which is also CSS-expressible
  *  (`hug` = fit-content, `fill` = stretch, `fixed` = an explicit dimension). */
@@ -125,6 +126,34 @@ export type PartDef = {
    *  however complete it looks** — and it looks complete precisely because every field that exists
    *  is filled in. */
   when?: string;
+  /** For `absolute`: the NAME of a component that must already exist in the file, which this part
+   *  materializes as an INSTANCE of rather than authoring from nothing.
+   *
+   *  **This is the first part kind whose materialization depends on another component existing**, and
+   *  the reason it is a nomination rather than a construction is the focus ring's own economics: the
+   *  ring is not any one component's (`focus.ring.*` and `color.border.focus` are top-level families,
+   *  and `focus.ring.offset-field` already emits separately — the ring was always one shared thing
+   *  with a per-context parameter). Authored per host it would be duplicated N ways; nested, one
+   *  component carries it and every host points at it.
+   *
+   *  The COST, stated because it is real and permanent: the nested component's own strokes, weight and
+   *  radius live inside it, so `planBindingErrors` cannot gate them — the engine can verify that the
+   *  host nominates a ring and where it sits, and nothing more. A host's `focus-ring` / `ring-width` /
+   *  `ring-offset` binding keys therefore stay bound-but-unprojected, which is the honest reading of
+   *  "the ring is shared" rather than a gap. The DECISION this encodes is that N-way duplication is
+   *  the worse cost; `absolute` without `nests` is left unsupported rather than half-supported. */
+  nests?: string;
+  /** For `absolute`: the binding key giving the amount this part is inset OUTWARD from its parent's
+   *  bounds on every side. The focus ring's `focus.ring.offset` — a ring at offset 2 sits 2px outside
+   *  the target on each side, so a materializer positions it at `-inset` and sizes it
+   *  `parent + 2 × inset`.
+   *
+   *  A binding key like every other geometry field, and it resolves through `def.tokens` identically,
+   *  but note what a materializer can do with it: Figma's `x`/`y` accept NO variable binding, so the
+   *  offset is read as a NUMBER at paste time and frozen. That is a real ceiling and belongs in
+   *  `codeOnly` wherever this kind is used — unlike padding or radius, a brand changing its ring
+   *  offset does NOT re-flow an already-pasted component. */
+  inset?: string;
   note?: string;
 };
 
@@ -573,7 +602,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
 
   // Every binding key anatomy names must be a slot the component actually binds, at every size.
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.radius, p.size, p.type, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
+    [p.gap, p.height, p.radius, p.size, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -610,17 +639,58 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
       if (!p.when) e.push(`anatomy part '${n}': an overlay must declare the state it appears in ('when') — without it nothing can project it`);
       else if (!(def.states ?? []).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${(def.states ?? []).join(', ')}]`);
+    } else if (p.kind === 'absolute') {
+      // An `absolute` IS a child — it is a sibling of the row's cells that simply takes no space in
+      // the row, so unlike an overlay it appears in `children` and the reachability walk above covers
+      // it. Nothing is exempted here; the checks below are the ones the kind adds.
+      if (!seen.has(n)) e.push(`anatomy part '${n}' is unreachable from root '${a.root}' — an orphan part would be silently dropped by a materializer`);
+      // Same requirement, same reason as an overlay's: a part that never says WHEN it appears is
+      // decorative declaration. The ring appears on exactly one state and a projection cannot guess
+      // which — #536 item 2's lesson applied before the kind has a chance to repeat it.
+      if (!p.when) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when') — without it nothing can project it`);
+      else if (!(def.states ?? []).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${(def.states ?? []).join(', ')}]`);
+      // `nests` is REQUIRED rather than optional, and this is the decision from `PartDef.nests` made
+      // enforceable: an `absolute` with nothing nominated would have to be authored from scratch, which
+      // is the N-way duplication the shared ring exists to avoid. Half-supporting both shapes would
+      // mean neither is the answer.
+      if (!p.nests) e.push(`anatomy part '${n}' is kind 'absolute' but nominates no component to nest ('nests') — an absolute part materializes as an instance of a shared component, never authored in place`);
+      // The offset is the whole geometric content of this kind. Without it the ring lands exactly on
+      // its parent's bounds, which is the one position WCAG 1.4.11 says it must not take: flush against
+      // the border, it blends into the button's own edge instead of separating from it.
+      if (!p.inset) e.push(`anatomy part '${n}' is kind 'absolute' but binds no 'inset' — a ring flush against its target's bounds blends into the element's own border (WCAG 1.4.11)`);
+      // A part outside the flow cannot be the interaction target: `role: 'target'` is what owns the hit
+      // area, radius, fill and border, and a node that takes no space in the row owns no hit area. The
+      // single-target check above would not catch this — it counts targets, and one absolute target is
+      // still exactly one.
+      if (p.role === 'target') e.push(`anatomy part '${n}' is kind 'absolute' and claims role 'target' — a part outside the layout flow owns no hit area`);
+      // An absolute part is sized BY its parent (parent bounds grown by `inset`), so a square-artboard
+      // `size` has nothing to mean here. Rejected rather than ignored: the projection would drop it
+      // silently, and a def author who wrote it would reasonably believe the ring were 16px. This is
+      // the same class as the spinner's missing `when` — a field that validates clean and projects to
+      // nothing — caught on the day the kind ships rather than months later.
+      if (p.size) e.push(`anatomy part '${n}' is kind 'absolute' but binds 'size' — an absolute part is sized by its parent's bounds grown by 'inset', so a square-artboard size would be silently dropped`);
+      // Children too: the shared component owns everything inside itself, so a child here would be
+      // appended into an INSTANCE — which Figma forbids outright, at paste time, in someone's file.
+      if ((p.children ?? []).length) e.push(`anatomy part '${n}' is kind 'absolute' but declares children — it materializes as an instance of '${p.nests ?? '(unnamed)'}', whose contents belong to that component; Figma does not accept appends into an instance`);
     } else if (!seen.has(n)) {
       e.push(`anatomy part '${n}' is unreachable from root '${a.root}' — an orphan part would be silently dropped by a materializer`);
     }
   }
 
-  // Only a box lays out children; a text/slot/overlay carrying layout means the tree is
+  // Only a box lays out children; a text/slot/overlay/absolute carrying layout means the tree is
   // mis-shaped and the materializer would emit an auto-layout frame where a leaf belongs.
   for (const n of names) {
     const p = parts[n];
     if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
+    // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
+    // reads as though the part were offset from its cell, which no projection does. Checked as its own
+    // rule rather than folded into the loop above because the layout rule is about what LAYS OUT
+    // children and this is about what sits OUTSIDE the flow — two different claims.
+    if (p.kind !== 'absolute' && p.inset !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'inset' — only an 'absolute' part sits outside the flow to be inset from it`);
+    if (p.kind !== 'absolute' && p.nests !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' part materializes as an instance of another component`);
     if (p.kind === 'box' && !p.layout && (p.children ?? []).length > 0)
       e.push(`anatomy part '${n}' is a box with children but no layout — a materializer has no direction to apply`);
     if (p.kind === 'text' && !p.type) e.push(`anatomy part '${n}' is text but binds no type style`);
