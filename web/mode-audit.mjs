@@ -59,11 +59,15 @@ try {
 
 const ROOT = new URL('.', import.meta.url).pathname;
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.map': 'application/json' };
+// Read BEFORE writing the header: a missing file threw with the 200 already sent, so the catch's
+// `writeHead(404)` raised ERR_HTTP_HEADERS_SENT — outside the try, unhandled, killing the audit. A
+// harness that exits instead of reporting looks like a clean run (#565).
 const server = createServer(async (req, res) => {
   try {
     const p = join(ROOT, req.url === '/' ? 'index.html' : decodeURIComponent(req.url.split('?')[0]));
+    const body = await readFile(p);
     res.writeHead(200, { 'content-type': MIME[extname(p)] ?? 'application/octet-stream' });
-    res.end(await readFile(p));
+    res.end(body);
   } catch { res.writeHead(404); res.end('not found'); }
 });
 await new Promise((r) => server.listen(8899, '127.0.0.1', r));
