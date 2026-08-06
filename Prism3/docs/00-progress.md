@@ -7,6 +7,51 @@
 
 ---
 
+## (2026-08-06) — the audit harness died instead of reporting a 404 (#565)
+
+**STATUS: `web/mode-audit.mjs` only, three lines.** No engine source, no emitted artifacts, no test-count
+change. Closes #565.
+
+`mode-audit.mjs`'s static server wrote `writeHead(200)` *before* `await readFile(p)`. A missing file threw
+with the header already sent, so the catch's `writeHead(404)` raised `ERR_HTTP_HEADERS_SENT` — thrown from
+inside the catch, so nothing caught it, and the whole audit process exited. Fixed by reading into a local
+first, then writing the header, then `end(body)`.
+
+**Why this was worth a PR for three lines.** The failure mode is the one this repo keeps re-learning: the
+harness *exits* rather than *reports*, and an exited audit is indistinguishable from an audit that found
+nothing wrong. It is the same shape as #562's badge placement (a gate that checked existence but never
+position), #567's free truth-table cell (three of four cells pinned reads as thorough), and #464's
+self-check written from the same mental model as the scan. **A check that cannot see the thing it checks is
+not a check** — and one that dies on the way to looking is worse, because the exit code is the only
+evidence and it scrolls past.
+
+It also obstructed real work twice, during the #564 and #566 reviews, each time needing a local
+patch-and-revert to get a measurement at all.
+
+**The detour that proved the point.** After fixing it, the harness still failed — a `TimeoutError` waiting
+for the `harbor` button, because a fresh worktree has no `web/dist` and the served page had no bundle.
+That is *exactly* the condition the old code turned fatal: with the fix, a missing bundle is a legible
+404-then-timeout that names what is missing; without it, the same condition is
+`ERR_HTTP_HEADERS_SENT at mode-audit.mjs:67` with no mention of the bundle. Verified both ways on the same
+tree. So the fix converts a misleading crash into a diagnosis, which is the actual value — not the 404
+itself. Worth remembering that `audit:modes` needs `npm run build --workspace @prism3/web` first; the
+script's header comment says so, and now the failure does too.
+
+**Verification.** Reproduced the crash in an isolated 15-line server using the exact handler shape
+(`UNCAUGHT → ERR_HTTP_HEADERS_SENT`, exit 42), then confirmed the fixed shape returns a real `404` with
+body `not found`, still serves a real file at `200` with the right `content-type`, and survives five
+consecutive misses. End-to-end: `audit:modes --check-badges` reports **28/28 badges correct and inside
+their padding**, versus a hard crash on `origin/main` under identical conditions.
+
+Gates: `regen --check` 88 in sync · `test.ts` 1766/0 · `mcp-test` 49/0 · `token-contract --check` unchanged
+· `lint-skills` clean · `lint-us-english` 94 files clean · `lint:classes` clean · web build + typecheck
+clean.
+
+**Note on authorship:** written by the review agent at the human's explicit request, so it needs the
+human's own review rather than the review protocol's — an agent cannot independently clear its own work.
+
+---
+
 ## (2026-08-06) — the slot × size grid, probed live and then gated (#536 item 6)
 
 **STATUS: `test.ts` + `docs/32` only.** No engine behavior changes — item 6 is a verification gap, not a
