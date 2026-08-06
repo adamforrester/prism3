@@ -7,6 +7,55 @@
 
 ---
 
+## (2026-08-05) — `export_theme`: the manifest is the result, never the payload
+
+**STATUS: `mcp.ts` + `test.ts`.** New MCP tool; no emitter change — `out/*` byte-identical.
+`test.ts` 1637 → **1659**. Stacks on the artifact-set extraction below.
+
+**The problem.** `theme_brand`'s large sections are opt-in because of size — `tokens` measures ~833,000
+chars for a four-mode brand. Opt-in only DEFERS the problem: an agent that genuinely needs the DTCG
+tree still cannot have it, and no context window makes half a megabyte a good idea. For a stdio server
+the agent and the server share a filesystem, so the whole thing collapses into *write the files, return
+the paths*.
+
+**Purity kept by a port, not abandoned.** `callTool` is documented as pure, which is why the MCP suite
+can drive the entire surface without a sandbox. A file-writing tool cannot be pure — so the capability
+arrives as an injected `ExportIo`, exactly the shape the plugin uses for `figma.*`. A host that grants
+nothing simply cannot export, and the tests drive an in-memory fake over the real code path.
+
+**`outDir` is the one argument on this surface that can do damage rather than merely be wrong** — an
+arbitrary filesystem path chosen by a model. Absolute paths and `..` segments are refused **outright
+rather than normalized**: normalizing invites a caller to probe for the edge, while a flat refusal has
+no edge to find. Deliberately not a `resolve()`-and-compare check, which answers "does this land
+inside?" only *after* constructing the path — the historical escapes in this class all came from a
+normalizer disagreeing with the filesystem about what it had built.
+
+**A separate tool rather than a flag on `theme_brand`,** because `readOnlyHint` is how a client decides
+what to auto-approve. A flag would flip that annotation's truth depending on the arguments — precisely
+what an annotation exists to make un-silent.
+
+**That forced an existing assertion to get sharper.** `test.ts` asserted every tool carries
+`readOnlyHint === true`; a writing tool breaks it. The fix was not to loosen it to "most tools" but to
+pin it by exception: `export_theme` is the ONLY non-read-only tool, and it must state `false`
+explicitly. Both directions now fail — adding a second writer, or quietly marking this one read-only.
+
+**Mutation: 6 mutants, 6 caught — but one only after the assertion was strengthened.** Removing schema
+validation entirely still passed, because "an invalid brand writes nothing" is satisfied by
+`brandTheme` merely throwing. The assertion could not tell a structured, actionable error list from an
+incidental crash.
+
+> **An assertion about what did NOT happen is weak evidence about what DID.** "Nothing was written" is
+> true of the good path, the validated-rejection path, and the crash path alike; only asserting the
+> *named* schema errors distinguishes an agent that can fix its input from one that only knows it
+> failed.
+
+**Known consequence, not yet decided.** Relative-only means exports land somewhere under the repo. An
+agent that picks `Prism3/engine/out/…` would put files where `regen --check` walks, and they would read
+as drift. Worth either a documented convention or a refusal of the `out/` prefix; flagged rather than
+guessed.
+
+---
+
 ## (2026-08-05) — A corpus proves what the corpus contains (brand artifact-set extraction)
 
 **STATUS: `emit-figma.ts` + `test.ts`.** Pure motion — `out/*` **byte-identical**, zero committed
