@@ -110,10 +110,24 @@ distinct sizes — is now in `test.ts`, which is what makes the finding survive.
 Writing it down also found the hole the probe had only walked past: `trailing: true` appeared nowhere in
 `test.ts` without `leading: true` beside it. The three asserted cells pin (0,0), (1,0) and (1,1) and
 leave **(0,1) free** — precisely where *each side reads its own slot* and *either side pulls in when any
-slot is filled* diverge. Mutating the emitter to `leadingFilled || trailingFilled` passed all 1,756
-assertions. **A truth table with one free cell looks fully covered**, because every row present agrees;
-enumerate the cells rather than the interesting-looking cases. (Note a plain side-*swap* was already
-caught — the first mutation tried, and the reason this note names the real gap instead of that one.)
+slot is filled* diverge. Mutating the emitter to `leadingFilled || trailingFilled` passed **every
+pre-existing assertion** — 1,756 of them when measured, 1,758 once rebased onto #566, and the #567
+reviewer reproduced the silent pass independently at the later count. **A truth table with one free cell
+looks fully covered**, because every row present agrees; enumerate the cells rather than the
+interesting-looking cases. (Note a plain side-*swap* was already caught — the first mutation tried, and
+the reason this note names the real gap instead of that one.)
+
+### `[SKILL]` An absolute assertion count is a landmark that goes stale on rebase
+
+The #567 review's only nit: the entry quoted "passed all 1,756 assertions" three times, and by merge the
+true figure was 1,758 — #566 had landed two of its own in between. The measurement was honest when taken
+and the conclusion never moved, but a later reader treats a specific number as a fixed reference point
+and would find it disagreeing with `test.ts`.
+
+**Quote the delta, which survives, and mark the absolute with what it was measured against.** "+8
+assertions" stays true through any rebase; "1,756 → 1,764" is only true against the commit it was run on.
+This is the same shape as the versioning split in principle 5 — a figure that describes *your change* is
+durable, a figure that describes *the whole* is a snapshot of someone else's work too.
 
 ---
 
