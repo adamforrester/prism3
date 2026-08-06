@@ -2143,11 +2143,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.red.450}",
         "dark": "{nbds.palette.red.350}",
-        "hc-light": "{nbds.palette.red.450}",
+        "hc-light": "{nbds.palette.red.500}",
         "hc-dark": "{nbds.palette.red.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.85
+        }
       ]
     },
     "text.success-subtle": {
@@ -2158,11 +2165,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.green.450}",
         "dark": "{nbds.palette.green.350}",
-        "hc-light": "{nbds.palette.green.450}",
+        "hc-light": "{nbds.palette.green.500}",
         "hc-dark": "{nbds.palette.green.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 4.11
+        }
       ]
     },
     "text.warning-subtle": {
@@ -2173,11 +2187,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.amber.450}",
         "dark": "{nbds.palette.amber.350}",
-        "hc-light": "{nbds.palette.amber.450}",
+        "hc-light": "{nbds.palette.amber.500}",
         "hc-dark": "{nbds.palette.amber.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.79
+        }
       ]
     },
     "text.danger-subtle": {
@@ -2188,11 +2209,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.red.450}",
         "dark": "{nbds.palette.red.350}",
-        "hc-light": "{nbds.palette.red.450}",
+        "hc-light": "{nbds.palette.red.500}",
         "hc-dark": "{nbds.palette.red.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.85
+        }
       ]
     },
     "text.info-subtle": {
@@ -2203,11 +2231,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.info.450}",
         "dark": "{nbds.palette.info.350}",
-        "hc-light": "{nbds.palette.info.450}",
+        "hc-light": "{nbds.palette.info.500}",
         "hc-dark": "{nbds.palette.info.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.86
+        }
       ]
     },
     "text.on-brand": {
@@ -2605,11 +2640,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.red.450}",
         "dark": "{nbds.palette.red.350}",
-        "hc-light": "{nbds.palette.red.450}",
+        "hc-light": "{nbds.palette.red.500}",
         "hc-dark": "{nbds.palette.red.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.85
+        }
       ]
     },
     "icon.success-subtle": {
@@ -2620,11 +2662,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.green.450}",
         "dark": "{nbds.palette.green.350}",
-        "hc-light": "{nbds.palette.green.450}",
+        "hc-light": "{nbds.palette.green.500}",
         "hc-dark": "{nbds.palette.green.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 4.11
+        }
       ]
     },
     "icon.warning-subtle": {
@@ -2635,11 +2684,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.amber.450}",
         "dark": "{nbds.palette.amber.350}",
-        "hc-light": "{nbds.palette.amber.450}",
+        "hc-light": "{nbds.palette.amber.500}",
         "hc-dark": "{nbds.palette.amber.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.79
+        }
       ]
     },
     "icon.danger-subtle": {
@@ -2650,11 +2706,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.red.450}",
         "dark": "{nbds.palette.red.350}",
-        "hc-light": "{nbds.palette.red.450}",
+        "hc-light": "{nbds.palette.red.500}",
         "hc-dark": "{nbds.palette.red.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.85
+        }
       ]
     },
     "icon.info-subtle": {
@@ -2665,11 +2728,18 @@
       "mode_overrides": {
         "light": "{nbds.palette.info.450}",
         "dark": "{nbds.palette.info.350}",
-        "hc-light": "{nbds.palette.info.450}",
+        "hc-light": "{nbds.palette.info.500}",
         "hc-dark": "{nbds.palette.info.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.86
+        }
       ]
     },
     "icon.on-brand": {
@@ -3880,6 +3950,8 @@
       "aliased_by": [
         "color.border.brand",
         "color.border.danger",
+        "color.icon.brand-subtle",
+        "color.icon.danger-subtle",
         "color.interactive.destructive.border",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
@@ -3887,7 +3959,9 @@
         "color.interactive.primary.border",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
-        "color.interactive.primary.on-inverse.border"
+        "color.interactive.primary.on-inverse.border",
+        "color.text.brand-subtle",
+        "color.text.danger-subtle"
       ]
     },
     "palette.red.550": {
@@ -4154,7 +4228,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.success",
-        "color.foreground.success"
+        "color.foreground.success",
+        "color.icon.success-subtle",
+        "color.text.success-subtle"
       ]
     },
     "palette.green.550": {
@@ -4328,7 +4404,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.warning",
-        "color.foreground.warning"
+        "color.foreground.warning",
+        "color.icon.warning-subtle",
+        "color.text.warning-subtle"
       ]
     },
     "palette.amber.550": {
@@ -4810,7 +4888,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.info",
-        "color.foreground.info"
+        "color.foreground.info",
+        "color.icon.info-subtle",
+        "color.text.info-subtle"
       ]
     },
     "palette.info.550": {

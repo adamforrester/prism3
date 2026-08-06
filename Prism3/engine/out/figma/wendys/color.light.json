@@ -1952,7 +1952,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted brand text — low-emphasis accent",
+      "description": "Muted brand text — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.239215686917305,
@@ -1970,7 +1970,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted success text — low-emphasis accent",
+      "description": "Muted success text — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -1988,7 +1988,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted warning text — low-emphasis accent",
+      "description": "Muted warning text — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -2006,7 +2006,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted danger text — low-emphasis accent",
+      "description": "Muted danger text — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -2024,7 +2024,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted info text — low-emphasis accent",
+      "description": "Muted info text — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -2384,7 +2384,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted brand icon — low-emphasis accent",
+      "description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.239215686917305,
@@ -2404,7 +2404,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted success icon — low-emphasis accent",
+      "description": "Muted success icon — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -2424,7 +2424,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted warning icon — low-emphasis accent",
+      "description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -2444,7 +2444,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted danger icon — low-emphasis accent",
+      "description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -2464,7 +2464,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted info icon — low-emphasis accent",
+      "description": "Muted info icon — low-emphasis accent, 3:1 on the page",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,

@@ -3717,6 +3717,78 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   }
 }
 
+// (10d) #570 — MUTED semantic ink is gated, and stays DISTINCT from bold. Two invariants, because
+// the fix has two ways to go wrong and they pull against each other: raise the bar and muted
+// converges on bold (losing the point of the role), leave it ungated and it can sink under the page.
+//
+// (i) Every `-subtle` ink clears its own declared `min` against the page. This must not read `> 0`
+// and skip — that is precisely the escape hatch that let the old `min: 0` sit at 3.16 unnoticed. So
+// the loop asserts the role is GATED first: an accidental return to `min: 0` fails here rather than
+// silently opting out of its own check. (10c) taught this lesson about `ink.min <= 0` being a legal
+// skip; here a zero min is itself the bug.
+//
+// (ii) Muted and bold never resolve to the same colour. The gate floats muted now, so a flat or
+// short ramp could float it onto bold's rung and the "quiet" variant would stop being quiet — a
+// regression no contrast assertion can see, because both values would be perfectly accessible.
+// Measured floor at the time of writing: 1.16 worst-case separation, 0 identical-hex collisions.
+// Asserting non-identity rather than a ratio threshold is deliberate: the ramp step count is a
+// brand lever, so a fixed separation minimum would fail honest brands. Identity is the real defect.
+{
+  const SEMS = ['brand', 'success', 'warning', 'danger', 'info'];
+  for (const { id, theme } of corpus()) {
+    const ungated: string[] = [], short: string[] = [], collided: string[] = [];
+    for (const m of resolveAllModes(theme)) {
+      const page = m.roles['background.primary'];
+      if (!page) continue;
+      for (const fam of ['text', 'icon'] as const) {
+        for (const sem of SEMS) {
+          const muted = m.roles[`${fam}.${sem}-subtle`], bold = m.roles[`${fam}.${sem}`];
+          if (!muted) continue;
+          if (muted.min <= 0) { ungated.push(`${m.mode} ${fam}.${sem}-subtle`); continue; }
+          const r = contrast(hexToRgb(muted.hex), hexToRgb(page.hex));
+          if (r < muted.min) short.push(`${m.mode} ${fam}.${sem}-subtle ${r.toFixed(2)}<${muted.min}`);
+          if (bold && bold.hex === muted.hex) collided.push(`${m.mode} ${fam}.${sem} both ${bold.hex}`);
+        }
+      }
+    }
+    ok(ungated.length === 0, `muted semantic ink declares a contrast bar — ${id}`
+      + (ungated.length ? ` — UNGATED: ${ungated.join('; ')}` : ''));
+    ok(short.length === 0, `muted semantic ink clears its bar on the page — ${id}`
+      + (short.length ? ` — FAIL: ${short.join('; ')}` : ''));
+    ok(collided.length === 0, `muted semantic ink stays distinct from bold — ${id}`
+      + (collided.length ? ` — COLLISION: ${collided.join('; ')}` : ''));
+  }
+}
+
+// (10e) #570 — muted ink RESPONDS to the high-contrast bar. The fixed-rung version could not: it
+// emitted the identical value in `light` and `hc-light` (nb measured 3.85 in both), so a user who
+// switched to HC for legibility got no change in the one ink family named for being low-emphasis.
+// A fixed step cannot answer a raised bar, and nothing was asserting that it should.
+//
+// Stated as hc >= standard rather than hc > standard: a brand whose standard value already clears
+// 4.5 correctly stays put (wendys' brand muted does exactly that at 4.80), so strict inequality
+// would fail an honest brand. The regression this catches is hc coming back LOWER or unchanged-and-
+// failing, which the `min` comparison below pins down.
+{
+  for (const { id, theme } of corpus()) {
+    const bad: string[] = [];
+    const modes = resolveAllModes(theme);
+    const std = modes.find((m) => m.mode === 'light'), hc = modes.find((m) => m.mode === 'hc-light');
+    if (!std || !hc) continue;
+    for (const sem of ['brand', 'success', 'warning', 'danger', 'info']) {
+      const s = std.roles[`text.${sem}-subtle`], h = hc.roles[`text.${sem}-subtle`];
+      if (!s || !h) continue;
+      if (h.min <= s.min) bad.push(`${sem}: hc bar ${h.min} !> standard ${s.min}`);
+      const sr = contrast(hexToRgb(s.hex), hexToRgb(std.roles['background.primary'].hex));
+      const hr = contrast(hexToRgb(h.hex), hexToRgb(hc.roles['background.primary'].hex));
+      if (hr < h.min) bad.push(`${sem}: hc ${hr.toFixed(2)}<${h.min}`);
+      if (hr < sr - 0.01) bad.push(`${sem}: hc ${hr.toFixed(2)} < standard ${sr.toFixed(2)}`);
+    }
+    ok(bad.length === 0, `muted ink escalates with the HC bar — ${id}`
+      + (bad.length ? ` — FAIL: ${bad.join('; ')}` : ''));
+  }
+}
+
 // (11) EMIT-FIGMA COLOUR (docs/10) — buildFigmaColor(nbTheme) must reproduce the frozen
 // #352 item 2 — the enumerated, deliberate divergences from the frozen real-NB export.
 //
@@ -3779,6 +3851,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'dark', name: 'color/icon/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/border/focus', nb: 'palette/red/450', engine: 'palette/red/550' },
+  // FIFTH group (#570): muted semantic ink in HC-LIGHT only. NB authored muted at a FIXED rung, so
+  // its hc-light values are byte-identical to its light ones — the high-contrast mode did nothing for
+  // the one ink family named for being low-emphasis (measured 3.85 in both, against a 4.5 HC bar).
+  // The engine now gates muted on `tertiaryMin`, which escalates in HC, so it resolves one rung
+  // darker there. Note what is NOT in this list: the standard `light` and `dark` modes, where the
+  // gate returns NB's authored 450/350 untouched. That absence is the useful part — it shows the
+  // change is an HC fix rather than a broad revaluation, and it is checked, since a stale waiver
+  // fails as loudly as a missing one.
+  { mode: 'hc-light', name: 'color/text/brand-subtle', nb: 'palette/red/450', engine: 'palette/red/500' },
+  { mode: 'hc-light', name: 'color/text/success-subtle', nb: 'palette/green/450', engine: 'palette/green/500' },
+  { mode: 'hc-light', name: 'color/text/warning-subtle', nb: 'palette/amber/450', engine: 'palette/amber/500' },
+  { mode: 'hc-light', name: 'color/text/danger-subtle', nb: 'palette/red/450', engine: 'palette/red/500' },
+  { mode: 'hc-light', name: 'color/text/info-subtle', nb: 'palette/info/450', engine: 'palette/info/500' },
+  { mode: 'hc-light', name: 'color/icon/brand-subtle', nb: 'palette/red/450', engine: 'palette/red/500' },
+  { mode: 'hc-light', name: 'color/icon/success-subtle', nb: 'palette/green/450', engine: 'palette/green/500' },
+  { mode: 'hc-light', name: 'color/icon/warning-subtle', nb: 'palette/amber/450', engine: 'palette/amber/500' },
+  { mode: 'hc-light', name: 'color/icon/danger-subtle', nb: 'palette/red/450', engine: 'palette/red/500' },
+  { mode: 'hc-light', name: 'color/icon/info-subtle', nb: 'palette/info/450', engine: 'palette/info/500' },
 ];
 
 // Token Press export (fixtures/figma/nb): same variable names per collection/mode, same

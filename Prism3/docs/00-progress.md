@@ -7,6 +7,78 @@
 
 ---
 
+## (2026-08-06) — muted ink gets a bar, and the studio names it (#570 closed)
+
+**STATUS: shipped.** Owner decision on the four options filed in #570: **option 1 + the UI half of
+option 3** — gate muted semantic ink at the large-text bar, *and* label that bar in the studio rather
+than leaving the promise implicit.
+
+**The report.** Raised while reviewing the added text colors: *"how do the muted colors work? I see
+they do not have contrast tags with them. Danger ink fails contrast when I set it to danger500, but
+danger muted is at 450 — is muted intended to be on a different color background or is that a bug?"*
+
+**What was not a bug, and why it still had to change.** Muted *is* page ink (rated against
+`background.primary`, Figma scope `TEXT_FILL`), so it was not secretly meant for another ground. And
+the missing badge was *faithful*: `iBadge` suppresses badges when `min <= 0`, and muted shipped
+`min: 0`, so the UI was declining to claim a contract the token genuinely did not have. Both halves of
+the report checked out as correct behavior — and the outcome was still wrong, which is the interesting
+part. **A truthful rendering of a bad contract still misleads.** Pinning `text.danger` to 500 reported
+a failure at 3.76 while muted sat silently at 3.23; the system was louder about the better value than
+the worse one, and silence read as "unmeasured" which looks like "fine". Faithfulness to a `min` of
+zero is not a defense when the zero is the defect.
+
+**What decided the bar — measurement, not taste.** The issue listed four options; two of them turned
+on a number nobody had computed, so it got computed before choosing:
+
+| | at 3:1 | at 4.5:1 |
+|---|---|---|
+| light values that move | **0 of 25** | 24 of 25 |
+| muted↔bold separation | ~1.73 (unchanged) | **1.21–1.48** |
+
+Every light muted in the corpus *already* cleared 3:1 (worst: harbor 3.16), so option 1 costs nothing
+today — it converts a coincidence into a contract. Option 4.5 halves the separation from bold, which
+erases the distinction the role exists for: a "quiet danger" that reads as loud as the loud one is not
+worth emitting. **The safest-sounding option was the one that destroyed the feature.** Worth keeping in
+view whenever an a11y bar is raised by reflex.
+
+**The HC bug found on the way.** A fixed rung cannot answer a raised bar, so muted was **byte-identical
+in `light` and `hc-light`** (nb: 3.85 in both, against a 4.5 HC bar) — a user who switched to HC for
+legibility got no change in the one ink family named for being low-emphasis. Nothing asserted it should.
+Gating on `tertiaryMin` fixes this for free, and it is the *only* value move in the change: 60 channel
+changes in hc-light, **zero** in standard light. Reusing `tertiaryMin` rather than inventing a min also
+gave option 4's principled text/icon split for free — the icon profile already routes it to `nonTextMin`
+under `iconContrast: '3:1'`.
+
+**The UI half is not cosmetic.** With muted gated, `iBadge` shows a badge automatically — but a bare
+`3.20 ✓` sitting under bold's `5.59 ✓` is *worse* than no badge, because two green ticks measured
+against different bars look like the same claim. The badge now reads `large text 3:1 · 3.20:1 ✓`, and
+the row description states the usage constraint. `fails()` and `tipOf()` in the style guide were already
+gated on `min > 0`, so the `!` marker and tooltip started working for muted with no further change —
+worth noting as the payoff for those having been written against the contract rather than the role name.
+
+**Gates.** (10d) three invariants per corpus brand: muted **declares** a bar (an accidental return to
+`min: 0` fails here — it does not silently opt out, which is exactly how 3.16 hid), clears it on the
+page, and never resolves to the same hex as bold. (10e) muted escalates with the HC bar, stated as
+`hc >= standard` because a brand already clearing 4.5 correctly stays put (wendys' brand muted, 4.80).
+The collision gate guards a risk that does not exist today — muted floats now, so a flat ramp could
+converge it onto bold, and no *contrast* assertion could see that: both values would be perfectly
+accessible. Mutation-tested: reverting to ungated fires 15 targeted failures; forcing `mutedStep` to 600
+fires the collision gate across all 5 brands. Non-identity rather than a ratio threshold, deliberately —
+ramp step count is a brand lever, so a fixed separation minimum would fail honest brands.
+
+**NB fixture:** 10 new `NB_KNOWN_DIVERGENCES` rows, all `hc-light`, all 450→500. What is *absent* is the
+useful part: no `light`/`dark` rows, because the gate returns NB's authored rung untouched there — and
+the staleness check means that absence is verified, not assumed.
+
+ENGINE_VERSION 0.3.1 → 0.3.2. CONTRACT_VERSION stands at 2.0.0 — a `min` going 0 → 3 moves no *name*,
+and the contract covers path + `$type`, not contrast metadata. test.ts **+20** (1777 → 1797, measured
+on the rebase onto #569's corrected head), regen 88 in sync, MCP
+49/49, NB regression 11/11 (mean ΔE00 1.95), US-English 94 files, lint-classes + lint-skills clean.
+Browser-verified on harbor (the worst case) including the owner's exact repro: pinned `text.danger` at
+500 reports `3.76 ✗` while muted beside it reports `large text 3:1 · 3.23:1 ✓`.
+
+---
+
 ## (2026-08-06) — A white page exposed semantic ink gated against the wrong ground (#63 closed)
 
 **STATUS: `Prism3/engine/modes.ts`, `test.ts`, `version.ts`, `examples/aurora.design.md`,

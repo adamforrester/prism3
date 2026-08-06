@@ -4952,7 +4952,7 @@ const TEXT_PALETTE_ROLES: Array<{ role: string; label: string; paletteKey: strin
   { role: 'text.warning', label: 'Warning ink', paletteKey: 'warning', desc: 'Warning message text.', sample: 'Check this before continuing' },
   { role: 'text.danger', label: 'Danger ink', paletteKey: 'danger', desc: 'Error message text.', sample: 'Something went wrong' },
   { role: 'text.info', label: 'Info ink', paletteKey: 'info', desc: 'Informational message text.', sample: 'For your reference' },
-  { role: 'text.brand-subtle', label: 'Brand ink, muted', paletteKey: 'brand', desc: 'The quiet variant — lower emphasis, ungated by design (a judgment call, not a contract).', sample: 'Brand, quietly' },
+  { role: 'text.brand-subtle', label: 'Brand ink, muted', paletteKey: 'brand', desc: 'The quiet variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Brand, quietly' },
   { role: 'text.success-subtle', label: 'Success ink, muted', paletteKey: 'success', desc: 'The quiet success variant.', sample: 'Success, quietly' },
   { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning', desc: 'The quiet warning variant.', sample: 'Warning, quietly' },
   { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger', desc: 'The quiet danger variant.', sample: 'Danger, quietly' },
@@ -5050,9 +5050,14 @@ const renderForegroundEditor = (): HTMLElement => {
       swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
       controls: sfCtl(sfCtlBlock('Step', sel)),
       example: sfExText(r.hex, sample, surfaceHex),
-      // The muted variants are ungated on purpose (min 0), so they get no badge rather than a
-      // meaningless one — `contrastBadge` against a zero floor would render a pass that means nothing.
-      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
+      // The muted variants are gated too now (#570), at the LARGE-TEXT bar rather than the 4.5:1 the
+      // bold ink clears — so their badge carries that label. Without it the receipt is misleading in a
+      // way a bare number cannot fix: muted's 3.20 ✓ sits directly beneath bold's 5.59 ✓, and a reader
+      // comparing two green ticks has no way to tell they were measured against different bars. Naming
+      // the bar is the whole point of the change; the badge is where the promise is actually read.
+      badge: r.min != null && r.min > 0 && r.ratio != null
+        ? contrastBadge(r.ratio, r.min, role.endsWith('-subtle') ? `large text ${r.min}:1` : undefined)
+        : undefined,
     }));
   }
 
