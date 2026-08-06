@@ -7,6 +7,96 @@
 
 ---
 
+## (2026-08-06) — The dial was honest; the specimen was under-reporting it (#561 follow-up)
+
+**STATUS: `web/src/main.ts`, `Prism3/engine/test.ts`.** The one item the previous entry left as an
+owner decision. No engine behavior change: `out/*` byte-identical, regen 88 in sync, contract 2.0.0
+untouched, **`levers.ts` deliberately not touched**. `test.ts` 1756 → **1758**.
+
+### The recommendation I posted on #561 was wrong, and how it was wrong is the useful part
+
+The previous entry flagged `disabledMin` (`step: 0.5` over `3–4.5`) as having a dead quarter: measured
+`4.54:1` at both `4` and `4.5`, so the top stop looked like a no-op, and the suggested fix was a
+`levers.ts` change. **Both premises were false, and one measurement overturned both.**
+
+`disabledMin` gates **two inks against two different grounds** (`modes.ts:317-326`):
+
+| role | rated against | resolves to |
+|---|---|---|
+| `disabled.on-fill` | `disabled.fill` (a fixed `neutral.200`/`neutral.750` rung) | the ink on a disabled button |
+| `disabled.text` (and `.icon`) | `cfg.floorName` — the **page** floor | plain disabled text |
+
+Two grounds means the two cross a neutral rung at **different floors**. The specimen showed only
+`disabled.on-fill`, so a stop where `on-fill` held still while `text` moved reported as *no change at
+all*. Aurora and harbor light are exactly that case — from `4.0` to `4.5`, `on-fill` sits at
+`4.53`/`4.54` while `text` moves `4.01 → 4.81`/`4.88`. **The stop I called dead is the stop where the
+invisible ink was the only one moving.**
+
+Measured across the corpus at all four stops (light + dark; HC excluded, see below):
+
+```
+all four stops distinct, both inks visible:   8/10 customizable brand+modes
+all four stops distinct, on-fill alone:       6/10
+```
+
+Where a stop **is** still dead (nb light, minimal light) the reason is not a stuck control: `4.0`
+already lands *both* inks at ~`4.5`, so requesting `4.5` requests nothing more. A floor already
+cleared is not the same defect as a floor that cannot be reached. And `max: 4.0` — the other option I
+floated — would have removed a real capability, since `reduced` at `4.5` is byte-identical to
+`strategy: 'full'` across the whole corpus. `step: 0.1` measured *worse*: 4–6 distinct states over 16
+stops.
+
+> **A specimen that shows one of two gated roles does not under-report by half — it reports the wrong
+> answer.** "Nothing changed" and "the thing you cannot see changed" are indistinguishable on screen,
+> and the second one is what I read as a broken lever.
+
+### The fix, therefore, is the specimen
+
+- **Both roles, side by side: On fill / On page**, each with **its own** receipt. `twoUp` took one
+  badge for the pair; two specimens rated against different grounds cannot share one, because a single
+  receipt has to pick a ground and silently drop the other. The badge moved into the tuple
+  (`TwoUpSpec`), which is per-specimen by construction.
+- **`exTextOnPage`** draws the page-rated role as bare text in an `.exbox`. Giving it button chrome
+  would imply a fill it is not measured against — *the same mistake the section's copy used to make in
+  words*, and the thing the previous entry fixed. Worth stating because a `exBtn` here would have been
+  the path of least resistance and would have re-introduced the original bug graphically.
+- **Copy** names both roles and still says the fill itself is a fixed neutral rung.
+
+### The gate, because a measurement in a throwaway probe is not a memory
+
+`test.ts` (7b-ii) pins two things the specimen's *shape* depends on:
+
+1. **the divergence** — at least one stop where exactly one of `on-fill`/`text` moves, in ≥ `pairs-2`
+   of the corpus brand+modes. If a future ramp or floor change collapses the two inks onto each other,
+   the second specimen becomes redundant and someone gets told, rather than the UI quietly keeping a
+   panel that no longer says anything.
+2. **the HC collapse is by design** — in `hc-light` both branches escalate to ≥`4.5`, so all four
+   stops resolve identically. Asserted so that collapse never reads as instance of bug #1, and so a
+   future change making HC dialable has to come here and say so.
+
+Both were **mutation-tested**, not just observed green: pointing `text` at `on-fill` drops the first
+from `8/10` to `0/10` and fails; aiming the HC check at `light` reports `4 distinct` and fails.
+
+### A trap for whoever re-verifies this in a browser
+
+An earlier browser run showed `3/4 distinct, 1 dead stop` and appeared to contradict the engine. It
+did not — it had booted via `.start-go`, which seeds a **new** brand from the `#5e4bc3` swatch. That is
+not a corpus brand and it is `modes: ['light']` only, so the "Dark" chip a probe reaches for does not
+exist. **Boot a named corpus brand via the example chip if you want numbers comparable to
+`corpus()`.** Also select modes by `.mctx-b` + `.mctx-name`, not by a text regex over every button: the
+derived chips carry an extra `view only` span and a text filter times out on Dark. Confirmed in-browser
+on harbor and aurora afterwards: **4/4 distinct, 0 dead** in both light and dark, both receipts
+tracking a live drag.
+
+**Gates.** regen `--check` 88/88 (no drift after a live `regen`) · engine tests **1758**/0 · MCP 49/0 ·
+contract unchanged (2.0.0, 484 guaranteed) · `lint-skills` · US-English 94 files clean · `lint:classes`
+clean (57 entries) · web typecheck + build clean · `audit:modes --check-badges` 28/28 correct and inside
+their padding. Rebased onto `ec16df7` (#563) — a mid-session `origin/main` advance briefly looked like a
+9-test regression, which was main's *newer* test file run against this branch's older engine sources,
+not a real failure.
+
+---
+
 ## (2026-08-06) — `inactive` is a behavior, and a variant cannot hold a behavior (#536 item 4)
 
 **STATUS: `components/button.ts`, `component-schema.ts`, `test.ts`, `docs/32`.** No emitter artifacts
