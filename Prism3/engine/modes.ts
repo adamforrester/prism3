@@ -61,20 +61,29 @@ const pickClosest = (cands: Cand[], surface: RGB, target: number): Rated =>
     .map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }))
     .sort((a, b) => Math.abs(a.ratio - target) - Math.abs(b.ratio - target))[0];
 
-/** Keep the anchor step if it clears `min`; otherwise the nearest step that does. */
-const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false): RatedNum => {
+/**
+ * Keep the anchor step if it clears `min`; otherwise the nearest step that does.
+ *
+ * `alsoClear` names ADDITIONAL grounds the step must clear `min` against — for a role placed on more
+ * than one surface (semantic ink sits on the page AND on its own subtle tint). The reported `ratio`
+ * stays measured against `surface`, which is the ground the role's `against` names; the extra grounds
+ * only tighten which step is eligible. Empty by default, so a single-ground role is unaffected.
+ */
+const pickBrand = (steps: Step[], ns: string, palette: string, anchorNum: number, surface: RGB, min: number, exact = false, alsoClear: RGB[] = []): RatedNum => {
   const cands = steps.map((s) => ({ path: `${ns}.${palette}.${s.key}`, rgb: s.rgb, num: s.num }));
   const anchor = cands.find((c) => c.num === anchorNum) ?? cands.find((c) => c.num === 500)!;
+  const clearsExtra = (rgb: RGB) => alsoClear.every((g) => contrast(rgb, g) >= min);
   // `exact` = the anchor was AUTHORED (a pinned step, not the engine's derived default), so it is
   // applied verbatim even when it misses the floor — the app's apply-but-warn policy (#331). The
   // substitution below is a DERIVATION aid for an unpinned role, not an override guard: silently
   // bumping an explicit pick means the author never sees what their own choice looks like, while
   // the same pick authored through `design.md`/`BrandInput` would be honoured. The contrast miss
   // still travels — `ratio` is the raw measurement, so every consumer's gate reports it.
-  if (exact || contrast(anchor.rgb, surface) >= min) return { ...anchor, ratio: contrast(anchor.rgb, surface) };
+  if (exact || (contrast(anchor.rgb, surface) >= min && clearsExtra(anchor.rgb)))
+    return { ...anchor, ratio: contrast(anchor.rgb, surface) };
   const passing = cands
     .map((c) => ({ ...c, ratio: contrast(c.rgb, surface) }))
-    .filter((c) => c.ratio >= min)
+    .filter((c) => c.ratio >= min && clearsExtra(c.rgb))
     .sort((a, b) => Math.abs(a.num - anchor.num) - Math.abs(b.num - anchor.num));
   return passing[0] ?? { ...anchor, ratio: contrast(anchor.rgb, surface) };
 };
@@ -265,10 +274,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const wf = cfg.kind === 'wireframe';                       // B — behaviour by kind, not name
   const neutralPal = r2p.neutral;
   const palOf = (palette: string): string => (wf && palette !== neutralPal ? neutralPal : palette);
-  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false): RatedNum => {
-    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact);
+  const chromatic = (palette: string, anchorNum: number, surf: RGB, min: number, exact = false, alsoClear: RGB[] = []): RatedNum => {
+    const pick = pickBrand(ramps.get(palette)!, ns, palette, anchorNum, surf, min, exact, alsoClear);
     return wf && palette !== neutralPal
-      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact) // same position, greyscaled
+      ? pickBrand(ramps.get(neutralPal)!, ns, neutralPal, pick.num, surf, min, exact, alsoClear) // same position, greyscaled
       : pick;
   };
   const paletteRole = (r: Role, surf: RGB, min: number): RatedNum =>
@@ -305,6 +314,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const neutralLow = (): Cand => pStep(r2p.neutral, cfg.family === 'light' ? 200 : 750);
   const tintStep = cfg.family === 'light' ? 100 : 900;       // subtle semantic SURFACE tint
   const mutedStep = cfg.family === 'light' ? 450 : 350;      // muted semantic INK
+  // The subtle tint SURFACE for a semantic role, resolved once. `foreground.<r>-subtle` paints it and
+  // the semantic ink is gated against it (below), so the two must not be able to drift apart.
+  const subtleTint = (r: Role): Cand => pStep(palOf(r2p[r]), tintStep);
+  // Bold semantic ink — gated against BOTH grounds it is placed on. See the call site in
+  // `buildContent` for why the floor alone was not enough.
+  const semanticInk = (r: Role, min: number): RatedNum =>
+    chromatic(r2p[r], theme.roleAnchorStep[r], floorRgb, min, false, [subtleTint(r).rgb]);
 
   // Disabled-state contrast (theme-level). BOTH branches gate now: 'full' promises AA text at a
   // fixed 4.5:1, 'reduced' clears the dialable `disabledMin` (3–4.5). The old ungated
@@ -364,7 +380,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   }
   // subtle semantic tint SURFACES (light banner/badge fills) — pair with text.{r}.
   for (const r of SEMANTICS)
-    putSurf(`foreground.${r}-subtle`, pStep(palOf(r2p[r]), tintStep), `Subtle ${r} tint surface — banners, badges, selected rows`);
+    putSurf(`foreground.${r}-subtle`, subtleTint(r), `Subtle ${r} tint surface — banners, badges, selected rows`);
   // danger — a bold semantic fill like the others (kept out of the loop above only to
   // preserve its position + set fills.danger for the on-danger ink pairing). Its stateful /
   // interactive expression now lives in `interactive.destructive.*` (docs/20), so the fill
@@ -680,9 +696,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     T('secondary', pickMinPass(textCands, floorRgb, p.secondaryMin), `Secondary ${p.label} — ${p.secondaryMin}:1 on the floor`, cfg.floorName, p.secondaryMin);
     T('tertiary', pickMinPass(textCands, floorRgb, p.tertiaryMin), `Tertiary ${p.label} — ${p.tertiaryMin}:1 on the floor`, cfg.floorName, p.tertiaryMin);
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, not a per-family role.)
-    // bold semantic ink
+    // Bold semantic ink. Gated against the WORSE of the two grounds it is actually placed on: the
+    // page floor AND its own subtle tint (`foreground.<r>-subtle`), which is where the alert/banner
+    // and subtle-badge patterns put it (preview.ts alert + badge/info-subtle bind exactly this pair).
+    //
+    // WHY BOTH. The floor is the DARKEST supported page, so a light-mode floor bound the ink from
+    // below and the tint came along for free — while the page stayed tinted. On a WHITE page the
+    // floor drops (neutral.100 -> neutral.050), the ink relaxes a rung to 550, and the tint is
+    // suddenly the harder ground: measured 4.01-4.27 against it, an AA text failure in the exact
+    // pattern the tint exists for. It was never the floor's job to bound this — the two grounds are
+    // independent, and gating on one while shipping on the other is what made the miss silent.
+    // Measured across the corpus: 4 of 5 brands failed in light mode (nb, aurora, wendys, minimal —
+    // every white-page member, plus the web start screen's own default brand), harbor passed only
+    // because its warm off-white canvas held the floor high. Costs exactly one rung (550 -> 600),
+    // light mode only; dark modes already cleared both. The ink also gets MORE legible on the page,
+    // so nothing regresses. Contract-safe: this moves values, not names.
     for (const r of SEMANTICS)
-      T(r, paletteRole(r, floorRgb, p.semanticMin), `${r} ${p.label} — ${p.semanticMin}:1 on the floor`, cfg.floorName, p.semanticMin);
+      T(r, semanticInk(r, p.semanticMin), `${r} ${p.label} — ${p.semanticMin}:1 on the floor (${cfg.floorName}) and on its own tint`, cfg.floorName, p.semanticMin);
     // muted semantic ink (the "quiet" variant) — designer's judgment for emphasis.
     for (const r of SEMANTICS)
       T(`${r}-subtle`, rated(pStep(palOf(r2p[r]), mutedStep), baseRgb), `Muted ${r} ${p.label} — low-emphasis accent`, 'background.primary', 0);

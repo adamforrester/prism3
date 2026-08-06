@@ -18,10 +18,16 @@ brandColors:
     oklch: { l: 0.55, c: 0.15, h: 235 }
 actionPalette: accent
 
-# Primary light surface is a tinted off-white (neutral.50), NOT pure white, so the
-# contrast floor moves to neutral.100 — actions are validated there.
+# Primary light surface is PURE WHITE — the most common real-world starting point, and what the
+# example a new user opens first should look like (aurora is the boot default). The contrast floor
+# follows the base surface down to neutral.050, so actions are validated there.
+#
+# Harbor deliberately keeps `base: 50`, so the TINTED-surface path (floor at neutral.100, a warm
+# off-white canvas that is that brand's actual identity) is still covered by the corpus. Both need to
+# exist: white-page and tinted-page brands gate their roles against different floors, and a corpus
+# where every member starts white would stop proving the tinted case resolves.
 surfaces:
-  light: { base: 50 }
+  light: { base: white }
 
 # Soft corners (radius scale 2) + compact density — exercise the dimension levers.
 radiusScale: 2

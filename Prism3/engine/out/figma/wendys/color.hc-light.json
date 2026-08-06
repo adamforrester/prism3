@@ -1862,16 +1862,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "brand text — 4.5:1 on the floor",
+      "description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.5529412031173706,
+        "r": 0.47843137383461,
         "g": 0,
-        "b": 0.10588235408067703,
+        "b": 0.08627451211214066,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "palette/primary/700"
       }
     },
     {
@@ -1880,7 +1880,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "success text — 4.5:1 on the floor",
+      "description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.12941177189350128,
         "g": 0.30588236451148987,
@@ -1898,7 +1898,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "warning text — 4.5:1 on the floor",
+      "description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.4431372582912445,
         "g": 0.18431372940540314,
@@ -1916,7 +1916,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "danger text — 4.5:1 on the floor",
+      "description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.48627451062202454,
         "g": 0.12941177189350128,
@@ -1934,7 +1934,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "info text — 4.5:1 on the floor",
+      "description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.27843138575553894,
@@ -2284,16 +2284,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 4.5:1 on the floor",
+      "description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.5529412031173706,
+        "r": 0.47843137383461,
         "g": 0,
-        "b": 0.10588235408067703,
+        "b": 0.08627451211214066,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "palette/primary/700"
       }
     },
     {
@@ -2304,7 +2304,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success icon — 4.5:1 on the floor",
+      "description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.12941177189350128,
         "g": 0.30588236451148987,
@@ -2324,7 +2324,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 4.5:1 on the floor",
+      "description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.4431372582912445,
         "g": 0.18431372940540314,
@@ -2344,7 +2344,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 4.5:1 on the floor",
+      "description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.48627451062202454,
         "g": 0.12941177189350128,
@@ -2364,7 +2364,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 4.5:1 on the floor",
+      "description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.27843138575553894,

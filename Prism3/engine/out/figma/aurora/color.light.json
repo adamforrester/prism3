@@ -11,14 +11,14 @@
       ],
       "description": "Page surface — the canvas / base",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.9137254953384399,
-        "b": 0.9176470637321472,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/050"
+        "name": "palette/white"
       }
     },
     {
@@ -30,14 +30,14 @@
       ],
       "description": "Page surface, second tier — a slightly tinted page / band",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.8588235378265381,
-        "b": 0.8666666746139526,
+        "r": 0.9137254953384399,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/100"
+        "name": "palette/neutral/050"
       }
     },
     {
@@ -49,14 +49,14 @@
       ],
       "description": "Page surface, third tier",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 0.8588235378265381,
+        "g": 0.8588235378265381,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/150"
+        "name": "palette/neutral/100"
       }
     },
     {
@@ -145,14 +145,14 @@
       ],
       "description": "Default surface placed on the page — a card",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.8588235378265381,
-        "b": 0.8666666746139526,
+        "r": 0.9137254953384399,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/100"
+        "name": "palette/neutral/050"
       }
     },
     {
@@ -165,14 +165,14 @@
       ],
       "description": "A second surface — a panel / nested container",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "r": 0.8588235378265381,
+        "g": 0.8588235378265381,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/150"
+        "name": "palette/neutral/100"
       }
     },
     {
@@ -185,14 +185,14 @@
       ],
       "description": "A third surface step",
       "value": {
-        "r": 0.7568627595901489,
-        "g": 0.7568627595901489,
-        "b": 0.7647058963775635,
+        "r": 0.8078431487083435,
+        "g": 0.8078431487083435,
+        "b": 0.8156862854957581,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/200"
+        "name": "palette/neutral/150"
       }
     },
     {
@@ -263,7 +263,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold brand fill — clears 3:1 on the floor (neutral.100)",
+      "description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.3686274588108063,
         "g": 0.29411765933036804,
@@ -283,7 +283,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold success fill — clears 3:1 on the floor (neutral.100)",
+      "description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -303,7 +303,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold warning fill — clears 3:1 on the floor (neutral.100)",
+      "description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -323,7 +323,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold info fill — clears 3:1 on the floor (neutral.100)",
+      "description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -443,7 +443,7 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Bold danger fill — clears 3:1 on the floor (neutral.100)",
+      "description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -579,13 +579,13 @@
       "description": "primary interactive ink — rest (outline / text appearance)",
       "value": {
         "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/550"
+        "name": "palette/accent/500"
       }
     },
     {
@@ -597,13 +597,13 @@
       "description": "primary interactive ink — hover (outline / text appearance)",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/600"
+        "name": "palette/accent/550"
       }
     },
     {
@@ -615,13 +615,13 @@
       "description": "primary interactive ink — pressed (outline / text appearance)",
       "value": {
         "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/650"
+        "name": "palette/accent/600"
       }
     },
     {
@@ -971,6 +971,24 @@
       ],
       "description": "destructive interactive ink — rest (outline / text appearance)",
       "value": {
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/500"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "destructive interactive ink — hover (outline / text appearance)",
+      "value": {
         "r": 0.7098039388656616,
         "g": 0.2549019753932953,
         "b": 0.22745098173618317,
@@ -982,12 +1000,12 @@
       }
     },
     {
-      "name": "color/interactive/destructive/text/hover",
+      "name": "color/interactive/destructive/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "destructive interactive ink — hover (outline / text appearance)",
+      "description": "destructive interactive ink — pressed (outline / text appearance)",
       "value": {
         "r": 0.6313725709915161,
         "g": 0.21568627655506134,
@@ -997,24 +1015,6 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/danger/600"
-      }
-    },
-    {
-      "name": "color/interactive/destructive/text/pressed",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "destructive interactive ink — pressed (outline / text appearance)",
-      "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/650"
       }
     },
     {
@@ -1418,14 +1418,14 @@
       ],
       "description": "Neutral interactive border (outline)",
       "value": {
-        "r": 0.5058823823928833,
-        "g": 0.5098039507865906,
-        "b": 0.5254902243614197,
+        "r": 0.5568627715110779,
+        "g": 0.5568627715110779,
+        "b": 0.572549045085907,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/450"
+        "name": "palette/neutral/400"
       }
     },
     {
@@ -1681,14 +1681,14 @@
       ],
       "description": "Disabled text — clears 3:1 (reduced contrast, legible)",
       "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "palette/neutral/450"
       }
     },
     {
@@ -1701,14 +1701,14 @@
       ],
       "description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
       "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "palette/neutral/450"
       }
     },
     {
@@ -1738,14 +1738,14 @@
       ],
       "description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.8588235378265381,
-        "b": 0.8666666746139526,
+        "r": 0.9137254953384399,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/100"
+        "name": "palette/neutral/050"
       }
     },
     {
@@ -1756,14 +1756,14 @@
       ],
       "description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border",
       "value": {
-        "r": 0.5058823823928833,
-        "g": 0.5098039507865906,
-        "b": 0.5254902243614197,
+        "r": 0.5568627715110779,
+        "g": 0.5568627715110779,
+        "b": 0.572549045085907,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/450"
+        "name": "palette/neutral/400"
       }
     },
     {
@@ -1774,14 +1774,14 @@
       ],
       "description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/550"
+        "name": "palette/neutral/500"
       }
     },
     {
@@ -1792,14 +1792,14 @@
       ],
       "description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder)",
       "value": {
-        "r": 0.3607843220233917,
-        "g": 0.3607843220233917,
-        "b": 0.3803921639919281,
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/600"
+        "name": "palette/neutral/550"
       }
     },
     {
@@ -1828,14 +1828,14 @@
       ],
       "description": "Secondary text — 4.5:1 on the floor",
       "value": {
-        "r": 0.3607843220233917,
-        "g": 0.3607843220233917,
-        "b": 0.3803921639919281,
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/600"
+        "name": "palette/neutral/550"
       }
     },
     {
@@ -1846,14 +1846,14 @@
       ],
       "description": "Tertiary text — 3:1 on the floor",
       "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "palette/neutral/450"
       }
     },
     {
@@ -1862,7 +1862,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "brand text — 4.5:1 on the floor",
+      "description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.3686274588108063,
         "g": 0.29411765933036804,
@@ -1880,7 +1880,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "success text — 4.5:1 on the floor",
+      "description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.18431372940540314,
         "g": 0.40784314274787903,
@@ -1898,7 +1898,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "warning text — 4.5:1 on the floor",
+      "description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.4941176474094391,
         "g": 0.32549020648002625,
@@ -1916,7 +1916,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "danger text — 4.5:1 on the floor",
+      "description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.6313725709915161,
         "g": 0.21568627655506134,
@@ -1934,7 +1934,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "info text — 4.5:1 on the floor",
+      "description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.3764705955982208,
@@ -2153,6 +2153,24 @@
       "description": "Link text — default",
       "value": {
         "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/550"
+      }
+    },
+    {
+      "name": "color/text/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — hover",
+      "value": {
+        "r": 0,
         "g": 0.3803921639919281,
         "b": 0.5333333611488342,
         "a": 1
@@ -2163,12 +2181,12 @@
       }
     },
     {
-      "name": "color/text/link/hover",
+      "name": "color/text/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Link text — hover",
+      "description": "Link text — visited",
       "value": {
         "r": 0,
         "g": 0.3294117748737335,
@@ -2181,24 +2199,6 @@
       }
     },
     {
-      "name": "color/text/link/visited",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "Link text — visited",
-      "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
-      }
-    },
-    {
       "name": "color/text/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2207,13 +2207,13 @@
       "description": "Link text — focused",
       "value": {
         "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/600"
+        "name": "palette/accent/550"
       }
     },
     {
@@ -2246,14 +2246,14 @@
       ],
       "description": "Secondary icon — 3:1 on the floor",
       "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "palette/neutral/450"
       }
     },
     {
@@ -2266,14 +2266,14 @@
       ],
       "description": "Tertiary icon — 3:1 on the floor",
       "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "palette/neutral/450"
       }
     },
     {
@@ -2284,7 +2284,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 3:1 on the floor",
+      "description": "brand icon — 3:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.3686274588108063,
         "g": 0.29411765933036804,
@@ -2304,7 +2304,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success icon — 3:1 on the floor",
+      "description": "success icon — 3:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.26274511218070984,
         "g": 0.5137255191802979,
@@ -2324,7 +2324,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 3:1 on the floor",
+      "description": "warning icon — 3:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.6235294342041016,
         "g": 0.41960784792900085,
@@ -2344,7 +2344,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 3:1 on the floor",
+      "description": "danger icon — 3:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.7882353067398071,
         "g": 0.2980392277240753,
@@ -2364,7 +2364,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 3:1 on the floor",
+      "description": "info icon — 3:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -2684,14 +2684,14 @@
       ],
       "description": "Default border — decorative, ~1.4:1",
       "value": {
-        "r": 0.7568627595901489,
-        "g": 0.7568627595901489,
-        "b": 0.7647058963775635,
+        "r": 0.8588235378265381,
+        "g": 0.8588235378265381,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/200"
+        "name": "palette/neutral/100"
       }
     },
     {
@@ -2702,14 +2702,14 @@
       ],
       "description": "Stronger border / divider",
       "value": {
-        "r": 0.5058823823928833,
-        "g": 0.5098039507865906,
-        "b": 0.5254902243614197,
+        "r": 0.5568627715110779,
+        "g": 0.5568627715110779,
+        "b": 0.572549045085907,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/450"
+        "name": "palette/neutral/400"
       }
     },
     {

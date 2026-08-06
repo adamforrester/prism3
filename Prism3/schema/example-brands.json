@@ -23,7 +23,7 @@
     "actionPalette": "accent",
     "surfaces": {
       "light": {
-        "base": 50
+        "base": "white"
       }
     },
     "radiusScale": 2,

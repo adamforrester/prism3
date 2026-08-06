@@ -4786,15 +4786,21 @@ const sfRow = (o: SfRowOpts): HTMLElement => {
 };
 const sfCtl = (...blocks: HTMLElement[]): HTMLElement => { const c = el('div', 'sf-ctl'); c.append(...blocks); return c; };
 const sfCtlBlock = (label: string, control: HTMLElement): HTMLElement => { const b = el('div', 'sf-ctlblock'); b.append(el('span', 'pfk', label), control); return b; };
-const sfDot = (hex: string): HTMLElement => { const d = el('span', 'sf-ex-dot'); d.style.background = hex; return d; };
 // The text color is the resolved role for THIS surface, not a hardcoded invert flag — a custom
 // mode's Primary can be either light or dark, and a hardcoded dark ink went invisible on a dark
 // custom-mode surface (near-black on near-black). `textHex` is `text.primary` (against
 // background.primary) or `text.on-inverse` (against background.inverse.primary) — whichever the
 // caller's surface actually is.
-const sfExSurface = (bg: string, dotHex: string, label: string, textHex: string): HTMLElement => {
+//
+// No accent dot any more (owner request). It painted `foreground.brand` on the Primary specimen and
+// `foreground.inverse.primary` on the Inverse one, so the two swatches were showing DIFFERENT roles
+// under identical treatment — and neither is what this section edits. On the inverse band the dot was
+// near-invisible besides (a dark neutral on a near-black band), which is how it read as an unidentifiable
+// smudge. The specimen's job here is to show the SURFACE and that its ink is legible on it; a swatch for
+// a role edited on another page was borrowing this one's evidence to say something else.
+const sfExSurface = (bg: string, label: string, textHex: string): HTMLElement => {
   const ex = el('div', 'sf-ex sf-ex-surface'); ex.style.background = bg; ex.style.color = textHex;
-  ex.append(sfDot(dotHex), el('span', undefined, label)); return ex;
+  ex.append(el('span', undefined, label)); return ex;
 };
 const sfExFill = (bg: string, label: string, fg?: string): HTMLElement => {
   const ex = el('div', 'sf-ex sf-ex-fill'); ex.style.background = bg; if (fg) ex.style.color = fg; ex.textContent = label; return ex;
@@ -4849,7 +4855,6 @@ const renderSurfacesEditor = (): HTMLElement => {
   const opt = (sel: HTMLSelectElement, v: string, t: string, on: boolean): void => { sel.append(optionEl(v, t, on)); };
   const roles = (resolveAllModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, { hex: string; path?: string } | undefined>;
   const primHex = roles['background.primary']?.hex ?? (mode === 'dark' ? '#000000' : '#ffffff');
-  const brandDot = roles['foreground.brand']?.hex ?? '#5e4bc3';
   // The resolved ink for THIS surface — `text.primary` is measured against `background.primary`
   // exactly, so it's always legible here regardless of whether the mode's Primary is light or
   // dark. Previously a hardcoded near-black went invisible on a dark custom mode.
@@ -4883,14 +4888,14 @@ const renderSurfacesEditor = (): HTMLElement => {
       // rather than repeating the definition three lines later.
       desc: 'White, black, or a tinted neutral step.',
       controls: sfCtl(sfCtlBlock('Base surface', base), floorBlock),
-      example: sfExSurface(primHex, brandDot, 'Card', primText),
+      example: sfExSurface(primHex, 'Primary background', primText),
     }));
   } else {
     sec.append(sfRow({
       swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
       desc: 'Seeded from this custom mode’s base.',
       controls: sfCtl(sfCtlBlock('Base surface', el('span', 'sf-derived', 'Seeds from its base mode'))),
-      example: sfExSurface(primHex, brandDot, 'Card', primText),
+      example: sfExSurface(primHex, 'Primary background', primText),
     }));
   }
 
@@ -4908,7 +4913,6 @@ const renderSurfacesEditor = (): HTMLElement => {
     const invSel = stepPicker(nPal, nSteps, stepKeyOf(roles['background.inverse.primary']?.path),
       typeof cur === 'string' ? cur : undefined,
       (step) => setFillOverride('background.inverse.primary', nPal, step));
-    const onInv = roles['foreground.inverse.primary']?.hex ?? '#9481ee';
     // `text.on-inverse` is measured against `background.inverse.primary` exactly — the correct ink
     // for this band regardless of which mode's inverse this is.
     const invText = roles['text.on-inverse']?.hex ?? '#f2f2f6';
@@ -4918,7 +4922,7 @@ const renderSurfacesEditor = (): HTMLElement => {
       // "Step", not "Base surface" — the Primary row's "Base surface" picks white/black/a neutral, this
       // repoints a step through the override layer, which is what every other row on the page calls "Step".
       controls: sfCtl(sfCtlBlock('Step', invSel)),
-      example: sfExSurface(invHex, onInv, 'Inverse band', invText),
+      example: sfExSurface(invHex, 'Primary Inverse Background', invText),
     }));
   }
   return sec;
@@ -7503,7 +7507,6 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sf-right{grid-column:5;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .sf-ex{width:228px;height:52px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;padding:0 16px;overflow:hidden}
 .sf-ex-surface{gap:11px;font-size:13px}
-.sf-ex-dot{width:14px;height:14px;border-radius:5px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
 .sf-ex-fill{color:#fff;font-weight:600;font-size:13.5px}
 .sf-ex-text{font-size:14.5px}
 .sf-railnote{font-size:10.5px;color:var(--faint)}

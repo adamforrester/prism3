@@ -6554,13 +6554,13 @@
         },
         "brand": {
           "$type": "color",
-          "$value": "{nbds.palette.red.550}",
-          "$description": "brand text — 4.5:1 on the floor",
+          "$value": "{nbds.palette.red.600}",
+          "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.red.550",
-              "contrast": 4.62,
+              "aliasOf": "nbds.palette.red.600",
+              "contrast": 5.64,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -6598,13 +6598,13 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{nbds.palette.green.550}",
-          "$description": "success text — 4.5:1 on the floor",
+          "$value": "{nbds.palette.green.600}",
+          "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.green.550",
-              "contrast": 4.84,
+              "aliasOf": "nbds.palette.green.600",
+              "contrast": 5.78,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -6643,7 +6643,7 @@
         "warning": {
           "$type": "color",
           "$value": "{nbds.palette.amber.600}",
-          "$description": "warning text — 4.5:1 on the floor",
+          "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -6686,13 +6686,13 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{nbds.palette.red.550}",
-          "$description": "danger text — 4.5:1 on the floor",
+          "$value": "{nbds.palette.red.600}",
+          "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.red.550",
-              "contrast": 4.62,
+              "aliasOf": "nbds.palette.red.600",
+              "contrast": 5.64,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -6730,13 +6730,13 @@
         },
         "info": {
           "$type": "color",
-          "$value": "{nbds.palette.info.550}",
-          "$description": "info text — 4.5:1 on the floor",
+          "$value": "{nbds.palette.info.600}",
+          "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.info.550",
-              "contrast": 4.56,
+              "aliasOf": "nbds.palette.info.600",
+              "contrast": 5.51,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7550,13 +7550,13 @@
         },
         "brand": {
           "$type": "color",
-          "$value": "{nbds.palette.red.550}",
-          "$description": "brand icon — 4.5:1 on the floor",
+          "$value": "{nbds.palette.red.600}",
+          "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.red.550",
-              "contrast": 4.62,
+              "aliasOf": "nbds.palette.red.600",
+              "contrast": 5.64,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7594,13 +7594,13 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{nbds.palette.green.550}",
-          "$description": "success icon — 4.5:1 on the floor",
+          "$value": "{nbds.palette.green.600}",
+          "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.green.550",
-              "contrast": 4.84,
+              "aliasOf": "nbds.palette.green.600",
+              "contrast": 5.78,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7639,7 +7639,7 @@
         "warning": {
           "$type": "color",
           "$value": "{nbds.palette.amber.600}",
-          "$description": "warning icon — 4.5:1 on the floor",
+          "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7682,13 +7682,13 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{nbds.palette.red.550}",
-          "$description": "danger icon — 4.5:1 on the floor",
+          "$value": "{nbds.palette.red.600}",
+          "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.red.550",
-              "contrast": 4.62,
+              "aliasOf": "nbds.palette.red.600",
+              "contrast": 5.64,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7726,13 +7726,13 @@
         },
         "info": {
           "$type": "color",
-          "$value": "{nbds.palette.info.550}",
-          "$description": "info icon — 4.5:1 on the floor",
+          "$value": "{nbds.palette.info.600}",
+          "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "nbds.palette.info.550",
-              "contrast": 4.56,
+              "aliasOf": "nbds.palette.info.600",
+              "contrast": 5.51,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -14230,7 +14230,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

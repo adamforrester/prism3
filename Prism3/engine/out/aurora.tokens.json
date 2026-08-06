@@ -3090,12 +3090,12 @@
       "background": {
         "primary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.050}",
+          "$value": "{prism.palette.white}",
           "$description": "Page surface — the canvas / base",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.050",
+              "aliasOf": "prism.palette.white",
               "contrast": 1,
               "against": "self",
               "modes": {
@@ -3130,12 +3130,12 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.100}",
+          "$value": "{prism.palette.neutral.050}",
           "$description": "Page surface, second tier — a slightly tinted page / band",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.100",
+              "aliasOf": "prism.palette.neutral.050",
               "contrast": 1,
               "against": "self",
               "modes": {
@@ -3170,12 +3170,12 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.150}",
+          "$value": "{prism.palette.neutral.100}",
           "$description": "Page surface, third tier",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.150",
+              "aliasOf": "prism.palette.neutral.100",
               "contrast": 1,
               "against": "self",
               "modes": {
@@ -3376,12 +3376,12 @@
       "foreground": {
         "primary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.100}",
+          "$value": "{prism.palette.neutral.050}",
           "$description": "Default surface placed on the page — a card",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.100",
+              "aliasOf": "prism.palette.neutral.050",
               "contrast": 1,
               "against": "self",
               "modes": {
@@ -3416,12 +3416,12 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.150}",
+          "$value": "{prism.palette.neutral.100}",
           "$description": "A second surface — a panel / nested container",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.150",
+              "aliasOf": "prism.palette.neutral.100",
               "contrast": 1,
               "against": "self",
               "modes": {
@@ -3456,12 +3456,12 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.200}",
+          "$value": "{prism.palette.neutral.150}",
           "$description": "A third surface step",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.200",
+              "aliasOf": "prism.palette.neutral.150",
               "contrast": 1,
               "against": "self",
               "modes": {
@@ -3619,13 +3619,13 @@
         "brand": {
           "$type": "color",
           "$value": "{prism.palette.primary.550}",
-          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.550",
-              "contrast": 4.64,
-              "against": "neutral.100",
+              "contrast": 5.29,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -3635,9 +3635,9 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.primary.700}",
-                  "contrast": 7.9,
-                  "against": "neutral.100",
+                  "$value": "{prism.palette.primary.650}",
+                  "contrast": 7.57,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -3663,13 +3663,13 @@
         "success": {
           "$type": "color",
           "$value": "{prism.palette.success.500}",
-          "$description": "Bold success fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.500",
-              "contrast": 3.32,
-              "against": "neutral.100",
+              "contrast": 3.78,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -3680,8 +3680,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.success.700}",
-                  "contrast": 7.04,
-                  "against": "neutral.100",
+                  "contrast": 8.02,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -3707,13 +3707,13 @@
         "warning": {
           "$type": "color",
           "$value": "{prism.palette.warning.500}",
-          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.500",
-              "contrast": 3.32,
-              "against": "neutral.100",
+              "contrast": 3.78,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -3724,8 +3724,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.warning.700}",
-                  "contrast": 7.12,
-                  "against": "neutral.100",
+                  "contrast": 8.11,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -3751,13 +3751,13 @@
         "info": {
           "$type": "color",
           "$value": "{prism.palette.info.500}",
-          "$description": "Bold info fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.500",
-              "contrast": 3.3,
-              "against": "neutral.100",
+              "contrast": 3.76,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -3768,8 +3768,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.info.700}",
-                  "contrast": 7.07,
-                  "against": "neutral.100",
+                  "contrast": 8.06,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -3995,13 +3995,13 @@
         "danger": {
           "$type": "color",
           "$value": "{prism.palette.danger.500}",
-          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.100)",
+          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.500",
-              "contrast": 3.3,
-              "against": "neutral.100",
+              "contrast": 3.76,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -4012,8 +4012,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.danger.700}",
-                  "contrast": 7.22,
-                  "against": "neutral.100",
+                  "contrast": 8.23,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -4048,8 +4048,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.accent.500",
-                  "contrast": 3.3,
-                  "against": "neutral.100",
+                  "contrast": 3.76,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -4060,8 +4060,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.accent.700}",
-                      "contrast": 7.26,
-                      "against": "neutral.100",
+                      "contrast": 8.27,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -4092,8 +4092,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.accent.550",
-                  "contrast": 4.12,
-                  "against": "neutral.100",
+                  "contrast": 4.69,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -4104,8 +4104,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.accent.750}",
-                      "contrast": 8.65,
-                      "against": "neutral.100",
+                      "contrast": 9.85,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -4136,8 +4136,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.accent.600",
-                  "contrast": 4.95,
-                  "against": "neutral.100",
+                  "contrast": 5.65,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -4148,8 +4148,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.accent.800}",
-                      "contrast": 10.07,
-                      "against": "neutral.100",
+                      "contrast": 11.47,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -4180,8 +4180,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.accent.550",
-                  "contrast": 4.12,
-                  "against": "neutral.100",
+                  "contrast": 4.69,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -4192,8 +4192,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.accent.750}",
-                      "contrast": 8.65,
-                      "against": "neutral.100",
+                      "contrast": 9.85,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -4224,8 +4224,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.accent.600",
-                  "contrast": 4.95,
-                  "against": "neutral.100",
+                  "contrast": 5.65,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -4236,8 +4236,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.accent.800}",
-                      "contrast": 10.07,
-                      "against": "neutral.100",
+                      "contrast": 11.47,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -4308,13 +4308,13 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.palette.accent.550}",
+              "$value": "{prism.palette.accent.500}",
               "$description": "primary interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.palette.accent.550",
-                  "contrast": 4.69,
+                  "aliasOf": "prism.palette.accent.500",
+                  "contrast": 4.56,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -4352,13 +4352,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.palette.accent.600}",
+              "$value": "{prism.palette.accent.550}",
               "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.palette.accent.600",
-                  "contrast": 5.65,
+                  "aliasOf": "prism.palette.accent.550",
+                  "contrast": 5.69,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -4396,13 +4396,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.palette.accent.650}",
+              "$value": "{prism.palette.accent.600}",
               "$description": "primary interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.palette.accent.650",
-                  "contrast": 6.84,
+                  "aliasOf": "prism.palette.accent.600",
+                  "contrast": 6.85,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -4447,7 +4447,7 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "prism.palette.accent.500",
-                "contrast": 3.76,
+                "contrast": 4.56,
                 "against": "background.primary",
                 "min": 3,
                 "modes": {
@@ -4850,7 +4850,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.10",
-                  "contrast": 12.82,
+                  "contrast": 15.49,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -4894,7 +4894,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
-                  "contrast": 10.06,
+                  "contrast": 12.1,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -4938,7 +4938,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
-                  "contrast": 10.06,
+                  "contrast": 12.1,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -4986,8 +4986,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.danger.500",
-                  "contrast": 3.3,
-                  "against": "neutral.100",
+                  "contrast": 3.76,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -4998,8 +4998,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.700}",
-                      "contrast": 7.22,
-                      "against": "neutral.100",
+                      "contrast": 8.23,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -5030,8 +5030,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.danger.550",
-                  "contrast": 4.02,
-                  "against": "neutral.100",
+                  "contrast": 4.58,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -5042,8 +5042,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.750}",
-                      "contrast": 8.67,
-                      "against": "neutral.100",
+                      "contrast": 9.88,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -5074,8 +5074,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.danger.600",
-                  "contrast": 4.89,
-                  "against": "neutral.100",
+                  "contrast": 5.57,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -5086,8 +5086,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.800}",
-                      "contrast": 10.27,
-                      "against": "neutral.100",
+                      "contrast": 11.7,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -5118,8 +5118,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.danger.550",
-                  "contrast": 4.02,
-                  "against": "neutral.100",
+                  "contrast": 4.58,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -5130,8 +5130,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.750}",
-                      "contrast": 8.67,
-                      "against": "neutral.100",
+                      "contrast": 9.88,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -5162,8 +5162,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.danger.600",
-                  "contrast": 4.89,
-                  "against": "neutral.100",
+                  "contrast": 5.57,
+                  "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
@@ -5174,8 +5174,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.danger.800}",
-                      "contrast": 10.27,
-                      "against": "neutral.100",
+                      "contrast": 11.7,
+                      "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
@@ -5246,13 +5246,13 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.palette.danger.550}",
+              "$value": "{prism.palette.danger.500}",
               "$description": "destructive interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.palette.danger.550",
-                  "contrast": 4.58,
+                  "aliasOf": "prism.palette.danger.500",
+                  "contrast": 4.56,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -5290,13 +5290,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.palette.danger.600}",
+              "$value": "{prism.palette.danger.550}",
               "$description": "destructive interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.palette.danger.600",
-                  "contrast": 5.57,
+                  "aliasOf": "prism.palette.danger.550",
+                  "contrast": 5.55,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -5334,13 +5334,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.palette.danger.650}",
+              "$value": "{prism.palette.danger.600}",
               "$description": "destructive interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.palette.danger.650",
-                  "contrast": 6.77,
+                  "aliasOf": "prism.palette.danger.600",
+                  "contrast": 6.76,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -5385,7 +5385,7 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "prism.palette.danger.500",
-                "contrast": 3.76,
+                "contrast": 4.56,
                 "against": "background.primary",
                 "min": 3,
                 "modes": {
@@ -5788,7 +5788,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.10",
-                  "contrast": 12.82,
+                  "contrast": 15.49,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -5832,7 +5832,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
-                  "contrast": 10.06,
+                  "contrast": 12.1,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -5876,7 +5876,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
-                  "contrast": 10.06,
+                  "contrast": 12.1,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -5924,8 +5924,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.150",
-                  "contrast": 1.14,
-                  "against": "neutral.100",
+                  "contrast": 1.3,
+                  "against": "neutral.050",
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.850}",
@@ -5934,8 +5934,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.neutral.150}",
-                      "contrast": 1.14,
-                      "against": "neutral.100"
+                      "contrast": 1.3,
+                      "against": "neutral.050"
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.neutral.850}",
@@ -5964,8 +5964,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.200",
-                  "contrast": 1.3,
-                  "against": "neutral.100",
+                  "contrast": 1.48,
+                  "against": "neutral.050",
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.800}",
@@ -5974,8 +5974,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.neutral.200}",
-                      "contrast": 1.3,
-                      "against": "neutral.100"
+                      "contrast": 1.48,
+                      "against": "neutral.050"
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.neutral.800}",
@@ -6004,8 +6004,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.250",
-                  "contrast": 1.5,
-                  "against": "neutral.100",
+                  "contrast": 1.71,
+                  "against": "neutral.050",
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.750}",
@@ -6014,8 +6014,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.neutral.250}",
-                      "contrast": 1.5,
-                      "against": "neutral.100"
+                      "contrast": 1.71,
+                      "against": "neutral.050"
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.neutral.750}",
@@ -6044,8 +6044,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.200",
-                  "contrast": 1.3,
-                  "against": "neutral.100",
+                  "contrast": 1.48,
+                  "against": "neutral.050",
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.800}",
@@ -6054,8 +6054,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.neutral.200}",
-                      "contrast": 1.3,
-                      "against": "neutral.100"
+                      "contrast": 1.48,
+                      "against": "neutral.050"
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.neutral.800}",
@@ -6084,8 +6084,8 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.250",
-                  "contrast": 1.5,
-                  "against": "neutral.100",
+                  "contrast": 1.71,
+                  "against": "neutral.050",
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.750}",
@@ -6094,8 +6094,8 @@
                     },
                     "hc-light": {
                       "$value": "{prism.palette.neutral.250}",
-                      "contrast": 1.5,
-                      "against": "neutral.100"
+                      "contrast": 1.71,
+                      "against": "neutral.050"
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.neutral.750}",
@@ -6170,7 +6170,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
-                  "contrast": 16.01,
+                  "contrast": 19.43,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -6214,7 +6214,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
-                  "contrast": 16.01,
+                  "contrast": 19.43,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -6258,7 +6258,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
-                  "contrast": 16.01,
+                  "contrast": 19.43,
                   "against": "background.primary",
                   "min": 4.5,
                   "modes": {
@@ -6297,13 +6297,13 @@
           },
           "border": {
             "$type": "color",
-            "$value": "{prism.palette.neutral.450}",
+            "$value": "{prism.palette.neutral.400}",
             "$description": "Neutral interactive border (outline)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.neutral.450",
-                "contrast": 3.16,
+                "aliasOf": "prism.palette.neutral.400",
+                "contrast": 3.26,
                 "against": "background.primary",
                 "min": 3,
                 "modes": {
@@ -6706,7 +6706,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.10",
-                  "contrast": 12.82,
+                  "contrast": 15.49,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -6750,7 +6750,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
-                  "contrast": 10.06,
+                  "contrast": 12.1,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -6794,7 +6794,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
-                  "contrast": 10.06,
+                  "contrast": 12.1,
                   "against": "text.primary",
                   "min": 4.5,
                   "modes": {
@@ -6920,14 +6920,14 @@
         },
         "text": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.500}",
+          "$value": "{prism.palette.neutral.450}",
           "$description": "Disabled text — clears 3:1 (reduced contrast, legible)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.500",
-              "contrast": 3.28,
-              "against": "neutral.100",
+              "aliasOf": "prism.palette.neutral.450",
+              "contrast": 3.16,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -6937,9 +6937,9 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.81,
-                  "against": "neutral.100",
+                  "$value": "{prism.palette.neutral.550}",
+                  "contrast": 4.57,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -6964,14 +6964,14 @@
         },
         "icon": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.500}",
+          "$value": "{prism.palette.neutral.450}",
           "$description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.500",
-              "contrast": 3.28,
-              "against": "neutral.100",
+              "aliasOf": "prism.palette.neutral.450",
+              "contrast": 3.16,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -6981,9 +6981,9 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.81,
-                  "against": "neutral.100",
+                  "$value": "{prism.palette.neutral.550}",
+                  "contrast": 4.57,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -7014,7 +7014,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.neutral.200",
-              "contrast": 1.48,
+              "contrast": 1.8,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -7050,12 +7050,12 @@
       "field": {
         "fill": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.100}",
+          "$value": "{prism.palette.neutral.050}",
           "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.100",
+              "aliasOf": "prism.palette.neutral.050",
               "contrast": 1,
               "against": "self",
               "modes": {
@@ -7091,13 +7091,13 @@
         "border": {
           "rest": {
             "$type": "color",
-            "$value": "{prism.palette.neutral.450}",
+            "$value": "{prism.palette.neutral.400}",
             "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.neutral.450",
-                "contrast": 3.16,
+                "aliasOf": "prism.palette.neutral.400",
+                "contrast": 3.26,
                 "against": "background.primary",
                 "min": 3,
                 "modes": {
@@ -7135,13 +7135,13 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{prism.palette.neutral.550}",
+            "$value": "{prism.palette.neutral.500}",
             "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.neutral.550",
-                "contrast": 4.57,
+                "aliasOf": "prism.palette.neutral.500",
+                "contrast": 4.54,
                 "against": "background.primary",
                 "min": 3,
                 "modes": {
@@ -7180,13 +7180,13 @@
         },
         "placeholder": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.600}",
+          "$value": "{prism.palette.neutral.550}",
           "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.600",
-              "contrast": 4.81,
+              "aliasOf": "prism.palette.neutral.550",
+              "contrast": 4.57,
               "against": "field.fill",
               "min": 4.5,
               "modes": {
@@ -7232,7 +7232,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.neutral.950",
-              "contrast": 16.01,
+              "contrast": 19.43,
               "against": "background.primary",
               "min": 7,
               "modes": {
@@ -7270,14 +7270,14 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.600}",
+          "$value": "{prism.palette.neutral.550}",
           "$description": "Secondary text — 4.5:1 on the floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.600",
-              "contrast": 4.81,
-              "against": "neutral.100",
+              "aliasOf": "prism.palette.neutral.550",
+              "contrast": 4.57,
+              "against": "neutral.050",
               "min": 4.5,
               "modes": {
                 "dark": {
@@ -7288,8 +7288,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.neutral.700}",
-                  "contrast": 7.12,
-                  "against": "neutral.100",
+                  "contrast": 8.12,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -7314,14 +7314,14 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.500}",
+          "$value": "{prism.palette.neutral.450}",
           "$description": "Tertiary text — 3:1 on the floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.500",
-              "contrast": 3.28,
-              "against": "neutral.100",
+              "aliasOf": "prism.palette.neutral.450",
+              "contrast": 3.16,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -7331,9 +7331,9 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.81,
-                  "against": "neutral.100",
+                  "$value": "{prism.palette.neutral.550}",
+                  "contrast": 4.57,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -7359,13 +7359,13 @@
         "brand": {
           "$type": "color",
           "$value": "{prism.palette.primary.550}",
-          "$description": "brand text — 4.5:1 on the floor",
+          "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.550",
-              "contrast": 4.64,
-              "against": "neutral.100",
+              "contrast": 5.29,
+              "against": "neutral.050",
               "min": 4.5,
               "modes": {
                 "dark": {
@@ -7376,8 +7376,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.primary.700}",
-                  "contrast": 7.9,
-                  "against": "neutral.100",
+                  "contrast": 9,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -7403,13 +7403,13 @@
         "success": {
           "$type": "color",
           "$value": "{prism.palette.success.600}",
-          "$description": "success text — 4.5:1 on the floor",
+          "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.600",
-              "contrast": 4.82,
-              "against": "neutral.100",
+              "contrast": 5.5,
+              "against": "neutral.050",
               "min": 4.5,
               "modes": {
                 "dark": {
@@ -7420,8 +7420,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.success.700}",
-                  "contrast": 7.04,
-                  "against": "neutral.100",
+                  "contrast": 8.02,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -7447,13 +7447,13 @@
         "warning": {
           "$type": "color",
           "$value": "{prism.palette.warning.600}",
-          "$description": "warning text — 4.5:1 on the floor",
+          "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.600",
-              "contrast": 4.86,
-              "against": "neutral.100",
+              "contrast": 5.54,
+              "against": "neutral.050",
               "min": 4.5,
               "modes": {
                 "dark": {
@@ -7464,8 +7464,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.warning.700}",
-                  "contrast": 7.12,
-                  "against": "neutral.100",
+                  "contrast": 8.11,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -7491,13 +7491,13 @@
         "danger": {
           "$type": "color",
           "$value": "{prism.palette.danger.600}",
-          "$description": "danger text — 4.5:1 on the floor",
+          "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.600",
-              "contrast": 4.89,
-              "against": "neutral.100",
+              "contrast": 5.57,
+              "against": "neutral.050",
               "min": 4.5,
               "modes": {
                 "dark": {
@@ -7508,8 +7508,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.danger.700}",
-                  "contrast": 7.22,
-                  "against": "neutral.100",
+                  "contrast": 8.23,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -7535,13 +7535,13 @@
         "info": {
           "$type": "color",
           "$value": "{prism.palette.info.600}",
-          "$description": "info text — 4.5:1 on the floor",
+          "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.600",
-              "contrast": 4.85,
-              "against": "neutral.100",
+              "contrast": 5.52,
+              "against": "neutral.050",
               "min": 4.5,
               "modes": {
                 "dark": {
@@ -7552,8 +7552,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.info.700}",
-                  "contrast": 7.07,
-                  "against": "neutral.100",
+                  "contrast": 8.06,
+                  "against": "neutral.050",
                   "min": 7
                 },
                 "hc-dark": {
@@ -7584,7 +7584,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.450",
-              "contrast": 3.2,
+              "contrast": 3.89,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -7624,7 +7624,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.450",
-              "contrast": 3.16,
+              "contrast": 3.83,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -7664,7 +7664,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.450",
-              "contrast": 3.21,
+              "contrast": 3.89,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -7704,7 +7704,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.450",
-              "contrast": 3.23,
+              "contrast": 3.92,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -7744,7 +7744,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.450",
-              "contrast": 3.19,
+              "contrast": 3.86,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -7796,7 +7796,7 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 10.92,
+                  "contrast": 9.18,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
@@ -8043,14 +8043,14 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{prism.palette.accent.600}",
+            "$value": "{prism.palette.accent.550}",
             "$description": "Link text — default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.accent.600",
-                "contrast": 4.95,
-                "against": "neutral.100",
+                "aliasOf": "prism.palette.accent.550",
+                "contrast": 4.69,
+                "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
@@ -8061,8 +8061,8 @@
                   },
                   "hc-light": {
                     "$value": "{prism.palette.accent.700}",
-                    "contrast": 7.26,
-                    "against": "neutral.100",
+                    "contrast": 8.27,
+                    "against": "neutral.050",
                     "min": 7
                   },
                   "hc-dark": {
@@ -8087,14 +8087,14 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{prism.palette.accent.650}",
+            "$value": "{prism.palette.accent.600}",
             "$description": "Link text — hover",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.accent.650",
-                "contrast": 6,
-                "against": "neutral.100",
+                "aliasOf": "prism.palette.accent.600",
+                "contrast": 5.65,
+                "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
@@ -8105,8 +8105,8 @@
                   },
                   "hc-light": {
                     "$value": "{prism.palette.accent.750}",
-                    "contrast": 8.65,
-                    "against": "neutral.100",
+                    "contrast": 9.85,
+                    "against": "neutral.050",
                     "min": 7
                   },
                   "hc-dark": {
@@ -8131,14 +8131,14 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{prism.palette.accent.700}",
+            "$value": "{prism.palette.accent.650}",
             "$description": "Link text — visited",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.accent.700",
-                "contrast": 7.26,
-                "against": "neutral.100",
+                "aliasOf": "prism.palette.accent.650",
+                "contrast": 6.84,
+                "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
@@ -8149,8 +8149,8 @@
                   },
                   "hc-light": {
                     "$value": "{prism.palette.accent.800}",
-                    "contrast": 10.07,
-                    "against": "neutral.100",
+                    "contrast": 11.47,
+                    "against": "neutral.050",
                     "min": 7
                   },
                   "hc-dark": {
@@ -8175,14 +8175,14 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{prism.palette.accent.600}",
+            "$value": "{prism.palette.accent.550}",
             "$description": "Link text — focused",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "prism.palette.accent.600",
-                "contrast": 4.95,
-                "against": "neutral.100",
+                "aliasOf": "prism.palette.accent.550",
+                "contrast": 4.69,
+                "against": "neutral.050",
                 "min": 4.5,
                 "modes": {
                   "dark": {
@@ -8193,8 +8193,8 @@
                   },
                   "hc-light": {
                     "$value": "{prism.palette.accent.700}",
-                    "contrast": 7.26,
-                    "against": "neutral.100",
+                    "contrast": 8.27,
+                    "against": "neutral.050",
                     "min": 7
                   },
                   "hc-dark": {
@@ -8228,7 +8228,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.neutral.950",
-              "contrast": 16.01,
+              "contrast": 19.43,
               "against": "background.primary",
               "min": 7,
               "modes": {
@@ -8266,14 +8266,14 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.500}",
+          "$value": "{prism.palette.neutral.450}",
           "$description": "Secondary icon — 3:1 on the floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.500",
-              "contrast": 3.28,
-              "against": "neutral.100",
+              "aliasOf": "prism.palette.neutral.450",
+              "contrast": 3.16,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -8283,9 +8283,9 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.81,
-                  "against": "neutral.100",
+                  "$value": "{prism.palette.neutral.550}",
+                  "contrast": 4.57,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -8310,14 +8310,14 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.500}",
+          "$value": "{prism.palette.neutral.450}",
           "$description": "Tertiary icon — 3:1 on the floor",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.500",
-              "contrast": 3.28,
-              "against": "neutral.100",
+              "aliasOf": "prism.palette.neutral.450",
+              "contrast": 3.16,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -8327,9 +8327,9 @@
                   "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.81,
-                  "against": "neutral.100",
+                  "$value": "{prism.palette.neutral.550}",
+                  "contrast": 4.57,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -8355,13 +8355,13 @@
         "brand": {
           "$type": "color",
           "$value": "{prism.palette.primary.550}",
-          "$description": "brand icon — 3:1 on the floor",
+          "$description": "brand icon — 3:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.550",
-              "contrast": 4.64,
-              "against": "neutral.100",
+              "contrast": 5.29,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -8372,8 +8372,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.primary.550}",
-                  "contrast": 4.64,
-                  "against": "neutral.100",
+                  "contrast": 5.29,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -8399,13 +8399,13 @@
         "success": {
           "$type": "color",
           "$value": "{prism.palette.success.500}",
-          "$description": "success icon — 3:1 on the floor",
+          "$description": "success icon — 3:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.500",
-              "contrast": 3.32,
-              "against": "neutral.100",
+              "contrast": 3.78,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -8416,8 +8416,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.success.600}",
-                  "contrast": 4.82,
-                  "against": "neutral.100",
+                  "contrast": 5.5,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -8443,13 +8443,13 @@
         "warning": {
           "$type": "color",
           "$value": "{prism.palette.warning.500}",
-          "$description": "warning icon — 3:1 on the floor",
+          "$description": "warning icon — 3:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.500",
-              "contrast": 3.32,
-              "against": "neutral.100",
+              "contrast": 3.78,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -8460,8 +8460,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.warning.600}",
-                  "contrast": 4.86,
-                  "against": "neutral.100",
+                  "contrast": 5.54,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -8487,13 +8487,13 @@
         "danger": {
           "$type": "color",
           "$value": "{prism.palette.danger.500}",
-          "$description": "danger icon — 3:1 on the floor",
+          "$description": "danger icon — 3:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.500",
-              "contrast": 3.3,
-              "against": "neutral.100",
+              "contrast": 3.76,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -8504,8 +8504,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.danger.600}",
-                  "contrast": 4.89,
-                  "against": "neutral.100",
+                  "contrast": 5.57,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -8531,13 +8531,13 @@
         "info": {
           "$type": "color",
           "$value": "{prism.palette.info.500}",
-          "$description": "info icon — 3:1 on the floor",
+          "$description": "info icon — 3:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.500",
-              "contrast": 3.3,
-              "against": "neutral.100",
+              "contrast": 3.76,
+              "against": "neutral.050",
               "min": 3,
               "modes": {
                 "dark": {
@@ -8548,8 +8548,8 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.info.600}",
-                  "contrast": 4.85,
-                  "against": "neutral.100",
+                  "contrast": 5.52,
+                  "against": "neutral.050",
                   "min": 4.5
                 },
                 "hc-dark": {
@@ -8580,7 +8580,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.450",
-              "contrast": 3.2,
+              "contrast": 3.89,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -8620,7 +8620,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.450",
-              "contrast": 3.16,
+              "contrast": 3.83,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -8660,7 +8660,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.450",
-              "contrast": 3.21,
+              "contrast": 3.89,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -8700,7 +8700,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.450",
-              "contrast": 3.23,
+              "contrast": 3.92,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -8740,7 +8740,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.450",
-              "contrast": 3.19,
+              "contrast": 3.86,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -8792,7 +8792,7 @@
                 },
                 "hc-light": {
                   "$value": "{prism.palette.white}",
-                  "contrast": 10.92,
+                  "contrast": 9.18,
                   "against": "foreground.brand",
                   "min": 4.5
                 },
@@ -9045,8 +9045,8 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "prism.palette.accent.500",
-                "contrast": 3.3,
-                "against": "neutral.100",
+                "contrast": 3.76,
+                "against": "neutral.050",
                 "min": 3,
                 "modes": {
                   "dark": {
@@ -9056,9 +9056,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{prism.palette.accent.600}",
-                    "contrast": 4.95,
-                    "against": "neutral.100",
+                    "$value": "{prism.palette.accent.550}",
+                    "contrast": 4.69,
+                    "against": "neutral.050",
                     "min": 4.5
                   },
                   "hc-dark": {
@@ -9089,8 +9089,8 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "prism.palette.accent.550",
-                "contrast": 4.12,
-                "against": "neutral.100",
+                "contrast": 4.69,
+                "against": "neutral.050",
                 "min": 3,
                 "modes": {
                   "dark": {
@@ -9100,9 +9100,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{prism.palette.accent.650}",
-                    "contrast": 6,
-                    "against": "neutral.100",
+                    "$value": "{prism.palette.accent.600}",
+                    "contrast": 5.65,
+                    "against": "neutral.050",
                     "min": 4.5
                   },
                   "hc-dark": {
@@ -9133,8 +9133,8 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "prism.palette.accent.600",
-                "contrast": 4.95,
-                "against": "neutral.100",
+                "contrast": 5.65,
+                "against": "neutral.050",
                 "min": 3,
                 "modes": {
                   "dark": {
@@ -9144,9 +9144,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{prism.palette.accent.700}",
-                    "contrast": 7.26,
-                    "against": "neutral.100",
+                    "$value": "{prism.palette.accent.650}",
+                    "contrast": 6.84,
+                    "against": "neutral.050",
                     "min": 4.5
                   },
                   "hc-dark": {
@@ -9177,8 +9177,8 @@
               "prism3": {
                 "role": "semantic",
                 "aliasOf": "prism.palette.accent.500",
-                "contrast": 3.3,
-                "against": "neutral.100",
+                "contrast": 3.76,
+                "against": "neutral.050",
                 "min": 3,
                 "modes": {
                   "dark": {
@@ -9188,9 +9188,9 @@
                     "min": 3
                   },
                   "hc-light": {
-                    "$value": "{prism.palette.accent.600}",
-                    "contrast": 4.95,
-                    "against": "neutral.100",
+                    "$value": "{prism.palette.accent.550}",
+                    "contrast": 4.69,
+                    "against": "neutral.050",
                     "min": 4.5
                   },
                   "hc-dark": {
@@ -9218,13 +9218,13 @@
       "border": {
         "primary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.200}",
+          "$value": "{prism.palette.neutral.100}",
           "$description": "Default border — decorative, ~1.4:1",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.200",
-              "contrast": 1.48,
+              "aliasOf": "prism.palette.neutral.100",
+              "contrast": 1.38,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -9258,13 +9258,13 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.palette.neutral.450}",
+          "$value": "{prism.palette.neutral.400}",
           "$description": "Stronger border / divider",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.neutral.450",
-              "contrast": 3.16,
+              "aliasOf": "prism.palette.neutral.400",
+              "contrast": 3.26,
               "against": "background.primary",
               "modes": {
                 "dark": {
@@ -9344,7 +9344,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.500",
-              "contrast": 3.77,
+              "contrast": 4.58,
               "against": "background.primary",
               "min": 3,
               "modes": {
@@ -9388,7 +9388,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.500",
-              "contrast": 3.78,
+              "contrast": 4.59,
               "against": "background.primary",
               "min": 3,
               "modes": {
@@ -9432,7 +9432,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.500",
-              "contrast": 3.78,
+              "contrast": 4.59,
               "against": "background.primary",
               "min": 3,
               "modes": {
@@ -9476,7 +9476,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.500",
-              "contrast": 3.76,
+              "contrast": 4.56,
               "against": "background.primary",
               "min": 3,
               "modes": {
@@ -9520,7 +9520,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.500",
-              "contrast": 3.76,
+              "contrast": 4.56,
               "against": "background.primary",
               "min": 3,
               "modes": {
@@ -9564,7 +9564,7 @@
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.accent.500",
-              "contrast": 3.76,
+              "contrast": 4.56,
               "against": "background.primary",
               "min": 3,
               "modes": {
@@ -15220,7 +15220,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -15244,7 +15244,6 @@
         "typography: curated rem size ladder (22 steps, 10–160px — NOT ratio-derived; covers all bases, clean values); weight roles subtle/default/emphasis/strong/max → 300/400/500/700/900; families display=Clash Display, title=Clash Display, body=Inter, label=Inter, caption=Inter, eyebrow=Clash Display, code=JetBrains Mono (variable: display/title/body/label/caption/eyebrow); typeScale 'expressive'. 37 semantic composites (title/display sizes shifted by typeScale; display capped at rung 'xl' (112px); title tier includes title.2xs). responsive: 11 fluid composites (size-dependent mobile shrink — research-validated, Carbon fluid-display curve: body static, titles ~1 rung, display converges to ~40–48px; one min/max pair → web clamp() 360–1440px + Figma desktop/mobile modes). Line-height unitless multiplier in $value; px-from-ratio materialization for Figma in $extensions.",
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.",
-        "light primary surface is NON-default (neutral.50) — CONFIRM this is the page color; the contrast floor moves with it",
         "action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor",
         "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.on-inverse generated)"
       ]

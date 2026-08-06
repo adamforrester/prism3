@@ -7,6 +7,132 @@
 
 ---
 
+## (2026-08-06) — A white page exposed semantic ink gated against the wrong ground (#63 closed)
+
+**STATUS: `Prism3/engine/modes.ts`, `test.ts`, `version.ts`, `examples/aurora.design.md`,
+`web/src/main.ts`.** Three owner-reported items; one of them uncovered a real accessibility bug that
+had been accepted as a fixture quirk. Engine **0.3.0 → 0.3.1** (values moved, no name did, so
+`CONTRACT_VERSION` stands at 2.0.0 — the case the version split exists for). `test.ts` **+11**
+(1766 → 1777, measured on the rebase onto #572), regen **88 in sync**, NB regression 11/11, all gates
+green.
+
+### The ask, and the thing hiding behind it
+
+Owner asked for three things: drop the accent swatch from the Backgrounds specimens, explain how the
+muted text colors work, and give one example brand a **white** primary background. The third looked
+cosmetic — one line of brand input. It turned out to be the thing that made a latent AA failure
+visible across most of the corpus.
+
+**`text.<sem>` was gated against the page floor but *placed* on its own `-subtle` tint.** The
+alert/banner and subtle-badge patterns bind exactly that pair (`preview.ts` alert + `badge/info-subtle`),
+and the tint is a *lighter* ground than the floor, so the gate was measuring a contrast the ink was
+never asked to survive. It stayed hidden because the floor is **derived from the base surface**: with
+a tinted page (`base: 50` → floor `neutral.100`) the floor sits dark enough that the ink clears the
+tint by accident. Aurora's page going white drops the floor to `neutral.050`, the ink relaxes one
+rung to 550, and the pairing lands at **4.01–4.27:1** — under AA for body text.
+
+Measured across the corpus, and the two counts are the point. At genuine pre-PR `main`, **3 of 5
+brands failed in light mode** — `nb`, `wendys`, `minimal`. With aurora's page turned white in this
+same PR, **4 of 5** — aurora joins. Only harbor passes either way, because its warm off-white canvas
+holds the floor high.
+
+So aurora was not a brand failing unnoticed; it was a brand that **could not fail until someone
+pointed it at a white page.** The latent bug needed a white-page brand to become observable and the
+corpus had none in light mode until this PR added one — which is the same finding as the waiver
+paragraph below, arrived at from the other direction. The failing set still includes `minimal` (the
+sparsest accepted input) and the web start screen's own default brand, so **every new user was
+getting it.**
+
+### This is #63, and #63's waiver was reasoned from a corpus that couldn't see it
+
+#63 recorded these same NB shortfalls (~4.0–4.2:1) and accepted them as a hand-authored **NB-source
+divergence**, on the stated premise that *"engine-GENERATED brands (aurora/harbor) place these to
+clear 4.5"*. That was true of those two brands and **false of the engine**. Both example brands had
+tinted pages; nothing named or gated that shared property, so "every generated brand passes" read as
+"the derivation is correct" when it actually meant "no generated brand exercises this path."
+
+**The transferable lesson, which is not about tints:** a fixture-shaped waiver is only as good as the
+corpus that convinced you the generator was fine. A waiver justified by corpus agreement needs the
+corpus to actually **vary** on the axis in question — otherwise it records a coincidence as a
+decision. Both #281 ("no gate reads the committed artifact") and principle 5 ("a gate allowed to
+rewrite what it reads has no memory") are the same family: the check was structurally unable to
+observe the thing it claimed.
+
+### The fix, and the option that measurement killed
+
+`semanticInk` (`modes.ts`) gates the ink against the **worse of** the page floor and its own tint.
+`pickBrand` grew an `alsoClear: RGB[]` parameter — extra grounds tighten which step is *eligible*
+while the reported `ratio` stays measured against the ground the role's `against` names, so no
+role's contract changes meaning. `subtleTint()` is now a single helper feeding both the tint surface
+and the ink gate, so the two cannot drift apart. Cost: **exactly one rung (550 → 600), light mode
+only**; dark already cleared both, and the ink also gets *more* legible on the page.
+
+**The rejected alternative is the informative half.** Lightening the *tint* (100 → 050) also fixes
+every brand with the ink untouched — and would have spared the NB fixture entirely, which was
+tempting. Measured against the page it sits on, a 050 tint scores **1.00 on harbor** (1.20–1.24 on
+white-page brands): the banner region becomes invisible. A fix that makes the surface undetectable to
+keep its label legible has traded one a11y failure for another, so darkening the ink is the only real
+option. **The ink was wrong, not the tint.**
+
+NB moves 550 → 600 on 8 light-mode `text|icon` roles, recorded as a fourth group in
+`NB_KNOWN_DIVERGENCES` (each with its exact from→to, staleness-checked). This follows #352's recorded
+owner call — *"NB fidelity is NB's own conservatism showing up as a regression target"* — and applies
+**more** strongly here: NB's authored value is a genuine AA failure in the banner pattern, not
+conservatism. `warning` is absent from those rows because NB already shipped it at 600, which is a
+free independent check that the new gate returns the authored step whenever the authored step passes.
+
+### Gates, including one I had to re-anchor
+
+- **(10c) new, corpus-wide:** every `text|icon.<sem>` clears its **own** `min` on its own `-subtle`
+  tint, in every mode, for all 5 corpus brands. This is the assertion whose absence let the shortfall
+  live behind a fixture waiver. Deliberately corpus-wide, not example-wide — per-example is exactly
+  what proved too narrow. Icons read each role's own `min` rather than assuming 4.5, since
+  `iconContrast: '3:1'` gives them a different bar.
+- **(10b) #63 inverted:** was *"the 4 known outliers still exist"*; now asserts the shortfall is
+  **gone** in all four modes, plus a direct per-semantic check so it keeps meaning something if the
+  preview specs are ever restructured.
+- **(7b-ii) re-anchored — my own assertion from #566, and it was fragile.** It read
+  `diverged >= pairs - 2`: a **corpus headcount**. It broke the moment aurora's page went white, not
+  because the specimen's justification weakened but because per-stop divergence in light depends on
+  whether the top dial stop is already dead, which depends on the floor. A white page clears 4.0
+  before the dial reaches 4.5, so light diverges in 2/5 brands and dark in 5/5. *"N of the corpus does
+  X" is a fact about who is in the corpus* — adding a brand re-rolls it, and the repair is then
+  indistinguishable from suppressing a regression. Now asserts two **invariants**: the two ink
+  sequences are never identical (0/10 — what makes two specimens necessary at all), and every dark
+  mode diverges per-stop (dark's floor is mid-ramp, so no stop is dead there).
+
+All new gates were mutation-tested: reverting `semanticInk` fires **12** failures across (10b), (10c)
+and the Figma fixture rows. The mutation also showed the fix repairs **hc-light** brand ink
+(6.21–6.85 vs its 7:1 bar) that no gate had been watching.
+
+Review added two mutations outside that table, both of which the guard survived. Moving `subtleTint()`
+to a different step confirms the shared-helper claim is *structurally* true rather than merely true
+today — the painted surface and the ink gate move together, and 9 assertions fire on the surface
+change. And making `clearsExtra()` vacuously `true` while leaving every call site and the signature
+intact — the silent bypass a future "simplifying" refactor would produce, invisible in a diff of the
+call sites — is caught with 12 failures, 4 naming the tint contract directly.
+
+### Muted ink: answered, not a bug, but the asymmetry is real
+
+`text.<sem>-subtle` is emitted with **`min: 0`** at a **fixed** rung (450 light / 350 dark), rated
+`against: 'background.primary'`. So it *is* page ink ("the quiet danger", docs/06:101, Figma scope
+`TEXT_FILL`) — not ink for a different background — and the absent contrast tag is `iBadge` faithfully
+suppressing badges for ungated roles (`main.ts:1877`), not a UI bug. But light-mode muted measures
+**3.16–3.92:1**, below AA for body text, and the asymmetry the owner spotted is genuine: pinning
+`text.danger` to 500 reports a **failure at 3.76** while muted sits **silently at 3.23** — a *lower*
+ratio reporting nothing, because one role is gated and the other is not. Dark mode is fine (6.6–7.1).
+**Not changed here** — that is a design decision about whether "muted" means decorative-or-large-text
+only, and it wants its own issue rather than being folded into this PR.
+
+### Next
+
+- Decide the muted-ink question above (gate it at 3:1 as non-text? scope it to large text? leave
+  ungated but document the intent?). Needs an owner call, not a guess.
+- `web/src/write-adapter.ts` is imported by no test file — its index-parallel `families`/`styles` zip
+  is ungated. Deferred from the #507 review; wants its own PR.
+
+---
+
 ## (2026-08-06) — the audit harness died instead of reporting a 404 (#565)
 
 **STATUS: `web/mode-audit.mjs` only, three lines.** No engine source, no emitted artifacts, no test-count

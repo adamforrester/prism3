@@ -6957,7 +6957,7 @@
         "brand": {
           "$type": "color",
           "$value": "{prism.palette.primary.600}",
-          "$description": "brand text — 4.5:1 on the floor",
+          "$description": "brand text — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7001,7 +7001,7 @@
         "success": {
           "$type": "color",
           "$value": "{prism.palette.success.600}",
-          "$description": "success text — 4.5:1 on the floor",
+          "$description": "success text — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7045,7 +7045,7 @@
         "warning": {
           "$type": "color",
           "$value": "{prism.palette.warning.600}",
-          "$description": "warning text — 4.5:1 on the floor",
+          "$description": "warning text — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7089,7 +7089,7 @@
         "danger": {
           "$type": "color",
           "$value": "{prism.palette.danger.600}",
-          "$description": "danger text — 4.5:1 on the floor",
+          "$description": "danger text — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7133,7 +7133,7 @@
         "info": {
           "$type": "color",
           "$value": "{prism.palette.info.600}",
-          "$description": "info text — 4.5:1 on the floor",
+          "$description": "info text — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7953,7 +7953,7 @@
         "brand": {
           "$type": "color",
           "$value": "{prism.palette.primary.600}",
-          "$description": "brand icon — 4.5:1 on the floor",
+          "$description": "brand icon — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -7997,7 +7997,7 @@
         "success": {
           "$type": "color",
           "$value": "{prism.palette.success.600}",
-          "$description": "success icon — 4.5:1 on the floor",
+          "$description": "success icon — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -8041,7 +8041,7 @@
         "warning": {
           "$type": "color",
           "$value": "{prism.palette.warning.600}",
-          "$description": "warning icon — 4.5:1 on the floor",
+          "$description": "warning icon — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -8085,7 +8085,7 @@
         "danger": {
           "$type": "color",
           "$value": "{prism.palette.danger.600}",
-          "$description": "danger icon — 4.5:1 on the floor",
+          "$description": "danger icon — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -8129,7 +8129,7 @@
         "info": {
           "$type": "color",
           "$value": "{prism.palette.info.600}",
-          "$description": "info icon — 4.5:1 on the floor",
+          "$description": "info icon — 4.5:1 on the floor (neutral.100) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
@@ -14603,7 +14603,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -3302,7 +3302,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // is what overturned it).
   {
     const STOPS = [3, 3.5, 4, 4.5];
-    let diverged = 0, pairs = 0;
+    let identical = 0, pairs = 0, darkPairs = 0, darkDiverged = 0;
     for (const { theme } of corpus()) {
       for (const mode of ['light', 'dark']) {
         if (!theme.modes.includes(mode as never)) continue;
@@ -3313,14 +3313,31 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
           fill.push(R['disabled.on-fill'].hex); text.push(R['disabled.text'].hex);
         }
         pairs++;
-        // Divergence = at least one stop where exactly one of the two inks moved. An identical pair of
-        // sequences would mean one specimen could stand in for the other.
+        // The claim the specimen rests on: the two SEQUENCES differ, so `on-fill` can never stand in
+        // for `text`. Stronger and stabler than counting per-stop divergences (see below).
+        if (fill.join() === text.join()) identical++;
+        let diverges = false;
         for (let i = 1; i < STOPS.length; i++)
-          if ((fill[i] !== fill[i - 1]) !== (text[i] !== text[i - 1])) { diverged++; break; }
+          if ((fill[i] !== fill[i - 1]) !== (text[i] !== text[i - 1])) { diverges = true; break; }
+        if (mode === 'dark') { darkPairs++; if (diverges) darkDiverged++; }
       }
     }
-    ok(diverged > 0 && diverged >= pairs - 2,
-      `#561 disabled: the two gated inks move at different floors — ${diverged}/${pairs} corpus brand+modes have a stop where only one of on-fill/text changes (a single specimen cannot report both)`);
+    // RE-ANCHORED (was `diverged >= pairs - 2`, a corpus headcount). That threshold passed 8/10 and
+    // broke the moment aurora's page went white — not because the specimen's justification weakened,
+    // but because per-stop divergence in LIGHT depends on whether the TOP dial stop is already dead,
+    // which depends on the page's floor. A white page (floor neutral.050) clears 4.0 before the dial
+    // reaches 4.5, so stops 4.0 and 4.5 resolve identically and both inks hold still together —
+    // measured: light diverges in 2/5 brands (only the tinted-page ones), dark in 5/5.
+    //
+    // "N of the corpus does X" is a fact about who is in the corpus. Adding a brand or moving one
+    // brand's surface re-rolls it, and the fix is then indistinguishable from suppressing a real
+    // regression. So this asserts the two INVARIANTS instead: the sequences are never identical
+    // (what makes two specimens necessary at all), and every DARK mode diverges per-stop (dark's
+    // floor sits mid-ramp, so the top stop is never dead there — the case that must not collapse).
+    ok(identical === 0,
+      `#561 disabled: on-fill and text never trace the same sequence across the dial — ${pairs - identical}/${pairs} corpus brand+modes differ (a single specimen cannot report both)`);
+    ok(darkPairs > 0 && darkDiverged === darkPairs,
+      `#561 disabled: every dark mode has a stop where only one of on-fill/text moves — ${darkDiverged}/${darkPairs} (dark's floor is mid-ramp, so no stop is dead)`);
 
     // HC escalates BOTH inks to >=4.5, so every stop resolves identically there. Asserted so the
     // collapse reads as designed rather than as the bug above — and so a future change that makes HC
@@ -3635,28 +3652,69 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(broken.length === 0, `example brand '${id}': every preview contract holds (all 4 modes)` + (broken.length ? ` — FAIL: ${broken.join('; ')}` : ''));
   }
 }
-// (10b) #63 — nb's HAND-AUTHORED semantic text on the `-subtle` tint surface lands ~4.0–4.2:1 in
-// LIGHT, under AA 4.5 (the banner/badge pairing; a CR-02 sibling — the role is contracted vs the
-// mode floor but USED on a specific lighter tint). This exists ONLY in the hand-authored NB
-// reproduction: engine-GENERATED brands (aurora/harbor, gated all-green above) place these to clear
-// 4.5. Option 1 (large-text 3:1) does NOT apply — measured: the alert text is body 16px regular and
-// the badge is label 12px; neither qualifies. Option 2 (re-target the inks) would move NB tokens +
-// the regression baseline. OWNER DECISION (#63): Option 3 — ACCEPT as a documented NB-source
-// divergence (the engine is already correct; NB is the legacy regression fixture, not the generator).
-// Pinned as KNOWN outliers so the fact stays VISIBLE and can't DRIFT: a NEW light shortfall
-// (regression) or a VANISHED known one (something fixed it → re-review / close #63) both fail here.
+// (10b) #63 — CLOSED, by fixing the cause rather than accepting it. History, because the shape of the
+// mistake is the reusable part: nb's semantic text on the `-subtle` tint measured ~4.0–4.2:1 in LIGHT,
+// under AA 4.5 (the banner/badge pairing; a CR-02 sibling — contracted vs the mode FLOOR but USED on a
+// specific lighter tint). It was accepted as an NB-source divergence on the premise that the engine was
+// already correct, because "engine-GENERATED brands place these to clear 4.5" — which was TRUE of the
+// brands then in the corpus and FALSE of the engine. Both example brands had TINTED pages; a tinted page
+// holds the floor high (neutral.100), the ink stayed dark enough for the tint by luck, and the fault
+// looked like it belonged to the fixture. The moment aurora took a WHITE page the floor dropped to
+// neutral.050, the ink relaxed a rung, and the same shortfall appeared in 4 of the 5 corpus brands
+// (nb, aurora, wendys, minimal — every white-page member, incl. the web start screen's default).
+//
+// THE LESSON, which is not about tints: a fixture-shaped waiver is only as good as the corpus that
+// convinced you the generator was fine. Every generated brand shared one property (a tinted page) that
+// nothing named or gated, so "generated brands pass" read as "the derivation is right" when it meant
+// "no generated brand exercises this path". A waiver justified by corpus agreement needs the corpus to
+// actually VARY on the axis in question — otherwise it records a coincidence as a decision.
+//
+// `semanticInk` (modes.ts) now gates these inks against the tint as well as the floor, so NB resolves
+// them one rung darker than it authored (recorded in NB_KNOWN_DIVERGENCES) and every mode is clean.
+// The gate is inverted accordingly: it asserts the shortfall is GONE, in all four modes, for the
+// fixture that used to own it. It fails if the pairing ever regresses below AA again.
 {
-  const KNOWN_NB_LIGHT_TINT_SHORTFALLS = new Set([
-    'success text on tint', 'danger text on tint', 'info text on tint', 'label on tint',
-  ]);
-  const nbLightFails = resolvePreview(nbTheme()).contracts.filter((c) => c.byMode.light && !c.byMode.light.pass);
-  const labels = new Set(nbLightFails.map((c) => c.label ?? ''));
-  const unexpected = [...labels].filter((l) => !KNOWN_NB_LIGHT_TINT_SHORTFALLS.has(l));
-  const vanished = [...KNOWN_NB_LIGHT_TINT_SHORTFALLS].filter((l) => !labels.has(l));
-  ok(unexpected.length === 0, '#63: no NEW nb light-mode shortfall beyond the 4 known tint outliers' + (unexpected.length ? ` — NEW: ${unexpected.join('; ')}` : ''));
-  ok(vanished.length === 0, '#63: the 4 known nb tint outliers still exist (a vanished one → re-review, maybe close #63)' + (vanished.length ? ` — VANISHED: ${vanished.join('; ')}` : ''));
-  ok(nbLightFails.every((c) => /tint/.test(c.label ?? '')), '#63: every nb light shortfall is a semantic-text-on-subtle-tint pairing (CR-02 sibling)');
-  ok(nbLightFails.every((c) => c.byMode.light!.ratio >= 4.0 && c.byMode.light!.ratio < 4.5), '#63: each accepted nb tint outlier sits in the documented band [4.0, 4.5) — a drop below 4.0 is a real regression, not an accepted outlier');
+  const rp = resolvePreview(nbTheme());
+  for (const mode of rp.modes) {
+    const fails = rp.contracts.filter((c) => c.byMode[mode] && !c.byMode[mode]!.pass);
+    ok(fails.length === 0, `#63 (closed): nb has no preview-contract shortfall in ${mode} — the semantic-text-on-subtle-tint pairing clears AA`
+      + (fails.length ? ` — FAIL: ${fails.map((c) => `${c.label}:${c.byMode[mode]!.ratio}<${c.min}`).join('; ')}` : ''));
+  }
+  // The specific pairing #63 was about, asserted directly rather than only via the preview specs, so
+  // this keeps meaning something if the alert/badge previews are ever restructured.
+  const light = resolveAllModes(nbTheme()).find((m) => m.mode === 'light')!;
+  for (const sem of ['brand', 'success', 'warning', 'danger', 'info']) {
+    const ink = light.roles[`text.${sem}`], tint = light.roles[`foreground.${sem}-subtle`];
+    if (!ink || !tint) continue;
+    const r = contrast(hexToRgb(ink.hex), hexToRgb(tint.hex));
+    ok(r >= 4.5, `#63 (closed): nb light text.${sem} clears AA on foreground.${sem}-subtle (${r.toFixed(2)} >= 4.5)`);
+  }
+}
+// (10c) The general form of #63, across the WHOLE corpus and EVERY mode — the assertion whose absence
+// is what let the shortfall live behind a fixture waiver. `text.<sem>` and `icon.<sem>` are placed on
+// their own `-subtle` tint by the alert/banner and subtle-badge patterns, so the pairing must clear the
+// role's own bar there, not only against the page floor it is contracted against.
+//
+// Deliberately corpus-wide rather than example-brand-wide: the corpus is the set that VARIES the input
+// space (both dialects, the legacy fixture, and the sparsest accepted input), and a per-example check is
+// exactly what proved too narrow last time. Icons ride along because `iconContrast: '3:1'` gives them a
+// different bar — aurora sets it, so the loop reads each role's own `min` instead of assuming 4.5.
+{
+  for (const { id, theme } of corpus()) {
+    const bad: string[] = [];
+    for (const m of resolveAllModes(theme)) {
+      for (const fam of ['text', 'icon'] as const) {
+        for (const sem of ['brand', 'success', 'warning', 'danger', 'info']) {
+          const ink = m.roles[`${fam}.${sem}`], tint = m.roles[`foreground.${sem}-subtle`];
+          if (!ink || !tint || ink.min <= 0) continue;
+          const r = contrast(hexToRgb(ink.hex), hexToRgb(tint.hex));
+          if (r < ink.min) bad.push(`${m.mode} ${fam}.${sem} ${r.toFixed(2)}<${ink.min}`);
+        }
+      }
+    }
+    ok(bad.length === 0, `semantic ink on its own subtle tint clears its bar — ${id}`
+      + (bad.length ? ` — FAIL: ${bad.join('; ')}` : ''));
+  }
 }
 
 // (11) EMIT-FIGMA COLOUR (docs/10) — buildFigmaColor(nbTheme) must reproduce the frozen
@@ -3683,10 +3741,28 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // modes.ts) and so still reproduces NB exactly in both HC modes. Routing HC through the non-text bar
 // made hc-light's brand and danger fills resolve identically to STANDARD light, which is the mode
 // ceasing to be high-contrast on that axis; HC keeps its own 7:1 text bar for fills instead.
+// A FOURTH group joined in the semantic-ink-on-tint fix, and it moves the opposite way from group 1:
+// light-mode `text|icon/<sem>` now gate against their own `-subtle` tint as well as the page floor
+// (see `semanticInk` in modes.ts), so they resolve one rung DARKER than NB hand-authored — 550→600.
+// This is #63's Option 2 arriving on its own: those NB inks measured 4.02–4.22:1 on the tint they are
+// used against, and #63 accepted that only because the engine's own brands looked green (both example
+// brands had TINTED pages, which held the floor high enough to hide it). A white page drops the floor
+// and the miss showed up across 4 of 5 corpus brands. Same owner call as group 1 applies, and more
+// strongly: NB's authored value is a real AA failure in the banner/badge pattern, not conservatism.
+// `warning` is absent because NB already shipped it at 600 — it needed no move, which is a useful
+// independent check that the new gate gives back the authored step whenever the authored step passes.
 const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: string }[] = [
   { mode: 'light', name: 'color/foreground/success', nb: 'palette/green/550', engine: 'palette/green/500' },
   { mode: 'light', name: 'color/foreground/warning', nb: 'palette/amber/600', engine: 'palette/amber/500' },
   { mode: 'light', name: 'color/foreground/info', nb: 'palette/info/550', engine: 'palette/info/500' },
+  { mode: 'light', name: 'color/text/brand', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/text/success', nb: 'palette/green/550', engine: 'palette/green/600' },
+  { mode: 'light', name: 'color/text/danger', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/text/info', nb: 'palette/info/550', engine: 'palette/info/600' },
+  { mode: 'light', name: 'color/icon/brand', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/icon/success', nb: 'palette/green/550', engine: 'palette/green/600' },
+  { mode: 'light', name: 'color/icon/danger', nb: 'palette/red/550', engine: 'palette/red/600' },
+  { mode: 'light', name: 'color/icon/info', nb: 'palette/info/550', engine: 'palette/info/600' },
   { mode: 'dark', name: 'color/foreground/brand', nb: 'palette/red/450', engine: 'palette/red/550' },
   { mode: 'dark', name: 'color/foreground/success', nb: 'palette/green/400', engine: 'palette/green/500' },
   { mode: 'dark', name: 'color/foreground/warning', nb: 'palette/amber/450', engine: 'palette/amber/500' },
