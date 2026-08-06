@@ -407,6 +407,34 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   const parts = def.anatomy?.parts ?? {};
   if (!def.anatomy) e.push('figmaProperties requires `anatomy` — its property maps target anatomy parts');
 
+  /**
+   * Does `codeOnly` ADMIT this name — as opposed to merely mentioning it somewhere?
+   *
+   * Shared by the axis loop and the state loop, and the sharing is the point. A joined-prose
+   * substring scan says yes to any mention, and these entries mention plenty of names they are not
+   * about: `min-width derivation` contains `width`, the `modifiers` entry names `pending` while
+   * explaining an AXIS, and `inactive`'s entry names `disabled` to say they share a paint. Under a
+   * substring scan, deleting the `width` admission outright left the whole suite green (found in
+   * #563 review) because another entry happened to spell the word — the `strokeWeight` shape again:
+   * a gate satisfied by the comment that explains something else.
+   *
+   * So the entry must LEAD with the name, which is how every codeOnly entry is already written
+   * (`name — explanation`). The delimiter test is what makes it a WHOLE WORD: without it a bare
+   * `startsWith` lets `disabledStrategy` (a real lever name) admit dropping the `disabled` state,
+   * and `min-width` admit `min`. That clause is separately asserted, because when it was first
+   * written it was the one part of this check no test covered.
+   */
+  const admits = (term: string) => (def.anatomy?.codeOnly ?? []).some((c) => {
+    const t = c.trim();
+    if (!t.startsWith(term)) return false;
+    const rest = t.slice(term.length);
+    // `''` so a bare entry qualifies. NOT `-`: a hyphen is part of a compound NAME, not a separator
+    // after one, so allowing it lets `min-width derivation` admit an axis called `min` and
+    // `focus-ring-offset` admit a state called `focus`. Every real entry leads with its full name and
+    // then ` — `, so nothing needs the hyphen. Found by the mutation this clause now has.
+    return rest === '' || /^[\s—:(]/.test(rest);
+  });
+
   // ---- variant axes ----
   if (!Array.isArray(fp.variantAxes) || fp.variantAxes.length === 0) {
     e.push('figmaProperties.variantAxes must be a non-empty array');
@@ -421,10 +449,9 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     // reason belongs in codeOnly, and `codeOnly` already exists as the place a def ADMITS what the
     // Figma leg drops — so this makes the admission mandatory rather than merely encouraged. Without
     // it, an axis can quietly vanish from the projection and the def still reads complete.
-    const codeOnly = (def.anatomy?.codeOnly ?? []).join(' ');
     for (const axis of Object.keys(def.variants ?? {})) {
-      if (!seen.has(axis) && !codeOnly.includes(axis)) {
-        e.push(`variants.${axis} is not projected as a Figma variant and is not explained in anatomy.codeOnly — record why, or add it to variantAxes`);
+      if (!seen.has(axis) && !admits(axis)) {
+        e.push(`variants.${axis} is not projected as a Figma variant and is not explained in anatomy.codeOnly — record why, or add it to variantAxes. The entry must LEAD with '${axis}' ("${axis} — why Figma cannot carry it"); a passing mention inside an entry about something else does not count`);
       }
     }
   }
@@ -439,10 +466,12 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     for (const v of values ?? []) {
       if (!(def.states ?? []).includes(v)) e.push(`figmaProperties.stateAxis: '${v}' is not one of states [${(def.states ?? []).join(', ')}]`);
     }
+    // Same `admits` as the axis loop above — an omitted state is admitted on exactly the terms an
+    // omitted axis is, and one helper means the next tightening cannot reach one loop and miss the
+    // other, which is precisely how #563 shipped a fixed state check beside an unfixed axis check.
     const missing = (def.states ?? []).filter((s) => !(values ?? []).includes(s));
-    const codeOnly = (def.anatomy?.codeOnly ?? []).join(' ');
     for (const s of missing) {
-      if (!codeOnly.includes(s)) e.push(`state '${s}' is not in the Figma state axis and is not explained in anatomy.codeOnly — a silently dropped state under-represents the def`);
+      if (!admits(s)) e.push(`state '${s}' is not in the Figma state axis and is not explained in anatomy.codeOnly — a silently dropped state under-represents the def. The codeOnly entry must LEAD with '${s}' ("${s} — why Figma cannot carry it"); a passing mention inside an entry about something else does not count`);
     }
   }
 

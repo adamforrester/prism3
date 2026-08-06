@@ -6392,25 +6392,106 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const fp = button.figmaProperties!;
     ok(figmaPropertyErrors(button).length === 0, `figmaProperties: Button's projection is internally consistent${figmaPropertyErrors(button).length ? ' — ' + figmaPropertyErrors(button).join('; ') : ''}`);
 
-    // The state axis comes from `states`, the def's own list — NOT the legacy sheet's names. #487
-    // §0.1 lists six (`active`, `focused`, `loading`); §0.4 forbids codifying exactly those, and the
-    // def declares seven. This asserts the def won, which also moves the eventual full-set count.
-    ok(JSON.stringify(fp.stateAxis?.values) === JSON.stringify(button.states),
-      `figmaProperties: the state axis is the def's own ${button.states.length} states, verbatim — no legacy renaming, nothing silently dropped`);
+    // The state axis draws from `states`, the def's own list — NOT the legacy sheet's names. #487
+    // §0.1 lists six (`active`, `focused`, `loading`); §0.4 forbids codifying exactly those.
+    //
+    // It is a SUBSET now, not the verbatim list: `inactive` is code-only (#536 item 4). So the claim
+    // worth asserting is no longer "identical to states" but the two halves that survive it — every
+    // projected value is a real state, and every unprojected one is an ADMISSION. The second half is
+    // the load-bearing one; without it this reduces to "the axis is some states", which any silent
+    // deletion satisfies.
+    ok(fp.stateAxis!.values.every((v) => button.states.includes(v)),
+      `figmaProperties: every value on the state axis is one of the def's own ${button.states.length} states — no legacy renaming, nothing invented`);
+    ok(JSON.stringify(button.states.filter((s) => !fp.stateAxis!.values.includes(s))) === JSON.stringify(['inactive']),
+      'figmaProperties: `inactive` is the ONE state the axis omits — anything else dropped is a regression, not a decision');
+    ok(figmaPropertyErrors({ ...button, anatomy: { ...button.anatomy!, codeOnly: button.anatomy!.codeOnly.filter((c) => !c.startsWith('inactive')) } } as ComponentDef)
+      .some((x) => /state 'inactive' is not in the Figma state axis/.test(x)),
+      'figmaProperties gate: removing the codeOnly admission for `inactive` FAILS — the omission is licensed by the admission, not by the axis being short');
     ok(!fp.stateAxis?.values.some((v) => ['active', 'focused', 'loading'].includes(v)),
       "figmaProperties: the legacy sheet's names (active / focused / loading) are NOT codified — they are that sheet's words for pressed / focus-visible / pending");
+
+    // HOW MANY ROWS READ AS THEIR `rest` SIBLING — measured over the whole projected set, and pinned
+    // because it is the number a designer opening the set actually experiences, and #563's write-up got
+    // it wrong by keying on the wrong thing. TWO figures, both true, and the difference is the lesson:
+    //
+    //   paint + node names → 144   (focus-visible 108, pressed 36)
+    //   paint only         → 198   (focus-visible 108, pressed 36, pending 54)
+    //
+    // The 54 are exactly the `leading=true` half of `pending`: the spinner REPLACES the leading visual,
+    // so it inherits the same square size binding, the same icon paint and the same position, and the
+    // only difference left is that the node is called `spinner` instead of `leadingVisual`. With
+    // `leading=false` there is nothing to replace, so the spinner ADDS a node and the row genuinely
+    // differs. A layer rename is invisible on the canvas — both are FPO icons of identical size and
+    // color — so the honest count for "looks the same" is 198, not 144. The
+    // structural count is what a diff sees; the paint count is what a human sees. Assert BOTH, because
+    // asserting only the structural one is what let "144" into the PR table in the first place.
+    {
+      const sig = (p: AnatomyPlan) => {
+        const walk = (n: FigmaNodePlan): unknown[] => [{ t: n.type, paints: n.paints, bound: n.bound, ts: n.textStyle, df: n.descendantFills, ch: n.characters }, ...(n.children ?? []).flatMap(walk)];
+        return JSON.stringify(walk(p.root));
+      };
+      const withNames = (p: AnatomyPlan) => sig(p) + JSON.stringify((p.root.children ?? []).map((c) => c.name));
+      const count = (cmp: (p: AnatomyPlan) => string) => {
+        const by = new Map<string, number>();
+        for (const i of button.variants.intent) for (const ap of button.variants.appearance) for (const sz of button.variants.size)
+          for (const ld of [true, false]) for (const tr of [true, false]) {
+            const mk = (st: string) => figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st });
+            const rest = cmp(mk('rest'));
+            for (const st of fp.stateAxis!.values) if (st !== 'rest' && cmp(mk(st)) === rest) by.set(st, (by.get(st) ?? 0) + 1);
+          }
+        return by;
+      };
+      const struct = count(withNames), painted = count(sig);
+      const total = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
+      ok(total(struct) === 144 && struct.get('focus-visible') === 108 && struct.get('pressed') === 36 && !struct.has('pending'),
+        `figmaProperties: 144 of 648 rows are STRUCTURALLY identical to their rest sibling — focus-visible 108, pressed 36 (${JSON.stringify([...struct])})`);
+      ok(total(painted) === 198 && painted.get('pending') === 54,
+        `figmaProperties: 198 rows are VISUALLY identical to their rest sibling — the extra 54 are pending with leading=TRUE, where the spinner replaces the leading visual and inherits its size, paint and position (${JSON.stringify([...painted])})`);
+      // The direction matters and is easy to get backwards (I did): assert it rather than restate it.
+      const pendingEq = (ld: boolean) => {
+        const mk = (st: string) => figmaAnatomyPlan(button, 'medium', { leading: ld, trailing: false, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st });
+        return sig(mk('pending')) === sig(mk('rest'));
+      };
+      ok(pendingEq(true) && !pendingEq(false),
+        'figmaProperties: pending reads as rest when there IS a leading visual to replace, and differs when there is not — the replacement is what hides it');
+    }
 
     // Every projected axis is real, and every UNPROJECTED axis is admitted rather than merely absent.
     for (const axis of fp.variantAxes) ok(axis in button.variants, `figmaProperties: projected axis '${axis}' exists in variants`);
     const omitted = Object.keys(button.variants).filter((a) => !fp.variantAxes.includes(a));
-    ok(omitted.length > 0 && omitted.every((a) => button.anatomy!.codeOnly.join(' ').includes(a)),
-      `figmaProperties: every axis Figma will not carry is explained in codeOnly (${omitted.join(', ')}) — a dropped axis must be an admission, not a gap`);
+    // `startsWith`, not `.join(' ').includes(a)`. The loose form is what this assertion used to be, and
+    // it asserted almost nothing: `min-width derivation` contains the substring `width`, so DELETING the
+    // `width (auto | full)` admission outright kept the whole suite green (#563 review found this by
+    // doing exactly that). The gate and the test both check the leading form now.
+    ok(omitted.length > 0 && omitted.every((a) => button.anatomy!.codeOnly.some((c) => c.trim().startsWith(a))),
+      `figmaProperties: every axis Figma will not carry LEADS a codeOnly entry (${omitted.join(', ')}) — a dropped axis must be an admission, not a gap`);
+    // And one mutation per omitted axis, because "the current def happens to pass" is not the claim —
+    // "deleting the admission fails" is. Generated over `omitted` so a future unprojected axis is
+    // covered on the day it appears rather than the day someone remembers to add a case.
+    for (const axis of omitted) {
+      const errs = figmaPropertyErrors({
+        ...button,
+        anatomy: { ...button.anatomy!, codeOnly: button.anatomy!.codeOnly.filter((c) => !c.trim().startsWith(axis)) },
+      } as ComponentDef);
+      ok(errs.some((x) => new RegExp(`variants\\.${axis} is not projected`).test(x)),
+        `figmaProperties gate: deleting the codeOnly admission for the '${axis}' axis FAILS${errs.length ? '' : ' — got no errors'}`);
+    }
+    // The whole-word half, on the axis side. `min-width derivation` is a real entry, so a bare
+    // `startsWith` would let it admit an axis literally named `min` — the same defect as
+    // `disabledStrategy` admitting `disabled` below, in the loop 25 lines up.
+    ok(figmaPropertyErrors({
+      ...button,
+      variants: { ...button.variants, min: ['a', 'b'] },
+    } as ComponentDef).some((x) => /variants\.min is not projected/.test(x)),
+      "figmaProperties gate: `min-width derivation` does NOT admit an axis named 'min' — the axis name must be a whole word too");
 
-    // The count, stated so a change to any axis has to move a number a reviewer can see. 189 today;
-    // ×4 once the slot-presence axis §4 calls for exists, which is the 756 the issue should carry
-    // (its 648 assumed six states).
+    // The count, stated so a change to any axis has to move a number a reviewer can see. 189 before
+    // the slot-presence axes, 756 with them, and 648 now that `inactive` is code-only — the 108 rows
+    // it would have contributed each render as their `rest` sibling, since `anatomy-figma.ts` has no
+    // `inactive` paint branch (the shared-paint intent is a TOKEN-tier decision the emitter has not
+    // implemented; #563 review measured this).
     const projected = figmaVariantCount(button);
-    ok(projected === 756, `figmaProperties: Button projects ${projected} variants (3 intent × 3 appearance × 3 size × 7 state × 2 leading × 2 trailing)`);
+    ok(projected === 648, `figmaProperties: Button projects ${projected} variants (3 intent × 3 appearance × 3 size × 6 state × 2 leading × 2 trailing)`);
 
     // THE GATE THAT WOULD HAVE CAUGHT THE GAP, and the reason the count above is now derived rather
     // than restated. `projected === 189` was computed from `variantAxes × stateAxis` — the same
@@ -6456,7 +6537,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     brokeFp('an empty axis list fails', /non-empty/, { variantAxes: [] });
     brokeFp('dropping an axis with no codeOnly explanation fails', /not explained in anatomy.codeOnly/, { variantAxes: ['intent'] });
     brokeFp("a legacy state name fails (it is not in the def's states)", /is not one of states/, { stateAxis: { name: 'state', values: ['rest', 'active'] } });
-    brokeFp('silently dropping a state fails', /under-represents the def/, { stateAxis: { name: 'state', values: button.states.filter((s) => s !== 'inactive') } });
+    // `hover`, not `inactive` — dropping `inactive` is now the SHIPPING config (#536 item 4), so this
+    // mutation has to drop a state with no codeOnly admission or it asserts nothing. Chosen because
+    // `hover` appears nowhere in codeOnly prose at all.
+    brokeFp('silently dropping a state fails', /under-represents the def/, { stateAxis: { name: 'state', values: button.states.filter((s) => s !== 'hover') } });
+    // The tightened rule: `pending` and `disabled` are both NAMED in codeOnly prose written about
+    // something else (the `modifiers` axis entry, and `inactive`'s shared-paint explanation). Under the
+    // substring scan this replaced, dropping either went green on a sentence that was not about it.
+    for (const s of ['pending', 'disabled'])
+      brokeFp(`dropping '${s}' fails even though codeOnly MENTIONS it — the admission must lead with the state`,
+        /under-represents the def/, { stateAxis: { name: 'state', values: button.states.filter((v) => v !== s) } });
+    // And the admission must lead with the state as a WHOLE WORD. Without this the prefix test alone
+    // lets a LONGER word admit a shorter state, which is not hypothetical: `disabledStrategy` is a real
+    // lever name, so an entry opening with it would license dropping `disabled` while explaining a
+    // contrast switch. Mutation-found — the delimiter half of the check survived deletion silently.
+    {
+      const errs = figmaPropertyErrors({
+        ...button,
+        anatomy: { ...button.anatomy!, codeOnly: [...button.anatomy!.codeOnly, 'disabledStrategy — a contrast lever, not an admission about the `disabled` state'] },
+        figmaProperties: { ...fp, stateAxis: { name: 'state', values: button.states.filter((v) => v !== 'disabled') } },
+      } as ComponentDef);
+      ok(errs.some((x) => /state 'disabled' is not in the Figma state axis/.test(x)),
+        `figmaProperties gate: a codeOnly entry opening with 'disabledStrategy' does NOT admit dropping 'disabled' — the state name must be a whole word${errs.length ? '' : ' — got no errors'}`);
+    }
     brokeFp('a state axis named like a variant axis fails', /collides with a variants axis/, { stateAxis: { name: 'size', values: button.states } });
     brokeFp('an INSTANCE_SWAP pointed at a text node fails', /is kind 'text', expected 'slot'/, { swaps: { leadingVisual: 'label' } });
     brokeFp('a TEXT property pointed at a slot fails', /is kind 'slot', expected 'text'/, { texts: { children: { part: 'leadingVisual', default: 'Button' } } });

@@ -568,9 +568,28 @@ and `ring-offset`. The binding was not missing; it was somewhere else, one file 
 
 So before recording "state X binds nothing" as a gap, look for what the def binds *for that state
 under a different mechanism*. Verified for Button: `focus-visible`, `pending` and `inactive` all bind
-zero color tokens out of the seven values #488's state axis declares — but `focus-visible` has the
-ring, and `pending` has `anatomy.parts.spinner`. Only `inactive` is a genuine gap, with neither token
-nor part. A blanket "three states are unbound" would have been three-for-one wrong.
+zero color tokens out of the seven values in `states` — but `focus-visible` has the ring, and `pending`
+has `anatomy.parts.spinner`. A blanket "three states are unbound" would have been three-for-one wrong.
+
+**Updated (#536 item 4).** `inactive` looked like the residue — a genuine gap with neither token nor
+part — and the answer was neither "bound elsewhere" nor "missing". Its *intended* visual is
+`disabled`'s by an explicit prior decision (docs/03 item 3, resolved 2026-06-24, where
+`disabledStrategy: 'accessible'` IS the KB's contrast-preserving `inactive`; docs/06 defines
+`text.disabled` as "disabled / inactive ink"). Its delta from `disabled` is entirely behavioral — tab
+order, the a11y tree, `aria-disabled` — so it is now `codeOnly` and the axis carries six.
+
+**So the question "what does it bind instead?" has a third answer past *elsewhere* and *nothing*:
+deliberately the same thing as another state.** That case looks identical to a gap from inside the def
+and is distinguishable only from the decision record — the search has to include the docs, not just the
+sibling fields.
+
+**And then a fourth answer, which #563's review had to measure to find: *intended* the same, and not
+actually implemented.** `anatomy-figma.ts` special-cases `state === 'disabled'` only, so `inactive` has
+no paint branch and resolves to the **`rest`** paints. The token-tier decision is real and the emitter
+has simply never honored it. **A decision record tells you what the system intends; only the emitter
+tells you what it does.** Checking the def, the siblings and the docs still left the last question
+open, and the answer inverted the consequence — not a duplicate of `disabled`, but a row reading as a
+normal enabled button.
 
 ### `[SKILL]` A spec derived from artifacts can be confidently wrong about intent
 
@@ -671,8 +690,11 @@ state, and every prop that implies paint should have bindings. Neither direction
 
 - §0.1 lists six state values; §0.4 forbids codifying the legacy sheet's names; the def declares
   **seven**. The six *were* the legacy names. Following §0.1 would have shipped `active`/`focused`/
-  `loading` and silently dropped `inactive` — and moved the headline count from the correct 756 to
-  648.
+  `loading` and silently dropped `inactive` — and moved the headline count from the then-correct 756
+  to 648. (The projection now *is* 648, via #536 item 4 — but by dropping `inactive` **with a
+  `codeOnly` admission and a stated reason**, which is a different act from arriving at the same
+  number by copying a stale sheet. Same count, opposite epistemics: one is a decision, the other is
+  a coincidence that would have hidden three renames.)
 - §4 says `width` "should not be a variant" without noting it *already is one* in `variants`, so the
   action is to move it to `codeOnly`, not to leave it alone. And the slot axis §4 assumes does not
   exist — there is `modifiers`, a differently-shaped axis whose `pending` duplicates a state.
@@ -689,6 +711,26 @@ use — it forced Button's two omissions to be written down with reasons instead
 
 Generalize: wherever a projection is allowed to be partial, the omission needs a named home, or
 "partial" decays into "incomplete and nobody noticed".
+
+**Updated (#563 review) — "mentions it" is not "admits it", and the fix has to reach every loop.** The
+admission was checked by a substring scan over the joined `codeOnly` array, which holds only while no
+entry mentions a name it is not about. That condition is violated in practice: `min-width derivation`
+contains `width`, so **deleting the `width` admission entirely left the whole suite green.** The check
+now requires the entry to LEAD with the name (`name — explanation`, which is how they were all already
+written), as a whole word — `-` is deliberately not a delimiter, or `min-width` admits `min` and
+`focus-ring-offset` admits `focus`.
+
+Two transferable parts, and the second is the one that cost real time:
+
+- **A gate whose expectation is prose can be satisfied by prose about something else.** Same family as
+  the `strokeWeight` gate passing on the comment that explains `strokeWeight`, and the `lint-us-english`
+  self-check that sampled only singulars. Third sighting: *a check written from the same mental model as
+  the thing it checks inherits its blind spot.*
+- **Fixing one call site does not fix the principle.** #563 tightened the *state* admission loop while
+  leaving the *axis* loop 25 lines above it on the abandoned scan — with the diagnosis already written
+  in the commit message and the PR body. Make the sites share one helper, so the next tightening cannot
+  reach one and miss the other. Then mutate the helper: three successive holes in this one check were
+  each found by mutating the previous fix, and none by re-reading it.
 
 ### `[SKILL]` Check the token tier exists before declaring an axis
 
