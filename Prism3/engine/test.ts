@@ -3287,6 +3287,52 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(dm.minimum === 3 && dm.maximum === 4.5, '#290 disabled: schema pins disabledMin to [3, 4.5]');
   ok(validateBrandInput({ ...seed, disabledMin: 2 }).length > 0, '#290 disabled: schema rejects disabledMin 2');
   ok(validateBrandInput({ ...seed, disabledMin: 3 }).length === 0, '#290 disabled: schema accepts disabledMin 3');
+
+  // (7b-ii) THE FLOOR DRIVES TWO INKS THAT DIVERGE (#561). `disabled.on-fill` is rated against
+  // `disabled.fill`, `disabled.text` against the page floor — two different grounds, so the two cross
+  // a neutral rung at DIFFERENT floors. This is why the web studio's Disabled specimen must show both:
+  // when it showed only `on-fill`, a stop where `on-fill` held still while `text` moved reported as no
+  // change at all, and the dial looked like it had dead granularity it did not have.
+  //
+  // Gated here rather than left to a throwaway probe because the number this asserts is the reason the
+  // specimen has the shape it has. If a future ramp or floor change collapses the two inks onto each
+  // other, the second specimen becomes redundant and someone should be told — a passing test that
+  // silently stopped meaning anything is how the FIRST wrong diagnosis got written (the recommendation
+  // on #561 was to coarsen the dial, on the premise that the top stop was inert; measuring both inks
+  // is what overturned it).
+  {
+    const STOPS = [3, 3.5, 4, 4.5];
+    let diverged = 0, pairs = 0;
+    for (const { theme } of corpus()) {
+      for (const mode of ['light', 'dark']) {
+        if (!theme.modes.includes(mode as never)) continue;
+        const fill: string[] = [], text: string[] = [];
+        for (const min of STOPS) {
+          const R = resolveAllModes({ ...theme, disabledStrategy: 'reduced', disabledMin: min })
+            .find((x) => x.mode === mode)!.roles as Record<string, { hex: string }>;
+          fill.push(R['disabled.on-fill'].hex); text.push(R['disabled.text'].hex);
+        }
+        pairs++;
+        // Divergence = at least one stop where exactly one of the two inks moved. An identical pair of
+        // sequences would mean one specimen could stand in for the other.
+        for (let i = 1; i < STOPS.length; i++)
+          if ((fill[i] !== fill[i - 1]) !== (text[i] !== text[i - 1])) { diverged++; break; }
+      }
+    }
+    ok(diverged > 0 && diverged >= pairs - 2,
+      `#561 disabled: the two gated inks move at different floors — ${diverged}/${pairs} corpus brand+modes have a stop where only one of on-fill/text changes (a single specimen cannot report both)`);
+
+    // HC escalates BOTH inks to >=4.5, so every stop resolves identically there. Asserted so the
+    // collapse reads as designed rather than as the bug above — and so a future change that makes HC
+    // dialable has to come here and say so.
+    const hcSeed = { ...seed, modes: ['light', 'hc-light'] };
+    const hcHexes = new Set(STOPS.map((min) => {
+      const R = dRoles({ ...hcSeed, disabledStrategy: 'reduced', disabledMin: min }, 'hc-light') as Record<string, { hex?: string } | undefined>;
+      return `${R['disabled.on-fill']?.hex}|${R['disabled.text']?.hex}`;
+    }));
+    ok(hcHexes.size === 1,
+      `#561 disabled: in high-contrast every disabledMin stop resolves identically (both inks escalate to >=4.5) — got ${hcHexes.size} distinct`);
+  }
 }
 // (7c) PRIMITIVES ARE MODE-INVARIANT (#296). The rule: a token may carry a per-mode variant
 // (`$extensions.prism3.modes`) ONLY if it is a SEMANTIC — i.e. its `$value` is an alias into a

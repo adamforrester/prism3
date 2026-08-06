@@ -1839,12 +1839,23 @@ const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
   const ic = el('span', 'inote-ic'); ic.style.color = iconColor; ic.append(iconEl('bell', iconColor));
   row.append(ic, document.createTextNode('Notifications')); box.append(row); return box;
 };
+/** Bare text on the panel — a specimen for a role rated against the PAGE rather than against a fill
+ *  (`disabled.text`). Deliberately has no button chrome: drawing it as a button would imply a fill it is
+ *  not measured against, which is the mistake the disabled section's own copy used to make in words. */
+const exTextOnPage = (color: string, label: string): HTMLElement => {
+  const box = el('div', 'exbox');
+  const t = el('span', 'inote', label); t.style.color = color;
+  box.append(t); return box;
+};
 /** The example column: an example box + an optional contrast receipt below it. */
 const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
   const aex = el('div', 'aex'); aex.append(inner); if (badge) aex.append(badge); return aex;
 };
-/** Two labelled specimens side by side in the example column (rest→hover, enabled→disabled, match→distinct),
- *  with an optional contrast receipt beneath them.
+/** Two labelled specimens side by side in the example column (rest→hover, filled→outline, match→distinct).
+ *  Each may carry its OWN contrast receipt as a third tuple slot — per specimen, not per row, because two
+ *  specimens can be rated against different grounds and clear different ratios (`disabled.on-fill` is
+ *  measured on the disabled fill, `disabled.text` on the page). One receipt for the pair would have to
+ *  pick one of them and silently drop the other.
  *
  *  The pair is an `.aex-two` ROW nested in the `.aex` column — not one element carrying both classes, as
  *  it was before it could take a badge. `.aex` is the column that stacks a specimen over its receipt
@@ -1852,10 +1863,15 @@ const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
  *  column to be two boxes. Nesting unconditionally, rather than only when a badge is passed, keeps one
  *  layout to reason about — and retires an entry from `lint:classes`'s allowlist instead of moving it
  *  somewhere the scanner can't see. */
-const twoUp = (a: [string, HTMLElement], b: [string, HTMLElement], badge?: HTMLElement): HTMLElement => {
+type TwoUpSpec = [string, HTMLElement] | [string, HTMLElement, HTMLElement | undefined];
+const twoUp = (a: TwoUpSpec, b: TwoUpSpec): HTMLElement => {
   const row = el('div', 'aex-two');
-  for (const [label, node] of [a, b]) { const s = el('div', 'aex-spec'); s.append(el('span', 'pfk', label), node); row.append(s); }
-  const wrap = el('div', 'aex'); wrap.append(row); if (badge) wrap.append(badge);
+  for (const [label, node, badge] of [a, b]) {
+    const s = el('div', 'aex-spec'); s.append(el('span', 'pfk', label), node);
+    if (badge) s.append(badge);
+    row.append(s);
+  }
+  const wrap = el('div', 'aex'); wrap.append(row);
   return wrap;
 };
 const iBadge = (r: RoleRes | undefined): HTMLElement | undefined =>
@@ -2123,21 +2139,27 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   // disabled controls keep", but `disabled.fill` is a fixed neutral rung nothing here can move — only
   // the ink is contrast-gated. Reading the old copy and watching the fill never budge is what made a
   // working section look broken.
-  const ds = palSection('Disabled', 'How much contrast the disabled label keeps. Never below 3:1 either way — this system doesn’t use the WCAG exemption for inactive controls. The fill is a fixed step of your neutral ramp, so it moves with the neutral, not with these controls.');
+  const ds = palSection('Disabled', 'How much contrast a disabled label keeps — on a disabled fill, and as plain disabled text on the page. Never below 3:1 either way; this system doesn’t use the WCAG exemption for inactive controls. The disabled fill itself is a fixed step of your neutral ramp, so it moves with the neutral, not with these controls.');
   const dFull = normalizeDisabledStrategy(getPath(brandState, 'disabledStrategy') as string | undefined) === 'full';
   // Re-resolved on each call, not closed over `roles`, so the same builder serves the first render and
-  // every mid-drag repaint below. It carries the CONTRAST RECEIPT (#561): this was the one two-up
-  // specimen whose entire subject is a ratio, and it was the only place on the page showing no ratio —
-  // every slot row has had a `.cbadge` all along. The receipt is also what makes the floor legible at
-  // all: `disabled.fill` is a fixed neutral rung no control here can move, and the ink only re-picks a
-  // rung when the floor crosses one, so three of the four dial stops changed the swatch imperceptibly
-  // or not at all. The number moves whether or not the step does.
+  // every mid-drag repaint below.
+  //
+  // BOTH gated disabled roles, each with its own receipt (#561). The floor drives two inks, not one:
+  // `disabled.on-fill` is rated against the DISABLED FILL, `disabled.text` against the page, so the two
+  // cross a ramp rung at different floors and one specimen cannot stand in for the other. That is what
+  // made the top of the dial look dead. Measured across the corpus at all four stops (both light and
+  // dark, HC excluded — it escalates to 4.5 by design and collapsing there is correct): all four stops
+  // are distinct in 8 of 10 customizable brand+modes with both inks visible, versus 6 of 10 with
+  // `on-fill` alone. Aurora and harbor light are exactly the pair that flips — `on-fill` sits still from
+  // 4.0→4.5 while `text` moves 4.01→4.8x, and showing only `on-fill` reported that as no change.
+  // Where a stop IS still dead (nb/minimal light) it is because 4.0 already lands both inks at ~4.5,
+  // so asking for 4.5 requests nothing more — a floor already cleared, not a control that cannot move.
+  // The dial's granularity was never the defect; the specimen was under-reporting it.
   const dsExample = (): HTMLElement => {
     const r = iRoles();
     return twoUp(
-      ['Enabled', exBtn(r['interactive.primary.fill.rest']?.hex ?? '#5e4bc3', r['interactive.primary.on-fill']?.hex ?? '#ffffff', false, 'Save')],
-      ['Disabled', exBtn(r['disabled.fill']?.hex ?? '#e7e7ee', r['disabled.on-fill']?.hex ?? '#9a9aa6', false, 'Save')],
-      iBadge(r['disabled.on-fill']));
+      ['On fill', exBtn(r['disabled.fill']?.hex ?? '#e7e7ee', r['disabled.on-fill']?.hex ?? '#9a9aa6', false, 'Save'), iBadge(r['disabled.on-fill'])],
+      ['On page', exTextOnPage(r['disabled.text']?.hex ?? '#9a9aa6', 'Save'), iBadge(r['disabled.text'])]);
   };
   let dsEx = dsExample();
   ds.append(iRow({ lead: true, srcLabel: 'Contrast', select: iEnumSelect('disabledStrategy'),
