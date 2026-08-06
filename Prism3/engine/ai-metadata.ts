@@ -44,7 +44,7 @@ const genMeaning = (group: string, variant: string): string => {
   if (group === 'disabled') return 'Unavailable / inactive state';
   if (group === 'field') return 'Form input / field chrome';
   if (variant === 'link') return 'Interactivity / navigation';
-  if (variant === 'focus') return 'Keyboard focus indication';
+  if (variant === 'focus' || variant === 'focus-inverse') return 'Keyboard focus indication';
   if (SIGNAL[variant]) return SIGNAL[variant];                                  // intent fill/text/icon/border (incl. danger)
   if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return `${SIGNAL[i] ?? cap(i)} (low-emphasis)`; }
   if (variant.startsWith('on-')) { const x = variant.slice(3); return `Legible content on ${x === 'inverse' ? 'an inverse surface' : (INTENT[x] ?? x) + ' fills'}`; }
@@ -96,7 +96,8 @@ const describe = (group: string, variant: string, state: string | undefined): { 
     if (variant === 'primary') return { desc: 'Default / decorative border', when_to_use: 'Dividers, card outlines, low-emphasis separation.', avoid_when: 'Do not use where a 3:1 non-text contrast is required (use border.secondary / border.focus).' };
     if (variant === 'secondary') return { desc: 'Stronger divider border', when_to_use: 'Higher-emphasis dividers and separators; control borders.', avoid_when: 'Do not use as a faint hairline (use border.primary).' };
     if (variant === 'inverse') return { desc: 'Border on inverse surfaces', when_to_use: 'Borders on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces.', paired_with: ['background.inverse.primary'] };
-    if (variant === 'focus') return { desc: 'Focus ring color', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary).', paired_with: ['background.primary'] };
+    if (variant === 'focus') return { desc: 'Focus ring color', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.focus-inverse).', paired_with: ['background.primary'] };
+    if (variant === 'focus-inverse') return { desc: 'Focus ring color on inverse surfaces', when_to_use: 'The keyboard-focus indicator on elements sitting on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces (use border.focus), or as a decorative border on an inverse surface (use border.inverse).', paired_with: ['background.inverse.primary'] };
     if (intent) return { desc: `${cap(intent)} validation border`, when_to_use: `Validation/state borders for ${variant} (e.g. invalid fields).`, avoid_when: `Do not use as ${variant} ink or fill — use text.${variant} / foreground.${variant}.` };
   }
 

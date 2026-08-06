@@ -1502,8 +1502,12 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   // Border
   const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
+  // `border.focus-inverse` sits beside `border.focus` rather than next to `border.inverse`: the pair a
+  // reader needs to compare is the two focus rings, and the inverse GROUND is already selectable for
+  // the whole section (the `sgSurface` picker), which is the honest way to view an inverse role — its
+  // own ink and border set come with it, rather than one card faking a ground the rest of the row lacks.
   secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.inverse'].map((k) => borderCard(k))));
-  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
+  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.focus-inverse', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
   host.append(ground(secBorder));
 
   // Icon

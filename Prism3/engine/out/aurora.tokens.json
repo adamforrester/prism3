@@ -9639,6 +9639,50 @@
               }
             }
           }
+        },
+        "focus-inverse": {
+          "$type": "color",
+          "$value": "{prism.palette.accent.500}",
+          "$description": "Focus ring color on inverse surfaces (keyboard focus)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "aliasOf": "prism.palette.accent.500",
+              "contrast": 4.26,
+              "against": "background.inverse.primary",
+              "min": 3,
+              "modes": {
+                "dark": {
+                  "$value": "{prism.palette.accent.500}",
+                  "contrast": 4.26,
+                  "against": "background.inverse.primary",
+                  "min": 3
+                },
+                "hc-light": {
+                  "$value": "{prism.palette.accent.500}",
+                  "contrast": 4.6,
+                  "against": "background.inverse.primary",
+                  "min": 4.5
+                },
+                "hc-dark": {
+                  "$value": "{prism.palette.accent.500}",
+                  "contrast": 4.56,
+                  "against": "background.inverse.primary",
+                  "min": 4.5
+                }
+              },
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              }
+            }
+          }
         }
       }
     },
@@ -15260,7 +15304,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

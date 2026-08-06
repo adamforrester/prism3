@@ -3088,7 +3088,7 @@
       "$description": "Focus ring color.",
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements.",
-      "avoid_when": "Do not use as a decorative divider (use border.primary).",
+      "avoid_when": "Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.focus-inverse).",
       "mode_overrides": {
         "light": "{prism.palette.accent.500}",
         "dark": "{prism.palette.accent.500}",
@@ -3103,6 +3103,28 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 4.56
+        }
+      ]
+    },
+    "border.focus-inverse": {
+      "$description": "Focus ring color on inverse surfaces.",
+      "meaning": "Keyboard focus indication",
+      "when_to_use": "The keyboard-focus indicator on elements sitting on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces (use border.focus), or as a decorative border on an inverse surface (use border.inverse).",
+      "mode_overrides": {
+        "light": "{prism.palette.accent.500}",
+        "dark": "{prism.palette.accent.500}",
+        "hc-light": "{prism.palette.accent.500}",
+        "hc-dark": "{prism.palette.accent.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 4.26
         }
       ]
     }
@@ -4412,6 +4434,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.focus",
+        "color.border.focus-inverse",
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.interactive.primary.border",

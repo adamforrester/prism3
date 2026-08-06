@@ -2837,6 +2837,24 @@
         "type": "VARIABLE_ALIAS",
         "name": "palette/red/300"
       }
+    },
+    {
+      "name": "color/border/focus-inverse",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Focus ring color on inverse surfaces (keyboard focus)",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/550"
+      }
     }
   ]
 }

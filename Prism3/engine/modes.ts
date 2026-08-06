@@ -787,6 +787,25 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   for (const r of SEMANTICS)
     put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.primary', cfg.nonTextMin);
   put('border.focus', rated(actionRest, baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
+  // The same ring, for when it is drawn on an inverse surface. One ring cannot serve both grounds:
+  // measured against `background.inverse.primary`, the page-gated ring scored 3.46 (light) / 5.24
+  // (dark) but **2.09 (hc-light) / 2.40 (hc-dark)** — it failed SC 1.4.11 worst in exactly the two
+  // modes that exist to serve users who most depend on seeing focus. A ring gated against one ground
+  // and painted on another is the same shape of bug as #63 (ink gated on the page, placed on a tint)
+  // and #570 (a fixed rung that could not answer a raised bar): the gate measured a contrast the role
+  // was never asked to survive.
+  //
+  // Gated at `cfg.nonTextMin` against the INVERSE surface — deliberately NOT `border.inverse`'s
+  // `cfg.borderTarget` one line above, which is decorative. This is a focus indicator first and an
+  // inverse token second, so it keeps the accessibility floor its non-inverse sibling has; copying
+  // the neighbouring inverse border wholesale would silently pick the weaker gate. (#573)
+  //
+  // An authored action pin (#331) is honoured as the ANCHOR but not applied `exact` here: a pin is a
+  // statement about the brand's action colour on the page, and reproducing it verbatim on a different
+  // ground is precisely the fixed-value-cannot-answer-a-different-ground failure above. The gate is
+  // free to walk it, so the ring clears 3:1 on the inverse surface in every mode.
+  put('border.focus-inverse', rated(chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, invRgb, cfg.nonTextMin), invRgb),
+      'Focus ring color on inverse surfaces (keyboard focus)', 'background.inverse.primary', cfg.nonTextMin);
 
   // ---- per-mode colour override layer (Phase A1) ----
   // A brand may repoint a resolved role at an EXISTING primitive step in ANY palette (no raw

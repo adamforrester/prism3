@@ -33,8 +33,14 @@
  * already cleared 3:1 — so the only value move is HC, where the fixed rung could not respond to the
  * raised bar and now escalates a rung. A `min` going 0 → 3 is not a NAME change, so CONTRACT_VERSION
  * again stands; note that the contract covers path + `$type`, not the contrast metadata. (#570)
+ *
+ * 0.3.3: `border.focus-inverse` is emitted — a focus ring gated at `nonTextMin` against
+ * `background.inverse.primary`. The single `border.focus` was gated on the page and reused on inverse
+ * surfaces, where it measured 2.09:1 (hc-light) / 2.40:1 (hc-dark), below SC 1.4.11 in the two modes
+ * that exist for users who most depend on seeing focus. No existing value moves — this ADDS a path,
+ * which is why `CONTRACT_VERSION` moves too (a MINOR, unlike 0.3.1/0.3.2 above). (#573)
  */
-export const ENGINE_VERSION = '0.3.2';
+export const ENGINE_VERSION = '0.3.3';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -45,8 +51,13 @@ export const ENGINE_VERSION = '0.3.2';
  *
  * 1.1.0: `on-inverse.border` (primary/neutral/destructive) landed in a PR that merged while this
  * one was in flight, adding 3 guaranteed paths — a MINOR bump, no removal or retype.
+ *
+ * 2.1.0: `color.border.focus-inverse` — 1 added guaranteed path, no removal or retype, so MINOR.
+ * Named as a flat suffix rather than nested under either existing leaf on purpose: both
+ * `border.focus.inverse` and `border.inverse.focus` would turn a path consumers already reference
+ * into a GROUP, which is a MAJOR break to add a token nobody asked to pay for. (#573)
  */
-export const CONTRACT_VERSION = '2.0.0';
+export const CONTRACT_VERSION = '2.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

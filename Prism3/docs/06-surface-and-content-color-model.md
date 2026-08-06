@@ -115,8 +115,16 @@ and `border.focus` are its text/border expressions.
 ### `border.*` — edges
 
 `border.primary / secondary` (neutral), `border.{semantic}`, `border.focus`
-(the focus ring colour). In **high contrast** the border targets escalate (≥4.5:1)
+(the focus ring colour) and `border.focus-inverse` (the same ring, for elements on an
+inverse surface). In **high contrast** the border targets escalate (≥4.5:1)
 because borders — not surface tints — carry structure in HC (see §4).
+
+The focus ring is split by ground rather than shared because one value cannot clear
+3:1 on both: the page-gated ring measured **2.09:1 (hc-light) / 2.40:1 (hc-dark)**
+against `background.inverse.primary` — failing SC 1.4.11 worst in the two modes whose
+purpose is serving users who most depend on seeing focus. Both halves are gated at the
+non-text floor, *not* at `border.inverse`'s decorative target: a focus indicator keeps
+its accessibility bar in every context (#573).
 
 ## 4. Per-mode resolution
 

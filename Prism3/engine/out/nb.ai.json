@@ -3088,7 +3088,7 @@
       "$description": "Focus ring color.",
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements.",
-      "avoid_when": "Do not use as a decorative divider (use border.primary).",
+      "avoid_when": "Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.focus-inverse).",
       "mode_overrides": {
         "light": "{nbds.palette.red.550}",
         "dark": "{nbds.palette.red.550}",
@@ -3103,6 +3103,28 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 5.62
+        }
+      ]
+    },
+    "border.focus-inverse": {
+      "$description": "Focus ring color on inverse surfaces.",
+      "meaning": "Keyboard focus indication",
+      "when_to_use": "The keyboard-focus indicator on elements sitting on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces (use border.focus), or as a decorative border on an inverse surface (use border.inverse).",
+      "mode_overrides": {
+        "light": "{nbds.palette.red.550}",
+        "dark": "{nbds.palette.red.550}",
+        "hc-light": "{nbds.palette.red.500}",
+        "hc-dark": "{nbds.palette.red.550}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.46
         }
       ]
     }
@@ -3950,6 +3972,7 @@
       "aliased_by": [
         "color.border.brand",
         "color.border.danger",
+        "color.border.focus-inverse",
         "color.icon.brand-subtle",
         "color.icon.danger-subtle",
         "color.interactive.destructive.border",
@@ -3972,6 +3995,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.focus",
+        "color.border.focus-inverse",
         "color.foreground.brand",
         "color.foreground.danger",
         "color.icon.link.default",
