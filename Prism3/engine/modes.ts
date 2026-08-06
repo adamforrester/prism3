@@ -713,9 +713,34 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // so nothing regresses. Contract-safe: this moves values, not names.
     for (const r of SEMANTICS)
       T(r, semanticInk(r, p.semanticMin), `${r} ${p.label} — ${p.semanticMin}:1 on the floor (${cfg.floorName}) and on its own tint`, cfg.floorName, p.semanticMin);
-    // muted semantic ink (the "quiet" variant) — designer's judgment for emphasis.
+    // Muted semantic ink (the "quiet" variant) — GATED at the large-text / non-text bar
+    // (`tertiaryMin`: 3:1 standard, 4.5:1 in HC), rated against the page it sits on.
+    //
+    // It used to ship UNGATED at a fixed rung (`min: 0`), which produced the one thing a contrast
+    // system must not do: report loudly about a better value while staying silent about a worse one.
+    // Pinning `text.danger` to 500 surfaces a FAILURE at 3.76, while muted sat at 3.23 with no badge
+    // at all — the UI suppresses badges for ungated roles, so the absence read as "unmeasured" and
+    // looked like a pass. Same page, same role family, same kind of text; only one was reporting.
+    //
+    // 3:1 rather than the 4.5 bold ink clears, and the measurement is the reason. Every light muted
+    // in the corpus ALREADY clears 3 (min: harbor 3.16), so this moves no value today — it converts a
+    // coincidence into a contract. At 4.5 it moves 24 of 25 light combos and halves muted↔bold
+    // separation from ~1.73 to 1.21–1.48, which erases the visual distinction the role exists to
+    // provide: a "quiet danger" that reads as loud as the loud one is not worth emitting. So the bar
+    // is the one that matches how the role is actually used (large text and non-text accents), and
+    // the studio LABELS it as such rather than leaving the promise implicit.
+    //
+    // Gating also fixes a second bug the fixed rung hid: muted ignored HC entirely — identical in
+    // light and hc-light (nb: 3.85 in both) — because a fixed step cannot respond to a raised bar.
+    // Reading `tertiaryMin` makes HC escalate it to 4.5 like every other gated ink.
+    //
+    // NOT enforced here: that muted stays a distinct step from bold. Nothing prevents a flat ramp
+    // from floating both onto the same rung; test.ts asserts the separation corpus-wide instead, so
+    // a collision surfaces as a failure rather than needing speculative machinery now (cf. the L-01
+    // distinctness note on interactive states above, which needed the mechanism because it HAD
+    // collided).
     for (const r of SEMANTICS)
-      T(`${r}-subtle`, rated(pStep(palOf(r2p[r]), mutedStep), baseRgb), `Muted ${r} ${p.label} — low-emphasis accent`, 'background.primary', 0);
+      T(`${r}-subtle`, rated(chromatic(r2p[r], mutedStep, baseRgb, p.tertiaryMin), baseRgb), `Muted ${r} ${p.label} — low-emphasis accent, ${p.tertiaryMin}:1 on the page`, 'background.primary', p.tertiaryMin);
     // on-* pairs (ink on a solid fill) — AA on a vivid fill. `on-action` / `on-disabled`
     // are retired: the ink on an interactive fill is interactive.<color>.on-fill, and the
     // ink on a disabled fill is disabled.on-fill (docs/20 §16).

@@ -2143,11 +2143,18 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.450}",
         "dark": "{prism.palette.primary.350}",
-        "hc-light": "{prism.palette.primary.450}",
+        "hc-light": "{prism.palette.primary.500}",
         "hc-dark": "{prism.palette.primary.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.89
+        }
       ]
     },
     "text.success-subtle": {
@@ -2158,11 +2165,18 @@
       "mode_overrides": {
         "light": "{prism.palette.success.450}",
         "dark": "{prism.palette.success.350}",
-        "hc-light": "{prism.palette.success.450}",
+        "hc-light": "{prism.palette.success.500}",
         "hc-dark": "{prism.palette.success.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.83
+        }
       ]
     },
     "text.warning-subtle": {
@@ -2173,11 +2187,18 @@
       "mode_overrides": {
         "light": "{prism.palette.warning.450}",
         "dark": "{prism.palette.warning.350}",
-        "hc-light": "{prism.palette.warning.450}",
+        "hc-light": "{prism.palette.warning.500}",
         "hc-dark": "{prism.palette.warning.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.89
+        }
       ]
     },
     "text.danger-subtle": {
@@ -2188,11 +2209,18 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.450}",
         "dark": "{prism.palette.danger.350}",
-        "hc-light": "{prism.palette.danger.450}",
+        "hc-light": "{prism.palette.danger.500}",
         "hc-dark": "{prism.palette.danger.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.92
+        }
       ]
     },
     "text.info-subtle": {
@@ -2203,11 +2231,18 @@
       "mode_overrides": {
         "light": "{prism.palette.info.450}",
         "dark": "{prism.palette.info.350}",
-        "hc-light": "{prism.palette.info.450}",
+        "hc-light": "{prism.palette.info.500}",
         "hc-dark": "{prism.palette.info.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.86
+        }
       ]
     },
     "text.on-brand": {
@@ -2605,11 +2640,18 @@
       "mode_overrides": {
         "light": "{prism.palette.primary.450}",
         "dark": "{prism.palette.primary.350}",
-        "hc-light": "{prism.palette.primary.450}",
+        "hc-light": "{prism.palette.primary.500}",
         "hc-dark": "{prism.palette.primary.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.89
+        }
       ]
     },
     "icon.success-subtle": {
@@ -2620,11 +2662,18 @@
       "mode_overrides": {
         "light": "{prism.palette.success.450}",
         "dark": "{prism.palette.success.350}",
-        "hc-light": "{prism.palette.success.450}",
+        "hc-light": "{prism.palette.success.500}",
         "hc-dark": "{prism.palette.success.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.83
+        }
       ]
     },
     "icon.warning-subtle": {
@@ -2635,11 +2684,18 @@
       "mode_overrides": {
         "light": "{prism.palette.warning.450}",
         "dark": "{prism.palette.warning.350}",
-        "hc-light": "{prism.palette.warning.450}",
+        "hc-light": "{prism.palette.warning.500}",
         "hc-dark": "{prism.palette.warning.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.89
+        }
       ]
     },
     "icon.danger-subtle": {
@@ -2650,11 +2706,18 @@
       "mode_overrides": {
         "light": "{prism.palette.danger.450}",
         "dark": "{prism.palette.danger.350}",
-        "hc-light": "{prism.palette.danger.450}",
+        "hc-light": "{prism.palette.danger.500}",
         "hc-dark": "{prism.palette.danger.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.92
+        }
       ]
     },
     "icon.info-subtle": {
@@ -2665,11 +2728,18 @@
       "mode_overrides": {
         "light": "{prism.palette.info.450}",
         "dark": "{prism.palette.info.350}",
-        "hc-light": "{prism.palette.info.450}",
+        "hc-light": "{prism.palette.info.500}",
         "hc-dark": "{prism.palette.info.350}"
       },
       "paired_with": [
         "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 3.86
+        }
       ]
     },
     "icon.on-brand": {
@@ -3828,7 +3898,9 @@
       "aliased_by": [
         "color.border.brand",
         "color.foreground.brand",
-        "color.icon.brand"
+        "color.icon.brand",
+        "color.icon.brand-subtle",
+        "color.text.brand-subtle"
       ]
     },
     "palette.primary.550": {
@@ -4566,7 +4638,9 @@
       "aliased_by": [
         "color.border.success",
         "color.foreground.success",
-        "color.icon.success"
+        "color.icon.success",
+        "color.icon.success-subtle",
+        "color.text.success-subtle"
       ]
     },
     "palette.success.550": {
@@ -4739,7 +4813,9 @@
       "aliased_by": [
         "color.border.warning",
         "color.foreground.warning",
-        "color.icon.warning"
+        "color.icon.warning",
+        "color.icon.warning-subtle",
+        "color.text.warning-subtle"
       ]
     },
     "palette.warning.550": {
@@ -4912,7 +4988,9 @@
       "aliased_by": [
         "color.border.info",
         "color.foreground.info",
-        "color.icon.info"
+        "color.icon.info",
+        "color.icon.info-subtle",
+        "color.text.info-subtle"
       ]
     },
     "palette.info.550": {
@@ -5115,10 +5193,12 @@
         "color.border.danger",
         "color.foreground.danger",
         "color.icon.danger",
+        "color.icon.danger-subtle",
         "color.interactive.destructive.border",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.on-inverse.border",
-        "color.interactive.destructive.text.rest"
+        "color.interactive.destructive.text.rest",
+        "color.text.danger-subtle"
       ]
     },
     "palette.danger.550": {

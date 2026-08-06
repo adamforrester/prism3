@@ -98,7 +98,7 @@ consistent.
 | `text.primary / secondary / tertiary` | neutral ink, descending emphasis (all legible on the surface) |
 | `text.disabled` | disabled / inactive ink |
 | `text.{brand,success,warning,danger,info}` | **bold** semantic ink |
-| `text.{…}-subtle` | **subtle / muted** semantic ink (the "quiet danger") |
+| `text.{…}-subtle` | **subtle / muted** semantic ink (the "quiet danger") — gated at the **large-text / non-text bar** (3:1, 4.5:1 in HC), not the 4.5:1 the bold form clears, so it is for large text and non-text accents rather than body copy (#570) |
 | `text.on-primary / on-{semantic} / on-action` | ink for *on top of* a solid fill (paired contrast) |
 | `text.on-inverse` | ink on an inverse surface (renamed from `on-emphasis`) |
 | `text.link.{default,hover,visited,focused}` | interactive text (links) — **no `disabled`** (a disabled link is an anti-pattern) |

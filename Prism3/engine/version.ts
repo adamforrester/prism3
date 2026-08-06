@@ -27,8 +27,14 @@
  * 0.3.1: semantic ink (`text|icon.<sem>`) now gates against its own `-subtle` tint as well as the page
  * floor, so it resolves a rung darker on white-page brands. Values only — no name moved, so
  * CONTRACT_VERSION stands. Exactly the case this split exists for.
+ *
+ * 0.3.2: muted semantic ink (`text|icon.<sem>-subtle`) is GATED at the large-text bar (`tertiaryMin`)
+ * instead of shipping ungated at a fixed rung. Standard light/dark values are unchanged — every brand
+ * already cleared 3:1 — so the only value move is HC, where the fixed rung could not respond to the
+ * raised bar and now escalates a rung. A `min` going 0 → 3 is not a NAME change, so CONTRACT_VERSION
+ * again stands; note that the contract covers path + `$type`, not the contrast metadata. (#570)
  */
-export const ENGINE_VERSION = '0.3.1';
+export const ENGINE_VERSION = '0.3.2';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

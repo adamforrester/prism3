@@ -7981,28 +7981,32 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{prism.palette.primary.450}",
-          "$description": "Muted brand text — low-emphasis accent",
+          "$description": "Muted brand text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.450",
               "contrast": 4.8,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.primary.350}",
                   "contrast": 5.96,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
                   "$value": "{prism.palette.primary.450}",
                   "contrast": 4.8,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.primary.350}",
                   "contrast": 6.44,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -8021,28 +8025,32 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{prism.palette.success.450}",
-          "$description": "Muted success text — low-emphasis accent",
+          "$description": "Muted success text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.450",
               "contrast": 3.84,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.success.350}",
                   "contrast": 7.09,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.success.450}",
-                  "contrast": 3.84,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.success.500}",
+                  "contrast": 4.55,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.success.350}",
                   "contrast": 7.67,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -8061,28 +8069,32 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{prism.palette.warning.450}",
-          "$description": "Muted warning text — low-emphasis accent",
+          "$description": "Muted warning text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.450",
               "contrast": 3.92,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.warning.350}",
                   "contrast": 6.78,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.warning.450}",
-                  "contrast": 3.92,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.warning.500}",
+                  "contrast": 4.6,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.warning.350}",
                   "contrast": 7.33,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -8101,28 +8113,32 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{prism.palette.danger.450}",
-          "$description": "Muted danger text — low-emphasis accent",
+          "$description": "Muted danger text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.450",
               "contrast": 3.92,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.danger.350}",
                   "contrast": 6.86,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.danger.450}",
-                  "contrast": 3.92,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.danger.500}",
+                  "contrast": 4.59,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.danger.350}",
                   "contrast": 7.41,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -8141,28 +8157,32 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{prism.palette.info.450}",
-          "$description": "Muted info text — low-emphasis accent",
+          "$description": "Muted info text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.450",
               "contrast": 3.86,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.info.350}",
                   "contrast": 6.95,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.info.450}",
-                  "contrast": 3.86,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.info.500}",
+                  "contrast": 4.56,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.info.350}",
                   "contrast": 7.52,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -8977,28 +8997,32 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{prism.palette.primary.450}",
-          "$description": "Muted brand icon — low-emphasis accent",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.primary.450",
               "contrast": 4.8,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.primary.350}",
                   "contrast": 5.96,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
                   "$value": "{prism.palette.primary.450}",
                   "contrast": 4.8,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.primary.350}",
                   "contrast": 6.44,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -9017,28 +9041,32 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{prism.palette.success.450}",
-          "$description": "Muted success icon — low-emphasis accent",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.success.450",
               "contrast": 3.84,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.success.350}",
                   "contrast": 7.09,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.success.450}",
-                  "contrast": 3.84,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.success.500}",
+                  "contrast": 4.55,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.success.350}",
                   "contrast": 7.67,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -9057,28 +9085,32 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{prism.palette.warning.450}",
-          "$description": "Muted warning icon — low-emphasis accent",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.warning.450",
               "contrast": 3.92,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.warning.350}",
                   "contrast": 6.78,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.warning.450}",
-                  "contrast": 3.92,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.warning.500}",
+                  "contrast": 4.6,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.warning.350}",
                   "contrast": 7.33,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -9097,28 +9129,32 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{prism.palette.danger.450}",
-          "$description": "Muted danger icon — low-emphasis accent",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.danger.450",
               "contrast": 3.92,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.danger.350}",
                   "contrast": 6.86,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.danger.450}",
-                  "contrast": 3.92,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.danger.500}",
+                  "contrast": 4.59,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.danger.350}",
                   "contrast": 7.41,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -9137,28 +9173,32 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{prism.palette.info.450}",
-          "$description": "Muted info icon — low-emphasis accent",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
               "role": "semantic",
               "aliasOf": "prism.palette.info.450",
               "contrast": 3.86,
               "against": "background.primary",
+              "min": 3,
               "modes": {
                 "dark": {
                   "$value": "{prism.palette.info.350}",
                   "contrast": 6.95,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 3
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.info.450}",
-                  "contrast": 3.86,
-                  "against": "background.primary"
+                  "$value": "{prism.palette.info.500}",
+                  "contrast": 4.56,
+                  "against": "background.primary",
+                  "min": 4.5
                 },
                 "hc-dark": {
                   "$value": "{prism.palette.info.350}",
                   "contrast": 7.52,
-                  "against": "background.primary"
+                  "against": "background.primary",
+                  "min": 4.5
                 }
               },
               "figma": {
@@ -15450,7 +15490,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

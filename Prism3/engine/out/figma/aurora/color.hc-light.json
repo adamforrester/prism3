@@ -1952,16 +1952,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted brand text — low-emphasis accent",
+      "description": "Muted brand text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.4901960790157318,
-        "g": 0.46666666865348816,
-        "b": 0.8078431487083435,
+        "r": 0.4470588266849518,
+        "g": 0.4117647111415863,
+        "b": 0.7921568751335144,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/450"
+        "name": "palette/primary/500"
       }
     },
     {
@@ -1970,16 +1970,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted success text — low-emphasis accent",
+      "description": "Muted success text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.3019607961177826,
-        "g": 0.5686274766921997,
-        "b": 0.3176470696926117,
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/450"
+        "name": "palette/success/500"
       }
     },
     {
@@ -1988,16 +1988,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted warning text — low-emphasis accent",
+      "description": "Muted warning text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.6823529601097107,
-        "g": 0.4627451002597809,
-        "b": 0.05098039284348488,
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/450"
+        "name": "palette/warning/500"
       }
     },
     {
@@ -2006,16 +2006,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted danger text — low-emphasis accent",
+      "description": "Muted danger text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/450"
+        "name": "palette/danger/500"
       }
     },
     {
@@ -2024,16 +2024,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "Muted info text — low-emphasis accent",
+      "description": "Muted info text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/450"
+        "name": "palette/info/500"
       }
     },
     {
@@ -2384,16 +2384,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted brand icon — low-emphasis accent",
+      "description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.4901960790157318,
-        "g": 0.46666666865348816,
-        "b": 0.8078431487083435,
+        "r": 0.4470588266849518,
+        "g": 0.4117647111415863,
+        "b": 0.7921568751335144,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/450"
+        "name": "palette/primary/500"
       }
     },
     {
@@ -2404,16 +2404,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted success icon — low-emphasis accent",
+      "description": "Muted success icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.3019607961177826,
-        "g": 0.5686274766921997,
-        "b": 0.3176470696926117,
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/450"
+        "name": "palette/success/500"
       }
     },
     {
@@ -2424,16 +2424,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted warning icon — low-emphasis accent",
+      "description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.6823529601097107,
-        "g": 0.4627451002597809,
-        "b": 0.05098039284348488,
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/450"
+        "name": "palette/warning/500"
       }
     },
     {
@@ -2444,16 +2444,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted danger icon — low-emphasis accent",
+      "description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/450"
+        "name": "palette/danger/500"
       }
     },
     {
@@ -2464,16 +2464,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Muted info icon — low-emphasis accent",
+      "description": "Muted info icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/450"
+        "name": "palette/info/500"
       }
     },
     {
