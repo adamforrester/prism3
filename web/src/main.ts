@@ -482,6 +482,29 @@ const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
   'Icon': 'shared', 'Disabled': 'shared', 'Interactive': 'shared',
 };
 
+/** Marks a control that changes the VIEW, not a token — a playback speed, a filter, a specimen ground.
+ *  `attachModeBadges` skips these when deciding editability, the way it already skips `button`.
+ *
+ *  WHY AN ATTRIBUTE AND NOT A DECLARED FLAG PER SECTION. #437's editability is measured from the
+ *  rendered DOM precisely so it cannot drift, and #574 is not a reason to give that up — a
+ *  hand-declared `editable: false` on Motion would go stale the day Motion gains a real control. The
+ *  measurement was not wrong, it was measuring a PROXY: presence of a control is not evidence of
+ *  editability, and a view-state control satisfies "the user can change something here" without
+ *  satisfying "the user can change a token here". Marking the exception keeps the measurement, and a
+ *  section that gains a real control still re-badges itself with no map to remember.
+ *
+ *  WHY AN ATTRIBUTE AND NOT THE `.mo-slowmo-sel` CLASS. The badge would then encode one specimen's
+ *  class name, so the second view control would reintroduce the bug — exactly how #575 happened (a
+ *  mapping re-derived at a second site, with no shared name to grep for). This is that shared name. */
+const VIEW_ONLY = 'data-view-only';
+/** Tag `c` as a view-state control and return it, so it can wrap the control at construction. */
+const viewOnly = <T extends HTMLElement>(c: T): T => { c.setAttribute(VIEW_ONLY, ''); return c; };
+/** Value editors only — what the three-state badge and `mode-audit.mjs` both mean by "a control".
+ *  `button` is excluded because the buttons in these sections play a motion preview or expand a
+ *  disclosure; `[data-view-only]` because a playback speed is not a token. */
+const TOKEN_CONTROL_SEL =
+  `input:not([disabled]):not([${VIEW_ONLY}]), select:not([disabled]):not([${VIEW_ONLY}]), textarea:not([disabled]):not([${VIEW_ONLY}])`;
+
 /** The badge: label + scope, one grammar across both states, and deliberately ACHROMATIC.
  *  Hue is reserved for the contrast verdicts (--ok / --danger, #446) — neither mode state is good or
  *  bad, so tinting one would borrow a meaning that does not apply. Fill says "the bar reaches this";
@@ -5752,7 +5775,9 @@ const renderMotionSpecimen = (): HTMLElement => {
   const toolbar = el('div', 'mo-toolbar');
   const slowmoLabel = el('label', 'mo-slowmo');
   slowmoLabel.append(document.createTextNode('Playback '));
-  const select = el('select', 'mo-slowmo-sel') as HTMLSelectElement;
+  // View-only: this writes `motionSlowmo`, a module-local view variable, and repaints. It edits no
+  // token in any mode, so it must not make the specimen read "Editing · All modes" (#574).
+  const select = viewOnly(el('select', 'mo-slowmo-sel')) as HTMLSelectElement;
   for (const v of MOTION_SLOWMO_OPTIONS) {
     const opt = el('option', undefined, v === 1 ? 'real speed' : `1/${v}×`) as HTMLOptionElement;
     opt.value = String(v);
@@ -6117,11 +6142,16 @@ const attachModeBadges = (root: HTMLElement): void => {
     const title = sec.querySelector('.psec-t')?.textContent?.trim();
     const scope = title ? SECTION_MODE_SCOPE[title] : undefined;
     if (!scope) continue;
-    // Value editors only. `button` is excluded deliberately: the buttons inside these sections play a
-    // motion preview or expand a disclosure, and counting them would badge Motion's specimen as
-    // editable. Measured across all six bar pages — every section with a real control has at least
-    // one input/select, and every section without one has zero of anything.
-    const hasControls = sec.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') !== null;
+    // Value editors only — see TOKEN_CONTROL_SEL. `button` was excluded from the start for this exact
+    // hazard, and the reasoning was right but ONE ELEMENT TYPE TOO NARROW (#574): Motion has both a
+    // preview button (excluded) and a playback `select` (counted), so the specimen badged itself
+    // "Editing · All modes". The old comment here claimed "every section with a real control has at
+    // least one input/select, and every section without one has zero of anything" — true when written,
+    // false the moment a view-state select appeared, and nothing re-checked it. Measured on all six bar
+    // pages: of the 98 controls this selector counts, 95 provably mutate the persisted brand, one is
+    // single-option, one re-renders before it can be read, and the only genuinely quiet one is the
+    // playback select — which is now marked rather than assumed away.
+    const hasControls = sec.querySelector(TOKEN_CONTROL_SEL) !== null;
     // ONE path, not two (#562). A section with no head gets one BUILT here — its title + description
     // moved into a `.psec-txt`, exactly the shape `palSection` produces — rather than the badge being
     // absolutely positioned against the section box. That old fallback (`top:0;right:0`) is what put
