@@ -10,7 +10,8 @@
 ## (2026-08-06) — `inactive` is a behavior, and a variant cannot hold a behavior (#536 item 4)
 
 **STATUS: `components/button.ts`, `component-schema.ts`, `test.ts`, `docs/32`.** No emitter artifacts
-change — `out/*` byte-identical, regen 88 in sync, contract 2.0.0 untouched. `test.ts` 1749 → **1750**.
+change — `out/*` byte-identical, regen 88 in sync, contract 2.0.0 untouched. `test.ts` 1749 → **1756**
+(1750 as first pushed; the #563 review round added six).
 
 **The projection is now 648 variants, not 756.** `state` carries six values; `inactive` moved to
 `anatomy.codeOnly`.
@@ -30,13 +31,22 @@ tokens?" Both halves have answers and they point opposite ways, which is why it 
   contrast-preserving `inactive`; `docs/06` defines `text.disabled` as "disabled / inactive ink". One
   paint, both meanings, on purpose, backed by the 12-system survey where 0/12 meet 4.5:1.
 
-So projecting it would ship **108 rows pixel-identical to their `disabled` siblings under a second
-label**, with nothing in the file to tell a designer that the difference is tab order. The two rejected
-options fail on the same fact from opposite sides: re-pointing `inactive` at `disabled.*` produces
-exactly those duplicates, and giving it its own token group contradicts item 3 and would need a new
-contrast contract to justify a distinction that is not about paint. **A Figma variant encodes paint; a
-state whose entire delta is behavioral has nothing to encode.** The prop, the docs, the do/don't
-guidance and the contested note are all untouched — this is a projection decision, not a def change.
+So the 108 rows it would contribute cannot say anything a designer could act on. **A Figma variant
+encodes paint; a state whose entire delta is behavioral has nothing to encode.** The two rejected
+options fail from opposite sides: re-pointing `inactive` at `disabled.*` yields a column visually
+indistinguishable from `disabled` under a second label, and its own token group contradicts item 3 and
+would need a new contrast contract for a distinction that is not about paint. The prop, the docs, the
+do/don't guidance and the contested note are all untouched — this is a projection decision, not a def
+change.
+
+**Corrected in review, and the correction sharpens the case.** This entry first said those 108 rows
+would be *pixel-identical to their `disabled` siblings*. Measured, they are not: `anatomy-figma.ts:217`
+special-cases `state === 'disabled'` only, so `inactive` has no paint branch and falls through to the
+**`rest`** paints. The shared-paint decision is real but lives at the **token tier**; the emitter has
+never implemented it. That is worse than the duplicate I claimed — the column would have read as a
+*normal enabled button* while promising a blocked one. Two independent grounds now fail it, and the
+lesson is the ordinary one told against itself: **a decision record tells you what the system intends,
+not what it does.** Both halves needed checking and only one was.
 
 `states` still lists seven. Seven is the def's truth; six is what a variant can carry; `codeOnly` is
 where the difference is admitted, the same mechanism `focus-ring-offset` has always used for the
@@ -45,11 +55,23 @@ un-projectable `:focus-visible` condition.
 | | before | after |
 |---|---|---|
 | projected variants | 756 | **648** |
-| rows pixel-identical to their `rest` sibling | 252 (`focus-visible` 108, `inactive` 108, `pressed` 36) | **144** (`focus-visible` 108, `pressed` 36) |
+| rows **structurally** identical to their `rest` sibling | 252 | **144** (`focus-visible` 108, `pressed` 36) |
+| rows **visually** identical to their `rest` sibling | 306 | **198** (+ `pending` 54) |
 | chunks for the full set | 58 (worst 41,987 B) | **44** (worst 41,976 B) |
 
-The remaining 108 are `focus-visible` — #536 item 3, which needs an owner decision because it reverses
-a documented "the focus ring is NOT a part". The 36 `pressed` are the known `.text` overlay gap.
+**Two counts, both true, and the gap between them was the second review finding.** This entry first
+reported only 144, keyed on the plan's node tree *including layer names*. Keyed on paint alone the
+figure is **198**: the extra 54 are `pending` with `leading=true`, where the spinner *replaces* the
+leading visual and therefore inherits its size binding, its icon paint and its position — so the only
+remaining difference is that the node is called `spinner` rather than `leadingVisual`. **A layer rename
+is invisible on the canvas.** The structural count is what a diff sees; the visual count is what a
+person sees, and for "a designer opens the set and sees duplicates" the visual one is the honest
+number. Both are now asserted, along with the direction (`leading=true` is the identical half — I had
+it backwards first), because reporting only the structural count is exactly how 144 got published.
+
+The 108 `focus-visible` are #536 item 3, which needs an owner decision because it reverses a documented
+"the focus ring is NOT a part". The 36 `pressed` are the known `.text` overlay gap. The 54 `pending` are
+cosmetic-only and need no def change.
 
 ### The gate for this was satisfiable by a comment about something else
 
@@ -70,6 +92,31 @@ explaining a contrast switch. The whole-word case is now asserted directly. Seco
 that mutating my own new gate found the untested half of it, and both times the untested half was the
 narrower, more careful-looking clause — **the part of a check you add for rigor is the part no test
 covers, because you wrote the tests from the same picture that told you the clause was needed.**
+
+### I fixed one loop and left the identical bug in the loop 25 lines above it
+
+The review's insisted-on finding, and it is the sharpest thing in this entry. `validateFigmaProperties`
+has **two** admission loops: one for omitted variant *axes* (`:425`) and one for omitted *states*
+(`:456`). I tightened the state loop and left the axis loop on the exact `codeOnly.join(' ').includes()`
+scan I had just written three paragraphs arguing was unsafe. The reviewer deleted the whole
+`width (auto | full)` admission from `codeOnly` — leaving an axis unprojected and unexplained — and the
+full suite stayed green, because the unrelated `min-width derivation` entry contains the substring
+`width`.
+
+`admits()` is now hoisted above both loops and both use it, with a generated mutation per omitted axis
+so a future unprojected axis is covered the day it appears. **The reason this is worth a section rather
+than a line: the diagnosis was already written down, in this file, in the commit message, and in the
+PR body — and I applied it only where I happened to be typing.** A principle stated about one call site
+does not propagate itself to the others; the mechanical follow-through is a separate act, and the way
+to force it is to make the two sites share one helper so the next tightening cannot reach one and miss
+the other.
+
+**And the hoist immediately found a third instance in my own delimiter set.** The generated axis
+mutation `min` (against the real `min-width derivation` entry) failed on first run, because I had
+allowed `-` as a delimiter — so `min-width` admitted `min`, and by the same token `focus-ring-offset`
+would have admitted a state called `focus`. A hyphen is part of a compound *name*, not a separator
+after one. Dropped from the set; every real entry uses ` — `, so nothing needed it. Three tightenings
+of the same check, each found by mutating the previous one, and none by reasoning about it.
 
 ### One test had to be re-pointed, and that is worth noticing
 
