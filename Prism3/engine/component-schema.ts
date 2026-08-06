@@ -115,6 +115,16 @@ export type PartDef = {
   optional?: boolean;
   /** For `overlay`: the part whose position it takes (width-preserving, per the brief). */
   replaces?: string;
+  /** For `overlay`: the STATE that activates it. Required, because an overlay that never says when
+   *  it appears cannot be projected without the emitter hardcoding the part's name — and
+   *  `anatomy-figma.ts` deliberately keys off `kind`/`role` so it generalizes past Button.
+   *
+   *  This was the real gap behind #536 item 2. The part, its `kind` and its `replaces` were all
+   *  declared AND validated, and the projection still could not use any of it, because *when* was the
+   *  one fact nobody had written down. **A declaration that omits its trigger is not projectable,
+   *  however complete it looks** — and it looks complete precisely because every field that exists
+   *  is filled in. */
+  when?: string;
   note?: string;
 };
 
@@ -566,6 +576,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     if (p.kind === 'overlay') {
       if (!p.replaces) e.push(`anatomy part '${n}': an overlay must declare what it 'replaces'`);
       else if (!parts[p.replaces]) e.push(`anatomy part '${n}': replaces '${p.replaces}', which is not a declared part`);
+      // The trigger is as required as the target. Without it the part is declarative decoration: it
+      // validates clean, reads complete, and no projection can place it — which is exactly how the
+      // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
+      if (!p.when) e.push(`anatomy part '${n}': an overlay must declare the state it appears in ('when') — without it nothing can project it`);
+      else if (!(def.states ?? []).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${(def.states ?? []).join(', ')}]`);
     } else if (!seen.has(n)) {
       e.push(`anatomy part '${n}' is unreachable from root '${a.root}' — an orphan part would be silently dropped by a materializer`);
     }

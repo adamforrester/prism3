@@ -5518,7 +5518,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const parts = (p: AnatomyPlan) => ({
       box: p.root.paints ?? {},
       ink: (p.root.children.find((c) => c.name === 'label')!.paints ?? {}),
-      icon: p.root.children.find((c) => c.name === 'leadingVisual')!.descendantFills,
+      // The leading CELL, not the part named `leadingVisual` — on `state=pending` an overlay stands
+      // in that cell instead (#536 item 2), and this helper asserted the part name. `skin()` sets
+      // leading only, so children are [leading cell, label].
+      icon: p.root.children[0].descendantFills,
     });
 
     const filledRest = parts(skin('filled'));
@@ -6981,6 +6984,61 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(/schema validation/i.test(badPayload.error ?? '') && (badPayload.errors?.length ?? 0) >= 3
      && badPayload.errors!.some((e) => /missing required 'id'/.test(e)),
     'export_theme: the failure is a NAMED schema error list, not an incidental throw');
+}
+
+// ---- #536 item 2: the overlay was declared, validated, and unprojected -------------------------
+// `spinner` had `kind: 'overlay'` and `replaces: 'leadingVisual'`, both gated — and `anatomy-figma`
+// had zero occurrences of `overlay`/`replaces`/`spinner`, so `state=pending` emitted the same three
+// parts as `rest`. The missing fact was WHEN: a declaration that omits its trigger is not
+// projectable however complete it looks, and it looks complete because every field present is filled.
+{
+  const parts = (state: string, leading: boolean, appearance = 'filled'): string =>
+    planPartNames(figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance, state, leading, trailing: false }).root).join(',');
+  const render = (state: string, leading: boolean, appearance = 'filled'): string =>
+    JSON.stringify(figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance, state, leading, trailing: false }).root);
+
+  ok(parts('pending', true).includes('spinner'), `#536: state=pending projects the spinner (${parts('pending', true)})`);
+  ok(!parts('pending', true).includes('leadingVisual'),
+    '#536: the spinner REPLACES the leading visual rather than sitting beside it — one node per cell');
+  ok(parts('pending', false).includes('spinner'),
+    '#536: a pending button shows the spinner even with no leading slot — otherwise pending is invisible again');
+  ok(!parts('rest', true).includes('spinner'), '#536: no spinner outside the state that declares it');
+  ok(parts('rest', true).includes('leadingVisual'), '#536: rest still projects the leading visual');
+
+  // The defect this closes, stated as the issue measured it.
+  ok(render('pending', true) !== render('rest', true),
+    '#536 item 2: pending no longer renders identically to rest (filled)');
+  for (const app of ['outline', 'text']) {
+    ok(render('pending', true, app) !== render('rest', true, app), `#536 item 2: pending differs from rest (${app})`);
+  }
+
+  // The spinner sits in the leading POSITION, not appended after the label — order is visual order.
+  ok(parts('pending', true).indexOf('spinner') < parts('pending', true).indexOf('label'),
+    '#536: the spinner takes the leading visual\'s position, before the label');
+
+  // Padding asks about the CELL: a spinner is a glyph, so the leading inset must follow the visual
+  // rule. Without this a pending button insets as though its leading cell were empty.
+  const padOf = (state: string, leading: boolean): string =>
+    figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state, leading, trailing: false }).root.bound.paddingLeft;
+  ok(padOf('pending', false) === padOf('rest', true),
+    '#536: a pending button insets its leading side as though a visual is there — because one is');
+  ok(padOf('rest', false) !== padOf('rest', true), 'padding: the slot-aware rule still distinguishes empty from filled at rest (control)');
+
+  // THE CONSEQUENCE, asserted rather than left to be discovered: because the spinner takes the
+  // leading cell either way, `pending` collapses across the leading axis. Correct — a pending button
+  // has a visual there regardless — but it is a NEW duplicate pair and belongs in item 1's count.
+  ok(render('pending', false) === render('pending', true),
+    '#536: pending renders identically across the leading axis (the spinner occupies that cell either way)');
+
+  // The overlay is found by kind+when, not by name, so a second def projects with no emitter change.
+  const noWhen = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, when: undefined } } } } as ComponentDef;
+  ok(validateComponentDef(noWhen).errors.some((x) => /must declare the state it appears in/.test(x)),
+    '#536 gate: an overlay with no `when` fails validation — it cannot be projected');
+  const badWhen = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, when: 'nope' } } } } as ComponentDef;
+  ok(validateComponentDef(badWhen).errors.some((x) => /is not one of states/.test(x)),
+    '#536 gate: an overlay whose `when` is not a declared state fails validation');
 }
 
 // ------------------------------------------------------------------- report

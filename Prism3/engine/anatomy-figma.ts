@@ -223,12 +223,40 @@ export const figmaAnatomyPlan = (
     return undefined;
   };
 
+  /**
+   * The overlay active at this coordinate, and the part it stands in for (#536 item 2).
+   *
+   * `kind: 'overlay'` was declared, validated, and completely unprojected — this file had zero
+   * occurrences of `overlay`, `replaces` or `spinner`, so `state=pending` emitted the same three
+   * parts as `rest` and 108 variants rendered as their rest sibling.
+   *
+   * Keyed off `kind` + `when` rather than the part's NAME, like every other rule in this builder, so
+   * a second def's overlay projects with no change here.
+   */
+  const activeOverlay = Object.entries(a.parts).find(([, p]) => p.kind === 'overlay' && !!p.when && p.when === state);
+  const replacedByOverlay = activeOverlay?.[1].replaces;
+
   const present = (name: string): boolean => {
+    // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
+    // builds every variant as its own tree, so there is nothing to hide: the `pending` variant simply
+    // has a spinner where the leading visual would otherwise be.
+    if (replacedByOverlay && name === replacedByOverlay) return false;
     if (name === 'leadingVisual') return leading;
     if (name === 'trailingVisual') return trailing;
     const p = a.parts[name];
     return !p?.optional;
   };
+
+  /* Padding asks about the CELL, not the slot. #326 insets a side less when a glyph sits against it,
+   * and a spinner is a glyph — asking `leading` alone would inset a pending button as though its
+   * leading cell were empty while a spinner sits in it.
+   *
+   * CONSEQUENCE WORTH NAMING rather than discovering later: because the spinner takes the leading
+   * cell whether or not `leading=true`, `pending` now renders identically across the leading axis —
+   * those two coordinates collapse. That is *correct* (a pending button has a visual there either
+   * way), and it is also a new pair of duplicates, so it belongs in #536 item 1's accounting. */
+  const leadingFilled = leading || replacedByOverlay === 'leadingVisual';
+  const trailingFilled = trailing || replacedByOverlay === 'trailingVisual';
 
   // PART NAME → the component property that drives it, inverted from the def's prop-keyed maps.
   // Inverted here rather than searched per node because the invariant "one node carries at most one
@@ -247,7 +275,12 @@ export const figmaAnatomyPlan = (
 
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
-    const kids = (p.children ?? []).filter(present).map((c) => node(c, a.parts[c]));
+    // The overlay is spliced into the replaced part's POSITION, not appended — order is visual order
+    // (`PartDef.children` says so), and a spinner that rendered after the label would sit on the
+    // wrong side of it. `present()` has already removed the part it replaces.
+    const childNames = (p.children ?? []).flatMap((c) =>
+      replacedByOverlay && c === replacedByOverlay && activeOverlay ? [activeOverlay[0]] : present(c) ? [c] : []);
+    const kids = childNames.map((c) => node(c, a.parts[c]));
 
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
@@ -261,8 +294,8 @@ export const figmaAnatomyPlan = (
         // filled, both sides fall back to the label inset and the button is symmetric again —
         // which is why this is additive rather than a redefinition of padding-x.
         const inlineVisual = p.padding.inlineVisual ?? p.padding.inlineLabel;
-        bound.paddingLeft = varOf(leading ? inlineVisual : p.padding.inlineLabel);
-        bound.paddingRight = varOf(trailing ? inlineVisual : p.padding.inlineLabel);
+        bound.paddingLeft = varOf(leadingFilled ? inlineVisual : p.padding.inlineLabel);
+        bound.paddingRight = varOf(trailingFilled ? inlineVisual : p.padding.inlineLabel);
       }
     } else {
       // Both axes, bound to the SAME variable. That is legal — an unlocked node tracks a square
@@ -303,10 +336,15 @@ export const figmaAnatomyPlan = (
     } else if (p.kind === 'text') {
       const ink = paintOf('label');
       if (ink) paints.fills = ink;
-    } else if (p.kind === 'slot') {
+    } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /
       // `text.rest` under the def's `.icon` slot key. It lands on the vector INSIDE the instance,
       // because the instance's own fill would paint a square behind the glyph.
+      //
+      // An OVERLAY inks the same way, and this was the second half of #536 item 2: projecting the
+      // spinner structurally but leaving it out of the paint branch produced a node in the right cell
+      // with no colour — a pending button whose spinner is invisible against its own fill. It is a
+      // glyph standing in a glyph's cell, so it takes a glyph's ink.
       descendantFills = paintOf('icon');
     }
 
@@ -314,7 +352,13 @@ export const figmaAnatomyPlan = (
     // that part. A `characters` write on a FRAME throws, and a text part with no declared property is
     // a part whose copy nothing is claiming to own.
     const chars = p.kind === 'text' ? placeholder.get(name) : undefined;
-    const propertyRef = drivenBy.get(name);
+    // An overlay inherits the CELL's property, not its own. It stands in the replaced part's
+    // position, so the swap that pointed at that cell should keep pointing at it — one cell, one
+    // INSTANCE_SWAP property, contents varying by state. Without this the spinner builds as an
+    // instance nothing nominates: the stub host reported it as a placeholder frame with no VECTOR
+    // inside to paint, which is a spinner that is present, unswappable and invisible.
+    const cellName = p.kind === 'overlay' && p.replaces ? p.replaces : name;
+    const propertyRef = drivenBy.get(cellName);
 
     return {
       name,
@@ -322,7 +366,7 @@ export const figmaAnatomyPlan = (
       ...(chars !== undefined ? { characters: chars } : {}),
       ...(propertyRef ? { propertyRef } : {}),
       ...(textStyle ? { textStyle } : {}),
-      ...(p.kind === 'slot' && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
+      ...((p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(descendantFills ? { descendantFills } : {}),
       ...(p.layout
