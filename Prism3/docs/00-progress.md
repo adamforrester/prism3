@@ -7,6 +7,84 @@
 
 ---
 
+## (2026-08-06) — The focus ring was gated on the page and painted on inverse (#573 closed)
+
+**STATUS: shipped.** `Prism3/engine/modes.ts`, `test.ts`, `ai-metadata.ts`, `version.ts`,
+`schema/token-contract.json`, `docs/06`, `web/src/main.ts`. Engine **0.3.2 → 0.3.3**, and
+CONTRACT_VERSION **2.0.0 → 2.1.0** — the first bump in this run that moves a *name* rather than a value.
+
+**The measurement.** One `border.focus` was emitted, gated at `cfg.nonTextMin` against
+`background.primary`, and then reused on inverse surfaces where nothing had ever measured it:
+
+| mode | `border.focus` vs `background.inverse.primary` | bar |
+|---|---|---|
+| light | 3.46 | 3 |
+| dark | 5.24 | 3 |
+| **hc-light** | **2.09** | **4.5** |
+| **hc-dark** | **2.40** | **4.5** |
+
+The two failures are in the two modes that exist for users who most depend on seeing focus, and the
+ordering is not a coincidence: HC raises the bar *and* pushes the two grounds further apart, so a value
+tuned for one page gets worse on the other exactly as the requirement gets stricter. This is not nb's
+quirk — it reproduces in all four corpus brands that emit HC. `border.focus-inverse` now resolves
+against `background.inverse.primary`; nb hc-light goes **2.09 → 4.58**, and all 20 brand×mode
+combinations clear.
+
+**Third instance of one bug family.** #63 was ink gated on the page and painted on a tint; #570 was a
+fixed rung that could not answer a raised bar; this is a ring gated on the page and painted on inverse.
+Same shape each time: **the ground a value is measured against drifts away from the ground it is
+painted on, and no gate notices because every gate reads the declared ground.** Worth treating
+"where is this actually painted?" as a standing audit question rather than three coincidences.
+
+**The owner call, flagged not blocked.** The issue left open whether the inverse ring should take
+`cfg.nonTextMin` (the SC 1.4.11 floor) or `cfg.borderTarget` (the decorative target `border.inverse`
+uses one line above). Took the issue's recommendation — `nonTextMin` — and flagged it rather than
+waiting: a ring that fails 3:1 is not a focus indicator, so the decorative target is not a live option
+for this role even though it is the right one for its neighbor. An authored action pin (#331) is honored
+as the *anchor* but deliberately not applied `exact`: reproducing a page-tuned value verbatim on a
+different ground is the same failure this PR fixes.
+
+**Flat suffix, not nesting.** `border.focus-inverse` rather than `border.focus.inverse` or
+`border.inverse.focus` because either nesting converts a leaf consumers already reference into a
+**group** — MAJOR, to add a token nobody asked to pay for. Guaranteed paths 484 → 485, one `ADDED`.
+
+**Mutation testing found a hole in my own gate.** Four mutations, and the fourth is the one worth
+recording:
+
+- **M1** reuse the page ring on the inverse ground → 28 failures, reproducing 2.09/2.40. Caught.
+- **M2** `min` → 0 → caught (absence of a bar fails; it does not silently skip).
+- **M3** re-declare the page ground → caught by **(10g) only**.
+- **M4** distinct value *and* an easier declared ground → **slipped through both gates.** It measured
+  **1.00:1 where the ring is actually painted** on wendys and minimal in every mode, while reporting a
+  5.94 pass against the ground it had just made easy.
+
+M4 is the same bug as the PR, committed by the fix's own test. The lesson: **a gate that reads the
+contract cannot be the only gate on the contract** — it will confirm any self-consistent lie. Added
+**(10f-ii)**: every gated role whose name says `inverse` must be gated *against* an inverse surface,
+which is a structural claim the declared ground cannot satisfy by moving. Verified it catches M4 in all
+5 brands. Also corrected (10f)'s comment, which had overclaimed what it could see.
+
+**Gates.** (10f) contract-driven — every `border.*` with `min > 0` clears it against whatever surface
+its own `against` names, plus `border.focus-inverse` must exist and declare `min >= 3` (absence fails,
+it does not skip). (10f-ii) above. (10g) the inverse ring is its own value in at least one mode, or the
+second token is dead weight. **NB fixture:** waived by exact name (`ENGINE_ADDED_VARS =
+['color/border/focus-inverse']`), not by widening to a `color/border/` prefix — the prefix form would
+blind the gate to a spurious variable in a family the fixture really does define.
+
+**A UI approach tried and discarded.** First attempt gave `borderCard` a `bgRole` argument so the
+inverse ring could render on its own ground. It had no effect —
+`.sg-bcard{background:transparent!important}` overrides inline styles — and more importantly it was a
+duplicate: the Border section already has a purpose-built ground selector (`sgSurface`) that repaints
+ink and border together. Reverted to the original single-argument signature and placed
+`border.focus-inverse` beside `border.focus` in the "Focus & semantic" row, because the pair a reader
+needs to compare is the two rings, not the two inverse tokens.
+
+**Browser-verified** on the inverse ground in the studio: old `border.focus` **2.86:1** (fails), new
+`border.focus-inverse` **3.46:1** (passes). regen **88 in sync**, test.ts **1812/0**, contract 2.1.0 /
+guaranteed 485, MCP 49/49, NB regression 11/11, US-English 94 files, lint-classes + lint-skills clean.
+
+---
+
 ## (2026-08-06) — muted ink gets a bar, and the studio names it (#570 closed)
 
 **STATUS: shipped.** Owner decision on the four options filed in #570: **option 1 + the UI half of

@@ -3789,6 +3789,85 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   }
 }
 
+// (10f) #573 — the focus ring is legible on the ground it is DRAWN on, not just the page. There was
+// one `border.focus`, gated against `background.primary` and reused on inverse surfaces, where it
+// measured 3.46 (light) / 5.24 (dark) but **2.09 (hc-light) / 2.40 (hc-dark)** — sub-3:1 in the two
+// modes whose whole purpose is serving users who depend on seeing focus. Those four numbers are the
+// fixture values below.
+//
+// This is the third instance of one shape of bug: a role gated against one ground and painted on
+// another (#63 ink-on-tint, #570 fixed-rung-vs-raised-bar, this). So the assertion is deliberately
+// written against the CONTRACT rather than against `focus-inverse` by name: every `border.*` role
+// that declares a `min` must clear it against whatever surface its own `against` names. A future
+// inverse-sensitive border then arrives already covered, instead of needing someone to remember to
+// add a fourth near-identical block.
+//
+// What this canNOT see, because it reads the contract: whether `against` names the RIGHT ground. A
+// role that quietly re-declares an easier surface passes here while being invisible where it is
+// actually painted. That is (10f-ii)'s job — see the mutation recorded there.
+{
+  for (const { id, theme } of corpus()) {
+    const bad: string[] = [];
+    for (const m of resolveAllModes(theme)) {
+      // The ring must EXIST on both grounds — a missing inverse ring is the defect itself, so its
+      // absence has to fail rather than skip (the (10d) lesson: a legal skip hides a removal).
+      const inv = m.roles['border.focus-inverse'];
+      if (!inv) { bad.push(`${m.mode}: border.focus-inverse missing`); continue; }
+      if (inv.min < 3) bad.push(`${m.mode}: focus-inverse min ${inv.min} — a focus ring below the SC 1.4.11 floor`);
+      for (const [key, r] of Object.entries(m.roles)) {
+        if (!key.startsWith('border.') || r.min <= 0) continue;
+        const ground = m.roles[r.against];
+        if (!ground) { bad.push(`${m.mode} ${key}: against '${r.against}' resolves to no role`); continue; }
+        const actual = contrast(hexToRgb(r.hex), hexToRgb(ground.hex));
+        if (actual < r.min) bad.push(`${m.mode} ${key}: ${actual.toFixed(2)}<${r.min} on ${r.against}`);
+      }
+    }
+    ok(bad.length === 0, `every gated border clears its bar on the surface it names — ${id}`
+      + (bad.length ? ` — FAIL: ${bad.join('; ')}` : ''));
+  }
+}
+
+// (10f-ii) #573 — a role whose NAME claims an inverse context must be MEASURED against an inverse
+// surface. This exists because (10f) above has a blind spot I only found by mutating into it: it
+// trusts each role's own `against` string, so a role can satisfy it by declaring an easier ground.
+// Mutating `border.focus-inverse` to gate against `background.primary` while keeping its name — a
+// one-word edit, self-consistent, and still distinct from `border.focus` so (10g) stays quiet — slips
+// through both. The resulting ring measures **1.00:1 on the surface it is painted on** (wendys,
+// minimal, every mode): perfectly invisible, and reported as a comfortable 5.94 pass.
+//
+// So the gate that reads the contract cannot be the only gate on the contract. `against` is an
+// assertion by the derivation about itself; this checks that assertion against the role's name, which
+// is the one thing the derivation does not get to choose freely once consumers reference it.
+{
+  for (const { id, theme } of corpus()) {
+    const bad: string[] = [];
+    for (const m of resolveAllModes(theme))
+      for (const [key, r] of Object.entries(m.roles)) {
+        // `on-inverse` / `-inverse` / `.inverse.` all mark "for use on an inverse surface".
+        if (!/(^|[.-])inverse([.-]|$)/.test(key.replace('on-inverse', 'inverse'))) continue;
+        if (key.startsWith('background.inverse') || key.startsWith('foreground.inverse')) continue; // the surfaces themselves
+        if (r.min <= 0) continue;                                    // ungated by design — (10f) covers the gated set
+        if (!/inverse/.test(r.against)) bad.push(`${m.mode} ${key}: gated against '${r.against}', which is not an inverse surface`);
+      }
+    ok(bad.length === 0, `every gated inverse-context role is measured on an inverse surface — ${id}`
+      + (bad.length ? ` — FAIL: ${bad.slice(0, 4).join('; ')}` : ''));
+  }
+}
+
+// (10g) #573 — the inverse ring is a SEPARATE value from the page ring, in at least one mode. Both
+// derive from the action palette, so a mistake that pointed them at the same pick would still pass
+// (10f) in the standard modes (where the page ring happens to clear 3:1 on the inverse surface too)
+// and only fail in HC. This pins the reason the role exists: if the two are byte-identical in every
+// mode, the second token is dead weight and the bug is back.
+{
+  for (const { id, theme } of corpus()) {
+    const modes = resolveAllModes(theme);
+    const differs = modes.filter((m) => m.roles['border.focus']?.hex !== m.roles['border.focus-inverse']?.hex);
+    ok(differs.length > 0, `the inverse focus ring is its own value — ${id}`
+      + (differs.length ? ` (${differs.length}/${modes.length} modes)` : ' — FAIL: identical to border.focus in every mode'));
+  }
+}
+
 // (11) EMIT-FIGMA COLOUR (docs/10) — buildFigmaColor(nbTheme) must reproduce the frozen
 // #352 item 2 — the enumerated, deliberate divergences from the frozen real-NB export.
 //
@@ -3902,8 +3981,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // gate still fails on a spurious var inside a REAL family. (Fixture-character decision,
     // 2026-07-06; pairs with #67.)
     const ENGINE_ADDED_FAMILIES = ['color/interactive/', 'color/disabled/', 'color/field/'];
+    // Engine-added vars inside a REAL family, allow-listed by EXACT name rather than by prefix.
+    // `color/border/focus-inverse` (#573) is the accessibility fix for a ring NB never had: NB's
+    // export carries one `color/border/focus`, which measured 2.09:1 on hc-light's inverse surface.
+    // Deliberately not widened to a `color/border/` prefix — that would stop this gate noticing a
+    // spurious var anywhere in a family the fixture really does define, which is the one thing it is
+    // here to do. An exact name costs a line per addition and keeps the rest of the family pinned.
+    const ENGINE_ADDED_VARS = ['color/border/focus-inverse'];
     const missing = [...fixByName.keys()].filter((n) => !outByName.has(n));
-    const extra = [...outByName.keys()].filter((n) => !fixByName.has(n) && !ENGINE_ADDED_FAMILIES.some((p) => n.startsWith(p)));
+    const extra = [...outByName.keys()].filter((n) => !fixByName.has(n)
+      && !ENGINE_ADDED_FAMILIES.some((p) => n.startsWith(p)) && !ENGINE_ADDED_VARS.includes(n));
     ok(missing.length === 0 && extra.length === 0, `figma ${key}: variable names match fixture (${fix.variables.length})` + (missing.length ? ` — MISSING ${missing.slice(0, 3).join(',')}` : '') + (extra.length ? ` — EXTRA ${extra.slice(0, 3).join(',')}` : ''));
 
     const scopeBad: string[] = [], aliasBad: string[] = [], valBad: string[] = [];
