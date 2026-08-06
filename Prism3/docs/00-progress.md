@@ -11,7 +11,8 @@
 
 **STATUS: `test.ts` + `docs/32` only.** No engine behavior changes — item 6 is a verification gap, not a
 defect, and the emitter was correct. `out/*` byte-identical, regen in sync, contract 2.0.0 untouched.
-`test.ts` 1756 → **1764**.
+`test.ts` **+8 assertions** (1758 → **1766** as merged; the work was done at 1756 → 1764 and rebased
+onto #566, which had added two of its own — the delta is the durable figure, not the absolutes).
 
 ### What was unverified, and why it mattered
 
@@ -42,12 +43,13 @@ asserts *geometry* rather than type. A check resting on typography alone would h
 
 A green probe measures its own run; the next refactor cannot see it. Writing the expectation into
 `test.ts` surfaced what the live paste had not: **`trailing: true` appeared nowhere in `test.ts` without
-`leading: true` beside it**, across all 1,756 assertions. The three asserted cells pin (0,0), (1,0) and
+`leading: true` beside it**, across every assertion in the file. The three asserted cells pin (0,0), (1,0) and
 (1,1) and leave **(0,1) free** — exactly where *each side reads its own slot* and *either side pulls in
 when any slot is filled* diverge.
 
 Confirmed by mutation rather than by argument: `leadingFilled || trailingFilled` on the left inset passed
-**all 1,756** pre-existing assertions. The mirror cell catches it. Worth recording that the *first*
+**every pre-existing assertion** (1,756 when measured, 1,758 after the rebase onto #566 — the reviewer
+reproduced the silent pass at the later count). The mirror cell catches it. Worth recording that the *first*
 mutation tried — a plain side-swap — was already caught by the existing leading assertion, so the initial
 justification written into the comment was wrong and got corrected to name the real gap. A truth table
 with one free cell looks fully covered, because every row present agrees.
