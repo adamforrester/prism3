@@ -7,6 +7,83 @@
 
 ---
 
+## (2026-08-06) — the slot × size grid, probed live and then gated (#536 item 6)
+
+**STATUS: `test.ts` + `docs/32` only.** No engine behavior changes — item 6 is a verification gap, not a
+defect, and the emitter was correct. `out/*` byte-identical, regen in sync, contract 2.0.0 untouched.
+`test.ts` 1756 → **1764**.
+
+### What was unverified, and why it mattered
+
+Every live paste up to this point ran at one coordinate: `size=medium, leading=true, trailing=false`. So
+three shipped claims had never been observed on canvas — `size` as a real three-value Figma axis,
+`trailing=true` at all, and both slots filled at once. The issue's own framing is the reason it was next:
+*"the cheapest thing to get wrong… probe the smallest grid that exhibits it — 3 size × 4 slot combos = 12
+variants, one chunk. Do that before 756."*
+
+The grid pasted clean into "Prism Test File v2" (set `120:1039`, inside the "Prism3 Components" Section):
+12 members, all six axes derived (`intent:1 appearance:1 size:3 state:1 leading:2 trailing:2`), 3
+properties, 24 refs, set box 320×408 with no coincident positions and no footprint divergence, one chunk
+at **25,960 B — exactly the issue's estimate**, `misses: []` at every stage.
+
+The claim under test holds per side and per size, each side bound to its own named variable:
+
+| size | l=f t=f | l=t t=f | l=f t=t | l=t t=t |
+|---|---|---|---|---|
+| small | 16/16 | 12/16 | 16/12 | 12/12 |
+| large | 24/24 | 16/24 | 24/16 | 16/16 |
+
+`size` also differentiates beyond typography: heights 40/48/56, gaps 8/8/12, icon boxes 20/24/32 bound to
+`icon/size/sm|md|lg`. Two of the three sizes **share** a text style (`md.emphasis` at medium *and* large)
+— checked against the def first and confirmed intentional, not a collapse, which is why the offline gate
+asserts *geometry* rather than type. A check resting on typography alone would have read as a duplicate.
+
+### The hole the write-up found that the probe walked past
+
+A green probe measures its own run; the next refactor cannot see it. Writing the expectation into
+`test.ts` surfaced what the live paste had not: **`trailing: true` appeared nowhere in `test.ts` without
+`leading: true` beside it**, across all 1,756 assertions. The three asserted cells pin (0,0), (1,0) and
+(1,1) and leave **(0,1) free** — exactly where *each side reads its own slot* and *either side pulls in
+when any slot is filled* diverge.
+
+Confirmed by mutation rather than by argument: `leadingFilled || trailingFilled` on the left inset passed
+**all 1,756** pre-existing assertions. The mirror cell catches it. Worth recording that the *first*
+mutation tried — a plain side-swap — was already caught by the existing leading assertion, so the initial
+justification written into the comment was wrong and got corrected to name the real gap. A truth table
+with one free cell looks fully covered, because every row present agrees.
+
+Also closed: the binding cross-check iterated the same three combos, so the mirror case's variables were
+never confirmed to exist in the emitted Figma set either. Now four.
+
+### The trap for whoever pastes the next grid
+
+**The 30 s `figma_execute` ceiling is MCP transport, not Figma work.** The 25,960 B payload timed out
+twice at 30,000 ms, both times at member index 6 — while all 12 members build in **1,009 ms** measured
+(1,417 ms with a 20 KB literal alongside as a control; `combineAsVariants` 5 ms, property read 2 ms). ~1.4
+s of work in a call that could not finish in 30 s. Same ceiling item 7 met at 45 KB, from the other side:
+**the byte budget is not the only limit a payload must respect.** The fix was splitting *phases* across
+calls (build+combine → properties+refs → layout+read-back), changing nothing about what each phase did.
+
+Diagnosing it needed `figma.root.setPluginData` checkpoints — a timed-out call returns nothing at all, and
+reading back `{"stage":"build","i":6}` is what turned "it hangs" into a reproducible index. Cleanup after
+a timeout must also sweep **every node type the builder creates**: the first pass removed 7 components and
+a loose `container` FRAME and missed an orphaned `label` TEXT node created mid-`build()`.
+
+One API note: `figma.variables.getVariableById` throws under `documentAccess: dynamic-page` — use
+`getVariableByIdAsync`, and cache by id, since a 12-member read-back asks for the same few repeatedly.
+
+Full write-ups in `docs/32`.
+
+### Next
+
+Item 6 is closed. Remaining in #536: **item 3** (the focus ring as a dedicated part — needs a decision,
+since it *reverses* a documented def-tier decision and `appearance=outline` has already spent its
+container stroke) and **item 7 / #111** (the plugin component lane, where the measured 938 KB-as-JS vs
+807 KB-as-plan-data gap means a plugin lane needs no chunking at all — and, per the finding above, no
+30 s transport ceiling either, which is now a second reason to build it).
+
+---
+
 ## (2026-08-06) — The dial was honest; the specimen was under-reporting it (#561 follow-up)
 
 **STATUS: `web/src/main.ts`, `Prism3/engine/test.ts`.** The one item the previous entry left as an

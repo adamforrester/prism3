@@ -5346,6 +5346,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(JSON.stringify(padOf(plain)) === JSON.stringify([labelSide, labelSide]), 'anatomy: with no slots filled the button is symmetric — both sides take the label inset');
     ok(JSON.stringify(padOf(lead)) === JSON.stringify([visualSide, labelSide]), 'anatomy: a leading visual pulls in the LEADING inset only (Material 3 with-leading-icon-leading-space)');
     ok(JSON.stringify(padOf(both)) === JSON.stringify([visualSide, visualSide]), 'anatomy: visuals on both sides pull in both insets');
+    // The MIRROR case. The three cells above pin the left inset at (l=0,t=0), (l=1,t=0) and
+    // (l=1,t=1) and leave (l=0,t=1) — trailing-WITHOUT-leading — unconstrained, which is exactly
+    // where "each side reads ITS OWN slot" and "either side pulls in when ANY slot is filled"
+    // diverge. Confirmed by mutation, not by reasoning: changing the left inset to
+    // `leadingFilled || trailingFilled` passed all 1,756 assertions that existed before this line.
+    // The #536 item 6 probe is what surfaced it — `trailing: true` appeared nowhere in this file
+    // without `leading: true` beside it. (A plain side-SWAP was already caught, by the cell above.)
+    const trail = figmaAnatomyPlan(button, 'medium', { trailing: true });
+    ok(JSON.stringify(padOf(trail)) === JSON.stringify([labelSide, visualSide]), 'anatomy: a trailing visual pulls in the TRAILING inset only — the fourth cell, where per-side and either-side diverge');
+    ok(padOf(trail)[0] === labelSide, 'anatomy: a trailing visual leaves the LEADING inset alone — each side reads its own slot, not whether any slot is filled');
 
     // Optional slots materialize only when filled — otherwise every button would carry two empty
     // instance-swap nodes, which is the failure mode of projecting the schema rather than an instance.
@@ -5382,7 +5392,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(emitted.size > 0 && emittedStyles.size > 0, `anatomy: read the emitted Figma names (${emitted.size} variables, ${emittedStyles.size} styles)`);
     ok(emittedEffects.size > 0, `anatomy: read the emitted Figma EFFECT styles (${emittedEffects.size}) — a third namespace, kept apart from variables and text styles`);
     const bindErrs = button.variants.size.flatMap((s) =>
-      [[false, false], [true, false], [true, true]].map(([l, t]) => planBindingErrors(figmaAnatomyPlan(button, s, { leading: l, trailing: t }), emitted, emittedStyles, emittedEffects)).flat());
+      // All FOUR slot combos, not three — the same mirror-case omission as the padding block above.
+      [[false, false], [true, false], [false, true], [true, true]].map(([l, t]) => planBindingErrors(figmaAnatomyPlan(button, s, { leading: l, trailing: t }), emitted, emittedStyles, emittedEffects)).flat());
     ok(bindErrs.length === 0, `anatomy: every bound variable + text style exists in the emitted Figma set${bindErrs.length ? ` — MISSING: ${[...new Set(bindErrs)].slice(0, 4).join(', ')}` : ''}`);
 
     // ---- the effect-style namespace (#487 step 2) ----------------------------------------------
@@ -7188,6 +7199,59 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     spinner: { ...button.anatomy!.parts.spinner, when: 'nope' } } } } as ComponentDef;
   ok(validateComponentDef(badWhen).errors.some((x) => /is not one of states/.test(x)),
     '#536 gate: an overlay whose `when` is not a declared state fails validation');
+}
+
+// ---- #536 item 6: the slot x size grid, gated offline after the live probe ----------------------
+// Item 6 was a VERIFICATION gap, not a defect: every live paste before it ran at
+// `size=medium, leading=true, trailing=false`, so three claims had shipped unobserved — `size` as a
+// real three-value Figma axis, `trailing=true` at all, and both slots at once. The 12-variant probe
+// pasted clean (12 members, 6 axes, 3 properties, 24 refs, `misses: []`), and the padding held
+// per-side and per-size on canvas. What follows is that expectation written down, because a live
+// probe verifies the run it was part of and nothing after it.
+{
+  const combos: [boolean, boolean][] = [[false, false], [true, false], [false, true], [true, true]];
+  const grid = button.variants.size.flatMap((sz) => combos.map(([l, t]) =>
+    figmaAnatomyPlan(button, sz, { leading: l, trailing: t, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })));
+  ok(grid.length === 12, `#536 item 6: the probe grid is 3 sizes x 4 slot combos (${grid.length})`);
+
+  // ONE chunk. The probe's whole premise was that this is the cheapest grid that exhibits the
+  // behavior — if it ever needed splitting, the "probe small before 756" advice would be wrong.
+  const chunks = planSetChunks(grid);
+  ok(chunks.length === 1, `#536 item 6: the probe grid is a single payload (${chunks.length} chunk(s), ${chunks[0].bytes} B)`);
+
+  // The padding matrix, per size and per side — the claim the probe existed to test. Asserted as the
+  // full 12-cell table rather than a spot check: the rule is two independent per-side decisions, so
+  // the interesting failures are the ones where a side is right at one size and wrong at another.
+  const wrong: string[] = [];
+  for (const sz of button.variants.size) {
+    const labelSide = figmaVarName(button.tokens[`size.${sz}.padding-x`]);
+    const visualSide = figmaVarName(button.tokens[`size.${sz}.padding-x-visual`]);
+    for (const [l, t] of combos) {
+      const { bound } = figmaAnatomyPlan(button, sz, { leading: l, trailing: t, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' }).root;
+      const want = [l ? visualSide : labelSide, t ? visualSide : labelSide];
+      if (bound.paddingLeft !== want[0] || bound.paddingRight !== want[1])
+        wrong.push(`${sz} l=${l} t=${t}: ${bound.paddingLeft}/${bound.paddingRight} want ${want[0]}/${want[1]}`);
+    }
+  }
+  ok(wrong.length === 0, `#536 item 6: each side takes its own slot's inset at every size — 12 cells${wrong.length ? ` — WRONG: ${wrong.slice(0, 3).join('; ')}` : ' (verified live on canvas: sm 16/16 12/16 16/12 12/12, lg 24/24 16/24 24/16 16/16)'}`);
+
+  // Twelve DISTINCT coordinates, and the axis values Figma will derive from them. A name collision
+  // here is what makes `combineAsVariants` silently drop a member, which the live read-back counts
+  // as a footprint divergence — cheaper to catch as a string.
+  const names = grid.map(planComponentName);
+  ok(new Set(names).size === 12, `#536 item 6: all 12 member names are distinct (${new Set(names).size})`);
+  const axisVals = (k: string) => new Set(names.map((n) => n.split(', ').find((p) => p.startsWith(`${k}=`))));
+  ok(axisVals('size').size === 3 && axisVals('leading').size === 2 && axisVals('trailing').size === 2,
+    `#536 item 6: the grid spans size:3 x leading:2 x trailing:2 (live: size was the first three-value axis pasted)`);
+
+  // `size` must differentiate BEYOND the label. Two of the three sizes share a text style
+  // (`md.emphasis` at medium and large) — which is the def's intent, not a collapse — so a check
+  // resting on typography alone would read as a duplicate pair. Geometry is what separates them.
+  const geom = button.variants.size.map((sz) => {
+    const { bound } = figmaAnatomyPlan(button, sz, { leading: true, trailing: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' }).root;
+    return `${bound.height}|${bound.itemSpacing}`;
+  });
+  ok(new Set(geom).size === 3, `#536 item 6: every size is geometrically distinct (${geom.join(' ')}) — live heights 40/48/56, gaps 8/8/12`);
 }
 
 // ------------------------------------------------------------------- report
