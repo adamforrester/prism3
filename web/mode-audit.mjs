@@ -104,6 +104,19 @@ const snap = () => page.evaluate(() => {
       // The axis the badge's third state turns on, measured the same way main.ts decides it: value
       // editors only, buttons excluded (they play a motion preview, they do not set anything).
       hasControls: s.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') !== null,
+      // #562 — is the badge INSIDE the section's own padding box? Four Interactive sections shipped with
+      // it flush against the border because they built no `.psec-head`, so `attachModeBadges` fell back
+      // to `position:absolute;top:0;right:0`. Every gate the badges had checked whether a badge exists
+      // and what it says; none checked where it is, and the eye is what eventually caught it. Measured
+      // against the resolved padding rather than a literal 20/24 so a padding change does not need this
+      // number changed too.
+      inset: badge ? (() => {
+        const b = badge.getBoundingClientRect(), r = s.getBoundingClientRect(), cs = getComputedStyle(s);
+        const pt = parseFloat(cs.paddingTop) + parseFloat(cs.borderTopWidth);
+        const pr = parseFloat(cs.paddingRight) + parseFloat(cs.borderRightWidth);
+        // Rounded to whole px: sub-pixel layout noise is not a finding, a badge outside the padding is.
+        return { top: Math.round(b.top - r.top - pt), right: Math.round(r.right - b.right - pr) };
+      })() : null,
     };
   });
 });
@@ -138,7 +151,7 @@ for (const stage of stages) {
                   // A section that does not vary per mode but HAS a control edits one value every
                   // mode uses -- that is 'all-modes', not the same offer as an untouchable specimen.
                   expected: v.trim() === 'EDITS' ? 'per-mode' : s.hasControls ? 'all-modes' : 'none',
-                  badge: s.badge });
+                  badge: s.badge, inset: s.inset });
     console.log(`   ${v}  ${s.name}${s.badge ? '' : '   (no badge)'}`);
   }
 }
@@ -152,13 +165,19 @@ console.log(`Totals across bar pages: ${JSON.stringify(tally)}\n`);
 // shows up as a mismatch. Exits non-zero so it can gate.
 if (process.argv.includes('--check-badges')) {
   const bad = claims.filter((c) => c.badge !== c.expected);
+  // A badge that sits outside its section's padding box is a placement bug, checked in the same pass
+  // (#562). `>= 0` on both axes: the badge may sit lower than the padding edge (a taller title pushes
+  // the flex row's cross-axis) but must never be above or right of it.
+  const flush = claims.filter((c) => c.inset && (c.inset.top < 0 || c.inset.right < 0));
   console.log(`--check-badges — ${claims.length} badged/expected sections compared`);
   for (const c of bad) {
     console.log(`   ${c.page} / ${c.name}`);
     console.log(`      measured ${c.verdict} -> expected badge '${c.expected}', page renders ${c.badge === null ? 'NO BADGE (missing map entry?)' : `'${c.badge}'`}`);
   }
-  if (bad.length) { console.log(`\n${bad.length} mismatch(es).\n`); process.exit(1); }
-  console.log('   ✓ every badge matches what the page actually does\n');
+  for (const c of flush)
+    console.log(`   ${c.page} / ${c.name}\n      badge escapes the section padding box: top ${c.inset.top}px, right ${c.inset.right}px (both must be >= 0)`);
+  if (bad.length || flush.length) { console.log(`\n${bad.length + flush.length} mismatch(es).\n`); process.exit(1); }
+  console.log(`   ✓ every badge matches what the page actually does, and all ${claims.filter((c) => c.inset).length} sit inside their section padding\n`);
 }
 await browser.close();
 server.close();

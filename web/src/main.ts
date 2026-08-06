@@ -1843,11 +1843,20 @@ const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
 const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
   const aex = el('div', 'aex'); aex.append(inner); if (badge) aex.append(badge); return aex;
 };
-/** Two labelled specimens side by side in the example column (rest→hover, enabled→disabled, match→distinct). */
-const twoUp = (a: [string, HTMLElement], b: [string, HTMLElement]): HTMLElement => {
-  const aex = el('div', 'aex aex-two');
-  for (const [label, node] of [a, b]) { const s = el('div', 'aex-spec'); s.append(el('span', 'pfk', label), node); aex.append(s); }
-  return aex;
+/** Two labelled specimens side by side in the example column (rest→hover, enabled→disabled, match→distinct),
+ *  with an optional contrast receipt beneath them.
+ *
+ *  The pair is an `.aex-two` ROW nested in the `.aex` column — not one element carrying both classes, as
+ *  it was before it could take a badge. `.aex` is the column that stacks a specimen over its receipt
+ *  (`iExample` relies on exactly that), so a two-up that also wants a receipt needs the row and the
+ *  column to be two boxes. Nesting unconditionally, rather than only when a badge is passed, keeps one
+ *  layout to reason about — and retires an entry from `lint:classes`'s allowlist instead of moving it
+ *  somewhere the scanner can't see. */
+const twoUp = (a: [string, HTMLElement], b: [string, HTMLElement], badge?: HTMLElement): HTMLElement => {
+  const row = el('div', 'aex-two');
+  for (const [label, node] of [a, b]) { const s = el('div', 'aex-spec'); s.append(el('span', 'pfk', label), node); row.append(s); }
+  const wrap = el('div', 'aex'); wrap.append(row); if (badge) wrap.append(badge);
+  return wrap;
 };
 const iBadge = (r: RoleRes | undefined): HTMLElement | undefined =>
   r && r.ratio != null && r.min != null && r.min > 0 ? contrastBadge(r.ratio, r.min) : undefined;
@@ -2079,7 +2088,6 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   host.append(cap);
   const roles = iRoles();
 
-  const oh = el('div', 'psec');
   // The second sentence is method-specific: the Overlay wash row only tunes the translucent method.
   // Under solid-tint the fill comes from the control's own palette automatically, so pointing at a
   // control that does nothing there would be the same species of wrong answer as the empty swatch.
@@ -2088,7 +2096,13 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
     : theme.outlineInteraction === 'none'
       ? 'How every outline & text action reacts on hover. No hover fill — the border and ink carry the state on their own.'
       : 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.';
-  oh.append(el('p', 'psec-t', 'Outline button hover'), el('p', 'psec-d', ohBlurb));
+  // `palSection`, not a bare `.psec` + two `<p>`s (#562). These four sections used to append the title
+  // straight to the section, so they had no `.psec-head` — which sent `attachModeBadges` down its
+  // absolute-position FALLBACK and pinned the badge to `top:0;right:0`, flush against the border while
+  // the section's own padding is 20/24. Measured 1/1 here against 21/25 on every section that did use
+  // the helper. Fixed by taking the same path as the rest rather than by giving the fallback insets:
+  // the head path is a flex row that also reflows to a column under 720px, which these never got.
+  const oh = palSection('Outline button hover', ohBlurb);
   const ohEdge = roles['interactive.primary.text.rest']?.hex ?? '#000000';
   // Each method reads its OWN role, which is the whole point of #288: `overlay-neutral` emits a
   // translucent `interactive.<name>.overlay.hover`, `solid-tint` an opaque
@@ -2105,32 +2119,55 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
     example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
   host.append(oh);
 
-  const ds = el('div', 'psec'); ds.append(el('p', 'psec-t', 'Disabled'), el('p', 'psec-d', 'How much contrast disabled controls keep. Never below 3:1 either way — this system doesn’t use the WCAG exemption for inactive controls.'));
-  const eBg = roles['interactive.primary.fill.rest']?.hex ?? '#5e4bc3', eFg = roles['interactive.primary.on-fill']?.hex ?? '#ffffff';
-  // Read the RESOLVED disabled roles (not the invariant tertiary surface) so the example tracks the
-  // strategy + floor controls live — Full and Reduced land on different steps.
-  const dBg = roles['disabled.fill']?.hex ?? '#e7e7ee', dFg = roles['disabled.on-fill']?.hex ?? '#9a9aa6';
+  // "the label" is the correction, not decoration (#561): the section promised "how much contrast
+  // disabled controls keep", but `disabled.fill` is a fixed neutral rung nothing here can move — only
+  // the ink is contrast-gated. Reading the old copy and watching the fill never budge is what made a
+  // working section look broken.
+  const ds = palSection('Disabled', 'How much contrast the disabled label keeps. Never below 3:1 either way — this system doesn’t use the WCAG exemption for inactive controls. The fill is a fixed step of your neutral ramp, so it moves with the neutral, not with these controls.');
   const dFull = normalizeDisabledStrategy(getPath(brandState, 'disabledStrategy') as string | undefined) === 'full';
+  // Re-resolved on each call, not closed over `roles`, so the same builder serves the first render and
+  // every mid-drag repaint below. It carries the CONTRAST RECEIPT (#561): this was the one two-up
+  // specimen whose entire subject is a ratio, and it was the only place on the page showing no ratio —
+  // every slot row has had a `.cbadge` all along. The receipt is also what makes the floor legible at
+  // all: `disabled.fill` is a fixed neutral rung no control here can move, and the ink only re-picks a
+  // rung when the floor crosses one, so three of the four dial stops changed the swatch imperceptibly
+  // or not at all. The number moves whether or not the step does.
+  const dsExample = (): HTMLElement => {
+    const r = iRoles();
+    return twoUp(
+      ['Enabled', exBtn(r['interactive.primary.fill.rest']?.hex ?? '#5e4bc3', r['interactive.primary.on-fill']?.hex ?? '#ffffff', false, 'Save')],
+      ['Disabled', exBtn(r['disabled.fill']?.hex ?? '#e7e7ee', r['disabled.on-fill']?.hex ?? '#9a9aa6', false, 'Save')],
+      iBadge(r['disabled.on-fill']));
+  };
+  let dsEx = dsExample();
   ds.append(iRow({ lead: true, srcLabel: 'Contrast', select: iEnumSelect('disabledStrategy'),
     desc: 'Full guarantees AA text (4.5:1); Reduced dims to a floor you set, no lower than 3:1.',
     // The affordance caveat, surfaced where the choice is made rather than left to be discovered:
     // at 4.5:1 the label is as legible as body copy, so "disabled" reads from fill/border/cursor.
     warn: dFull ? 'At 4.5:1 the label is as legible as body text — check a disabled control still reads as disabled (the cue now rests on fill, border, cursor and aria-disabled).' : undefined,
-    example: twoUp(['Enabled', exBtn(eBg, eFg, false, 'Save')], ['Disabled', exBtn(dBg, dFg, false, 'Save')]) }));
+    example: dsEx }));
   // The floor dial belongs to Reduced — Full is a fixed promise with nothing to tune. (Inverted from
   // the original, where the dial sat on the compliant branch and could be pulled below AA.)
   if (!dFull) {
     const min = leverByKey('disabledMin');
     if (min) {
       const c = renderControl(min);
-      // The example above lives in this non-volatile section (not the .stage-vol region), so the
-      // generic slider oninput's apply() (volatile-only) wouldn't refresh it. Commit on RELEASE with
-      // applyFull (a select-like re-render) so the disabled specimen tracks the floor — using onchange,
-      // not oninput, because applyFull rebuilds the workspace and would destroy the slider mid-drag.
+      // The example lives in this non-volatile section (not the .stage-vol region), so the generic
+      // slider oninput's apply() (volatile-only) can't refresh it, and applyFull() on oninput would
+      // rebuild the workspace and destroy the slider mid-drag. Both still hold — so the drag re-resolves
+      // the theme (`rebuild`, DOM-free) and swaps just THIS specimen node, which is the one thing on
+      // screen the floor moves. Release still commits through applyFull so the rest of the page (the
+      // mode strip's per-mode contrast marks, every other palette) catches up in one pass; refreshing
+      // those mid-drag would risk syncErrorBar reflowing the sticky chrome under the cursor.
       const slider = c.querySelector('input[type="range"]') as HTMLInputElement | null;
       const label = c.querySelector('.knob-val') as HTMLElement | null;
       if (slider) {
-        slider.oninput = () => { if (label) label.textContent = `${slider.value}${min.unit ?? ''}`; };
+        slider.oninput = () => {
+          if (label) label.textContent = `${slider.value}${min.unit ?? ''}`;
+          setPath(brandState, min.key, Number(slider.value));
+          rebuild();
+          const next = dsExample(); dsEx.replaceWith(next); dsEx = next;
+        };
         slider.onchange = () => { setPath(brandState, min.key, Number(slider.value)); applyFull(); };
       }
       ds.append(c);
@@ -2138,7 +2175,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   }
   host.append(ds);
 
-  const ic = el('div', 'psec'); ic.append(el('p', 'psec-t', 'Icon colors'), el('p', 'psec-d', 'Should icons match your text color, or take a distinct (lighter) color? The example shows both.'));
+  const ic = palSection('Icon colors', 'Should icons match your text color, or take a distinct (lighter) color? The example shows both.');
   const txt = roles['text.primary']?.hex ?? '#191920', lighter = roles['text.tertiary']?.hex ?? '#9a9aa6';
   ic.append(iRow({ lead: true, label: 'Icon color', srcLabel: 'Icon color', select: iEnumSelect('iconContrast'),
     desc: 'Match text keeps icons at full text legibility; Distinct lets them sit lighter (WCAG non-text 3:1).',
@@ -2150,8 +2187,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   // on this page's contract table) is the one part of it that WAS visible. These are the geometry.
   // Fixed constants in the engine, so read-only — shown with a live specimen because a 2px ring at 2px
   // offset is a thing you judge by looking, not by reading two numbers.
-  const fr = el('div', 'psec');
-  fr.append(el('p', 'psec-t', 'Focus ring'), el('p', 'psec-d', 'The ring geometry every focusable control shares — width, how far it sits off the element, and its stroke style. Fixed for every brand (WCAG 2.4.13 sets the floor); its color is the color.border.focus role above.'));
+  const fr = palSection('Focus ring', 'The ring geometry every focusable control shares — width, how far it sits off the element, and its stroke style. Fixed for every brand (WCAG 2.4.13 sets the floor); its color is the color.border.focus role above.');
   const frRows: Array<[string, string, string]> = [
     ['focus.ring.width', '2px', 'WCAG 2.4.13 floor'],
     ['focus.ring.offset', '2px', 'separates the ring from the element edge'],
@@ -6019,9 +6055,22 @@ const attachModeBadges = (root: HTMLElement): void => {
     // editable. Measured across all six bar pages — every section with a real control has at least
     // one input/select, and every section without one has zero of anything.
     const hasControls = sec.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') !== null;
-    const head = sec.querySelector('.psec-head') ?? sec.querySelector('.psec-h');
-    if (head) head.append(modeScopeBadge(scope, hasControls));
-    else { sec.classList.add('psec-badged'); sec.append(modeScopeBadge(scope, hasControls)); }
+    // ONE path, not two (#562). A section with no head gets one BUILT here — its title + description
+    // moved into a `.psec-txt`, exactly the shape `palSection` produces — rather than the badge being
+    // absolutely positioned against the section box. That old fallback (`top:0;right:0`) is what put
+    // the badge flush against the border on four Interactive sections: outside the section's own 20/24
+    // padding, and with none of the flex head's under-720px column reflow. Those four now call
+    // `palSection` like the rest, so this branch is unreached today. It is kept, and made correct,
+    // because the value of a post-render pass is that a NEW section builder cannot forget it — and
+    // "cannot forget" buys nothing if what it falls back to is misplaced.
+    let head = sec.querySelector('.psec-head') ?? sec.querySelector('.psec-h');
+    if (!head) {
+      const built = el('div', 'psec-head'), txt = el('div', 'psec-txt');
+      for (const n of [...sec.children] as HTMLElement[])
+        if (n.classList.contains('psec-t') || n.classList.contains('psec-d')) txt.append(n);
+      built.append(txt); sec.prepend(built); head = built;
+    }
+    head.append(modeScopeBadge(scope, hasControls));
   }
 };
 
@@ -6830,8 +6879,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .psec-t{margin:0;font-size:13px;font-weight:680;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)}
 /* Label + scope: the label is small, letterspaced and muted; the scope is heavier and darker, so the
    eye lands on the part that actually changes. Achromatic by design — see modeScopeBadge. */
-.psec-badged{position:relative}
-.psec-badged>.msb{position:absolute;top:0;right:0}
 .msb{display:inline-flex;align-items:baseline;gap:6px;flex:none;border-radius:99px;padding:4px 11px;
      border:1px dashed var(--line2);background:transparent;white-space:nowrap}
 .msb.on{border-style:solid;border-color:transparent;background:var(--paper)}
@@ -7382,7 +7429,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .adesc{font-size:11.5px;color:var(--faint);line-height:1.45;max-width:340px}
 .aex{width:300px;justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:8px}
 .aex .cbadge{align-self:flex-end}
-.aex-two{flex-direction:row;gap:14px}
+/* Its own display:flex, no longer inherited from .aex: the two-up row is now nested INSIDE the .aex
+   column rather than sharing an element with it, so the column can stack a contrast receipt beneath. */
+.aex-two{display:flex;flex-direction:row;gap:14px}
 .aex-spec{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;align-items:center}
 .exbox{width:100%;min-height:72px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:14px 16px;overflow:hidden}
 .exbox.dark{background:#0d0d10;border-color:transparent}
@@ -7408,7 +7457,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .astate-sw{width:30px;height:30px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 .astate-n{font-size:12.5px;font-weight:600;color:var(--ink)}
 .astate .select{width:100%;font-size:12px;padding:6px 9px;padding-right:26px}
-@media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.aex-two{grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
+/* .aex-two had its own grid-column:1/-1 here; it is now nested inside .aex, which carries the span,
+   so the nested copy applied to a non-grid child and did nothing. */
+@media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
 /* The identity track is 256px, not 168px, because the token PATH has to be readable. At 168px three of
    the page's thirteen paths elided — and #289's rtl elision keeps the tail, so

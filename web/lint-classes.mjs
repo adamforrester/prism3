@@ -52,7 +52,6 @@ const ALLOWED = new Set([
   'mtbl-spec-t tf-prev',       // typeface preview inside a mode-table specimen cell
   'mtbl-spec-t tpw-samp',      // type-pairing sample, same cell
   'pvseg tok-seg',             // #466 — tok-seg is the L3 (nested) modifier of the view segment
-  'aex aex-two',               // two-up alias-example layout
   'sf-ex sf-ex-fill', 'sf-ex sf-ex-surface', 'sf-ex sf-ex-text',
   'sg-card sg-bcard', 'sg-card sg-icard', 'sg-card sg-mid', 'sg-card sg-scrimcard',
   'sg-tc sg-t sg-tcrow',
