@@ -7760,13 +7760,13 @@
         },
         "brand": {
           "$type": "color",
-          "$value": "{prism.palette.primary.500}",
-          "$description": "brand text — 4.5:1 on the floor",
+          "$value": "{prism.palette.primary.550}",
+          "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.primary.500",
-              "contrast": 4.85,
+              "aliasOf": "prism.palette.primary.550",
+              "contrast": 5.73,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7777,8 +7777,8 @@
                   "min": 4.5
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.primary.650}",
-                  "contrast": 8.05,
+                  "$value": "{prism.palette.primary.700}",
+                  "contrast": 9.41,
                   "against": "neutral.050",
                   "min": 7
                 },
@@ -7804,13 +7804,13 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{prism.palette.success.550}",
-          "$description": "success text — 4.5:1 on the floor",
+          "$value": "{prism.palette.success.600}",
+          "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.success.550",
-              "contrast": 4.54,
+              "aliasOf": "prism.palette.success.600",
+              "contrast": 5.53,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7848,13 +7848,13 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{prism.palette.warning.550}",
-          "$description": "warning text — 4.5:1 on the floor",
+          "$value": "{prism.palette.warning.600}",
+          "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.warning.550",
-              "contrast": 4.6,
+              "aliasOf": "prism.palette.warning.600",
+              "contrast": 5.58,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7892,13 +7892,13 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{prism.palette.danger.550}",
-          "$description": "danger text — 4.5:1 on the floor",
+          "$value": "{prism.palette.danger.600}",
+          "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.danger.550",
-              "contrast": 4.57,
+              "aliasOf": "prism.palette.danger.600",
+              "contrast": 5.57,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -7936,13 +7936,13 @@
         },
         "info": {
           "$type": "color",
-          "$value": "{prism.palette.info.550}",
-          "$description": "info text — 4.5:1 on the floor",
+          "$value": "{prism.palette.info.600}",
+          "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.info.550",
-              "contrast": 4.56,
+              "aliasOf": "prism.palette.info.600",
+              "contrast": 5.52,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -8756,13 +8756,13 @@
         },
         "brand": {
           "$type": "color",
-          "$value": "{prism.palette.primary.500}",
-          "$description": "brand icon — 4.5:1 on the floor",
+          "$value": "{prism.palette.primary.550}",
+          "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.primary.500",
-              "contrast": 4.85,
+              "aliasOf": "prism.palette.primary.550",
+              "contrast": 5.73,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -8773,8 +8773,8 @@
                   "min": 4.5
                 },
                 "hc-light": {
-                  "$value": "{prism.palette.primary.650}",
-                  "contrast": 8.05,
+                  "$value": "{prism.palette.primary.700}",
+                  "contrast": 9.41,
                   "against": "neutral.050",
                   "min": 7
                 },
@@ -8800,13 +8800,13 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{prism.palette.success.550}",
-          "$description": "success icon — 4.5:1 on the floor",
+          "$value": "{prism.palette.success.600}",
+          "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.success.550",
-              "contrast": 4.54,
+              "aliasOf": "prism.palette.success.600",
+              "contrast": 5.53,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -8844,13 +8844,13 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{prism.palette.warning.550}",
-          "$description": "warning icon — 4.5:1 on the floor",
+          "$value": "{prism.palette.warning.600}",
+          "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.warning.550",
-              "contrast": 4.6,
+              "aliasOf": "prism.palette.warning.600",
+              "contrast": 5.58,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -8888,13 +8888,13 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{prism.palette.danger.550}",
-          "$description": "danger icon — 4.5:1 on the floor",
+          "$value": "{prism.palette.danger.600}",
+          "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.danger.550",
-              "contrast": 4.57,
+              "aliasOf": "prism.palette.danger.600",
+              "contrast": 5.57,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -8932,13 +8932,13 @@
         },
         "info": {
           "$type": "color",
-          "$value": "{prism.palette.info.550}",
-          "$description": "info icon — 4.5:1 on the floor",
+          "$value": "{prism.palette.info.600}",
+          "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.palette.info.550",
-              "contrast": 4.56,
+              "aliasOf": "prism.palette.info.600",
+              "contrast": 5.52,
               "against": "neutral.050",
               "min": 4.5,
               "modes": {
@@ -15450,7 +15450,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -1862,16 +1862,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "brand text — 4.5:1 on the floor",
+      "description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/red/550"
+        "name": "palette/red/600"
       }
     },
     {
@@ -1880,16 +1880,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "success text — 4.5:1 on the floor",
+      "description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.019607843831181526,
-        "g": 0.45490196347236633,
-        "b": 0.22745098173618317,
+        "r": 0,
+        "g": 0.40392157435417175,
+        "b": 0.19607843458652496,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/green/550"
+        "name": "palette/green/600"
       }
     },
     {
@@ -1898,7 +1898,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "warning text — 4.5:1 on the floor",
+      "description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.5529412031173706,
         "g": 0.2980392277240753,
@@ -1916,16 +1916,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "danger text — 4.5:1 on the floor",
+      "description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/red/550"
+        "name": "palette/red/600"
       }
     },
     {
@@ -1934,16 +1934,16 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "info text — 4.5:1 on the floor",
+      "description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.1568627506494522,
-        "g": 0.4274509847164154,
-        "b": 0.6313725709915161,
+        "r": 0.12156862765550613,
+        "g": 0.3764705955982208,
+        "b": 0.5647059082984924,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/550"
+        "name": "palette/info/600"
       }
     },
     {
@@ -2284,16 +2284,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 4.5:1 on the floor",
+      "description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/red/550"
+        "name": "palette/red/600"
       }
     },
     {
@@ -2304,16 +2304,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success icon — 4.5:1 on the floor",
+      "description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.019607843831181526,
-        "g": 0.45490196347236633,
-        "b": 0.22745098173618317,
+        "r": 0,
+        "g": 0.40392157435417175,
+        "b": 0.19607843458652496,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/green/550"
+        "name": "palette/green/600"
       }
     },
     {
@@ -2324,7 +2324,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 4.5:1 on the floor",
+      "description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.5529412031173706,
         "g": 0.2980392277240753,
@@ -2344,16 +2344,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 4.5:1 on the floor",
+      "description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0.7215686440467834,
+        "g": 0,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/red/550"
+        "name": "palette/red/600"
       }
     },
     {
@@ -2364,16 +2364,16 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 4.5:1 on the floor",
+      "description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.1568627506494522,
-        "g": 0.4274509847164154,
-        "b": 0.6313725709915161,
+        "r": 0.12156862765550613,
+        "g": 0.3764705955982208,
+        "b": 0.5647059082984924,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/550"
+        "name": "palette/info/600"
       }
     },
     {

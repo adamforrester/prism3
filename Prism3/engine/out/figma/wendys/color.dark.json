@@ -1862,7 +1862,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "brand text — 4.5:1 on the floor",
+      "description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.8313725590705872,
         "g": 0.3450980484485626,
@@ -1880,7 +1880,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "success text — 4.5:1 on the floor",
+      "description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -1898,7 +1898,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "warning text — 4.5:1 on the floor",
+      "description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -1916,7 +1916,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "danger text — 4.5:1 on the floor",
+      "description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -1934,7 +1934,7 @@
       "scopes": [
         "TEXT_FILL"
       ],
-      "description": "info text — 4.5:1 on the floor",
+      "description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -2284,7 +2284,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 4.5:1 on the floor",
+      "description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.8313725590705872,
         "g": 0.3450980484485626,
@@ -2304,7 +2304,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success icon — 4.5:1 on the floor",
+      "description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -2324,7 +2324,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 4.5:1 on the floor",
+      "description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -2344,7 +2344,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 4.5:1 on the floor",
+      "description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -2364,7 +2364,7 @@
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 4.5:1 on the floor",
+      "description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,

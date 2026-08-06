@@ -21,8 +21,14 @@
  * every brand tweak or stay silent through a rename; separating them lets each be strict.
  */
 
-/** The code. Bumps on any behaviour change — including one that only moves values. */
-export const ENGINE_VERSION = '0.3.0';
+/**
+ * The code. Bumps on any behaviour change — including one that only moves values.
+ *
+ * 0.3.1: semantic ink (`text|icon.<sem>`) now gates against its own `-subtle` tint as well as the page
+ * floor, so it resolves a rung darker on white-page brands. Values only — no name moved, so
+ * CONTRACT_VERSION stands. Exactly the case this split exists for.
+ */
+export const ENGINE_VERSION = '0.3.1';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
