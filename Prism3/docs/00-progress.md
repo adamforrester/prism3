@@ -283,6 +283,70 @@ only, and it wants its own issue rather than being folded into this PR.
 
 ---
 
+## (2026-08-06) — the state walk trusted the ramp to be monotonic in contrast (#557)
+
+**STATUS: `modes.ts` + `test.ts`. Zero artifact drift — all 88 committed artifacts byte-match.** Tests
+1790 → 1793 (+3). Closes #557.
+
+`walk()` steps an interactive state away from `rest` along the palette, on the premise that a step *away*
+is a step toward *more* contrast — so a walked state inherits `rest`'s verified floor for free. On a
+high-chroma ramp that premise is false, and nothing re-verified it.
+
+**Why the ramp misleads.** Exact-anchor preservation (`ramp.ts` invariant #2) writes the pinned brand step
+at *full* chroma while its generated neighbors take the ramp curve's lower chroma. At hues where chroma
+*raises* relative luminance (green/cyan/orange), the anchor's WCAG Y lands **above** its nominally-lighter
+neighbor's. `{ l: .55, c: .30, h: 180 }` steps light-mode `hover` off a gated **3.183:1** onto
+**2.771:1** — under the floor `rest` was placed to clear, with every gate green.
+
+**The near-miss that explains why no existing gate caught it.** `ramp.ts` *already* has a monotonicity
+guard — M-02 — and it **passes** on this brand, correctly. M-02 checks OKLCH `l`, because lightness order
+is what the *pickers* need. The walk needs *luminance* order. Two different orderings, one of them checked.
+A guard whose name sounds like it covers the invariant you care about is worth reading, not assuming.
+
+**Fix shape: count QUALIFYING steps, don't repair a failed landing.** The guard makes each counted step one
+that actually clears the state's own floor, so `hover` takes the 1st clearing step and `pressed` the 2nd.
+The tempting repair — keep walking until the floor clears — lands `hover` exactly on `pressed`'s step,
+buying the floor by collapsing the distinctness L-01 exists to defend (mutation B reproduces this:
+rest/hover/pressed = 450/**550**/**550**). Counting keeps floor *and* distinctness by construction.
+
+**The trap that would have drifted the corpus.** My first cut scanned by ramp *index*. It reads as
+equivalent to the shipped `fromNum ± 50·k` arithmetic and is not: the ramp's 25↔50 gap is 25, not 50, so an
+index scan diverges in **2 of 80** from × steps × direction combos, both near step 25 — a corpus change for
+reasons unrelated to this bug. Proven by exhaustive comparison of both formulas before touching the engine,
+then re-proven for the final shape (**0 divergent across 144 combos**, off-grid inputs included). Keeping
+the *same arithmetic* is why a monotonic ramp is byte-identical: the nth qualifying step *is* the nth step.
+
+**The #331 interaction, found by a failing test rather than by reasoning.** Guarding unconditionally broke
+`#331: hover/pressed walk forward from the RAW pinned step`. The walk's promise is that a state *inherits*
+`rest`'s floor — where `rest` never had it, there is nothing to inherit, and guarding invents a contract
+`rest` itself is exempt from. That case is deliberate: #331's apply-but-warn applies an authored anchor pin
+verbatim and *reports* the miss so the author sees their own pick. Guarding those states would relocate
+hover/pressed to wherever the floor happens to be met, burying the pin in the very states meant to reveal
+it — re-introducing the substitution #331 deleted, one level down. Hence `guardFrom`: guard only when the
+origin actually cleared. `min: 0` roles degenerate to unguarded for free.
+
+**Two things beyond what the issue stated.** (1) `focused` fails alongside `hover` — both walk +1 — so it
+was **two** roles per palette per mode, not one. (2) The fix belongs in `walk` itself, not per-caller: one
+function with 8 call sites, so a single change covers fill, text, link *and* field states, and it composes
+with the reflect-on-overshoot logic already living there.
+
+**Verification.** All gates: `regen --check` (88 byte-match), `test.ts` 1793/0, `mcp-test.ts` 49/0,
+`token-contract --check` (unchanged, 484 guaranteed — this adds no path), `lint-skills`, `lint-us-english`
+(94 files). Then **mutation-tested**, per #567's lesson that reasoning about coverage is weaker than
+breaking the code: (A) neutralize the guard → 4 failures; (B) the naive "walk till it clears" repair → 2
+failures, both naming the collapse; (C) guard unconditionally → the L-02×#331 assertion + #331's own.
+
+**`[SKILL]` A "forward and increasing" assertion is vacuous where the claim is adjacency.** Mutation C
+initially passed my own L-02×#331 check: with the guard wrongly applied the steps go 100 → 450 → 550, which
+is still forward and still increasing. Only #331's *existing* assertion caught it. The claim was never
+"moves forward" — it was "keeps the *plain adjacent* walk", i.e. exactly 150 then 200. Tightened to pin the
+step numbers, which then catches C directly. Related: a first pass at mutation C was itself invalid —
+`=> { surf, min };` parses as a block body returning `undefined`, so it silently reproduced mutation A's
+output instead of testing anything. **A mutation that produces another mutation's exact output has probably
+not been applied** — check the diff, not just the failure list.
+
+---
+
 ## (2026-08-06) — the audit harness died instead of reporting a 404 (#565)
 
 **STATUS: `web/mode-audit.mjs` only, three lines.** No engine source, no emitted artifacts, no test-count

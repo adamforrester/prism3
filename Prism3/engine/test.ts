@@ -159,6 +159,11 @@ const brands: BrandInput[] = [
   { id: 't-yellow', primary: { l: 0.85, c: 0.18, h: 95 }, neutral: { hue: 95, chroma: 0.015 } },                // light high-chroma yellow (hard accessible action)
   { id: 't-min', primary: { l: 0.5, c: 0.15, h: 200 }, neutral: { hue: 200, chroma: 0.008 } },                  // bare minimum (all defaults)
   { id: 't-hcdark', primary: { l: 0.5, c: 0.12, h: 300 }, neutral: { hue: 300, chroma: 0.01 }, surfaces: { light: { base: 100 }, dark: { base: 950 } }, motionPersonality: { tempo: 'relaxed' }, iconContrast: '3:1', disabledStrategy: 'full' }, // every lever exercised (disabledStrategy on its non-default LIVE branch; the legacy aliases are covered directly in (7b))
+  // L-02 (#557): a NON-MONOTONIC-IN-CONTRAST ramp. High chroma at a hue where chroma raises
+  // luminance (cyan) makes the pinned anchor's WCAG Y exceed its own lighter neighbour's, so a
+  // state walk toward "more contrast" walked DOWN. Held here — not only in the block below — so
+  // this shape is covered by the all-contracts and L-01 sweeps like any other corpus brand.
+  { id: 't-nonmono', primary: { l: 0.55, c: 0.30, h: 180 }, neutral: { hue: 180, chroma: 0.01 } },
 ];
 
 for (const b of brands) {
@@ -180,6 +185,66 @@ for (const b of brands) {
     }
     const [ld, lh, lv] = [path('text.link.default'), path('text.link.hover'), path('text.link.visited')];
     if (ld && lh && lv) ok(ld !== lh && ld !== lv && lh !== lv, `[${b.id}/${m.mode}] text.link states are distinct`);
+  }
+}
+
+// L-02 (#557) — the state WALK re-verifies each step against the state's own floor.
+//
+// Why this needs its own block on top of the corpus sweep above: that sweep would catch the
+// regression, but it reports "some contract failed", and the same symptom has a dozen causes.
+// This pins the MECHANISM, so a refactor that drops the `guard` argument fails with a message
+// naming what broke and why the ramp misleads.
+{
+  // The premise the walk used to rely on: step away from rest ⇒ more contrast. Establish FIRST
+  // that this brand's ramp genuinely violates it, so the assertions below can't pass vacuously
+  // (if a future ramp change made the ramp monotonic again, this brand stops being a test case —
+  // fail loudly rather than keep asserting something the input no longer exercises).
+  const theme = brandTheme({ id: 't-nonmono', primary: { l: 0.55, c: 0.30, h: 180 }, neutral: { hue: 180, chroma: 0.01 } });
+  const steps = theme.palettes.find((p) => p.palette === theme.roleToPalette.action)!.steps;
+  const y = (n: number) => luminance(steps.find((s) => s.num === n)!.rgb);
+  ok(y(500) > y(450), `L-02: the fixture's ramp really is non-monotonic in luminance — step 500 (Y ${y(500).toFixed(4)}) is LIGHTER than 450 (Y ${y(450).toFixed(4)}) despite being nominally darker, because exact-anchor preservation keeps 500 at full chroma. Without this the walk assertions below prove nothing.`);
+  ok(steps.every((s, i) => i === 0 || s.oklch.l <= steps[i - 1].oklch.l + 1e-9), 'L-02: …while that SAME ramp is monotonic in OKLCH lightness — which is why ramp.ts M-02 passes it. Lightness order is what the pickers need; luminance order is what the walk needs, and only one was ever checked.');
+
+  const light = resolveAllModes(theme).find((m) => m.mode === 'light')!;
+  const walked = Object.entries(light.roles).filter(([k, r]) => r.min > 0 && /\.(hover|pressed|focused|selected|visited)$/.test(k));
+  ok(walked.length > 0, 'L-02: the light mode emits walked, contrast-gated states to check');
+  const under = walked.filter(([, r]) => r.ratio < r.min);
+  ok(under.length === 0, `L-02: every walked state clears its OWN floor on a non-monotonic ramp` + (under.length ? ` — FAILED: ${under.map(([k, r]) => `${k} ${r.ratio.toFixed(3)}<${r.min}`).join(', ')}` : ''));
+
+  // The exact roles the bug produced: BOTH hover and focused walk +1, so it was two roles per
+  // palette per mode, not one — the issue named only hover.
+  for (const st of ['hover', 'focused']) {
+    const r = light.roles[`interactive.primary.fill.${st}`];
+    ok(r.ratio >= r.min, `L-02: interactive.primary.fill.${st} (walk +1, the step that landed on the non-monotonic 500) clears ${r.min}:1 — got ${r.ratio.toFixed(3)} at ${r.path}`);
+  }
+  // Distinctness is bought BY CONSTRUCTION, not repaired after: counting QUALIFYING steps means
+  // hover takes the 1st clearing step and pressed the 2nd, so they cannot coincide. The naive
+  // fix (keep walking until the floor clears) lands hover exactly on pressed's step — it buys
+  // the floor with the collapse L-01 exists to prevent. This asserts the shape, not just the floor.
+  const p = (k: string) => light.roles[k].path;
+  ok(p('interactive.primary.fill.hover') !== p('interactive.primary.fill.pressed'),
+    `L-02: skipping a non-qualifying step does NOT collapse hover onto pressed (${p('interactive.primary.fill.hover').split('.').pop()} vs ${p('interactive.primary.fill.pressed').split('.').pop()}) — the naive "walk until it clears" repair would have made these equal`);
+  ok(p('interactive.primary.fill.rest') !== p('interactive.primary.fill.hover'), 'L-02: rest and hover stay distinct on a non-monotonic ramp');
+
+  // L-02 × #331 — the guard applies only where a floor was actually INHERITED. An authored anchor
+  // pin that misses its floor is applied verbatim and reported (#331 apply-but-warn), so its
+  // walked states have no verified floor to inherit; guarding them would walk hover/pressed off to
+  // wherever the floor is met and bury the pin in the very states meant to reveal it — the
+  // substitution #331 deleted, one level down. This is the assertion that caught it: guarding
+  // unconditionally failed #331's own "walk forward from the RAW pinned step" check.
+  {
+    const pinnedT = brandTheme({ id: 't-pin-nonmono', primary: { l: 0.55, c: 0.30, h: 180 }, neutral: { hue: 180, chroma: 0.01 },
+      brandColors: [{ name: 'accent', oklch: { l: 0.55, c: 0.30, h: 180 } }],   // same high-chroma cyan → non-monotonic ramp
+      interactivePalettes: [{ palette: 'accent', anchorStep: 100 }] } as unknown as BrandInput);
+    const r = resolveAllModes(pinnedT).find((m) => m.mode === 'light')!.roles;
+    const num = (k: string) => Number(r[k].path.split('.').pop());
+    ok(r['interactive.accent.fill.rest'].ratio < r['interactive.accent.fill.rest'].min, 'L-02×#331: the pinned anchor still misses its floor (applied, not substituted) — the precondition for the next assertion');
+    // ADJACENCY, not merely direction: the plain walk off 100 is exactly 150 then 200. A
+    // "forward and increasing" assertion is VACUOUS here — with the guard wrongly applied these
+    // land on 450/550, which is still forward and still increasing, so only pinning the exact
+    // steps distinguishes "kept the pin" from "relocated to wherever the floor is met".
+    ok(num('interactive.accent.fill.hover') === 150 && num('interactive.accent.fill.pressed') === 200,
+      `L-02×#331: states off a FAILING pin keep the plain adjacent walk (100 -> ${num('interactive.accent.fill.hover')} -> ${num('interactive.accent.fill.pressed')}, want 150 -> 200) — the floor guard must not relocate them to where the floor happens to be met`);
   }
 }
 

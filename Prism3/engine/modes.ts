@@ -292,7 +292,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const dir = cfg.family === 'light' ? +1 : -1;
   // `d` overrides the walk direction — the page dir by default; the inverse-context text walks the OTHER
   // way (toward MORE contrast with the dark band, i.e. lighter in a light mode) so its ink comes forward.
-  const walk = (palette: string, fromNum: number, steps: number, d: number = dir): Cand => {
+  const walk = (palette: string, fromNum: number, steps: number, d: number = dir, guard?: { surf: RGB; min: number }): Cand => {
     const pal = palOf(palette);
     const ramp = ramps.get(pal)!;
     const near = (n: number) => ramp.reduce((a, b) => (Math.abs(b.num - n) < Math.abs(a.num - n) ? b : a));
@@ -306,11 +306,68 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // overshoot, reflect and walk inward the other way, preserving the step-count
     // separation. Inward is toward mid-ramp, so it stays within the gamut the
     // ramp already vetted; the contract gate still guards each state's contrast.
-    const fwd = fromNum + d * 50 * steps;
-    const target = fwd < lo || fwd > hi ? fromNum - d * 50 * steps : fwd;
-    const s = near(target);
+    //
+    // ---- FLOOR RE-VERIFICATION (#557) -------------------------------------------------------
+    // `guard` (the state's own ground + min) makes each counted step a step that ACTUALLY clears
+    // the floor, instead of trusting that stepping away from `rest` can only add contrast.
+    //
+    // That trust is what broke. Exact-anchor preservation (ramp.ts, invariant #2) writes the
+    // pinned brand step at FULL chroma while its generated neighbours take the ramp curve's lower
+    // chroma, and for hues where chroma RAISES relative luminance (green/cyan/orange) the anchor's
+    // WCAG Y lands ABOVE its lighter neighbour's. The ramp is then non-monotonic in CONTRAST while
+    // still monotonic in LIGHTNESS — so ramp.ts's M-02 monotonicity guard passes, because it checks
+    // OKLCH `l`, which is the ordering the pickers need. Nothing checked the ordering the walk
+    // needs. A `{ l: .55, c: .30, h: 180 }` primary steps light-mode hover from a gated 3.18:1 onto
+    // 2.77:1 — under the floor `rest` was placed to clear, with every gate green.
+    //
+    // Counting QUALIFYING steps, rather than repairing a failed landing, is what makes this
+    // compose with L-01 above. The tempting repair — keep walking until the floor clears — moves
+    // hover onto the step pressed already occupies, buying the floor by collapsing exactly the
+    // distinctness L-01 exists to defend. "The nth step that clears" keeps hover ≠ pressed AND
+    // clears the floor, both by construction.
+    //
+    // The step arithmetic below is deliberately the SAME `fromNum ± 50·k` walk as the unguarded
+    // path, not an index scan over `ramp`. Those two are not equivalent: the ramp's 25↔50 gap is
+    // 25, not 50, so an index scan diverges from the shipped formula in 2 of the 80
+    // from × steps × direction combos (both near step 25) and would have drifted the corpus for
+    // reasons that have nothing to do with this bug. Same arithmetic ⇒ when every step qualifies,
+    // the nth qualifying step IS the nth step, so a monotonic ramp is byte-identical and only the
+    // non-monotonic region moves.
+    const clears = (r: RGB) => !guard || contrast(r, guard.surf) >= guard.min;
+    const scan = (dd: number): Step | undefined => {
+      let seen = 0;
+      for (let k = 1; ; k++) {
+        const at = fromNum + dd * 50 * k;
+        if (at < lo || at > hi) return undefined;         // ran out of ramp this way
+        const s = near(at);
+        if (!clears(s.rgb)) continue;                     // not a candidate; keep looking
+        if (++seen === steps) return s;                   // the nth step that actually clears
+      }
+    };
+    // Forward first (the affordance direction — the control comes forward as the user engages),
+    // then reflect and walk inward, which is what the pre-#557 formula did on overshoot.
+    // Last resort (neither direction can supply `steps` qualifying steps): the plain landing.
+    // Keep it rather than invent a colour — `put` then reports the miss through the normal
+    // contract channel, which is how an over-constrained brand is supposed to surface.
+    const s = scan(d) ?? scan(-d) ?? near(fromNum + d * 50 * steps);
     return cand(`${ns}.${pal}.${s.key}`, s.rgb);
   };
+  // #557 × #331: guard a walk ONLY when its ORIGIN actually cleared the floor.
+  //
+  // The walk's promise was "a walked state inherits rest's verified floor", and #557 is that the
+  // inheritance silently fails on a non-monotonic ramp. Where `rest` never had the floor in the
+  // first place there is nothing to inherit, and guarding would not be preserving a contract — it
+  // would be inventing one `rest` itself is exempt from. That case is real and deliberate: #331's
+  // apply-but-warn means an AUTHORED anchor pin is applied verbatim and its miss REPORTED, so the
+  // author sees their own pick. Guarding the states off a failing pin would walk hover/pressed
+  // away to wherever the floor is met, burying the pin in exactly the states meant to show it —
+  // re-introducing the substitution #331 removed, one level down.
+  //
+  // So an unmet origin keeps the plain step arithmetic and `put` reports the miss, which is both
+  // honest and byte-identical to pre-#557. `min: 0` roles (the subtle neutral fill) degenerate to
+  // the same thing for free.
+  const guardFrom = (ratio: number, surf: RGB, min: number): { surf: RGB; min: number } | undefined =>
+    ratio >= min ? { surf, min } : undefined;
   const neutralLow = (): Cand => pStep(r2p.neutral, cfg.family === 'light' ? 200 : 750);
   const tintStep = cfg.family === 'light' ? 100 : 900;       // subtle semantic SURFACE tint
   const mutedStep = cfg.family === 'light' ? 450 : 350;      // muted semantic INK
@@ -389,10 +446,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   fills.danger = dangerRest;
   put('foreground.danger', dangerRest, `Bold danger fill — clears ${fillFloorMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, fillFloorMin);
   // Interactive fill states walk the palette (rest → hover/focused +1 → pressed/selected +2).
-  const fillStateCand = (rest: RatedNum, palette: string, st: typeof FILL_STATES[number]): Cand =>
-    st === 'default' ? rest
-    : st === 'hover' || st === 'focused' ? walk(palette, rest.num, 1)
-    : walk(palette, rest.num, 2); // pressed | selected
+  // `fillMin` is the floor the walked step is guarded against (#557) — the SAME floor `put` then
+  // measures it by, so the walk can no longer land a state under its own declared contract.
+  const fillStateCand = (rest: RatedNum, palette: string, st: typeof FILL_STATES[number], fillMin: number): Cand => {
+    // Measure the origin here rather than trusting `rest.ratio` — an `exact` pin carries the ratio
+    // it was picked with, and this must be the contrast against the ground `put` will use.
+    const g = guardFrom(contrast(rest.rgb, floorRgb), floorRgb, fillMin);
+    return st === 'default' ? rest
+      : st === 'hover' || st === 'focused' ? walk(palette, rest.num, 1, dir, g)
+      : walk(palette, rest.num, 2, dir, g); // pressed | selected
+  };
 
   // The action palette's rest colour — the source for interactive.primary, the focus ring,
   // and link states. (The legacy top-level `action.*` fill is retired: components bind
@@ -417,7 +480,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the cross-cutting disabled.* family below. This is what components bind (docs/20 §16.3).
   const iFill = (name: string, rest: RatedNum, palette: string, fillMin: number) => {
     for (const st of FILL_STATES) {
-      const c = fillStateCand(rest, palette, st);
+      const c = fillStateCand(rest, palette, st, fillMin);
       // The interactive family leads with `rest` (docs/20 §2 — rest/hover/pressed);
       // the base-state key `default` is kept only on the non-interactive roles.
       const stKey = st === 'default' ? 'rest' : st;
@@ -446,7 +509,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const restNum = (restCand as RatedNum).num;
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
-      const c: Cand = (st === 'default' || !walkable) ? restCand : walk(palette, restNum, st === 'hover' ? 1 : 2);
+      const c: Cand = (st === 'default' || !walkable) ? restCand
+        : walk(palette, restNum, st === 'hover' ? 1 : 2, dir, guardFrom(contrast(restCand.rgb, baseRgb), baseRgb, cfg.secondaryMin));
       put(`interactive.${name}.text.${stKey}`, rated(c, baseRgb),
         `${name} interactive ink — ${stKey} (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
     }
@@ -510,7 +574,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const textNum = (textRest as RatedNum).num;
       for (const st of ['default', 'hover', 'pressed'] as const) {
         const stKey = st === 'default' ? 'rest' : st;
-        const c: Cand = (st === 'default' || !palette) ? textRest : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir);
+        const c: Cand = (st === 'default' || !palette) ? textRest
+          : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
         put(`interactive.${name}.on-inverse.text.${stKey}`, rated(c, invRgb),
           `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
       }
@@ -520,7 +585,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const fillRest: RatedNum = palette ? chromatic(palette, cfg.family === 'light' ? 100 : 900, invRgb, cfg.nonTextMin) : neutralStepR(cfg.family === 'light' ? 50 : 850);
       for (const st of ['default', 'hover', 'pressed'] as const) {
         const stKey = st === 'default' ? 'rest' : st;
-        const c: Cand = st === 'default' ? fillRest : walk(palette ?? r2p.neutral, fillRest.num, st === 'hover' ? 1 : 2, -dir);
+        const c: Cand = st === 'default' ? fillRest
+          : walk(palette ?? r2p.neutral, fillRest.num, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
         put(`interactive.${name}.on-inverse.fill.${stKey}`, rated(c, invRgb),
           `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
       }
@@ -680,7 +746,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // a far weaker cue on 1px of chrome than on a filled button, and this would have been a silent
   // regression in the affordance.
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
-  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2), baseRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.primary', cfg.nonTextMin);
+  put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, baseRgb), baseRgb, cfg.nonTextMin)), baseRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.primary', cfg.nonTextMin);
   put('field.placeholder', pickMinPass(textCands, cfg.bg.secondary.rgb, cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the field fill (not a sub-AA placeholder)`, 'field.fill', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
@@ -762,10 +828,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // pin here would let a deliberate fill choice silently push link text below its floor. A link
     // colour is overridable in its own right.
     const linkBase = chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, floorRgb, p.semanticMin);
+    // Guarded (#557) at the profile's OWN semanticMin — so `icon.link.*` under iconContrast '3:1'
+    // is verified at 3, and `text.link.*` at the text bar, each against the floor `put` uses.
+    const linkGuard = guardFrom(contrast(linkBase.rgb, floorRgb), floorRgb, p.semanticMin);
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
       st === 'default' || st === 'focused' ? linkBase
-      : st === 'hover' ? walk(r2p.action, linkBase.num, 1)
-      : walk(r2p.action, linkBase.num, 2); // visited
+      : st === 'hover' ? walk(r2p.action, linkBase.num, 1, dir, linkGuard)
+      : walk(r2p.action, linkBase.num, 2, dir, linkGuard); // visited
     for (const st of LINK_STATES)
       T(`link.${st}`, rated(linkStateCand(st), floorRgb), `Link ${p.label} — ${st}`, cfg.floorName, p.semanticMin);
     return out;
