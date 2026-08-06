@@ -568,9 +568,19 @@ and `ring-offset`. The binding was not missing; it was somewhere else, one file 
 
 So before recording "state X binds nothing" as a gap, look for what the def binds *for that state
 under a different mechanism*. Verified for Button: `focus-visible`, `pending` and `inactive` all bind
-zero color tokens out of the seven values #488's state axis declares — but `focus-visible` has the
-ring, and `pending` has `anatomy.parts.spinner`. Only `inactive` is a genuine gap, with neither token
-nor part. A blanket "three states are unbound" would have been three-for-one wrong.
+zero color tokens out of the seven values in `states` — but `focus-visible` has the ring, and `pending`
+has `anatomy.parts.spinner`. A blanket "three states are unbound" would have been three-for-one wrong.
+
+**Updated (#536 item 4).** `inactive` looked like the residue — a genuine gap with neither token nor
+part — and the third answer turned out to be neither "bound elsewhere" nor "missing": it binds
+`disabled`'s paint *by an explicit prior decision* (docs/03 item 3, resolved 2026-06-24, where
+`disabledStrategy: 'accessible'` IS the KB's contrast-preserving `inactive`; docs/06 defines
+`text.disabled` as "disabled / inactive ink"). Its delta from `disabled` is entirely behavioral —
+tab order, the a11y tree, `aria-disabled` — so it is now `codeOnly` and the axis carries six.
+**So the question "what does it bind instead?" has a third answer past *elsewhere* and *nothing*:
+deliberately the same thing as another state.** That case looks identical to a gap from inside the
+def and is distinguishable only from the decision record, which is why the search has to include the
+docs and not just the sibling fields.
 
 ### `[SKILL]` A spec derived from artifacts can be confidently wrong about intent
 
@@ -671,8 +681,11 @@ state, and every prop that implies paint should have bindings. Neither direction
 
 - §0.1 lists six state values; §0.4 forbids codifying the legacy sheet's names; the def declares
   **seven**. The six *were* the legacy names. Following §0.1 would have shipped `active`/`focused`/
-  `loading` and silently dropped `inactive` — and moved the headline count from the correct 756 to
-  648.
+  `loading` and silently dropped `inactive` — and moved the headline count from the then-correct 756
+  to 648. (The projection now *is* 648, via #536 item 4 — but by dropping `inactive` **with a
+  `codeOnly` admission and a stated reason**, which is a different act from arriving at the same
+  number by copying a stale sheet. Same count, opposite epistemics: one is a decision, the other is
+  a coincidence that would have hidden three renames.)
 - §4 says `width` "should not be a variant" without noting it *already is one* in `variants`, so the
   action is to move it to `codeOnly`, not to leave it alone. And the slot axis §4 assumes does not
   exist — there is `modifiers`, a differently-shaped axis whose `pending` duplicates a state.

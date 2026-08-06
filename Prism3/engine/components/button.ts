@@ -216,6 +216,7 @@ export const button: ComponentDef = {
       'min-width derivation — resolved to a literal at emit, so the Figma component holds a frozen number rather than the live height×multiplier relationship.',
       'width (auto | full) — declared as a variant axis but deliberately NOT projected into Figma (#487 §4). A designer resizes an auto-layout frame; a variant axis for it doubles the whole set to buy nothing a drag does not already do.',
       'modifiers (leading-visual | trailing-visual | pending) — not projected as-is. Slot CONTENT is an INSTANCE_SWAP property, and `pending` is already a value on the state axis, so projecting this axis would duplicate one and mis-model the other. Slot PRESENCE still needs its own variant axis before #326\'s split inline padding can survive the Figma leg — that axis does not exist in this def yet, so it is not claimed here.',
+      'inactive — a real state (isInactive), deliberately NOT a Figma variant. Its whole delta from `disabled` is behavioral: it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus. Its PAINT is `disabled`\'s by an explicit decision (docs/03 item 3, resolved 2026-06-24: `disabledStrategy: \'accessible\'` IS the KB\'s contrast-preserving `inactive`, and docs/06 defines `text.disabled` as "disabled / inactive ink"). So projecting it emits a column pixel-identical to `disabled` under a second label, and a designer cannot see which to pick — the distinction is not one a variant can hold.',
     ],
   },
 
@@ -226,10 +227,15 @@ export const button: ComponentDef = {
   // is absent rather than stubbed.
   figmaProperties: {
     variantAxes: ['intent', 'appearance', 'size'],
-    // Seven values, from `states` above — the single source (#487 §0.4). The legacy sheet's six
-    // (`active`, `focused`, `loading`) are deliberately NOT codified: they are that sheet's names
-    // for `pressed`, `focus-visible` and `pending`, and it has no equivalent for `inactive` at all.
-    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'] },
+    // Six of the seven in `states` above — still the single source (#487 §0.4). The legacy sheet's
+    // six (`active`, `focused`, `loading`) are deliberately NOT codified: they are that sheet's names
+    // for `pressed`, `focus-visible` and `pending`.
+    //
+    // `inactive` is the one omission, and it is admitted in `codeOnly` above rather than dropped —
+    // same mechanism `focus-ring-offset` uses. Seven remains right for `states` (the def's truth);
+    // six is right for the projection (what a variant can carry). Keeping it would have shipped 108
+    // rows pixel-identical to their `disabled` siblings, since the two share their paint on purpose.
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled'] },
     // Slot PRESENCE (§4) — the axis `planComponentName` has been emitting all along. Declaring it
     // takes the projected surface from 189 to 756, which is what the emitter already produced; the
     // gap was in the declaration, not the emitter.

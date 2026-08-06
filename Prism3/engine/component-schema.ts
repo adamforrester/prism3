@@ -440,9 +440,21 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       if (!(def.states ?? []).includes(v)) e.push(`figmaProperties.stateAxis: '${v}' is not one of states [${(def.states ?? []).join(', ')}]`);
     }
     const missing = (def.states ?? []).filter((s) => !(values ?? []).includes(s));
-    const codeOnly = (def.anatomy?.codeOnly ?? []).join(' ');
+    // The admission has to be ADDRESSED TO the state, not merely contain its name. A joined-prose
+    // substring scan says yes to any mention, and the entries here mention plenty of states they are
+    // not about: the `modifiers` entry names `pending` while explaining an AXIS, and `inactive`'s own
+    // entry names `disabled` to say they share a paint. Under a substring scan, dropping `pending` or
+    // `disabled` would go green on prose written about something else — a gate satisfied by a comment
+    // that happens to spell the word is the `strokeWeight` shape again. So the entry must LEAD with
+    // the state name, which is how every codeOnly entry is already written (`name — explanation`).
+    const admits = (term: string) => (def.anatomy?.codeOnly ?? []).some((c) => {
+      const rest = c.trim().startsWith(term) ? c.trim().slice(term.length) : null;
+      // `''` so a bare entry qualifies; the delimiter set stops `inactive` being admitted by an entry
+      // that happens to begin with a longer word starting the same way.
+      return rest !== null && (rest === '' || /^[\s—:(-]/.test(rest));
+    });
     for (const s of missing) {
-      if (!codeOnly.includes(s)) e.push(`state '${s}' is not in the Figma state axis and is not explained in anatomy.codeOnly — a silently dropped state under-represents the def`);
+      if (!admits(s)) e.push(`state '${s}' is not in the Figma state axis and is not explained in anatomy.codeOnly — a silently dropped state under-represents the def. The codeOnly entry must LEAD with '${s}' ("${s} — why Figma cannot carry it"); a passing mention inside an entry about something else does not count`);
     }
   }
 

@@ -7,6 +7,81 @@
 
 ---
 
+## (2026-08-06) — `inactive` is a behavior, and a variant cannot hold a behavior (#536 item 4)
+
+**STATUS: `components/button.ts`, `component-schema.ts`, `test.ts`, `docs/32`.** No emitter artifacts
+change — `out/*` byte-identical, regen 88 in sync, contract 2.0.0 untouched. `test.ts` 1749 → **1750**.
+
+**The projection is now 648 variants, not 756.** `state` carries six values; `inactive` moved to
+`anatomy.codeOnly`.
+
+### The diagnosis, which is the whole of the work
+
+The question asked was "is `inactive` different from `disabled`, given we already have `disabled`
+tokens?" Both halves have answers and they point opposite ways, which is why it looked unsettled:
+
+- **Behaviorally, sharply different, and the difference is the point.** `isInactive` retains tab order,
+  stays in the a11y tree, carries `aria-disabled` rather than the native attribute, and surfaces the
+  blockage reason on focus — for a control blocked by *satisfiable* state. `isDisabled` is native
+  `disabled`, reserved for controls *irrelevant* to the view. The don't-list already forbids
+  native-disabling a relevant-but-blocked control: a dead end for keyboard and SR users.
+- **Visually, identical by an explicit prior decision.** Not a gap — `docs/03` item 3, resolved
+  2026-06-24: `disabledStrategy: 'accessible'` clears `disabledMin` on the floor and **is** the KB's
+  contrast-preserving `inactive`; `docs/06` defines `text.disabled` as "disabled / inactive ink". One
+  paint, both meanings, on purpose, backed by the 12-system survey where 0/12 meet 4.5:1.
+
+So projecting it would ship **108 rows pixel-identical to their `disabled` siblings under a second
+label**, with nothing in the file to tell a designer that the difference is tab order. The two rejected
+options fail on the same fact from opposite sides: re-pointing `inactive` at `disabled.*` produces
+exactly those duplicates, and giving it its own token group contradicts item 3 and would need a new
+contrast contract to justify a distinction that is not about paint. **A Figma variant encodes paint; a
+state whose entire delta is behavioral has nothing to encode.** The prop, the docs, the do/don't
+guidance and the contested note are all untouched — this is a projection decision, not a def change.
+
+`states` still lists seven. Seven is the def's truth; six is what a variant can carry; `codeOnly` is
+where the difference is admitted, the same mechanism `focus-ring-offset` has always used for the
+un-projectable `:focus-visible` condition.
+
+| | before | after |
+|---|---|---|
+| projected variants | 756 | **648** |
+| rows pixel-identical to their `rest` sibling | 252 (`focus-visible` 108, `inactive` 108, `pressed` 36) | **144** (`focus-visible` 108, `pressed` 36) |
+| chunks for the full set | 58 (worst 41,987 B) | **44** (worst 41,976 B) |
+
+The remaining 108 are `focus-visible` — #536 item 3, which needs an owner decision because it reverses
+a documented "the focus ring is NOT a part". The 36 `pressed` are the known `.text` overlay gap.
+
+### The gate for this was satisfiable by a comment about something else
+
+`component-schema.ts` licenses a dropped state if `codeOnly` mentions it — and it checked that with a
+**substring scan over the joined array**. That is fine while no entry mentions a state it is not about,
+and this change breaks exactly that condition: the new `inactive` entry has to name `disabled` to
+explain that they share a paint, and the pre-existing `modifiers` entry already named `pending` while
+explaining an *axis*. Under the old scan, **deleting `pending` or `disabled` from the axis would have
+gone green on prose written about something else** — the `strokeWeight` shape a third time (a gate
+satisfied by the comment that explains the thing it is checking). Tightened to require the entry to
+**lead with** the state name, which is how every entry was already written (`name — explanation`), plus
+assertions that dropping either mentioned-but-not-admitted state now fails.
+
+**Then mutation testing caught a hole in the tightening itself.** Deleting the delimiter half — leaving
+a bare `startsWith` — left all 1,749 assertions green. It is not a theoretical gap: `disabledStrategy`
+is a real lever name, so an entry opening with it would have licensed dropping `disabled` while
+explaining a contrast switch. The whole-word case is now asserted directly. Second time in two days
+that mutating my own new gate found the untested half of it, and both times the untested half was the
+narrower, more careful-looking clause — **the part of a check you add for rigor is the part no test
+covers, because you wrote the tests from the same picture that told you the clause was needed.**
+
+### One test had to be re-pointed, and that is worth noticing
+
+`brokeFp('silently dropping a state fails', …)` mutated the axis **by dropping `inactive`** — which is
+now the shipping configuration. Left alone it would have kept passing (`hover`-style states still fail)
+or started failing for the wrong reason; either way it would no longer test what its label claims. It
+now drops `hover`, chosen because `hover` appears nowhere in `codeOnly` prose. **When a mutation case's
+mutation becomes production, the case stops being a test and becomes a coincidence** — worth grepping
+for whenever a def value moves.
+
+---
+
 ## (2026-08-06) — Two Interactive sections, both wrong for the same reason: nobody checked WHERE (#561, #562)
 
 **STATUS: `web/src/main.ts`, `web/mode-audit.mjs`, `web/lint-classes.mjs`.** Two owner-reported bugs on
