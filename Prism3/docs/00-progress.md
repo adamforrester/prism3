@@ -7,6 +7,82 @@
 
 ---
 
+## (2026-08-06) — The most-repeated defect in the repo, counted (#582 closed)
+
+**STATUS: shipped.** New `Prism3/docs/34-gate-independence.md`, plus a paragraph in `CLAUDE.md`
+principle 4 and a section in `CONTRIBUTING.md` §3. Docs only — no engine code, no gate, no artifact
+change, neither version moves.
+
+**The issue undercounted, and the correction is the finding.** #582 was filed at *three instances in
+three days* and framed as a recent cluster. Auditing rather than trusting the frame found **twelve,
+spanning 2026-07-03 to 2026-08-06** — the oldest being M-03's anchor-ΔE gate, which compared two
+identically clipped values and so measured ~0 by construction while a real anchor drifted ΔL +0.04 /
+Δh −2.5°. That is five weeks before anyone named the pattern. Two consequences worth stating plainly:
+
+- This is not a cluster to watch. On the evidence it is **the most frequently repeated defect class in
+  the repo's history**, and the one a reader is most likely to commit next.
+- **None of the twelve was found by a gate.** All twelve were found by a person or an agent mutating
+  code by hand. A rule with that provenance cannot be enforced the way US-English or the token
+  contract are; the honest response is discoverability, which is what #582 asked for.
+
+The audit itself was worth more than the doc it produced, and the method transfers: grep the progress
+log and the engine for `tautolog|vacuous|unfalsifiab|by construction|self-consistent` rather than for
+the concept. Every instance had already been *named* in prose at the moment it was found — they were
+findable, just never collected.
+
+**Six sub-shapes, because the tell differs even though the rule doesn't.** Enumerated in the doc:
+(1) the gate reads the declaration it checks; (2) subject and oracle share a derivation — the DRY
+trap; (3) **the obvious fix inherits the hole**; (4) the oracle measures a constant; (5) "it resolves"
+instead of "it is right"; (6) a gate allowed to rewrite what it reads. Shape 3 earns its own place
+because in two of the four recent instances the *first* fix was still unfalsifiable — #574's audit
+passed 28/28 with the bug restored after the obvious exclusion was copied in, and #464's self-check
+inherited the scan's exact blind spot. Shape 4 is the newest addition and came out of #536 item 3:
+independence is **necessary and not sufficient**, since two independent things can still be compared
+by a measurement that cannot move. A stub whose `width` was a constant let a 4×4 focus ring on a
+full-size button pass the assertion written to catch it.
+
+**The load-bearing procedure, stated once instead of twelve times:** *mutate the subject and confirm
+**your** gate is among the failures, by name.* Not "does the suite go red" — in #575 the mutation
+fired 7 failures and the new gate was not one of them. Three corollaries carried in: mutate the call
+site rather than a shared constant (a shared dependency breaks both paths and the red reads as proof);
+assert the mutation applied (`mutated !== source`, since a stale `replace` target is
+indistinguishable from a caught mutation); and check the gate can fail *at all*.
+
+**The count is presented as an auditable table, not a number.** Twelve rows with date, file, shape and
+what passed green. A bare "twelve instances" is exactly the kind of claim this doc is about — #568's
+lesson that a count is a landmark that goes stale, applied to the doc's own headline.
+
+**Three placement calls.**
+
+- **A new numbered doc, not `32-component-build-learnings.md`.** Doc 32 is scoped to component work
+  and is deliberately per-instance ("newest first", tagged `[SKILL]`/`[GATE]`/`[KB]`). Three of the
+  twelve instances are engine, web and skills-gate — filing a cross-cutting rule under component
+  learnings is how it stays unfound by the web author who needs it.
+- **`CLAUDE.md` principle 4 names it directly**, which #582 left open. It is the file an agent loads
+  automatically, principle 4 is already the verification principle, and it already gestures at the
+  rule for artifacts specifically (*"every other gate runs the engine live and compares it against
+  itself"*). The paragraph generalizes that past artifacts and points at the doc.
+- **`CONTRIBUTING.md` gets the reviewer-facing half.** "Duplication between a gate and its subject is
+  usually load-bearing" is advice for the person *suggesting the cleanup*, not the person writing the
+  gate, and CONTRIBUTING is where a reviewer reads.
+
+Not added to the root `README.md`: it is a five-link signpost, and a sixth link to an internal
+practice doc is not what it is for.
+
+**Four of the twelve cite unmerged PRs, and the doc says so.** `outlineFillFamily`,
+`TOKEN_CONTROL_SEL` and `guardFrom` do not resolve on `main` — they are in #580/#581/#577. Writing a
+doc whose quoted names resolve to nothing is precisely the trap `lint-skills.ts` exists to catch
+(#492), so those four rows are tagged `[in review]` and every other name was verified to resolve by
+script before shipping. The verification is worth repeating on any doc that quotes identifiers: I
+first ran it against a blob that *included the new doc itself*, which found everything and proved
+nothing.
+
+**Gates.** `regen --check` **88 byte-match**, `test.ts` **1812/0** (unchanged — no engine code),
+`token-contract --check` unchanged (2.1.0, 485 guaranteed), `mcp-test.ts` 49/0, NB regression PASS
+(mean ΔE00 1.95), `lint-us-english.ts` clean over 94 files, `lint-skills.ts` clean, web `tsc` clean.
+
+---
+
 ## (2026-08-06) — The focus ring becomes a part: `absolute`, the fifth `PartKind` (#536 item 3)
 
 **STATUS: shipped.** `Prism3/engine/component-schema.ts`, `anatomy-figma.ts`, `components/button.ts`,
