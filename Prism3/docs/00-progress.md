@@ -136,6 +136,58 @@ byte-identical, nothing here touches the generation path.
 
 ---
 
+## (2026-08-07) — `WEIGHT_STYLE_NAME_MONO` removed — the second hardcoded guess #530 made obsolete (#538)
+
+**STATUS: shipped.** `emit-figma-font.ts`'s `WEIGHT_STYLE_NAME_MONO` table (600 → `Medium` for mono
+faces) is gone; `fontStyleName` now reads a single `WEIGHT_STYLE_NAME` table regardless of `mono`.
+`ENGINE_VERSION` bumped 0.3.3 → 0.3.4 (value-changing behavior, no name moved); `CONTRACT_VERSION`
+untouched (2.1.0) — `token-contract.ts --check` confirms zero guaranteed-path drift, only its
+informational `engineVersion` field, so `--accept` was run for that field alone.
+
+**The diagnosis.** `WEIGHT_STYLE_NAME_MONO` was a hardcoded guess suppressing weight 600
+(`Semi Bold` → `Medium`) for mono faces, on the premise that "JetBrains Mono / most mono families
+lack Semi Bold." That premise was really a spelling-variance bug wearing a mono-specific costume:
+`#499`/`#530` measured a 2,334-family library and found `Semi Bold`/`SemiBold` is a per-FAMILY
+spelling choice (never both), not a mono-vs-sans property, and fixed it at the right layer — the
+plugin write lane (`write-text-styles.ts` `resolveFontStyle`) now resolves the engine's emitted guess
+against the family's REAL loaded Figma styles (case/space/hyphen-insensitive + weight-synonym
+classes), falling back to skip-with-warning (`#237`) only when the family genuinely lacks the weight
+under any spelling. Once that resolver landed, the mono table stopped buying anything — it could only
+ever suppress a weight some mono families legitimately have, with no way to tell the two cases apart
+at emit time (the CLI has no font library to ask).
+
+**Scope, kept to exactly what the issue named.** Removed: the `WEIGHT_STYLE_NAME_MONO` const and its
+`table = mono ? … : …` selection in `fontStyleName`. Kept: `fontStyleName`'s `mono` parameter — it is
+keyed on the FACE for a real, separate reason (`#415` — a brand binding JetBrains Mono to
+`families.body`, where keying on category alone got it wrong) — the parameter is now unused inside
+the function body but stays in the signature as a hook for a future face-specific table, documented
+inline rather than silently dropped. The `#415` regression test (a mono face on `body` vs. a sans face
+on `display` in the same brand) is re-verified rather than deleted: both now emit the SAME guess
+(`Semi Bold`), which is the correct post-#538 behavior, not a loss of coverage — differentiation, if
+the family really lacks the weight, now happens at write time, tested separately in
+`plugin/test-write-typography.ts`'s `resolveFontStyle` suite.
+
+**What actually changed on regen — nothing, in the corpus.** `code` (the only category the default
+JetBrains Mono face binds to across nb/aurora/harbor/wendys) is restricted to the `default` weight
+role only (`theme.ts` — `code: ['default']`), which resolves to numeric 400, never 600. No corpus
+brand's default config binds a mono face to a non-`code` category either. So `regen.ts` produced a
+diff in exactly the four `*.tokens.json` files' `$extensions.generator.version` stamp — zero change to
+any emitted Figma `fontStyle` value, any `.ai.json`, or any `out/figma/**` file. The behavior change is
+real (a brand that DOES bind a mono face at weight 600, or binds JetBrains Mono outside `code`, now
+gets the correct resolved style at write time instead of a silently-collapsed `Medium`) but the
+corpus happens not to exercise it today — which is exactly why this is a version bump with no
+regenerated-artifact story to tell beyond the stamp.
+
+**Gates run:** `regen.ts` (diff = 4× version stamp only), `regen.ts --check` (88 artifacts, worktree —
+expected per the CLAUDE.md note), `test.ts` (1931 passed), `mcp-test.ts` (49 passed), `nb-regression.ts`
+(PASS, unchanged), `token-contract.ts --check` (clean after `--accept` updated the informational
+`engineVersion` field only — 485 guaranteed paths, contract 2.1.0 unmoved), `lint-skills.ts` (clean),
+`lint-us-english.ts` (clean — required building `web/dist` first since the worktree had none; the
+existing web source is untouched by this change so the bundle differs only in the same way regen's
+artifacts do).
+
+---
+
 ## (2026-08-07) — Naming & packaging decided as one thing, around the eject boundary (docs/35, new)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New
