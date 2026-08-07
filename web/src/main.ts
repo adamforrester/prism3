@@ -6198,6 +6198,11 @@ const attachModeBadges = (root: HTMLElement): void => {
 };
 
 function renderWorkspace(): void {
+  // #485: `innerHTML = ''` below tears down and rebuilds the entire page, which resets scroll
+  // position as a side effect — every applyFull() caller (select onchange, etc.) was jumping the
+  // page to the top on every edit. Save/restore here fixes it once for every current AND future
+  // applyFull() call site, rather than patching each one individually.
+  const scrollY = window.scrollY;
   workspace.innerHTML = '';
   // Page furniture, not global chrome (#432). Re-minted every render because the workspace is cleared;
   // `currentMode` is module state, so the SELECTION survives navigation exactly as it did in the header.
@@ -6222,6 +6227,9 @@ function renderWorkspace(): void {
   const anchorEl = next?.classList.contains('pvseg') ? next : hero;
   if (anchorEl) anchorEl.after(modeStripHost);
   syncStuck();
+  // #485: restore the scroll position saved before the teardown above. Clamps naturally if the
+  // rebuilt page is shorter than before.
+  window.scrollTo(0, scrollY);
 }
 
 /** The bar is sticky, so page content slides under it. Without a shadow that reads as a hard cut at
