@@ -312,6 +312,101 @@ and `npm run build` — all green.
 
 ---
 
+## (2026-08-07) — #332: malformed lever values now reject at the one choke point every caller shares
+
+**STATUS: shipped.** `Prism3/engine/theme.ts` (`brandTheme()`), `Prism3/engine/test.ts` (+29
+assertions). No emitted artifact changes — `regen.ts --check` shows zero drift on the committed
+corpus (88 artifacts, byte-identical); this is new rejection of INVALID input, not a behavior
+change for anything that already validated.
+
+**The bug.** `typography.typeScale: 'gigantic'` (an unknown enum) built successfully and shipped a
+sizeless display style: `TYPE_SCALE_SHIFT['gigantic']` is `undefined`, which NaNs the ladder index
+and the composite's `sizePx` comes out `undefined` — silent structural corruption, not a bad value
+sitting inertly in the tree. `radiusScale: 47` (in-range-typed, out-of-declared-range) built
+`radius.md` at 188px against a manifest max of 2. `density: 'roomy'` threw, but several frames deep
+inside `componentSizes` reading `.x` off `undefined` — an accepted value that still broke, just
+later and with a worse diagnosis than a lever-name-and-valid-set message.
+
+**Root cause.** `emit-dtcg.ts` exports a real hand-rolled JSON-Schema validator
+(`validateBrandInput`, walking `schema/theme-schema.json`) and the CLI file path
+(`cli.ts` → `validateOrExit`) runs it. But `brandTheme()` itself never calls it, and `brandTheme()`
+is what the web UI and MCP callers invoke directly with an in-memory `BrandInput` — so the same
+malformed input was rejected on one entry path and silently corrupted output on another. Compounding
+this: `brandTheme()` *already* validates several things by hand for exactly this reason (`root`'s
+slug shape, `modes`, `customModes`, `overrides`, `modeAnchors`, and — inside `modeLevers.<mode>.*` —
+`tempo`/`density`/`shadow.softness`/`radius`/weights/rung re-points) with comments explicitly
+noting "in-memory BrandInput skips schema validation." The per-mode (`modeLevers`) versions of
+`tempo`/`density`/`shadow.softness` were gated; their GLOBAL counterparts — the levers the per-mode
+value *deviates from* — were not. Same bug shape, already half-fixed, never mirrored back.
+
+**The decision (flagged, open to override): validate INSIDE `brandTheme()`, not at each entry
+path.** `brandTheme()` is the one choke point CLI, MCP, the web playground, and
+`standardToBrandInput`'s `x-prism3` ingest (`standard-design-md.ts`) all go through — putting the
+check there means no caller can forget it, present or future. The alternative (patch every entry
+path — `cli.ts`, `mcp.ts`, the web app, `applyXPrism3`) was rejected because it is exactly the
+shape that produced this bug: a check that exists somewhere is not a check that runs everywhere the
+value can arrive from, and a fifth entry path added later would silently inherit the gap again.
+
+**Why NOT reuse `emit-dtcg.ts`'s `validateBrandInput` directly.** It reads
+`schema/theme-schema.json` off disk (`readFileSync`) and imports `brandTheme` FROM `theme.ts`
+already — importing it back into `theme.ts` would be a real import cycle, not just an unwanted
+dependency, and `theme.ts` is deliberately I/O-free (docs/07 §3's pure-core / I/O-shell split — the
+Figma plugin and web playground bundle this file into a sandbox with no filesystem). Instead: the
+same hand-rolled-checks pattern the function already used for `root`/`modes`/`modeLevers`, extended
+to the levers it hadn't reached — hardcoded enum lists and `[min, max]` pairs local to `theme.ts`,
+shared between the (pre-existing) per-mode checks and the (new) global ones via two consts
+(`MOTION_TEMPO_VALUES`, `DENSITY_VALUES`) so the two can't drift apart from each other, same as
+`levers.ts` and `schema/theme-schema.json` are kept from drifting by `test.ts`.
+
+**What's enforced — every `levers.ts` lever with `control: 'enum'` (9) and every `control: 'slider'`
+lever with a declared `[min, max]` (7), all REJECT (not clamp) out-of-contract values:**
+- Enum: `density`, `typography.typeScale`, `typography.displayCeiling`, `typography.titleFloor`,
+  `motionPersonality.tempo`, `iconContrast`, `disabledStrategy`, `outlineInteraction`,
+  `neutralEmphasis`.
+- Numeric range: `radiusScale` [0,2], `baseMd` [2,12], `shadow.softness` [0,2], `layout.columns`
+  [4,24], `layout.containerMax` [960,1920], `layout.containerNarrow` [480,960], `neutral.chroma`
+  [0,0.03].
+
+**Reject, not clamp — and why that's not the same choice everywhere.** The issue's own framing is
+that the manifest's min/max "were never the gate" — i.e. never enforced at all — so making them real
+means making them binding; a silent clamp on `radiusScale: 47` would still ship a value nobody chose,
+just a quieter wrong one. Matches the enum levers' behavior too: one policy, not two. **Deliberately
+NOT applied to `disabledMin`** — it already has its own, different, pre-existing, *documented* policy
+(clamp via `normalizeDisabledMin`, schema text: "Clamped to 3–4.5"); changing an already-shipped
+clamp to a throw is a behavior change this issue didn't ask for, so it's untouched.
+
+**Deliberately out of scope, with reasons, not oversights:**
+- `neutral.hue` — has a declared manifest range (0–360) but the *schema's* own number branch declares
+  no bound (unlike `neutral.chroma`, which declares `minimum: 0`), and every hue consumer resolves it
+  through `cos`/`sin`, exact for any real degree — 380° and 20° render identically. The manifest's
+  range is a color-picker UI convenience, not a domain boundary; rejecting a harmless-but-redundant
+  hue would be a false positive, not a bug fix.
+- `typography.weights.<role>` / `typography.links` / `typography.italics` array items, `gradients`
+  `kind`/`shape`/`interpolation`, `surfaces.<mode>.base` — all have closed enums in the schema but are
+  `control: 'object'`/`'list'`/`'toggle'` in `levers.ts`, not `'enum'`/ranged-`'slider'`, so they're
+  outside this fix's stated scope (the full manifest of enum + declared-range slider levers). Flagged
+  here as a candidate follow-up, not silently dropped.
+
+**Verified, not assumed: the design.md/`x-prism3` entry path inherits the fix for free.**
+`applyXPrism3` (`standard-design-md.ts`) casts `typeScale`/`density`/`motionTempo` `as any` with no
+enum check and range-checks `radiusScale` only for finiteness — exactly as the issue's own
+investigation described. It does **not** call `brandTheme()` itself; it mutates the `BrandInput` and
+returns. Traced every production caller of `standardToBrandInput` (`cli.ts`, `emit-figma.ts`,
+`token-contract.ts`, `test.ts`) — all feed the result straight into `brandTheme()` immediately after.
+So the entry path was never actually bypassing `brandTheme()`; it was bypassing *validation*, which
+now lives at the point every path already converges on. `test.ts`'s new `#332` group asserts this
+directly: an `x-prism3` malformed value and the equivalent native-dialect value now agree on
+rejection (both throw).
+
+**Gates run:** `regen.ts` (clean regenerate) → `regen.ts --check` (zero drift, 88/88) →
+`test.ts` (1960 passed, 0 failed, +29 from this change) → `mcp-test.ts` (49/49) →
+`token-contract.ts --check` (unchanged, contract 2.1.0) → `lint-skills.ts` (clean) →
+`nb-regression.ts` (PASS, ΔE00 1.95 aggregate, 11/11 contrast, 23/23 dimension) →
+`lint-us-english.ts` (clean; `web/dist` symlinked from the main checkout only to satisfy the gate's
+`REQUIRED_SURFACES` locally — no `web/` source touched, so nothing to rebuild).
+
+---
+
 ## (2026-08-07) — Naming & packaging decided as one thing, around the eject boundary (docs/35, new)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New

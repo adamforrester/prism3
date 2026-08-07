@@ -8173,6 +8173,95 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(new Set(geom).size === 3, `#536 item 6: every size is geometrically distinct (${geom.join(' ')}) — live heights 40/48/56, gaps 8/8/12`);
 }
 
+// -------------------------------------------------------------- #332: malformed lever values reject
+// brandTheme() is the one choke point every entry path (CLI, MCP, the web playground, and
+// standardToBrandInput's x-prism3 ingest) goes through — before this fix it validated `root`/`modes`/
+// `customModes`/`overrides`/`modeAnchors`/`modeLevers` but not the GLOBAL enum/numeric levers those
+// per-mode checks deviate FROM, so an in-memory BrandInput (never touching emit-dtcg.ts's schema
+// validator) could carry `typeScale: 'gigantic'`, `density: 'roomy'`, or `radiusScale: 47` straight
+// into the token builder. The first three below are the issue's own confirmed shapes; the rest extend
+// to one more enum lever and one more numeric-range lever from the full manifest, then to the
+// design.md/x-prism3 entry path (the issue's own "Verify").
+{
+  const base = { id: 'lv', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } };
+  const threw = (fn: () => unknown): string | null => { try { fn(); return null; } catch (e) { return (e as Error).message; } };
+
+  // ---- the three confirmed shapes ----
+  const typeScaleErr = threw(() => brandTheme({ ...base, typography: { typeScale: 'gigantic' } } as unknown as BrandInput));
+  ok(typeScaleErr !== null, "#332: typography.typeScale 'gigantic' (unknown enum) throws rather than building a sizeless display style");
+  ok(typeScaleErr !== null && /typeScale/.test(typeScaleErr) && /gigantic/.test(typeScaleErr), `#332: the typeScale error names the lever and the bad value — got: ${typeScaleErr}`);
+
+  const densityErr = threw(() => brandTheme({ ...base, density: 'roomy' } as unknown as BrandInput));
+  ok(densityErr !== null, "#332: density 'roomy' (unknown enum) throws rather than silently falling through to a default");
+  ok(densityErr !== null && /density/.test(densityErr) && /roomy/.test(densityErr), `#332: the density error names the lever and the bad value — got: ${densityErr}`);
+
+  const radiusErr = threw(() => brandTheme({ ...base, radiusScale: 47 } as unknown as BrandInput));
+  ok(radiusErr !== null, '#332: radiusScale 47 (out of the declared [0, 2] range) throws rather than computing an 188px radius.md');
+  ok(radiusErr !== null && /radiusScale/.test(radiusErr) && /47/.test(radiusErr), `#332: the radiusScale error names the lever, the bad value, and the range — got: ${radiusErr}`);
+
+  // ---- one more enum lever + one more numeric-range lever from the full manifest ----
+  const tempoErr = threw(() => brandTheme({ ...base, motionPersonality: { tempo: 'ludicrous' } } as unknown as BrandInput));
+  ok(tempoErr !== null, "#332: motionPersonality.tempo 'ludicrous' (unknown enum) throws — TEMPO_FACTOR['ludicrous'] would otherwise be undefined, NaN-ing the whole duration ramp");
+
+  const baseMdErr = threw(() => brandTheme({ ...base, baseMd: 999 } as unknown as BrandInput));
+  ok(baseMdErr !== null, '#332: baseMd 999 (out of the declared [2, 12] range) throws rather than scaling every radius rung off an absurd anchor');
+
+  // Every remaining enum/range lever #332 added — each must reject its own out-of-manifest value.
+  const otherBad: [string, Record<string, unknown>][] = [
+    ["typography.displayCeiling 'huge'", { typography: { displayCeiling: 'huge' } }],
+    ['typography.titleFloor 20', { typography: { titleFloor: 20 } }],
+    ["disabledStrategy 'yolo'", { disabledStrategy: 'yolo' }],
+    ["iconContrast '5:1'", { iconContrast: '5:1' }],
+    ["outlineInteraction 'explode'", { outlineInteraction: 'explode' }],
+    ["neutralEmphasis 'extreme'", { neutralEmphasis: 'extreme' }],
+    ['shadow.softness 99', { shadow: { softness: 99 } }],
+    ['layout.columns -5', { layout: { columns: -5 } }],
+    ['layout.containerMax 99999', { layout: { containerMax: 99999 } }],
+    ['layout.containerNarrow 99999', { layout: { containerNarrow: 99999 } }],
+    ['neutral.chroma 5', { neutral: { hue: 262, chroma: 5 } }],
+  ];
+  for (const [label, extra] of otherBad) {
+    ok(threw(() => brandTheme({ ...base, ...extra } as unknown as BrandInput)) !== null, `#332: ${label} throws`);
+  }
+
+  // ---- no false positives: every lever's own VALID enum/range still builds clean ----
+  const validErr = threw(() => brandTheme({
+    ...base,
+    typography: { typeScale: 'expressive', displayCeiling: 'lg', titleFloor: 16 },
+    density: 'compact', motionPersonality: { tempo: 'relaxed' }, radiusScale: 1.5, baseMd: 6,
+    disabledStrategy: 'full', iconContrast: '3:1', outlineInteraction: 'none', neutralEmphasis: 'strong',
+    shadow: { softness: 1.4 }, layout: { columns: 16, containerMax: 1600, containerNarrow: 600 },
+  } as unknown as BrandInput));
+  ok(validErr === null, `#332: every lever's own valid enum/range still builds clean — got: ${validErr}`);
+
+  // Named stops (#471) still resolve — the vocabulary layer runs BEFORE the #332 check, so
+  // 'soft'/'warm'/'subtle'/'wide' are already plain numbers by the time it looks at them.
+  const stopsErr = threw(() => brandTheme({ ...base, radiusScale: 'soft', neutral: { hue: 'warm', chroma: 'subtle' }, layout: { containerMax: 'wide' } } as unknown as BrandInput));
+  ok(stopsErr === null, `#332: named stops (radiusScale/neutral.hue/neutral.chroma/layout.containerMax) still resolve, unaffected by the new range check — got: ${stopsErr}`);
+
+  // ---- the design.md/x-prism3 entry path and the direct brandTheme() path now agree (issue's "Verify") ----
+  // `applyXPrism3` (standard-design-md.ts) casts typeScale/density/motionTempo `as any` with no enum
+  // check of its own, and checks radiusScale only for finiteness — no range clamp. Its only protection
+  // used to be schema validation on the FILE path (cli.ts's validateOrExit), which an in-memory
+  // BrandInput never touches. Confirm the x-prism3 ingest now rejects the same malformed values
+  // brandTheme() rejects directly — inherited for free from the single choke point, not a second,
+  // independently-maintained check.
+  const xBase = (): BrandInput => ({ id: 'x', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } });
+  const agreementCases: [string, Record<string, unknown>, boolean][] = [
+    ["x-prism3 typeScale='gigantic'", { typeScale: 'gigantic' }, typeScaleErr !== null],
+    ["x-prism3 density='roomy'", { density: 'roomy' }, densityErr !== null],
+    ["x-prism3 motionTempo='ludicrous'", { motionTempo: 'ludicrous' }, tempoErr !== null],
+    ["x-prism3 radiusScale=47", { radiusScale: 47 }, radiusErr !== null],
+  ];
+  for (const [label, x, expectDirectThrows] of agreementCases) {
+    const input = xBase();
+    applyXPrism3(input, x);   // mutates input in place; applyXPrism3 itself does not enum/range-check
+    const viaXThrows = threw(() => brandTheme(input)) !== null;
+    ok(viaXThrows, `#332: ${label} reaches brandTheme() via the design.md/x-prism3 entry path and throws`);
+    ok(viaXThrows === expectDirectThrows, `#332: ${label} — the x-prism3 path and the direct brandTheme() path agree on rejection (both throw)`);
+  }
+}
+
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
 if (fails.length) { fails.forEach((f) => console.log(`  ❌ ${f}`)); process.exitCode = 1; }
