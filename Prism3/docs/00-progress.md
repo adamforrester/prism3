@@ -7,6 +7,38 @@
 
 ---
 
+## (2026-08-07) — Fix: plugin read-back never surfaced the `icon` FLOAT collection
+
+**STATUS: shipped.** Found during independent review of #597, not filed as an issue first — CI on
+`main` went red immediately after #596 merged, on a PR (#597) that never touches plugin code, so the
+break had to predate it.
+
+**Root cause.** #596 corrected `Prism3/engine/read-back.ts`'s `EXPECTED_FLOAT_COLLECTIONS` to include
+`icon` (#324's artboard-ladder axis), matching what `emit-figma-dims.ts` actually emits. That fix was
+right, but it exposed a second, independent bug it wasn't looking for: `plugin/src/read-figma.ts`'s own
+hardcoded `FLOAT_COLLECTIONS` list — the plugin's read-back path, separate from the engine's file emit —
+was also missing `icon`, so `readFigmaVariables` never surfaced the collection into the snapshot even
+though `buildFloatWritePlan`/`applyFloatPlan` (`write-plan.ts:194`) genuinely write it. Two matching
+gaps had been masking each other since #324: the verifier didn't expect `icon`, and the reader didn't
+read it, so nothing ever caught the plugin round-trip silently dropping a whole axis. #596 fixed one
+side of that pair and, correctly, turned the other into a visible failure.
+
+**Fix.** Added `icon` to `read-figma.ts`'s `FLOAT_COLLECTIONS` (same position as `write-plan.ts`'s
+`floatPlanFor('icon', …)` call, between `size` and `border-width`). Also updated the two test-local
+collection lists that had the same drift for the same reason and were about to go stale again the
+same way (`test-readback.ts`'s inline assertion array, `test-write-float.ts`'s `EXPECTED` + its
+"eight FLOAT collections" doc comment, now nine).
+
+**Verification.** `npm run -w @prism3/plugin test` — all 8 suites ALL PASS (was: `plugin read-back`
+2 FAILED on `collectionsPresent`, reproduced first on the unmodified checkout, then confirmed absent
+before #596 (`cd58f2d`) and present at #596's merge commit (`300a422`), isolating it to #596's diff
+rather than to #597 or to environment drift). Full gate suite otherwise unaffected: `regen.ts --check`
+88/88, `test.ts` 1920/1920, `mcp-test.ts` 49/49, `token-contract.ts --check` unchanged (2.1.0/485),
+`nb-regression.ts` PASS, `lint-skills.ts` clean, `web`/`plugin` typecheck + build clean,
+`lint-us-english.ts` clean (94 files), `check:ignore`/`lint:contrast`/`lint:classes` clean.
+
+---
+
 ## (2026-08-07) — Prose audit: engine comments asserting retired mechanisms (#553)
 
 **STATUS: shipped.** Sixteen `engine/*.ts` comment/docstring sites plus `Prism3/schema/theme-schema.json`'s
