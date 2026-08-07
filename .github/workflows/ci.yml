@@ -164,8 +164,8 @@ jobs:
           count=$(npx --yes tsx@4 Prism3/engine/regen.ts --check | grep -oE '[0-9]+ committed artifacts')
           echo "reported: $count"
           case "$count" in
-            "88 committed artifacts") echo "✓ full set covered" ;;
-            *) echo "✗ artifact coverage changed — expected 88. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
+            "104 committed artifacts") echo "✓ full set covered" ;;
+            *) echo "✗ artifact coverage changed — expected 104. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
       # #610 fixed CLAUDE.md/CONTRIBUTING.md/the PR template being out of sync with the gates above —

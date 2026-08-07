@@ -25,7 +25,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildConsumer, SOURCE } from './sd.consumer.mjs';
+import { buildConsumer, buildProjected, SOURCE } from './sd.consumer.mjs';
 
 const CONFIG = resolve(dirname(fileURLToPath(import.meta.url)), 'sd.consumer.mjs');
 
@@ -97,7 +97,12 @@ ok(css.refs > 100, `alias references survive into the CSS (${css.refs} \`var(--\
 ok(css.byName['--nbds-color-background-primary']?.includes('palette-white'),
   `background/primary resolves to the LIGHT value (${css.byName['--nbds-color-background-primary'] ?? 'missing'})`);
 
-// ---- the PINNED DEFECT (#609). These are expected-true TODAY and should FAIL once #609 lands. ----
+// ---- the CANONICAL tree's collapse. PINNED, and it is NOT a defect awaiting a fix. ----
+// I originally wrote these as "expected-true today, should fail once #609 lands." That was wrong, and
+// the correction is worth stating: #609 resolved to keeping `$extensions` as the SOURCE OF TRUTH and
+// emitting a conforming PROJECTION alongside it. So the canonical tree stays deliberately
+// extension-based and these assertions stay true forever — they now document WHY the projection
+// exists, not a defect. The acceptance test for #609 is the projected block below.
 const KNOWN_COLLAPSE = true;
 ok(css.unique === src.leaves,
   `[#609] every DTCG leaf yields exactly ONE css var (${css.unique}/${src.leaves}) — per-mode values are dropped`);
@@ -106,10 +111,24 @@ ok(css.selectors.join('|') === ':root',
 ok(src.modes.length > 0,
   `the source DOES declare modes the consumer never sees (${src.modes.join(', ')}) — the gap is real, not vacuous`);
 
-// ---- what a fix must achieve, stated so the target is unambiguous ----
-console.log(`\n  When #609 lands, a stock build should emit ~${src.leaves * (src.modes.length + 1)} vars`);
-console.log(`  across ${src.modes.length + 1} selectors, with NO custom preprocessor in sd.consumer.mjs.`);
-console.log(`  If that happens, the three [#609] assertions above will fail — update them and close the issue.\n`);
+// ---- THE PROJECTION (#609): what a conforming consumer actually reads ----
+// This is the acceptance test. Same stock config, two sources instead of one, still no custom code.
+console.log(`\n  Projected build — base + overlay, stock Style Dictionary, no custom code:\n`);
+const baseCss = readEmitted(await buildProjected(BRAND, 'base'));
+ok(baseCss.unique === src.leaves,
+  `[#609] the BASE carries every token (${baseCss.unique}/${src.leaves})`);
+ok(baseCss.refs > 100, `[#609] the base preserves alias references (${baseCss.refs})`);
+// Independence: `modes` comes from walking the SOURCE json, the emitted vars from parsing CSS.
+for (const mode of src.modes) {
+  const m = readEmitted(await buildProjected(BRAND, mode));
+  const differing = Object.keys(baseCss.byName).filter((k) => baseCss.byName[k] !== m.byName[k]).length;
+  ok(m.unique === src.leaves, `[#609] ${mode}: every token present (${m.unique}/${src.leaves}) — nothing dropped`);
+  ok(m.refs > 100, `[#609] ${mode}: alias references survive (${m.refs})`);
+  ok(differing > 0, `[#609] ${mode}: actually differs from base (${differing} vars) — the overlay is not inert`);
+  ok(m.selectors.join('|') === `[data-theme="${mode}"]`, `[#609] ${mode}: emitted under its own selector (${m.selectors.join('|')})`);
+}
+// The non-vacuity floor: an empty overlay would satisfy "nothing dropped" while changing nothing.
+ok(src.modes.length >= 3, `[#609] the projection covers every declared mode (${src.modes.length})`);
 
 if (fail.length) {
   console.error(`✗ ${fail.length} assertion(s) failed — the measured behavior moved:\n`);
@@ -117,5 +136,6 @@ if (fail.length) {
   console.error('\n  If you FIXED #609, update the pinned assertions. If not, something regressed.\n');
   process.exit(1);
 }
-console.log(`✓ behavior matches the pinned baseline. KNOWN GAP: ${src.modes.length} of ${src.modes.length + 1} modes are invisible to a conforming consumer (#609).\n`);
+console.log(`✓ canonical tree: ${src.modes.length} of ${src.modes.length + 1} modes invisible to a conforming consumer — BY DESIGN (#609).`);
+console.log(`✓ projected set:  base + ${src.modes.length} overlays read by a stock Style Dictionary with no custom code.\n`);
 if (!KNOWN_COLLAPSE) process.exit(1);

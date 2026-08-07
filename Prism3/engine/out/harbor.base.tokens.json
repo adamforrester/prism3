@@ -2696,23 +2696,6 @@
               "aliasOf": "prism.palette.neutral.050",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.950}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -2736,23 +2719,6 @@
               "aliasOf": "prism.palette.neutral.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -2776,23 +2742,6 @@
               "aliasOf": "prism.palette.neutral.150",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.850}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -2817,23 +2766,6 @@
                 "aliasOf": "prism.palette.neutral.950",
                 "contrast": 1,
                 "against": "self",
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.025}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 1,
-                    "against": "self"
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -2857,23 +2789,6 @@
                 "aliasOf": "prism.palette.neutral.900",
                 "contrast": 1,
                 "against": "self",
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.050}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 1,
-                    "against": "self"
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -2897,23 +2812,6 @@
                 "aliasOf": "prism.palette.neutral.850",
                 "contrast": 1,
                 "against": "self",
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.100}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 1,
-                    "against": "self"
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -2940,23 +2838,6 @@
               "aliasOf": "prism.palette.black-alpha.40",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.black-alpha.60}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.black-alpha.60}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black-alpha.70}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -2982,23 +2863,6 @@
               "aliasOf": "prism.palette.neutral.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3022,23 +2886,6 @@
               "aliasOf": "prism.palette.neutral.150",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.850}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3062,23 +2909,6 @@
               "aliasOf": "prism.palette.neutral.200",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.800}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3103,23 +2933,6 @@
                 "aliasOf": "prism.palette.neutral.900",
                 "contrast": 1,
                 "against": "self",
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.050}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 1,
-                    "against": "self"
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -3143,23 +2956,6 @@
                 "aliasOf": "prism.palette.neutral.850",
                 "contrast": 1,
                 "against": "self",
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.100}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 1,
-                    "against": "self"
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -3183,23 +2979,6 @@
                 "aliasOf": "prism.palette.neutral.800",
                 "contrast": 1,
                 "against": "self",
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.150}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 1,
-                    "against": "self"
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 1,
-                    "against": "self"
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -3225,26 +3004,6 @@
               "contrast": 4.91,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.550}",
-                  "contrast": 3.19,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.700}",
-                  "contrast": 7.21,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.300}",
-                  "contrast": 7.44,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3269,26 +3028,6 @@
               "contrast": 3.33,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.success.500}",
-                  "contrast": 3.89,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.success.750}",
-                  "contrast": 8.43,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.success.300}",
-                  "contrast": 7.65,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3313,26 +3052,6 @@
               "contrast": 3.33,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.warning.500}",
-                  "contrast": 3.89,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.warning.700}",
-                  "contrast": 7.12,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.warning.300}",
-                  "contrast": 7.34,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3357,26 +3076,6 @@
               "contrast": 3.3,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.info.500}",
-                  "contrast": 3.93,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.info.700}",
-                  "contrast": 7.08,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.info.300}",
-                  "contrast": 7.5,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3400,23 +3099,6 @@
               "aliasOf": "prism.palette.primary.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.100}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.900}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3440,23 +3122,6 @@
               "aliasOf": "prism.palette.success.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.success.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.success.100}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.success.900}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3480,23 +3145,6 @@
               "aliasOf": "prism.palette.warning.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.warning.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.warning.100}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.warning.900}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3520,23 +3168,6 @@
               "aliasOf": "prism.palette.danger.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.danger.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.danger.100}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.danger.900}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3560,23 +3191,6 @@
               "aliasOf": "prism.palette.info.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.info.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.info.100}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.info.900}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3601,26 +3215,6 @@
               "contrast": 3.31,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.danger.500}",
-                  "contrast": 3.92,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.danger.700}",
-                  "contrast": 7.24,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.danger.300}",
-                  "contrast": 7.39,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -3649,26 +3243,6 @@
                   "contrast": 4.91,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.550}",
-                      "contrast": 3.19,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.700}",
-                      "contrast": 7.21,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.300}",
-                      "contrast": 7.44,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -3693,26 +3267,6 @@
                   "contrast": 5.99,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.500}",
-                      "contrast": 3.91,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.750}",
-                      "contrast": 8.53,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.250}",
-                      "contrast": 8.62,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -3737,26 +3291,6 @@
                   "contrast": 7.21,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.450}",
-                      "contrast": 4.61,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.800}",
-                      "contrast": 10.11,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.200}",
-                      "contrast": 9.93,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -3781,26 +3315,6 @@
                   "contrast": 5.99,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.500}",
-                      "contrast": 3.91,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.750}",
-                      "contrast": 8.53,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.250}",
-                      "contrast": 8.62,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -3825,26 +3339,6 @@
                   "contrast": 7.21,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.450}",
-                      "contrast": 4.61,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.800}",
-                      "contrast": 10.11,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.200}",
-                      "contrast": 9.93,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -3870,26 +3364,6 @@
                 "contrast": 6.79,
                 "against": "interactive.primary.fill.rest",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.025}",
-                    "contrast": 5.23,
-                    "against": "interactive.primary.fill.rest",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 9.96,
-                    "against": "interactive.primary.fill.rest",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 8.72,
-                    "against": "interactive.primary.fill.rest",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -3915,26 +3389,6 @@
                   "contrast": 5.59,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.450}",
-                      "contrast": 5,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.650}",
-                      "contrast": 8.28,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.350}",
-                      "contrast": 7.47,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -3959,26 +3413,6 @@
                   "contrast": 6.81,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.400}",
-                      "contrast": 5.93,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.700}",
-                      "contrast": 9.96,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.300}",
-                      "contrast": 8.72,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4003,26 +3437,6 @@
                   "contrast": 8.2,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.350}",
-                      "contrast": 6.91,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.750}",
-                      "contrast": 11.78,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.250}",
-                      "contrast": 10.11,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4048,26 +3462,6 @@
                 "contrast": 3.77,
                 "against": "background.primary",
                 "min": 3,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.500}",
-                    "contrast": 4.24,
-                    "against": "background.primary",
-                    "min": 3
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.500}",
-                    "contrast": 4.58,
-                    "against": "background.primary",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.500}",
-                    "contrast": 4.58,
-                    "against": "background.primary",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -4094,26 +3488,6 @@
                     "contrast": 5,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.primary.600}",
-                        "contrast": 6.33,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.primary.350}",
-                        "contrast": 7.47,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.primary.650}",
-                        "contrast": 8.28,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -4138,26 +3512,6 @@
                     "contrast": 5.93,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.primary.650}",
-                        "contrast": 7.72,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.primary.300}",
-                        "contrast": 8.72,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.primary.700}",
-                        "contrast": 9.96,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -4182,26 +3536,6 @@
                     "contrast": 6.91,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.primary.700}",
-                        "contrast": 9.29,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.primary.250}",
-                        "contrast": 10.11,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.primary.750}",
-                        "contrast": 11.78,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -4228,26 +3562,6 @@
                     "contrast": 14.11,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.primary.900}",
-                        "contrast": 16.69,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.primary.100}",
-                        "contrast": 15.26,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.primary.900}",
-                        "contrast": 17.89,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -4272,26 +3586,6 @@
                     "contrast": 15.95,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.primary.950}",
-                        "contrast": 18,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.primary.050}",
-                        "contrast": 17.26,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.primary.950}",
-                        "contrast": 19.3,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -4316,26 +3610,6 @@
                     "contrast": 10.77,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.primary.800}",
-                        "contrast": 13.02,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.primary.200}",
-                        "contrast": 11.65,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.primary.800}",
-                        "contrast": 13.96,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -4361,26 +3635,6 @@
                   "contrast": 14.11,
                   "against": "interactive.primary.on-inverse.fill.rest",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.025}",
-                      "contrast": 16.69,
-                      "against": "interactive.primary.on-inverse.fill.rest",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black}",
-                      "contrast": 15.26,
-                      "against": "interactive.primary.on-inverse.fill.rest",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white}",
-                      "contrast": 17.89,
-                      "against": "interactive.primary.on-inverse.fill.rest",
-                      "min": 4.5
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4405,26 +3659,6 @@
                   "contrast": 4.24,
                   "against": "background.inverse.primary",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.primary.500}",
-                      "contrast": 4.28,
-                      "against": "background.inverse.primary",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.primary.500}",
-                      "contrast": 4.58,
-                      "against": "background.inverse.primary",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.primary.500}",
-                      "contrast": 4.58,
-                      "against": "background.inverse.primary",
-                      "min": 4.5
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4451,26 +3685,6 @@
                   "contrast": 12.8,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.10}",
-                      "contrast": 14.24,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.10}",
-                      "contrast": 16.75,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.10}",
-                      "contrast": 17.49,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4495,26 +3709,6 @@
                   "contrast": 10.04,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 10.05,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.20}",
-                      "contrast": 13.08,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 12.63,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4539,26 +3733,6 @@
                   "contrast": 10.04,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 10.05,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.20}",
-                      "contrast": 13.08,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 12.63,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4587,26 +3761,6 @@
                   "contrast": 3.31,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.500}",
-                      "contrast": 3.92,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.700}",
-                      "contrast": 7.24,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.300}",
-                      "contrast": 7.39,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4631,26 +3785,6 @@
                   "contrast": 4.04,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.450}",
-                      "contrast": 4.56,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.750}",
-                      "contrast": 8.73,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.250}",
-                      "contrast": 8.63,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4675,26 +3809,6 @@
                   "contrast": 4.92,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.400}",
-                      "contrast": 5.38,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.800}",
-                      "contrast": 10.32,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.200}",
-                      "contrast": 9.95,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4719,26 +3833,6 @@
                   "contrast": 4.04,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.450}",
-                      "contrast": 4.56,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.750}",
-                      "contrast": 8.73,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.250}",
-                      "contrast": 8.63,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4763,26 +3857,6 @@
                   "contrast": 4.92,
                   "against": "neutral.100",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.400}",
-                      "contrast": 5.38,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.800}",
-                      "contrast": 10.32,
-                      "against": "neutral.100",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.200}",
-                      "contrast": 9.95,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4808,26 +3882,6 @@
                 "contrast": 4.57,
                 "against": "interactive.destructive.fill.rest",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 4.6,
-                    "against": "interactive.destructive.fill.rest",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 10.01,
-                    "against": "interactive.destructive.fill.rest",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 8.67,
-                    "against": "interactive.destructive.fill.rest",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -4853,26 +3907,6 @@
                   "contrast": 4.6,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.450}",
-                      "contrast": 4.94,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.650}",
-                      "contrast": 8.25,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.350}",
-                      "contrast": 7.46,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4897,26 +3931,6 @@
                   "contrast": 5.59,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.400}",
-                      "contrast": 5.84,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.700}",
-                      "contrast": 10.01,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.300}",
-                      "contrast": 8.67,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4941,26 +3955,6 @@
                   "contrast": 6.79,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.350}",
-                      "contrast": 6.9,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.750}",
-                      "contrast": 12.06,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.250}",
-                      "contrast": 10.12,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -4986,26 +3980,6 @@
                 "contrast": 3.76,
                 "against": "background.primary",
                 "min": 3,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.danger.500}",
-                    "contrast": 4.25,
-                    "against": "background.primary",
-                    "min": 3
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.danger.500}",
-                    "contrast": 4.57,
-                    "against": "background.primary",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.danger.500}",
-                    "contrast": 4.6,
-                    "against": "background.primary",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -5032,26 +4006,6 @@
                     "contrast": 4.94,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.danger.550}",
-                        "contrast": 5.21,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.danger.350}",
-                        "contrast": 7.46,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.danger.650}",
-                        "contrast": 8.25,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -5076,26 +4030,6 @@
                     "contrast": 5.84,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.danger.600}",
-                        "contrast": 6.34,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.danger.300}",
-                        "contrast": 8.67,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.danger.700}",
-                        "contrast": 10.01,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -5120,26 +4054,6 @@
                     "contrast": 6.9,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.danger.650}",
-                        "contrast": 7.69,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.danger.250}",
-                        "contrast": 10.12,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.danger.750}",
-                        "contrast": 12.06,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -5166,26 +4080,6 @@
                     "contrast": 14.1,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.danger.900}",
-                        "contrast": 17.01,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.danger.100}",
-                        "contrast": 15.25,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.danger.900}",
-                        "contrast": 18.23,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -5210,26 +4104,6 @@
                     "contrast": 15.94,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.danger.950}",
-                        "contrast": 18.28,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.danger.050}",
-                        "contrast": 17.24,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.danger.950}",
-                        "contrast": 19.59,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -5254,26 +4128,6 @@
                     "contrast": 10.79,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.danger.800}",
-                        "contrast": 13.3,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.danger.200}",
-                        "contrast": 11.67,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.danger.800}",
-                        "contrast": 14.26,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -5299,26 +4153,6 @@
                   "contrast": 14.1,
                   "against": "interactive.destructive.on-inverse.fill.rest",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.025}",
-                      "contrast": 17.01,
-                      "against": "interactive.destructive.on-inverse.fill.rest",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black}",
-                      "contrast": 15.25,
-                      "against": "interactive.destructive.on-inverse.fill.rest",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white}",
-                      "contrast": 18.23,
-                      "against": "interactive.destructive.on-inverse.fill.rest",
-                      "min": 4.5
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5343,26 +4177,6 @@
                   "contrast": 4.25,
                   "against": "background.inverse.primary",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.danger.500}",
-                      "contrast": 4.26,
-                      "against": "background.inverse.primary",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.danger.500}",
-                      "contrast": 4.6,
-                      "against": "background.inverse.primary",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.danger.500}",
-                      "contrast": 4.57,
-                      "against": "background.inverse.primary",
-                      "min": 4.5
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5389,26 +4203,6 @@
                   "contrast": 12.8,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.10}",
-                      "contrast": 14.24,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.10}",
-                      "contrast": 16.75,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.10}",
-                      "contrast": 17.49,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5433,26 +4227,6 @@
                   "contrast": 10.04,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 10.05,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.20}",
-                      "contrast": 13.08,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 12.63,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5477,26 +4251,6 @@
                   "contrast": 10.04,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 10.05,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.20}",
-                      "contrast": 13.08,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 12.63,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5524,23 +4278,6 @@
                   "aliasOf": "prism.palette.neutral.150",
                   "contrast": 1.14,
                   "against": "neutral.100",
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.850}",
-                      "contrast": 1.12,
-                      "against": "neutral.900"
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.neutral.150}",
-                      "contrast": 1.14,
-                      "against": "neutral.100"
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.neutral.850}",
-                      "contrast": 1.12,
-                      "against": "neutral.900"
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5564,23 +4301,6 @@
                   "aliasOf": "prism.palette.neutral.200",
                   "contrast": 1.3,
                   "against": "neutral.100",
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.800}",
-                      "contrast": 1.29,
-                      "against": "neutral.900"
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.neutral.200}",
-                      "contrast": 1.3,
-                      "against": "neutral.100"
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.neutral.800}",
-                      "contrast": 1.29,
-                      "against": "neutral.900"
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5604,23 +4324,6 @@
                   "aliasOf": "prism.palette.neutral.250",
                   "contrast": 1.51,
                   "against": "neutral.100",
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.750}",
-                      "contrast": 1.51,
-                      "against": "neutral.900"
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.neutral.250}",
-                      "contrast": 1.51,
-                      "against": "neutral.100"
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.neutral.750}",
-                      "contrast": 1.51,
-                      "against": "neutral.900"
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5644,23 +4347,6 @@
                   "aliasOf": "prism.palette.neutral.200",
                   "contrast": 1.3,
                   "against": "neutral.100",
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.800}",
-                      "contrast": 1.29,
-                      "against": "neutral.900"
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.neutral.200}",
-                      "contrast": 1.3,
-                      "against": "neutral.100"
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.neutral.800}",
-                      "contrast": 1.29,
-                      "against": "neutral.900"
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5684,23 +4370,6 @@
                   "aliasOf": "prism.palette.neutral.250",
                   "contrast": 1.51,
                   "against": "neutral.100",
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.750}",
-                      "contrast": 1.51,
-                      "against": "neutral.900"
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.neutral.250}",
-                      "contrast": 1.51,
-                      "against": "neutral.100"
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.neutral.750}",
-                      "contrast": 1.51,
-                      "against": "neutral.900"
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5726,26 +4395,6 @@
                 "contrast": 12.36,
                 "against": "interactive.neutral.fill.rest",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.025}",
-                    "contrast": 14.96,
-                    "against": "interactive.neutral.fill.rest",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.black}",
-                    "contrast": 13.36,
-                    "against": "interactive.neutral.fill.rest",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.white}",
-                    "contrast": 16.03,
-                    "against": "interactive.neutral.fill.rest",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -5771,26 +4420,6 @@
                   "contrast": 15.98,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.025}",
-                      "contrast": 18.11,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black}",
-                      "contrast": 21,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white}",
-                      "contrast": 21,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5815,26 +4444,6 @@
                   "contrast": 15.98,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.025}",
-                      "contrast": 18.11,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black}",
-                      "contrast": 21,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white}",
-                      "contrast": 21,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5859,26 +4468,6 @@
                   "contrast": 15.98,
                   "against": "background.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.025}",
-                      "contrast": 18.11,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black}",
-                      "contrast": 21,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white}",
-                      "contrast": 21,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -5904,26 +4493,6 @@
                 "contrast": 3.2,
                 "against": "background.primary",
                 "min": 3,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.550}",
-                    "contrast": 3.51,
-                    "against": "background.primary",
-                    "min": 3
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.neutral.500}",
-                    "contrast": 4.59,
-                    "against": "background.primary",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.neutral.500}",
-                    "contrast": 4.57,
-                    "against": "background.primary",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -5950,26 +4519,6 @@
                     "contrast": 18.11,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.neutral.950}",
-                        "contrast": 18.11,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.white}",
-                        "contrast": 21,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.black}",
-                        "contrast": 21,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -5994,26 +4543,6 @@
                     "contrast": 18.11,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.neutral.950}",
-                        "contrast": 18.11,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.white}",
-                        "contrast": 21,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.black}",
-                        "contrast": 21,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -6038,26 +4567,6 @@
                     "contrast": 18.11,
                     "against": "background.inverse.primary",
                     "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.neutral.950}",
-                        "contrast": 18.11,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.white}",
-                        "contrast": 21,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.black}",
-                        "contrast": 21,
-                        "against": "background.inverse.primary",
-                        "min": 7
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -6084,26 +4593,6 @@
                     "contrast": 15.98,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.neutral.850}",
-                        "contrast": 14.96,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.neutral.050}",
-                        "contrast": 17.29,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.neutral.850}",
-                        "contrast": 16.03,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -6128,26 +4617,6 @@
                     "contrast": 14.05,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.neutral.900}",
-                        "contrast": 16.7,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.neutral.100}",
-                        "contrast": 15.2,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.neutral.900}",
-                        "contrast": 17.9,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -6172,26 +4641,6 @@
                     "contrast": 12.36,
                     "against": "background.inverse.primary",
                     "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{prism.palette.neutral.950}",
-                        "contrast": 18.11,
-                        "against": "background.inverse.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{prism.palette.neutral.150}",
-                        "contrast": 13.36,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{prism.palette.neutral.950}",
-                        "contrast": 19.42,
-                        "against": "background.inverse.primary",
-                        "min": 4.5
-                      }
-                    },
                     "figma": {
                       "collection": "color",
                       "modes": [
@@ -6217,26 +4666,6 @@
                   "contrast": 15.98,
                   "against": "interactive.neutral.on-inverse.fill.rest",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.025}",
-                      "contrast": 14.96,
-                      "against": "interactive.neutral.on-inverse.fill.rest",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black}",
-                      "contrast": 17.29,
-                      "against": "interactive.neutral.on-inverse.fill.rest",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white}",
-                      "contrast": 16.03,
-                      "against": "interactive.neutral.on-inverse.fill.rest",
-                      "min": 4.5
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -6261,26 +4690,6 @@
                   "contrast": 3.51,
                   "against": "background.inverse.primary",
                   "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.neutral.400}",
-                      "contrast": 3.08,
-                      "against": "background.inverse.primary",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.neutral.500}",
-                      "contrast": 4.57,
-                      "against": "background.inverse.primary",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.neutral.500}",
-                      "contrast": 4.59,
-                      "against": "background.inverse.primary",
-                      "min": 4.5
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -6307,26 +4716,6 @@
                   "contrast": 12.8,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.10}",
-                      "contrast": 14.24,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.10}",
-                      "contrast": 16.75,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.10}",
-                      "contrast": 17.49,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -6351,26 +4740,6 @@
                   "contrast": 10.04,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 10.05,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.20}",
-                      "contrast": 13.08,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 12.63,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -6395,26 +4764,6 @@
                   "contrast": 10.04,
                   "against": "text.primary",
                   "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 10.05,
-                      "against": "text.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{prism.palette.black-alpha.20}",
-                      "contrast": 13.08,
-                      "against": "text.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{prism.palette.white-alpha.20}",
-                      "contrast": 12.63,
-                      "against": "text.primary",
-                      "min": 7
-                    }
-                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
@@ -6442,23 +4791,6 @@
               "aliasOf": "prism.palette.neutral.200",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.750}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.200}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.750}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6483,26 +4815,6 @@
               "contrast": 3.08,
               "against": "disabled.fill",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 3.05,
-                  "against": "disabled.fill",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.650}",
-                  "contrast": 4.54,
-                  "against": "disabled.fill",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.300}",
-                  "contrast": 4.89,
-                  "against": "disabled.fill",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6527,26 +4839,6 @@
               "contrast": 3.32,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.550}",
-                  "contrast": 3.23,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.88,
-                  "against": "neutral.100",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6571,26 +4863,6 @@
               "contrast": 3.32,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.550}",
-                  "contrast": 3.23,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.88,
-                  "against": "neutral.100",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6614,23 +4886,6 @@
               "aliasOf": "prism.palette.neutral.200",
               "contrast": 1.48,
               "against": "background.primary",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.750}",
-                  "contrast": 1.64,
-                  "against": "background.primary"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.200}",
-                  "contrast": 1.8,
-                  "against": "background.primary"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.750}",
-                  "contrast": 1.77,
-                  "against": "background.primary"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6656,23 +4911,6 @@
               "aliasOf": "prism.palette.neutral.100",
               "contrast": 1,
               "against": "self",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.900}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 1,
-                  "against": "self"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 1,
-                  "against": "self"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6698,26 +4936,6 @@
                 "contrast": 3.2,
                 "against": "background.primary",
                 "min": 3,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.550}",
-                    "contrast": 3.51,
-                    "against": "background.primary",
-                    "min": 3
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.neutral.500}",
-                    "contrast": 4.59,
-                    "against": "background.primary",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.neutral.500}",
-                    "contrast": 4.57,
-                    "against": "background.primary",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -6742,26 +4960,6 @@
                 "contrast": 4.56,
                 "against": "background.primary",
                 "min": 3,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.neutral.450}",
-                    "contrast": 5,
-                    "against": "background.primary",
-                    "min": 3
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.neutral.600}",
-                    "contrast": 6.75,
-                    "against": "background.primary",
-                    "min": 4.5
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.neutral.400}",
-                    "contrast": 6.37,
-                    "against": "background.primary",
-                    "min": 4.5
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -6787,26 +4985,6 @@
               "contrast": 4.88,
               "against": "field.fill",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 4.61,
-                  "against": "field.fill",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.650}",
-                  "contrast": 8.16,
-                  "against": "field.fill",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.350}",
-                  "contrast": 7.49,
-                  "against": "field.fill",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6833,26 +5011,6 @@
               "contrast": 15.98,
               "against": "background.primary",
               "min": 7,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.025}",
-                  "contrast": 18.11,
-                  "against": "background.primary",
-                  "min": 7
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 15
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 15
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6877,26 +5035,6 @@
               "contrast": 4.88,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.700}",
-                  "contrast": 7.13,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.300}",
-                  "contrast": 7.39,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6921,26 +5059,6 @@
               "contrast": 3.32,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.550}",
-                  "contrast": 3.23,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.88,
-                  "against": "neutral.100",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -6965,26 +5083,6 @@
               "contrast": 4.91,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.700}",
-                  "contrast": 7.21,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.300}",
-                  "contrast": 7.44,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7009,26 +5107,6 @@
               "contrast": 4.85,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.success.450}",
-                  "contrast": 4.67,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.success.750}",
-                  "contrast": 8.43,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.success.300}",
-                  "contrast": 7.65,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7053,26 +5131,6 @@
               "contrast": 4.86,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.warning.450}",
-                  "contrast": 4.62,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.warning.700}",
-                  "contrast": 7.12,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.warning.300}",
-                  "contrast": 7.34,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7097,26 +5155,6 @@
               "contrast": 4.92,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.danger.450}",
-                  "contrast": 4.56,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.danger.700}",
-                  "contrast": 7.24,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.danger.300}",
-                  "contrast": 7.39,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7141,26 +5179,6 @@
               "contrast": 4.85,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.info.450}",
-                  "contrast": 4.63,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.info.700}",
-                  "contrast": 7.08,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.info.300}",
-                  "contrast": 7.5,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7185,26 +5203,6 @@
               "contrast": 3.2,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.350}",
-                  "contrast": 6.91,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 4.58,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.350}",
-                  "contrast": 7.47,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7229,26 +5227,6 @@
               "contrast": 3.16,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.success.350}",
-                  "contrast": 7.02,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.success.500}",
-                  "contrast": 4.6,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.success.350}",
-                  "contrast": 7.59,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7273,26 +5251,6 @@
               "contrast": 3.19,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.warning.350}",
-                  "contrast": 6.87,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.warning.500}",
-                  "contrast": 4.6,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.warning.350}",
-                  "contrast": 7.43,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7317,26 +5275,6 @@
               "contrast": 3.23,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.danger.350}",
-                  "contrast": 6.9,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.danger.500}",
-                  "contrast": 4.57,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.danger.350}",
-                  "contrast": 7.46,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7361,26 +5299,6 @@
               "contrast": 3.18,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.info.350}",
-                  "contrast": 6.95,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.info.500}",
-                  "contrast": 4.56,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.info.350}",
-                  "contrast": 7.52,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7405,26 +5323,6 @@
               "contrast": 6.79,
               "against": "foreground.brand",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.025}",
-                  "contrast": 5.23,
-                  "against": "foreground.brand",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 9.96,
-                  "against": "foreground.brand",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.72,
-                  "against": "foreground.brand",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7449,26 +5347,6 @@
               "contrast": 4.6,
               "against": "foreground.success",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 4.6,
-                  "against": "foreground.success",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 11.65,
-                  "against": "foreground.success",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.98,
-                  "against": "foreground.success",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7493,26 +5371,6 @@
               "contrast": 4.6,
               "against": "foreground.warning",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 4.6,
-                  "against": "foreground.warning",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 9.84,
-                  "against": "foreground.warning",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.61,
-                  "against": "foreground.warning",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7537,26 +5395,6 @@
               "contrast": 4.57,
               "against": "foreground.danger",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 4.6,
-                  "against": "foreground.danger",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 10.01,
-                  "against": "foreground.danger",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.67,
-                  "against": "foreground.danger",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7581,26 +5419,6 @@
               "contrast": 4.56,
               "against": "foreground.info",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 4.61,
-                  "against": "foreground.info",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 9.78,
-                  "against": "foreground.info",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.8,
-                  "against": "foreground.info",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7625,26 +5443,6 @@
               "contrast": 18.11,
               "against": "background.inverse.primary",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.950}",
-                  "contrast": 18.11,
-                  "against": "background.inverse.primary",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 21,
-                  "against": "background.inverse.primary",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 21,
-                  "against": "background.inverse.primary",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7670,26 +5468,6 @@
                 "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.450}",
-                    "contrast": 4.61,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.700}",
-                    "contrast": 7.21,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.300}",
-                    "contrast": 7.44,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -7714,26 +5492,6 @@
                 "contrast": 5.99,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.400}",
-                    "contrast": 5.46,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.750}",
-                    "contrast": 8.53,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.250}",
-                    "contrast": 8.62,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -7758,26 +5516,6 @@
                 "contrast": 7.21,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.350}",
-                    "contrast": 6.37,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.800}",
-                    "contrast": 10.11,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.200}",
-                    "contrast": 9.93,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -7802,26 +5540,6 @@
                 "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.450}",
-                    "contrast": 4.61,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.700}",
-                    "contrast": 7.21,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.300}",
-                    "contrast": 7.44,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -7849,26 +5567,6 @@
               "contrast": 15.98,
               "against": "background.primary",
               "min": 7,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.025}",
-                  "contrast": 18.11,
-                  "against": "background.primary",
-                  "min": 7
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 15
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 21,
-                  "against": "background.primary",
-                  "min": 15
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7893,26 +5591,6 @@
               "contrast": 4.88,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.700}",
-                  "contrast": 7.13,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.300}",
-                  "contrast": 7.39,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7937,26 +5615,6 @@
               "contrast": 3.32,
               "against": "neutral.100",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.550}",
-                  "contrast": 3.23,
-                  "against": "neutral.900",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.600}",
-                  "contrast": 4.88,
-                  "against": "neutral.100",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -7981,26 +5639,6 @@
               "contrast": 4.91,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.450}",
-                  "contrast": 4.61,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.700}",
-                  "contrast": 7.21,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.300}",
-                  "contrast": 7.44,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8025,26 +5663,6 @@
               "contrast": 4.85,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.success.450}",
-                  "contrast": 4.67,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.success.750}",
-                  "contrast": 8.43,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.success.300}",
-                  "contrast": 7.65,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8069,26 +5687,6 @@
               "contrast": 4.86,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.warning.450}",
-                  "contrast": 4.62,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.warning.700}",
-                  "contrast": 7.12,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.warning.300}",
-                  "contrast": 7.34,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8113,26 +5711,6 @@
               "contrast": 4.92,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.danger.450}",
-                  "contrast": 4.56,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.danger.700}",
-                  "contrast": 7.24,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.danger.300}",
-                  "contrast": 7.39,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8157,26 +5735,6 @@
               "contrast": 4.85,
               "against": "neutral.100",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.info.450}",
-                  "contrast": 4.63,
-                  "against": "neutral.900",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.info.700}",
-                  "contrast": 7.08,
-                  "against": "neutral.100",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.info.300}",
-                  "contrast": 7.5,
-                  "against": "neutral.900",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8201,26 +5759,6 @@
               "contrast": 3.2,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.350}",
-                  "contrast": 6.91,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 4.58,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.350}",
-                  "contrast": 7.47,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8245,26 +5783,6 @@
               "contrast": 3.16,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.success.350}",
-                  "contrast": 7.02,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.success.500}",
-                  "contrast": 4.6,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.success.350}",
-                  "contrast": 7.59,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8289,26 +5807,6 @@
               "contrast": 3.19,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.warning.350}",
-                  "contrast": 6.87,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.warning.500}",
-                  "contrast": 4.6,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.warning.350}",
-                  "contrast": 7.43,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8333,26 +5831,6 @@
               "contrast": 3.23,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.danger.350}",
-                  "contrast": 6.9,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.danger.500}",
-                  "contrast": 4.57,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.danger.350}",
-                  "contrast": 7.46,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8377,26 +5855,6 @@
               "contrast": 3.18,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.info.350}",
-                  "contrast": 6.95,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.info.500}",
-                  "contrast": 4.56,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.info.350}",
-                  "contrast": 7.52,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8421,26 +5879,6 @@
               "contrast": 6.79,
               "against": "foreground.brand",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.025}",
-                  "contrast": 5.23,
-                  "against": "foreground.brand",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 9.96,
-                  "against": "foreground.brand",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.72,
-                  "against": "foreground.brand",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8465,26 +5903,6 @@
               "contrast": 4.6,
               "against": "foreground.success",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 4.6,
-                  "against": "foreground.success",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 11.65,
-                  "against": "foreground.success",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.98,
-                  "against": "foreground.success",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8509,26 +5927,6 @@
               "contrast": 4.6,
               "against": "foreground.warning",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 4.6,
-                  "against": "foreground.warning",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 9.84,
-                  "against": "foreground.warning",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.61,
-                  "against": "foreground.warning",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8553,26 +5951,6 @@
               "contrast": 4.57,
               "against": "foreground.danger",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 4.6,
-                  "against": "foreground.danger",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 10.01,
-                  "against": "foreground.danger",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.67,
-                  "against": "foreground.danger",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8597,26 +5975,6 @@
               "contrast": 4.56,
               "against": "foreground.info",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 4.61,
-                  "against": "foreground.info",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 9.78,
-                  "against": "foreground.info",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 8.8,
-                  "against": "foreground.info",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8641,26 +5999,6 @@
               "contrast": 18.11,
               "against": "background.inverse.primary",
               "min": 4.5,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.950}",
-                  "contrast": 18.11,
-                  "against": "background.inverse.primary",
-                  "min": 4.5
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.white}",
-                  "contrast": 21,
-                  "against": "background.inverse.primary",
-                  "min": 7
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.black}",
-                  "contrast": 21,
-                  "against": "background.inverse.primary",
-                  "min": 7
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8686,26 +6024,6 @@
                 "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.450}",
-                    "contrast": 4.61,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.700}",
-                    "contrast": 7.21,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.300}",
-                    "contrast": 7.44,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -8730,26 +6048,6 @@
                 "contrast": 5.99,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.400}",
-                    "contrast": 5.46,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.750}",
-                    "contrast": 8.53,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.250}",
-                    "contrast": 8.62,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -8774,26 +6072,6 @@
                 "contrast": 7.21,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.350}",
-                    "contrast": 6.37,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.800}",
-                    "contrast": 10.11,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.200}",
-                    "contrast": 9.93,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -8818,26 +6096,6 @@
                 "contrast": 4.91,
                 "against": "neutral.100",
                 "min": 4.5,
-                "modes": {
-                  "dark": {
-                    "$value": "{prism.palette.primary.450}",
-                    "contrast": 4.61,
-                    "against": "neutral.900",
-                    "min": 4.5
-                  },
-                  "hc-light": {
-                    "$value": "{prism.palette.primary.700}",
-                    "contrast": 7.21,
-                    "against": "neutral.100",
-                    "min": 7
-                  },
-                  "hc-dark": {
-                    "$value": "{prism.palette.primary.300}",
-                    "contrast": 7.44,
-                    "against": "neutral.900",
-                    "min": 7
-                  }
-                },
                 "figma": {
                   "collection": "color",
                   "modes": [
@@ -8864,23 +6122,6 @@
               "aliasOf": "prism.palette.neutral.200",
               "contrast": 1.48,
               "against": "background.primary",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.750}",
-                  "contrast": 1.64,
-                  "against": "background.primary"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.500}",
-                  "contrast": 4.59,
-                  "against": "background.primary"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.500}",
-                  "contrast": 4.57,
-                  "against": "background.primary"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8904,23 +6145,6 @@
               "aliasOf": "prism.palette.neutral.450",
               "contrast": 3.2,
               "against": "background.primary",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.500}",
-                  "contrast": 4.23,
-                  "against": "background.primary"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.700}",
-                  "contrast": 9.85,
-                  "against": "background.primary"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.250}",
-                  "contrast": 10.06,
-                  "against": "background.primary"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8944,23 +6168,6 @@
               "aliasOf": "prism.palette.neutral.800",
               "contrast": 1.4,
               "against": "background.inverse.primary",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.200}",
-                  "contrast": 1.68,
-                  "against": "background.inverse.primary"
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.500}",
-                  "contrast": 4.57,
-                  "against": "background.inverse.primary"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.500}",
-                  "contrast": 4.59,
-                  "against": "background.inverse.primary"
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -8985,26 +6192,6 @@
               "contrast": 3.77,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 4.24,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 4.58,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 4.58,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -9029,26 +6216,6 @@
               "contrast": 3.79,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.success.500}",
-                  "contrast": 4.22,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.success.500}",
-                  "contrast": 4.6,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.success.500}",
-                  "contrast": 4.56,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -9073,26 +6240,6 @@
               "contrast": 3.79,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.warning.500}",
-                  "contrast": 4.22,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.warning.500}",
-                  "contrast": 4.6,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.warning.500}",
-                  "contrast": 4.56,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -9117,26 +6264,6 @@
               "contrast": 3.76,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.danger.500}",
-                  "contrast": 4.25,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.danger.500}",
-                  "contrast": 4.57,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.danger.500}",
-                  "contrast": 4.6,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -9161,26 +6288,6 @@
               "contrast": 3.75,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.info.500}",
-                  "contrast": 4.26,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.info.500}",
-                  "contrast": 4.56,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.info.500}",
-                  "contrast": 4.61,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -9205,26 +6312,6 @@
               "contrast": 5.59,
               "against": "background.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.550}",
-                  "contrast": 3.46,
-                  "against": "background.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.700}",
-                  "contrast": 9.96,
-                  "against": "background.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.300}",
-                  "contrast": 8.72,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -9249,26 +6336,6 @@
               "contrast": 3.46,
               "against": "background.inverse.primary",
               "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.primary.600}",
-                  "contrast": 6.33,
-                  "against": "background.inverse.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.primary.500}",
-                  "contrast": 4.58,
-                  "against": "background.inverse.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.primary.600}",
-                  "contrast": 6.79,
-                  "against": "background.inverse.primary",
-                  "min": 4.5
-                }
-              },
               "figma": {
                 "collection": "color",
                 "modes": [
@@ -12776,24 +9843,6 @@
             "generated": true,
             "role": "composite",
             "layers": 2,
-            "modes": {
-              "dark": [
-                {
-                  "color": "#0e0c0a08",
-                  "offsetX": "0px",
-                  "offsetY": "1px",
-                  "blur": "2px",
-                  "spread": "0px"
-                },
-                {
-                  "color": "#0e0c0a05",
-                  "offsetX": "0px",
-                  "offsetY": "1px",
-                  "blur": "3px",
-                  "spread": "0px"
-                }
-              ]
-            },
             "figma": {
               "kind": "effect-style",
               "styleType": "EFFECT",
@@ -12833,24 +9882,6 @@
             "generated": true,
             "role": "composite",
             "layers": 2,
-            "modes": {
-              "dark": [
-                {
-                  "color": "#0e0c0a0a",
-                  "offsetX": "0px",
-                  "offsetY": "1px",
-                  "blur": "2px",
-                  "spread": "-1px"
-                },
-                {
-                  "color": "#0e0c0a08",
-                  "offsetX": "0px",
-                  "offsetY": "2px",
-                  "blur": "6px",
-                  "spread": "-1px"
-                }
-              ]
-            },
             "figma": {
               "kind": "effect-style",
               "styleType": "EFFECT",
@@ -12890,24 +9921,6 @@
             "generated": true,
             "role": "composite",
             "layers": 2,
-            "modes": {
-              "dark": [
-                {
-                  "color": "#0e0c0a0f",
-                  "offsetX": "0px",
-                  "offsetY": "2px",
-                  "blur": "4px",
-                  "spread": "-2px"
-                },
-                {
-                  "color": "#0e0c0a0a",
-                  "offsetX": "0px",
-                  "offsetY": "4px",
-                  "blur": "12px",
-                  "spread": "-3px"
-                }
-              ]
-            },
             "figma": {
               "kind": "effect-style",
               "styleType": "EFFECT",
@@ -12947,24 +9960,6 @@
             "generated": true,
             "role": "composite",
             "layers": 2,
-            "modes": {
-              "dark": [
-                {
-                  "color": "#0e0c0a12",
-                  "offsetX": "0px",
-                  "offsetY": "3px",
-                  "blur": "6px",
-                  "spread": "-3px"
-                },
-                {
-                  "color": "#0e0c0a0d",
-                  "offsetX": "0px",
-                  "offsetY": "8px",
-                  "blur": "20px",
-                  "spread": "-5px"
-                }
-              ]
-            },
             "figma": {
               "kind": "effect-style",
               "styleType": "EFFECT",
@@ -13004,24 +9999,6 @@
             "generated": true,
             "role": "composite",
             "layers": 2,
-            "modes": {
-              "dark": [
-                {
-                  "color": "#0e0c0a17",
-                  "offsetX": "0px",
-                  "offsetY": "4px",
-                  "blur": "8px",
-                  "spread": "-4px"
-                },
-                {
-                  "color": "#0e0c0a12",
-                  "offsetX": "0px",
-                  "offsetY": "14px",
-                  "blur": "32px",
-                  "spread": "-8px"
-                }
-              ]
-            },
             "figma": {
               "kind": "effect-style",
               "styleType": "EFFECT",
@@ -13061,24 +10038,6 @@
             "generated": true,
             "role": "composite",
             "layers": 2,
-            "modes": {
-              "dark": [
-                {
-                  "color": "#0e0c0a1c",
-                  "offsetX": "0px",
-                  "offsetY": "6px",
-                  "blur": "12px",
-                  "spread": "-6px"
-                },
-                {
-                  "color": "#0e0c0a17",
-                  "offsetX": "0px",
-                  "offsetY": "22px",
-                  "blur": "52px",
-                  "spread": "-12px"
-                }
-              ]
-            },
             "figma": {
               "kind": "effect-style",
               "styleType": "EFFECT",
@@ -13111,17 +10070,6 @@
             "generated": true,
             "role": "composite",
             "layers": 1,
-            "modes": {
-              "dark": [
-                {
-                  "color": "#0e0c0a4d",
-                  "offsetX": "0px",
-                  "offsetY": "2px",
-                  "blur": "4px",
-                  "spread": "0px"
-                }
-              ]
-            },
             "figma": {
               "kind": "effect-style",
               "styleType": "EFFECT",
