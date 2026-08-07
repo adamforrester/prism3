@@ -115,11 +115,18 @@ export const button: ComponentDef = {
     'primary.text.label': 'color.interactive.primary.text.rest',
     'primary.text.icon': 'color.interactive.primary.text.rest',
     'primary.text.overlay.hover': 'color.interactive.primary.overlay.hover',
-    // FINDING (open, all three intents): `.text` keys an overlay for HOVER but not for PRESSED, while
-    // `.outline` keys both. Surfaced by the #487 step-3 grid dump — a pressed ghost button falls back
-    // to its rest value and renders identical to it. `color.interactive.*.overlay.pressed` exists and
-    // is already bound by `.outline`, so closing this is one line per intent; left open deliberately
-    // rather than special-cased in the projection, which is right to report what the def keys.
+    // RESOLVED (#536 item 1, was the open FINDING here): `.text` keyed an overlay for HOVER but not for
+    // PRESSED while `.outline` keyed both, so a pressed ghost button fell back to its rest value and
+    // projected byte-identical to rest — 36 of the 126 duplicate variant groups. The finding's own note
+    // said "closing this is one line per intent", and that held: `overlay.pressed` already existed for
+    // all three intents at alpha 0.2 (vs hover's 0.1) and was already bound by `.outline`.
+    //
+    // Fixed in the DEF, not in `paintOf`'s fallback, and that distinction is the point. The projection
+    // falling back to the unqualified key is CORRECT — a pending button's fill really is its rest fill —
+    // so teaching it to synthesize a pressed overlay when a def omits one would paint a wash no brand
+    // authored, and would have hidden this gap instead of surfacing it. A missing key means "this
+    // appearance does not paint that part in that state"; the bug was that `.text` does paint it.
+    'primary.text.overlay.pressed': 'color.interactive.primary.overlay.pressed',
     'primary.on-inverse.label': 'color.interactive.primary.on-inverse.text.rest',
 
     // neutral — the workhorse default; now carries hover/pressed like every colour (v1 gap CLOSED)
@@ -136,6 +143,7 @@ export const button: ComponentDef = {
     'neutral.text.label': 'color.interactive.neutral.text.rest',
     'neutral.text.icon': 'color.interactive.neutral.text.rest',
     'neutral.text.overlay.hover': 'color.interactive.neutral.overlay.hover',
+    'neutral.text.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
     'neutral.on-inverse.label': 'color.interactive.neutral.on-inverse.text.rest',
 
     // destructive — interactive.destructive.* (full states)
@@ -152,6 +160,7 @@ export const button: ComponentDef = {
     'destructive.text.label': 'color.interactive.destructive.text.rest',
     'destructive.text.icon': 'color.interactive.destructive.text.rest',
     'destructive.text.overlay.hover': 'color.interactive.destructive.overlay.hover',
+    'destructive.text.overlay.pressed': 'color.interactive.destructive.overlay.pressed',
     'destructive.on-inverse.label': 'color.interactive.destructive.on-inverse.text.rest',
 
     // cross-cutting disabled (docs/20 §7) — ONE treatment, any intent/appearance

@@ -7147,8 +7147,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // because it is the number a designer opening the set actually experiences, and #563's write-up got
     // it wrong by keying on the wrong thing. TWO figures, both true, and the difference is the lesson:
     //
-    //   paint + node names → 36   (pressed 36)
-    //   paint only         → 90   (pressed 36, pending 54)
+    //   paint + node names → 0    (none)
+    //   paint only         → 54   (pending 54, leading=true only)
+    //
+    // Both were 36 higher until #536 item 1 closed: `.text` keyed `overlay.hover` but no
+    // `overlay.pressed` while `.outline` keyed both, so all 36 `appearance=text, state=pressed` rows
+    // fell back to their rest overlay and projected byte-identical to rest. Fixed by keying the missing
+    // slot in the DEF (one line per intent — `overlay.pressed` already existed at alpha 0.2), not by
+    // teaching `paintOf` to synthesize one, which would have painted a wash no brand authored.
     //
     // Both were 108 higher until the focus ring became a part (#536 item 3): `focus-visible` contributed
     // every one of those 108 rows, in BOTH counts, because the ring was not a node and nothing else
@@ -7162,37 +7168,65 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // only difference left is that the node is called `spinner` instead of `leadingVisual`. With
     // `leading=false` there is nothing to replace, so the spinner ADDS a node and the row genuinely
     // differs. A layer rename is invisible on the canvas — both are FPO icons of identical size and
-    // color — so the honest count for "looks the same" is 90, not 36. The
+    // color — so the honest count for "looks the same" is 54, not 0. The
     // structural count is what a diff sees; the paint count is what a human sees. Assert BOTH, because
-    // asserting only the structural one is what let "144" into the PR table in the first place.
+    // asserting only the structural one is what let "144" into the PR table in the first place — and
+    // because the structural count now reads ZERO, which is exactly when a single-figure gate stops
+    // being able to distinguish "nothing duplicates" from "the comparison stopped comparing".
     {
       const sig = (p: AnatomyPlan) => {
         const walk = (n: FigmaNodePlan): unknown[] => [{ t: n.type, paints: n.paints, bound: n.bound, ts: n.textStyle, df: n.descendantFills, ch: n.characters }, ...(n.children ?? []).flatMap(walk)];
         return JSON.stringify(walk(p.root));
       };
       const withNames = (p: AnatomyPlan) => sig(p) + JSON.stringify((p.root.children ?? []).map((c) => c.name));
-      const count = (cmp: (p: AnatomyPlan) => string) => {
+      // Parameterized over the DEF so the same counter can be pointed at a mutated one below. That is
+      // the whole reason it takes a def rather than closing over `button`: a counter that can only ever
+      // measure the shipping def cannot be shown to measure anything.
+      const countFor = (d: ComponentDef, cmp: (p: AnatomyPlan) => string) => {
         const by = new Map<string, number>();
         for (const i of button.variants.intent) for (const ap of button.variants.appearance) for (const sz of button.variants.size)
           for (const ld of [true, false]) for (const tr of [true, false]) {
-            const mk = (st: string) => figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st });
+            const mk = (st: string) => figmaAnatomyPlan(d, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st });
             const rest = cmp(mk('rest'));
             for (const st of fp.stateAxis!.values) if (st !== 'rest' && cmp(mk(st)) === rest) by.set(st, (by.get(st) ?? 0) + 1);
           }
         return by;
       };
+      const count = (cmp: (p: AnatomyPlan) => string) => countFor(button, cmp);
       const struct = count(withNames), painted = count(sig);
       const total = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
-      ok(total(struct) === 36 && struct.get('pressed') === 36 && !struct.has('pending'),
-        `figmaProperties: 36 of 648 rows are STRUCTURALLY identical to their rest sibling — pressed only (${JSON.stringify([...struct])})`);
-      ok(total(painted) === 90 && painted.get('pending') === 54,
-        `figmaProperties: 90 rows are VISUALLY identical to their rest sibling — the extra 54 are pending with leading=TRUE, where the spinner replaces the leading visual and inherits its size, paint and position (${JSON.stringify([...painted])})`);
+      ok(total(struct) === 0,
+        `figmaProperties: NO row of 648 is structurally identical to its rest sibling (${JSON.stringify([...struct])})`);
+      ok(total(painted) === 54 && painted.get('pending') === 54,
+        `figmaProperties: 54 rows are VISUALLY identical to their rest sibling — all of them pending with leading=TRUE, where the spinner replaces the leading visual and inherits its size, paint and position (${JSON.stringify([...painted])})`);
+      // A ZERO-EXPECTING ASSERTION CANNOT DISTINGUISH "clean" FROM "not looking", so prove the counter
+      // still counts rather than trusting the 0. Re-runs the same `count` against a def with the
+      // `.text` pressed overlays stripped back out — the pre-#536-item-1 state — and requires the 36
+      // to come back. Without this, deleting `count`'s inner loop would leave both assertions above
+      // green (the 54 would go too, but a future fix to the pending case makes THAT a 0 as well, and
+      // then the whole block passes while measuring nothing). Measured: with `for (const st of ...)`
+      // short-circuited, `total(struct) === 0` passed and this line failed, naming the 36.
+      const noPressedOverlay = {
+        ...button,
+        tokens: Object.fromEntries(Object.entries(button.tokens).filter(([k]) => !/^\w+\.text\.overlay\.pressed$/.test(k))),
+      } as ComponentDef;
+      ok(Object.keys(noPressedOverlay.tokens).length === Object.keys(button.tokens).length - 3,
+        'figmaProperties: the mutation for the pressed-overlay counter actually applied — 3 keys removed');
+      const mutated = countFor(noPressedOverlay, withNames);
+      ok(total(mutated) === 36 && mutated.get('pressed') === 36,
+        `figmaProperties: the duplicate counter still COUNTS — stripping the three \`.text.overlay.pressed\` keys brings back exactly the 36 rows #536 item 1 removed (${JSON.stringify([...mutated])})`);
       // `focus-visible` in EITHER map is the #536-item-3 regression returning, and it is worth its own
       // assertion rather than being implied by the totals: the totals move for any reason at all (a new
-      // size, a new intent, a paint change), and a total that happens to still read 36 while 108 focus
-      // rows have gone back to duplicating rest is exactly the failure this pins. It is also the only
-      // duplicate class that was a DEFECT rather than an accepted consequence — pressed's 36 and
-      // pending's 54 are both admitted in `codeOnly`; the focus ring's absence never was.
+      // size, a new intent, a paint change), and a total that happens to still read its expected figure
+      // while 108 focus rows have gone back to duplicating rest is exactly the failure this pins.
+      //
+      // It used to add that focus-visible was "the only duplicate class that was a DEFECT — pressed's 36
+      // and pending's 54 are both admitted in `codeOnly`". That was FALSE, and checking it is what turned
+      // up #536 item 1: `codeOnly` has seven entries and not one of them mentions `pressed` or the
+      // spinner. Pressed's 36 were a plain missing token key, admitted nowhere, and reading them as
+      // accepted is what kept them shipping. Pending's 54 remain admitted nowhere either — that is the
+      // matrix-shape question (should the set enumerate an axis that provably moves no pixels?), open
+      // deliberately rather than asserted away here.
       ok(!struct.has('focus-visible') && !painted.has('focus-visible'),
         `figmaProperties: NO focus-visible row reads as its rest sibling — all 108 did before the ring became an absolute part (#536 item 3), which is the largest duplicate class the set has had (${JSON.stringify([...painted])})`);
       // The direction matters and is easy to get backwards (I did): assert it rather than restate it.

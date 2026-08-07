@@ -7,6 +7,69 @@
 
 ---
 
+## (2026-08-07) — Duplicate variants: the pressed ghost button (#536 item 1)
+
+**STATUS: shipped.** Closes the last *defect* in #536's duplicate-variant finding. Three token keys and
+a gate correction; `out/*` byte-identical (88 artifacts), no version bump — the projection changes, the
+emitted token tree does not, because `color.interactive.*.overlay.pressed` already existed.
+
+**The fix, and it was pre-diagnosed.** `.text` keyed `overlay.hover` but no `overlay.pressed` while
+`.outline` keyed both, so all 36 `appearance=text, state=pressed` rows fell back to their rest overlay
+and projected byte-identical to rest — a pressed ghost button with no pressed feedback. The FINDING note
+sitting in `button.ts` said "closing this is one line per intent", and that held exactly: the token
+existed for all three intents at alpha 0.2 (vs hover's 0.1) and was already bound by `.outline`.
+
+**Fixed in the DEF, not in `paintOf`'s fallback**, and that is the load-bearing decision. The
+projection's fall-back to the unqualified key is *correct* — a pending button's fill really is its rest
+fill — so teaching it to synthesize a pressed overlay when a def omits one would paint a wash no brand
+authored, and would have converted every future instance of this gap from a visible duplicate into an
+invisible invention. A missing key means "this appearance does not paint that part in that state". The
+bug was that `.text` does paint it.
+
+**What actually found it: checking a comment's claim rather than its conclusion.** `test.ts` already
+pinned these counts (36 structural / 90 visual) and had done since #563 — my first read of the situation,
+that nothing gated duplicate rendering, was wrong. The gate was there and green. What was wrong was a
+comment beside it asserting focus-visible was "the only duplicate class that was a DEFECT — pressed's 36
+and pending's 54 are both admitted in `codeOnly`". That is false: `codeOnly` has seven entries and not
+one mentions `pressed` or the spinner. **Reading 36 duplicates as licensed is what kept them shipping
+past a gate that was counting them correctly the whole time.** A pinned number tells you the count; only
+the prose tells you whether the count is acceptable, and nothing gates the prose.
+
+**Counts now 0 structural / 54 visual** (was 36 / 90). The 54 are the `leading=true` half of `pending`,
+where the spinner replaces the leading visual and inherits its cell, size and ink — a layer rename,
+invisible on canvas. Left open deliberately; see the next item.
+
+**A zero-expecting assertion needed its own proof.** `total(struct) === 0` cannot distinguish "nothing
+duplicates" from "the comparison stopped comparing" — doc 34 shape 4 with the constant supplied by the
+fix rather than the fixture. So the counter is parameterized over the def and re-run against one with the
+three new keys stripped, requiring the 36 to come back. **Measured, not assumed:** with the counter's
+state loop short-circuited, `total(struct) === 0` *passed* and only the new line failed. The zero alone
+would have been vacuous within one refactor. Three mutations, each caught by the intended gate by name
+(revert one intent's key → 12 named; short-circuit the loop → the counter line; make the counter ignore
+the def it is handed → the counter line).
+
+**Not fixed here, and not a defect:** the other two duplicate causes measured over the 648-row set are
+matrix-*shape* questions, not bugs — 54 groups collapsing on `leading` at `state=pending` (the spinner
+owns the cell; #536 item 2's stated open question) and 36 collapsing on `intent` at `state=disabled`
+(`disabled.*` is cross-cutting by design, docs/20 §7, so one disabled skin serves every intent). Both
+ask the same thing — should the projected set enumerate an axis that provably moves no pixels? — which
+converges with #487 §4's reasoning and Figma's ~30-variant guidance. Filed separately; it needs a
+decision before code, and asserting it away in `test.ts` would have foreclosed that decision silently.
+
+**Trap for the next person, met head-on.** `AnatomyPlan` carries `coord`, an echo of the caller's own
+input. A duplicate-detection signature over the *whole* plan therefore reports **648 distinct of 648** —
+`text/rest` and `text/pressed` differ on exactly one line, the coord label, and nothing else. My first
+measurement script did this and cleanly "proved" there were no duplicates at all. Sign `plan.root`. The
+existing gate gets this right (`sig()` walks the node tree); the mistake is available to anyone writing a
+fresh probe, which is most people.
+
+**Pre-existing, not from this PR:** `web` `lint:classes` fails on `main` at `4d276a3` with one
+unreviewed pairing, `adv-x hit-min` — #602 landed `.hit-min` on an element that already owned `.adv-x`
+without allowlisting the pairing. Reproduced on a clean checkout at the same commit. Will red CI here
+until fixed; out of scope for a token-def PR.
+
+---
+
 ## (2026-08-07) — Narrow-band layout fixes: Interactive pill clip + Palettes hex overflow (#560, #334)
 
 **STATUS: shipped, one PR for both.** Same defect shape one page apart, as #334 itself predicted: a
