@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-07) — prism3-theme's SKILL.md prose drifted from three engine levers it documents (#549)
+
+**STATUS: shipped.** `Prism3/skills/prism3-theme/SKILL.md`, three table-row fixes. No engine code
+changed — this was a documentation-only prose audit against the levers it describes.
+
+**Finding 1 (HIGH) — `disabledStrategy` dichotomy was stale and pointed the wrong way.** The skill
+documented `'accessible' | 'conventional'`, default `'accessible'`, with `'conventional'` sold as "the
+sub-AA exempt look". The real lever (`Prism3/engine/theme.ts`) is `'full' | 'reduced'`, default
+`'reduced'` — `'full'` (undocumented in the skill) promises a fixed 4.5:1; `'reduced'` dials a
+`disabledMin` floor (3–4.5, default 3). `accessible`/`conventional` still parse, but
+`normalizeDisabledStrategy` collapses BOTH to `'reduced'` — the documented dichotomy selected nothing —
+and `normalizeDisabledMin` actively clamps a legacy `'conventional'` input UP to the 3:1 floor, raising
+its contrast from the old ~2:1 exempt look (the owner's 2026-07-29 decision not to use the WCAG
+1.4.3/1.4.11 inactive-component exemption — see `theme.ts`'s `DISABLED_FLOOR_MIN`/`DISABLED_FLOOR_MAX`
+comments). So the skill promised the opposite of what the input actually does. Rewrote the table row to
+document `full`/`reduced` as the real values, `reduced` as the real default, what each does, and that
+`accessible`/`conventional` survive only as legacy aliases that both resolve to `reduced` — never to the
+low-contrast look the old prose promised.
+
+**Finding 2 (MED) — omitted `families` does not yield "a system-font stack".** The skill said omitting
+`typography.families` falls back to system fonts. The actual default is the engine's own faces (Inter;
+JetBrains Mono for the `code` category) with a system fallback tail appended (`TYPE_FAMILY_DEFAULT` /
+`asStack` in `theme.ts`). `Prism3/schema/theme-schema.json` (~line 301) already states this correctly;
+matched its wording rather than inventing new phrasing, so the two surfaces describing the same lever
+stay in sync.
+
+**Finding 3 (MED) — `status` shape omitted `info`.** The skill's table documented
+`{ success/warning/danger }`. `theme-schema.json` (~line 205) and the `BrandInput.status` type in
+`theme.ts` both accept `info` as a fourth optional hue override; doc 21
+(`semantic-role-rebasing.md`) treats the closed four-hue set as deliberate. Added `info` to the
+documented shape.
+
+**Why `lint-skills.ts` caught none of these — noted in the PR, not fixed here.** The gate's coverage
+check confirms a skill's quoted names *resolve* and that `documents: brandInput` covers every top-level
+property (or names it in `omits:`) — it does not check that a documented enum's *values* are current
+rather than stale legacy aliases (findings 1 and 3 both named a real property with a stale/incomplete
+value set, which passes), and it has no mechanism for a behavior claim like "omitting X yields Y" at all
+(finding 2 is prose, not a name). Extending the gate to catch either class is a real gap but a separate,
+larger decision — out of scope for this issue; `lint-skills.ts` stayed green throughout this fix, as
+expected, since nothing about resolvable names or top-level coverage changed.
+
+---
+
 ## (2026-08-07) — The mode badge's kept guard now covers both halves of its own case (#545)
 
 **STATUS: shipped.** `web/src/main.ts` (`modeScopeBadge`), `web/mode-audit.mjs`. Held back deliberately
