@@ -7,6 +7,39 @@
 
 ---
 
+## (2026-08-07) — Fix: `lint:classes` was red on `main` — #602's own allowlist fix never landed
+
+**STATUS: shipped.** `web/lint-classes.mjs` only — one `ALLOWED` entry added.
+
+**How this happened.** #602 ("Sub-24px interactive targets", below) shipped a new `adv-x hit-min`
+class pairing without an `ALLOWED` entry for it — the same failure shape #601 hit. A follow-up fix was
+made on #602's own branch (mirroring how #601 was closed out: verify the pairing is safe, add the
+entry, re-run gates, merge) and its completion was reported as successful. It wasn't: the commit that
+actually got squash-merged into `main` (`4e323402…`, timestamped hours before the fix ran) is the
+**original, unfixed** PR commit — `web/lint-classes.mjs` is not among its two changed files. The fix
+commit either was never created on the branch or never reached the ref GitHub squash-merged from; either
+way, nothing caught the mismatch before merge because the fix's own local verification ran clean against
+its *local worktree*, not against what actually landed. Found only because the next PR in the queue
+(#605) independently re-ran the full gate suite against a fresh `main` checkout, as the review protocol
+requires, and hit the same red `lint:classes` #601/#602 already established as a known failure shape.
+
+**Fix.** Added `'adv-x hit-min'` to `ALLOWED`, verified directly (not delegated) this time: confirmed
+`.hit-min`/`.hit-min::before` (`web/src/main.ts:6918-6919`) add only `position:relative` plus an
+out-of-flow, absolutely-positioned pseudo-element, while `.adv-x` (`:7402-7403`) sets unrelated
+properties (border/background/color/cursor/font-size/line-height/padding/`--hit-dx`) — no property
+collision, so the pairing only widens the click target without changing what paints. Ran the full gate
+suite locally, then independently re-confirmed on `origin/main` after pushing (not just in the local
+worktree) that the merged commit's diff actually contains the `lint-classes.mjs` change before
+considering this closed.
+
+**The open question this leaves.** Why the earlier fix's push/merge diverged from what its own local
+verification checked is still unexplained — worth being suspicious of any future "verified locally, then
+merged" report for this repo until reproduced independently, the same discipline `#605`'s reviewer
+already applied by re-deriving gate results against a fresh checkout rather than trusting a prior PR's
+claimed green state.
+
+---
+
 ## (2026-08-07) — Sub-24px interactive targets, WCAG 2.5.8 (#559)
 
 **STATUS: shipped.** Fixes the primary target from the visual anomaly sweep (`.adv-bp button.adv-x`,
