@@ -65,6 +65,20 @@ document. Live driving has repeatedly caught what in-memory shims hid (see the #
 `getLocalVariablesAsync('COLOR')` bug in `00-progress.md`, where the shims ignored the
 type filter and the FLOAT read-back would have come back empty in production).
 
+### Adding a gate? Prove it can fail
+
+**A gate is only as strong as the independence of the two things it compares.** If you write a
+new check, mutate the thing it checks and confirm **your** gate is in the failure list — not
+merely that the suite went red. That distinction has mattered twelve times in this repo: once,
+a mutation produced 7 failures and the new gate was not among them, because it was asserting
+`helper === helper`. Read [`Prism3/docs/34-gate-independence.md`](Prism3/docs/34-gate-independence.md)
+before writing the gate rather than after.
+
+The reviewer-facing half: **duplication between a gate and its subject is usually load-bearing.**
+Routing both through one helper is the obvious cleanup and it silently deletes the gate, leaving
+no failing test and a diff that looks like an improvement. If you're about to suggest that
+cleanup, check for a comment explaining why the duplication is there.
+
 ### The `out/*` discipline
 
 Every PR states its output impact explicitly, in one of two forms:
