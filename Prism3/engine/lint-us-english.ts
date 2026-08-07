@@ -170,6 +170,13 @@ const gated: string[] = [
   // held their conversion open. Gated now: leaving a clean surface ungated only defers the regression.
   join(repo, 'Prism3/schema/theme-schema.json'),
   join(repo, 'Prism3/engine/README.md'),
+  // The ROOT README — the repo's front door, and the single most-read prose surface here. It was
+  // outside this gate while `Prism3/engine/README.md` one line above sat inside it, which is how a
+  // `colour` survived in it: the scope was drawn around what the ENGINE emits and what the engine
+  // documents, and the file a stranger opens first belonged to neither. Same class as trap 2 — the
+  // scan was narrower than the standard it claimed to enforce, and being ungated is what made that
+  // invisible rather than the spelling being hard to see.
+  join(repo, 'README.md'),
   // The token-name baseline (#464). Named EXPLICITLY, unlike everything above it, because it is
   // deliberately not a `regen` artifact — a baseline regen could rewrite would silently agree with
   // the deletion it exists to catch. That exemption bought a blind spot in this gate at the same
@@ -233,6 +240,11 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // is the argument for the converse direction rather than a fifth reminder.
   { label: 'the emitted reports (ENGINE_ARTIFACTS)', test: (f) => ENGINE_ARTIFACTS.some((a) => f.endsWith(`/${a}`)) },
   { label: 'the engine README', test: (f) => f.endsWith('/Prism3/engine/README.md') },
+  // …and the FIFTH, added with the surface rather than after it. Matched exactly, not by suffix: a
+  // `endsWith('/README.md')` test would also claim `Prism3/engine/README.md`, so deleting the engine
+  // README's own line would leave it silently claimed here and its absence would stop being fatal —
+  // the converse check can only protect a promise that describes one surface.
+  { label: 'the root README (the repo front door)', test: (f) => f === join(repo, 'README.md') },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
