@@ -112,4 +112,4 @@ Get those two right and you match the engine's own compliance contract.
 Call `list_levers` to learn the knobs and `theme_brand` to get the tree + `.ai.json` for the
 brand, then apply everything above. The skill and the MCP compose: the MCP gives you the
 *data*, this skill is the *discipline* for using it. Without the MCP (a committed catalogue,
-a `design.md`), the discipline is identical — you just read the tree from the file.
+a `design.md`), the discipline is identical — you read the tree from the file.

@@ -74,6 +74,7 @@ npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over t
                                           # characterization gate: pins the known #609 mode gap so
                                           # it cannot drift, and refuses custom preprocessors
 npx tsx Prism3/engine/lint-us-english.ts # run AFTER the web build — its scope includes web/dist/*.js
+npx tsx Prism3/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here
 ```
 
 **Green tests are not the finish line.** The standard here is that the change is
