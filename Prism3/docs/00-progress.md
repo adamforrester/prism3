@@ -7,6 +7,78 @@
 
 ---
 
+## (2026-08-06) — Post-merge review of #516/#518/#523/#531: three real defects, all in the gates
+
+**STATUS: docs only.** Findings are #543, #544, #545. Nothing fixed here — recorded so the fixes are
+scoped rather than improvised.
+
+An overnight review pass ran against four PRs that had **already merged** (the brief described them as
+open; they landed the day before). It reviewed them post-merge at their squash commits anyway, which
+was the right call — everything below would otherwise have gone unnoticed.
+
+**All four findings were re-verified here before being written down**, two of them by mutation. Three
+are defects in code from the previous session, and the pattern across them is worth more than any one:
+**every defect is in a gate, and each gate is green over its own blind spot.**
+
+### #543 — the 2.0.0 rename shipped with `DEPRECATIONS` empty
+
+`DEPRECATIONS` exists in `version.ts`, is wired into the emitted contract (`deprecations: DEPRECATIONS`),
+and `token-contract.ts:187` prints, on any removal: *"If a removal is a RENAME, add a DEPRECATIONS entry
+so consumers get the replacement path."* #531 was three renames with exact 1:1 replacements — the
+canonical case the table was built for — and the committed contract still reads `"deprecations": []`.
+That message was on screen during the `--accept` and did not get acted on.
+
+Compounding it: `version.ts:51` and `docs/30` line 80 both still say the guaranteed surface *"has ever
+been renamed"* in the negative. **That is now false on `main`** — the most time-sensitive item here,
+because it is shipped prose asserting something untrue rather than a latent hole.
+
+### #544 — the class-collision gate has three blind spots, one of them fatal to its own premise
+
+Verified by mutation, not by reading: injecting `.zzz,.slider{margin-top:16px}` — the exact #464
+collision, written inside a **grouped selector** — leaves the gate printing `✓ clean`. The rule scan is
+`/^\.([a-z][a-z0-9-]*)\s*\{/gm`, which requires the class to be immediately followed by `{`, so a
+grouped selector hides it entirely. **The gate would not have caught the bug it was built for, had that
+bug been written with a comma in it.**
+
+Two more: the `UTILITIES` exemption is unconditional, so a utility that grows layout (`.mono` +
+`margin-top`) passes green while ~40 mints inherit it, with nothing checking the exemption's premise;
+and the shared-stem rule swallows `tok-hexv tok-seg` although `tok-` demonstrably spans two surfaces.
+Also noted, and correct: roughly 49 of the 58 `ALLOWED` entries are never *consulted* — an `X mono`
+pairing is filtered by `UTILITIES` before reaching the check (`rule.length < 2` → `continue`), so the
+list overstates the reviewed surface. The stale-entry check does not catch these because they are
+minted; they are simply unreachable.
+
+### #545 — the mode badge's "kept guard" guards the harmless half
+
+The branch order is `if (perMode) … else if (hasControls) … else 'Non-editable'`. In a derived mode
+`perMode` is false, so a per-mode section **with controls** falls through to `hasControls` and renders
+**"Editing · All modes"** — over controls the engine refuses. Only the control-free half reaches
+`Non-editable`.
+
+The previous session's comment called this branch a correctness guard and documented it as unreachable
+today. Both halves of that were half-right: it *is* unreachable today, and if it ever fires it is wrong
+in exactly the direction the guard was supposed to prevent. **`--check-badges` derives `expected` with
+the same branch order, so 28/28 stays green over it** — the audit inherits the blind spot rather than
+catching it, which is the #464 lesson (a self-check written from the same mental model as the thing it
+checks) recurring one level up.
+
+### #523 — clean, one precision nit
+
+Additive and correctly placed; its factual claims hold. One overgeneralization, left in the review
+rather than filed: *"`color.border.focus` varies across all four modes (600/550/700/300)"* is **harbor
+specifically** — in the other three corpus brands dark equals light. The argument survives; the example
+does not generalize. Worth remembering the next time a single brand is used as evidence.
+
+### The pattern
+
+Three gates were written in the previous session to catch classes of defect that had each shipped
+twice. All three shipped with a hole in the same shape as the bug they were built for. A gate is a
+claim about coverage, and this repo has now demonstrated three times that **the claim needs its own
+adversarial pass** — mutation-testing the happy path proves the gate fires, not that it cannot be
+walked around.
+
+---
+
 ## (2026-08-06) — a playback select badged a specimen as editable, and the audit agreed with it (#574 closed)
 
 **STATUS: shipped.** `web/src/main.ts`, `web/mode-audit.mjs`. No engine change, no artifact change,
