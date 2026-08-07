@@ -138,7 +138,10 @@ export type ReadbackVerdict = {
 // Sorted, comma-joined, to compare order-independently against the read-back scopes.
 const EXPECTED_SLOT_SCOPES: Record<string, string[]> = {
   'color/interactive/primary/text/rest': ['TEXT_FILL'],
-  'color/interactive/primary/border': ['STROKE_COLOR'],
+  // All three border states, mirroring `field/border/*` below — the edge is stateful (#576).
+  'color/interactive/primary/border/rest': ['STROKE_COLOR'],
+  'color/interactive/primary/border/hover': ['STROKE_COLOR'],
+  'color/interactive/primary/border/pressed': ['STROKE_COLOR'],
   'color/disabled/fill': ['FRAME_FILL', 'SHAPE_FILL'],
   'color/disabled/on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
   'color/disabled/text': ['TEXT_FILL'],

@@ -94,7 +94,7 @@
           "name": "rest",
           "bindings": {
             "bg": "color.background.primary",
-            "border": "color.interactive.primary.border",
+            "border": "color.interactive.primary.border.rest",
             "text": "color.interactive.primary.text.rest",
             "radius": "radius.md",
             "padX": "space.300",
@@ -109,7 +109,7 @@
               "label": "label on page"
             },
             {
-              "fg": "color.interactive.primary.border",
+              "fg": "color.interactive.primary.border.rest",
               "bg": "color.background.primary",
               "min": 3,
               "label": "border on page"
@@ -120,25 +120,41 @@
           "name": "hover",
           "bindings": {
             "bg": "color.interactive.primary.overlay.hover",
-            "border": "color.interactive.primary.border",
-            "text": "color.interactive.primary.text.rest",
+            "border": "color.interactive.primary.border.hover",
+            "text": "color.interactive.primary.text.hover",
             "radius": "radius.md",
             "padX": "space.300",
             "padY": "space.150",
             "type": "type.label.md.emphasis"
-          }
+          },
+          "contracts": [
+            {
+              "fg": "color.interactive.primary.border.hover",
+              "bg": "color.background.primary",
+              "min": 3,
+              "label": "hover border on page"
+            }
+          ]
         },
         {
           "name": "pressed",
           "bindings": {
             "bg": "color.interactive.primary.overlay.pressed",
-            "border": "color.interactive.primary.border",
-            "text": "color.interactive.primary.text.rest",
+            "border": "color.interactive.primary.border.pressed",
+            "text": "color.interactive.primary.text.pressed",
             "radius": "radius.md",
             "padX": "space.300",
             "padY": "space.150",
             "type": "type.label.md.emphasis"
-          }
+          },
+          "contracts": [
+            {
+              "fg": "color.interactive.primary.border.pressed",
+              "bg": "color.background.primary",
+              "min": 3,
+              "label": "pressed border on page"
+            }
+          ]
         }
       ]
     },
@@ -415,7 +431,7 @@
           "name": "selected",
           "bindings": {
             "text": "color.text.brand",
-            "indicator": "color.interactive.primary.border",
+            "indicator": "color.interactive.primary.border.rest",
             "type": "type.label.md.emphasis",
             "padX": "space.200",
             "padY": "space.150"
@@ -428,7 +444,7 @@
               "label": "selected label"
             },
             {
-              "fg": "color.interactive.primary.border",
+              "fg": "color.interactive.primary.border.rest",
               "bg": "color.background.primary",
               "min": 3,
               "label": "indicator"

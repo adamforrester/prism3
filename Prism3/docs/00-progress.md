@@ -64,6 +64,82 @@ hard-coded (three brands' page background).
 
 ---
 
+## (2026-08-07) — The interactive outline EDGE is stateful, and it follows its ink (#576, PR 1 of 3)
+
+**STATUS: shipped.** `CONTRACT_VERSION` 2.1.0 → **3.0.0** (the first MAJOR since #531), `ENGINE_VERSION`
+0.4.0 → **0.5.0**. Guaranteed surface 485 → **497** (6 removed, 18 added). Tests → **1936**.
+
+**What moved.** The 6 bare leaves `interactive.{primary,neutral,destructive}.border` and their
+`.on-inverse.border` counterparts become `border.{rest,hover,pressed}` groups — the same shape
+`fill.*` and `text.*` already use. Each removal ships a `DEPRECATIONS` entry pointing at
+`border.rest`, which is the state the single old value actually *was*.
+
+**The bug this fixes was invisible because a test asserted it.** An `.outline` button bound its stroke
+to a border with one value, so a hovered outline changed its wash and its ink and kept its rest
+stroke — the edge, the part that *defines* an outline appearance, was the one part that didn't
+respond. `test.ts` had an anatomy/paint assertion stating exactly that as intended behavior, and it
+passed for a reason that no longer exists: there was only one value to bind. It is now inverted into
+three assertions — hover takes its OWN stroke, that stroke genuinely differs from rest, and the
+overlay does not *displace* the border (a hovered outline carries both a wash and a stroke).
+
+**The chromatic columns follow their ink; neutral keeps its own anchor.** Following the ink is the
+whole reason this is also a value change, and it is a large one: measured old-vs-new, the resting edge
+lands on a different ramp step in **34 of 40** brand×mode×column combinations (17 of 20 for `primary`
+alone), and in *every* dark, hc-light and hc-dark mode. Neutral is the deliberate fork, and it was
+measured before it was decided: neutral's ink sits at the opposite end of the ramp from its border
+(`pickMostExtreme`, step 950 light / 025 dark, against a border in the 400–550 band), and neutral ink
+is `walkable: false`, so its three states collapse to one value. Following the ink there would both
+repaint every neutral outline near-black *and* leave the border stateless — the two things this change
+exists to avoid. So neutral walks the neutral ramp from its own `pickMinPass` anchor at 0/2/4.
+
+**Following the ink also retires the #467 margin.** The old inverse border was pinned at step 500 and
+measured **3.30:1** on Wendy's — 0.30 from failing SC 1.4.11, with every gate green. The ink it now
+follows is gated at `secondaryMin` (stricter than the border's own `nonTextMin`) against `invRgb`, so
+the inverse edge can no longer sit that close to the floor. The border's gate deliberately *stays* at
+`nonTextMin`: an edge is a non-text contrast object (the #352 category correction), so raising it
+would be a different decision than this one.
+
+**The alias that would have made this a MINOR is unrepresentable, and that was proved, not asserted.**
+The issue's own suggested answer was to keep `border` as a leaf aliasing `border.rest`. In DTCG a node
+carrying `$value` *is* a token and names below it are not addressable — probed against stock Style
+Dictionary, a `border` leaf with `rest`/`hover`/`pressed` children emits **only the leaf** and drops
+all three children **silently**. So the states would be invisible to precisely the conforming
+consumers #631's gate exists to protect: a plausible-looking result instead of an error, the #575
+shape. Two other errors in the issue's own reasoning were corrected while deciding: the scope is **6**
+paths not 3 (`on-inverse` was missed), and `field.border` is precedent for *statefulness* but not for
+*naming* — it never had a bare leaf to migrate, having been born a group at 1.0.0.
+
+**Why a MAJOR was the right call rather than the flat-suffix dodge.** #573 (2.1.0) faced the same fork
+and went the other way, naming `border.focus-inverse` flat specifically to avoid turning a referenced
+leaf into a group. That reasoning is entirely about *consumer cost*, and the design owner settled it:
+the project is pre-alpha with literally zero consumers, so the dodge buys nothing and would leave
+`border-hover` permanently out of step with the `{rest,hover,pressed}` shape used everywhere else.
+**Choose the right shape when the break is free; pay for compatibility when someone is actually
+holding the other end.** Both entries now sit in `version.ts` taking opposite decisions, which is
+worth keeping: the difference between them is the reasoning, not an inconsistency.
+
+**Two gates caught the rename without being told about it**, and both are worth knowing about because
+they are independent by construction rather than by intention. `read-back.ts`'s
+`EXPECTED_SLOT_SCOPES` treats a missing name as `ABSENT` rather than skipping it, so the rename
+surfaced there immediately. And `classify()` refuses a `replacedBy` that is not in the *live*
+guaranteed set — which makes the 6 `DEPRECATIONS` entries a free correctness check on a diff where 6
+removals and 18 additions are otherwise easy to fat-finger. Conversely, `test.ts`'s inventory loop
+*cannot* see a leftover bare leaf (it only iterates the slots it expects), so that is asserted
+explicitly: `interactive.<c>.border STILL PRESENT as a bare leaf`.
+
+**Trap for whoever re-verifies this.** A fresh worktree symlinked to the shared `node_modules` now
+fails `check:consumability` with `ERR_MODULE_NOT_FOUND: style-dictionary` — #631 added the repo's
+first real runtime dependency, and a shared `node_modules` predating it has no copy. The symptom
+looks like drift and is not. Install lane-locally with
+`npm install --no-save --no-package-lock --workspaces=false`.
+
+**Next, from the #576 decision comment** (`issuecomment-5220542545`, which records all five answers):
+**PR 2** is the border-source lever (defaulting to match-the-text, per the design owner) — it needs
+this PR's states to exist first, since a lever with one option isn't a lever. **PR 3** is the
+per-palette border Source select in the web UI, via the existing `slotRow` / `roleSourceSelect`.
+
+---
+
 ## (2026-08-07) — A pending button no longer changes width: the spinner overlays the label when there is no leading visual to replace (#612)
 
 **STATUS: schema + projection + payload + gates.** All 88 emitted artifacts byte-identical, no version

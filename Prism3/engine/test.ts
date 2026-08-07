@@ -280,10 +280,15 @@ for (const b of brands) {
   for (const c of ['primary', 'neutral', 'destructive']) {
     for (const st of ['rest', 'hover', 'pressed', 'focused', 'selected'])
       if (!(`interactive.${c}.fill.${st}` in light)) shapeMissing.push(`interactive.${c}.fill.${st}`);
-    for (const slot of ['on-fill', 'text.rest', 'text.hover', 'text.pressed', 'border'])
+    for (const slot of ['on-fill', 'text.rest', 'text.hover', 'text.pressed', 'border.rest', 'border.hover', 'border.pressed'])
       if (!(`interactive.${c}.${slot}` in light)) shapeMissing.push(`interactive.${c}.${slot}`);
+    // The bare leaf is GONE, not merely superseded (#576). Asserted explicitly because the loop
+    // above cannot see it: adding `border.rest` while leaving `border` behind would satisfy every
+    // check there and ship the exact leaf-and-group shape that stock Style Dictionary silently
+    // flattens, dropping all three states for a conforming consumer.
+    if (`interactive.${c}.border` in light) shapeMissing.push(`interactive.${c}.border STILL PRESENT as a bare leaf`);
   }
-  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text.{rest,hover,pressed}/border' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
+  ok(shapeMissing.length === 0, 'interactive: primary/neutral/destructive each carry fill(+5 states)/on-fill/text.{rest,hover,pressed}/border.{rest,hover,pressed}' + (shapeMissing.length ? ` — MISSING ${shapeMissing.slice(0, 4).join(',')}` : ''));
   // (b2) per-colour disabled fill is retired — no interactive.<color>.fill.disabled.
   const perColourDisabled = ['primary', 'neutral', 'destructive'].map((c) => `interactive.${c}.fill.disabled`).filter((k) => k in light);
   ok(perColourDisabled.length === 0, 'interactive: per-colour fill.disabled retired (cross-cutting disabled.* instead)' + (perColourDisabled.length ? ` — STILL PRESENT ${perColourDisabled.join(',')}` : ''));
@@ -309,7 +314,10 @@ for (const b of brands) {
   const scopeOf = (n: string) => JSON.stringify(byName.get(n)?.scopes ?? null);
   const scopeBad: string[] = [];
   if (scopeOf('color/interactive/primary/text/rest') !== JSON.stringify(['TEXT_FILL'])) scopeBad.push('primary/text/rest');
-  if (scopeOf('color/interactive/primary/border') !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push('primary/border');
+  // Every border STATE must carry the stroke scope, not just the one that used to be the whole slot
+  // — a state emitted without it would land in Figma unusable as a stroke (#576).
+  for (const st of ['rest', 'hover', 'pressed'])
+    if (scopeOf(`color/interactive/primary/border/${st}`) !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push(`primary/border/${st}`);
   if (scopeOf('color/interactive/primary/fill/rest') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push('primary/fill/rest');
   ok(scopeBad.length === 0, 'interactive: Figma slots carry slot-aware scopes' + (scopeBad.length ? ` — ${scopeBad.join(',')}` : ''));
 
@@ -1012,15 +1020,20 @@ for (const b of brands) {
   //      `background.primary` and reused on the inverse band, so the pair was never measured — the
   //      432 contracts all passed without checking it. This asserts the ground and the floor, which
   //      is the whole point: it makes a failing edge a gate failure rather than a silent ship.
+  //      Now per STATE (#576) — and every state is checked, not just rest. A hovered outline on a
+  //      dark hero is as real as a resting one, and #467's finding was precisely that an unmeasured
+  //      edge on this ground passes every other gate: Wendy's landed 3.30:1 with the whole suite
+  //      green. Three states means three chances to repeat that, so all three are measured.
   const invBdFails: string[] = [];
   for (const m of modes)
-    for (const c of ['primary', 'neutral', 'destructive']) {
-      const r = m.roles[`interactive.${c}.on-inverse.border`];
-      if (!r) { invBdFails.push(`${m.mode}:${c}:absent`); continue; }
-      if (r.against !== 'background.inverse.primary') invBdFails.push(`${m.mode}:${c}:against=${r.against}`);
-      if (r.min > 0 && r.ratio < r.min) invBdFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
-    }
-  ok(invBdFails.length === 0, 'inverse: interactive.<color>.on-inverse.border gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
+    for (const c of ['primary', 'neutral', 'destructive'])
+      for (const st of ['rest', 'hover', 'pressed']) {
+        const r = m.roles[`interactive.${c}.on-inverse.border.${st}`];
+        if (!r) { invBdFails.push(`${m.mode}:${c}:${st}:absent`); continue; }
+        if (r.against !== 'background.inverse.primary') invBdFails.push(`${m.mode}:${c}:${st}:against=${r.against}`);
+        if (r.min > 0 && r.ratio < r.min) invBdFails.push(`${m.mode}:${c}:${st}:${r.ratio.toFixed(2)}<${r.min}`);
+      }
+  ok(invBdFails.length === 0, 'inverse: interactive.<color>.on-inverse.border.{rest,hover,pressed} each gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
 
   // (b) neutralEmphasis 'strong' → a bold neutral fill that clears the non-text floor, on-fill still gated.
   const strong = resolveAllModes({ ...nbTheme(), neutralEmphasis: 'strong' });
@@ -1038,7 +1051,7 @@ for (const b of brands) {
   ok(noAccent.length === 0, 'accent: no extra column with an empty interactivePalettes (never falls back to primary)' + (noAccent.length ? ` — ${noAccent.slice(0, 2).join(',')}` : ''));
   const acc = resolveAllModes({ ...nbTheme(), interactivePalettes: [{ name: 'accent', palette: 'green', anchorStep: 500 }] });
   const accLight = acc.find((m) => m.mode === 'light')!.roles;
-  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border', 'on-inverse.text.rest', 'on-inverse.fill.rest', 'on-inverse.on-fill', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
+  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border.rest', 'border.hover', 'border.pressed', 'on-inverse.text.rest', 'on-inverse.fill.rest', 'on-inverse.on-fill', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
   const accFails = acc.flatMap((m) => Object.entries(m.roles).filter(([k, r]) => k.startsWith('interactive.accent') && r.min > 0 && r.ratio < r.min).map(([k]) => `${m.mode}.${k}`));
   ok(accMissing.length === 0 && accFails.length === 0, 'accent: opt-in emits a full gated interactive.accent.* column' + (accMissing.length ? ` — MISSING ${accMissing.join(',')}` : '') + (accFails.length ? ` — FAILS ${accFails.slice(0, 2).join(',')}` : ''));
 
@@ -1137,7 +1150,7 @@ for (const b of brands) {
   // (a) one entry promotes a defined palette to a full interactive.accent.* column.
   const oneT = brandTheme({ ...base, interactivePalettes: [{ palette: 'accent' }] } as unknown as BrandInput);
   const one = rolesOf(oneT);
-  const oneMissing = ['fill.rest', 'on-fill', 'text.rest', 'border'].filter((s) => !(`interactive.accent.${s}` in one));
+  const oneMissing = ['fill.rest', 'on-fill', 'text.rest', 'border.rest', 'border.hover', 'border.pressed'].filter((s) => !(`interactive.accent.${s}` in one));
   ok(oneMissing.length === 0, 'interactivePalettes: [{palette:accent}] emits a full interactive.accent.* column' + (oneMissing.length ? ` — MISSING ${oneMissing.join(',')}` : ''));
 
   // (b) a second entry with a distinct name emits a second column alongside the first.
@@ -6189,7 +6202,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(!outlineRest.box.fills, 'anatomy/paint: `outline` keys no fill at rest — the box is transparent');
     ok(outlineRest.box.strokes === figmaVarName(button.tokens['primary.outline.border']), 'anatomy/paint: `outline` takes a border where `filled` takes none');
     ok(parts(skin('outline', 'hover')).box.fills === figmaVarName(button.tokens['primary.outline.overlay.hover']), 'anatomy/paint: `outline` hover reaches the box through the OVERLAY family, in the same fills slot the fill would use');
-    ok(parts(skin('outline', 'hover')).box.strokes === outlineRest.box.strokes, 'anatomy/paint: the overlay does not displace the border — hover keeps the rest stroke');
+    // The overlay and the border are INDEPENDENT: a hovered outline gets both a wash AND its own
+    // stroke. This assertion used to read "hover keeps the rest stroke", which passed for a reason
+    // that has now gone away — the border had exactly one value, so keeping it was not a property of
+    // the overlay logic at all, merely of there being nothing else to reach. #576 gave the edge
+    // states, so the real claim is that BOTH slots move and neither displaces the other.
+    ok(parts(skin('outline', 'hover')).box.strokes === figmaVarName(button.tokens['primary.outline.border.hover']), 'anatomy/paint: a hovered outline takes its OWN stroke — the stateful border (#576), not the rest one');
+    ok(parts(skin('outline', 'hover')).box.strokes !== outlineRest.box.strokes, 'anatomy/paint: …and that stroke is genuinely different from rest, so the hover is visible on the edge as well as the wash');
+    ok(!!parts(skin('outline', 'hover')).box.fills && !!parts(skin('outline', 'hover')).box.strokes, 'anatomy/paint: the overlay does not displace the border — a hovered outline carries both a wash and a stroke');
     const textRest = parts(skin('text'));
     ok(!textRest.box.fills && !textRest.box.strokes, 'anatomy/paint: `text` keys neither fill nor border — a ghost button is genuinely unpainted at rest');
     ok(parts(skin('text', 'hover')).box.fills === figmaVarName(button.tokens['primary.text.overlay.hover']), 'anatomy/paint: `text` hover paints its overlay too');

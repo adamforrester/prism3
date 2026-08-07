@@ -112,7 +112,13 @@ export const button: ComponentDef = {
     'primary.filled.fill.pressed': 'color.interactive.primary.fill.pressed',
     'primary.filled.label': 'color.interactive.primary.on-fill',
     'primary.filled.icon': 'color.interactive.primary.on-fill',
-    'primary.outline.border': 'color.interactive.primary.border',
+    // The outline EDGE now carries state (#576), so `.outline` binds all three rather than letting
+    // hover/pressed fall back to rest. Same reasoning as the resolved #536 finding below: a missing
+    // key means "this appearance does not paint that part in that state", and `.outline` DOES paint
+    // its border while hovered — so omitting them would project hover byte-identical to rest.
+    'primary.outline.border': 'color.interactive.primary.border.rest',
+    'primary.outline.border.hover': 'color.interactive.primary.border.hover',
+    'primary.outline.border.pressed': 'color.interactive.primary.border.pressed',
     'primary.outline.label': 'color.interactive.primary.text.rest',
     'primary.outline.icon': 'color.interactive.primary.text.rest',
     'primary.outline.overlay.hover': 'color.interactive.primary.overlay.hover',
@@ -143,7 +149,9 @@ export const button: ComponentDef = {
     'neutral.filled.fill.pressed': 'color.interactive.neutral.fill.pressed',
     'neutral.filled.label': 'color.interactive.neutral.on-fill',
     'neutral.filled.icon': 'color.interactive.neutral.on-fill',
-    'neutral.outline.border': 'color.interactive.neutral.border',
+    'neutral.outline.border': 'color.interactive.neutral.border.rest',
+    'neutral.outline.border.hover': 'color.interactive.neutral.border.hover',
+    'neutral.outline.border.pressed': 'color.interactive.neutral.border.pressed',
     'neutral.outline.label': 'color.interactive.neutral.text.rest',
     'neutral.outline.icon': 'color.interactive.neutral.text.rest',
     'neutral.outline.overlay.hover': 'color.interactive.neutral.overlay.hover',
@@ -160,7 +168,9 @@ export const button: ComponentDef = {
     'destructive.filled.fill.pressed': 'color.interactive.destructive.fill.pressed',
     'destructive.filled.label': 'color.interactive.destructive.on-fill',
     'destructive.filled.icon': 'color.interactive.destructive.on-fill',
-    'destructive.outline.border': 'color.interactive.destructive.border',
+    'destructive.outline.border': 'color.interactive.destructive.border.rest',
+    'destructive.outline.border.hover': 'color.interactive.destructive.border.hover',
+    'destructive.outline.border.pressed': 'color.interactive.destructive.border.pressed',
     'destructive.outline.label': 'color.interactive.destructive.text.rest',
     'destructive.outline.icon': 'color.interactive.destructive.text.rest',
     'destructive.outline.overlay.hover': 'color.interactive.destructive.overlay.hover',

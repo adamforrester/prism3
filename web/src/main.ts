@@ -1664,7 +1664,10 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // gated-ground/painted-ground family as #63, #570 and #573.
     const onBand = (s: string): boolean => onInverseGround && !(outlineFill.opaque && fillRole(s));
     const otxt = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}text.${s}`;
-    const obdFor = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}border`;
+    // The edge is now stateful too (#576), so this appends the state exactly as `otxt` does. #575
+    // had already made this function per-state — it took `s` only to choose the GROUND, and returned
+    // the same single border for all three. The state key is the half that was missing.
+    const obdFor = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}border.${s}`;
     // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
@@ -2391,7 +2394,7 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
     frList.append(r);
   }
   const frEx = el('div', 'fr-ex');
-  const ringColor = roles['border.focus']?.hex ?? roles['interactive.primary.border']?.hex ?? '#3e6dc8';
+  const ringColor = roles['border.focus']?.hex ?? roles['interactive.primary.border.rest']?.hex ?? '#3e6dc8';
   for (const [lab, off] of [['Control', '2px'], ['Form field', '0px']] as Array<[string, string]>) {
     const cell = el('div', 'fr-excell');
     const btn = el('div', 'fr-btn', lab);
