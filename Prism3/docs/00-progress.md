@@ -7,6 +7,80 @@
 
 ---
 
+## (2026-08-07) — Naming & packaging decided as one thing, around the eject boundary (docs/35, new)
+
+**STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New
+`35-naming-and-packaging.md`; nothing else in the tree moves. The renames it specifies are filed as
+#623 (`packages/tokens`) and #624 (`apps/studio`), not performed here.
+
+**The trigger, and why the scope widened.** A Style Dictionary spike needed a home and the workspace
+was named `code-library`. The setup agent flagged it honestly — *"a cheap rename now and an expensive
+one later"* — and had reasoned correctly that it shouldn't invent a name for a lane that isn't real.
+The owner's call was to widen rather than settle one name: decide the whole layout now, including
+the framework libraries we know are coming and the CMS targets we think are.
+
+**The catch that reframed it.** `code-library` came from doc `19`'s **title** ("The code library,
+delivery & DX"), not its spec — §2 line 43 already names the package: *"Client installs
+`@prism3/components` + their generated tokens."* So the name was never the doc's intent; it was the
+doc's topic label, inherited by a reader who was being careful rather than careless.
+
+**The organizing principle (the actual contribution).** This repo holds two kinds of thing with
+different lifecycles — the **product** (engine, studio, plugin: ours forever) and the **deliverable**
+(tokens, component libraries: **ejected into a client's repo**, where they become *their* design
+system, `19` §2). The flat layout hides that split, which is precisely how a deliverable ended up
+with a name that would be meaningless in the place it will actually live. **A deliverable's name
+lands in a client's import statements long after Prism3 is out of the picture** — that is what makes
+this naming higher-stakes than a normal monorepo's.
+
+**Decisions:** `apps/` + `packages/` (the standard convention happens to map exactly onto the eject
+boundary); `web` → `apps/studio`; `@prism3/web-components` + `@prism3/react` rather than
+`@prism3/components`; Style Dictionary at `packages/tokens`.
+
+**The field evidence that settled the component naming.** Carbon's `packages/` still shows **both
+generations side by side** — `carbon-components` / `carbon-components-react` beside `web-components`
+/ `react`. They migrated *away* from generic "components" naming, and did it when the second
+framework target arrived, which is exactly what `19` §3 plans for us. Fluent landed the same shape
+independently. `19` §2's `@prism3/components` predates its own multi-target plan.
+
+**The AEM/Drupal answer saves the most future work.** Neither is npm-shaped (Java/HTL/Maven;
+PHP/Twig/Composer), so the instinct to plan parallel component libraries would have meant three
+re-implementations of the same anatomy — the fork-per-target cost `19` §4 exists to kill. But both
+render HTML and can consume custom elements, which is *why* `19` §3 chose WC as the neutral primary.
+So they are **thin integration adapters over the WC package**, outside `packages/`, filed when real.
+Consequence worth holding: this raises the stakes on WC being genuinely SSR-friendly, because three
+delivery targets now depend on it rather than one.
+
+**Two things found while mapping, neither cosmetic.**
+1. **`@prism3/web` is squatting on the namespace the component library needs.** It is the theme
+   studio, not a web SDK, and `@prism3/web` beside `@prism3/web-components` is permanently
+   confusing. Renaming a private app costs an afternoon; renaming a published package clients import
+   costs a deprecation cycle. The window closes when the component packages ship.
+2. **A top-level `tokens/` directory is impossible today** — `Tokens/` exists and the owner's
+   filesystem is case-insensitive (macOS). The `packages/` nesting is the fix, so that part of the
+   layout can't be deferred even if the rest were.
+
+**What this deliberately does not decide, and why that's stated in three places.** **#253**
+(per-brand token package vs. runtime token loader) stays open — Style Dictionary is required under
+*either* answer, so siting the implementation picks no side. `19` §7 item 1 records this exact
+failure mode: an architecture decision settled *as a side effect* of needing somewhere to file work.
+Naming a directory is logistics; #253 is architecture. Also out of scope by choice: moving
+`Prism3/engine` (referenced by every doc, CI step and command — churn large, benefit cosmetic),
+**#252**, and the **eject mechanism** (CLI vs template vs documented copy — genuinely open, filed as
+#625; the layout supports all three).
+
+**Trap for whoever executes #624.** The rename's blast radius is documentation-heavy — `CLAUDE.md`,
+`CONTRIBUTING.md` and the PR template all name `-w @prism3/web` gate commands. #619's
+`lint-doc-gates.ts` will catch a partial rename by parsing `ci.yml` live, so run it; the rename is
+materially safer this week than it would have been last. `vercel.json` is the surface most likely to
+break *silently* — a green typecheck will not catch a bad deploy path.
+
+**Process note.** This PR initially shipped without this entry and was held in review for it —
+`CLAUDE.md`'s rule is explicit, and docs 33 and 34 both set the precedent for this exact category
+(a new pure-planning doc with no engine change). Recorded because the rule keeps being the thing
+that slips.
+
+---
+
 ## (2026-08-06) — Two prior conclusions corrected, and the first evidence anyone gathered (docs 12/19)
 
 **STATUS: docs only** — `12 §10–§11`, `19 §9`. No code, no `out/*` impact.
