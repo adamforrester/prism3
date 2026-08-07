@@ -9,8 +9,8 @@
 
 ## Why this file exists
 
-#582 was filed at three instances in three days. Auditing for it found twelve, spanning **2026-07-03
-to 2026-08-06** — the oldest being an anchor-ΔE gate that compared two identically clipped values, five
+#582 was filed at three instances in three days. Auditing for it found twelve, and the register has
+grown since — the oldest row being an anchor-ΔE gate that compared two identically clipped values, five
 weeks before anyone named the pattern. So this is not a recent cluster to watch; it is the most
 frequently repeated defect class in the repo's history, and it was never once found by a gate. Every
 instance was found by a person or an agent mutating code by hand. The live count is
@@ -154,6 +154,14 @@ the gate asserts the group **exists** first.
 matched, so one tier was the other measured twice. **Two runs agreeing exactly is evidence of a
 broken probe, not a stable result.**
 
+`#612` `[in review]` — **the same stub, a third time, from a third direction.** `width` and `height`
+were modeled by then, but a TEXT node still returned 0, so a hug-sized button measured only its
+padding — 16px — and `(16 - 16) / 2` is 0. A spinner centered on the button and a spinner **pinned to
+its top-left corner** produced identical coordinates, and the centering assertion passed against
+either. Worth noting *why* it recurred: nothing was wrong with the earlier fixes, they were simply
+scoped to the axis in front of them. **A constant removed is not a class removed** — ask which
+*inputs* to the measurement are still constant, not whether the last bug is fixed.
+
 **Tell:** the assertion would hold for an input you know to be wrong. Feed it one.
 
 ### 5. "It resolves" instead of "it is right"
@@ -176,6 +184,44 @@ Which is why `Prism3/schema/token-contract.json` must never become a `regen.ts` 
 would rewrite the baseline to agree with a deletion and **both** gates would go green. Its ancestor
 is #281 — *no gate read the committed artifact* — and `CLAUDE.md` principle 4 states the live-gate
 half of it.
+
+### 7. A string-anchored mutation stolen by a duplicate
+
+A mutation harness that locates its target by source string is disabled by **any earlier duplicate of
+that string**, because `String.replace` with a string pattern replaces only the first occurrence. In
+#612 a new payload loop wrote `kid.layoutPositioning='ABSOLUTE';` — byte-identical to the focus ring's
+lift a few lines above — and the ring's mutation gate silently began mutating the new loop instead.
+The ring's write survived unmutated and its gate went green. Nothing warned, and the harness's own
+"the mutation actually applied" assertion **passed**: it did apply, elsewhere.
+
+The uncomfortable part is that the two habits that cause this are both good ones — writing the same
+operation the same way, and asserting your mutation landed. What fails is the assumption that a
+unique-looking string is unique.
+
+**Tell:** a harness anchor that is a plausible line of code rather than a deliberately unusual one.
+**Fix:** make the *subject* textually distinct and say why in a comment beside it (a bare
+`const lift='ABSOLUTE'` reads like something to tidy away), or anchor on a unique marker, or assert
+the replacement count is 1. Note this is the mirror of shape 2: there, DRY between gate and subject
+deletes the gate; here, *accidental* duplication inside the subject does.
+
+### 8. The gate written from the same mental model as its subject
+
+Distinct from shape 1: nothing is derived from the declaration, the two sources really are
+independent — and the gate still cannot fail, because the assertion encodes the same belief the code
+does. It reports agreement between two expressions of one idea.
+
+#612 is the clean example. Two assertions stated that a label-only `pending` button insets like a
+button *with* a leading visual, and that `pending` renders identically across the leading axis. Both
+true. Both green. Together they are a precise description of a button that **grows 28px mid-submit**,
+and the comment above one called the behavior "correct". Nothing in 1,948 assertions measured
+**width** — the one property the replace-the-leading-visual rule exists to protect. The rule's purpose
+was ungated while three assertions reported clean.
+
+**Tell:** the assertion restates a mechanism (*"the spinner occupies that cell either way"*) rather
+than a consequence anyone would notice (*"the button does not change width"*). Mechanism assertions
+pin implementations; consequence assertions pin contracts. **Fix:** ask what a *user* would report as
+the bug, and assert that quantity — then check the coordinates you sampled are the ones where it can
+break, which here meant all four slot combinations rather than the one the old pair happened to hit.
 
 ## Two adjacent failure modes, for completeness
 
@@ -221,6 +267,9 @@ independence failures — counted because they are the same silence from a diffe
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-07 `[in review]` | `test.ts` pending-width assertions (#612) | 8 | a button growing 28px mid-submit, asserted as *correct* |
+| 2026-08-07 `[in review]` | `mutateRing` anchor (#612) | 7 | the ring's own gate, mutating a different function |
+| 2026-08-07 `[in review]` | payload stub, TEXT width (#612) | 4 | a corner-pinned spinner indistinguishable from a centered one |
 | 2026-08-06 | `lint-us-english.ts` self-check (#387) | 2 | `greyscale` shipping in a gated file, `✓ clean` |
 | 2026-08-06 | `lint-us-english.ts` promise list (#387) | scope | two hand-named surfaces droppable in silence |
 | 2026-08-06 `[in review]` | `test.ts` anatomy stub (#536 item 3) | 4 | a 4×4 focus ring on a full-size button |

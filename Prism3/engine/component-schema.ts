@@ -116,6 +116,22 @@ export type PartDef = {
   optional?: boolean;
   /** For `overlay`: the part whose position it takes (width-preserving, per the brief). */
   replaces?: string;
+  /** For `overlay`: what to do when the part named in `replaces` is ABSENT at this coordinate.
+   *
+   *  The part named here is overlaid OUT OF FLOW — the overlay takes no cell, and the named part is
+   *  rendered at zero opacity so it keeps its space. Absent this field, an overlay whose `replaces`
+   *  target is missing falls back to taking a cell of its own, which is the #612 defect: a label-only
+   *  button entering `pending` GREW by the spinner's cell (28px at medium — a 32px cell less 4px, the
+   *  left padding also flipping to `padding-x-visual` because the cell reads as filled). That is the
+   *  exact mid-submit reflow the replace-the-leading-visual rule exists to prevent, live in the most
+   *  common button shape there is: a plain labeled Submit.
+   *
+   *  Why zero opacity and not `visible: false`: React Aria states the constraint outright — "Do not
+   *  use `visibility: hidden` or `display: none` as these remove the element from the accessibility
+   *  tree." A hidden label also yields its cell, so the width collapses and we are back to the bug.
+   *  Opacity keeps the node in flow AND in the a11y tree, which is what lets the accessible name pair
+   *  as "Save, pending". */
+  overlaysWhenAbsent?: string;
   /** For `overlay`: the STATE that activates it. Required, because an overlay that never says when
    *  it appears cannot be projected without the emitter hardcoding the part's name — and
    *  `anatomy-figma.ts` deliberately keys off `kind`/`role` so it generalizes past Button.
@@ -639,6 +655,20 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
       if (!p.when) e.push(`anatomy part '${n}': an overlay must declare the state it appears in ('when') — without it nothing can project it`);
       else if (!(def.states ?? []).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${(def.states ?? []).join(', ')}]`);
+      // The fallback target must exist and must NOT be optional. An optional one reintroduces the
+      // defect one level down: if the part the overlay falls back to overlaying can itself be absent,
+      // there is again a coordinate where the overlay has nowhere to go and takes a cell. `label` is
+      // `optional: false`, which is what makes it a valid floor.
+      if (p.overlaysWhenAbsent) {
+        if (!parts[p.overlaysWhenAbsent]) e.push(`anatomy part '${n}': overlaysWhenAbsent '${p.overlaysWhenAbsent}', which is not a declared part`);
+        else if (parts[p.overlaysWhenAbsent].optional) e.push(`anatomy part '${n}': overlaysWhenAbsent '${p.overlaysWhenAbsent}' is optional — the fallback must be a part that is always present, or there is still a coordinate where the overlay takes a cell of its own`);
+        if (p.overlaysWhenAbsent === p.replaces) e.push(`anatomy part '${n}': overlaysWhenAbsent duplicates 'replaces' — the fallback exists for the case that part is ABSENT, so naming the same part says nothing`);
+      } else if (p.replaces && parts[p.replaces]?.optional) {
+        // An overlay whose `replaces` target is OPTIONAL has a coordinate where it lands nowhere, so
+        // the fallback is REQUIRED, not a nicety. Gating it here rather than trusting a def to think of
+        // it: this is the #612 defect's root, and it was invisible for exactly as long as nothing asked.
+        e.push(`anatomy part '${n}': replaces '${p.replaces}', which is OPTIONAL — declare 'overlaysWhenAbsent' for the coordinate where it is missing, or the overlay takes a cell of its own there and the part GROWS on its '${p.when}' state`);
+      }
     } else if (p.kind === 'absolute') {
       // An `absolute` IS a child — it is a sibling of the row's cells that simply takes no space in
       // the row, so unlike an overlay it appears in `children` and the reachability walk above covers

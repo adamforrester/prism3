@@ -7,6 +7,144 @@
 
 ---
 
+## (2026-08-07) — A pending button no longer changes width: the spinner overlays the label when there is no leading visual to replace (#612)
+
+**STATUS: schema + projection + payload + gates.** All 88 emitted artifacts byte-identical, no version
+bump. Four engine files (`component-schema.ts`, `anatomy-figma.ts`, `components/button.ts`,
+`test.ts`) plus `CLAUDE.md` and doc 34, +26 assertions (1960 total). Closes the modeling half of #612
+that the previous entry left open.
+
+**The bug, measured rather than reasoned about.** With a leading visual, `state=pending` swaps the
+spinner into that visual's cell — width unchanged, because the cell was already the icon's size. This
+was correct and matches the field unanimously (Primer: *"the spinner replaces only that visual slot,
+and the button label remains visible"*). With **no** leading visual there was no cell to take, so the
+spinner *added* a node: `[label]` → `[spinner, label]`. The left padding also flipped from
+`padding-x` to `padding-x-visual`, because the slot-aware inset rule correctly reads the leading cell
+as filled. Net: **a plain `Submit` grew 28px at medium the moment it started submitting** — the most
+common button shape in the system, on the one state where the user is already waiting.
+
+**Three assertions were green over it, and two of them asserted the defect was correct.** They read
+`padOf('pending', false) === padOf('rest', true)` — a label-only pending button insets like one that
+*has* a leading visual — and `render('pending', false) === render('pending', true)` — pending renders
+the same either way. Both statements were true. Together they describe the growth exactly. The
+comment above the second one called the collapse *"correct — a pending button has a visual there
+regardless"*. **This is the doc-34 family with a new face:** not a gate derived from its subject, but
+a gate written from the same mental model as its subject, so it confirms the model instead of testing
+it. Nothing in the suite measured **width**, which is the only thing the replace-the-leading-visual
+rule exists to protect. The rule's own purpose was ungated while three assertions reported clean.
+
+**What the fix models: `overlaysWhenAbsent`.** A new optional `PartDef` field beside `replaces`. It
+answers the coordinate `replaces` cannot: *what happens when the part I replace isn't there.* The
+named part is overlaid **out of flow** — `layoutPositioning: 'ABSOLUTE'`, centered via
+`constraints: {horizontal: 'CENTER', vertical: 'CENTER'}` — and the named part is rendered at
+**zero opacity** so it keeps its cell. Width identical to rest, in all four slot combinations. The
+mechanism is already proven in this codebase: the focus ring is an absolute sibling (#536 item 3).
+
+**Why zero opacity and not `visible: false`.** Both hold the cell open in Figma; only one is legal in
+code. React Aria states the constraint outright — *"Do not use `visibility: hidden` or `display:
+none` as these remove the element from the accessibility tree."* A removed label also yields its
+cell, which collapses the width and lands us back in the bug from the other direction. Opacity keeps
+the node in flow **and** in the a11y tree, which is what lets the accessible name pair as
+"Save, pending". The gate asserts the overlaid label keeps its type style, its characters and its own
+`characters` component property — not merely that *something* occupies the cell.
+
+**The rejected alternative, and why it was rejected on measurement.** The owner asked what locking
+the width would cost. Worth stating plainly because my own first framing of it was wrong: the row is
+**hug**-sized, so pinning the width is not free. Pin it and insert a 32px spinner plus an 8px gap and
+you take 40px out of the label — a button reading "Save changes" truncates mid-submit. Reserving a
+permanent empty leading cell also holds width stable, at the cost of every plain button being 28px
+wider forever. Overlay costs nothing on either axis, which is why it won. **Chosen by the design
+owner** from three measured options.
+
+**`overlaysWhenAbsent` is required, not optional, when `replaces` names an optional part** — and that
+is the part which generalizes past Button. Validation now rejects an overlay over an optional part
+with no fallback, a fallback that is itself optional (which reintroduces the defect one level down),
+and a fallback naming the same part as `replaces` (which says nothing). Without those three rules the
+next def with a spinner reproduces #612 in silence.
+
+**Two implementation notes worth keeping:**
+
+- `absoluteCenter` is a **separate** plan field from the ring's `absoluteInset`, deliberately.
+  Inset sizes *from* the parent and grows outward; centered keeps its own square size. Sharing one
+  field would mean `resize`-ing the spinner and **clearing its size binding**.
+- `zeroOpacity` is a literal in the payload, not a bound variable. A brand does not get to theme this
+  to 0.5.
+
+**A REAL BUG THIS PR CAUSED, and it is the best find in it.** My first payload version wrote
+`kid.layoutPositioning='ABSOLUTE';` in the new centered loop — **byte-identical** to the focus ring's
+lift above it. The ring's own mutation gate does `ringJs.replace("kid.layoutPositioning='ABSOLUTE';",
+'void 0;')`, and **`String.replace` with a string pattern replaces only the FIRST occurrence**. My
+duplicate *stole the mutation*: the ring's write survived unmutated, and its gate went green while
+testing nothing. Fixed by making the statement textually distinct (`const lift='ABSOLUTE';
+kid.layoutPositioning=lift;`) with the trap recorded in a comment. **New sub-shape for doc 34: a gate
+anchored to a source string is silently disabled by any duplicate of that string appearing earlier in
+the file.** Nothing warns; the harness even reports its mutation applied, because it did — elsewhere.
+
+**The stale-prose half, which nothing gated.** The don't-list read *"Replace the label with a centred
+spinner (collapses width) — swap the leading visual instead."* Sound advice while the spinner only
+ever took the leading cell; after this change it **prohibits by name what the projection now does**,
+and all 1,948 assertions stayed green because every one of them read the projection and none read
+that string. Same shape as the previous entry's default-vs-guidance contradiction, one axis over.
+Rewritten to prohibit what is actually wrong — *removing* the label — and to name the real cost
+(the accessible name), with three new assertions tying the prose to the def: the guidance may not
+forbid an overlay while the def declares one, the old wording must be gone, and the a11y rationale
+must be present.
+
+**The plan is not the paste, so the payload is gated separately.** The plan-level assertions prove
+`absoluteCenter`/`zeroOpacity` are *set*; the plan is a JSON literal the payload can ignore in
+silence. A new executed block (modeled on the ring's) runs a real label-only `pending` paste against
+the stub host and *measures* the built tree: the spinner lifted and CENTER-constrained on both axes,
+the label built at zero opacity and still measuring, the spinner square and NOT resized to its
+parent, centered on the parent's measured box, and the discarded-lift read-back reporting.
+
+**AND THE STUB HAD TO STOP MEASURING A CONSTANT — for the third time, from a third direction.** A
+TEXT node returned width 0, so a hug-sized button measured only its 16px of padding, and
+`(16 - 16) / 2` is 0: **a spinner centered on the button and a spinner pinned to its top-left corner
+produced identical coordinates.** The centering assertion would have passed against either. The stub
+now measures text from its characters (6px/char — a crude proxy, deliberately; what the gate needs is
+a label *wider than the spinner* so the offset is non-zero). This is the same finding as #503's
+constant width and #536 item 3's constant height, and the file's own comments already record both —
+which is the argument for doc 34 existing: **the note beside the last instance is in the file you are
+not reading.** Widening the stub broke nothing, because the footprint gates assert a *delta* via
+`\d+x\d+` rather than pinned numbers.
+
+**Mutations — 14/14 caught by name.** Seven over the projection and schema, four over the payload,
+two over the prose, one over the stub:
+
+| mutation | result |
+|---|---|
+| drop `absoluteCenter` (the overlay takes a cell — #612 itself, restored) | ✅ 3 named, incl. the width gate |
+| drop `zeroOpacity` (out of flow but nothing holds the cell — width *collapses*) | ✅ 2 named |
+| splice the overlay **before** the part it covers (spinner renders behind it) | ✅ named — z-order only; width untouched |
+| let the out-of-flow overlay claim the overlaid part's component property | ✅ named |
+| drop the fallback-required validation rule | ✅ named |
+| let the fallback itself be optional | ✅ named |
+| remove `overlaysWhenAbsent` from the Button def | ✅ named (12 failures, 1 by name) |
+| payload writes `x=0,y=0` instead of centering | ✅ named — *only* after the stub measured text |
+| payload writes `STRETCH` constraints (a distorted spinner) | ✅ named |
+| payload `resize`s the overlay to its parent (clearing its size binding) | ✅ named |
+| gut the discarded-lift read-back | ✅ named |
+| revert the don't-list to its pre-#612 wording | ✅ named |
+| keep the ban lifted but drop the accessible-name rationale | ✅ named |
+| revert the stub's text-width model | ✅ named — the vacuity guard fires, as designed |
+
+One harness note, same lesson as the bug above from the other end: **my own mutation anchor for the
+discarded-lift read-back matched twice** — the ring's guard and the spinner's differ only in their
+trailing clause. The harness reported `BAD ANCHOR` and refused rather than silently mutating the
+wrong one, which is the behavior to keep: a harness that cannot uniquely locate its target must fail
+loudly, because the alternative is a green run that mutated something else.
+
+**Flagged, NOT fixed (separate concern):** `minWidthMultiplier` appears exactly **once** in the whole
+repo — inside the `derived` prose string that promises it. Nothing defines it and nothing emits it,
+so no min-width floor absorbs a spinner cell. Needs its own issue; it is not what #612 asked about,
+and it would not have prevented this bug (a floor only helps buttons already at the floor).
+
+**Also noted:** Spectrum's current a11y guidance says *not* to give a button's spinner
+`role="progressbar"` unless progress is measurable. Our `spinner` part declares no role, so we are
+already correct here — recorded so nobody "fixes" it later.
+
+---
+
 ## (2026-08-07) — #609 closed: a conforming PROJECTION alongside the canonical tree
 
 **STATUS: shipped.** New `Prism3/engine/emit-dtcg-overlay.ts` (pure, no I/O); `emit-dtcg.ts` writes
@@ -287,7 +425,9 @@ because each would have printed a clean sweep:
 
 **Deferred, unchanged:** an `accent` intent (the owner notes it maps to the old `secondary` naming)
 stays optional and brand-conditional via `theme.interactivePalettes`. #612's `pending`/`leading`
-half stays open — still a modeling question, not a redundancy.
+half stays open — still a modeling question, not a redundancy. *(Closed by the entry above, dated the
+same day: the modeling answer was `overlaysWhenAbsent`, and the question turned out to be hiding a
+live 28px width bug.)*
 
 ---
 
