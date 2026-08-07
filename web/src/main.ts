@@ -522,24 +522,39 @@ const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => 
   // stays hand-declared, because no amount of DOM inspection can tell you WHICH mode a select writes
   // to. Buttons do not count — the ones present here play a motion preview, they do not set a value.
   const perMode = scope === 'per-mode' && !DERIVED_MODES.has(currentMode);
-  const editable = perMode || hasControls;
+  // #545 — a per-mode section rendered while the bar holds a DERIVED mode is inert BY DESIGN: the
+  // engine only ever accepts per-mode edits for a mode it does not itself generate, so a control
+  // rendering here is not evidence it works here. This has to be tested BEFORE `hasControls`, not
+  // folded into the `editable` OR below it: the kept guard two branches down already covered the
+  // no-controls half of this case correctly ("HC light is derived — it cannot be edited"), but
+  // `editable = perMode || hasControls` let `hasControls` win outright whenever a per-mode section's
+  // controls DID render in a derived mode, badging "Editing · All modes" — a worse lie than the
+  // "Editing HC light" the old comment already warned about, because it additionally claims every
+  // mode is being edited when none is, for this section. Still unreachable by measurement today (the
+  // page scaffolds hide per-mode sections' controls entirely on a derived mode, per `renderScreen` /
+  // `controlSplitPage`), which is exactly why the bug was invisible rather than absent — kept as a
+  // guard the same way the branch two lines down is, not decoration.
+  const derivedPerMode = scope === 'per-mode' && DERIVED_MODES.has(currentMode);
+  const editable = perMode || (hasControls && !derivedPerMode);
   const b = el('span', 'msb' + (editable ? ' on' : ''));
   const mode = MODE_LABEL[currentMode] ?? currentMode;
   if (perMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', mode));
-  else if (hasControls) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', 'All modes'));
+  else if (hasControls && !derivedPerMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', 'All modes'));
   else b.append(el('span', 'msb-k', 'Non-editable'));
   b.title = perMode
     ? `Controls in this section write to ${mode} only.`
-    : hasControls
+    : hasControls && !derivedPerMode
       ? 'Controls here set one value that every mode then uses. What you see still re-resolves per mode.'
       // UNREACHABLE TODAY, kept as a guard, and the distinction matters — #512 rightly killed a
       // decoration whose comment claimed a mechanism that never fired. Measured across all six bar
       // pages in HC light: Surfaces, Interactive and Size render ZERO sections, and the only two that
       // survive (Elevation ramp, Motion) are both `shared`. So no per-mode section is ever badged in
       // a derived mode. This branch stays because it is not decoration but a correctness guard: if a
-      // page ever does render one there, the alternative is a badge reading "Editing HC light" over
-      // controls the engine refuses (doc 26 states this trap for columns). Re-measure before deleting
-      // it; do not assume it still cannot fire.
+      // page ever does render one there, the alternative — before #545 — was a badge reading
+      // "Editing · All modes" over controls the engine refuses (doc 26 states this trap for columns).
+      // `derivedPerMode` above now catches that case ahead of `hasControls` too, so both the
+      // no-controls and controls-present halves land here. Re-measure before deleting it; do not
+      // assume it still cannot fire.
       : scope === 'per-mode'
         ? `${mode} is derived — it cannot be edited. Switch to a customizable mode to edit this section.`
         : 'Derived from the values above. Nothing in this section is directly editable.';

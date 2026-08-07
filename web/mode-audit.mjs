@@ -167,6 +167,49 @@ for (const stage of stages) {
                   badge: s.badge, inset: s.inset, stage, skipped: s.skipped });
     console.log(`   ${v}  ${s.name}${s.badge ? '' : '   (no badge)'}`);
   }
+
+  // #545 — DERIVED modes (HC light / HC dark / Wireframe) are a THIRD context the Light-vs-Dark diff
+  // above never visits, so a badge wrong only there was invisible to `--check-badges`: badge and
+  // `expected` were both computed by the same `EDITS ? 'per-mode' : hasControls ? 'all-modes' : 'none'`
+  // ordering main.ts's `modeScopeBadge` used before its fix, so a per-mode section whose controls
+  // happened to render in a derived mode would agree with the audit on "Editing · All modes" and stay
+  // green — the audit inheriting main.ts's own blind spot (the #464 lesson: a self-check built from
+  // its subject's mental model cannot catch its subject's bug). Fixed the same way as main.ts: a
+  // section that measured EDITS above (this run's stand-in for `scope === 'per-mode'`, since
+  // SECTION_MODE_SCOPE is hand-maintained FROM this exact measurement) is forced to `expected: 'none'`
+  // here, checked BEFORE `hasControls`, regardless of whether a control happens to render in this
+  // derived mode. Still unreachable today — the page scaffolds hide per-mode sections' controls
+  // entirely on a derived mode (`renderScreen` / `controlSplitPage`) — so every claim pushed here
+  // currently expects 'none'; kept as a guard against that changing silently, the same as the branch
+  // it mirrors in main.ts.
+  for (const btn of await page.locator('.mctx-b.derived').all()) {
+    const dlabel = (await btn.locator('.mctx-name').textContent())?.trim() ?? 'derived';
+    await btn.click();
+    await page.waitForTimeout(500);
+    const derived = await snap();
+    for (const [i, s] of light.entries()) {
+      const d = dark[i];
+      const editsPerMode = d ? s.ctrl !== d.ctrl : false;
+      // Matched by NAME, not index: a derived mode can render fewer sections than Light/Dark (the
+      // generated-note scaffolds drop the editing ones entirely), so index alignment would silently
+      // compare the wrong pair once counts diverge.
+      const match = derived.find((x) => x.name === s.name);
+      if (!match) continue;   // this section does not render at all in this derived mode — nothing to check
+      claims.push({ page: `${stage.slice(0, 18)} · ${dlabel}`, name: s.name,
+                    verdict: editsPerMode ? 'EDITS(derived)' : 'n/a',
+                    expected: editsPerMode ? 'none' : (match.hasControls ? 'all-modes' : 'none'),
+                    badge: match.badge, inset: match.inset, stage, skipped: match.skipped });
+    }
+  }
+  // Leave every stage on a non-derived mode. `probeSection` below only re-clicks the `.stage` tab, not
+  // a mode button, so if a derived-mode click above were the last thing done to the page, EVERY later
+  // probe (including ones for unrelated, already-measured Light/Dark claims) would find its section
+  // replaced by the generated-mode note and report a false `section-gone` — the derived-mode pass
+  // breaking the very claims it was added to protect.
+  if ((await page.locator('.mctx-b.derived').count()) > 0) {
+    await page.locator('button').filter({ hasText: /^Light/ }).first().click();
+    await page.waitForTimeout(500);
+  }
 }
 console.log(`\nNo mode bar: ${noBar.join(' · ')}`);
 console.log(`Totals across bar pages: ${JSON.stringify(tally)}\n`);
