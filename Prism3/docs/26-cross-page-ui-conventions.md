@@ -1,7 +1,7 @@
 # 26 — Cross-page UI conventions (dashboard rollout checklist)
 
 > A **living checklist** of the page-agnostic decisions that came out of the Palettes restructure
-> (#230–#232) and are being rolled out **page by page** across `web/src/main.ts`. The point: decide
+> (#230–#232) and are being rolled out **page by page** across `apps/studio/src/main.ts`. The point: decide
 > once here, then each page's rewrite follows the list instead of re-deriving (or re-litigating) the
 > same calls. **Append freely** as new universal decisions surface. Design rationale lives in
 > `23-dashboard-ia-and-component-system.md`; the component inventory + fix log in
@@ -77,8 +77,8 @@ ordered, and step 3 is the one that decides whether the findings are real.
   resolved value with an `auto` marker in the header; an interactive control there reaches the engine
   and prints its internal error string at the user. **Converting any control to columns re-opens this
   hole** — it is what #416 did on its way in.
-- **Which sections actually respond is MEASURED, and the probe is committed** — `web/mode-audit.mjs`
-  (`npm run -w @prism3/web audit:modes`). It switches Light→Dark and diffs each `.psec`, reporting
+- **Which sections actually respond is MEASURED, and the probe is committed** — `apps/studio/mode-audit.mjs`
+  (`npm run -w @prism3/studio audit:modes`). It switches Light→Dark and diffs each `.psec`, reporting
   **EDITS** (the control set or its labels differ — the bar is an editing scope here), **displays**
   (only previews/readouts re-resolve — the bar is context, not scope) or **inert** (nothing changes).
   Committed rather than written down because the answer moves with every page change and has been

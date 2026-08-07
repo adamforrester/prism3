@@ -766,7 +766,7 @@ resolves *and logs*. An agent following the shipped skill today hand-picks numbe
 `radiusScale` is documented as number-only, and now takes named stops.
 
 **Nothing caught this.** The skills are shipped surfaces with no gate — unlike `out/**`, the schema
-contracts and `web/dist`, all of which the US-English gate scans. A skill that describes a stale API
+contracts and `apps/studio/dist`, all of which the US-English gate scans. A skill that describes a stale API
 is worse than no skill, because an agent trusts it. This is the same shape as #281 (no gate reads the
 committed artifact), one tier out.
 

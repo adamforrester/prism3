@@ -1,6 +1,6 @@
 # 24 — Dashboard UI: componentization tracker & fix log
 
-> A **living working doc** for the web dashboard (`web/src/main.ts`) refinement pass. Two jobs: (1) the
+> A **living working doc** for the web dashboard (`apps/studio/src/main.ts`) refinement pass. Two jobs: (1) the
 > componentization backlog — which repeated UI patterns become shared components, ranked by real usage,
 > so a stylistic change lands in one place; (2) a running **UI fix log** for bugs/polish found along the
 > way. The design-note rationale lives in `23-dashboard-ia-and-component-system.md` §8; this doc is the
@@ -8,14 +8,14 @@
 
 Rule (unchanged from doc 23 §8): **extract at ≥2 callers.** One component per PR (or a tight family per
 PR); pure refactors are verified with the **DOM-parity harness** (base vs. branch bundle diff → no
-visual change), so they're provably safe. `web/src/main.ts` is buildless-bundled by esbuild; manual DOM
+visual change), so they're provably safe. `apps/studio/src/main.ts` is buildless-bundled by esbuild; manual DOM
 via `el(tag, cls?, text?)`.
 
 ---
 
 ## Method
 
-Usage counts are grepped from `web/src/main.ts` (2026-07-21, at `main` after #210). "Callers" = distinct
+Usage counts are grepped from `apps/studio/src/main.ts` (2026-07-21, at `main` after #210). "Callers" = distinct
 construction sites; "forms" = how many divergent CSS/markup variants exist for the same logical control.
 
 ---
@@ -84,7 +84,7 @@ have a single definition — a styling or behavior change lands in one place. Re
 deliberately-scoped-out items, not gaps: `colorField` (intentional per-context sizing), knob-routing (bespoke
 structures), and neutral/background pickers (different shapes).
 
-Sequencing note: all edits touch `web/src/main.ts`, so PRs **serialize** (one branch, squash-merge, reset).
+Sequencing note: all edits touch `apps/studio/src/main.ts`, so PRs **serialize** (one branch, squash-merge, reset).
 The owner files UI fixes into the log below **in parallel**; fix PRs interleave with component PRs as
 priority dictates.
 

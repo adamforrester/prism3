@@ -37,8 +37,8 @@
  *     it. (Compare `ci.yml`'s own comment on the "88 committed artifacts" check: "if the set
  *     legitimately grew or shrank, update this check in the same PR.")
  *
- * MATCHING BY SUBSTANCE, NOT VERBATIM: `CONTRIBUTING.md` writes `npm run typecheck -w @prism3/web`;
- * `ci.yml` writes `npm run -w @prism3/web typecheck` — same command, different argument order. Exact
+ * MATCHING BY SUBSTANCE, NOT VERBATIM: `CONTRIBUTING.md` writes `npm run typecheck -w @prism3/studio`;
+ * `ci.yml` writes `npm run -w @prism3/studio typecheck` — same command, different argument order. Exact
  * string matching would false-positive on that harmless rephrasing, so `gateTokensOf` extracts the
  * identifying pieces (script name + workspace, or the bare `.ts` filename for `npx tsx` steps) and
  * `docHas` checks that each piece appears as a substring *somewhere* in a doc, not that the full

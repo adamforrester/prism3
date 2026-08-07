@@ -116,7 +116,7 @@ Gates as always: `test.ts`, `nb-regression` (unaffected — NB declares no overr
 ## 7. Dashboard surface — ✅ built
 
 The web dashboard exposes `roleColors` inline on the **Palettes page**, per status ramp
-(`web/src/main.ts` `statusRow`, #59) — not as a separate bespoke control. Each of
+(`apps/studio/src/main.ts` `statusRow`, #59) — not as a separate bespoke control. Each of
 `success`/`warning`/`danger`/`info` gets a **"Source" select**: `Auto` (engine default),
 `Custom hue…` (seeds the ramp from a picked hex, writes `status.<role>`), or `Use <palette>`
 (borrows a declared palette — `primary` or any `brandColors` entry — writes `roleColors.<role>`).

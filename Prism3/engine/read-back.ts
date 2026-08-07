@@ -3,7 +3,7 @@
  *
  * The inverse of `write-plan.ts`. Where `WritePlan` describes what colour variables to MATERIALISE,
  * `ReadbackSnapshot` is a plain-data mirror of what a live Figma file CONTAINS — read out of
- * `figma.variables` by the plugin executor (`plugin/src/read-figma.ts`) and handed here. This module
+ * `figma.variables` by the plugin executor (`apps/plugin/src/read-figma.ts`) and handed here. This module
  * is the pure half: the snapshot SHAPE + `verifyReadback`, the materialisation-contract check.
  *
  * `verifyReadback` ports the checks the `materialise-to-figma.ts` `verifyPass` string-emitter has

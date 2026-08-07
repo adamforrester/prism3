@@ -409,10 +409,10 @@ estimate was costed against a destination — the engine — that never sees Fig
 **Figma plugin**, those types are native. TP's exporter is Figma-shaped because it is a Figma exporter,
 and so is `plugin/`. **The coupling that blocks one destination is irrelevant to the other.**
 
-**And the plugin is most of the way there already.** `plugin/src/read-figma.ts` produces a
+**And the plugin is most of the way there already.** `apps/plugin/src/read-figma.ts` produces a
 `ReadbackSnapshot` carrying collections + modes, palette, semantic colour with `valuesByMode`, the FLOAT
 axes per collection with `valuesByMode`, and style names — **it already reads per-mode values out of a
-live file.** The shared `web/src` UI it embeds already surfaces export (`design.md`, `tokens.json`
+live file.** The shared `apps/studio/src` UI it embeds already surfaces export (`design.md`, `tokens.json`
 downloads). So the plugin has a Figma **read leg** and an **export UI**; the only missing piece is
 `snapshot → DTCG`, which is precisely what TP's exporter is.
 
@@ -495,7 +495,7 @@ rather than academic.
   file**, the way Token Press does today.
 - **Same options. Same package format.**
 
-The settings surface is authored **once**, because `plugin/dist/ui.html` inlines the shared `web/src`
+The settings surface is authored **once**, because `apps/plugin/dist/ui.html` inlines the shared `apps/studio/src`
 UI. That is a structural advantage over Token Press, whose own review flagged the opposite: its options
 live in three places that must stay manually in sync — the `ExportOptions` interface,
 `DEFAULT_OPTIONS`, and hand-written HTML matched by `getElementById` string literals.

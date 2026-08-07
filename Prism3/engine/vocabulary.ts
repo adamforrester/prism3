@@ -99,7 +99,7 @@ export const TRAITS: Record<string, Trait> = {
   premium: {
     levers: { 'typography.typeScale': 'expressive', 'shadow.softness': 'crisp', neutralEmphasis: 'subtle' },
     // Citation deliberately TRUNCATED rather than reworded: the clause that follows in aurora's
-    // brief ends on an en-GB spelling, and a `why` string is inlined into `web/dist/main.js` where
+    // brief ends on an en-GB spelling, and a `why` string is inlined into `apps/studio/dist/main.js` where
     // the US-English gate rightly fails it. Quoting an en-GB source into US-gated shipped prose is a
     // real tension; shortening the quote keeps it faithful, where editing the words would not. (This
     // comment is phrased around the word rather than using it for the same reason — engine prose

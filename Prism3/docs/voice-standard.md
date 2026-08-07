@@ -109,7 +109,7 @@ are fine, passive voice and ceremony are not.
 
 ---
 
-*Applies to: `web/src` UI strings · `Prism3/engine/levers.ts` · `Prism3/engine/ai-metadata.ts`
+*Applies to: `apps/studio/src` UI strings · `Prism3/engine/levers.ts` · `Prism3/engine/ai-metadata.ts`
 (generated `meaning` / `when_to_use` / `avoid_when`) · emitted `$description` prose in `out/**`
 · `Prism3/engine/README.md` · reports. Most Prism3 prose is **generated, not typed** — so
 applying this standard usually means editing a generator, not a string.*

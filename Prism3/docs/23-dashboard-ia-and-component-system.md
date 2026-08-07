@@ -1,11 +1,11 @@
 # 23 — Dashboard IA + component system (plan)
 
-> The web dashboard (`web/src`) grew four broad stages, each carrying its own copy
+> The web dashboard (`apps/studio/src`) grew four broad stages, each carrying its own copy
 > of the global live preview. This doc is the **plan** for reorganising it into
 > focused, single-concern sections with the overall UI preview promoted to its own
 > tab — and for landing an internal **component system** underneath so the reorg is
 > declarative config, not more bespoke DOM. Decided in a design session (2026-07-20);
-> supersedes the "four-stage build order" described in `web/README.md`. `04` is the
+> supersedes the "four-stage build order" described in `apps/studio/README.md`. `04` is the
 > why (a live theming surface with a contrast-contract overlay); `08` is the
 > shared-manifest architecture; this is the IA + build sequence for the web host.
 

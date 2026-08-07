@@ -378,7 +378,7 @@ brands schema-conform.
 **Next increments:**
 - The raw-figma / code→Figma round-trip writer has shipped: `$extensions.prism3.figma`
   carries every transform directive across all axes (gradients included), `emit-figma.ts`
-  plus the CLI paste-path builder produce the write payload, and `plugin/src/write-figma.ts`
+  plus the CLI paste-path builder produce the write payload, and `apps/plugin/src/write-figma.ts`
   drives the Figma plugin to apply it idempotently (find-by-name-and-update). Remaining:
   downstream pipeline (Style Dictionary / Figma MCP). The theming playground
   (`web/`, see `docs/04`) is also built. All token categories are now generated.

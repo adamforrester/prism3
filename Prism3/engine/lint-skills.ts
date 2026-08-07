@@ -4,7 +4,7 @@
  *   npx tsx Prism3/engine/lint-skills.ts
  *
  * A `SKILL.md` is a **shipped artifact that makes factual claims about the engine**, and until now it
- * was the only shipped surface with no gate — `out/**`, the emitted schema contracts and `web/dist`
+ * was the only shipped surface with no gate — `out/**`, the emitted schema contracts and `apps/studio/dist`
  * are all scanned, `Prism3/skills/**` was not. That is #281's shape on a surface we had not covered:
  * committed, consumed, and unread by any check.
  *

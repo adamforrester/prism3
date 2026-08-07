@@ -60,13 +60,13 @@ locally just because your diff looks engine-only. (Two PRs shipped with `lint:cl
 silently broken because their Gates table stopped before reaching it — see `00-progress.md`.)
 
 ```bash
-npm run typecheck    -w @prism3/web      # tsc --noEmit — esbuild does NOT typecheck
-npm run build        -w @prism3/web
-npm run check:ignore -w @prism3/web      # Vercel ignore list still matches the real bundle
-npm run lint:contrast -w @prism3/web     # studio chrome clears its own contrast floors
-npm run lint:classes  -w @prism3/web     # no unreviewed class-name collision — a NEW
+npm run typecheck    -w @prism3/studio      # tsc --noEmit — esbuild does NOT typecheck
+npm run build        -w @prism3/studio
+npm run check:ignore -w @prism3/studio      # Vercel ignore list still matches the real bundle
+npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contrast floors
+npm run lint:classes  -w @prism3/studio     # no unreviewed class-name collision — a NEW
                                           # combination fails here until you add it to
-                                          # ALLOWED in web/lint-classes.mjs
+                                          # ALLOWED in apps/studio/lint-classes.mjs
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins
@@ -75,7 +75,7 @@ npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over E
                                           # (permanent, #609) and its count of composite values SD
                                           # cannot serialize (#635), asserts the base+overlay
                                           # projection reads back, and refuses custom preprocessors
-npx tsx Prism3/engine/lint-us-english.ts # run AFTER the web build — its scope includes web/dist/*.js
+npx tsx Prism3/engine/lint-us-english.ts # run AFTER the web build — its scope includes apps/studio/dist/*.js
 npx tsx Prism3/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here
 ```
 

@@ -71,18 +71,18 @@ jobs:
 
       # esbuild (and therefore the Vercel build) does not typecheck. These do.
       - name: Typecheck web
-        run: npm run -w @prism3/web typecheck
+        run: npm run -w @prism3/studio typecheck
 
       - name: Build web
-        run: npm run -w @prism3/web build
+        run: npm run -w @prism3/studio build
 
-      # The Vercel Ignored Build Step (web/vercel-ignore.sh) skips a deploy when a commit touches
+      # The Vercel Ignored Build Step (apps/studio/vercel-ignore.sh) skips a deploy when a commit touches
       # nothing the bundle depends on. Its exclusion list is the part that can rot: an engine file
-      # that later gets imported into web/src would still be on the skip list, so its changes would
+      # that later gets imported into apps/studio/src would still be on the skip list, so its changes would
       # ship nothing and the site would go stale with every gate green. This checks the list against
       # esbuild's real metafile.
       - name: Vercel ignore list matches the real bundle
-        run: npm run -w @prism3/web check:ignore
+        run: npm run -w @prism3/studio check:ignore
 
       # The studio enforces contrast on every brand it GENERATES; this holds it to the same bar for
       # the chrome it renders those contracts in. #355 fixed a real failure there by hand and parked
@@ -90,13 +90,13 @@ jobs:
       # measuring what renders needs a browser and this repo does not depend on Playwright (#333), so
       # a runtime check could not run here at all. The token values are where the budget lives.
       - name: Studio chrome clears its own contrast floors
-        run: npm run -w @prism3/web lint:contrast
+        run: npm run -w @prism3/studio lint:contrast
 
       # Four defects in one session were the same shape: a class name meaning one thing here and
       # another there, invisible at the definition site. This makes a NEW multi-rule pairing fail
       # until someone looks at it — a forcing function, not a proof. See the file header.
       - name: No unreviewed class-name collisions
-        run: npm run -w @prism3/web lint:classes
+        run: npm run -w @prism3/studio lint:classes
 
       # Two contexts, checked separately: the main thread (figma.*, no DOM) and the UI iframe (DOM,
       # no figma.*). CONTRIBUTING §3 documents both as a plugin gate; missing from this workflow's
@@ -116,9 +116,9 @@ jobs:
       - name: "Plugin main.js has 0 node: builtins"
         run: |
           set -euo pipefail
-          if grep -q "node:" plugin/dist/main.js; then
-            echo "::error::plugin/dist/main.js references a node: builtin — the main thread must stay sandbox-safe."
-            grep -n "node:" plugin/dist/main.js
+          if grep -q "node:" apps/plugin/dist/main.js; then
+            echo "::error::apps/plugin/dist/main.js references a node: builtin — the main thread must stay sandbox-safe."
+            grep -n "node:" apps/plugin/dist/main.js
             exit 1
           fi
 
@@ -132,14 +132,14 @@ jobs:
         run: npm run -w @prism3/tokens check:consumability
 
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
-      # no gate (#492) — out/**, the emitted contracts and web/dist are all scanned, Prism3/skills/**
+      # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, Prism3/skills/**
       # was not. Its first run found `prism3-consume` teaching the pre-rename `action.*` family,
       # which an agent would emit as references resolving to nothing.
       - name: Skills gate (shipped skills make true claims)
         run: npx --yes tsx@4 Prism3/engine/lint-skills.ts
 
       # US English in shipped text. Runs AFTER the web build on purpose: `engine/levers.ts` prose is
-      # inlined into `web/dist/main.js`, and a source-only grep calls that bundle clean — the trap
+      # inlined into `apps/studio/dist/main.js`, and a source-only grep calls that bundle clean — the trap
       # that got #302 and #310. Gates out/, the emitted schema + reports, and the built bundle; the
       # two surfaces CLAUDE.md records as open decisions are printed every run but never fatal.
       - name: US-English gate (shipped text)
@@ -150,7 +150,7 @@ jobs:
       # in shipped text (#617). Sibling to the US-English gate above, not merged into it — different
       # exemption sets (an allow-set for "just", a context rule for "!"), different failure messages
       # — but wired in the SAME position for the SAME reason: its scope includes the built
-      # `web/dist/*.js` bundle, so it has to run after the web build too.
+      # `apps/studio/dist/*.js` bundle, so it has to run after the web build too.
       - name: Voice lint gate (shipped text)
         run: npx --yes tsx@4 Prism3/engine/lint-voice.ts
 

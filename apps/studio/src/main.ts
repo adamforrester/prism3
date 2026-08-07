@@ -1,0 +1,8397 @@
+/**
+ * Prism3 web dashboard (docs/08 §7 B3, docs/09).
+ *
+ * The FIRST rendering host over the engine core. It imports the SAME pure modules
+ * the Figma plugin will (`theme`, `levers`, `preview`, `resolve-preview`, `color`,
+ * `ramp`) and renders from the shared contracts:
+ *   1. the theming knobs — from the lever manifest (`levers.ts`)
+ *   2. a live component preview + per-mode contrast overlay — from `previewSpec`
+ *      resolved through `resolvePreview(theme)`
+ *   3. the generated palette ramps — straight off `brandTheme(input).palettes`
+ *
+ * The shell is a FOUR-STAGE build order (primitives → semantic → type → form),
+ * mirroring how a theme actually composes: primitives first, then the semantic
+ * roles that alias them, then type, then form. Stage 1 (Brand primitives) is the
+ * bespoke redesign — a scalable brand-color list, a tunable neutral cast with a
+ * Derive⇄Pin toggle (surfacing the engine's `neutral.anchor`), and the generated
+ * ramps shown as labelled specimens. Later stages render their lever groups + the
+ * live preview/overlay. Colour-axis edits re-resolve the engine and repaint only the
+ * volatile region (ramps or preview), so knob focus is never lost; a failed brand
+ * combination is caught and surfaced with the last-good render preserved.
+ */
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '../../../Prism3/engine/theme';
+import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '../../../Prism3/engine/theme';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../../Prism3/engine/color';
+import { autoPlaceStep } from '../../../Prism3/engine/ramp';
+import { leverManifest, leverGroups } from '../../../Prism3/engine/levers';
+import type { Lever } from '../../../Prism3/engine/levers';
+import { previewSpec } from '../../../Prism3/engine/preview';
+import { resolvePreview } from '../../../Prism3/engine/resolve-preview';
+import type { ResolvedPreview } from '../../../Prism3/engine/resolve-preview';
+import { resolveAllModes, outlineFillFamily, outlineFillRole } from '../../../Prism3/engine/modes';
+import { parseDesignMd, toDesignMd } from '../../../Prism3/engine/design-md';
+import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '../../../Prism3/engine/standard-design-md';
+import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../../Prism3/engine/tree';
+import { ENGINE_VERSION } from '../../../Prism3/engine/version';
+import { hostCommit } from './write-adapter';
+import { persistInput, restoreInput } from './persist-local';
+import exampleBrands from '../../../Prism3/schema/example-brands.json';
+
+type Mode = ResolvedPreview['modes'][number];
+
+// Boot from a VALIDATED example brand — the emitted schema/example-brands.json (a
+// test.ts gate asserts every brand there resolves all-green on the preview
+// contracts). aurora: indigo anchor, action DECOUPLED onto an azure accent, tinted
+// page. brandState is the mutable working copy the inputs edit.
+const BRANDS = exampleBrands as Record<string, BrandInput>;
+// Web persists the working brand to localStorage; the plugin uses Figma shared-data instead (restored
+// via the host `restore-input` message below). `PRISM3_HOST` is a build-time define (`'figma'` in the
+// plugin), so this guard is `'figma' !== 'figma'` → the localStorage path is INERT in the plugin —
+// never executed — exactly as the web export-bar commit path is inert in the plugin bundle. On web
+// boot, reopen on the persisted brand if one is stored AND still resolves; otherwise it's a first run —
+// `firstRun` gates the start screen (below), and brandState still holds the demo so the app is in a
+// valid state behind it. (Web only: the plugin never sets firstRun — it seeds via the host restore-input
+// message; a plugin fresh-file start moment is a later cross-lane follow-up.)
+let firstRun = false;
+const bootBrand = (): BrandInput => {
+  if (PRISM3_HOST !== 'figma') {
+    const restored = restoreInput(localStorage);
+    // Validate the SHAPE (brandTheme must accept it) before booting on it — a stale blob from an older
+    // build could deserialise past the version guard yet fail to resolve; on reject, fall back to the demo.
+    if (restored) { try { brandTheme(restored); return restored; } catch { /* stale/incompatible — fall through */ } }
+    firstRun = true;   // web, nothing valid stored → show the start screen instead of the silent demo
+  }
+  return structuredClone(BRANDS.aurora);
+};
+let brandState: BrandInput = bootBrand();
+
+// A minimal, known-good starting point for "New brand": one mid-indigo primary + a
+// derived neutral, action defaults to primary, namespace at the 'prism' placeholder.
+const NEW_BRAND = (): BrandInput => ({
+  id: 'untitled', root: 'prism',
+  modes: ['light'],                               // most brands ship light only (docs/11 Pillar 1)
+  primary: { l: 0.55, c: 0.15, h: 262 },
+  neutral: { hue: 262, chroma: 0.006, auto: true },   // neutral hue auto-follows primary (262 = primary.h → identical ramp; now live-linked)
+});
+const ROOT_RE = /^[a-z][a-z0-9-]*$/;
+
+// Every ATOMIC control is live — it edits brandState and re-runs the engine on change.
+// Liveness is by control TYPE, not a per-key allowlist: sliders, enums, palette-refs, and
+// toggles all have real handlers (a bad value just surfaces the error bar, never crashes —
+// rebuild() is try/caught). Object/list levers (families, surfaces, brand colors) all got their
+// bespoke editors (#97) — this generic path is what's left over: baseMd, disabledMin, and
+// radiusScale/density/shadow.softness/motionPersonality.tempo on Light, where a bespoke per-mode
+// editor takes over everywhere else. density/motion/shadow all have live preview specimens now
+// (#99) — paintSizePreview, renderMotionSpecimen, renderShadowSpecimen.
+const LIVE_CONTROLS = new Set(['slider', 'enum', 'palette-ref', 'toggle']);
+
+const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
+
+// ---- stages ----------------------------------------------------------------
+// The rail is data (docs/23 §7): a flat list of focused destinations, each one page. A page's facets
+// are sections within it, not separate rail rows. `view:true` marks a non-authoring destination
+// (Preview) — it sits after a divider with no ordinal. Order is the sequence a theme composes in:
+// primitives → how they're applied (surfaces / interactive) → type → form (elevation/size/layout/motion)
+// → look at the whole (Preview).
+const NAV = [
+  { key: 'palettes', label: 'Palettes', sub: 'Brand hues & neutrals → ramps' },
+  { key: 'surfaces', label: 'Surfaces & fills', sub: 'Backgrounds, text, gradients' },
+  { key: 'interactive', label: 'Interactive', sub: 'Action colors, states, a11y' },
+  { key: 'typography', label: 'Typography', sub: 'Families, weights → type scale' },
+  { key: 'elevation', label: 'Elevation', sub: 'Shadows' },
+  { key: 'sizeRadius', label: 'Size & radius', sub: 'Size, density, corner radius' },
+  { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
+  { key: 'motion', label: 'Motion', sub: 'Tempo & easing' },
+  { key: 'preview', label: 'Preview', sub: 'Components & contrast, all modes', view: true },
+] as const;
+type PageKey = (typeof NAV)[number]['key'];
+let page: PageKey = 'palettes';
+
+// Which page a lever belongs to. The manifest groups levers under a few axes; the focused pages slice
+// finer. Palette colour primitives get a bespoke UI, so they're excluded from the generic knob render.
+// Status hues are edited inline on Palettes ramps (they're advanced + colour-control, so they filter
+// out of every generic panel anyway). The `color` + `advanced` groups split by key across pages.
+const PRIMITIVE_KEYS = new Set(['primary', 'neutral.hue', 'neutral.chroma', 'neutral.anchor', 'brandColors']);
+const pageOfLever = (l: Lever): PageKey => {
+  if (l.group === 'type') return 'typography';
+  if (l.group === 'motion') return 'motion';
+  if (l.group === 'elevation') return 'elevation';
+  if (l.group === 'layout') return 'layout';
+  if (l.group === 'form') return 'sizeRadius';   // radiusScale, density, + advanced grid/space dims
+  if (l.key === 'gradients' || l.key === 'surfaces') return 'surfaces';
+  return 'interactive';   // remaining colour/advanced: action palette, interactive treatment, disabled, icon, inverse, neutralEmphasis, interactivePalettes
+};
+const leversFor = (key: PageKey): Lever[] => leverManifest.filter((l) => !l.advanced && !PRIMITIVE_KEYS.has(l.key) && pageOfLever(l) === key);
+const leverByKey = (k: string): Lever | undefined => leverManifest.find((l) => l.key === k);
+
+// ---- engine read-model -----------------------------------------------------
+let theme: Theme = brandTheme(brandState);
+// The last input that resolved cleanly — the ramps + anchor badges render from THIS, so when a
+// live edit fails (lastError set) the flagged anchor swatch still matches the shown ramp (M-16).
+let lastGoodInput: BrandInput = structuredClone(brandState);
+let rp: ResolvedPreview = resolvePreview(theme);
+let currentMode: Mode = rp.modes[0];
+let lastError: string | null = null;
+
+// #555 — a legible ink for a background whose lightness isn't known statically (a resolved fill that
+// can land on either side of the light/dark line depending on mode, e.g. a neutral surface tier or an
+// "inverse of the current mode" band). Picks whichever of a fixed dark/light ink pair actually clears
+// against the given background, rather than assuming the background's lightness — the assumption that
+// produced #555's specimens (a hardcoded dark ink on a surface that turned out dark in Dark mode, and a
+// hardcoded light ink on an "inverse" band that turned out light because dark's inverse is light).
+// Falls back to the dark ink for a background this can't parse as hex (e.g. 'transparent').
+const legibleInkOn = (bgHex: string, dark = '#191920', light = '#f7f7f7'): string => {
+  if (!bgHex.startsWith('#')) return dark;
+  const bg = hexToRgb(bgHex);
+  return contrast(hexToRgb(dark), bg) >= contrast(hexToRgb(light), bg) ? dark : light;
+};
+
+const getPath = (o: any, p: string): any => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
+const setPath = (o: any, p: string, v: unknown): void => {
+  const ks = p.split('.');
+  const last = ks.pop()!;
+  let cur = o;
+  for (const k of ks) { if (cur[k] == null || typeof cur[k] !== 'object') cur[k] = {}; cur = cur[k]; }
+  cur[last] = v;
+};
+
+/** Re-resolve from the current brandState. On failure keep the last-good theme/rp and
+ *  record the message (the render stays coherent; the edit is what's flagged). */
+const rebuild = (): void => {
+  try {
+    const t = brandTheme(brandState);
+    rp = resolvePreview(t);
+    theme = t;
+    lastGoodInput = structuredClone(brandState);   // M-16: anchor badges read this, not the (maybe failing) live state
+    lastError = null;
+    if (PRISM3_HOST !== 'figma') persistInput(localStorage, brandState);   // persist the last-good brand (web only; inert in the plugin, best-effort)
+  } catch (e) {
+    lastError = (e as Error).message;
+  }
+};
+
+// paint() repaints only the current stage's volatile region (ramps or preview) so
+// input focus is never lost; applyFull() re-renders the whole workspace (structural
+// edits — add/remove color, Derive⇄Pin, stage switch); build() re-renders the shell.
+let paintVolatile: () => void = () => {};
+let globalErrHost: HTMLElement | null = null;
+// renderModeStrip repaints the mode-selector strip that sits at the top of the workspace (#432) — it
+// carries no contrast marks any more (#54 retired, owner decision), but still needs to refresh on
+// every edit because currentMode's "on" state and the derived-mode "view only" tag both track it.
+/** Keep the global error bar honest after every rebuild. `lastError` is set by `rebuild()`'s catch and
+ *  means "the live edit did not resolve; you are looking at the last good theme" — a state the user must
+ *  be told about wherever they are, not only on the page that happens to render it. */
+const syncErrorBar = (): void => {
+  if (!globalErrHost) return;
+  globalErrHost.style.display = lastError ? '' : 'none';
+  if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError}`;
+  syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
+};
+const apply = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); paintVolatile(); };
+const applyFull = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); renderWorkspace(); };
+
+// ---- DOM helpers -----------------------------------------------------------
+const el = (tag: string, cls?: string, text?: string): HTMLElement => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+const chunk = <T>(a: T[], n: number): T[][] => { const o: T[][] = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
+
+// ---- control kit — the reusable vocabulary every knob + select is built from ----------------------
+// Small structural primitives shared by renderControl and the bespoke editors, so a control (or a whole
+// screen in the IA reorg) composes from these rather than re-deriving the `knob` scaffold and the
+// `<option>` boilerplate each time. Purely structural — they produce exactly the nodes the hand-rolled
+// versions did; behaviour and styling are unchanged.
+/** An `<option>` with value/text and optional pre-selection — replaces the per-site opt/optE/mkOpt closures. */
+const optionEl = (value: string, text: string, selected = false): HTMLOptionElement => {
+  const o = document.createElement('option');
+  o.value = value; o.textContent = text; if (selected) o.selected = true;
+  return o;
+};
+/** The dashboard `<select>` (doc 24 C1). One `.select` base class owns all dropdown cosmetics — border,
+ *  radius, background, and the shared chevron — so a styling tweak lands in one place. Size / context are
+ *  additive modifiers: `sm` (compact inline) · `fill` (flex to its row) · `cap` (max-width, for cards).
+ *  Callers append their own `<option>`s (option-building varies too much to generalise). */
+const selectEl = (mods = ''): HTMLSelectElement => el('select', mods ? `select ${mods}` : 'select') as HTMLSelectElement;
+/** A number `<input>` (doc 24 C2). The `.num` base owns the shared field cosmetics (border, radius,
+ *  background, padding); the caller passes a context class for width/size and wires its own `onchange`. */
+const numberField = (o: { value: string | number; min?: number | string; max?: number | string; step?: number | string; className?: string; title?: string }): HTMLInputElement => {
+  const inp = el('input', o.className ? `num ${o.className}` : 'num') as HTMLInputElement;
+  inp.type = 'number';
+  if (o.min != null) inp.min = String(o.min);
+  if (o.max != null) inp.max = String(o.max);
+  if (o.step != null) inp.step = String(o.step);
+  inp.value = String(o.value);
+  if (o.title) inp.title = o.title;
+  return inp;
+};
+/** A range `<input>` (doc 24 C5b). Just the element construction (type/bounds/value/class) — the
+ *  readout + wiring stay per-site, since the surrounding layouts genuinely differ (a `.slider-top`
+ *  readout, a `.knob-val`, an auto-pruning knob, a label-as-readout). `className` may be omitted for
+ *  the knob-context sliders styled by the `.knob input[type=range]` descendant rule. */
+const rangeInput = (o: { value: string | number; min?: number | string; max?: number | string; step?: number | string; className?: string }): HTMLInputElement => {
+  const inp = el('input', o.className) as HTMLInputElement;
+  inp.type = 'range';
+  if (o.min != null) inp.min = String(o.min);
+  if (o.max != null) inp.max = String(o.max);
+  if (o.step != null) inp.step = String(o.step);
+  inp.value = String(o.value);
+  return inp;
+};
+/** The on/off toggle switch (doc 24 C3) — a `.toggle` checkbox paired with its On/Off `.knob-val`
+ *  readout, returned as a `knobBody`. `onToggle(checked)` fires after the readout updates; the caller
+ *  runs its own `apply()` / `applyFull()`. */
+const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HTMLElement => {
+  const input = el('input') as HTMLInputElement;
+  input.type = 'checkbox'; input.className = 'toggle hit-min'; input.checked = checked;
+  const val = el('span', 'knob-val', checked ? 'On' : 'Off');
+  input.onchange = () => { val.textContent = input.checked ? 'On' : 'Off'; onToggle(input.checked); };
+  return knobBody(input, val);
+};
+/** A token-path chip (doc 24 C4) — the small mono pill that shows a DTCG/role path.
+ *
+ *  A long path ELIDES FROM THE LEFT instead of wrapping to two lines (#289): the CSS gives the pill
+ *  `direction:rtl`, which moves where `text-overflow:ellipsis` bites to the start, so
+ *  `color.background.inverse.primary` renders as `…kground.inverse.primary`.
+ *
+ *  Why not the obvious right-truncation: these paths share long prefixes and differ only in the tail.
+ *  `color.foreground.brand` and `color.foreground.brand-subtle` — or the six
+ *  `color.interactive.destructive.on-inverse.{text,fill}.{rest,hover,pressed}`, whose first 40
+ *  characters are identical — all collapse to the SAME visual stub if you cut from the right. The
+ *  discriminating information lives at the end, so that is the end worth keeping. The cost is that the
+ *  namespace prefix is the part hidden when space is tight; `title` and (on style-guide pills) the
+ *  hover bubble both carry the full path, and the emitted path itself is unchanged, which is what
+ *  doc-26's namespace rule is actually about.
+ *
+ *  The path stays a SINGLE text node and the elision is purely visual — only where `text-overflow`
+ *  bites does the rendered text truncate — which is what keeps a text selection exact: today's pill
+ *  is one text node, so anything that split it would REGRESS copy/paste. Two earlier attempts did
+ *  exactly that: `inline-flex` head+tail laid out correctly but flex items are blockified, so a
+ *  selection came back as `color\n.background.primary`; switching to `inline-block` with the tail's
+ *  width reserved in `ch` fixed the newline but the head's `max-width:100%` resolved against the
+ *  pill's own shrink-to-fit width — circular — which collapsed the head to nothing on 181 of 198
+ *  pills. Both measured, not reasoned about. `title` carries the full path for the elided case. */
+const tokenPill = (path: string): HTMLElement => {
+  const p = el('span', 'tpill mono', path);
+  p.title = path;
+  return p;
+};
+/** A token pill that WRAPS on path boundaries, for card grids whose column width is fixed by the
+ *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.expressive`).
+ *
+ *  Deliberately NOT folded into `tokenPill`: `<wbr>` is not inert under `white-space: nowrap` in
+ *  Chromium. Putting it in the shared helper took Layout's breakpoint pills from 0 wrapped to 5 and
+ *  turned Surfaces' 3 elided pills into 3 wrapped ones — measured against `main` with the same sweep,
+ *  which is the only reason it was caught. A shared component is exactly where an "obviously harmless"
+ *  addition does damage out of sight of the page you are working on.
+ *
+ *  `<wbr>` rather than a zero-width space: it contributes nothing to `textContent`, so a path copied
+ *  out of the pill is still the path. Pair with the wrap CSS on the container. */
+const tokenPillWrapping = (path: string): HTMLElement => {
+  const p = tokenPill(path);
+  p.textContent = '';
+  const segs = path.split('.');
+  segs.forEach((seg, i) => { p.append(i < segs.length - 1 ? `${seg}.` : seg); if (i < segs.length - 1) p.append(el('wbr')); });
+  return p;
+};
+/** A dashed "+ add" button (doc 24 C4). `.addbtn` owns the styling; pass context classes (width/margin)
+ *  via `cls`. */
+const addButton = (label: string, onClick: () => void, cls = ''): HTMLButtonElement => {
+  const btn = el('button', cls ? `addbtn ${cls}` : 'addbtn', label) as HTMLButtonElement;
+  btn.onclick = onClick;
+  return btn;
+};
+/** A round "×" remove button (doc 24 C4). */
+const removeButton = (onClick: () => void, title = 'Remove', cls = ''): HTMLButtonElement => {
+  const btn = el('button', cls ? `rx ${cls}` : 'rx', '×') as HTMLButtonElement;
+  btn.title = title; btn.onclick = onClick;
+  return btn;
+};
+/** The `div.knob-body` row — a control input paired with its `knob-val` readout (slider / toggle). */
+const knobBody = (...kids: Node[]): HTMLElement => { const r = el('div', 'knob-body'); r.append(...kids); return r; };
+/** The knob scaffold: `label.knob-label`, the control body (one node or several), then `p.knob-desc`.
+ *  Every control — generic or bespoke — shares this shape. */
+const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => {
+  const wrap = el('div', 'knob');
+  wrap.append(el('label', 'knob-label', label));
+  wrap.append(...(Array.isArray(body) ? body : [body]));
+  wrap.append(el('p', 'knob-desc', desc));
+  return wrap;
+};
+// The COMMIT host (docs/22 #110) — distinct from the preview: "materialise this theme".
+// On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
+// the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
+const commit = hostCommit();
+let seedInfo: { ok: boolean; summary: string } | null = null;   // set by the host's boot read-back (#109)
+/** Set when the host REFUSED to rehydrate the knobs (#480): a `BrandInput` blob is stored in this
+ *  file, but it's an old/foreign shape or a schema version this build doesn't recognize (the
+ *  pre-#341/#415 shape is exactly this case). A separate slot from `seedInfo` for the same reason
+ *  the other boot facts are separate — this answers "could your saved knobs be restored", which
+ *  `seedInfo` (the file's Figma-variable contract) does not. */
+let restoreError: string | null = null;
+/** The state of the Apply-to-Figma write. `null` = never run this session; `pending` = posted and the
+ *  host has not answered yet; otherwise the host's verdict.
+ *
+ *  A SEPARATE slot from `seedInfo` on purpose. Both arrive as `{ok, summary}` and both wanted the one
+ *  pill, so an apply used to overwrite the boot read-back and render as if it WERE the boot read-back —
+ *  the only surface for "what happened when I pressed the button" was a pill labelled with what was in
+ *  the file before it. And with no slot of its own there was nowhere for `pending` to live, so a write
+ *  over a large file looked like a button that did nothing. Two facts, two slots. */
+let applyState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** Whether the apply result's full detail is expanded. Collapsed by default: the headline answers the
+ *  question ninety-nine times out of a hundred, and the detail is five axes of counts. */
+let applyDetailOpen = false;
+// The font families the host can load (#113 Figma arm; empty on web and until the host answers).
+// Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
+// not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
+// machine-dependent. Read to drive type-ahead on the typeface input AND to answer "will this face
+// load?" in the library table.
+let hostFonts: string[] = [];
+/** `hostFonts` family → how many styles Figma has for it (0 = count unknown). Exact-match keyed on
+ *  purpose: `loadFontAsync` is case- AND whitespace-sensitive — measured against real Figma,
+ *  `Roboto` loads while `roboto`, `ROBOTO` and `" Regular"` all fail — so a case-insensitive lookup
+ *  here would claim a face will load when the write is going to skip it. */
+let hostFontStyles = new Map<string, number>();
+// Host → UI notifications: the #109 read-back seed summary, and the #131 knob-rehydration (the
+// persisted BrandInput). restore-input loads the brand wholesale (loadBrand rebuilds + re-renders),
+// so re-opening a themed Figma file boots on that brand instead of the default. loadBrand is a
+// const defined below — this callback only fires async (after ui-ready), so the ref is resolved.
+commit.onHostMessage((m) => {
+  if (m.kind === 'restore-input') {
+    // The blob is public shared-data (any plugin can write it) — validate the SHAPE the same way
+    // Import does (brandTheme must accept it) before loading. A versioned-but-malformed payload
+    // (e.g. `{}`) that clears the persist envelope but has no `primary` would otherwise crash the
+    // boot render (renderBar reads `brandState.primary`); on reject we silently keep defaults.
+    try { brandTheme(m.input as BrandInput); } catch { return; }
+    loadBrand(m.input as BrandInput);
+    return;
+  }
+  if (m.kind === 'restore-input-error') {
+    // #480: the host found a stored blob but refused it (old shape / unrecognized schema version).
+    // Surface it loudly rather than silently staying on defaults — a designer opening a file they
+    // themed before needs to know the knobs didn't come back, not just see a default-looking brand.
+    restoreError = m.message;
+    if (barHost) renderBar();
+    return;
+  }
+  if (m.kind === 'font-list') {
+    hostFonts = m.families;
+    hostFontStyles = new Map(m.families.map((f, i) => [f, m.styles[i] ?? 0]));
+    // A plain re-render — the same path a tab click takes. The list can arrive before or after the
+    // typeface page first renders, so caching plus a re-render makes the order irrelevant.
+    renderWorkspace();
+    return;
+  }
+  if (m.kind === 'apply-result') {
+    applyState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    // Auto-expand a bad result. A miss means something the theme asked for is not in this file, and the
+    // headline only says how many — the detail names which axis. Making the designer click for that on
+    // the one occasion it matters is the wrong default; a clean result stays collapsed.
+    applyDetailOpen = !m.ok;
+    if (barHost) { renderBar(); syncApplyDetail(); }
+    return;
+  }
+  if (m.kind === 'seed-info') {
+    seedInfo = { ok: m.ok, summary: m.summary };
+    if (barHost) renderBar();
+  }
+});
+
+// ===========================================================================
+// STAGE 1 — BRAND PRIMITIVES (bespoke)
+// ===========================================================================
+
+/** The per-palette pinned anchor step (null = derived, no anchor). */
+const anchorStepFor = (palette: string): number | null => {
+  // Read the LAST-GOOD input (M-16): the ramps paint from the last-good theme, so the anchor
+  // badge must be computed from the same source — else a failing live edit flags the wrong swatch.
+  if (palette === 'primary') return autoPlaceStep(lastGoodInput.primary.l);
+  if (palette === 'neutral') return lastGoodInput.neutral.anchor ? autoPlaceStep(lastGoodInput.neutral.anchor.l) : null;
+  const bc = (lastGoodInput.brandColors ?? []).find((b) => b.name === palette);
+  if (bc) return autoPlaceStep(bc.oklch.l);
+  // A Custom-hue-seeded status role (#157): the picked hue IS the anchor color, same treatment as
+  // primary/neutral/brandColors above. `roleToPalette` defaults each status role to its own name, so
+  // a non-borrowed status ramp's palette name equals the role name.
+  const seed = (STATUS_ROLES as readonly string[]).includes(palette) ? lastGoodInput.status?.[palette as StatusRole] : undefined;
+  return seed ? autoPlaceStep(seed.l) : null;
+};
+
+/** Just the ramp bands — 10 swatches per row, labels beneath. The VOLATILE part of a palette row
+ *  (#59): the head (identity / origin / anchor) is stable so open color dialogs + slider drags
+ *  survive, and only these bands (plus the derived readouts) repaint on `apply()`. The anchor now
+ *  reads on the right of the head + the ◆ step label, so the old on-swatch "anchor" flag is retired. */
+const rampBands = (steps: { num: number; key: string; hex: string }[], anchorStep: number | null): HTMLElement => {
+  const wrap = el('div', 'pramp');
+  const sorted = [...steps].sort((a, b) => a.num - b.num);
+  for (const rowSteps of chunk(sorted, 10)) {
+    const band = el('div', 'band');
+    const strip = el('div', 'strip');
+    const labs = el('div', 'labs');
+    for (const s of rowSteps) {
+      const isAnchor = s.num === anchorStep;
+      const sw = el('div', 'sw' + (isAnchor ? ' is-anchor' : ''));
+      sw.style.background = s.hex;
+      strip.append(sw);
+      const lab = el('div', 'lab');
+      const hexEl = el('span', 'lab-hex mono', s.hex); hexEl.title = s.hex;   // #334 — full value on hover once it can ellipsis
+      lab.append(el('span', 'lab-step mono' + (isAnchor ? ' on' : ''), s.key), hexEl);
+      labs.append(lab);
+    }
+    band.append(strip, labs);
+    wrap.append(band);
+  }
+  return wrap;
+};
+
+// Brand-color reference integrity (docs/24 #53) — when an accent is renamed or removed, every place that
+// references its palette NAME must follow, or the alias graph dangles (e.g. `roleColors.success → 'accent'`
+// stops resolving). Covers the four name-referencing fields: actionPalette, roleColors (borrows),
+// interactivePalettes (accent columns), and gradient stops.
+const cascadeRename = (prev: string, next: string): void => {
+  if (brandState.actionPalette === prev) brandState.actionPalette = next;
+  const rc = brandState.roleColors as Record<string, string> | undefined;
+  if (rc) for (const r of Object.keys(rc)) if (rc[r] === prev) rc[r] = next;
+  brandState.interactivePalettes?.forEach((e) => { if (e.palette === prev) e.palette = next; });
+  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === prev) s.palette = next; }));
+};
+const cascadeRemove = (removed: string): void => {
+  if (brandState.actionPalette === removed) brandState.actionPalette = 'primary';
+  const rc = brandState.roleColors as Record<string, string> | undefined;
+  if (rc) { for (const r of Object.keys(rc)) if (rc[r] === removed) delete rc[r]; if (!Object.keys(rc).length) brandState.roleColors = undefined; }
+  if (brandState.interactivePalettes) {
+    brandState.interactivePalettes = brandState.interactivePalettes.filter((e) => e.palette !== removed);
+    if (!brandState.interactivePalettes.length) brandState.interactivePalettes = undefined;
+  }
+  // A gradient stop can't just vanish (a gradient needs ≥2 stops), so repoint any dangling stop to primary.
+  if (Array.isArray(brandState.gradients)) brandState.gradients.forEach((g) => g.stops.forEach((s) => { if (s.palette === removed) s.palette = 'primary'; }));
+};
+
+// ---- Palettes page (#59): full-width palette rows grouped in per-role section containers. ----
+// Each row is a STABLE head (identity swatch + name/path + origin control + anchor readout) above a
+// VOLATILE ramp; `apply()` repaints only the bands + derived readouts (swatch / hex / anchor), so open
+// color dialogs and slider drags survive. Structural source changes (which control is live) go through
+// applyFull. The swatch is a color INPUT when the color is author-chosen (brand always, neutral Pinned,
+// status Custom hue) and a read-out otherwise — and the hex-by-name shows only then.
+
+// A per-role section container with a heading.
+/** Which sections answer to the mode bar. MEASURED, not asserted — every entry comes from
+ *  `npm run -w @prism3/studio audit:modes`, which switches Light→Dark and diffs each section. That
+ *  script also GATES this map (`--check-badges`), so a section whose behaviour changes, or whose
+ *  title is renamed out from under an entry, fails rather than silently losing its badge.
+ *
+ *  Two states, not three (#439). The audit distinguishes `displays` (the preview re-resolves, the
+ *  control does not) from `inert` (nothing changes), and that split is real and worth keeping in the
+ *  tool — but it is not ACTIONABLE: in both cases the answer to "can I edit this per mode?" is no.
+ *  Three labels made two of them sound like the same thing, which is exactly how it read in review.
+ *
+ *  Scope: the six pages that carry a mode bar. Typography edits every mode as columns and has no bar
+ *  (#416), so its "editing all modes" case is deliberately not covered here — it is not in the
+ *  audit's output, and a badge nobody measured is the thing this map exists to avoid. */
+type ModeScope = 'per-mode' | 'shared';
+const SECTION_MODE_SCOPE: Record<string, ModeScope> = {
+  // Surfaces & fills
+  'Backgrounds': 'per-mode', 'Foreground fills': 'per-mode', 'Text': 'per-mode',
+  // Interactive — the three action palettes edit; the global behaviors only re-resolve
+  'Primary actions': 'per-mode', 'Neutral actions': 'per-mode', 'Destructive actions': 'per-mode',
+  'Outline button hover': 'shared', 'Icon colors': 'shared', 'Focus ring': 'shared',
+  // Size & radius
+  'Corner radius': 'per-mode', 'Density & size': 'per-mode', 'Spacing grid': 'shared',
+  'Primitive scales': 'shared',
+  // Elevation
+  'Shadow': 'per-mode', 'Elevation ramp': 'shared',
+  // Motion
+  // Easing is 'shared', not 'per-mode', and the audit is what caught the difference. Its per-mode
+  // control is a COLUMN-PER-MODE table (#522), so it edits every mode at once and its markup is
+  // identical whichever mode the bar holds — the bar does not scope it. With `hasControls` true the
+  // three-state badge renders "Editing · All modes", which is exactly the case #437 proposed that
+  // label for. Marking it 'per-mode' claimed the bar scoped an editor it has no effect on.
+  'Tempo': 'per-mode', 'Easing': 'shared', 'Motion': 'shared',
+  'Duration ramp': 'shared', 'Springs': 'shared',
+  // Preview — read-only end to end
+  'Background': 'shared', 'Foreground': 'shared', 'Text color': 'shared', 'Border': 'shared',
+  'Icon': 'shared', 'Disabled': 'shared', 'Interactive': 'shared',
+};
+
+/** Marks a control that changes the VIEW, not a token — a playback speed, a filter, a specimen ground.
+ *  `attachModeBadges` skips these when deciding editability, the way it already skips `button`.
+ *
+ *  WHY AN ATTRIBUTE AND NOT A DECLARED FLAG PER SECTION. #437's editability is measured from the
+ *  rendered DOM precisely so it cannot drift, and #574 is not a reason to give that up — a
+ *  hand-declared `editable: false` on Motion would go stale the day Motion gains a real control. The
+ *  measurement was not wrong, it was measuring a PROXY: presence of a control is not evidence of
+ *  editability, and a view-state control satisfies "the user can change something here" without
+ *  satisfying "the user can change a token here". Marking the exception keeps the measurement, and a
+ *  section that gains a real control still re-badges itself with no map to remember.
+ *
+ *  WHY AN ATTRIBUTE AND NOT THE `.mo-slowmo-sel` CLASS. The badge would then encode one specimen's
+ *  class name, so the second view control would reintroduce the bug — exactly how #575 happened (a
+ *  mapping re-derived at a second site, with no shared name to grep for). This is that shared name. */
+const VIEW_ONLY = 'data-view-only';
+/** Tag `c` as a view-state control and return it, so it can wrap the control at construction. */
+const viewOnly = <T extends HTMLElement>(c: T): T => { c.setAttribute(VIEW_ONLY, ''); return c; };
+/** Value editors only — what the three-state badge and `mode-audit.mjs` both mean by "a control".
+ *  `button` is excluded because the buttons in these sections play a motion preview or expand a
+ *  disclosure; `[data-view-only]` because a playback speed is not a token. */
+const TOKEN_CONTROL_SEL =
+  `input:not([disabled]):not([${VIEW_ONLY}]), select:not([disabled]):not([${VIEW_ONLY}]), textarea:not([disabled]):not([${VIEW_ONLY}])`;
+
+/** The badge: label + scope, one grammar across both states, and deliberately ACHROMATIC.
+ *  Hue is reserved for the contrast verdicts (--ok / --danger, #446) — neither mode state is good or
+ *  bad, so tinting one would borrow a meaning that does not apply. Fill says "the bar reaches this";
+ *  dashed outline says it does not. */
+const modeScopeBadge = (scope: ModeScope, hasControls: boolean): HTMLElement => {
+  // THREE states, not two (#437). "Shared · All modes" was covering two situations that are not the
+  // same offer to a reader: five sections whose controls edit ONE value every mode then uses
+  // (Outline button hover, Disabled, Icon colors, Easing, Motion) and six with no control at all
+  // (Focus ring, Spacing grid, Primitive scales, Elevation ramp, Duration ramp, Springs). Measured,
+  // not assumed — the six have zero inputs between them. Saying "Shared" over a control you can turn
+  // understates it; saying it over a specimen you cannot touch overstates it.
+  //
+  // Editability is detected from the rendered section rather than declared in SECTION_MODE_SCOPE, so
+  // it cannot drift: a section that gains or loses a control re-badges itself. Only the per-mode axis
+  // stays hand-declared, because no amount of DOM inspection can tell you WHICH mode a select writes
+  // to. Buttons do not count — the ones present here play a motion preview, they do not set a value.
+  const perMode = scope === 'per-mode' && !DERIVED_MODES.has(currentMode);
+  // #545 — a per-mode section rendered while the bar holds a DERIVED mode is inert BY DESIGN: the
+  // engine only ever accepts per-mode edits for a mode it does not itself generate, so a control
+  // rendering here is not evidence it works here. This has to be tested BEFORE `hasControls`, not
+  // folded into the `editable` OR below it: the kept guard two branches down already covered the
+  // no-controls half of this case correctly ("HC light is derived — it cannot be edited"), but
+  // `editable = perMode || hasControls` let `hasControls` win outright whenever a per-mode section's
+  // controls DID render in a derived mode, badging "Editing · All modes" — a worse lie than the
+  // "Editing HC light" the old comment already warned about, because it additionally claims every
+  // mode is being edited when none is, for this section. Still unreachable by measurement today (the
+  // page scaffolds hide per-mode sections' controls entirely on a derived mode, per `renderScreen` /
+  // `controlSplitPage`), which is exactly why the bug was invisible rather than absent — kept as a
+  // guard the same way the branch two lines down is, not decoration.
+  const derivedPerMode = scope === 'per-mode' && DERIVED_MODES.has(currentMode);
+  const editable = perMode || (hasControls && !derivedPerMode);
+  const b = el('span', 'msb' + (editable ? ' on' : ''));
+  const mode = MODE_LABEL[currentMode] ?? currentMode;
+  if (perMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', mode));
+  else if (hasControls && !derivedPerMode) b.append(el('span', 'msb-k', 'Editing'), el('span', 'msb-v', 'All modes'));
+  else b.append(el('span', 'msb-k', 'Non-editable'));
+  b.title = perMode
+    ? `Controls in this section write to ${mode} only.`
+    : hasControls && !derivedPerMode
+      ? 'Controls here set one value that every mode then uses. What you see still re-resolves per mode.'
+      // UNREACHABLE TODAY, kept as a guard, and the distinction matters — #512 rightly killed a
+      // decoration whose comment claimed a mechanism that never fired. Measured across all six bar
+      // pages in HC light: Surfaces, Interactive and Size render ZERO sections, and the only two that
+      // survive (Elevation ramp, Motion) are both `shared`. So no per-mode section is ever badged in
+      // a derived mode. This branch stays because it is not decoration but a correctness guard: if a
+      // page ever does render one there, the alternative — before #545 — was a badge reading
+      // "Editing · All modes" over controls the engine refuses (doc 26 states this trap for columns).
+      // `derivedPerMode` above now catches that case ahead of `hasControls` too, so both the
+      // no-controls and controls-present halves land here. Re-measure before deleting it; do not
+      // assume it still cannot fire.
+      : scope === 'per-mode'
+        ? `${mode} is derived — it cannot be edited. Switch to a customizable mode to edit this section.`
+        : 'Derived from the values above. Nothing in this section is directly editable.';
+  return b;
+};
+
+const palSection = (title: string, sub: string): HTMLElement => {
+  const sec = el('div', 'psec');
+  const head = el('div', 'psec-head');
+  const txt = el('div', 'psec-txt');
+  txt.append(el('h3', 'psec-t', title), el('p', 'psec-d', sub));
+  head.append(txt);
+  sec.append(head);
+  return sec;
+};
+
+// A labelled control column (Source / Hue / Chroma / Anchor). `right` aligns it to the row's end.
+const pfield = (label: string, control: HTMLElement, right = false): HTMLElement => {
+  const f = el('div', 'pfield' + (right ? ' r' : ''));
+  f.append(el('span', 'pfk', label), control);
+  return f;
+};
+
+// The right-side anchor readout — ◆ step, a "borrowing <src>" note, or "derived". Returns a setter.
+const anchorField = (): { field: HTMLElement; set: (key: string | undefined, note?: string) => void } => {
+  const v = el('span', 'panchor mono');
+  const field = pfield('Anchor', v, true);
+  const set = (key: string | undefined, note?: string): void => {
+    v.textContent = note ? note : (key ? key : 'derived');
+    v.className = 'panchor mono' + (note ? ' note' : key ? ' dia' : ' none');
+  };
+  return { field, set };
+};
+
+/** One brand palette row — the swatch is always the color picker (author-chosen), the hex always shows.
+ *  `paletteName` keys the volatile ramp; `nameEl` is the editable accent name (null → the fixed primary). */
+const brandRow = (getHex: () => string, setHex: (h: string) => void, name: string, path: string | null,
+                  isAction: boolean, paletteName: string, nameEl: HTMLElement | null,
+                  removable: (() => void) | null): { row: HTMLElement; refresh: () => void } => {
+  const row = el('div', 'prow authored show-hex');
+  const head = el('div', 'phead');
+  const ident = el('div', 'pident');
+  const picker = el('input', 'pswatch') as HTMLInputElement;
+  picker.type = 'color'; picker.value = getHex(); picker.title = 'Edit color';
+  const idcol = el('div', 'pidcol');
+  idcol.append(nameEl ?? el('span', 'pname', name));
+  const sub = el('div', 'psub');
+  const hexLab = el('span', 'phex mono', picker.value);
+  sub.append(hexLab);
+  if (path) sub.append(tokenPill(path));
+  if (isAction) {
+    const badge = el('span', 'prole');
+    const dot = el('span', 'prole-dot'); dot.style.background = picker.value;
+    badge.append(dot, document.createTextNode('default interactive color'));
+    sub.append(badge);
+  }
+  idcol.append(sub);
+  ident.append(picker, idcol);
+  if (removable) ident.append(removeButton(removable, 'Remove color', 'prm'));
+  const anchor = anchorField();
+  head.append(ident, anchor.field);
+  const bands = el('div', 'pramp-wrap');
+  row.append(head, bands);
+  picker.oninput = () => { setHex(picker.value); hexLab.textContent = picker.value; apply(); };
+  const refresh = (): void => {
+    const pal = theme.palettes.find((p) => p.palette === paletteName);
+    const aStep = anchorStepFor(paletteName);
+    anchor.set(aStep != null ? pal?.steps.find((s) => s.num === aStep)?.key : undefined);
+    bands.replaceChildren(rampBands(pal?.steps ?? [], aStep));
+  };
+  return { row, refresh };
+};
+
+// The neutral row — three sources: Auto (hue live-follows the brand primary; swatch is a read-out),
+// Custom tint (Hue + Chroma sliders drive the scale; swatch is a read-out) and Pinned color (the swatch
+// IS the color picker → an exact grey pinned to `neutral.anchor`). The padlock marks the two read-out
+// sources — Auto + Custom tint — where the swatch is derived, not directly editable; Pinned's swatch has
+// no lock because it's the one editable picker. Source is a select, matching the status ramps.
+const neutralRow = (): { row: HTMLElement; refresh: () => void } => {
+  const pinned = !!brandState.neutral.anchor;
+  const auto = !pinned && !!brandState.neutral.auto;       // Auto: hue live-follows the brand primary
+  const editable = !pinned && !auto;                        // Custom tint is the only editable source
+  const effHue = auto ? brandState.primary.h : brandState.neutral.hue;   // the hue currently in effect
+  const row = el('div', 'prow' + (pinned ? ' authored show-hex' : ''));
+  const head = el('div', 'phead');
+  const ident = el('div', 'pident');
+
+  const swWrap = el('div', 'pswrap');
+  let swatch: HTMLElement;
+  let hexLab: HTMLElement | null = null;
+  if (pinned) {
+    const a = brandState.neutral.anchor!;
+    const picker = el('input', 'pswatch') as HTMLInputElement;
+    picker.type = 'color'; picker.value = hex(oklchToRgb(a)); picker.title = 'Edit color';
+    picker.oninput = () => { const o = rgbToOklch(hexToRgb(picker.value)); a.l = o.l; a.c = o.c; a.h = o.h; if (hexLab) hexLab.textContent = picker.value; apply(); };
+    swatch = picker;
+    swWrap.append(swatch);
+  } else {
+    // Auto + Custom tint derive the swatch from the scale — mark it locked (not directly editable).
+    swatch = el('div', 'pswatch ro');
+    const lock = el('span', 'plock');
+    lock.innerHTML = '<svg viewBox="0 0 14 14" aria-hidden="true"><rect x="3" y="6.4" width="8" height="5.4" rx="1.3"/><path d="M4.6 6.4V5a2.4 2.4 0 0 1 4.8 0v1.4" fill="none"/></svg>';
+    swWrap.append(swatch, lock);
+  }
+  const idcol = el('div', 'pidcol');
+  idcol.append(el('span', 'pname', 'neutral'));
+  const sub = el('div', 'psub');
+  if (pinned) { hexLab = el('span', 'phex mono', (swatch as HTMLInputElement).value); sub.append(hexLab); }
+  sub.append(tokenPill('palette.neutral'));
+  idcol.append(sub);
+  ident.append(swWrap, idcol);
+
+  // origin — Source select + Hue/Chroma. Editable only under Custom tint; Auto shows the
+  // primary-derived hue read-only, Pinned shows the pinned grey's tint read-only.
+  const origin = el('div', 'porigin');
+  const src = selectEl('sm');
+  src.append(optionEl('auto', 'Auto', auto), optionEl('custom', 'Custom tint', editable), optionEl('pinned', 'Pinned color', pinned));
+  src.onchange = () => {
+    const n = brandState.neutral;
+    if (src.value === 'auto') { delete n.anchor; n.auto = true; }
+    // snapshot the current effective hue so the Custom-tint slider starts where Auto left it (no jump)
+    else if (src.value === 'custom') { delete n.anchor; if (n.auto) { n.hue = brandState.primary.h; delete n.auto; } }
+    else { n.anchor = { l: 0.5, c: Math.min(n.chroma, 0.02), h: effHue }; delete n.auto; }
+    applyFull();
+  };
+  origin.append(pfield('Source', src));
+  const a = brandState.neutral.anchor;
+  const nSlider = (key: string, label: string, max: number, step: number, value: number, fmt: (v: number) => string): HTMLElement => {
+    const f = el('div', 'pfield slider' + (editable ? '' : ' ro'));
+    const top = el('div', 'psl-top');
+    const val = el('span', 'psl-val mono', fmt(value));
+    top.append(el('span', 'pfk', label), val);
+    const input = rangeInput({ className: 'range psl-range', min: 0, max, step, value });
+    if (!editable) input.disabled = true;
+    else input.oninput = () => { setPath(brandState, key, Number(input.value)); val.textContent = fmt(Number(input.value)); apply(); };
+    f.append(top, input);
+    return f;
+  };
+  const hueField = nSlider('neutral.hue', 'Hue', 360, 1, pinned ? a!.h : effHue, (v) => `${Math.round(v)}°`);
+  origin.append(hueField, nSlider('neutral.chroma', 'Chroma', 0.03, 0.001, pinned ? a!.c : brandState.neutral.chroma, (v) => v.toFixed(3)));
+  const hueVal = hueField.querySelector('.psl-val') as HTMLElement;
+  const hueInput = hueField.querySelector('.psl-range') as HTMLInputElement;
+
+  const anchor = anchorField();
+  head.append(ident, origin, anchor.field);
+  const bands = el('div', 'pramp-wrap');
+  row.append(head, bands);
+  const refresh = (): void => {
+    const pal = theme.palettes.find((p) => p.palette === 'neutral');
+    const aStep = anchorStepFor('neutral');
+    anchor.set(aStep != null ? pal?.steps.find((s) => s.num === aStep)?.key : undefined);
+    if (!pinned) { const mid = pal?.steps.find((s) => s.num === 500)?.hex; if (mid) swatch.style.background = mid; }
+    // Auto: keep the read-only hue in step with the brand primary as it changes.
+    if (auto) { const h = brandState.primary.h; hueVal.textContent = `${Math.round(h)}°`; hueInput.value = String(h); }
+    bands.replaceChildren(rampBands(pal?.steps ?? [], aStep));
+  };
+  return { row, refresh };
+};
+
+const renderPrimitives = (host: HTMLElement): void => {
+  host.append(hero('Start from your brand colors.',
+    'Give the engine your exact hues. It grows each into a gamut-aware, contrast-placed ramp and pins your color as the anchor — never shifted. Every semantic role downstream aliases these.'));
+
+  const refreshers: Array<() => void> = [];
+
+  // Brand — primary + accents, each a full-width row; the swatch is the color picker.
+  const brandSec = palSection('Brand palettes', 'Each brand color grown into a gamut-aware, contrast-placed ramp — your color pinned as the anchor, never shifted.');
+  const errBar = el('div', 'errbar'); errBar.style.display = 'none';
+  brandSec.append(errBar);
+  const action = brandState.actionPalette ?? 'primary';
+  {
+    const b = brandRow(
+      () => hex(oklchToRgb(brandState.primary)),
+      (h) => setPath(brandState, 'primary', rgbToOklch(hexToRgb(h))),
+      'primary', 'palette.primary', action === 'primary', 'primary', null, null);
+    brandSec.append(b.row); refreshers.push(b.refresh);
+  }
+  const list = brandState.brandColors ?? (brandState.brandColors = []);
+  list.forEach((bc, i) => {
+    const nameEl = el('input', 'pname-input mono') as HTMLInputElement;
+    nameEl.type = 'text'; nameEl.value = bc.name; nameEl.spellcheck = false;
+    nameEl.onchange = () => {
+      const prev = bc.name, next = nameEl.value.trim() || bc.name;
+      if (next === prev) return;
+      // Don't rename onto another palette's name — it would collide / merge the alias graph. Revert.
+      const taken = new Set(['primary', 'neutral', ...list.filter((_, j) => j !== i).map((b) => b.name)]);
+      if (taken.has(next)) { nameEl.value = prev; return; }
+      bc.name = next; cascadeRename(prev, next); applyFull();
+    };
+    const b = brandRow(
+      () => hex(oklchToRgb(bc.oklch)),
+      (h) => { bc.oklch = rgbToOklch(hexToRgb(h)); },
+      bc.name, `palette.${bc.name}`, action === bc.name, bc.name, nameEl,
+      () => { const removed = list[i].name; list.splice(i, 1); cascadeRemove(removed); applyFull(); });
+    brandSec.append(b.row); refreshers.push(b.refresh);
+  });
+  brandSec.append(addButton('+ Add brand color', () => {
+    const names = new Set(list.map((b) => b.name));
+    let n = list.length + 1, nm = `accent${n}`;
+    while (names.has(nm)) nm = `accent${++n}`;
+    list.push({ name: nm, oklch: { l: 0.55, c: 0.15, h: 235 } });
+    applyFull();
+  }, 'padd'));
+  host.append(brandSec);
+
+  // Neutral — one row, two sources (Custom tint / Pinned color).
+  const neuSec = palSection('Neutral', 'A tinted gray scale that follows your brand hue automatically. Switch to Custom tint to tune it, or Pinned color to lock an exact brand gray.');
+  { const n = neutralRow(); neuSec.append(n.row); refreshers.push(n.refresh); }
+  host.append(neuSec);
+
+  // "Status", not "Validation". The engine input is `status`, the emitted tokens are
+  // `palette.success|warning|danger|info`, and `semanticRoles` rebases onto "a status" — "validation"
+  // appears nowhere in the vocabulary, so it was a UI-invented word for a thing the tokens already
+  // name. Same class as Preview heading a category column `Role` after #415 re-keyed the tier.
+  const valSec = palSection('Status ramps', 'The success / warning / danger / info ramps every semantic role aliases — auto-derived, seeded from a custom hue, or borrowed from a brand palette.');
+  for (const role of STATUS_ROLES) { const s = statusRow(role); valSec.append(s.row); refreshers.push(s.refresh); }
+  host.append(valSec);
+  host.append(renderAlphaAndOpacity());
+
+  paintVolatile = () => {
+    errBar.style.display = lastError ? '' : 'none';
+    if (lastError) errBar.textContent = `This combination doesn't resolve: ${lastError} — showing the last valid palettes.`;
+    refreshers.forEach((r) => r());
+  };
+  paintVolatile();
+};
+
+// ===========================================================================
+// Generic lever controls + the bespoke editors the focused pages compose from
+// ===========================================================================
+
+const renderControl = (lever: Lever): HTMLElement => {
+  const live = LIVE_CONTROLS.has(lever.control);
+  let body: HTMLElement;
+
+  if (lever.control === 'slider') {
+    const input = rangeInput({ min: lever.min, max: lever.max, step: lever.step, value: (getPath(brandState, lever.key) ?? lever.default ?? lever.min ?? 0) as number });
+    input.disabled = !live;
+    const val = el('span', 'knob-val', `${input.value}${lever.unit ?? ''}`);
+    if (live) input.oninput = () => { setPath(brandState, lever.key, Number(input.value)); val.textContent = `${input.value}${lever.unit ?? ''}`; apply(); };
+    body = knobBody(input, val);
+  } else if (lever.control === 'palette-ref' && live) {
+    const sel = selectEl('sm');
+    const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
+    const cur = String(getPath(brandState, lever.key) ?? lever.default ?? 'primary');
+    for (const p of palettes) sel.append(optionEl(p, p, p === cur));
+    sel.onchange = () => { setPath(brandState, lever.key, sel.value); apply(); };
+    body = sel;
+  } else if (lever.control === 'enum') {
+    const sel = selectEl('sm');
+    const cur = getPath(brandState, lever.key) ?? lever.default;
+    for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
+    sel.disabled = !live;
+    if (live) sel.onchange = () => { setPath(brandState, lever.key, sel.value); apply(); };
+    body = sel;
+  } else if (lever.control === 'toggle') {
+    // Boolean axis. `checked` reads truthy — so `gradients` renders "on" whether it's `true`
+    // or an explicit gradient array (the array is only reset if the user toggles off). Toggling
+    // writes a plain boolean: on → the default (single gradient / inverse inks), off → false.
+    body = toggleField(!!(getPath(brandState, lever.key) ?? lever.default), (checked) => { setPath(brandState, lever.key, checked); apply(); });
+  } else {
+    const v = getPath(brandState, lever.key) ?? lever.default;
+    let text: string;
+    if (Array.isArray(v)) text = v.map((it: any) => it?.name).filter(Boolean).join(', ') || `${v.length} item(s)`;
+    else if (v && typeof v === 'object') text = 'configured';
+    else text = String(v ?? lever.itemLabel ?? '—');
+    body = el('div', 'knob-val ro', text);
+  }
+  return knob(lever.label, body, lever.description);
+};
+
+// ---- per-mode modeLevers read/write (single source for every per-mode editor) ---------------------
+// The per-mode lever axes (radius/tempo/density selects, the typography family/weight/leading/tracking
+// editors, the shadow softness/tint sliders) all read + write `brandState.modeLevers[mode].<path>` with
+// the SAME prune-to-byte-identical invariant: a mode whose overrides are all cleared must revert to
+// exactly the no-override state. These three helpers own that so no editor re-implements it (and can't
+// drift from it). `path` is a dot path into the mode entry (e.g. 'radius', 'families.display',
+// 'shadow.tint.hue').
+const getModeLever = (mode: string, path: string): unknown => {
+  let node: any = brandState.modeLevers?.[mode];
+  for (const p of path.split('.')) { if (node == null) return undefined; node = node[p]; }
+  return node;
+};
+/** Drop empty nested maps and the mode entry (and modeLevers itself) so an all-cleared mode is byte-
+ *  identical to never having had an override. */
+const pruneModeLevers = (mode: string): void => {
+  const ml = brandState.modeLevers; if (!ml) return;
+  const e = ml[mode];
+  const dropEmpties = (o: any): void => {
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      if (v && typeof v === 'object' && !Array.isArray(v)) { dropEmpties(v); if (!Object.keys(v).length) delete o[k]; }
+    }
+  };
+  if (e) { dropEmpties(e); if (!Object.keys(e).length) delete ml[mode]; }
+  if (!Object.keys(ml).length) brandState.modeLevers = undefined;
+};
+/** Set `modeLevers[mode].<path>` to `value` (creating the nested maps), or delete it when `value` is
+ *  undefined / '' — then prune empties. Does NOT re-render (callers pick apply/applyFull). */
+const setModeLever = (mode: string, path: string, value: unknown): void => {
+  const ml = brandState.modeLevers ?? (brandState.modeLevers = {});
+  const e: any = ml[mode] ?? (ml[mode] = {});
+  const parts = path.split('.');
+  const last = parts.pop()!;
+  let node: any = e;
+  for (const p of parts) node = node[p] ?? (node[p] = {});
+  if (value !== undefined && value !== '') node[last] = value; else delete node[last];
+  pruneModeLevers(mode);
+};
+
+/** A per-mode enum select with a natural "Auto" (follows the global lever). Shared by the radius / motion
+ *  tempo / density controls — outside the base mode they edit `modeLevers[mode].<key>` instead of the
+ *  global. A hand-authored value that matches no discrete option is surfaced as its own "(custom)" option
+ *  rather than silently reading as Auto. `parse` maps the selected string to the stored value. */
+const renderPerModeSelect = (lever: Lever, key: string, opts: [string, string][], globalOf: () => string, parse: (s: string) => unknown, autoNote: string): HTMLElement => {
+  const cur = getModeLever(currentMode, key);
+  const sel = selectEl('sm fill');
+  sel.append(optionEl('', `Auto — follows global (${globalOf()})`, cur == null));
+  let matched = false;
+  for (const [v, label] of opts) { const on = String(cur) === v; matched ||= on; sel.append(optionEl(v, label, on)); }
+  if (cur != null && !matched) sel.append(optionEl(String(cur), `${cur} (custom)`, true));
+  sel.onchange = () => { setModeLever(currentMode, key, sel.value === '' ? undefined : parse(sel.value)); applyFull(); };
+  const desc = `${lever.description} — per ${MODE_LABEL[currentMode] ?? currentMode}; “Auto” follows the global ${autoNote}.`;
+  return knob(lever.label, sel, desc);
+};
+const RADIUS_SCALE_OPTS: [string, string][] = [['0', '0 · sharp'], ['0.5', '0.5'], ['1', '1 · default'], ['1.5', '1.5'], ['2', '2 · soft']];
+const TEMPO_OPTS: [string, string][] = [['snappy', 'Snappy'], ['standard', 'Standard'], ['relaxed', 'Relaxed']];
+const DENSITY_OPTS: [string, string][] = [['compact', 'Compact'], ['comfortable', 'Comfortable'], ['spacious', 'Spacious']];
+const renderPerModeRadius = (lever: Lever): HTMLElement =>
+  renderPerModeSelect(lever, 'radius', RADIUS_SCALE_OPTS, () => String(brandState.radiusScale ?? (lever.default as number) ?? 1), Number, 'corner softness');
+const renderPerModeTempo = (lever: Lever): HTMLElement =>
+  renderPerModeSelect(lever, 'tempo', TEMPO_OPTS, () => String(brandState.motionPersonality?.tempo ?? (lever.default as string) ?? 'standard'), (s) => s, 'tempo');
+const renderPerModeDensity = (lever: Lever): HTMLElement =>
+  renderPerModeSelect(lever, 'density', DENSITY_OPTS, () => String(brandState.density ?? (lever.default as string) ?? 'comfortable'), (s) => s, 'density');
+
+/** The all-modes contrast table (Pair · a mode column each · dot + ratio). Shared by the Preview master
+ *  table and the per-page section tables (docs/23 §3) — one authoritative renderer, re-sliced by the
+ *  caller's contract list. `paths` shows the raw `fg on bg` token paths (the section tables, which sit
+ *  next to their controls where the component context is already obvious) with the human label as a
+ *  subtitle; the master table keeps the descriptive `component · variant — label`. */
+const pairCellEl = (ct: typeof rp.contracts[number], paths: boolean): HTMLElement => {
+  const td = el('td', 'pair');
+  if (paths) {
+    td.append(el('span', 'pair-path mono', `${ct.fg} on ${ct.bg}`));
+    if (ct.label) td.append(el('span', 'pair-sub', ct.label));
+  } else {
+    td.textContent = `${ct.component} · ${ct.variant} — ${ct.label ?? `${ct.min}:1`}`;
+  }
+  return td;
+};
+const contractTableEl = (contracts: typeof rp.contracts, paths = false): HTMLElement => {
+  const table = el('table', 'ctable');
+  const thead = el('tr');
+  thead.append(el('th', undefined, paths ? 'Foreground on background' : 'Pair'));
+  for (const m of rp.modes) thead.append(el('th', 'mcol', MODE_LABEL[m] ?? m));
+  table.append(thead);
+  for (const ct of contracts) {
+    const tr = el('tr');
+    tr.append(pairCellEl(ct, paths));
+    for (const m of rp.modes) {
+      const cell = el('td', 'mcol');
+      const r = ct.byMode[m];
+      if (r) { cell.append(el('span', `dot ${r.pass ? 'ok' : 'no'}`), el('span', 'ratio', r.ratio.toFixed(2))); }
+      else cell.textContent = '—';
+      tr.append(cell);
+    }
+    table.append(tr);
+  }
+  return table;
+};
+
+// ---- Preview segments (docs/23 §7) ----------------------------------------
+// The Preview destination has three views behind a segmented switcher: the style guide (roles composed
+// in-context), the all-modes contract master table, and a category-grouped token list. All read the
+// mode picked in the global header for their per-mode columns/rendering.
+
+/** Contrast contracts — the full all-modes master table (verification of record). */
+const renderPreviewContracts = (host: HTMLElement): void => {
+  // Wrapped in a `.psec` like its two sibling views. It was the only one of the three rendering a bare
+  // note + bare table straight onto the page background — the doc-26 shell is what makes the three
+  // views read as one destination rather than three different pages behind a segmented control.
+  //
+  // The heading carries the FAILURE COUNT, because that is the question this view exists to answer and
+  // it was previously only derivable by scanning ~32 rows × every mode for a red dot. Zero is stated
+  // rather than left implicit: "all pairs clear" is the result a designer most wants confirmed.
+  // Counted as PAIRS that fail in at least one mode, not as mode-instances — a pair failing in both
+  // light and dark is one problem to fix, and summing instances would report it as two. The mode
+  // count rides along so the number stays honest about breadth.
+  const failing = rp.contracts.filter((ct) => rp.modes.some((m) => ct.byMode[m] && !ct.byMode[m]!.pass));
+  const instances = rp.contracts.reduce((n, ct) => n + rp.modes.filter((m) => ct.byMode[m] && !ct.byMode[m]!.pass).length, 0);
+  const sec = palSection('Contrast contracts',
+    `Every declared a11y pair (${rp.contracts.length}), computed on the resolved colors across all modes. The per-control badges on each editing page verify the active mode at the point of edit; the per-page tables scope this to what that page governs.`);
+  const tally = el('p', failing.length ? 'pv-tally no' : 'pv-tally ok',
+    failing.length
+      ? `${failing.length} of ${rp.contracts.length} pairs fall below their floor — ${instances} mode${instances === 1 ? '' : 's'} affected.`
+      : 'Every pair clears its floor in every mode.');
+  sec.append(tally);
+  sec.append(contractTableEl(rp.contracts));
+  host.append(sec);
+};
+
+// Token list — the resolved token set, grouped by category, value(s) per mode where they vary.
+const tokenTableEl = (rows: Array<{ name: string; cells: Array<HTMLElement | string> }>, cols: string[]): HTMLElement => {
+  // `toktable` left-aligns the value columns (a swatch+hex / px value reads best flush-left) — the
+  // shared `.ctable .mcol` centring is right for the contrast table's dot+ratio, wrong here.
+  const table = el('table', 'ctable toktable');
+  const thead = el('tr'); thead.append(el('th', undefined, 'Token'));
+  for (const c of cols) thead.append(el('th', 'mcol', c));
+  table.append(thead);
+  for (const r of rows) {
+    const tr = el('tr'); tr.append(el('td', 'pair mono', r.name));
+    for (const c of r.cells) { const td = el('td', 'mcol'); if (typeof c === 'string') td.textContent = c; else td.append(c); tr.append(td); }
+    table.append(tr);
+  }
+  return table;
+};
+const swatchCell = (hex: string | undefined): HTMLElement => {
+  const wrap = el('span', 'tok-val');
+  if (hex) { const sw = el('span', 'tok-sw'); sw.style.background = hex; wrap.append(sw, el('span', 'mono', hex)); }
+  else wrap.append(document.createTextNode('—'));
+  return wrap;
+};
+// The token list walks the SAME DTCG tree `exportTokens` downloads (`buildTree(theme).tree`), so what you
+// see IS what you'd export — and a full tree walk shows EVERY token, not the preview-bound subset (#263).
+// Each top-level category under the brand root becomes a `.psec`; leaves render by `$type`.
+type TokLeaf = { path: string; node: TreeNode };
+/** Collect every leaf under `node` (a leaf has `$type`; groups are plain objects; `$`-keys are metadata),
+ *  as dotted paths RELATIVE to the category root. Mirrors the generator's own walker (tree.ts). */
+const collectLeaves = (node: TreeNode, prefix: string, out: TokLeaf[]): void => {
+  if (!node || typeof node !== 'object') return;
+  if (node.$type !== undefined) { out.push({ path: prefix, node }); return; }
+  for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) collectLeaves(v, prefix ? `${prefix}.${k}` : k, out);
+};
+/** A color leaf's hex for a mode: the base `$value` (base mode) or the `modes.<m>.$value` override,
+ *  dereferenced to its palette primitive (whose `$extensions.prism3.hex` is colour-format-independent). */
+const hexOfNode = (tree: TreeNode, node: TreeNode): string | undefined => {
+  // A leaf's hex: its own `$extensions.prism3.hex` if present (primitives carry it, format-independent);
+  // else if its `$value` is an `{alias}`, follow it to the primitive that does. `#…` / `rgb(…)` fall back.
+  const own = node?.$extensions?.prism3?.hex;
+  if (own) return own;
+  const v = node?.$value;
+  if (typeof v === 'string' && /^\{.+\}$/.test(v)) return hexOfNode(tree, deref(tree, subNode(tree, v)));
+  if (typeof v === 'string' && (v.startsWith('#') || v.startsWith('rgb'))) return v;
+  return undefined;
+};
+const colorHexAt = (tree: TreeNode, node: TreeNode, mode: Mode, baseMode: Mode): string | undefined => {
+  const ov = node.$extensions?.prism3?.modes?.[mode];
+  // A primitive (raw hex, no per-mode overrides) reads the same across every column; a role uses its base
+  // `$value` for the base mode and the `modes.<m>.$value` alias otherwise.
+  if (mode === baseMode || !node.$extensions?.prism3?.modes) return hexOfNode(tree, node);
+  return ov?.$value ? hexOfNode(tree, deref(tree, subNode(tree, ov.$value))) : hexOfNode(tree, node);
+};
+/** A typography composite → family · weight · size · line-height · tracking (primary face only). */
+/** `value` defaults to the node's own `$value`, but a caller that has resolved a PER-MODE snapshot
+ *  passes it instead — a composite's mode override is a full `$value` (`{ ...value, ...parts }`), so it
+ *  carries all five aliases and reads exactly the same way. Without this seam the read-out was pinned
+ *  to light for every mode. */
+/** `onTarget` re-reads each aliased ROLE at a mode. The `value` seam above covers a composite that
+ *  carries its own per-mode override; this covers the case where the composite is identical in every
+ *  mode and the variance is one hop down, which is where ALL per-mode typography actually lands
+ *  (`modeLevers.<mode>.{families,weights,lineHeights,letterSpacings}` mark `font.weight-role.strong`,
+ *  never `type.display.sm.strong`). Without it the mode columns render, and render the SAME numbers —
+ *  worse than one column, because two identical columns assert the modes agree when they do not. */
+const typeComposite = (tree: TreeNode, node: TreeNode, value?: unknown, onTarget?: (n: TreeNode) => TreeNode): string => {
+  const v = (value ?? node.$value ?? {}) as any;
+  const t = (alias: unknown): TreeNode => { const n = subNode(tree, alias); return n && onTarget ? onTarget(n) : n; };
+  const parts: string[] = [];
+  if (v.fontFamily) parts.push(familyOf(tree, t(v.fontFamily)).split(',')[0].trim());
+  if (v.fontWeight) parts.push(String(numOf(tree, t(v.fontWeight))));
+  if (v.fontSize) parts.push(`${Math.round(remPxOf(tree, t(v.fontSize)))}px`);
+  if (v.lineHeight) parts.push(`${numOf(tree, t(v.lineHeight))} lh`);
+  if (v.letterSpacing) { const ls = deref(tree, t(v.letterSpacing)); const em = ls?.$extensions?.prism3?.em; if (em != null) parts.push(`${em}em`); }
+  return parts.join(' · ');
+};
+/** A shadow layer array → a compact CSS box-shadow string (for a monospace cell). */
+const shadowCss = (layers: unknown): string => Array.isArray(layers)
+  ? layers.map((l: any) => `${l.offsetX} ${l.offsetY} ${l.blur} ${l.spread ?? '0'} ${l.color}`).join(', ')
+  : '';
+// ── Preview → Token list, split on the primitive/semantic tier line (#267 pattern) ──────────────
+// Typography carried this split first (#272, via `.pvseg`); this generalises it. Two defects forced
+// it, and each is invisible until the tiers are apart: PRIMITIVES HAVE NO MODES, so the four mode
+// columns rendered four identical cells for all 142 palette steps; and a semantic's resolved value is
+// only half of it — which token it ALIASES is the editable relationship, and only 10 of 151 colour
+// roles alias the same target in every mode (aurora; harbor: 9), so the alias has to live INSIDE each
+// mode cell rather than in one shared column.
+type TokTier = 'primitive' | 'semantic';
+let tokTier: TokTier = 'primitive';
+let tokShow: 'both' | 'alias' | 'value' = 'both';
+let tokPath: 'full' | 'short' = 'full';
+let tokCat = '';
+
+const TOK_ALIAS = /^\{.+\}$/;
+/** Tier by SHAPE, not a hardcoded category list — a token added later lands in the right tab on its
+ *  own. One carve-out: a typography COMPOSITE holds an object of aliases rather than an alias string,
+ *  so the shape rule alone would file it as primitive. Doc 26 puts the full type ramp under
+ *  Typography's *Styles* tier, and a composed style is the least primitive thing in the system. */
+const tokTierOf = (node: TreeNode): TokTier =>
+  node.$type === 'typography' ? 'semantic'
+    : (typeof node.$value === 'string' && TOK_ALIAS.test(node.$value)) ? 'semantic' : 'primitive';
+
+/** A typography composite's parts, in composite order, labelled for the stacked alias cell. */
+const COMPOSITE_PART: Record<string, string> = {
+  fontFamily: 'Family', fontSize: 'Size', fontWeight: 'Weight', lineHeight: 'Leading', letterSpacing: 'Tracking',
+};
+const renderPreviewTokens = (host: HTMLElement): void => {
+  const tree = buildTree(theme).tree;
+  const root = (tree.$extensions?.prism3?.root as string) ?? Object.keys(tree).find((k) => !k.startsWith('$'))!;
+  const brand = tree[root] as TreeNode;
+  const modes = rp.modes;
+  const baseMode = modes[0];   // the base `$value` is the first/canonical mode; the rest are overrides
+  const modeLabels = modes.map((m) => MODE_LABEL[m] ?? m);
+  const rootRe = new RegExp('^' + root.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.');
+
+  /** The `$value` a node presents IN A MODE — the per-mode snapshot where there is one, else the base.
+   *  Extracted because three readers had already open-coded these two lines and a fourth (`compositeParts`)
+   *  and a fifth (the typography branch of `valueText`) had NOT, which is the whole defect: a per-mode
+   *  composite re-point rendered four identical mode columns on the one page built to show divergence.
+   *  One accessor means the next reader cannot forget. */
+  const valueAt = (node: TreeNode, m: Mode): unknown => {
+    const ov = node.$extensions?.prism3?.modes?.[m];
+    if (m === baseMode || !ov) return node.$value;
+    // Two override shapes exist in the emitted tree. 453 of them (every colour) are
+    // `{ $value, aliasOf, … }`; shadow's 7 are the RAW layer array. Reading only `ov.$value` made
+    // every dark shadow render as an em-dash in the one view whose job is the exhaustive dump — the
+    // table said "no dark value" for a family that has one, on all 7 rows.
+    //
+    // Tolerant here rather than corrected at the source ON PURPOSE: the raw-array shape is load
+    // bearing — `resolve-preview.ts` and `emit-figma-styles.ts` both read it with `Array.isArray`,
+    // and it is a published artifact shape. Unifying the convention is the right fix and is a
+    // decision about the emitted contract, not something to change as a side effect of a UI review.
+    return (ov as { $value?: unknown }).$value ?? ov;
+  };
+  /** What a leaf points at in a mode — root-relative — or undefined when it carries a value itself. */
+  const aliasAt = (node: TreeNode, m: Mode): string | undefined => {
+    const v = valueAt(node, m);
+    return typeof v === 'string' && TOK_ALIAS.test(v) ? v.replace(/[{}]/g, '').replace(rootRe, '') : undefined;
+  };
+  /** The node a leaf points at in ONE hop — undefined when it carries a value itself. Deliberately
+   *  NOT `deref`, which follows the chain all the way to the terminal primitive: the chain marker
+   *  exists to say "this points at another semantic", and a fully-resolved node can never be one. */
+  const hopAt = (node: TreeNode, m: Mode): TreeNode | undefined => {
+    const v = valueAt(node, m);
+    return (typeof v === 'string' && TOK_ALIAS.test(v)) ? subNode(tree, v) : undefined;
+  };
+  /** …and the fully resolved node, which is what the value read-out wants. */
+  const targetAt = (node: TreeNode, m: Mode): TreeNode => deref(tree, hopAt(node, m) ?? node);
+  /** A typography COMPOSITE has no single alias: its `$value` is FIVE aliases at once (family, size,
+   *  weight, leading, tracking). Returned in composite order so the cell can stack them; `[]` for
+   *  everything else, which is what keeps the normal single-alias path untouched. */
+  const compositeParts = (node: TreeNode, m: Mode): Array<{ label: string; path: string }> => {
+    const v = valueAt(node, m);
+    return node.$type !== 'typography' || !v || typeof v !== 'object' ? []
+      : Object.entries(v as Record<string, unknown>)
+        .filter(([, x]) => typeof x === 'string' && TOK_ALIAS.test(x as string))
+        .map(([k, x]) => ({ label: COMPOSITE_PART[k] ?? k, path: String(x).replace(/[{}]/g, '').replace(rootRe, '') }));
+  };
+
+  /** The resolved value as text, by `$type` — the payload for a primitive, the second line for a semantic. */
+  const valueText = (node: TreeNode, m: Mode): string => {
+    // A role carrying a per-mode override is read AT `m`: shallow-merge the override over the node so
+    // the downstream deref/numOf see this mode's `$value`. Base mode and un-overridden roles fall
+    // through untouched, which is why every current brand renders byte-identically.
+    if (node.$type === 'typography') return typeComposite(tree, node, valueAt(node, m), (n) => {
+      const ov = n.$extensions?.prism3?.modes?.[m];
+      return m === baseMode || !ov || typeof ov !== 'object' ? n : { ...n, ...(ov as object) };
+    });
+    if (node.$type === 'shadow') return shadowCss(valueAt(node, m)) || '—';
+    const n = targetAt(node, m);
+    const px = n?.$extensions?.prism3?.px;
+    if (px != null) return `${px}px`;
+    const val = n?.$value;
+    return typeof val === 'number' ? String(val) : String(val ?? '—');
+  };
+
+  /** One cell. `both` is the two-line form (alias over value); the Show control collapses it. */
+  const tokCell = (node: TreeNode, m: Mode, canShort: boolean): HTMLElement => {
+    const alias = aliasAt(node, m);
+    const parts = compositeParts(node, m);
+    const hasAlias = alias !== undefined || parts.length > 0;
+    const wantAlias = tokShow !== 'value' && hasAlias;
+    const wantValue = tokShow !== 'alias' || !hasAlias;             // never render an empty cell
+    const wrap = el('div', wantAlias && wantValue ? 'tok-two' : undefined);
+    if (wantAlias && parts.length) {
+      // STACKED, one labelled row per part. Chosen over an inline join because the five paths run
+      // ~123 characters — about 775px at this size, i.e. the whole 850px content column, so every
+      // one of the 37 composites would scroll sideways (aurora; harbor: 38). Stacking costs height
+      // in one section only; `type.*` is the only shape in the system with more than one alias.
+      const g = el('div', 'tok-stack');
+      for (const part of parts) {
+        g.append(el('span', 'pfk', part.label));   // the shared micro-label (doc 26), not a new variant
+        g.append(el('span', 'mono tok-alias', tokPath === 'short' && canShort ? part.path.split('.').slice(1).join('.') : part.path));
+      }
+      wrap.append(g);
+    } else if (wantAlias && alias) {
+      const a = el('span', 'mono tok-alias', tokPath === 'short' && canShort ? alias.split('.').slice(1).join('.') : alias);
+      // A semantic that aliases another SEMANTIC (32 of them: grid → space → dimension; harbor: 30).
+      // The one-hop target is the editable relationship, so that is what shows; the chain is on the
+      // marker.
+      const hop = hopAt(node, m);
+      if (hop && tokTierOf(hop) === 'semantic') {
+        const c = el('span', 'tok-chain', ' ›');
+        c.title = `Aliases another semantic — resolves through to ${valueText(node, m)}`;
+        a.append(c);
+      }
+      wrap.append(a);
+    }
+    if (wantValue) {
+      const v = el('span', 'tok-val');
+      const hx = node.$type === 'color' ? colorHexAt(tree, node, m, baseMode) : undefined;
+      if (hx) v.append((() => { const s = el('span', 'tok-sw'); s.style.background = hx; return s; })());
+      const txt = node.$type === 'color' ? (hx ?? '—') : valueText(node, m);
+      const t = el('span', 'mono tok-hexv', txt);
+      if (node.$type === 'shadow' || node.$type === 'typography') t.title = txt;
+      v.append(t);
+      wrap.append(v);
+    }
+    return wrap;
+  };
+
+  /** Does what this leaf NAMES resolve differently per mode, even though the leaf carries one value?
+   *
+   *  A `type.*` composite always aliases the same five roles — `font.family.display`,
+   *  `font.weight-role.strong` and friends — so it never carries `modes` itself. Per-mode typography
+   *  is real (`modeLevers.<mode>.{families,weights,lineHeights,letterSpacings}`) but it lands on the
+   *  ROLE, not on the composite: measured, `weights:{strong:600}` puts `modes` on
+   *  `font.weight-role.strong` and on nothing else. That is the architecture working — "a mode
+   *  re-points a semantic at a different primitive, it never redefines one" — but reading only the
+   *  leaf made the Type section claim "mode-invariant, one value" and render ONE column whose
+   *  resolved specimen line (`Clash Display · 700 · 56px · 1.5 lh`) was silently true for the base
+   *  mode alone.
+   *
+   *  ONE hop, deliberately, matching `hopAt`: the question is whether what this token names differs
+   *  per mode, and a re-point lands exactly one hop away. Following the chain to the terminal
+   *  primitive would answer a different question and light up nearly everything. */
+  const refsVaryByMode = (node: TreeNode): boolean =>
+    modes.some((m) => {
+      if (hopAt(node, m)?.$extensions?.prism3?.modes) return true;
+      const v = valueAt(node, m);
+      return node.$type === 'typography' && !!v && typeof v === 'object'
+        && Object.values(v as Record<string, unknown>).some((x) =>
+          typeof x === 'string' && TOK_ALIAS.test(x) && subNode(tree, x)?.$extensions?.prism3?.modes);
+    });
+
+  // Categories for the ACTIVE tier, in the generator's own order.
+  // `modeSource` separates the two ways a section earns per-mode columns, because they are not the
+  // same claim and the blurb says so: 'own' — the leaves themselves carry per-mode values or aliases;
+  // 'ref' — one alias set whose TARGETS differ per mode.
+  type TokSec = { cat: string; leaves: TokLeaf[]; hasModes: boolean; modeSource: 'own' | 'ref' | null; ns: string[] };
+  const sections: TokSec[] = [];
+  for (const category of Object.keys(brand).filter((k) => !k.startsWith('$'))) {
+    const all: TokLeaf[] = [];
+    collectLeaves(brand[category], '', all);
+    const leaves = all.filter((l) => tokTierOf(l.node) === tokTier);
+    if (!leaves.length) continue;
+    // Composite parts count toward the table's alias namespaces — without them `type.*` reports none
+    // and never earns the shared-prefix callout that makes its stacked paths readable.
+    const ns = [...new Set(leaves.flatMap((l) => [...modes.map((m) => aliasAt(l.node, m)), ...modes.flatMap((m) => compositeParts(l.node, m)).map((cp) => cp.path)]
+      .filter(Boolean).map((a) => a!.split('.')[0])))].sort();
+    const modeSource: 'own' | 'ref' | null = leaves.some((l) => l.node.$extensions?.prism3?.modes) ? 'own'
+      : leaves.some((l) => refsVaryByMode(l.node)) ? 'ref' : null;
+    sections.push({ cat: category, leaves, hasModes: modeSource !== null, modeSource, ns });
+  }
+
+  // ---- controls: a header ABOVE the content (doc 26), every field labelled via `pfield`. ----
+  const seg = el('div', 'pvseg tok-seg');
+  for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
+    const b = el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label) as HTMLButtonElement;
+    b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; paintVolatile(); } };
+    seg.append(b);
+  }
+  host.append(seg);
+
+  const bar = el('div', 'tok-ctrls');
+  if (tokTier === 'semantic') {
+    const showSel = selectEl();
+    for (const [v, label] of [['both', 'Alias and value'], ['alias', 'Alias only'], ['value', 'Value only']])
+      showSel.append(new Option(label, v));
+    showSel.value = tokShow;
+    showSel.onchange = () => { tokShow = showSel.value as typeof tokShow; paintVolatile(); };
+    bar.append(pfield('Show', showSel));
+
+    const pseg = el('div', 'seg');
+    for (const [k, label] of [['full', 'Full'], ['short', 'Short']] as Array<['full' | 'short', string]>) {
+      const b = el('button', 'seg-b' + (tokPath === k ? ' on' : ''), label) as HTMLButtonElement;
+      b.onclick = () => { if (tokPath !== k) { tokPath = k; paintVolatile(); } };
+      pseg.append(b);
+    }
+    bar.append(pfield('Alias path', pseg));
+  }
+  const catSel = selectEl();
+  catSel.append(new Option('All categories', ''));
+  for (const s of sections) catSel.append(new Option(`${s.cat} (${s.leaves.length})`, s.cat));
+  catSel.value = sections.some((s) => s.cat === tokCat) ? tokCat : (tokCat = '');
+  catSel.onchange = () => { tokCat = catSel.value; paintVolatile(); };
+  bar.append(pfield('Category', catSel));
+  host.append(bar);
+
+  // ---- sections ----
+  const shown = sections.filter((s) => !tokCat || s.cat === tokCat);
+  if (!shown.length) { host.append(el('p', 'tok-empty', 'No categories match this filter.')); return; }
+  for (const s of shown) {
+    const canShort = s.ns.length === 1;
+    const cols = s.hasModes ? modeLabels : ['Value'];
+    // The primitive blurb used to assert "one value, no modes" unconditionally — true of 9 of the 10
+    // primitive categories and FALSE of shadow, whose 7 leaves each carry a reduced dark variant and
+    // which renders per-mode columns directly beneath that sentence. It now reads `hasModes`, like
+    // the semantic blurb below it already did.
+    const sec = palSection(s.cat.charAt(0).toUpperCase() + s.cat.slice(1),
+      tokTier === 'primitive'
+        ? (s.hasModes
+          ? `${s.leaves.length} primitives, each with a per-mode variant — the exception to the rule below: a value that is genuinely different per mode, not a re-pointed alias.`
+          : `${s.leaves.length} primitives — one value, no modes. The ramps are shared; a mode re-points a semantic at a different primitive, it never redefines one.`)
+        // Three cases, not two. 'ref' is the one the old copy got wrong: a `type.*` composite does NOT
+        // re-alias per mode — it names the same five roles in every mode — so "each mode aliases its
+        // own target" would be a fresh inaccuracy in place of the old one. What varies is underneath it.
+        : `${s.leaves.length} semantics — ${s.modeSource === 'own' ? 'each mode aliases its own target'
+          : s.modeSource === 'ref' ? 'one alias set; what those aliases resolve to varies per mode'
+          : 'mode-invariant, one value'}.`);
+    const rows = s.leaves.map((l) => ({ name: l.path, cells: (s.hasModes ? modes : [baseMode]).map((m) => tokCell(l.node, m, canShort)) }));
+    const scroll = el('div', 'pv-tscroll'); scroll.append(tokenTableEl(rows, cols)); sec.append(scroll);
+    // Short paths are only honest when ONE namespace covers the table. `size.*` aliases both
+    // `dimension.*` and `space.*`, so a single shared-prefix note there would be a lie.
+    if (tokTier === 'semantic' && tokPath === 'short' && s.ns.length) {
+      const note = el('p', 'tok-callout');
+      note.textContent = canShort
+        ? `All aliases in this table resolve under ${s.ns[0]}.* — prefix hidden.`
+        : `Full paths kept: this table aliases into ${s.ns.join(' and ')}, so one shared prefix would be wrong here.`;
+      sec.append(note);
+    }
+    host.append(sec);
+  }
+};
+
+/** Style guide (Preview → Style guide) — the resolved system composed in situ: every color role in
+ *  context, on light and inverse surfaces, driven by the global mode picker. The semantic token path is
+ *  the label (a `.tpill`); the resolved primitive + hex + contrast reveal on hover. Reuses the doc-26
+ *  shell (`palSection`/`subHead`/`tokenPill`); only the specimen layout is new (`sg-*`). */
+const SG_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 15 9l7 .5-5.3 4.6L18.2 21 12 17l-6.2 4 1.5-6.9L2 9.5 9 9z"/></svg>';
+const renderPreviewStyleGuide = (host: HTMLElement): void => {
+  type SGRole = { path: string; hex: string; ratio: number; min: number; alpha?: number };
+  const rolesByMode = new Map<string, Record<string, SGRole | undefined>>(
+    resolveAllModes(theme).map((x) => [x.mode, x.roles as Record<string, SGRole | undefined>]));
+  const cur: string = currentMode;
+  const OPP: Record<string, string> = { light: 'dark', dark: 'light', 'hc-light': 'hc-dark', 'hc-dark': 'hc-light' };
+  const opp: string = OPP[cur] && rolesByMode.has(OPP[cur]) ? OPP[cur] : (rp.modes.find((m) => m !== cur) ?? cur);
+  const ns = theme.namespace + '.';
+  const role = (m: string, k: string): SGRole | undefined => rolesByMode.get(m)?.[k];
+  const rgba = (hx: string, a: number): string => { const n = parseInt(hx.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+  const paint = (m: string, k: string): string => { const r = role(m, k); return r ? (r.alpha != null ? rgba(r.hex, r.alpha) : r.hex) : 'transparent'; };
+  const stepOf = (r: SGRole): string => (r.path.startsWith(ns) ? r.path.slice(ns.length) : r.path);
+  const fails = (m: string, k: string): boolean => { const r = role(m, k); return !!(r && r.min > 0 && r.ratio < r.min); };
+  const tipOf = (m: string, k: string): string => { const r = role(m, k); if (!r) return `${k} — unset`; const c = r.min > 0 ? ` · ${r.ratio.toFixed(2)}:1 (min ${r.min})` : ''; return `${stepOf(r)} · ${r.hex}${c}`; };
+  // token pill with hover-reveal of the resolved primitive (semantic lead, primitive on hover). The
+  // visible label is the real, resolvable path — semantic roles emit under `color.*` (doc-26 contract),
+  // so a bare role key is prefixed; a short contextual label (e.g. `fill.rest`) is shown verbatim.
+  const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
+    const path = label ?? `color.${k}`;
+    const p = tokenPill(path);
+    // Gallery pills wrap (see .sg-pills), and a bare wrap breaks mid-segment — "color.foreground.bran /
+    // d". `<wbr>` after each dot moves the break onto the path boundaries. It is the right element
+    // rather than a zero-width space because it contributes nothing to textContent, so a path someone
+    // copies out of the pill is still the path.
+    p.textContent = '';
+    path.split('.').forEach((seg, i, all) => { p.append(i < all.length - 1 ? `${seg}.` : seg); if (i < all.length - 1) p.append(el('wbr')); });
+    // Two tooltips carrying two different things, deliberately: the custom `data-sgtip` bubble reveals
+    // what the role RESOLVES to (primitive step · hex · ratio), while `title` — set by tokenPill and
+    // preserved here — is the full PATH, which matters now that a long path can be elided (#289).
+    // Previously `title` was overwritten with the resolution too, making it redundant.
+    p.setAttribute('data-sgtip', tipOf(m, k));
+    if (fails(m, k)) { p.classList.add('sg-failpill'); p.append(el('b', 'sg-fx', '!')); }
+    return p;
+  };
+  const pills = (...nodes: HTMLElement[]): HTMLElement => { const w = el('div', 'sg-pills'); nodes.forEach((n) => w.append(n)); return w; };
+  const grid = (cols: number, cards: HTMLElement[]): HTMLElement => { const g = el('div', `sg-grid sg-g${cols}`); cards.forEach((c) => g.append(c)); return g; };
+
+  // color plane + optional in-card label(s) + token pill(s) underneath
+  const surfaceCard = (k: string, label: string, inkRole: string, sub?: string, extra: HTMLElement[] = []): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card'); card.style.background = paint(cur, k);
+    if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
+    const lab = el('div', 'sg-lab', label); lab.style.color = paint(cur, inkRole); card.append(lab);
+    if (sub) { const sb = el('div', 'sg-sub', sub); sb.style.color = paint(cur, inkRole); card.append(sb); }
+    cw.append(card, pills(sgPill(k), ...extra));
+    return cw;
+  };
+  // A scrim only means anything OVER something, so the card composites it on the page surface rather
+  // than painting the alpha alone (which would read as a flat gray card and say nothing about dimming).
+  // It is drawn doing its actual job — dimming the page BEHIND a panel — rather than dimming a text
+  // label. At 40% over a light surface the scrim is a mid-gray and white text on it clears about
+  // 2.3:1: a pairing the scrim genuinely does not support, so the first cut read as a broken specimen
+  // while being perfectly accurate. Panel-over-scrim is what the token is for, and it shows the dim as
+  // a step against the undimmed panel at the same time.
+  const scrimCard = (k: string): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card sg-scrimcard');
+    card.style.background = paint(cur, 'background.primary');
+    const dim = el('div', 'sg-scrimdim'); dim.style.background = paint(cur, k);
+    const panel = el('div', 'sg-scrimpanel'); panel.style.background = paint(cur, 'foreground.primary');
+    const lab = el('div', 'sg-lab', 'Modal'); lab.style.color = paint(cur, 'text.primary');
+    panel.append(lab); dim.append(panel); card.append(dim);
+    cw.append(card, pills(sgPill(k)));
+    return cw;
+  };
+  const borderCard = (k: string): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card sg-bcard'); card.style.border = `2px solid ${paint(cur, k)}`;
+    if (fails(cur, k)) card.append(el('span', 'sg-failmk', '!'));
+    cw.append(card, pills(sgPill(k)));
+    return cw;
+  };
+  const iconCard = (k: string, bgRole?: string): HTMLElement => {
+    const cw = el('div', 'sg-cw');
+    const card = el('div', 'sg-card sg-icard');
+    if (bgRole) { card.style.background = paint(cur, bgRole); card.style.border = 'none'; }
+    const ico = el('span', 'sg-ico'); ico.style.color = paint(cur, k); ico.innerHTML = SG_ICON; card.append(ico);
+    cw.append(card, pills(sgPill(k)));
+    return cw;
+  };
+
+  /** Re-home a built section's SPECIMENS onto the mode's own canvas.
+   *
+   *  The specimens already rendered the mode's colors; the surface behind them stayed studio-white, so
+   *  Dark showed dark tokens on a white page — and the Inverse row (light cards) blended into that page,
+   *  making the one row that means "a light band inside a dark UI" read as the page itself. The mismatch
+   *  did not just look wrong, it inverted the meaning.
+   *
+   *  Implemented by re-scoping the CSS custom properties on the ground rather than restyling each
+   *  component: `--panel`/`--paper`/`--line`/`--ink`/`--muted`/`--faint` are exactly the four surfaces
+   *  and three ink tiers this system already names, so every pill, subhead and callout inside follows
+   *  with no per-component rule. The inks are the mode's OWN contrast-gated text roles, so legibility
+   *  on the new ground is the engine's guarantee rather than a hand-picked colour.
+   *
+   *  The `.psec` shell, its title and its description stay STUDIO. That boundary is deliberate: inside
+   *  the frame is your system, outside it is the tool. Theming the section copy too would leave no way
+   *  to tell which is which — and would put brand ink on studio prose for every brand. */
+  /** Which surface the specimens are previewed ON. Every option is a real background role, so this is
+   *  "show me this system on our panel / on our card / on our dark hero band" — not a brightness
+   *  switch. A manual light/dark toggle was considered and rejected: the mode already determines
+   *  brightness (including for custom modes), so such a control's only correct setting is the one
+   *  already derivable, and a wrong one reproduces the bug the themed ground exists to fix.
+   *
+   *  Each ground carries its OWN ink and border set. That pairing is the whole correctness of this
+   *  feature — `text.primary` is gated against the page planes and would be the wrong ink on the
+   *  inverse band, where the system defines exactly one on-color role. Getting this wrong would
+   *  re-create, per surface, the contrast regression the ground fix just removed. */
+  type SgSurface = { key: string; label: string; ink: string; line: string; line2: string; tiered: boolean };
+  //  Options are named for the ROLE each one is, not for a piece of furniture: "Card" described a
+  //  component while its three neighbors described grounds, and a reader had to know that a card is
+  //  drawn with `foreground.primary` to place it among them. It is also the ground the specimens are
+  //  least often checked against — every section already renders its own cards on whichever ground is
+  //  selected — so it was dropped rather than renamed (#485). An `sgSurface` still holding the retired
+  //  key falls through the `?? SG_SURFACES[0]` below — defensive only: `sgSurface` is a module-level
+  //  `let` that is serialized nowhere in `web/`, so there is no persisted value to rescue today.
+  //  The labels name the ground; they do not spell the path. `Page Background (Primary)` was
+  //  `color.background.primary` transcribed into prose, and the `sgPill` below the select already prints
+  //  that path verbatim — the same fact stated twice in two notations, breaking the rule immediately
+  //  above and leaving `Inverse`, the one option that followed it, reading as the odd one out for being
+  //  short. Moving the path into the pill is what frees the labels to be plain (#504 review).
+  const SG_SURFACES: SgSurface[] = [
+    { key: 'background.primary', label: 'Page', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    { key: 'background.secondary', label: 'Page, second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
+    // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
+    // borrowing a page-gated role that was never measured against this ground.
+    { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse', line: 'border.inverse', line2: 'border.inverse', tiered: false },
+  ];
+  const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
+
+  const ground = (sec: HTMLElement): HTMLElement => {
+    const g = el('div', 'sg-ground');
+    const head = sec.querySelector('.psec-head');
+    while (sec.lastChild && sec.lastChild !== head) g.prepend(sec.lastChild);
+    const bg = paint(cur, surf.key);
+    // A tiered ground keeps the secondary ink for supporting text; the inverse band has only its one
+    // on-color role, so everything inside uses that.
+    const support = surf.tiered ? paint(cur, 'text.secondary') : paint(cur, surf.ink);
+    g.style.background = bg;
+    g.style.setProperty('--panel', bg);
+    g.style.setProperty('--paper', paint(cur, surf.tiered ? 'background.secondary' : surf.key));
+    g.style.setProperty('--line', paint(cur, surf.line));
+    g.style.setProperty('--line2', paint(cur, surf.line2));
+    g.style.setProperty('--ink', paint(cur, surf.ink));
+    g.style.setProperty('--ink2', support);
+    // BOTH supporting inks map to the AA-gated tier, not one each to secondary and tertiary. The
+    // engine gates text.tertiary at 3:1 — correct for large or non-essential text — while studio
+    // --faint is 10.5px token pills that need 4.5:1, and #355 moved --faint DOWN precisely to clear
+    // that bar. Mapping it onto tertiary transplanted a 3:1 role into a 4.5:1 slot: 3.52:1 in Dark.
+    g.style.setProperty('--muted', support);
+    g.style.setProperty('--faint', support);
+    sec.append(g);
+    return sec;
+  };
+
+  // One picker for the view, not one per section — seven copies of the same control would be noise,
+  // and the sections are read together as one system.
+  // Label ABOVE the control, matching every other labelled field in the app (`pfield`), and named for
+  // what it does rather than where it sits: "Preview on / Page" left a reader guessing whether it
+  // changed the mode, the page, or the specimens. It changes the ground the specimens are drawn on,
+  // so it says that.
+  const bar = el('div', 'sg-surfbar');
+  const sel = selectEl('cap');
+  for (const o of SG_SURFACES) sel.append(optionEl(o.key, o.label, o.key === surf.key));
+  sel.onchange = () => { sgSurface = sel.value; renderWorkspace(); };
+  const stack = el('div', 'sg-surfstack');
+  const row = el('div', 'sg-surfrow');
+  // The swatch sits BESIDE the select, not inside it. A native `option` cannot carry a swatch — it
+  // takes no child elements and no generated content, and per-option `background-color` renders in
+  // the popup on some engines and never on the closed control, so an in-select swatch would show
+  // the chosen ground on some machines and nothing on others. The alternative is a custom listbox,
+  // which means owning keyboard interaction, ARIA and focus management for a three-item picker.
+  // Beside it costs nothing and always paints. The ring matters: a white ground on a white select
+  // would otherwise be an invisible swatch.
+  const sw = el('span', 'sg-surfsw');
+  sw.style.background = paint(cur, surf.key);
+  row.append(sw, sel);
+  // The resolved path uses the same token pill as every other path on the page, underneath rather
+  // than trailing the control — it describes the selection, so it reads as a caption to it.
+  stack.append(row, sgPill(surf.key));
+  // Sentence case, like every other `pfield` label in the app. `.pfk` uppercases it, so the casing is
+  // invisible in the rendered view — but the string is what the next reader copies, and doc 29 §2b
+  // states the rule (#504 review).
+  bar.append(pfield('View style guide on', stack));
+  host.append(bar);
+
+  const SEM: Array<[string, string]> = [['Brand', 'brand'], ['Danger', 'danger'], ['Success', 'success'], ['Warning', 'warning'], ['Info', 'info']];
+
+  // Background
+  const secBg = palSection('Background', 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.');
+  secBg.append(subHead('Base'), grid(3, ([['Primary', 'background.primary'], ['Secondary', 'background.secondary'], ['Tertiary', 'background.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
+  // The Inverse Primary card carries `text.on-inverse` as an extra pill, the same pairing the Bold and
+  // Subtle rows use. That ink was painting every inverse card here AND the Surfaces page's Inverse
+  // example, and was named in neither — the one role the gallery used without ever showing.
+  secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'background.inverse.primary'], ['Secondary', 'background.inverse.secondary'], ['Tertiary', 'background.inverse.tertiary']] as Array<[string, string]>)
+    .map(([n, k], i) => surfaceCard(k, n, 'text.on-inverse', i === 0 ? 'On-inverse text' : undefined, i === 0 ? [sgPill('text.on-inverse')] : []))));
+  secBg.append(subHead('Scrim'), grid(3, [scrimCard('scrim.default')]));
+  host.append(ground(secBg));
+
+  // Foreground
+  const secFg = palSection('Foreground', 'Content surfaces placed ON the page — the neutral and inverse ladders, plus semantic fills in bold and subtle weights, each paired with its on-surface text.');
+  secFg.append(subHead('Neutral'), grid(3, ([['Primary', 'foreground.primary'], ['Secondary', 'foreground.secondary'], ['Tertiary', 'foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
+  // Inverse — bold dark surfaces PLACED on the page (a dark card), as distinct from the inverse page
+  // BAND above. Background already split Base / Inverse; Foreground had only Base, so this whole tier
+  // resolved for every mode and appeared nowhere.
+  secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'foreground.inverse.primary'], ['Secondary', 'foreground.inverse.secondary'], ['Tertiary', 'foreground.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse'))));
+  secFg.append(subHead('Bold'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}`, n, `text.on-${s}`, 'On-color text', [sgPill(`text.on-${s}`)]))));
+  secFg.append(subHead('Subtle'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}-subtle`, n, `text.${s}`, 'On-color text', [sgPill(`text.${s}`)]))));
+  host.append(ground(secFg));
+
+  // Text color — Light | Inverse | Token
+  const secText = palSection('Text color', 'Every text color at one size, shown on the current surface and its inverse counterpart. On-color text lives with the fills above.');
+  const curLabel = MODE_LABEL[cur] ?? cur, oppLabel = MODE_LABEL[opp] ?? opp;
+  const lbg = paint(cur, 'background.primary'), dbg = paint(opp, 'background.primary');
+  const tcHead = (txt: string, cls: string, color: string): HTMLElement => { const d = el('div', `sg-tc ${cls} sg-tchd`, txt); d.style.color = color; return d; };
+  const tcCell = (nm: string, k: string, m: string, cls: string, ul: boolean): HTMLElement => {
+    const d = el('div', `sg-tc ${cls} sg-tcrow`); d.style.color = paint(m, k);
+    const sp = el('span', 'sg-samp', nm); if (ul) sp.style.textDecoration = 'underline'; d.append(sp);
+    if (fails(m, k)) d.append(el('b', 'sg-fx', '!'));
+    return d;
+  };
+  const tcGroups: Array<[string, Array<[string, string]>, boolean]> = [
+    ['Neutral', [['Primary', 'text.primary'], ['Secondary', 'text.secondary'], ['Tertiary', 'text.tertiary']], false],
+    ['Semantic', SEM.map(([n, s]) => [n, `text.${s}`] as [string, string]), false],
+    ['Semantic — subtle', SEM.map(([n, s]) => [n, `text.${s}-subtle`] as [string, string]), false],
+    ['Links', [['Link', 'text.link.default'], ['Hover', 'text.link.hover'], ['Visited', 'text.link.visited'], ['Focused', 'text.link.focused']], true],
+  ];
+  for (const [glab, items, ul] of tcGroups) {
+    secText.append(subHead(glab));
+    const g = el('div', 'sg-tcg'); g.style.setProperty('--lbg', lbg); g.style.setProperty('--dbg', dbg);
+    g.append(tcHead(`On ${curLabel} surface`, 'sg-l', paint(cur, 'text.tertiary')), tcHead(`On ${oppLabel} surface`, 'sg-r', paint(opp, 'text.tertiary')), tcHead('Token', 'sg-t', 'var(--faint)'));
+    for (const [nm, k] of items) {
+      g.append(tcCell(nm, k, cur, 'sg-l', ul), tcCell(nm, k, opp, 'sg-r', ul));
+      const tc = el('div', 'sg-tc sg-t sg-tcrow'); tc.append(sgPill(k)); g.append(tc);
+    }
+    secText.append(g);
+  }
+  const callout = el('div', 'sg-callout');
+  // The old copy enumerated three link roles; `LINK_STATES` has four. Focused resolves to the same
+  // color as default BY DESIGN (the focus ring carries the state, not a color shift), which is why the
+  // row reads as a duplicate — and exactly why it needs saying rather than omitting.
+  callout.append(document.createTextNode('Links draw only from the action ramp — the engine defines '));
+  callout.append(el('span', 'mono', 'text.link.default / hover / visited / focused'));
+  callout.append(document.createTextNode(' and no neutral or accent link roles. Focused resolves to the same color as default: the focus ring carries that state, so the link text does not shift.'));
+  secText.append(callout);
+  host.append(ground(secText));
+
+  // Border
+  const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
+  // `border.focus-inverse` sits beside `border.focus` rather than next to `border.inverse`: the pair a
+  // reader needs to compare is the two focus rings, and the inverse GROUND is already selectable for
+  // the whole section (the `sgSurface` picker), which is the honest way to view an inverse role — its
+  // own ink and border set come with it, rather than one card faking a ground the rest of the row lacks.
+  secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.inverse'].map((k) => borderCard(k))));
+  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.focus-inverse', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
+  host.append(ground(secBorder));
+
+  // Icon
+  const secIcon = palSection('Icon', 'Icon color at the neutral tiers, the semantic set, and the on-color icons that sit on bold fills.');
+  secIcon.append(subHead('Neutral'), grid(3, ['icon.primary', 'icon.secondary', 'icon.tertiary'].map((k) => iconCard(k))));
+  secIcon.append(subHead('Semantic'), grid(5, ['icon.brand', 'icon.danger', 'icon.success', 'icon.warning', 'icon.info'].map((k) => iconCard(k))));
+  secIcon.append(subHead('On color'), grid(5, SEM.map(([, s]) => iconCard(`icon.on-${s}`, `foreground.${s}`))));
+  host.append(ground(secIcon));
+
+  // Disabled
+  const secDis = palSection('Disabled', 'One shared, stateless inert set — reused by every control. No per-palette or inverse variant.');
+  const disCards: HTMLElement[] = [];
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card'); c.style.background = paint(cur, 'disabled.fill'); cw.append(c, pills(sgPill('disabled.fill'))); disCards.push(cw); }
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = paint(cur, 'disabled.fill'); const l = el('div', 'sg-lab', 'Disabled'); l.style.color = paint(cur, 'disabled.on-fill'); c.append(l); cw.append(c, pills(sgPill('disabled.on-fill'))); disCards.push(cw); }
+  { const cw = el('div', 'sg-cw'); const c = el('div', 'sg-card sg-mid'); c.style.background = 'var(--panel)'; const l = el('div', 'sg-lab', 'Disabled'); l.style.color = paint(cur, 'disabled.text'); c.append(l); cw.append(c, pills(sgPill('disabled.text'))); disCards.push(cw); }
+  disCards.push(borderCard('disabled.border'), iconCard('disabled.icon'));
+  secDis.append(grid(5, disCards));
+  host.append(ground(secDis));
+
+  // Interactive — button sets in rows
+  const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.');
+  const STATES = ['rest', 'hover', 'pressed'];
+  const btn = (bg: string, fg: string, bd: string | null): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; b.style.color = fg; if (bd) b.style.borderColor = bd; return b; };
+  const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string): HTMLElement => { const c = el('div', 'sg-bcol'); c.append(btn(bg, fg, bd), el('span', 'sg-st', st), sgPill(fullkey, subpath)); return c; };
+  const footLine = (lbl: string, p: HTMLElement): HTMLElement => { const s = el('span', 'sg-foothint'); s.append(document.createTextNode(lbl + ' '), p); return s; };
+  const trow = (label: string, foot: HTMLElement[], cols: HTMLElement[], inv: boolean): HTMLElement => {
+    const row = el('div', 'sg-trow');
+    const lab = el('div', 'sg-tlab', label);
+    if (foot.length) { const f = el('div', 'sg-tlfoot'); foot.forEach((n) => f.append(n)); lab.append(f); }
+    const bs = el('div', 'sg-btns' + (inv ? ' sg-inv' : ''));
+    if (inv) {
+      // #555 — the strip's own ground is `background.inverse.primary` for the CURRENT mode, and that
+      // is not always dark: in a Dark mode, the inverse of dark is light, so a state label ink fixed
+      // to a light gray (correct for the light-in-Light-mode case) went invisible on it. Pick the ink
+      // from the resolved strip color instead of assuming which side of light/dark it lands on.
+      const invBg = paint(cur, 'background.inverse.primary');
+      bs.style.setProperty('--sg-invp', invBg);
+      bs.style.setProperty('--sg-invp-ink', legibleInkOn(invBg, '#191920', '#c9ccce'));
+    }
+    cols.forEach((c) => bs.append(c));
+    row.append(lab, bs);
+    return row;
+  };
+  // Is the chosen preview ground itself an inverse band? Both the background and foreground inverse
+  // tiers qualify — what matters is that the ground is the dark one the `on-inverse` family was
+  // measured against, not which collection it came from.
+  const onInverseGround = surf.key.includes('inverse');
+  const outlineFill = outlineFillFamily(theme.outlineInteraction);
+  const paletteBlock = (nm: string, c: string): HTMLElement => {
+    const block = el('div', 'sg-pblock');
+    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', nm), sgPill(`interactive.${c}.fill.rest`, `color.interactive.${c}`)); block.append(hd);
+    const filled = STATES.map((s) => bcol(paint(cur, `interactive.${c}.fill.${s}`), paint(cur, `interactive.${c}.on-fill`), null, s, `interactive.${c}.fill.${s}`, `fill.${s}`));
+    // Each state's hover fill comes from whichever family the METHOD emits — `outlineFillRole`, the
+    // same helper the emitter branches on, not a second copy of the mapping. Reading `overlay.*`
+    // unconditionally is #288, and it was still here: under `solid-tint` the overlay role does not
+    // exist, `paint()` returns 'transparent' for a missing role, and the row rendered the `none`
+    // treatment. Two of three methods therefore looked identical on the surface a designer hands a
+    // developer as the reference — and `none` was only "right" by accident.
+    const fillRole = (s: string): string | null => (s === 'rest' ? null : outlineFillRole(theme.outlineInteraction, c, s));
+    const bgFor: Record<string, string> = Object.fromEntries(
+      STATES.map((s) => { const k = fillRole(s); return [s, k ? paint(cur, k) : 'transparent']; }));
+    // The OUTLINE ink is the one role here measured against the PAGE rather than against its own
+    // fill, so it is the one that breaks when the preview ground stops being the page. On the
+    // inverse band `interactive.<c>.text.rest` rendered #0e0d0c on #0e0d0c — 1.00:1, the identical
+    // colour, text that is not merely low-contrast but literally invisible. The engine already
+    // resolves `on-inverse.text.*` for exactly this ground, so the row asks for the ink that matches
+    // where it is being shown. Filled and Inverse need no such switch: their ink is `on-fill`,
+    // measured against the button's own fill, which the ground behind it cannot change.
+    // The EDGE takes the same switch, for the same reason and now with a token to switch to. #461
+    // could only move the ink: the engine emitted one border, measured against the page, so the
+    // outline row kept a page-ground edge on the dark band. #467 added `on-inverse.border`.
+    //
+    // The switch is PER STATE, not per row, and fixing the fill above is what forced that. The wash
+    // is translucent, so a hovered control on the inverse band is still on the band and the
+    // `on-inverse` ink is right for all three states. The `solid-tint` fill is an OPAQUE palette
+    // step: it covers the band, so from `hover` onward the ground is a page-tuned tint and the
+    // band's ink is measured against something that is no longer there. Probed across the corpus —
+    // 5 brands × 4 modes × {primary, destructive} × {hover, pressed} — the inverse ink on that tint
+    // fails 3:1 in **79 of 80** combinations, worst 1.32:1. The engine gates the tint against the
+    // control's own PAGE ink for that state (worst 4.51:1 across 120 rows), so the page ink is not a
+    // fallback here, it is the measured-correct answer. Reading the right role and keeping the
+    // row-wide ink switch would have traded a visible bug for an invisible one — the exact
+    // gated-ground/painted-ground family as #63, #570 and #573.
+    const onBand = (s: string): boolean => onInverseGround && !(outlineFill.opaque && fillRole(s));
+    const otxt = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}text.${s}`;
+    // The edge is now stateful too (#576), so this appends the state exactly as `otxt` does. #575
+    // had already made this function per-state — it took `s` only to choose the GROUND, and returned
+    // the same single border for all three. The state key is the half that was missing.
+    const obdFor = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}border.${s}`;
+    // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
+    // reader is looking at when they read the label.
+    const obd = obdFor('rest');
+    const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
+    const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.on-inverse.fill.${s}`), paint(cur, `interactive.${c}.on-inverse.on-fill`), null, s, `interactive.${c}.on-inverse.fill.${s}`, `fill.${s}`));
+    block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
+    block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
+    // The Inverse row paints its own inverse band so the on-inverse variants have the ground they
+    // were measured against. When the PREVIEW ground is already that band, painting it again is a
+    // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
+    // dark" rather than as a distinct treatment. On that ground the row simply uses the page's.
+    block.append(trow('Inverse', [footLine('text', sgPill(`interactive.${c}.on-inverse.on-fill`, 'on-fill'))], inv, !onInverseGround));
+    return block;
+  };
+  secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
+  {
+    const block = el('div', 'sg-pblock');
+    const hd = el('div', 'sg-phd'); hd.append(el('span', 'sg-rn', 'Disabled'), sgPill('disabled.fill', 'color.disabled')); block.append(hd);
+    block.append(trow('Filled', [footLine('text', sgPill('disabled.on-fill', 'on-fill'))], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], false));
+    block.append(trow('Outline', [footLine('text', sgPill('disabled.text', 'text'))], [bcol('transparent', paint(cur, 'disabled.text'), paint(cur, 'disabled.border'), 'disabled', 'disabled.border', 'border')], false));
+    block.append(trow('Inverse', [el('span', 'sg-foothint', 'shared — no inverse variant')], [bcol(paint(cur, 'disabled.fill'), paint(cur, 'disabled.on-fill'), null, 'disabled', 'disabled.fill', 'fill')], !onInverseGround));
+    secInt.append(block);
+  }
+  host.append(ground(secInt));
+};
+
+const PAGE_COPY: Record<PageKey, [string, string]> = {
+  palettes: ['', ''],   // Palettes has its own hero in renderPrimitives
+  surfaces: ['Surfaces & fills.', 'The page backgrounds every role sits on, the text colors derived to stay readable on them, and an optional brand gradient. Text is contrast-placed — override to a specific neutral step and the badge tells you whether it still clears. (Status hues are edited per-ramp on Palettes.)'],
+  interactive: ['Interactive color & states.', 'Point actions at the palette that reads best, tune the interactive treatment (hover, inverse, neutral emphasis), and set the accessibility policy — icon contrast + the disabled strategy.'],
+  typography: ['Set the type system.', 'Families, weights, and the type scale that shifts the semantic→primitive size mapping. The rem ladder is brand-invariant; the scale is the dial.'],
+  elevation: ['Elevation.', 'The shadow ramp — blur/offset softness and an optional brand-hued tint on the shadow base. Dark modes get a reduced set automatically.'],
+  sizeRadius: ['Size & radius.', 'Component sizing (control height + paired padding, driven by density) and corner radius. Both go per-mode outside Light.'],
+  layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
+  motion: ['Motion.', 'Tempo (the duration ramp) and the expressive easing curve. Reduce-motion is derived.'],
+  preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
+};
+
+// Status-color control (docs/21 + status.*). Lives INLINE on each status ramp (primitives
+// stage), not as a standalone section: a designer edits the red/green/amber/blue right where the
+// ramp is shown. Two mutually-exclusive engine mechanisms behind one dropdown —
+//   • Custom hue → `status.<role>` seeds the ramp from a picked hue (the raw status color)
+//   • Use <ramp> → `roleColors.<role>` borrows a declared palette (a red brand's red for danger)
+//   • Auto → clears both (engine default: a synthesised hue, or the danger-red carve)
+// Contrast always re-gates on whatever it lands on; a hue mismatch is flagged in the theme notes.
+// (A future "lock" gate to unlock editing is deferred.)
+const STATUS_ROLES = ['success', 'warning', 'danger', 'info'] as const;
+type StatusRole = typeof STATUS_ROLES[number];
+
+/** Seed hex for the custom-hue picker: the current status ramp's mid step if present, else grey. */
+const statusSeedHex = (role: string): string => {
+  const cur = brandState.status?.[role as StatusRole];
+  if (cur) return hex(oklchToRgb(cur));
+  const pal = theme.palettes.find((p) => p.palette === role);
+  return pal?.steps.find((s) => s.num === 500)?.hex ?? pal?.steps[Math.floor(pal.steps.length / 2)]?.hex ?? '#808080';
+};
+
+/** Write `status.<role>` from a hex (seeds hue + chroma), clearing any borrow (they're exclusive). */
+const setStatusHue = (role: StatusRole, hexVal: string): void => {
+  const rc = { ...(brandState.roleColors ?? {}) } as Record<string, string>; delete rc[role];
+  const o = rgbToOklch(hexToRgb(hexVal));
+  brandState.roleColors = (Object.keys(rc).length ? rc : undefined) as BrandInput['roleColors'];
+  brandState.status = { ...(brandState.status ?? {}), [role]: { l: o.l, c: o.c, h: o.h, chroma: o.c } };
+  apply();
+};
+
+/** One status row — Source select (Auto / Custom hue / borrow a brand palette) on the left,
+ *  the anchor on the right. The left swatch is the hue picker only under Custom hue (authored); Auto and
+ *  borrow render it as a read-out with no hex-by-name. Source changes are structural → applyFull. */
+const statusRow = (role: StatusRole): { row: HTMLElement; refresh: () => void } => {
+  const borrowed = brandState.roleColors?.[role];
+  const custom = !borrowed && !!brandState.status?.[role];
+  const row = el('div', 'prow' + (custom ? ' authored show-hex' : ''));
+  const head = el('div', 'phead');
+  const ident = el('div', 'pident');
+
+  let swatch: HTMLElement;
+  let hexLab: HTMLElement | null = null;
+  if (custom) {
+    const picker = el('input', 'pswatch') as HTMLInputElement;
+    picker.type = 'color'; picker.value = statusSeedHex(role); picker.title = `Seed the ${role} ramp from a hue`;
+    // `change`, not `oninput`: the volatile bands repaint on commit (dialog close), never mid-drag.
+    picker.onchange = () => { setStatusHue(role, picker.value); if (hexLab) hexLab.textContent = picker.value; };
+    swatch = picker;
+  } else {
+    swatch = el('div', 'pswatch ro');
+  }
+  const idcol = el('div', 'pidcol');
+  idcol.append(el('span', 'pname', role));
+  const sub = el('div', 'psub');
+  if (custom) { hexLab = el('span', 'phex mono', (swatch as HTMLInputElement).value); sub.append(hexLab); }
+  sub.append(tokenPill(`palette.${role}`));
+  idcol.append(sub);
+  ident.append(swatch, idcol);
+
+  const origin = el('div', 'porigin');
+  const sel = selectEl('sm');
+  sel.append(optionEl('auto', 'Auto', !borrowed && !custom), optionEl('custom', 'Custom hue…', custom));
+  for (const p of ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)]) sel.append(optionEl('borrow:' + p, `Use ${p}`, borrowed === p));
+  sel.onchange = () => {
+    const rc = { ...(brandState.roleColors ?? {}) } as Record<string, string>; delete rc[role];
+    const st = { ...(brandState.status ?? {}) } as Record<string, unknown>; delete st[role];
+    if (sel.value === 'custom') { const o = rgbToOklch(hexToRgb(statusSeedHex(role))); st[role] = { l: o.l, c: o.c, h: o.h, chroma: o.c }; }
+    else if (sel.value.startsWith('borrow:')) rc[role] = sel.value.slice('borrow:'.length);
+    brandState.roleColors = (Object.keys(rc).length ? rc : undefined) as BrandInput['roleColors'];
+    brandState.status = (Object.keys(st).length ? st : undefined) as BrandInput['status'];
+    applyFull();
+  };
+  origin.append(pfield('Source', sel));
+
+  const anchor = anchorField();
+  head.append(ident, origin, anchor.field);
+  const bands = el('div', 'pramp-wrap');
+  row.append(head, bands);
+  const refresh = (): void => {
+    // Auto can RESOLVE to another palette: a red brand primary reuses `primary` for danger (no standalone
+    // danger palette is minted), so read the engine's resolved mapping rather than the literal role name —
+    // else the row finds no palette and collapses (white swatch, empty bands). Explicit borrow still wins.
+    const resolved = (theme.roleToPalette as Record<string, string>)[role] ?? role;
+    const srcName = borrowed ?? resolved;
+    const pal = theme.palettes.find((p) => p.palette === srcName);
+    const steps = pal?.steps ?? [];
+    const aStep = anchorStepFor(srcName);
+    // Note the reuse ("via primary") so a user sees why the ramp matches their brand red, not a surprise.
+    const note = borrowed ? `borrowing ${borrowed}` : (resolved !== role ? `via ${resolved}` : undefined);
+    anchor.set(aStep != null ? steps.find((s) => s.num === aStep)?.key : undefined, note);
+    if (!custom) { const mid = steps.find((s) => s.num === 500)?.hex ?? steps[Math.floor(steps.length / 2)]?.hex; if (mid) swatch.style.background = mid; }
+    bands.replaceChildren(rampBands(steps, aStep));
+  };
+  return { row, refresh };
+};
+
+// The Interactive page groups its controls into intent sub-sections. (Gradients — formerly a "Features"
+// group here — now lives on the Surfaces page; page surfaces + text/ink are bespoke editors there.)
+const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h3', 'sub-t', title)); return s; };
+
+/** The last dot-segment of a token path — the palette step key (e.g. `…primary.650` → `650`). Shared by
+ *  the interactive matrix + the Surfaces fill editors to label an "Auto · <palette> <step>" source. */
+const stepKeyOf = (path: string | undefined): string => (path ? path.split('.').pop()! : '');
+
+// ---- shared colour atoms (audit §8) ---------------------------------------
+// contrastBadge + swatch are the shared atoms every colour editor composes from (the interactive matrix,
+// the Surfaces fill/foreground editors, the preview gallery).
+
+/** "ratio:1 ✓/✗", pass/fail coloured, with an optional leading label. Shared by the cards + the preview
+ *  gallery (audit §8 candidate #1). */
+const contrastBadge = (ratio: number, min: number, label?: string): HTMLElement => {
+  const b = el('span', `cbadge ${ratio >= min ? 'ok' : 'no'}`);
+  if (label) b.append(el('span', 'cb-lab', label));
+  b.append(el('span', 'cb-ratio', `${ratio.toFixed(2)}:1`), el('span', 'cb-mark', ratio >= min ? '✓' : '✗'));
+  return b;
+};
+/** A colour swatch element with an inline background (audit §8 candidate #2). */
+const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', cls); s.style.background = hex; return s; };
+
+// ============================================================================
+// Interactive & action colors — the per-palette matrix (#69)
+// ============================================================================
+// Each action palette (Primary / Neutral / Destructive / promoted Accents) is a section of full-width
+// SLOT rows: Fill · rest, Fill · inverse, Text · rest, Text · inverse, Overlay wash, On-fill, On-fill ·
+// inverse. A row = a 56×56 swatch · a Source select + token pill + description · a locked-right example
+// with its contrast receipt · (fill / text / overlay) a two-up Hover/Pressed states strip. Every slot
+// binds to a REAL engine role — ENG-1/ENG-2 emit the full per-state, inverse, and overlay surface. The
+// fill · rest Source is the column's fill ANCHOR (re-derives the whole family coherently); every other
+// Source and every state is a surgical per-mode colour OVERRIDE (brandState.overrides[mode][role] =
+// {palette, step}; "Auto" clears it, reverting to the derived value). Cross-cutting behaviors (outline
+// hover, disabled, icon colors) sit at the TOP — they govern every palette. Overrides only live on the
+// customizable modes, so renderScreen renders the generated-note on the derived modes and this editor
+// never runs there.
+// A structural narrowing of the engine's `ResolvedRole`. `against` names the role this one's `ratio`
+// is measured against — needed to judge a candidate step before it is picked (`contrastMark`).
+type RoleRes = { hex: string; path?: string; ratio?: number; min?: number; against?: string; alpha?: number };
+type RoleMap = Record<string, RoleRes | undefined>;
+const iRoles = (): RoleMap => (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as RoleMap;
+const stepsOf = (palette: string): string[] => (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
+const capWord = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+
+// ---- "Auto" baselines (#330) -----------------------------------------------
+// Every override/anchor picker's "Auto" option must NAME the step it actually resolves to — the
+// engine's TRUE generated/contrast-placed baseline, independent of whatever is live right now. The
+// naive way to get that label is `stepKeyOf(r.path)` off `iRoles()`/`resolveAllModes(theme)` — but
+// those already reflect the CURRENT override/anchor, so the moment one goes active, "Auto" silently
+// starts echoing the user's own last pick instead of the baseline it claims to be. Then clicking
+// "Auto" (which genuinely clears the deviation and re-resolves) lands on a DIFFERENT value than the
+// option just displayed — a control lying about its own behavior.
+//
+// Fixed by resolving a THEME CLONE with just the one live deviation removed, rather than patching
+// the live (deviation-inclusive) resolved role — so this stays correct even if the engine ever
+// derives one role's baseline from another role's own deviation (a per-field patch could not notice
+// that; a full re-resolve always sees it). `baselineOf` is the shared primitive; `WITHOUT` names
+// which deviation this particular control's own "Auto" clears — there are two, because the engine
+// has two independent live-deviation layers, not one:
+//   - baselineStepOf     — the A1 per-mode COLOUR-OVERRIDE layer (`theme.overrides`, written by
+//                           `setFillOverride`). Every Source/Step select in the interactive matrix,
+//                           the Surfaces fill/foreground/text editors, and Backgrounds → Inverse.
+//   - baselineAnchorStepOf — the A2b per-mode FILL-ANCHOR layer (`theme.modeAnchors` / the column's
+//                           global `actionAnchorStep`/`destructiveAnchorStep`/`interactivePalettes[
+//                           ].anchorStep`, written by `col.setStep`). Only the interactive matrix's
+//                           Fill · rest row for columns that anchor a family (primary/destructive/
+//                           accents) — Neutral has no anchor and uses `baselineStepOf` like everything
+//                           else.
+const baselineOf = (roleKey: string, mode: Mode, without: (t: Theme) => Theme): string => {
+  const roles = resolveAllModes(without(theme)).find((x) => x.mode === mode)?.roles as RoleMap | undefined;
+  return stepKeyOf(roles?.[roleKey]?.path);
+};
+const baselineStepOf = (roleKey: string, mode: Mode = currentMode): string =>
+  baselineOf(roleKey, mode, (t) => {
+    const modeOv = { ...(t.overrides?.[mode] ?? {}) };
+    delete modeOv[roleKey];
+    return { ...t, overrides: { ...t.overrides, [mode]: modeOv } };
+  });
+/** `name` is the interactive column (`primary` / `destructive` / an `interactivePalettes` entry's
+ *  name) — mirrors exactly what `anchor().setStep(undefined)` clears for that same (name, mode):
+ *  the per-mode pin outside Light, or Light's own global pin (whichever of the three fields applies
+ *  to this column) on Light itself. */
+const baselineAnchorStepOf = (roleKey: string, mode: Mode, name: string): string =>
+  baselineOf(roleKey, mode, (t) => (mode === 'light'
+    ? {
+        ...t,
+        actionAnchorStep: name === 'primary' ? undefined : t.actionAnchorStep,
+        destructiveAnchorStep: name === 'destructive' ? undefined : t.destructiveAnchorStep,
+        interactivePalettes: t.interactivePalettes.map((p) => (p.name === name ? { ...p, anchorStep: undefined } : p)),
+      }
+    : { ...t, modeAnchors: { ...t.modeAnchors, [mode]: { ...(t.modeAnchors?.[mode] ?? {}), [name]: undefined } } }));
+
+/** `#rrggbb`(+alpha) → an `rgba()` string, so a translucent overlay wash paints honestly (a faint swatch). */
+const rgbaOf = (r: RoleRes): string => {
+  const h = (r.hex ?? '#000000').replace('#', '');
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
+};
+
+/** A per-mode colour-override Source select for one role. "Auto" clears the override (the role reverts to
+ *  its derived value); a step pins the role to that primitive (the engine re-derives its contrast and
+ *  warns — never blocks — if a hand pick misses the floor). Reuses the generic override writer the
+ *  Surfaces foreground editor uses (`setFillOverride`). */
+const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string): HTMLSelectElement => {
+  const cur = brandState.overrides?.[currentMode]?.[roleKey]?.step;
+  return stepPicker(palette, stepsOf(palette), derivedStep, typeof cur === 'string' ? cur : undefined,
+    (step) => setFillOverride(roleKey, palette, step), contrastMark(roleKey, palette));
+};
+
+/** Marks the steps that SATISFY a contrast-gated role, in the picker, before the pick is made.
+ *
+ *  Overrides apply-but-warn by design (`modes.ts`) — deliberately, since a UI that refused the option
+ *  would be false assurance: the same override is authorable through `design.md`/`BrandInput`, which
+ *  the engine accepts, so blocking here would hide the capability from one surface without protecting
+ *  the artifact. Only the engine can guarantee, and whether it should CLAMP instead of warn is a
+ *  layer-wide question (#320), not a per-role one.
+ *
+ *  So this informs rather than blocks: the warning stays as the backstop, and the picker stops being
+ *  the place you discover the problem only after choosing. Applies to every contrast-gated override
+ *  picker, not just one row — the same reasoning holds everywhere the layer is used.
+ *
+ *  Marks the PASSING steps, not the failing ones. On a subtle tint only ~4 of 20 steps clear the label,
+ *  so flagging failures put a warning on 80% of the list — technically accurate and useless, since a
+ *  list that is nearly all warnings reads as noise rather than guidance. The short list is the useful
+ *  signal, so it is the one that gets marked. (Interim: if #320 lands on clamping, the failing steps
+ *  stop being reachable and this can go back to being a plain list.)
+ *
+ *  Contrast is symmetric, so one comparison covers both directions — a role that IS a surface
+ *  (`subtle-fill`, measured against its state ink) and a role that sits ON one (text against a
+ *  background) use the same formula.
+ *
+ *  Returns undefined — not a no-op marker — when the role states no contract, is absent in this mode,
+ *  or is measured against `self`. That distinction matters under inversion: within a picker either
+ *  NOTHING is marked (no contract to judge) or the passing steps are, so an unmarked option is never
+ *  ambiguous between "fails" and "wasn't judged". */
+const contrastMark = (roleKey: string, palette: string): ((step: string) => string) | undefined => {
+  const roles = iRoles();
+  const r = roles[roleKey];
+  const min = r?.min ?? 0;
+  if (!r || min <= 0 || !r.against || r.against === 'self') return undefined;
+  const againstHex = roles[r.against]?.hex;
+  if (!againstHex) return undefined;                       // nothing resolvable to compare against
+  const againstRgb = hexToRgb(againstHex);
+  const steps = theme.palettes.find((p) => p.palette === palette)?.steps ?? [];
+  // States the number rather than a bare tick: the minimum is 4.5 for text and 3 for non-text, so
+  // "✓" alone would hide WHICH bar a step clears.
+  const label = ` · ✓ ${String(min).replace(/\.0$/, '')}:1`;
+  return (step: string): string => {
+    const s = steps.find((x) => x.key === step);
+    if (!s) return '';
+    return contrast(hexToRgb(s.hex), againstRgb) >= min ? label : '';
+  };
+};
+
+// ---- examples (locked right) ----------------------------------------------
+/** #291 — click-to-pin the pressed state on a live example. `:hover` already gives the transient hover
+ *  feel; a bare `:active` vanishes the instant the mouse releases, too fleeting to actually evaluate a
+ *  pressed color, so a click toggles a HELD `.is-pressed` state instead (click again to release). Only
+ *  wired when a pressed color was actually resolved (`exBtn`/`exLink`/`exOutline` call this conditionally). */
+const wirePress = (n: HTMLElement): void => {
+  n.classList.add('pinnable');
+  n.title = 'Click to hold the pressed state';
+  n.onclick = (e) => { e.preventDefault(); n.classList.toggle('is-pressed'); };
+};
+// #555 — `.exbox` carried no background (transparent, so a `text.rest`/`text.on-inverse.rest` ink
+// resolved for the CURRENT mode fell through to the studio's own always-light chrome behind it), and
+// `.exbox.dark` hardcoded `#0d0d10` (correct only when "inverse" means dark, which is false in a Dark
+// mode — dark's inverse resolves LIGHT). Both specimens are meant to sit on the ground their ink was
+// actually measured against: `background.primary` for the regular treatment, `background.inverse.primary`
+// for the inverse one, both read for `currentMode` so they track whichever way that mode's inverse falls.
+const exGround = (dark: boolean): string => iRoles()[dark ? 'background.inverse.primary' : 'background.primary']?.hex ?? (dark ? '#0d0d10' : '#ffffff');
+const exBtn = (bg: string, fg: string, dark = false, label = 'Button', hover?: string, pressed?: string): HTMLElement => {
+  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
+  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', bg); b.style.color = fg;
+  if (hover) b.style.setProperty('--ibtn-hbg', hover);
+  if (pressed) { b.style.setProperty('--ibtn-pbg', pressed); wirePress(b); }
+  b.append(document.createTextNode(label), iconEl('arrow', fg));
+  box.append(b); return box;
+};
+const exLink = (color: string, dark = false, hover?: string, pressed?: string): HTMLElement => {
+  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
+  const a = el('a', 'ilink', 'Text link'); a.style.setProperty('--ilink-fg', color);
+  if (hover) a.style.setProperty('--ilink-hfg', hover);
+  if (pressed) { a.style.setProperty('--ilink-pfg', pressed); wirePress(a); }
+  box.append(a); return box;
+};
+const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string): HTMLElement => {
+  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
+  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); b.style.color = edge; b.style.border = `1.5px solid ${edge}`;
+  if (hoverWash) b.style.setProperty('--ibtn-hbg', hoverWash);
+  if (pressedWash) { b.style.setProperty('--ibtn-pbg', pressedWash); wirePress(b); }
+  b.append(document.createTextNode('Outline'), iconEl('arrow', edge));
+  box.append(b); return box;
+};
+const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
+  const box = el('div', 'exbox'); box.style.background = exGround(false);
+  const row = el('span', 'inote'); row.style.color = textColor;
+  const ic = el('span', 'inote-ic'); ic.style.color = iconColor; ic.append(iconEl('bell', iconColor));
+  row.append(ic, document.createTextNode('Notifications')); box.append(row); return box;
+};
+/** Bare text on the panel — a specimen for a role rated against the PAGE rather than against a fill
+ *  (`disabled.text`). Deliberately has no button chrome: drawing it as a button would imply a fill it is
+ *  not measured against, which is the mistake the disabled section's own copy used to make in words. */
+const exTextOnPage = (color: string, label: string): HTMLElement => {
+  const box = el('div', 'exbox'); box.style.background = exGround(false);
+  const t = el('span', 'inote', label); t.style.color = color;
+  box.append(t); return box;
+};
+/** The example column: an example box + an optional contrast receipt below it. */
+const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
+  const aex = el('div', 'aex'); aex.append(inner); if (badge) aex.append(badge); return aex;
+};
+/** Two labelled specimens side by side in the example column (rest→hover, filled→outline, match→distinct).
+ *  Each may carry its OWN contrast receipt as a third tuple slot — per specimen, not per row, because two
+ *  specimens can be rated against different grounds and clear different ratios (`disabled.on-fill` is
+ *  measured on the disabled fill, `disabled.text` on the page). One receipt for the pair would have to
+ *  pick one of them and silently drop the other.
+ *
+ *  The pair is an `.aex-two` ROW nested in the `.aex` column — not one element carrying both classes, as
+ *  it was before it could take a badge. `.aex` is the column that stacks a specimen over its receipt
+ *  (`iExample` relies on exactly that), so a two-up that also wants a receipt needs the row and the
+ *  column to be two boxes. Nesting unconditionally, rather than only when a badge is passed, keeps one
+ *  layout to reason about — and retires an entry from `lint:classes`'s allowlist instead of moving it
+ *  somewhere the scanner can't see. */
+type TwoUpSpec = [string, HTMLElement] | [string, HTMLElement, HTMLElement | undefined];
+const twoUp = (a: TwoUpSpec, b: TwoUpSpec): HTMLElement => {
+  const row = el('div', 'aex-two');
+  for (const [label, node, badge] of [a, b]) {
+    const s = el('div', 'aex-spec'); s.append(el('span', 'pfk', label), node);
+    if (badge) s.append(badge);
+    row.append(s);
+  }
+  const wrap = el('div', 'aex'); wrap.append(row);
+  return wrap;
+};
+const iBadge = (r: RoleRes | undefined): HTMLElement | undefined =>
+  r && r.ratio != null && r.min != null && r.min > 0 ? contrastBadge(r.ratio, r.min) : undefined;
+
+// ---- rows -----------------------------------------------------------------
+/** The two-up Hover/Pressed states strip below a slot row — each state its own swatch + override select.
+ *  States absent in this mode are dropped; an empty strip returns null. */
+const iStates = (roles: RoleMap, palette: string, cells: Array<[string, string]>): HTMLElement | null => {
+  const g = el('div', 'astates-g'); let any = false;
+  for (const [name, roleKey] of cells) {
+    const r = roles[roleKey]; if (!r) continue; any = true;
+    const cell = el('div', 'astate');
+    const head = el('div', 'astate-h'); head.append(swatch(r.hex, 'astate-sw'), el('span', 'astate-n', name));
+    cell.append(head, roleSourceSelect(roleKey, palette, baselineStepOf(roleKey)));
+    g.append(cell);
+  }
+  if (!any) return null;
+  const wrap = el('div', 'astates'); wrap.append(el('div', 'astates-h', 'Interactive states'), g); return wrap;
+};
+
+/** One matrix row: 56×56 swatch (omitted on `lead` control rows) · mid (label + Source select + token pill
+ *  + description) · locked-right example · optional states strip. */
+const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?: string; select: HTMLElement; pill?: string; desc?: string; warn?: string; example: HTMLElement; states?: HTMLElement | null }): HTMLElement => {
+  const row = el('div', 'arow' + (o.lead ? ' arow-lead' : ''));
+  const main = el('div', 'arow-main');
+  if (!o.lead) main.append(swatch(o.swatchBg ?? '#000000', 'asw'));
+  const mid = el('div', 'amid');
+  if (o.label) mid.append(el('div', 'alabel', o.label));
+  const ctl = el('div', 'sf-ctlblock'); ctl.append(el('span', 'pfk', o.srcLabel ?? 'Source'), o.select); mid.append(ctl);
+  if (o.pill) mid.append(tokenPill(o.pill));
+  if (o.desc) mid.append(el('p', 'adesc', o.desc));
+  if (o.warn) mid.append(el('p', 'fz-warn', o.warn));
+  main.append(mid, o.example);
+  row.append(main);
+  if (o.states) row.append(o.states);
+  return row;
+};
+
+/** An override-backed slot row (every slot except fill · rest, which anchors). null when it doesn't resolve. */
+const slotRow = (o: { name: string; slot: string; label: string; palette: string; desc: string; example: (roles: RoleMap) => HTMLElement; badgeRole?: string; states?: Array<[string, string]> }): HTMLElement | null => {
+  const roles = iRoles();
+  const roleKey = `interactive.${o.name}.${o.slot}`;
+  const r = roles[roleKey]; if (!r) return null;
+  return iRow({
+    swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, baselineStepOf(roleKey)),
+    pill: `color.${roleKey}`, desc: o.desc, example: iExample(o.example(roles), iBadge(roles[o.badgeRole ?? roleKey])),
+    states: o.states ? iStates(roles, o.palette, o.states) : null,
+  });
+};
+
+/** A single interactive column. `name` is the `interactive.<name>.*` role suffix (built-ins primary /
+ *  neutral / destructive, accents `name ?? palette`). `setStep` present ⇒ the fill · rest Source is the
+ *  column's fill anchor (re-derives the family); absent (neutral) ⇒ a plain fill · rest override. */
+type ICol = { name: string; title: string; desc: string; palette: string; stepValue?: number; setStep?: (v: number | undefined) => void; onRemove?: () => void; lead?: HTMLElement | null };
+
+/** The fill · rest row — its Source is the column's fill ANCHOR (re-derives the family) when the column
+ *  has one (primary / destructive / accents); neutral has no anchor (its emphasis lead drives the fill),
+ *  so it falls back to a plain override select. Hover / pressed are override sub-states. */
+const fillRestRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.fill.rest`]; if (!r) return null;
+  const onFill = roles[`interactive.${col.name}.on-fill`];
+  let select: HTMLElement;
+  let warn: string | undefined;
+  if (col.setStep) {
+    const steps = stepsOf(col.palette);
+    select = stepPicker(col.palette, steps, baselineAnchorStepOf(`interactive.${col.name}.fill.rest`, currentMode, col.name),
+      steps.find((k) => Number(k) === col.stepValue), (step) => col.setStep!(step === undefined ? undefined : Number(step)));
+    // Apply-but-warn, like every other override in this file (#331). A pin that misses the floor
+    // is APPLIED — the swatch, the example and the derived hover/pressed all show the step you
+    // actually picked — and the miss is reported here. It used to substitute the nearest passing
+    // step instead, which meant the one thing you could never see was the consequence of your own
+    // choice; and the same pin authored through `design.md`/`BrandInput` was honoured anyway, so
+    // the substitution protected nothing. Warn off the RESOLVED ratio rather than off
+    // requested-vs-effective: with the pin applied those two are now always equal.
+    const min = r.min ?? 0, ratio = r.ratio ?? Infinity;
+    if (min > 0 && ratio < min)
+      warn = `${stepKeyOf(r.path)} doesn't clear the contrast floor here — ${ratio.toFixed(2)}:1 against ${r.against}, needs ${min}:1. Applied as picked; hover, pressed, text and on-fill all derive from it.`;
+  } else {
+    select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, baselineStepOf(`interactive.${col.name}.fill.rest`));
+  }
+  return iRow({
+    swatchBg: r.hex, label: 'Fill · rest', select, pill: `color.interactive.${col.name}.fill.rest`,
+    desc: 'The button / container fill. This anchors the family — hover, pressed, text and on-fill derive from it unless you override them below.',
+    warn,
+    example: iExample(exBtn(r.hex, onFill?.hex ?? '#ffffff', false, 'Button',
+      roles[`interactive.${col.name}.fill.hover`]?.hex, roles[`interactive.${col.name}.fill.pressed`]?.hex), iBadge(onFill)),
+    states: iStates(roles, col.palette, [['Hover', `interactive.${col.name}.fill.hover`], ['Pressed', `interactive.${col.name}.fill.pressed`]]),
+  });
+};
+
+/** The overlay-wash row — the translucent hover/pressed tint for this palette's outline & text actions.
+ *  The wash is a neutral alpha primitive; its swatch + example paint it honestly via rgba. */
+const overlayRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.overlay.hover`]; if (!r) return null;
+  const nPal = theme.roleToPalette.neutral;
+  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  return iRow({
+    swatchBg: rgbaOf(r), label: 'Overlay wash',
+    select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
+    pill: `color.interactive.${col.name}.overlay.hover`,
+    desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — it composites over any surface.',
+    // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
+    // ever appears on hover/pressed), so only pressed needs wiring here; a :hover cue would be a no-op.
+    example: iExample(exOutline(edge, rgbaOf(r), false, undefined,
+      roles[`interactive.${col.name}.overlay.pressed`] ? rgbaOf(roles[`interactive.${col.name}.overlay.pressed`]!) : undefined)),
+    states: iStates(roles, nPal, [['Hover', `interactive.${col.name}.overlay.hover`], ['Pressed', `interactive.${col.name}.overlay.pressed`]]),
+  });
+};
+
+/** The subtle-tint row — the OPAQUE sibling of the overlay wash (#288), shown only when
+ *  `outlineInteraction: solid-tint` is the method (the role is absent otherwise, so this returns null
+ *  and the row self-hides, same as `overlayRow` does under the other methods).
+ *
+ *  The step picker is bound to the COLUMN'S OWN palette, not the neutral one the overlay row uses —
+ *  choosing which tint of its own ramp a control hovers to is the whole point of the method.
+ *
+ *  The engine picks a default step that keeps the state's ink legible, but an override is applied and
+ *  WARNED, never blocked (the established `overrides` behaviour). Since the role's `against` is the
+ *  state ink, `ratio`/`min` already carry that verdict — so a pick that costs legibility says so here
+ *  rather than only in an engine warning the designer never sees. */
+const subtleFillRow = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  const r = roles[`interactive.${col.name}.subtle-fill.hover`]; if (!r) return null;
+  const pressed = roles[`interactive.${col.name}.subtle-fill.pressed`];
+  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
+  return iRow({
+    swatchBg: r.hex, label: 'Subtle tint',
+    select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, baselineStepOf(`interactive.${col.name}.subtle-fill.hover`)),
+    pill: `color.interactive.${col.name}.subtle-fill.hover`,
+    desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
+    // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
+    // which must read as no warning, not as a failed one.
+    warn: (r.min ?? 0) > 0 && (r.ratio ?? Infinity) < (r.min ?? 0)
+      ? `This tint leaves the hover label at ${short(r.ratio ?? 0)}:1, under the ${short(r.min ?? 0)}:1 it needs — pick a step closer to the page, or the text stops being readable on hover.`
+      : undefined,
+    example: iExample(exOutline(edge, r.hex, false, undefined, pressed?.hex)),
+    states: iStates(roles, col.palette, [
+      ['Hover', `interactive.${col.name}.subtle-fill.hover`],
+      ['Pressed', `interactive.${col.name}.subtle-fill.pressed`],
+    ]),
+  });
+};
+
+/** One action-palette section: header (+ optional remove) · optional lead control · the slot rows. */
+const renderPaletteSection = (col: ICol): HTMLElement | null => {
+  const roles = iRoles();
+  if (!roles[`interactive.${col.name}.fill.rest`]) return null;
+  const sec = el('div', 'psec');
+  const head = el('div', 'psec-h'); head.append(el('p', 'psec-t', col.title));
+  if (col.onRemove) head.append(removeButton(col.onRemove, 'Remove interactive color', 'rmv'));
+  sec.append(head, el('p', 'psec-d', col.desc));
+  if (col.lead) sec.append(col.lead);
+  const P = col.palette, nm = col.name, inv = `${nm}.on-inverse`, nPal = theme.roleToPalette.neutral;
+  const rows: Array<HTMLElement | null> = [
+    fillRestRow(col),
+    slotRow({ name: nm, slot: 'on-inverse.fill.rest', label: 'Fill · inverse', palette: P,
+      desc: 'The button fill on a dark / inverse surface — a light fill. Derived, or pin a step.',
+      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true, 'Button',
+        rs[`interactive.${inv}.fill.hover`]?.hex, rs[`interactive.${inv}.fill.pressed`]?.hex),
+      badgeRole: `interactive.${inv}.on-fill`,
+      states: [['Hover', `interactive.${inv}.fill.hover`], ['Pressed', `interactive.${inv}.fill.pressed`]] }),
+    slotRow({ name: nm, slot: 'text.rest', label: 'Text · rest', palette: P,
+      desc: 'Text links & text buttons on light surfaces.',
+      example: (rs) => exLink(rs[`interactive.${nm}.text.rest`]?.hex ?? '#000000', false,
+        rs[`interactive.${nm}.text.hover`]?.hex, rs[`interactive.${nm}.text.pressed`]?.hex),
+      states: [['Hover', `interactive.${nm}.text.hover`], ['Pressed', `interactive.${nm}.text.pressed`]] }),
+    slotRow({ name: nm, slot: 'on-inverse.text.rest', label: 'Text · inverse', palette: P,
+      desc: 'Text links & text buttons on dark / inverse surfaces.',
+      example: (rs) => exLink(rs[`interactive.${inv}.text.rest`]?.hex ?? '#ffffff', true,
+        rs[`interactive.${inv}.text.hover`]?.hex, rs[`interactive.${inv}.text.pressed`]?.hex),
+      states: [['Hover', `interactive.${inv}.text.hover`], ['Pressed', `interactive.${inv}.text.pressed`]] }),
+    overlayRow(col),
+    subtleFillRow(col),   // #288 — the opaque sibling; only one of the two is ever non-null
+    slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
+      desc: 'The ink on the fill — auto-picked to clear contrast on the button surface.',
+      example: (rs) => exBtn(rs[`interactive.${nm}.fill.rest`]?.hex ?? '#000000', rs[`interactive.${nm}.on-fill`]?.hex ?? '#ffffff') }),
+    slotRow({ name: nm, slot: 'on-inverse.on-fill', label: 'On-fill text · inverse', palette: nPal,
+      desc: 'The ink on the inverse (light) fill — button text on a dark surface.',
+      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true) }),
+  ];
+  for (const rw of rows) if (rw) sec.append(rw);
+  return sec;
+};
+
+// ---- lead controls + global behaviors ------------------------------------
+/** An enum lever as a `.cap` select that writes the input + rebuilds (a lever change re-derives roles the
+ *  matrix reads, so applyFull, not apply). */
+const iEnumSelect = (key: string): HTMLSelectElement => {
+  const lever = leverByKey(key)!;
+  const sel = selectEl('cap');
+  const cur = getPath(brandState, key) ?? lever.default;
+  for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
+  sel.onchange = () => { setPath(brandState, key, sel.value); applyFull(); };
+  return sel;
+};
+
+/** The Primary section's lead: the Action-palette choice (which palette drives primary actions). */
+const actionPaletteLead = (): HTMLElement => {
+  const sel = selectEl('cap');
+  const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
+  const cur = String(brandState.actionPalette ?? 'primary');
+  for (const p of palettes) sel.append(optionEl(p, capWord(p), p === cur));
+  sel.onchange = () => { setPath(brandState, 'actionPalette', sel.value); applyFull(); };
+  const roles = iRoles();
+  return iRow({ lead: true, label: 'Action palette', srcLabel: 'Source', select: sel,
+    desc: 'Which palette drives your primary actions — a brand color, or point it at your neutral for a restrained, monochrome look. The contrast floor is accessible either way.',
+    example: iExample(exBtn(roles['interactive.primary.fill.rest']?.hex ?? '#000000', roles['interactive.primary.on-fill']?.hex ?? '#ffffff')) });
+};
+
+/** The Neutral section's lead: the emphasis choice (subtle grey surface vs bold near-black/white fill). */
+const neutralEmphasisLead = (): HTMLElement => {
+  const sel = selectEl('cap');
+  const cur = lastGoodInput.neutralEmphasis ?? 'subtle';
+  for (const [ne, label] of NEUTRAL_EMPHASES) sel.append(optionEl(ne, capWord(label), ne === cur));
+  sel.onchange = () => { setPath(brandState, 'neutralEmphasis', sel.value); applyFull(); };
+  const roles = iRoles();
+  return iRow({ lead: true, label: 'Button emphasis', srcLabel: 'Emphasis', select: sel,
+    desc: 'A neutral / secondary button as a subtle light-gray surface, or a bold near-black/white fill. Shared across modes.',
+    example: iExample(exBtn(roles['interactive.neutral.fill.rest']?.hex ?? '#eeeeee', roles['interactive.neutral.on-fill']?.hex ?? '#111111')) });
+};
+
+/** The cross-cutting behaviors grouped at the top — outline hover, disabled, icon colors — each governs
+ *  every palette below, so it doesn't belong to any one of them. */
+const renderGlobalBehavior = (host: HTMLElement): void => {
+  const cap = el('div', 'gcap'); cap.append(el('p', 'gcap-t', 'Global action behavior'), el('p', 'gcap-d', 'These apply across every action palette below.'));
+  host.append(cap);
+  const roles = iRoles();
+
+  // The second sentence is method-specific: the Overlay wash row only tunes the translucent method.
+  // Under solid-tint the fill comes from the control's own palette automatically, so pointing at a
+  // control that does nothing there would be the same species of wrong answer as the empty swatch.
+  const ohBlurb = theme.outlineInteraction === 'solid-tint'
+    ? 'How every outline & text action reacts on hover. The tint is a step of each control’s own palette, so a destructive outline hovers red-tinted rather than gray.'
+    : theme.outlineInteraction === 'none'
+      ? 'How every outline & text action reacts on hover. No hover fill — the border and ink carry the state on their own.'
+      : 'How every outline & text action reacts on hover. Each palette’s Overlay wash row tunes the tint it uses.';
+  // `palSection`, not a bare `.psec` + two `<p>`s (#562). These four sections used to append the title
+  // straight to the section, so they had no `.psec-head` — which sent `attachModeBadges` down its
+  // absolute-position FALLBACK and pinned the badge to `top:0;right:0`, flush against the border while
+  // the section's own padding is 20/24. Measured 1/1 here against 21/25 on every section that did use
+  // the helper. Fixed by taking the same path as the rest rather than by giving the fallback insets:
+  // the head path is a flex row that also reflows to a column under 720px, which these never got.
+  const oh = palSection('Outline button hover', ohBlurb);
+  const ohEdge = roles['interactive.primary.text.rest']?.hex ?? '#000000';
+  // Each method reads its OWN role, which is the whole point of #288: `overlay-neutral` emits a
+  // translucent `interactive.<name>.overlay.hover`, `solid-tint` an opaque
+  // `interactive.<name>.subtle-fill.hover`, and `none` no fill by design. This used to read the
+  // overlay role unconditionally, which rendered solid-tint identically to none — and once that was
+  // made conditional there was still nothing to read, because the engine emitted no solid-tint token
+  // for any brand (#288). Both halves are fixed now, so the example tracks the method for real.
+  //
+  // The mapping itself now comes from `outlineFillRole` rather than being spelled out here a second
+  // time. It WAS spelled out twice, and the copy in the style guide was the one that never got the
+  // fix (#575) — so the duplication was not hypothetical, it shipped the same bug to the surface a
+  // designer hands a developer. `opaque` still branches locally, because it decides how to PAINT
+  // (a translucent wash needs `rgbaOf` to composite honestly; an opaque step is its own hex).
+  const ohRole = outlineFillRole(theme.outlineInteraction, 'primary', 'hover');
+  const ohRes = ohRole ? roles[ohRole] : undefined;
+  const ohWash = !ohRes ? 'transparent'
+    : outlineFillFamily(theme.outlineInteraction).opaque
+      ? ohRes.hex              // opaque — a real palette step, no alpha
+      : rgbaOf(ohRes);
+  oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
+    example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
+  host.append(oh);
+
+  // "the label" is the correction, not decoration (#561): the section promised "how much contrast
+  // disabled controls keep", but `disabled.fill` is a fixed neutral rung nothing here can move — only
+  // the ink is contrast-gated. Reading the old copy and watching the fill never budge is what made a
+  // working section look broken.
+  const ds = palSection('Disabled', 'How much contrast a disabled label keeps — on a disabled fill, and as plain disabled text on the page. Never below 3:1 either way; this system doesn’t use the WCAG exemption for inactive controls. The disabled fill itself is a fixed step of your neutral ramp, so it moves with the neutral, not with these controls.');
+  const dFull = normalizeDisabledStrategy(getPath(brandState, 'disabledStrategy') as string | undefined) === 'full';
+  // Re-resolved on each call, not closed over `roles`, so the same builder serves the first render and
+  // every mid-drag repaint below.
+  //
+  // BOTH gated disabled roles, each with its own receipt (#561). The floor drives two inks, not one:
+  // `disabled.on-fill` is rated against the DISABLED FILL, `disabled.text` against the page, so the two
+  // cross a ramp rung at different floors and one specimen cannot stand in for the other. That is what
+  // made the top of the dial look dead. Measured across the corpus at all four stops (both light and
+  // dark, HC excluded — it escalates to 4.5 by design and collapsing there is correct): all four stops
+  // are distinct in 8 of 10 customizable brand+modes with both inks visible, versus 6 of 10 with
+  // `on-fill` alone. Aurora and harbor light are exactly the pair that flips — `on-fill` sits still from
+  // 4.0→4.5 while `text` moves 4.01→4.8x, and showing only `on-fill` reported that as no change.
+  // Where a stop IS still dead (nb/minimal light) it is because 4.0 already lands both inks at ~4.5,
+  // so asking for 4.5 requests nothing more — a floor already cleared, not a control that cannot move.
+  // The dial's granularity was never the defect; the specimen was under-reporting it.
+  const dsExample = (): HTMLElement => {
+    const r = iRoles();
+    return twoUp(
+      ['On fill', exBtn(r['disabled.fill']?.hex ?? '#e7e7ee', r['disabled.on-fill']?.hex ?? '#9a9aa6', false, 'Save'), iBadge(r['disabled.on-fill'])],
+      ['On page', exTextOnPage(r['disabled.text']?.hex ?? '#9a9aa6', 'Save'), iBadge(r['disabled.text'])]);
+  };
+  let dsEx = dsExample();
+  ds.append(iRow({ lead: true, srcLabel: 'Contrast', select: iEnumSelect('disabledStrategy'),
+    desc: 'Full guarantees AA text (4.5:1); Reduced dims to a floor you set, no lower than 3:1.',
+    // The affordance caveat, surfaced where the choice is made rather than left to be discovered:
+    // at 4.5:1 the label is as legible as body copy, so "disabled" reads from fill/border/cursor.
+    warn: dFull ? 'At 4.5:1 the label is as legible as body text — check a disabled control still reads as disabled (the cue now rests on fill, border, cursor and aria-disabled).' : undefined,
+    example: dsEx }));
+  // The floor dial belongs to Reduced — Full is a fixed promise with nothing to tune. (Inverted from
+  // the original, where the dial sat on the compliant branch and could be pulled below AA.)
+  if (!dFull) {
+    const min = leverByKey('disabledMin');
+    if (min) {
+      const c = renderControl(min);
+      // The example lives in this non-volatile section (not the .stage-vol region), so the generic
+      // slider oninput's apply() (volatile-only) can't refresh it, and applyFull() on oninput would
+      // rebuild the workspace and destroy the slider mid-drag. Both still hold — so the drag re-resolves
+      // the theme (`rebuild`, DOM-free) and swaps just THIS specimen node, which is the one thing on
+      // screen the floor moves. Release still commits through applyFull so the rest of the page (the
+      // mode strip's per-mode contrast marks, every other palette) catches up in one pass; refreshing
+      // those mid-drag would risk syncErrorBar reflowing the sticky chrome under the cursor.
+      const slider = c.querySelector('input[type="range"]') as HTMLInputElement | null;
+      const label = c.querySelector('.knob-val') as HTMLElement | null;
+      if (slider) {
+        slider.oninput = () => {
+          if (label) label.textContent = `${slider.value}${min.unit ?? ''}`;
+          setPath(brandState, min.key, Number(slider.value));
+          rebuild();
+          const next = dsExample(); dsEx.replaceWith(next); dsEx = next;
+        };
+        slider.onchange = () => { setPath(brandState, min.key, Number(slider.value)); applyFull(); };
+      }
+      ds.append(c);
+    }
+  }
+  host.append(ds);
+
+  const ic = palSection('Icon colors', 'Should icons match your text color, or take a distinct (lighter) color? The example shows both.');
+  const txt = roles['text.primary']?.hex ?? '#191920', lighter = roles['text.tertiary']?.hex ?? '#9a9aa6';
+  ic.append(iRow({ lead: true, label: 'Icon color', srcLabel: 'Icon color', select: iEnumSelect('iconContrast'),
+    desc: 'Match text keeps icons at full text legibility; Distinct lets them sit lighter (WCAG non-text 3:1).',
+    example: twoUp(['Match text', exIconLabel(txt, txt)], ['Distinct', exIconLabel(lighter, txt)]) }));
+  host.append(ic);
+
+  // FOCUS RING (review, 2026-08-04) — 4 emitted tokens that appeared nowhere in the dashboard. They
+  // belong here: a focus ring is an interaction state, and `color.border.focus` (its colour, already
+  // on this page's contract table) is the one part of it that WAS visible. These are the geometry.
+  // Fixed constants in the engine, so read-only — shown with a live specimen because a 2px ring at 2px
+  // offset is a thing you judge by looking, not by reading two numbers.
+  const fr = palSection('Focus ring', 'The ring geometry every focusable control shares — width, how far it sits off the element, and its stroke style. Fixed for every brand (WCAG 2.4.13 sets the floor); its color is the color.border.focus role above.');
+  const frRows: Array<[string, string, string]> = [
+    ['focus.ring.width', '2px', 'WCAG 2.4.13 floor'],
+    ['focus.ring.offset', '2px', 'separates the ring from the element edge'],
+    ['focus.ring.offset-field', '0px', 'form fields — the ring hugs the field'],
+    ['focus.ring.style', 'solid', 'dashed and dotted fail at small sizes'],
+  ];
+  const frWrap = el('div', 'fr-wrap');
+  const frList = el('div', 'fr-list');
+  for (const [ref, val, why] of frRows) {
+    const r = el('div', 'fr-row');
+    r.append(tokenPill(ref), el('span', 'fr-v mono', val), el('span', 'fr-why', why));
+    frList.append(r);
+  }
+  const frEx = el('div', 'fr-ex');
+  const ringColor = roles['border.focus']?.hex ?? roles['interactive.primary.border.rest']?.hex ?? '#3e6dc8';
+  for (const [lab, off] of [['Control', '2px'], ['Form field', '0px']] as Array<[string, string]>) {
+    const cell = el('div', 'fr-excell');
+    const btn = el('div', 'fr-btn', lab);
+    btn.style.outline = `2px solid ${ringColor}`;
+    btn.style.outlineOffset = off;
+    cell.append(btn, el('span', 'fr-exlab', `offset ${off}`));
+    frEx.append(cell);
+  }
+  frWrap.append(frList, frEx);
+  fr.append(frWrap);
+  host.append(fr);
+};
+
+/** The add-accent promote row — a select of promotable palettes + an add button (structural, base-mode
+ *  only). Pushes `{ palette }`; the engine defaults the column name to the palette. */
+const renderAddAccentRow = (): HTMLElement => {
+  const row = el('div', 'ic-add');
+  const brandNames = (brandState.brandColors ?? []).map((b) => b.name);
+  const already = new Set((brandState.interactivePalettes ?? []).map((e) => e.palette));
+  const actionPal = theme.roleToPalette.action;
+  const RESERVED_ICOL = new Set(['primary', 'neutral', 'destructive']);
+  const promotable = ['primary', ...brandNames].filter((p) => !already.has(p) && p !== actionPal && !RESERVED_ICOL.has(p));
+  if (!promotable.length) {
+    row.append(el('span', 'ic-addhint', 'Add a brand color on Primitives to create another interactive color.'));
+    return row;
+  }
+  const sel = selectEl('cap');
+  for (const p of promotable) sel.append(optionEl(p, capWord(p)));
+  const btn = addButton('+ Add action palette', () => {
+    const arr = brandState.interactivePalettes ?? (brandState.interactivePalettes = []);
+    arr.push({ palette: sel.value });
+    applyFull();
+  }, 'ic-addbtn');
+  row.append(sel, btn);
+  return row;
+};
+
+/** The whole interactive editor: global behaviors, then one section per action palette, then the add row.
+ *  The fill anchor is per-mode outside Light (modeAnchors); structural edits (add/remove a column) stay
+ *  base-only. */
+const renderInteractiveMatrix = (host: HTMLElement): void => {
+  renderGlobalBehavior(host);
+  const perMode = currentMode !== 'light';
+  if (perMode) host.append(el('p', 'ic-modenote', `Editing ${MODE_LABEL[currentMode] ?? currentMode}’s interactive colors — “Auto” follows the generated baseline; pick a step to override this mode.`));
+  const anchor = (name: string, get: () => number | undefined, set: (v: number | undefined) => void): Pick<ICol, 'stepValue' | 'setStep'> => {
+    if (!perMode) return { stepValue: get(), setStep: (v) => { set(v); applyFull(); } };
+    return {
+      stepValue: brandState.modeAnchors?.[currentMode]?.[name],
+      setStep: (v) => {
+        const ma = brandState.modeAnchors ?? (brandState.modeAnchors = {});
+        const forMode = ma[currentMode] ?? (ma[currentMode] = {});
+        if (v === undefined) { delete forMode[name]; if (!Object.keys(forMode).length) delete ma[currentMode]; if (!Object.keys(ma).length) brandState.modeAnchors = undefined; }
+        else forMode[name] = v;
+        applyFull();
+      },
+    };
+  };
+  const add = (node: HTMLElement | null): void => { if (node) host.append(node); };
+
+  add(renderPaletteSection({ name: 'primary', title: 'Primary actions', desc: 'The default interactive colors. State colors are calculated from your selections unless you override them.', palette: theme.roleToPalette.action, lead: actionPaletteLead(), ...anchor('primary', () => brandState.actionAnchorStep, (v) => setPath(brandState, 'actionAnchorStep', v)) }));
+  add(renderPaletteSection({ name: 'neutral', title: 'Neutral actions', desc: 'The secondary / low-emphasis action set — for “Cancel”, toolbar buttons, and quiet controls.', palette: theme.roleToPalette.neutral, lead: neutralEmphasisLead() }));
+  add(renderPaletteSection({ name: 'destructive', title: 'Destructive actions', desc: 'Delete / remove and other irreversible actions.', palette: theme.roleToPalette.danger, ...anchor('destructive', () => brandState.destructiveAnchorStep, (v) => setPath(brandState, 'destructiveAnchorStep', v)) }));
+  (brandState.interactivePalettes ?? []).forEach((entry, i) => {
+    const nm = entry.name ?? entry.palette;
+    add(renderPaletteSection({
+      name: nm, title: `${capWord(nm)} actions`, desc: 'Optional secondary interactive set.', palette: entry.palette,
+      ...anchor(nm, () => entry.anchorStep, (v) => setPath(brandState, `interactivePalettes.${i}.anchorStep`, v)),
+      ...(perMode ? {} : { onRemove: () => { brandState.interactivePalettes!.splice(i, 1); if (!brandState.interactivePalettes!.length) brandState.interactivePalettes = undefined; applyFull(); } }),
+    }));
+  });
+  if (!perMode) host.append(renderAddAccentRow());
+};
+
+// === Mode context control (#171) ==========================================================
+// A workspace-level single-select switcher that puts the WHOLE stage into ONE mode at a time —
+// editing one mode at a time (docs/11 Pillar 2 authoring context). Three tiers by how a mode's
+// values are produced: light/dark are GENERATED and editable, writing through `modeLevers` /
+// `modeAnchors` / `brandState.overrides`; hc-light/hc-dark/wireframe are DERIVED-only (auto from the
+// contrast contracts, read-only verification views); primitives are mode-independent so this
+// control never renders on that stage. Replaces the mode chips that used to overflow the brand
+// dropdown. Managing WHICH modes exist moved to the brand menu (#432) — see `renderModeSetMenu`.
+let addModeOpen = false;         // C2 — the "+ Add mode" inline form is expanded
+let addModeName = '';            // C2 — survives popover re-renders
+const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
+/** #423 — a DERIVED mode is generated from light/dark (accessibility floors for HC, mechanical
+ *  grayscale for wireframe) and the engine REFUSES per-mode levers on it: `CUSTOMIZABLE_MODES` is
+ *  `['light', 'dark', ...customNames]`, and anything else throws "is generate-only and not
+ *  customizable". The one-mode-at-a-time pages already gate on this via `renderGeneratedNote`, but a
+ *  table that shows every mode AS COLUMNS has no such gate — each column must check for itself, or the
+ *  click reaches the engine and the user reads a raw internal error string. */
+const modeIsEditable = (m: string): boolean => !DERIVED_MODES.has(m);
+const RESERVED_MODE_NAMES = new Set<string>(['light', 'dark', 'hc-light', 'hc-dark', 'wireframe']);
+const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[m] || ct.byMode[m]!.pass);
+
+/** The mode-SET editor (which modes this brand generates + custom modes). Host-agnostic since #432:
+ *  it moved from a popover on the mode strip into the brand menu, so the caller supplies both the
+ *  repaint (the strip and the brand menu are re-rendered by different functions) and whether to drop
+ *  the popover chrome. Everything else — validation, the locked Light row, the add form — is unchanged. */
+const renderModeSetMenu = (repaint: () => void, inline = false): HTMLElement => {
+  const menu = el('div', 'mctx-menu' + (inline ? ' inline' : ''));
+  const modes = brandState.modes ?? ALL_MODES;
+  const darkOn = modes.includes('dark');
+  const hcOn = modes.includes('hc-light') || modes.includes('hc-dark');
+  const wireOn = modes.includes('wireframe');
+  menu.append(el('div', 'mctx-mcap', 'Modes this brand generates'));
+
+  // #57 — Light is the forced base mode; render the row as clearly LOCKED (muted, grayed check, no hover)
+  // rather than a live checkbox that can't be unticked.
+  const lightRow = el('div', 'mctx-opt on fixed');
+  lightRow.title = 'Light is always generated — it’s the base mode, so it can’t be turned off.';
+  lightRow.append(el('span', 'mctx-box', '✓'), el('span', undefined, 'Light'), el('span', 'mctx-always', 'always'));
+  menu.append(lightRow);
+
+  const opt = (label: string, on: boolean, title: string, toggle: () => void): void => {
+    const row = el('button', 'mctx-opt' + (on ? ' on' : '')) as HTMLButtonElement;
+    row.title = title;
+    row.append(el('span', 'mctx-box', on ? '✓' : ''), el('span', undefined, label));
+    row.onclick = toggle;
+    menu.append(row);
+  };
+  opt('Dark', darkOn, 'A dark appearance — generated, editable', () => setModes(!darkOn, hcOn, wireOn));
+  opt('High contrast', hcOn, 'AAA contrast floors — auto-derived, read-only', () => setModes(darkOn, !hcOn, wireOn));
+  opt('Wireframe', wireOn, 'Grayscale, sharp corners — auto-derived, generate-only', () => setModes(darkOn, hcOn, !wireOn));
+
+  // Custom modes (C2) — each seeds (live-inherits) a customizable base (light/dark), then tunes via
+  // its own overrides/anchors. Listed with a remove; the add form validates the name client-side
+  // (the engine re-validates on rebuild). Base options are the generated customizable modes.
+  menu.append(el('div', 'mctx-div'));
+  const customs = brandState.customModes ?? [];
+  if (customs.length) {
+    menu.append(el('div', 'mctx-mcap', 'Custom modes'));
+    customs.forEach((cm, i) => {
+      const row = el('div', 'mctx-custom');
+      row.append(el('span', 'mctx-cname', cm.name), el('span', 'mctx-cbase', `↳ ${cm.base}`));
+      const rm = el('button', 'mctx-crm', '×') as HTMLButtonElement;
+      rm.title = 'Remove custom mode';
+      rm.onclick = () => {
+        brandState.customModes!.splice(i, 1);
+        if (!brandState.customModes!.length) brandState.customModes = undefined;
+        if (currentMode === cm.name) currentMode = 'light';   // don't strand the view on a gone mode
+        applyFull();
+      };
+      row.append(rm);
+      menu.append(row);
+    });
+  }
+
+  if (!addModeOpen) {
+    const add = el('button', 'mctx-opt') as HTMLButtonElement;
+    add.append(el('span', 'mctx-box'), el('span', undefined, '+ Add mode…'));
+    add.onclick = () => { addModeOpen = true; repaint(); };
+    menu.append(add);
+  } else {
+    const form = el('div', 'mctx-addform');
+    const nameIn = el('input', 'mctx-addname') as HTMLInputElement;
+    nameIn.type = 'text'; nameIn.placeholder = 'e.g. marketing-dark'; nameIn.value = addModeName; nameIn.spellcheck = false;
+    nameIn.oninput = () => { addModeName = nameIn.value; };
+    const baseSel = selectEl('sm fill');
+    for (const bm of ['light', ...(darkOn ? ['dark'] : [])]) baseSel.append(optionEl(bm, MODE_LABEL[bm] ?? bm));
+    const err = el('p', 'mctx-adderr');
+    const doAdd = () => {
+      const nm = addModeName.trim();
+      if (!/^[a-z0-9][a-z0-9-]*$/.test(nm)) { err.textContent = 'Lowercase letters, digits, hyphens; start with a letter or digit.'; return; }
+      if (RESERVED_MODE_NAMES.has(nm) || (brandState.customModes ?? []).some((c) => c.name === nm)) { err.textContent = 'That name is taken (a built-in or existing custom mode).'; return; }
+      (brandState.customModes ?? (brandState.customModes = [])).push({ name: nm, base: baseSel.value as 'light' | 'dark' });
+      addModeOpen = false; addModeName = '';
+      currentMode = nm as Mode;                               // jump into the new mode to tune it
+      applyFull();
+    };
+    const addBtn = el('button', 'mctx-addbtn', 'Add mode') as HTMLButtonElement;
+    addBtn.onclick = doAdd;
+    const cancel = el('button', 'mctx-addcancel', 'Cancel') as HTMLButtonElement;
+    cancel.onclick = () => { addModeOpen = false; addModeName = ''; repaint(); };
+    const btns = el('div', 'mctx-addbtns'); btns.append(addBtn, cancel);
+    // #56 — label the name field and the base select (the only label used to live inside the select).
+    const nameField = el('div', 'mctx-addfield'); nameField.append(el('label', 'mctx-addlab', 'Mode name'), nameIn);
+    const baseField = el('div', 'mctx-addfield'); baseField.append(el('label', 'mctx-addlab', 'Base mode'), baseSel);
+    form.append(nameField, baseField, err, btns);
+    menu.append(form);
+  }
+  menu.append(el('p', 'mctx-note', 'A custom mode seeds from its base every build, then deviates via the per-mode color controls (interactive, foreground).'));
+  return menu;
+};
+
+const renderModeContext = (): HTMLElement => {
+  const strip = el('div', 'modectx');
+  const left = el('div', 'mctx-modes');
+  // Stays "Mode" (#439). Swapping it to "Editing" was considered and rejected: it would have to
+  // become "Viewing" on a derived mode, and a label that mutates under you is worse than a neutral
+  // one. The editable-vs-read-only fact lives on the chip it applies to instead.
+  left.append(el('span', 'mctx-cap', 'Mode'));
+  for (const m of rp.modes) {
+    const derived = DERIVED_MODES.has(m);
+    const b = el('button', 'mctx-b' + (m === currentMode ? ' on' : '') + (derived ? ' derived' : '')) as HTMLButtonElement;
+    b.append(el('span', 'mctx-name', MODE_LABEL[m] ?? m));
+    if (derived) b.append(el('span', 'mctx-vo', 'view only'));
+    // No per-mode contrast mark here any more (#54 retired, owner decision): a pass/fail glyph on a
+    // mode SELECTOR is theme health riding on a control that selects scope, and contrast is reported
+    // where it is actionable — the contract tables, the derived-mode panel, and at export. Four green
+    // ticks that are always green teach nothing; the same information is still one page away, and
+    // `modeAllPass` still drives the read-only panel's verdict chip.
+    // Wireframe is a mechanical grayscale, not contrast-derived (see renderGeneratedNote's own copy for
+    // that mode) — the tooltip must not overclaim for it the way the HC modes' derivation legitimately can.
+    if (derived) b.title = m === 'wireframe'
+      ? 'Auto-derived — a mechanical grayscale, not contrast-derived. A read-only verification view.'
+      : 'Auto-derived from your contrast contracts — a read-only verification view.';
+    b.onclick = () => { if (currentMode !== m) { currentMode = m; renderModeStrip(); renderWorkspace(); } else { renderModeStrip(); } };
+    left.append(b);
+  }
+  strip.append(left);
+
+  // No "Edit modes" control here any more (#432): managing WHICH modes exist is brand configuration,
+  // not a per-page action, so it lives in the brand menu. This strip is now purely a selector — which
+  // is also what lets it scroll rather than wrap, since it no longer has to reserve room for a button.
+  return strip;
+};
+
+/** A2a — the read-only view shown when a GENERATED mode (HC / wireframe) is selected. These modes are
+ *  auto-derived and never hand-tuned, so the editing controls are replaced by an explanation + a
+ *  per-mode contract verdict; the verification preview below still renders the mode on real components. */
+const renderGeneratedNote = (): HTMLElement => {
+  const wf = currentMode === 'wireframe';
+  const label = MODE_LABEL[currentMode] ?? currentMode;
+  const box = el('div', 'genview');
+  box.append(el('h3', 'genview-t', `${label} is auto-derived — read-only`));
+  box.append(el('p', 'genview-d', wf
+    ? 'Wireframe is a mechanical grayscale: every non-neutral role collapses to its neutral equivalent and corners go sharp. It’s generated from your theme, not hand-tuned — edit Light or Dark and it follows.'
+    : 'High contrast pushes every role to meet the AAA contrast floors. It’s derived from your contrast contracts, not hand-tuned — edit Light or Dark and it follows. Verifying it here is the point: confirm it holds before you ship.'));
+  const ok = modeAllPass(currentMode);
+  const chip = el('div', 'genview-chip ' + (ok ? 'ok' : 'no'));
+  chip.append(el('span', 'gv-mark', ok ? '✓' : '✗'),
+    el('span', undefined, ok ? 'Every contrast contract passes in this mode' : 'Some contracts fail in this mode — see Preview → Contrast contracts'));
+  box.append(chip);
+  // Points at the brand menu, not the mode strip: managing WHICH modes exist moved there in #432 (see
+  // renderModeContext above). No blanket "preview below" promise here any more either — several pages
+  // that reach this note (Size & radius, Layout) render no specimen at all, and Surfaces/Typography pass
+  // an empty specimen list, so the claim was false on 4 of the 7 pages that can show this note.
+  box.append(el('p', 'genview-hint', 'Toggle which modes generate from the brand menu’s “Modes” section.'));
+  return box;
+};
+
+/** Bespoke editors for the object/list levers renderControl can't edit (it only shows them read-only).
+ *  Rendered alongside the manifest-advanced slider/enum controls in the (always-visible) extras panel. */
+
+// ---- Type sizes — shape · range · the per-size table (#328 follow-through) ------------------------
+/** Shape, range and the per-size table are one decision chain, so they live together on Text styles rather
+ *  than split across tabs. This moves `typeScale` / `displayCeiling` / `titleFloor` onto Text styles,
+ *  which leaves the size ladder alone on Primitives — genuinely primitive, and consistent with #268's
+ *  rule that a primitive surface shows no mode switcher.
+ *
+ *  Two tiers, and the layout is what makes them legible: RANGE decides which rows exist and is shared
+ *  by every mode; CELLS set sizes and are per-mode. */
+/** Label + description together, then the controls. `knob` puts the description AFTER the body,
+ *  which reads fine under a single field and badly under a card grid — by the time you reach the
+ *  explanation you have already made the choice. Local to this section rather than a change to
+ *  `knob`, which every other page depends on. */
+const fieldBlock = (label: string, desc: string, body: Node): HTMLElement => {
+  const w = el('div', 'tsz-field');
+  w.append(el('label', 'tsz-flabel', label), el('p', 'tsz-fdesc', desc), body);
+  return w;
+};
+const TYPE_SHAPES: Array<[string, string, string]> = [
+  ['compact', 'Compact', 'Tighter steps. Denser screens and information-heavy products.'],
+  ['default', 'Default', 'The balanced ramp. A safe starting point for most brands.'],
+  ['expressive', 'Expressive', 'Wider steps and a bigger jump into headings. Editorial and marketing.'],
+];
+const SHAPE_SHIFT: Record<string, number> = { compact: -1, default: 0, expressive: 1 };
+let typeSizesOpen: boolean | null = null;   // null ⇒ follow "is anything pinned"
+
+/** Step a px value along the ladder, clamped. Returns undefined when there is no such step. */
+const ladderStep = (px: number, by: number): number | undefined => {
+  const l = theme.typography.sizesPx, i = l.indexOf(px);
+  if (i < 0) return undefined;
+  const j = i + by;
+  return j >= 0 && j < l.length ? l[j] : undefined;
+};
+/** Every heading rung this brand ships, largest first — the row order for the tables. */
+const rowsOf = (t: Theme, group: PerModeSizeGroup): Array<{ variant: string; px: number }> =>
+  t.typography.composites.filter((c) => c.group === group)
+    .reduce((acc: Array<{ variant: string; px: number }>, c) => (acc.some((a) => a.variant === c.variant) ? acc : [...acc, { variant: c.variant, px: c.sizePx }]), [])
+    .sort((a, b) => b.px - a.px);
+const headingRows = (group: PerModeSizeGroup): Array<{ variant: string; px: number }> => rowsOf(theme, group);
+/** Rows for the WIDEST range this brand could have, so trimmed rungs can be shown as "outside range"
+ *  rather than vanishing. The live theme contains only rungs that survived `displayCeiling` /
+ *  `titleFloor`, so reading it alone silently drops the excluded rows — which is exactly what
+ *  happened on the deployed build: a `md` ceiling showed two display rows and no sign of the four
+ *  it had removed.
+ *
+ *  Three attempts, because widening can legitimately fail: `titleFloor: 16` is incompatible with
+ *  `typeScale: 'compact'`, and a pinned size can collide with a neighbor that only exists at the
+ *  wider range. Falling back to the live set just restores the old behavior, never a broken one. */
+let widestRows: Map<PerModeSizeGroup, Array<{ variant: string; px: number }>> | null = null;
+const computeWidestRows = (): void => {
+  widestRows = null;
+  const tries: Array<Partial<TypographyInput>> = [
+    { displayCeiling: '3xl', titleFloor: 16 },
+    { displayCeiling: '3xl' },
+    { displayCeiling: '3xl', titleFloor: 16, sizes: undefined },
+  ];
+  for (const over of tries) {
+    try {
+      const t = brandTheme({ ...brandState, typography: { ...brandState.typography, ...over } } as BrandInput);
+      widestRows = new Map(PER_MODE_SIZE_GROUPS.map((g) => [g, rowsOf(t, g)]));
+      return;
+    } catch { /* try the next relaxation */ }
+  }
+};
+const brandSizePin = (group: PerModeSizeGroup, variant: string): number | undefined =>
+  brandState.typography?.sizes?.[group]?.[variant];
+const modeSizePin = (mode: Mode, group: PerModeSizeGroup, variant: string): number | undefined =>
+  brandState.modeLevers?.[mode]?.typeSizes?.[group]?.[variant];
+/** Set or clear a BASELINE per-size override, pruning empties so an all-cleared brand stays byte-identical. */
+const setBrandSize = (group: PerModeSizeGroup, variant: string, px: number | undefined): void => {
+  const ty = (brandState.typography ??= {});
+  if (px === undefined) {
+    const g = ty.sizes?.[group];
+    if (!g || !ty.sizes) return;
+    delete g[variant];
+    if (!Object.keys(g).length) delete ty.sizes[group];
+    if (!Object.keys(ty.sizes).length) delete ty.sizes;
+    return;
+  }
+  ((ty.sizes ??= {})[group] ??= {})[variant] = px;
+};
+/** How many sizes are pinned anywhere — drives the "customized" badge. */
+const pinnedSizeCount = (): number => {
+  let n = 0;
+  const bs = brandState.typography?.sizes ?? {};
+  for (const g of Object.keys(bs) as PerModeSizeGroup[]) n += Object.keys(bs[g] ?? {}).length;
+  for (const m of Object.keys(brandState.modeLevers ?? {}) as Mode[]) {
+    const ms = brandState.modeLevers?.[m]?.typeSizes ?? {};
+    for (const g of Object.keys(ms) as PerModeSizeGroup[]) n += Object.keys(ms[g] ?? {}).length;
+  }
+  return n;
+};
+
+/** One editable size cell. The constraint lives IN the control: a disabled −/+ says this size has no
+ *  room that way, where a filtered dropdown just omitted the option and never said why. */
+const sizeCell = (group: PerModeSizeGroup, rows: Array<{ variant: string; px: number }>, i: number, mode: Mode | null, resolved: number[]): HTMLElement => {
+  const variant = rows[i].variant;
+  const px = resolved[i];
+  const upper = i > 0 ? resolved[i - 1] : undefined;         // the larger neighbor
+  const lower = i + 1 < resolved.length ? resolved[i + 1] : undefined;
+  const floor = HEADING_SIZE_FLOOR[group];
+  const step = (dir: -1 | 1) => ladderStep(px, dir);
+  const dn = step(-1), up = step(1);
+  return stepCell({
+    px,
+    // Sizes DO bound on their neighbors: the ramp must stay strictly increasing or the engine
+    // refuses to build. That is the difference from weight roles, which may cross.
+    canDown: dn !== undefined && dn >= floor && (lower === undefined || dn > lower),
+    canUp: up !== undefined && (upper === undefined || up < upper),
+    pinned: mode ? modeSizePin(mode, group, variant) !== undefined : brandSizePin(group, variant) !== undefined,
+    label: `${group} ${variant}${mode ? ` in ${mode}` : ''}`,
+    step,
+    write: (v) => {
+      if (mode) setModeLever(mode, `typeSizes.${group}.${variant}`, v);
+      else setBrandSize(group, variant, v);
+      applyFull();
+    },
+  });
+};
+
+/** One table per heading group — rows are sizes largest-first, columns are modes. */
+const renderSizeTable = (group: PerModeSizeGroup): HTMLElement | null => {
+  const live = headingRows(group);
+  const all = widestRows?.get(group) ?? live;
+  if (!all.length) return null;
+  const inRange = new Set(live.map((r) => r.variant));
+  const modes = rp.modes;
+  const box = el('div', 'mtbl');
+  box.append(el('p', 'mtbl-cap', group));
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', 'Size'));
+  for (const m of modes) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));   // #423
+    htr.append(th);
+  }
+  htr.append(el('th', 'mtbl-fill'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  // Resolve each mode's ramp once, over the IN-RANGE rows only — a cell's legal span depends on its
+  // neighbors in the same column, and an excluded rung is not a neighbor of anything.
+  const resolvedByMode = new Map<string, number[]>();
+  for (const m of modes) {
+    resolvedByMode.set(m, live.map((r) => {
+      const c = theme.typography.composites.find((x) => x.group === group && x.variant === r.variant)!;
+      return (m === 'light' ? undefined : c.sizeByMode?.[m]) ?? c.sizePx;
+    }));
+  }
+  for (const r of all) {
+    const tr = el('tr', inRange.has(r.variant) ? '' : 'mtbl-off');
+    const nameCell = el('td', 'mtbl-stick');
+    nameCell.append(el('span', 'mtbl-name mono', r.variant));
+    if (!inRange.has(r.variant)) nameCell.append(el('span', 'mtbl-ro', ' outside range'));
+    tr.append(nameCell);
+    if (inRange.has(r.variant)) {
+      const i = live.findIndex((x) => x.variant === r.variant);
+      for (const m of modes) {
+        const td = el('td', 'mtbl-mode');
+        // #423 — a derived mode accepts no levers, so its column reads the resolved px rather than
+        // offering a stepper whose click would surface the engine's generate-only error.
+        if (m !== 'light' && !modeIsEditable(m)) {
+          const px = resolvedByMode.get(m)![i];
+          const self = el('span', 'mtbl-selfval mono', `${px}px`);
+          self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it resolves to ${px}px and accepts no per-mode override.`;
+          td.append(self);
+        } else {
+          td.append(sizeCell(group, live, i, m === 'light' ? null : m, resolvedByMode.get(m)!));
+        }
+        tr.append(td);
+      }
+    } else {
+      // What it WOULD be, so the row explains itself rather than just being greyed.
+      for (const [mi, m] of modes.entries()) {
+        const td = el('td', 'mtbl-mode');
+        td.append(el('span', 'mtbl-offval mono', mi === 0 ? `${r.px}px` : '—'));
+        tr.append(td);
+      }
+    }
+    tr.append(el('td', 'mtbl-fill'));
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  return box;
+};
+
+const renderTypeSizes = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Heading sizes', 'The shape of the heading system, how far the ramp runs, and — if you need it — every size set individually.');
+
+  // SHAPE — option cards. A select cannot carry a sentence per option, and this is a foundational
+  // choice made once. Deviation from doc 26 (3+ options → select); see doc 24 for the rule.
+  const cur = (getPath(brandState, 'typography.typeScale') ?? 'default') as string;
+  const cards = el('div', 'shape-cards');
+  let anyBlocked = false;
+  for (const [key, name, blurb] of TYPE_SHAPES) {
+    const b = el('button', 'shape-card' + (key === cur ? ' on' : '')) as HTMLButtonElement;
+    b.setAttribute('aria-pressed', String(key === cur));
+    // The px range previews what this card WOULD produce, by shifting the live title ramp along the
+    // ladder — cheaper and more honest than a hardcoded string, which would drift from the engine.
+    const titles = ty.composites.filter((c) => c.group === 'title').map((c) => c.sizePx);
+    const d = SHAPE_SHIFT[key] - SHAPE_SHIFT[cur];
+    const shifted = titles.map((p) => ladderStep(p, d) ?? p);
+    b.append(el('b', undefined, name), el('span', 'shape-blurb', blurb),
+      el('span', 'shape-nums mono', titles.length ? `title ${Math.min(...shifted)}px–${Math.max(...shifted)}px` : ''));
+    // A pinned size is ABSOLUTE and does not travel with the shape, so changing shape CAN collide and
+    // the engine then refuses to build (#353). Rather than a dialog after the click — the app uses no
+    // native dialogs — trial-build this shape with the pins in place and disable the card only when it
+    // would actually fail. Most pins do not collide, so blocking on "pins exist" would over-refuse.
+    let blocked = false;
+    if (key !== cur) {
+      try { brandTheme({ ...brandState, typography: { ...(brandState.typography as any), typeScale: key === 'default' ? undefined : key } } as any); }
+      catch { blocked = true; }
+    }
+    b.disabled = blocked;
+    if (blocked) b.title = 'Some sizes set below would clash at this shape. Release them to switch.';
+    b.onclick = () => {
+      if (key === cur || blocked) return;
+      setPath(brandState, 'typography.typeScale', key === 'default' ? undefined : key);
+      applyFull();
+    };
+    cards.append(b);
+    if (blocked) anyBlocked = true;
+  }
+  if (anyBlocked) {
+    const warn = el('div', 'shape-blocked');
+    warn.append(el('span', undefined, 'Some shapes are unavailable while sizes are set individually — they would clash.'));
+    const rel = el('button', 'shape-release', 'Release pinned sizes') as HTMLButtonElement;
+    rel.onclick = () => {
+      if (brandState.typography) delete brandState.typography.sizes;
+      for (const m of Object.keys(brandState.modeLevers ?? {})) setModeLever(m, 'typeSizes', undefined);
+      applyFull();
+    };
+    warn.append(rel);
+    cards.append(warn);
+  }
+  sec.append(fieldBlock('Shape', 'How the heading sizes step. Most brands never need more than this.', cards));
+
+  // RANGE — the two set-membership levers together: different mechanisms, same action.
+  const range = el('div', 'range-row');
+  const ceil = leverByKey('typography.displayCeiling');
+  if (ceil) {
+    const f = el('div', 'range-f');
+    f.append(el('span', 'pfk', 'Largest display size'));
+    const sel = selectEl('sm');
+    // The live display ramp is TRIMMED by the current ceiling, so it cannot price the options above
+    // it. One candidate build at the largest ceiling gives every rung's px; the display base steps
+    // are not uniform on the ladder (48→64 spans two), so extrapolating would be wrong.
+    const opts = ceil.options ?? [];
+    let pxByVariant = new Map<string, number>();
+    try {
+      const full = brandTheme({ ...brandState, typography: { ...brandState.typography, displayCeiling: opts[opts.length - 1]?.value as any } } as BrandInput);
+      pxByVariant = new Map(full.typography.composites.filter((c) => c.group === 'display').map((c) => [c.variant, c.sizePx]));
+    } catch { /* fall back to bare rung names */ }
+    for (const o of opts) {
+      const px = pxByVariant.get(String(o.value));
+      sel.append(optionEl(String(o.value), px ? `${o.value} — ${px}px` : String(o.value)));
+    }
+    sel.value = String(getPath(brandState, ceil.key) ?? ceil.default);
+    sel.onchange = () => { setPath(brandState, ceil.key, sel.value); applyFull(); };
+    f.append(sel);
+    range.append(f);
+  }
+  {
+    const f = el('div', 'range-f');
+    f.append(el('span', 'pfk', 'Smallest title size'));
+    const on = (getPath(brandState, 'typography.titleFloor') ?? 18) === 16;
+    const row = el('div', 'range-tg');
+    // toggleField returns [switch, On/Off readout]; the size belongs between them so the row reads
+    // "switch · what it is · whether it is on", not "switch · state · orphaned number".
+    const tf = toggleField(on, (checked) => {
+      setPath(brandState, 'typography.titleFloor', checked ? 16 : undefined);
+      applyFull();
+    });
+    const readout = tf.querySelector('.knob-val');
+    if (readout) tf.insertBefore(el('span', 'range-tglab mono', '16px'), readout);
+    else tf.append(el('span', 'range-tglab mono', '16px'));
+    row.append(tf);
+    f.append(row);
+    range.append(f);
+  }
+  sec.append(fieldBlock('Range', 'Where the ramp starts and stops. Sizes outside it are not generated.', range));
+
+  // CUSTOMIZE — hidden by default, but never hides the FACT that sizes are pinned.
+  const pins = pinnedSizeCount();
+  const open = typeSizesOpen ?? pins > 0;
+  if (open) computeWidestRows();
+  const head = el('div', 'szt-head');
+  const tf = toggleField(open, (checked) => { typeSizesOpen = checked; renderWorkspace(); });
+  const readout = tf.querySelector('.knob-val');
+  const headLab = el('span', 'szt-headlab', 'Edit individual sizes');
+  if (readout) tf.insertBefore(headLab, readout); else tf.append(headLab);
+  head.append(tf);
+  if (pins) head.append(el('span', 'szt-badge', `${pins} customized`));
+  sec.append(fieldBlock('Customize sizes', 'Set any size directly, and vary sizes per mode. The shape above still sets everything you don’t touch.', head));
+  if (open) for (const g of PER_MODE_SIZE_GROUPS) { const t = renderSizeTable(g); if (t) sec.append(t); }
+  return sec;
+};
+
+/** Responsive sizing lives on Layout (#361): `minViewport`/`maxViewport` are viewport thresholds, the same
+ *  kind of number as the breakpoints they sit beside — not a semantic type decision. Split into the Layout
+ *  page's control/preview pair, because the "what fluid does" list IS the preview of what these controls do:
+ *  as a `paint` it repaints on every `apply()` while the number fields keep their DOM (and focus).
+ *  The #271 "shared across all modes" note did NOT come with it — it disclosed that one section on a
+ *  mode-scoped page wrote global state, and Layout is global throughout, so there is no anomaly left to
+ *  disclose. */
+const renderResponsiveControls = (): HTMLElement => {
+  const ty = theme.typography;
+  const col = el('div', 'cs-ctl-stack');
+  const cb = el('input') as HTMLInputElement;
+  cb.type = 'checkbox'; cb.checked = brandState.typography?.responsive?.fluid ?? ty.fluid;
+  cb.onchange = () => { setPath(brandState, 'typography.responsive.fluid', cb.checked); apply(); };
+  const fl = el('label', 'adv-row'); fl.append(cb, el('span', 'adv-row-lab', 'Fluid heading sizing (clamp between viewports)'));
+  col.append(fl);
+  const mk = (key: 'minViewport' | 'maxViewport', label: string, fallback: number): void => {
+    const inp = numberField({ className: 'adv-num', value: String(getPath(brandState, `typography.responsive.${key}`) ?? fallback) });
+    inp.onchange = () => { const n = Number(inp.value); if (Number.isFinite(n)) { setPath(brandState, `typography.responsive.${key}`, n); apply(); } };
+    const row = el('div', 'adv-row'); row.append(el('span', 'adv-row-lab', label), inp, el('span', 'adv-unit', 'px'));
+    col.append(row);
+  };
+  mk('minViewport', 'Min viewport', ty.minViewport);
+  mk('maxViewport', 'Max viewport', ty.maxViewport);
+  return col;
+};
+
+/** The breakpoints controls (the editable px list + add/remove) — just the control node now, so the
+ *  layout page can pair it with the ruler/table preview beside it (#264). `commit` redraws its own list
+ *  locally (count/order may change) then `apply()` — which rebuilds the theme + repaints the layout
+ *  previews via the page's refreshers — but never `applyFull`, which would lose focus/scroll mid-edit. */
+const renderBreakpointsControls = (): HTMLElement => {
+  const listEl = el('div', 'adv-bplist');
+  const commit = (arr: number[]): void => {
+    const clean = [...new Set(arr.filter((n) => Number.isFinite(n) && n >= 0))].sort((a, b) => a - b);
+    setPath(brandState, 'layout.breakpoints', clean); draw(); apply();
+  };
+  const draw = (): void => {
+    listEl.innerHTML = '';
+    const bps = (brandState.layout?.breakpoints ?? theme.layout.breakpoints.map((b) => b.px)) as number[];
+    bps.forEach((px, i) => {
+      const cell = el('div', 'adv-bp');
+      const inp = numberField({ className: 'adv-num', value: String(px) });
+      inp.onchange = () => { const next = [...bps]; next[i] = Number(inp.value); commit(next); };
+      const rm = el('button', 'adv-x hit-min', '×') as HTMLButtonElement;
+      rm.onclick = () => commit(bps.filter((_, j) => j !== i));
+      cell.append(inp, rm); listEl.append(cell);
+    });
+    const add = el('button', 'adv-add', '+ Add') as HTMLButtonElement;
+    add.onclick = () => { const bps2 = (brandState.layout?.breakpoints ?? theme.layout.breakpoints.map((b) => b.px)) as number[]; commit([...bps2, (Math.max(0, ...bps2) + 256)]); };
+    listEl.append(add);
+  };
+  draw();
+  return listEl;
+};
+
+const renderEasingEditor = (): HTMLElement => {
+  // "the Motion specimen's emphasized BAR" was a stale reference — the specimen was rebuilt as curve
+  // cards and has had no bars since; the copy outlived the rendering it pointed at.
+  // No backticks in visible copy — el() escapes its text, so markdown ships literally (doc 26).
+  const wrap = palSection('Easing', 'Six curves, fixed — no curve’s numbers are authored or change per mode. What you choose is which curve each motion role uses: once for the brand, and per mode where a mode wants to differ. The Motion specimen traces the emphasized card.');
+  // The four-input bezier editor for `emphasized` was removed here. It was the only curve whose numbers
+  // could be hand-tuned, which made the section inconsistent with itself — and no brand had ever used
+  // it: aurora, harbor, nb and wendys all emitted the identical default [0.4, 0.14, 0.3, 1]. The rare
+  // capability had shipped while the common one (which curve a role uses) was not settable at all.
+  // The curve set is now curated the way the type-size ladder is: you pick from it, you do not author
+  // it. A brand that genuinely needs its own curve should get a seventh NAMED curve in the set, not a
+  // role whose numbers drift away from what its name says.
+  // Every curve, drawn. `linear` and `calm` appeared NOWHERE in the app before this — the section was
+  // titled "Easing" and showed one of six. `calm` in particular is an accessibility role (soft onset
+  // for long/involuntary motion), which is not a thing to leave undiscoverable.
+  wrap.append(subHead('The curve set'));
+  const strip = el('div', 'mo-ez-strip');
+  for (const [name, bez] of Object.entries(theme.motion.easing)) {
+    const card = el('div', 'mo-ez-card');
+    const stage = el('div', 'mo-ez-stage'); stage.append(motionStageSvg(bez as number[]));
+    card.append(stage, el('div', 'mo-ez-name', name), tokenPillWrapping(`motion.easing.${name}`),
+      el('div', 'mo-ez-bez mono', `${(bez as number[]).join(', ')}`));
+    strip.append(card);
+  }
+  wrap.append(strip);
+  // Per-mode re-point (#522). The curves themselves stay mode-invariant primitives — a mode swaps
+  // which curve a ROLE resolves to, the same contract as the leading and tracking ladders, in the same
+  // table. `calm` is the case this exists for: the engine describes it as a soft onset for long or
+  // involuntary motion, which is exactly the substitution a dark or reduced-intensity mode wants.
+  if (rp.modes.length > 1) {
+    const m = theme.motion;
+    const curve = (k: string) => `cubic-bezier(${(m.easing[k] ?? []).join(', ')})`;
+    // Rows carry the curve NAME, options carry its numbers — the two arrays are already separate, so
+    // this needs no extra formatter. The first pass printed the bezier in every cell: it never said
+    // which curve a role resolves to (the whole point of the row), repeated a 24-character string
+    // three times across, and clipped the last column. The numbers live on the worth line under each
+    // select, and on the curve cards directly above.
+    wrap.append(renderRepointTable(
+      'Easing per mode',
+      m.easingRoles.map((r) => ({ key: r.role, val: r.curve, base: r.curve })),
+      (v) => String(v),
+      'easings',
+      Object.keys(m.easing).map((k) => ({ key: k, val: curve(k) })),
+      'Role',
+      (role, c2) => setPath(brandState, `motionPersonality.easingRoles.${role}`, c2),
+    ));
+  }
+  return wrap;
+};
+
+/** The duration ramp, read-only — what Tempo actually scales.
+ *
+ *  Tempo's whole job is to move this ramp and the page never showed it: 3 of the 6 semantic steps
+ *  appeared only as pills inside the transitions specimen, the 9 `duration-ms` primitives they alias
+ *  (aurora; harbor: 8) appeared nowhere, and the reduced ramp appeared nowhere at all — while two
+ *  separate lines of copy claimed "reduce-motion is derived". A promise made twice and evidenced zero
+ *  times.
+ *
+ *  Reads the CURRENT MODE's re-derived ramp (`motionByMode[mode]`) the same way the specimen does. A
+ *  mode can run its own tempo, so reading `theme.motion` directly would print Light's numbers under a
+ *  Dark mode bar — the #158 lesson, and the reason this is not simply `theme.motion.duration`. */
+const renderDurationRamp = (): HTMLElement => {
+  const mo = theme.motion;
+  const byMode = mo.motionByMode?.[currentMode];
+  const dur = byMode?.duration ?? mo.duration;
+  const reduced = byMode?.durationReduced ?? mo.durationReduced;
+  const stagger = byMode?.stagger ?? mo.stagger;
+  const tempoLabel = byMode?.tempo ?? mo.tempo;
+  const wrap = palSection('Duration ramp',
+    `The six semantic durations at tempo '${tempoLabel}', each aliasing a literal ms primitive, beside the reduce-motion ramp the engine derives from it. Read-only — Tempo above scales the whole ladder.`);
+  const table = el('table', 'ctable mo-ramp');
+  const head = el('tr');
+  // Four columns, each header true of its cell. The first cut had two columns both headed "Aliases",
+  // and the second of them held `motion.duration-reduced.<name>` — which is the reduced token's OWN
+  // path, not something it aliases. A header that is nearly right is worse than a missing one.
+  for (const h of ['Step', 'Duration', 'Aliases', 'Reduce-motion']) head.append(el('th', undefined, h));
+  table.append(head);
+  for (const name of Object.keys(dur)) {
+    const ms = dur[name], rms = reduced[name];
+    const tr = el('tr');
+    const nameCell = el('td'); nameCell.append(el('span', 'mo-ramp-name', name), tokenPill(`motion.duration.${name}`));
+    const aliasCell = el('td'); aliasCell.append(tokenPill(`motion.duration-ms.${ms}`));
+    const redCell = el('td'); redCell.append(el('span', 'mo-ramp-ms mono', `${rms}ms`));
+    // 0ms is the eliminated case, not a fast one — say so rather than leaving a bare 0.
+    if (rms === 0) redCell.append(el('span', 'mo-ramp-note', 'eliminated'));
+    redCell.append(tokenPill(`motion.duration-reduced.${name}`));
+    tr.append(nameCell, el('td', 'mono', `${ms}ms`), aliasCell, redCell);
+    table.append(tr);
+  }
+  wrap.append(table);
+  const foot = el('div', 'mo-ramp-foot');
+  foot.append(el('span', 'mo-ramp-name', 'stagger'), tokenPill('motion.stagger'), el('span', 'mono', `${stagger}ms`),
+    el('span', 'mo-ramp-note', 'between staggered siblings'));
+  wrap.append(foot);
+  // The primitive tier is a UNION across the base tempo and every mode's tempo (tree.ts builds it that
+  // way so an alias always lands on a real leaf), so this lists the union — not the current mode's six.
+  const msValues = new Set<number>();
+  const collect = (m: { duration?: Record<string, number>; durationReduced?: Record<string, number>; stagger?: number } | undefined): void => {
+    if (!m) return;
+    for (const v of Object.values(m.duration ?? {})) msValues.add(v);
+    for (const v of Object.values(m.durationReduced ?? {})) msValues.add(v);
+    if (m.stagger !== undefined) msValues.add(m.stagger);
+  };
+  collect(mo);
+  for (const mm of Object.values(mo.motionByMode ?? {})) collect(mm);
+  wrap.append(subHead(`Millisecond primitives — ${msValues.size} values`));
+  wrap.append(el('p', 'sl-note', 'Literal, not semantic: one invariant leaf per reachable value across every mode’s tempo. A per-mode tempo re-points the alias above; it never re-values one of these.'));
+  const prims = el('div', 'mo-ms-strip');
+  for (const v of [...msValues].sort((a, b) => a - b)) {
+    const chip = el('div', 'mo-ms-chip');
+    chip.append(el('span', 'mo-ms-val mono', `${v}ms`), tokenPillWrapping(`motion.duration-ms.${v}`));
+    prims.append(chip);
+  }
+  wrap.append(prims);
+  return wrap;
+};
+
+/** Springs — three generated presets, shown because they are real emitted tokens with no other home.
+ *  Not editable (the engine fixes them), and deliberately not animated: a spring is damping+stiffness,
+ *  and faking one with a cubic-bezier trace would be showing a different curve than the token names. */
+const renderSpringsSection = (): HTMLElement => {
+  const wrap = palSection('Springs', 'Three generated spring presets for platforms that animate with physics rather than a duration + curve. Read-only — stated as damping and stiffness, the two numbers a consumer needs.');
+  const grid = el('div', 'mo-spring-grid');
+  for (const [name, s] of Object.entries(theme.motion.spring)) {
+    const card = el('div', 'mo-spring-card');
+    card.append(el('div', 'mo-ez-name', name), tokenPillWrapping(`motion.spring.${name}`));
+    const nums = el('div', 'mo-spring-nums mono');
+    nums.append(el('span', undefined, `damping ${(s as { damping: number }).damping}`), el('span', undefined, `stiffness ${(s as { stiffness: number }).stiffness}`));
+    card.append(nums);
+    grid.append(card);
+  }
+  wrap.append(grid);
+  return wrap;
+};
+
+// ---- focused pages (docs/23 §7) -------------------------------------------
+// Each editing page composes through one scaffold: hero → sections (or a read-only note on a derived
+// mode) → the volatile contextual specimens for that axis. The heavy global preview lives on its own
+// Preview tab (3a); these are the tight, single-axis specimens that stay with their editor.
+
+/** The shared screen scaffold. `sections` builds the controls/editors; `specimens` returns the
+ *  contextual specimen nodes, repainted on every edit. A derived mode (HC / wireframe) is auto-derived
+ *  + read-only, so the controls are replaced by an explanatory note — the specimens still render it. */
+const renderScreen = (
+  host: HTMLElement, key: PageKey,
+  sections: (h: HTMLElement) => void,
+  specimens: () => Array<HTMLElement | null>,
+): void => {
+  const [title, lede] = PAGE_COPY[key];
+  host.append(hero(title, lede));
+  if (DERIVED_MODES.has(currentMode)) host.append(renderGeneratedNote());
+  else sections(host);
+  const vol = el('div', 'stage-vol');
+  host.append(vol);
+  paintVolatile = () => { vol.innerHTML = ''; for (const s of specimens()) if (s) vol.append(s); };
+  paintVolatile();
+};
+// Per-page contrast table (docs/23 §3) — a re-slice of the same authoritative contracts the Preview
+// master table shows, scoped to the components this page governs. "Local proof" without leaving the
+// page; the full system table stays on Preview. Only the two colour pages govern contrast pairs, and
+// the split is EXHAUSTIVE BY CONSTRUCTION: Surfaces owns the text-on-surface components; Interactive is
+// the catch-all for everything else. So a component added to the preview spec later can never silently
+// vanish from the local tables — it lands on Interactive automatically. (Review nit on #201.)
+const SURFACE_CONTRACT_COMPONENTS = new Set(['typography', 'card']);
+const renderSectionContrast = (key: PageKey): HTMLElement | null => {
+  if (key !== 'surfaces' && key !== 'interactive') return null;
+  const cts = rp.contracts.filter((ct) => SURFACE_CONTRACT_COMPONENTS.has(ct.component) === (key === 'surfaces'));
+  if (!cts.length) return null;
+  const det = el('details', 'contracts') as HTMLDetailsElement;
+  const sum = el('summary', 'contracts-sum');
+  sum.append(el('span', 'contracts-t', 'Contrast on this page'), el('span', 'contracts-hint', `${cts.length} pairs · all modes · the full system table lives in Preview`));
+  det.append(sum);
+  det.append(el('p', 'np-note', 'The a11y pairs this page governs, computed on the resolved colors across every mode — the per-control badges above verify the active mode at the point of edit.'));
+  det.append(contractTableEl(cts, true));   // token paths — the component context is obvious next to the controls
+  return det;
+};
+
+// Surfaces / fills — backgrounds, derived text/ink, an optional gradient.
+const renderSurfacesPage = (host: HTMLElement): void => renderScreen(host, 'surfaces', (h) => {
+  h.append(renderSurfacesEditor());     // self-heads "Backgrounds"
+  h.append(renderForegroundsEditor());  // self-heads "Foreground fills" — the bold/surface fills (docs/23 §2)
+  h.append(renderForegroundEditor());   // self-heads "Text"
+  h.append(subHead('Gradients'));
+  renderGradientsSection(h);
+  // Per-section contrast tables now live inside each editor (doc 26 contrast-in-context); the gradient
+  // read-only specimen was a duplicate of the live editor preview — both retired here.
+}, () => []);
+
+// Interactive & action colors — the per-palette matrix (#69). Global behaviors at the top, then one
+// section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows binding
+// every fill/text/inverse/overlay/on-fill role. The per-page contrast table stays volatile below.
+const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'interactive', (h) => {
+  renderInteractiveMatrix(h);
+}, () => [renderSectionContrast('interactive')]);
+
+/** The typography PREVIEW tab — everything the system generates, at size, in every mode.
+ *
+ *  Read-only by design: the editors live on Semantics/Text styles, and giving the same value two homes is how they
+ *  drift. It exists because the ramp was squeezed into the Styles aside, where a 160px display line
+ *  and five mode columns have nowhere to go.
+ *
+ *  It also carries the specimens the tables cannot: a weight number is meaningless as digits, and the
+ *  size tables show px rather than type. Those tables are the place to CHANGE a value; this is the
+ *  place to SEE it. */
+const renderTypePreview = (): HTMLElement => {
+  const ty = theme.typography;
+  const wrap = el('div');
+  // Faces first — every specimen below inherits from them, so seeing what is actually resolving
+  // explains anything that looks wrong before you go hunting in the ramp.
+  // #415 retired the family ROLE tier; this section kept its vocabulary, so the column read `Role`
+  // over rows that are categories, and `Role` then meant two different things on one tab (here, and
+  // the weight roles below). Renamed to match the tokens it mirrors: `font.family.<category>`.
+  const fam = palSection('Typefaces', `The face each category resolves to${rp.modes.length > 1 ? ', per mode' : ''}. Everything below is set in these.`);
+  const ftbl = el('div', 'mtbl');
+  const fscroll = el('div', 'mtbl-scroll');
+  const ft = el('table', 'mtbl-tbl');
+  const fhead = el('thead'), fhtr = el('tr');
+  // Rows are CATEGORIES (display/title/body/…), which is what `font.family.*` is keyed by since #415.
+  // This said `Role`, so it both named the retired tier and collided with the weight-roles table below
+  // — one word, two meanings, one tab.
+  fhtr.append(el('th', 'mtbl-stick', 'Category'));
+  for (const m of rp.modes) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    fhtr.append(th);
+  }
+  fhtr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  fhead.append(fhtr); ft.append(fhead);
+  const fb = el('tbody');
+  for (const f of ty.families) {
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', f.group));
+    tr.append(nc);
+    let stack = f.stack.join(', ');
+    for (const m of rp.modes) {
+      const per = ty.familiesByMode?.[m]?.find((x) => x.group === f.group)?.stack.join(', ');
+      const resolved = per ?? f.stack.join(', ');
+      if (m === 'light') stack = resolved;
+      const td = el('td', 'mtbl-mode');
+      const nm = el('span', 'tp-fam', resolved.split(',')[0].replace(/["']/g, '').trim());
+      nm.title = resolved;
+      td.append(nm);
+      tr.append(td);
+    }
+    const spec = el('td', 'mtbl-fill mtbl-spec');
+    const samp = el('span', 'mtbl-spec-t', 'The quick brown fox jumps');
+    samp.style.fontFamily = stack;
+    spec.append(samp);
+    tr.append(spec);
+    fb.append(tr);
+  }
+  ft.append(fb); fscroll.append(ft); ftbl.append(fscroll); fam.append(ftbl);
+  wrap.append(fam);
+
+  // Weight roles × faces (#362) — the availability matrix that used to sit on the primitive tab as a
+  // read-only table on an editing tab. Rows are the ROLES (what the system actually ships), columns
+  // are the FACES, so it survives a brand with many faces where a fixed per-family table did not:
+  // `.mtbl-scroll` takes the overflow. The specimen #356 dropped from the weights EDITOR comes back
+  // here, once per face rather than once overall — "600 in Inter" and "600 in a face that stops at
+  // 500" are different facts, and only a specimen per face shows it.
+  //
+  // MODE-BLIND BY DECISION (owner, 2026-08-01): a role's numeric can be re-pointed per mode
+  // (`weightRolesByMode`), but availability is a property of the FACE and does not vary by mode, so
+  // the table's core fact stays true. Base numerics + a flag naming any re-pointed role, rather than
+  // a third axis. The faces column set IS a union across modes though — a face bound only in Dark
+  // still ships (or doesn't ship) these weights, so hiding it would drop a real availability fact.
+  const wsec = palSection('Weight roles by face', 'Each role at the numeric it resolves to, and whether each face actually ships that weight. Availability is advisory — nothing here is ever blocked. Set the numerics on Semantics.');
+  const faces: Array<{ name: string; stack: string; roles: string[] }> = [];
+  const addFace = (stackArr: string[] | undefined, cat: string): void => {
+    if (!stackArr?.length) return;
+    const name = stackArr[0].replace(/["']/g, '').trim();
+    const found = faces.find((f) => f.name.toLowerCase() === name.toLowerCase());
+    if (found) { if (!found.roles.includes(cat)) found.roles.push(cat); return; }
+    faces.push({ name, stack: stackArr.join(', '), roles: [cat] });
+  };
+  for (const f of ty.families) addFace(f.stack, f.group);
+  for (const m of rp.modes) for (const f of ty.familiesByMode?.[m] ?? []) addFace(f.stack, f.group);
+
+  const wtbl = el('div', 'mtbl');
+  const wscroll = el('div', 'mtbl-scroll');
+  const wt = el('table', 'mtbl-tbl');
+  const whead = el('thead'), whtr = el('tr');
+  whtr.append(el('th', 'mtbl-stick', 'Role'), el('th', 'mtbl-mode', 'Weight'));
+  // FIXED-WIDTH face columns, not `mtbl-fill`. One fill column per face made the table's width grow
+  // with the face count without bound — measured at 899px inside a 798px container on the DEFAULT
+  // two-face brand, so every brand saw the specimens clipped, and 1308px at four faces. The specimens
+  // are the entire point of this table, and they were the part cut off.
+  //
+  // The category list that used to sit in the header moves to its tooltip. It was a third copy of a
+  // fact the Semantics Typefaces table (category → face) and the Primitives library ("Binding")
+  // already carry, and it was the widest thing in the cell.
+  for (const f of faces) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(f.name));
+    th.title = `${f.name} — used by ${f.roles.join(', ')}\n${f.stack}`;
+    whtr.append(th);
+  }
+  whtr.append(el('th', 'mtbl-fill'));
+  whead.append(whtr); wt.append(whead);
+  const wb = el('tbody');
+  for (const w of ty.weightRoles) {
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', w.role));
+    tr.append(nc);
+    tr.append(el('td', 'mtbl-mode', `${w.value} ${WEIGHT_NAME[w.value] ?? ''}`.trim()));
+    for (const f of faces) {
+      const known = knownWeightsOf(f.name);
+      const ships = !known ? null : known.includes(w.value);
+      const td = el('td', 'mtbl-mode');
+      td.append(el('span', 'tpw-mark ' + (ships === null ? 'unknown' : ships ? 'yes' : 'no'), ships === null ? '?' : ships ? '●' : '○'));
+      // `Ag 123` rather than a sentence — the same specimen the Primitives typeface library already
+      // uses, so the two agree, and short enough that a fixed column shows it whole. A weight
+      // difference is legible in four glyphs; a sentence only bought width.
+      const samp = el('span', 'mtbl-spec-t tpw-samp', 'Ag 123');
+      samp.style.fontWeight = String(w.value);
+      samp.style.fontFamily = f.stack;
+      td.append(samp);
+      td.title = ships === null ? `${f.name} — unknown family, availability cannot be asserted`
+        : ships ? `${f.name} ships ${w.value}` : `${f.name} may not ship ${w.value} — falls back to the nearest`;
+      tr.append(td);
+    }
+    tr.append(el('td', 'mtbl-fill'));
+    wb.append(tr);
+  }
+  wt.append(wb); wscroll.append(wt); wtbl.append(wscroll); wsec.append(wtbl);
+  wsec.append(el('p', 'sl-note', '● ships it · ○ may not (falls back to the nearest) · ? unknown family, not flagged. A specimen that looks identical to the row above it is the fallback showing — that is what ○ predicts.'));
+  // The one fact the mode-blind shape would otherwise swallow: say which roles a mode re-points, and
+  // where to see it, rather than silently showing Light's numeric as if it were the only one.
+  const repointed = ty.weightRoles
+    .filter((w) => rp.modes.some((m) => {
+      const v = ty.weightRolesByMode?.[m]?.find((x) => x.role === w.role)?.value;
+      return v !== undefined && v !== w.value;
+    }))
+    .map((w) => w.role);
+  if (repointed.length)
+    wsec.append(el('p', 'sl-note', `Baseline numerics shown. ${repointed.length === 1 ? 'One role is' : `${repointed.length} roles are`} re-pointed in at least one mode (${repointed.join(', ')}) — see Weight roles on the Semantics tab for the per-mode values. Availability itself does not vary by mode.`));
+  wrap.append(wsec);
+
+  // And the ramp itself, full width rather than squeezed into the aside.
+  wrap.append(renderTypeRamp());
+  return wrap;
+};
+
+// Typography — type scale (shared, read-only outside Light) + the family/weight/leading editor.
+/** Typography splits along the tier line (docs/26). The old two-way Foundations/Styles split (#272)
+ *  conflated two different lines, because typography has THREE tiers where every other axis has two:
+ *  primitives, semantic roles, and composites. "Foundations" held the size ladder (a primitive) next
+ *  to the leading/tracking rung bindings (semantics), and "Styles" held the weight roles (semantics)
+ *  next to the categories (composites). Both tabs straddled the line they were named for.
+ *
+ *  Four tabs, one tier each:
+ *   • PRIMITIVES — the raw material. The typeface library is the ONLY editable primitive in the whole
+ *     axis; the size / leading / tracking ladders are fixed and brand-invariant, shown read-only
+ *     because otherwise they are visible nowhere in the app and you only ever see the steps some role
+ *     happens to bind.
+ *   • SEMANTICS — every row is the same shape: a named role and the primitive it binds, re-pointable
+ *     per mode. Faces, weights, leading and tracking all four fit it. That regularity is the argument
+ *     for the split — it is invisible while the tiers are mixed, and it is what makes this tab teach
+ *     the model rather than just list controls.
+ *   • TEXT STYLES — the composites and the levers that shape them (shape, range, per-size pins,
+ *     which role each category consumes, weights, links, italics).
+ *   • PREVIEW — everything generated, at size, in every mode. Read-only.
+ *
+ *  SIZE has no Semantics row, and that is load-bearing rather than an omission: a size role would
+ *  duplicate the composite name — `body.md` IS the size role — where `tight` is not implied by
+ *  `caption`. So size runs ladder → composite and lives wholly in Text Styles. Don't "fix" it by
+ *  inventing one. */
+type TypeTab = 'primitives' | 'semantics' | 'styles' | 'preview';
+let typeTab: TypeTab = 'primitives';
+const TYPE_TABS: Array<[TypeTab, string]> = [['primitives', 'Primitives'], ['semantics', 'Semantics'], ['styles', 'Text styles'], ['preview', 'Preview']];
+const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'typography', (h) => {
+  const seg = el('div', 'pvseg');
+  for (const [k, label] of TYPE_TABS) {
+    const b = el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement;
+    // Repaints the mode strip too: the tier a tab shows IS what the switcher's visibility turns on
+    // (#268) — primitives are mode-invariant and semantics/composites are not — so the tab switch
+    // changes header chrome, not just body. Page nav gets this free via build(); this tab lives below
+    // it and would otherwise go stale.
+    b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); renderModeStrip(); } };
+    seg.append(b);
+  }
+  h.append(seg);
+  h.append(el('p', 'tabnote', typeTab === 'primitives'
+    ? 'The raw material. Only the typeface library is yours to edit — the ladders below it are fixed and brand-invariant, shown so you can see what every style is chosen from.'
+    : typeTab === 'semantics'
+      ? 'Named roles, each bound to one primitive. A mode can re-point any of them without touching the primitive underneath.'
+      : typeTab === 'styles'
+        ? 'The styles your product actually uses, and the levers that shape them.'
+        : 'Everything the system generates, at size, in every mode. Nothing here is editable.'));
+  if (typeTab === 'primitives') h.append(renderTypefaceLibrary(), renderSizeLadder(), renderRungLadders());
+  else if (typeTab === 'semantics') {
+    // Faces → weights → leading/tracking. One shape repeated four times: role, the primitive it binds,
+    // who uses it, and (below) what each mode substitutes.
+    h.append(renderTypefaceBindings(), renderWeightRoles(), renderLeadingTracking());
+    const repoints = renderRepoints();
+    if (repoints) h.append(repoints);
+  } else if (typeTab === 'styles') h.append(renderTypeSizes(), renderCategorySetup());
+  else h.append(renderTypePreview());
+  // No aside on any tab. The ramp used to sit in the Styles aside on the doc-26 rule that a section
+  // carries its own specimen in context — but that rule is satisfied by the Preview tab now, and a
+  // ~220px column was never an honest place to show a 160px display line beside five mode columns.
+  // One ramp, one home.
+}, () => []);
+
+// Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
+const renderElevationPage = (host: HTMLElement): void => renderScreen(host, 'elevation', (h) => {
+  h.append(renderShadowEditor(leverByKey('shadow.softness')));
+}, () => [renderShadowSpecimen()]);
+
+// Size & radius — component sizing (density) + corner radius; both go per-mode outside Light.
+// Render one lever's control, honouring the per-mode ramp variants (radius / density / tempo go per-mode
+// outside Light). Shared by the geometry/motion pages so each concept `.psec` composes the same way.
+const leverControl = (key: string, perMode: boolean): HTMLElement | null => {
+  const l = leverByKey(key); if (!l) return null;
+  if (key === 'radiusScale' && perMode) return renderPerModeRadius(l);
+  if (key === 'density' && perMode) return renderPerModeDensity(l);
+  if (key === 'motionPersonality.tempo' && perMode) return renderPerModeTempo(l);
+  return renderControl(l);
+};
+/** A `.psec` concept section built from a set of lever keys (doc 26). Returns null when none of its
+ *  levers resolve, so an empty concept never renders an empty panel. */
+const leverSection = (title: string, sub: string, keys: string[], perMode: boolean): HTMLElement | null => {
+  const sec = palSection(title, sub); let any = false;
+  for (const k of keys) { const c = leverControl(k, perMode); if (c) { sec.append(c); any = true; } }
+  return any ? sec : null;
+};
+
+// Size & radius — grouped by concept (doc 26): corner radius, density/size, spacing grid. Each control
+// block sits beside its live preview (#265, shared scaffold with Layout). radius + density stay per-mode
+// outside Light — the controls reuse `leverControl(key, perMode)`, so that semantics is unchanged.
+const csLeverStack = (keys: string[], perMode: boolean): HTMLElement => {
+  const stack = el('div', 'cs-ctl-stack');
+  for (const k of keys) { const c = leverControl(k, perMode); if (c) stack.append(c); }
+  return stack;
+};
+/** Same shape as `spacingFixedNote`: a read-only scale still gets a control column that says why it is
+ *  empty, rather than an empty column that reads as a rendering bug. */
+const primitiveScalesNote = (): HTMLElement => el('p', 'ic-modenote',
+  'Nothing to set here. The dimension grid is the fixed 4px-step ladder every geometry token resolves '
+  + 'onto — border widths and icon sizes are named aliases onto it, and radius, spacing and component '
+  + 'sizes land on its steps. Change those on the sections above; this is what they land on.');
+/** ALPHA RAMPS + THE OPACITY SCALE (review, 2026-08-04). 32 tokens that were emitted and visible
+ *  nowhere in the dashboard — the word "alpha" did not appear on this page at all, so the only way to
+ *  learn they existed was Preview's token list.
+ *
+ *  They belong TOGETHER, and on Palettes, for a reason stronger than "somewhere to put them": both are
+ *  driven by the SAME `ALPHA_STEPS` set in the engine — the ramps express those steps as color
+ *  (black/white composited over any surface), `opacity.*` expresses them as the raw dimensionless
+ *  number. One step set, two forms. `opacity.*` is a PRIMITIVE, not a semantic (tree.ts: "opacity
+ *  primitive scale (dimensionless 0..1)"), which is why it sits with the palette primitives rather
+ *  than with the roles on Surfaces.
+ *
+ *  Read-only, and fixed for every brand — the steps are a constant, not a lever. The values are
+ *  rendered from that same constant rather than plumbed through the theme: the engine hardcodes them
+ *  too, so a second source here would be a copy that could drift from nothing.
+ *
+ *  The swatches sit on a checkerboard because an alpha ramp over an opaque background is
+ *  indistinguishable from a solid ramp — the transparency IS the token. */
+const ALPHA_STEPS_UI = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+/** The 8-digit hex the engine emits for an alpha step — `#0000000d`. Built here rather than read from
+ *  the tree because these are fixed constants, so a second source could only drift from nothing. */
+const alphaHex = (base: 'black' | 'white', pct: number): string =>
+  `#${base === 'black' ? '000000' : 'ffffff'}${Math.round((pct / 100) * 255).toString(16).padStart(2, '0')}`;
+
+const renderAlphaAndOpacity = (): HTMLElement => {
+  const sec = palSection('Alpha & opacity', 'Black and white at increasing transparency, and the matching dimensionless opacity scale. Fixed for every brand — these are primitives, so there is nothing to tune; they are here so you can see what exists and what each name resolves to.');
+
+  /** A ramp presented exactly like a brand palette: identity head (swatch · name · token pill) over a
+   *  full-width band with the step key and its value beneath — the value sitting where a palette's hex
+   *  sits, because for these that IS the value (`#0000000d`, or a bare `0.05` for opacity). */
+  const ramp = (name: string, path: string, steps: number[], dark: boolean,
+    fill: (pct: number) => string, value: (pct: number) => string, chipPct: number): HTMLElement => {
+    const row = el('div', 'prow');
+    const head = el('div', 'phead');
+    const ident = el('div', 'pident');
+    // The identity chip is the same checkerboard-plus-inner-fill construction as the band swatches, so
+    // it reads as a sample of the ramp rather than a differently-built approximation of one.
+    const chip = el('div', `pswatch ro ao-chk${dark ? ' dark' : ''}`);
+    const chipFill = el('div', 'ao-fill'); chipFill.style.background = fill(chipPct);
+    chip.append(chipFill);
+    const idcol = el('div', 'pidcol');
+    idcol.append(el('span', 'pname', name));
+    const sub = el('div', 'psub'); sub.append(tokenPill(path));
+    idcol.append(sub);
+    ident.append(chip, idcol);
+    head.append(ident);
+    row.append(head);
+
+    const wrap = el('div', 'pramp');
+    const band = el('div', 'band');
+    const strip = el('div', 'strip');
+    const labs = el('div', 'labs');
+    for (const pct of steps) {
+      // The ground is the SWATCH; the alpha goes on an inner fill. Setting the colour on the swatch
+      // itself replaced the ground — which is exactly what shipped in #442: `.ao-sw.dark` carried the
+      // dark base as `background-color`, the inline `backgroundColor` overwrote it, and all ten white
+      // steps rendered identically because the only thing left behind them was the white panel. The
+      // shadow tint read-out already solved this the same way; this now matches it.
+      const sw = el('div', `sw ao-chk${dark ? ' dark' : ''}`);
+      const inner = el('div', 'ao-fill'); inner.style.background = fill(pct);
+      sw.append(inner);
+      strip.append(sw);
+      const lab = el('div', 'lab');
+      lab.append(el('span', 'lab-step mono', String(pct)), el('span', 'lab-hex mono', value(pct)));
+      lab.title = `${path}.${pct}`;
+      labs.append(lab);
+    }
+    band.append(strip, labs);
+    wrap.append(band);
+    row.append(wrap);
+    return row;
+  };
+
+  const alphaSteps = ALPHA_STEPS_UI.filter((x) => x > 0 && x < 100);
+  // Black over a light ground, white over a dark one — each ramp on the ground it exists for.
+  sec.append(ramp('Black alpha', 'palette.black-alpha', alphaSteps, false,
+    (p) => `rgba(0,0,0,${p / 100})`, (p) => alphaHex('black', p), 50));
+  sec.append(ramp('White alpha', 'palette.white-alpha', alphaSteps, true,
+    (p) => `rgba(255,255,255,${p / 100})`, (p) => alphaHex('white', p), 50));
+  // Opacity keeps the checkerboard: applying 0.3 opacity to an element genuinely makes what is behind
+  // it show through, so the ground is part of the truth here as much as it is for the alpha ramps.
+  // 0 shows only the ground, which is exactly what 0 means.
+  sec.append(ramp('Opacity', 'opacity', ALPHA_STEPS_UI, false,
+    (p) => `rgba(23,19,53,${p / 100})`, (p) => String(+(p / 100).toFixed(2)), 50));
+  return sec;
+};
+
+/** The Spacing grid section has no controls by design — both its levers were removed. Says why, rather
+ *  than leaving an empty control column that reads as a rendering bug. */
+const spacingFixedNote = (): HTMLElement => el('p', 'ic-modenote',
+  'The 8px rhythm is fixed for every brand. Changing the base would rename spacing values rather than '
+  + 'unlock them — 4px is still available as space.050 — and the numbered scale only means “n× base” '
+  + 'across brands if the base is the same across brands.');
+
+const renderSizeRadiusPage = (host: HTMLElement): void => controlSplitPage(host, 'sizeRadius', () => {
+  const perMode = currentMode !== 'light';
+  return [
+    { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', controls: csLeverStack(['baseMd', 'radiusScale'], perMode), paint: paintRadiusPreview },
+    { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
+    // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
+    // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
+    // which is more use than a section that quietly vanished.
+    { title: 'Spacing grid', sub: 'The spacing rhythm — space.100 = 1× an 8px base, fixed for every brand.', controls: spacingFixedNote(), stack: true, paint: paintSpacingPreview },
+    // These three scales are emitted, aliased by half the system, and were visible NOWHERE in the
+    // dashboard — a user could only find them in Preview's token list. Nothing here is settable, which
+    // is exactly why they had no home: the page is organized around levers, and a scale with no lever
+    // fell through. Read-only is the point — see what exists, and what the names resolve to.
+    { title: 'Primitive scales', sub: 'The raw grid the geometry aliases resolve onto — fixed for every brand, and read-only. Radius, spacing and component sizes all land on dimension steps.', controls: primitiveScalesNote(), stack: true, paint: paintPrimitivesPreview },
+  ];
+});
+
+// ---- controls-beside-previews pages (docs #264 / #265) --------------------
+// Layout and Size & radius put each control NEXT TO its own live preview, so a change is visible without
+// scrolling to a specimen block far below. Built like the Palettes page: controls are stable and only the
+// preview sub-nodes repaint (via `refreshers` → paintVolatile), so a slider/select is never rebuilt
+// mid-interaction. `controlSplitPage` is the shared scaffold both pages compose from.
+/** `controls: null` STACKS the block — description under the heading, specimen full-width below.
+ *  The two-column split earns its keep when a setting sits beside the thing it changes; with no
+ *  setting it just reserves an empty left column and squeezes the specimen into ~490px. Blocks that
+ *  DO have controls can opt in with `stack: true` where the specimen needs the width more than the
+ *  adjacency (Layout's breakpoint table and the fluid-type list both overran the narrow column). */
+type SplitBlock = { title: string; sub: string; controls: HTMLElement | null; stack?: boolean; paint: (into: HTMLElement) => void };
+/** The shared scaffold: hero → (derived-mode note, or) one `.cs-split` section per block (controls beside a
+ *  preview node) → a page-local `paintVolatile` that repaints only the preview nodes on every `apply()`. */
+const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => SplitBlock[]): void => {
+  const [title, lede] = PAGE_COPY[pageKey];
+  host.append(hero(title, lede));
+  if (DERIVED_MODES.has(currentMode)) { host.append(renderGeneratedNote()); return; }
+  const refreshers: Array<() => void> = [];
+  for (const b of blocks()) {
+    const sec = palSection(b.title, b.sub);
+    const preview = el('div', 'cs-preview');
+    if (!b.controls || b.stack) {
+      if (b.controls) sec.append(b.controls);
+      preview.classList.add('cs-preview-full');
+      sec.append(preview);
+    } else {
+      const split = el('div', 'cs-split');
+      const ctlCol = el('div', 'cs-ctl-col'); ctlCol.append(b.controls);
+      split.append(ctlCol, preview);
+      sec.append(split);
+    }
+    host.append(sec);
+    refreshers.push(() => b.paint(preview));
+  }
+  paintVolatile = () => { refreshers.forEach((r) => r()); };
+  paintVolatile();
+};
+/** A compact labelled slider for the split pages — value read-out updates live on drag; the theme commits
+ *  on release (`change` → apply()), which repaints the previews via the registered refreshers. Not the
+ *  full-width `.knob` slider (overkill here, per #264/#265). */
+const csSlider = (key: string, label: string, min: number, max: number, step: number, unit: string, get: () => number): HTMLElement => {
+  const f = el('div', 'cs-ctl');
+  const top = el('div', 'cs-ctl-top');
+  const val = el('span', 'cs-ctl-val mono', `${get()}${unit}`);
+  top.append(el('span', 'cs-ctl-lab', label), val);
+  const input = rangeInput({ className: 'cs-range', min, max, step, value: get() });
+  input.oninput = () => { val.textContent = `${input.value}${unit}`; };
+  input.onchange = () => { setPath(brandState, key, Number(input.value)); apply(); };
+  f.append(top, input);
+  return f;
+};
+/** A compact labelled enum picker for the split pages (curated choices → a select). Commits on change. */
+const csPicker = (key: string, label: string, choices: Array<[string, string]>, cur: string, onCommit?: () => void): HTMLElement => {
+  const sel = selectEl('cap');
+  for (const [value, text] of choices) sel.append(optionEl(value, text, value === cur));
+  sel.onchange = () => { setPath(brandState, key, sel.value); if (onCommit) onCommit(); else apply(); };
+  const f = el('div', 'cs-ctl'); f.append(el('span', 'cs-ctl-lab', label), sel);
+  return f;
+};
+
+// Layout — breakpoints, grid columns, container caps (docs #264).
+const LAYOUT_COLUMN_CHOICES = [4, 6, 8, 12, 16, 24];   // curated grid systems — no odd/awkward counts (#264)
+const renderLayoutPage = (host: HTMLElement): void => controlSplitPage(host, 'layout', () => {
+  // Grid columns — a curated step-picker (4/6/8/12/16/24, no awkward counts). Numeric key → coerce on commit.
+  const colSel = selectEl('cap');
+  const curCols = (brandState.layout?.columns ?? theme.layout.baseColumns) as number;
+  for (const c of LAYOUT_COLUMN_CHOICES) colSel.append(optionEl(String(c), `${c} columns`, c === curCols));
+  colSel.onchange = () => { setPath(brandState, 'layout.columns', Number(colSel.value)); apply(); };
+  const colsCtl = el('div', 'cs-ctl'); colsCtl.append(el('span', 'cs-ctl-lab', 'Grid columns'), colSel);
+
+  const caps = el('div', 'cs-ctl-stack');
+  caps.append(
+    csSlider('layout.containerMax', 'Container max', 960, 1920, 40, 'px', () => (brandState.layout?.containerMax ?? theme.layout.containerMax) as number),
+    csSlider('layout.containerNarrow', 'Content container', 480, 960, 20, 'px', () => (brandState.layout?.containerNarrow ?? theme.layout.containerNarrow) as number),
+  );
+  return [
+    { title: 'Breakpoints', sub: `Min-width floors (px, ascending) — names auto-assign from the count: ${theme.layout.breakpoints.map((x) => x.name).join(' / ')}.`, controls: renderBreakpointsControls(), stack: true, paint: paintBreakpointsPreview },
+    // Beside breakpoints on purpose (#361): both are viewport thresholds in px, and the interpolation
+    // range only means something read against the floors it spans.
+    { title: 'Responsive type sizing', sub: 'Headings interpolate between a mobile floor and a desktop ceiling across this viewport range; body, label, caption and code stay fixed by design. Eyebrow shrinks only above 14px, so small kickers hold their size and hero kickers do not.', controls: renderResponsiveControls(), stack: true, paint: paintFluidPreview },
+    { title: 'Grid columns', sub: 'Base column count for the design grid (16 / 24 for dense-data brands). Each breakpoint gets a 4/8/… ladder up to this base.', controls: colsCtl, paint: paintColumnsPreview },
+    { title: 'Container caps', sub: 'Content-width caps — layout is fluid below the cap. The content container is the narrower reading-measure column (~65–75ch).', controls: caps, stack: true, paint: paintContainersPreview },
+  ];
+});
+
+// Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
+const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion', (h) => {
+  const perMode = currentMode !== 'light';
+  // The section head no longer restates the knob's own description verbatim — both said "scales the
+  // duration ramp" and "reduce-motion is derived", three lines apart. The head says what the section
+  // governs; the knob keeps the multipliers.
+  const tempo = leverSection('Tempo', 'The overall motion speed for this brand. Per-mode outside Light.', leversFor('motion').map((l) => l.key), perMode);
+  if (tempo) h.append(tempo);
+  h.append(renderDurationRamp());
+  h.append(renderEasingEditor());
+  h.append(renderSpringsSection());
+}, () => [renderMotionSpecimen()]);
+
+/** The Preview destination (docs/23 §7) — the resolved system for the mode picked in the global header,
+ *  across three segmented views: the style guide (the roles composed in-context), the all-modes contrast
+ *  contract table, and the category-grouped token list. (The former "UI preview" component gallery was
+ *  dropped — button padding / badges / nav aren't defined at this stage, so those specimens were
+ *  placeholder; the style guide now carries the real value.) */
+type PreviewView = 'styleguide' | 'contrast' | 'tokens';
+let previewView: PreviewView = 'styleguide';
+/** Which background role the Style guide's specimens are previewed on. Module state so it survives
+ *  a repaint, like `previewView` and `currentMode` beside it. */
+let sgSurface = 'background.primary';
+const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['styleguide', 'Style guide'], ['contrast', 'Contrast contracts'], ['tokens', 'Token list']];
+const renderPreviewPage = (host: HTMLElement): void => {
+  const [title, lede] = PAGE_COPY.preview;
+  host.append(hero(title, lede));
+  // Segmented view-switcher (docs/23 §7) — the three "look at the result" views in one destination.
+  const seg = el('div', 'pvseg');
+  for (const [k, label] of PREVIEW_VIEWS) {
+    const b = el('button', 'pvseg-b' + (previewView === k ? ' on' : ''), label) as HTMLButtonElement;
+    b.onclick = () => { if (previewView !== k) { previewView = k; renderWorkspace(); } };
+    seg.append(b);
+  }
+  host.append(seg);
+  const vol = el('div', 'stage-vol');
+  host.append(vol);
+  paintVolatile = () => {
+    vol.innerHTML = '';
+    const pv = el('div', 'pvhost');
+    vol.append(pv);
+    if (previewView === 'styleguide') renderPreviewStyleGuide(pv);
+    else if (previewView === 'contrast') renderPreviewContracts(pv);
+    else renderPreviewTokens(pv);
+  };
+  paintVolatile();
+};
+
+// #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
+// best-effort map of common families → the numeric weights they actually ship. Used only to WARN when a
+// category ships a weight its family lacks (the font would fall back to the nearest); an unknown/custom
+// family is never warned (we can't assert its weights). Mirrors the engine's per-family emit fallbacks
+// (#112). Keys are matched case-insensitively against the family's primary name.
+const KNOWN_WEIGHTS: Record<string, number[]> = {
+  'Inter': [100, 200, 300, 400, 500, 600, 700, 800, 900],
+  'Roboto': [100, 300, 400, 500, 700, 900], 'Roboto Mono': [100, 200, 300, 400, 500, 600, 700],
+  'Clash Display': [200, 300, 400, 500, 600, 700], 'JetBrains Mono': [100, 200, 300, 400, 500, 600, 700, 800],
+  'Helvetica': [400, 700], 'Helvetica Neue': [400, 700], 'Arial': [400, 700],
+  'Georgia': [400, 700], 'Times New Roman': [400, 700],
+  'Space Grotesk': [300, 400, 500, 600, 700], 'DM Sans': [400, 500, 700], 'DM Mono': [300, 400, 500],
+  'IBM Plex Sans': [100, 200, 300, 400, 500, 600, 700], 'IBM Plex Mono': [100, 200, 300, 400, 500, 600, 700],
+  'Work Sans': [100, 200, 300, 400, 500, 600, 700, 800, 900], 'Manrope': [200, 300, 400, 500, 600, 700, 800],
+  'Poppins': [100, 200, 300, 400, 500, 600, 700, 800, 900], 'Montserrat': [100, 200, 300, 400, 500, 600, 700, 800, 900],
+  'Lato': [100, 300, 400, 700, 900], 'Open Sans': [300, 400, 500, 600, 700, 800], 'Nunito': [200, 300, 400, 500, 600, 700, 800, 900],
+  'Source Sans 3': [200, 300, 400, 500, 600, 700, 800, 900], 'Source Serif 4': [200, 300, 400, 500, 600, 700, 800, 900],
+};
+const KNOWN_WEIGHTS_LC: Record<string, number[]> = Object.fromEntries(Object.entries(KNOWN_WEIGHTS).map(([k, v]) => [k.toLowerCase(), v]));
+/** The known weight list for a family primary name, or null when the family is unknown (→ no warning). */
+const knownWeightsOf = (fontName: string | undefined): number[] | null => (fontName ? KNOWN_WEIGHTS_LC[fontName.trim().toLowerCase()] ?? null : null);
+
+/** Offline font-availability detection. A family that fails to resolve falls through to the
+ *  fallback stack, so its measured width matches the bare fallback's. Canvas metrics only —
+ *  no network — so this works identically in the plugin iframe (`networkAccess: none`).
+ *  Three baselines guard against a false negative when the face happens to match one of them. */
+const _fontProbe = document.createElement('canvas').getContext('2d');
+const fontAvailable = (name: string | undefined): boolean => {
+  if (!name || !_fontProbe) return false;
+  const probe = 'mmmmmmmmmmlliWWWWWWjgq';
+  return ['monospace', 'sans-serif', 'serif'].some((base) => {
+    _fontProbe.font = `72px ${base}`;
+    const w0 = _fontProbe.measureText(probe).width;
+    _fontProbe.font = `72px "${name}", ${base}`;
+    return Math.abs(_fontProbe.measureText(probe).width - w0) > 0.5;
+  });
+};
+
+/** What the library table's status column reports for one face.
+ *
+ *  This used to be `fontAvailable` alone, and that was the wrong question. The canvas probe answers
+ *  *"can this iframe paint a specimen?"*; the designer needs *"will this face load when I write text
+ *  styles?"* On the web those are the same question. In the Figma iframe they are not, because
+ *  Figma's font list mixes locally-installed families with Figma CLOUD fonts and the iframe ships
+ *  `networkAccess: none` — so a cloud font cannot be painted here yet loads perfectly in Figma. The
+ *  column reported "Not installed" for a Roboto this Figma carries 36 styles of, and would have said
+ *  the same for JetBrains Mono. Understating by half the rows is worse than saying less.
+ *
+ *  So when the host has answered, its list is authoritative and the probe is demoted to what it can
+ *  honestly report: whether the SPECIMEN beside it is the real face or a fallback. Two facts, two
+ *  places, neither one lying. With no host list (web) there is only one source and the probe is it —
+ *  which is also why this branches on `hostFonts.length` rather than on any host check.
+ *
+ *  `styles` is a count, not a guarantee: a listed family resolves as a FAMILY, while a text style
+ *  demands a specific weight. Reporting "36 styles" invites the right doubt where a bare tick would
+ *  imply a promise this cannot make (see #499 for the weight-name half of that problem). */
+type FaceStatus = { ok: boolean; label: string; title: string; fallbackPreview: boolean };
+const faceStatus = (name: string): FaceStatus => {
+  const rendersHere = fontAvailable(name);
+  if (!hostFonts.length) {
+    // Web: the probe is the only source, and "installed on this device" is exactly what it measures.
+    return {
+      ok: rendersHere,
+      label: rendersHere ? '✓ Installed' : '⚠ Not installed',
+      title: rendersHere ? `${name} resolves on this device` : `${name} is not installed here — the preview falls back`,
+      fallbackPreview: !rendersHere,
+    };
+  }
+  const styles = hostFontStyles.get(name);
+  if (styles === undefined) {
+    return {
+      ok: false,
+      label: '⚠ Figma lacks it',
+      title: `This Figma cannot load "${name}", so every text style asking for it will be skipped. `
+        + 'Spelling is exact — case and spaces included.',
+      fallbackPreview: true,
+    };
+  }
+  // Count 0 means an older host sent names without counts — say less rather than invent a number.
+  const label = styles > 0 ? `✓ ${styles.toLocaleString('en-US')} ${styles === 1 ? 'style' : 'styles'}` : '✓ Figma has it';
+  return {
+    ok: true,
+    label,
+    title: styles > 0
+      ? `Figma can load ${name} (${styles.toLocaleString('en-US')} styles). That settles the family — `
+        + 'a text style still skips if the family lacks the specific weight it asks for.'
+      : `Figma can load ${name}.`,
+    fallbackPreview: !rendersHere,
+  };
+};
+const WEIGHT_NAME: Record<number, string> = {
+  100: 'Thin', 200: 'Extra Light', 300: 'Light', 400: 'Regular', 500: 'Medium',
+  600: 'Semi Bold', 700: 'Bold', 800: 'Extra Bold', 900: 'Black',
+};
+
+// ---- FOUNDATIONS (primitives) ----------------------------------------------
+
+/** Typefaces — the two tiers #269 split apart, made operable.
+ *
+ *  TIER 1, the library: `font.typeface.<slug>` — one primitive per distinct face, named after the
+ *  face itself, carrying its fallback stack. Until now this tier was invisible in the dashboard even
+ *  though the engine emits it. It is DERIVED, not authored: `deriveTypefaces` unions the faces the
+ *  role bindings (and any per-mode overrides) actually name, so a face exists exactly as long as
+ *  something binds it. That is also why removal needs no cascade — unbind it and it stops emitting.
+ *
+ *  TIER 2, the bindings: `font.family.<category>` — one per text category, the brand-invariant handles
+ *  a shared codebase references. Each aliases one library face. #415 retired the display/text/mono
+ *  ROLE tier that used to sit here: #269's argument was for a NAMED tier-2 (so a face swap leaves
+ *  consumer references intact), which category names satisfy just as well, and role-keying cost a
+ *  coupling — two categories on one role could not be moved apart without a second mechanism. The
+ *  typeface library is still shared ACROSS brands with each brand binding its own members.
+ *
+ *  The bindings live on Semantics, not here: `font.family.*` is a semantic token, and this tab is
+ *  primitives only. */
+/** Tier 1 — the faces this brand has (Primitives tab). Split from the bindings (#388 part B): they
+ *  were one section because they were one tab, and that section straddled the primitive/semantic line
+ *  the tabs are now named for. */
+const renderTypefaceLibrary = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Typefaces', 'The faces this brand has, independent of what any of them does. A lone name auto-pads a system fallback stack; supply a full stack yourself and it is trusted verbatim. This is the only primitive on this tab you can edit.');
+
+  // #416 — the BASELINE binding, full stop. This used to follow `currentMode`, which only made sense
+  // while the mode bar was an editing context on this page; a primitive is mode-invariant, and the
+  // per-mode faces are shown as columns on Semantics. A face bound only in some non-light mode is
+  // still reported — `bindingOf`'s "Only in <mode>" branch reads `familiesByMode` directly.
+  const boundFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
+
+  // ---- TIER 1 — the library (Primitives tab) ----
+  // Converted to the shared table format alongside leading & tracking (#363) so the tab reads on ONE
+  // column grid rather than a card list beside two tables. Same three fixed-width columns as the rung
+  // tables, and no mode axis for the same reason: a typeface primitive is mode-invariant. WHICH face a
+  // category binds does vary by mode — but that is the bindings tier, now on Semantics.
+  sec.append(subHead('The library — one primitive per face'));
+  /** Where a face's binding lives. #287 made "in the library, bound to nothing" a REAL state — before
+   *  it, a face existed only while a category bound it, so the old copy could say the list was purely
+   *  derived. It no longer can, and an unbound face must not be mislabelled as a mode override. */
+  const bindingOf = (name: string): { label: string; unbound: boolean } => {
+    // #415 — categories, not roles. A face bound by all of them says so once rather than listing
+    // seven names in a 148px cell, which is the shape the collapse would otherwise produce for the
+    // ordinary single-face brand.
+    const here = TYPE_GROUP_ORDER.filter((cat) => boundFace(cat) === name);
+    if (here.length === TYPE_GROUP_ORDER.length) return { label: 'Every category', unbound: false };
+    if (here.length) return { label: here.join(' + '), unbound: false };
+    const inModes = rp.modes.filter((m) => (ty.familiesByMode?.[m] ?? []).some((f) => f.stack[0] === name))
+      .map((m) => MODE_LABEL[m] ?? m);
+    if (inModes.length) return { label: `Only in ${inModes.join(', ')}`, unbound: false };
+    if (ty.families.some((f) => f.stack[0] === name)) return { label: 'A category', unbound: false };
+    return { label: 'Not bound — staged', unbound: true };
+  };
+  /** The AUTHORED library (#287) — distinct from `ty.typefaces`, which is the derived union of authored
+   *  entries and bound faces. Only this array is editable: a face that exists purely because a category
+   *  binds it has no library entry to remove, which is the same reason a bound entry is not deletable. */
+  const library = (): string[] => (getPath(brandState, 'typography.typefaceLibrary') as string[] | undefined) ?? [];
+  const inLibrary = (name: string): boolean => library().some((n) => typefaceSlug(n) === typefaceSlug(name));
+  const libBox = el('div', 'mtbl');
+  const libScroll = el('div', 'mtbl-scroll');
+  // `.tf-libtbl` widens THIS table's Face column (see the CSS) — the token path moved into it, and a
+  // `font.typeface.<slug>` pill does not fit the shared 112px.
+  const libTbl = el('table', 'mtbl-tbl tf-libtbl');
+  const libHead = el('thead'), libHtr = el('tr');
+  // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
+  // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
+  // device" was actively wrong in Figma — a cloud font is loadable there and absent here.
+  libHtr.append(el('th', 'mtbl-stick', 'Face'), el('th', 'mtbl-mode', hostFonts.length ? 'In this Figma' : 'On this device'),
+    el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  libHead.append(libHtr); libTbl.append(libHead);
+  const libBody = el('tbody');
+  let anyUnbound = false;
+  for (const tf of ty.typefaces) {
+    const bind = bindingOf(tf.name);
+    anyUnbound = anyUnbound || bind.unbound;
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    const nm = el('span', 'tf-libname', tf.name); nm.title = tf.name;
+    nc.append(nm);
+    if (tf.variable) nc.append(el('span', 'tf-vf', 'Variable'));
+    // The token path belongs to the FACE, not to its specimen — it is the name a product references,
+    // so it reads as a subtitle under the name it identifies. It sat in the specimen cell until now,
+    // where it shared one paragraph with the fallback stack and the `(fallback shown)` note, and three
+    // unrelated facts in one cell made the widest column the least legible one.
+    // The ordinary nowrap `tokenPill`, NOT `tokenPillWrapping`. The wrapping variant was tried first
+    // because it fits the shared 112px and would have cost no column change at all — but measured, it
+    // renders `font.typeface.jetbrains-mono` as a FOUR-line boxed block (67px tall), and a path broken
+    // over four lines is harder to read than one that is elided. The column widens instead.
+    const pathWrap = el('span', 'tf-libpath');
+    pathWrap.append(tokenPill(`font.typeface.${tf.slug}`));
+    nc.append(pathWrap);
+    tr.append(nc);
+    const st = faceStatus(tf.name);
+    const sc = el('td', 'mtbl-mode');
+    sc.append(el('span', 'tf-stat ' + (st.ok ? 'ok' : 'no'), st.label));
+    sc.title = st.title;
+    tr.append(sc);
+    const bc = el('td', 'mtbl-mode');
+    bc.append(el('span', 'tf-usedby' + (bind.unbound ? ' unbound' : ''), bind.label));
+    // The decided removal semantics (#287): only UNBOUND entries are deletable, which needs no cascade
+    // logic anywhere. The known cost is a "why can't I delete this?" moment, and the answer is here —
+    // on the cell that already names the categories standing in the way — rather than as a disabled button,
+    // which would invite the click it then refuses.
+    if (!bind.unbound && inLibrary(tf.name))
+      bc.title = `In the library and bound — re-point ${bind.label} to something else to make this removable.`;
+    tr.append(bc);
+    const pc = el('td', 'mtbl-fill mtbl-spec');
+    const prev = el('span', 'mtbl-spec-t tf-prev', 'Ag 123');
+    prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
+    pc.append(prev);
+    // The second fact, on the cell it is actually about. Once the status column reports FIGMA's verdict,
+    // "Ag 123" can be a fallback while the row reads ✓ — true, but confusing unless the specimen says
+    // so itself. Only shown when the two diverge: on a face that renders here the note would be noise,
+    // and on a face Figma lacks the status column has already said it.
+    if (st.fallbackPreview && st.ok) {
+      const fb = el('span', 'tf-fbnote', '(fallback shown)');
+      fb.title = `${tf.name} loads in Figma but is not installed on this device, so this specimen shows the fallback. `
+        + 'The written text styles use the real face.';
+      pc.append(fb);
+    }
+    // Row action at the far right of the row — inside the FILL column on purpose. A fifth column, or a
+    // button in any fixed-width cell, would push that cell past its token and break the 112/148/148
+    // parity #363 just established; the fill column absorbs slack instead.
+    if (bind.unbound) {
+      const rm = el('button', 'tf-rm', '×') as HTMLButtonElement;
+      rm.title = `Remove ${tf.name} from the library`;
+      rm.setAttribute('aria-label', `Remove ${tf.name} from the library`);
+      rm.onclick = () => {
+        setPath(brandState, 'typography.typefaceLibrary', library().filter((n) => typefaceSlug(n) !== tf.slug));
+        applyFull();
+      };
+      pc.append(rm);
+    }
+    // The specimen cell now carries the specimen and the two things that qualify it — nothing else.
+    // The token pill moved to the Face cell; without it the stack starts the line, so it names itself
+    // rather than reading as a trailing clause on the pill.
+    pc.append(el('span', 'tf-fall',
+      tf.stack.length > 1 ? `Falls back to ${tf.stack.slice(1).join(', ')}` : 'No fallback stack'));
+    tr.append(pc);
+    libBody.append(tr);
+  }
+  libTbl.append(libBody); libScroll.append(libTbl); libBox.append(libScroll);
+  sec.append(libBox);
+
+  // Staging a face — the authoring half #287 deferred to this follow-up. Validation MIRRORS the engine's
+  // (`buildTypography`: non-empty, no duplicate slug) so a typo is answered here instead of surfacing as
+  // a thrown build. The duplicate check runs against the DERIVED list, not just the authored array: a
+  // name already reachable via a category binding would be silently absorbed by the union and the row would
+  // never appear, which reads as "the button did nothing".
+  const addRow = el('div', 'tf-add');
+  const addIn = el('input', 'tf-in tf-addin') as HTMLInputElement;   // tf-in carries the shared field treatment; tf-addin only constrains width
+  addIn.type = 'text'; addIn.spellcheck = false; addIn.placeholder = 'Font family name';
+  addIn.setAttribute('aria-label', 'Add a face to the library');
+  // #113 (Figma arm) — when the host knows its real font list, the field becomes type-ahead over it
+  // while still accepting anything typed.
+  //
+  // This WAS a `<datalist>`, and that was the wrong control for an iframe. The original reasoning was
+  // sound on the web — it is the browser's own widget, so keyboard and screen-reader behavior come for
+  // free instead of from a hand-rolled `role="combobox"` — and the accepted cost was recorded as "cannot
+  // be themed". In Figma's plugin iframe the real cost was *unusable*: the popup is browser CHROME drawn
+  // outside the page, so it painted dark (following Figma's app theme, unreachable by our CSS), flipped
+  // UP over the field so the text being typed was hidden, and never received wheel events — making 2,334
+  // families impossible to scroll. None of the three is reachable from the page, which is the point: a
+  // list that must be themed, positioned and scrolled has to BE page DOM. So this is the combobox the
+  // datalist was chosen to avoid. The iframe made that trade non-optional.
+  //
+  // Built on the `.brandmenu` popover vocabulary already used by the brand/export/nav menus — same
+  // `max-height` + `overflow-y:auto` shape, so scrolling and theming are structural rather than patched.
+  //
+  // Names render in the UI face, NOT their own (owner decision). Self-rendering would look more like
+  // Figma's picker, but `listAvailableFontsAsync` mixes locally-installed families with Figma's CLOUD
+  // Google Fonts and this iframe ships `networkAccess: none` — so a cloud face would silently fall back
+  // and read as "broken" rather than "not installed here". One consistent face tells no lie.
+  //
+  // A HINT, not a constraint: an unlisted name still commits, because a brand input is a portable
+  // specification and may legitimately name a face this machine lacks.
+  let addWrap: HTMLElement | null = null;
+  // Arrow/Escape handling lives with the list, but Enter must reach `submit` (defined below) — so the
+  // combobox publishes a key hook that returns true when it CONSUMED the key, and the field's single
+  // keydown handler defers to it before falling through to submit-on-Enter.
+  let comboKey: ((e: KeyboardEvent) => boolean) | null = null;
+  if (hostFonts.length) {
+    addWrap = el('div', 'tf-combo');
+    const list = el('div', 'tf-cbolist');
+    list.id = 'tf-font-list';
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', 'Font families this Figma can load');
+    list.hidden = true;
+    addIn.setAttribute('role', 'combobox');
+    addIn.setAttribute('aria-controls', list.id);
+    addIn.setAttribute('aria-autocomplete', 'list');
+    addIn.setAttribute('aria-expanded', 'false');
+    addIn.autocomplete = 'off';                       // the browser's own history popup would re-create the overlap
+    let shown: string[] = [];
+    let active = -1;                                  // index into `shown`; -1 = nothing selected, so Enter still submits
+    const optId = (i: number) => `tf-font-o${i}`;
+    // `aria-selected` moves WITH the `.on` class, in both directions. It is a separate fact from
+    // `aria-activedescendant`: that one says where the pointer is, `aria-selected` says which option a
+    // single-select listbox currently holds, and a screen reader reads the second. Shipping it pinned to
+    // "false" at row creation (which is what this did) meant the sighted highlight tracked the arrows
+    // while AT was told, on all 2,340 rows, that nothing was selected — the one piece of the ARIA this
+    // control used to get free from `<datalist>` that the hand-roll missed.
+    const setActive = (i: number): void => {
+      const rows = Array.from(list.children) as HTMLElement[];
+      if (active >= 0 && rows[active]) {
+        rows[active].classList.remove('on');
+        rows[active].setAttribute('aria-selected', 'false');
+      }
+      active = i;
+      if (i < 0) { addIn.removeAttribute('aria-activedescendant'); return; }
+      const row = rows[i];
+      if (!row) return;
+      row.classList.add('on');
+      row.setAttribute('aria-selected', 'true');
+      addIn.setAttribute('aria-activedescendant', optId(i));
+      row.scrollIntoView({ block: 'nearest' });       // keyboard nav must drag the scroll along with it
+    };
+    const close = (): void => {
+      list.hidden = true;
+      addIn.setAttribute('aria-expanded', 'false');
+      setActive(-1);
+    };
+    const open = (): void => {
+      if (!shown.length) { close(); return; }
+      list.hidden = false;
+      addIn.setAttribute('aria-expanded', 'true');
+      // The old popup opened upward over the field. This one is page DOM below it, so the only thing
+      // that can hide it is the page scroll — ask for it to be on screen rather than assume it is.
+      list.scrollIntoView({ block: 'nearest' });
+    };
+    const paint = (q: string): void => {
+      const needle = q.trim().toLowerCase();
+      // Prefix matches first — "Ro" should lead with Roboto, not with a family that merely contains "ro".
+      const pre: string[] = [], mid: string[] = [];
+      for (const f of hostFonts) {
+        if (!needle) { pre.push(f); continue; }
+        const at = f.toLowerCase().indexOf(needle);
+        if (at === 0) pre.push(f);
+        else if (at > 0) mid.push(f);
+      }
+      shown = pre.concat(mid);
+      list.textContent = '';
+      shown.forEach((f, i) => {
+        // textContent, never innerHTML — these names are external input.
+        const row = el('div', 'tf-cbo', f);
+        row.id = optId(i);
+        row.setAttribute('role', 'option');
+        row.setAttribute('aria-selected', 'false');
+        // mousedown, not click: click fires after the input's blur, by which point the list is closed.
+        row.onmousedown = (e) => {
+          e.preventDefault();                          // keep focus in the field so Add face is one key away
+          addIn.value = f;
+          close();
+          addIn.focus();
+        };
+        list.append(row);
+      });
+      setActive(-1);
+    };
+    paint('');
+    addIn.oninput = () => { paint(addIn.value); open(); };
+    addIn.onfocus = () => { paint(addIn.value); open(); };
+    // Blur closes, but not before a row's mousedown has run — hence the mousedown handler above.
+    addIn.onblur = () => { close(); };
+    comboKey = (e: KeyboardEvent): boolean => {
+      const open_ = !list.hidden;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!open_) { paint(addIn.value); open(); if (shown.length) setActive(0); return true; }
+        if (!shown.length) return true;
+        const next = e.key === 'ArrowDown'
+          ? (active + 1) % shown.length
+          : (active <= 0 ? shown.length - 1 : active - 1);
+        setActive(next);
+        return true;
+      }
+      if (e.key === 'Escape') {
+        if (!open_) return false;                      // let Escape do whatever it does elsewhere
+        close();
+        return true;
+      }
+      // Enter with a highlighted row means "take that one" — the field fills and the list closes, and
+      // the face is NOT committed yet, so the next Enter submits. Two deliberate steps: picking a name
+      // and adding it are different decisions, and the second one is destructive-ish (it edits the brand).
+      if (e.key === 'Enter' && open_ && active >= 0 && shown[active]) {
+        addIn.value = shown[active];
+        close();
+        return true;
+      }
+      if (e.key === 'Tab' && open_) { close(); return false; }   // close, but let focus move on
+      return false;
+    };
+    addWrap.append(addIn, list);
+  }
+  // #405 — a SUBMIT CTA, not `.adv-add`. That class is the dashed REVEAL/add-a-row affordance (the
+  // breakpoint editor's "+ Add" appends an empty slot with it, and on Palettes the same look means
+  // "tap to expose fields"). Here the field is already exposed, so the dashed form promised "this will
+  // show you something" while meaning "commit what I typed" — two different actions wearing one look.
+  // Left `.adv-add` alone rather than restyling it: the breakpoint use is a genuine add-a-row.
+  // The `+` goes with it — a leading plus is part of that same add-a-row vocabulary.
+  const addBtn = el('button', 'tf-addbtn', 'Add face') as HTMLButtonElement;
+  const addErr = el('p', 'tf-adderr');
+  addErr.hidden = true;
+  const submit = (): void => {
+    const name = addIn.value.trim();
+    addErr.hidden = true;
+    if (!name) { addErr.textContent = 'Give the face a name.'; addErr.hidden = false; addIn.focus(); return; }
+    const slug = typefaceSlug(name);
+    const clash = ty.typefaces.find((t) => t.slug === slug);
+    if (clash) {
+      addErr.textContent = inLibrary(clash.name)
+        ? `${clash.name} is already in the library.`
+        : `${clash.name} is already here — a category binds it, so it is in the library list already.`;
+      addErr.hidden = false; addIn.focus(); return;
+    }
+    setPath(brandState, 'typography.typefaceLibrary', [...library(), name]);
+    applyFull();
+  };
+  addBtn.onclick = submit;
+  addIn.onkeydown = (e) => {
+    const ev = e as KeyboardEvent;
+    if (comboKey && comboKey(ev)) { ev.preventDefault(); return; }
+    if (ev.key === 'Enter') { ev.preventDefault(); submit(); }
+  };
+  addRow.append(addWrap ?? addIn, addBtn);
+  sec.append(addRow, addErr);
+  // #414 — the spelling guidance sits with the field it describes. It lived on Semantics, which after
+  // the four-tab split types nothing: this is the only place a face name is entered by hand.
+  const spell = el('p', 'tf-note');
+  spell.innerHTML = hostFonts.length
+    ? '<b>Pick from the list, or type any name.</b> The field suggests the ' + hostFonts.length.toLocaleString('en-US') + ' font families this Figma can load, so a name chosen from it is spelled the way Figma spells it. That settles the family, not every weight: a text style still skips if the family lacks the specific weight it asks for. Typing a name that is not listed also works — a brand can specify a font this machine does not have — but nothing it needs will load here.'
+    : '<b>Exact spelling matters.</b> The name passes through to CSS and Figma untouched — there is no validation or auto-correct, so a near-miss silently falls back. Find the exact name in <b>macOS</b> Font Book, <b>Windows</b> Settings → Personalization → Fonts, or the foundry / Google Fonts specimen page.';
+  sec.append(spell);
+  // The old copy here claimed the list was purely derived — "a face exists here exactly as long as a
+  // role binds it". #287 made that false, so it is replaced rather than left to quietly mislead.
+  sec.append(el('p', 'tf-derivenote', anyUnbound
+    ? 'This list is a union: a face appears because a category on Semantics binds it, or because the brand input stages it in typography.typefaceLibrary. A staged face can sit here bound to nothing until you give it a job. Slugs come from the face name, so there is no rename to cascade.'
+    : 'Every face here is bound by a category on Semantics — add a name and its primitive appears here, ready to bind. A brand can also stage a face with no category in typography.typefaceLibrary, in which case it sits here unbound until you give it a job. Slugs come from the face name, so there is no rename to cascade.'));
+
+  return sec;
+};
+
+/** Tier 2 — which face does each CATEGORY draw from (Semantics tab). Split from the library (#388
+ *  part B); re-keyed from three abstract roles to the seven categories by #415.
+ *
+ *  #416 — ONE COLUMN PER MODE, which is the stated rule for editing a mode-varying value on this page.
+ *  The rule was already what the codebase did; it had just never been written down. Every column-table
+ *  here (weight roles, the leading/tracking re-points, the per-size pins) edits a value with MANY
+ *  parallel instances, and every mode-bar control in the app (`renderPerModeSelect` — radius, tempo,
+ *  density) edits a SINGLE lever. This control was seven categories sitting on the single-lever side,
+ *  which is why it felt wrong and why it alone lacked the `Auto` + `.set` affordance its neighbours
+ *  have: an override and an inherited value rendered identically, with no way to clear one.
+ *
+ *  Since every mode-varying value on Typography is a many-instance value, the mode bar has no editing
+ *  job left on this page and is gone from it — the same conclusion #350/#268 reached for Primitives,
+ *  arrived at from the other end. */
+const renderTypefaceBindings = (): HTMLElement => {
+  const ty = theme.typography;
+  const modes = rp.modes;
+  const multi = modes.length > 1;
+  const sec = palSection('Typefaces', 'Which face each category draws from. The font.family token for a category is what your codebase binds — swapping the face behind it leaves every reference intact, which is why a text style never names a face directly.');
+  const baseFace = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '';
+  const isUnbound = (cat: string): boolean => cat === 'code' && getPath(brandState, 'typography.families.code') === null;
+
+  // The bulk control writes the BASELINE only — it is a brand-level statement ("this brand is one
+  // face"), not a per-mode one. `code` is deliberately out of its reach: its default is a different
+  // KIND of face, so sweeping a text face across it is nearly always wrong and would be silent.
+  const bulk = el('div', 'tf-bulk');
+  const bulkSel = selectEl('sm');
+  bulkSel.append(optionEl('', 'Choose a face…', true));
+  for (const t of ty.typefaces) bulkSel.append(optionEl(t.name, t.name, false));
+  const bulkBtn = el('button', 'tf-addbtn', 'Apply to all') as HTMLButtonElement;
+  const BULK_CATS = TYPE_GROUP_ORDER.filter((g) => g !== 'code');
+  bulkBtn.onclick = () => {
+    if (!bulkSel.value) return;
+    for (const g of BULK_CATS) setPath(brandState, `typography.families.${g}`, bulkSel.value);
+    applyFull();
+  };
+  bulk.append(el('span', 'tf-bulklab', `Set every text category to`), bulkSel, bulkBtn);
+  sec.append(bulk, el('p', 'tf-derivenote', 'Code keeps whatever face it has — a monospace choice is a different decision, so it is set on its own row below.'));
+
+  const box = el('div', 'mtbl');
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', 'Category'));
+  if (multi) {
+    for (const m of modes) {
+      const th = el('th', 'mtbl-mode');
+      th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+      if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+      // Same `auto` marker the mode chips carry, so a derived column is identifiable before you click.
+      else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));
+      htr.append(th);
+    }
+  } else {
+    // A single-mode brand has no mode axis to show, so the column keeps its plain name rather than
+    // being labelled "Light" — there is nothing for that label to contrast with.
+    htr.append(el('th', 'mtbl-mode', 'Face'));
+  }
+  htr.append(el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  for (const cat of TYPE_GROUP_ORDER) {
+    const base = baseFace(cat);
+    const unbound = isUnbound(cat);
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', cat));
+    nc.append(el('div', 'cs-count', TYPE_GROUP_BLURB[cat] ?? ''));
+    tr.append(nc);
+
+    const NONE = '__none__';                    // a sentinel no font family can be called
+    for (const m of (multi ? modes : ['light'])) {
+      const td = el('td', 'mtbl-mode');
+      if (unbound && m !== 'light') {
+        // Nothing to override: the category ships no styles at all in any mode.
+        td.append(el('span', 'cs-count', '—'));
+        tr.append(td);
+        continue;
+      }
+      if (m === 'light') {
+        // The baseline is the brand-level binding, and it stays EDITABLE here — unlike the
+        // leading/tracking re-point table, whose baseline is set in the table above it. This is the
+        // only place the family baseline is authored, so its column is a control, not a reading.
+        const sel = selectEl('sm fill');
+        const opts: Array<[string, string]> = ty.typefaces.map((t) => [t.name, t.name] as [string, string]);
+        if (!opts.some(([v]) => v === base) && base) opts.push([base, base]);
+        if (cat === 'code') opts.push([NONE, 'None — no code styles']);
+        for (const [v, label] of opts) sel.append(optionEl(v, label, v === (unbound ? NONE : base)));
+        sel.title = base || '';
+        sel.onchange = () => {
+          if (sel.value === NONE) { setPath(brandState, 'typography.families.code', null); applyFull(); return; }
+          if (!sel.value) return;               // matched no option — never write an empty face
+          setPath(brandState, `typography.families.${cat}`, sel.value);
+          applyFull();
+        };
+        td.append(sel);
+      } else if (!modeIsEditable(m)) {
+        // #423 — READ-ONLY, and showing the resolved face rather than an empty or disabled control.
+        // A derived mode carries no `familiesByMode` entry (it can hold no levers), so it resolves to
+        // the canonical baseline; that is a real fact about the mode and worth a cell. Rendering an
+        // interactive select here is what let a click reach the engine and surface
+        // "mode 'hc-dark' is generate-only and not customizable" verbatim.
+        const self = el('span', 'mtbl-selfval mono', base || '—');
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in the brand menu’s “Modes” section if you don't want it generated.`;
+        td.append(self);
+      } else {
+        const ovRaw = getModeLever(m, `families.${cat}`);
+        const ovStr = Array.isArray(ovRaw) ? ovRaw[0] : (ovRaw as string | undefined);
+        // An override equal to the baseline is INERT — `diffAssign` drops it, so it produces no token
+        // and no mode entry. Reading it as "set" would style a cell that changes nothing, so it is
+        // normalized away here and the cell renders as Auto, which is what it actually is. A brand
+        // input can carry one (hand-authored, or written by the old control before this rule).
+        const ovName = ovStr && ovStr !== base ? ovStr : undefined;
+        // `.set` carries the same "pinned" weight the stepper tables give `.mval.pin`, so a scan down
+        // the column finds the overrides without reading every label. This is the affordance the
+        // review of #419 found missing — structural here rather than bolted on, because an inherited
+        // cell and an overridden one are now different by construction.
+        const sel = selectEl(ovName ? 'sm fill set' : 'sm fill');
+        sel.append(optionEl('', `Auto — ${base}`, !ovName));
+        for (const t of ty.typefaces) {
+          if (t.name === base) continue;   // binding the baseline IS Auto — offering both would give
+                                           // one outcome two controls, and the second writes an inert entry
+          sel.append(optionEl(t.name, t.name, ovName === t.name));
+        }
+        if (ovName && !ty.typefaces.some((t) => t.name === ovName)) sel.append(optionEl(ovName, ovName, true));
+        sel.title = ovName ? `${MODE_LABEL[m] ?? m} overrides ${cat} to ${ovName}` : `${cat} follows the baseline (${base}) in ${MODE_LABEL[m] ?? m}`;
+        sel.onchange = () => { setModeLever(m, `families.${cat}`, sel.value || undefined); applyFull(); };
+        td.append(sel);
+      }
+      tr.append(td);
+    }
+
+    const pc = el('td', 'mtbl-fill mtbl-spec');
+    if (unbound) {
+      pc.append(el('span', 'tf-unbound', 'No code face — the code category is not generated.'));
+    } else {
+      const prev = el('span', 'mtbl-spec-t tf-prev', 'The quick brown fox jumps');
+      prev.style.fontFamily = base ? `"${base}", ${cat === 'code' ? 'monospace' : 'sans-serif'}` : 'inherit';
+      pc.append(prev);
+    }
+    pc.append(tokenPill(`font.family.${cat}`));
+    tr.append(pc);
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll); sec.append(box);
+
+  const local = el('p', 'tf-note warn');
+  local.innerHTML = hostFonts.length
+    ? '<b>Previews in this table use fonts installed on this device; Figma loads more than that.</b> Figma’s list mixes your installed fonts with its own cloud fonts, and this panel loads no webfonts — so a face Figma will happily write can still preview as the fallback here. The <b>In this Figma</b> column on <b>Primitives</b> reports what Figma can load, which is the fact that decides whether a text style applies. Your emitted tokens are unaffected; they carry the name you typed.'
+    : '<b>Preview reflects only fonts installed on this device.</b> The dashboard loads no webfonts, so a correctly-spelled family you don’t have installed still previews as the fallback. The <b>Typefaces</b> table on <b>Primitives</b> flags which faces resolve here. Your emitted tokens are unaffected; they carry the name you typed.';
+  sec.append(local);
+  return sec;
+};
+
+/** The size ladder + the three levers that reshape it. The ladder itself was previously
+ *  rendered nowhere, and displayCeiling / titleFloor were unreachable from the dashboard. */
+const renderSizeLadder = (): HTMLElement => {
+  const ty = theme.typography;
+  // The ladder ALONE. Shape / range moved to Styles (#328 follow-through) to sit with the per-size
+  // table they govern — which also leaves this tab purely primitive, the condition #268's
+  // no-switcher rule turns on.
+  const sec = palSection('The size ladder', 'Fixed and brand-invariant — 22 rem steps, the raw material every heading size is chosen from. Which rungs the categories land on is set by Shape and Range, on Text styles.');
+  // No requested-vs-effective note any more: the ceiling names a RUNG, so what was asked for and
+  // what ships cannot disagree (#328). The px ceiling could, because it was compared against sizes
+  // typeScale had already shifted.
+
+  sec.append(subHead('The ladder — largest first'));
+  const used = new Set(ty.composites.map((c) => c.sizePx));
+  const minUsed = new Set(ty.composites.map((c) => c.sizeMinPx));
+  const displayStack = ty.families.find((f) => f.group === 'display')?.stack.join(', ') ?? 'inherit';
+  // #404 — the SHARED table shape, on the same 112/148/148/390 grid as the leading/tracking ladders
+  // below it. It was the one bespoke row layout left on the tab, and it also dimmed unbound rungs and
+  // carried a three-key legend, so the two ladder tables on one tab taught opposite things: this one
+  // said "unbound means faded", its sibling said "unbound is the ordinary case, stated in a column".
+  //
+  // Dimming is gone. On a READ-ONLY primitive table a faded row implies unavailable or wrong, and
+  // neither is true — 22 steps exist, which ones are bound changes the moment Shape or Range moves.
+  // The legend went with it: two of its three keys described which rungs travel with those levers,
+  // which is a Text styles concern rather than a property of the raw material, and the third existed
+  // only to explain the dimming. The blue `head` dot went too — it was the levered-rung marker those
+  // keys explained, and an unexplained colour-coded dot is worse than no dot.
+  const box = el('div', 'mtbl');
+  const scroll = el('div', 'mtbl-scroll sl-tall');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'rem'),
+    el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  let firstBound: HTMLElement | null = null;
+  // Largest-first: every lever acts on the heading end, so the rungs that change must be the ones in
+  // view. The scroll still opens on the first BOUND rung — the top of the ladder is 160px and most
+  // brands never reach it — but it now finds that row by capturing it here rather than by querying
+  // `:not(.unused)`, which is the class #404 removed.
+  for (const px of [...ty.sizesPx].reverse()) {
+    const inUse = used.has(px);
+    const tr = el('tr');
+    const nc = el('td', 'mtbl-stick');
+    nc.append(el('span', 'mtbl-name mono', `${px}px`));
+    tr.append(nc);
+    const rc = el('td', 'mtbl-mode');
+    rc.append(el('span', 'mtbl-selfval mono', `${+(px / 16).toFixed(4)}rem`));
+    tr.append(rc);
+    const who = [...new Set(ty.composites.filter((c) => c.sizePx === px).map((c) => c.group))];
+    const wc = el('td', 'mtbl-mode');
+    wc.append(el('span', 'ltbl-who' + (inUse ? '' : ' none'),
+      inUse ? who.join(', ') : (minUsed.has(px) ? 'fluid floor only' : 'not bound')));
+    tr.append(wc);
+    const pc = el('td', 'mtbl-fill mtbl-spec');
+    const samp = el('div', 'sl-samp', 'Ag');
+    samp.style.fontSize = `${px}px`; samp.style.fontFamily = displayStack;
+    pc.append(samp);
+    tr.append(pc);
+    if (inUse && !firstBound) firstBound = tr;
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  sec.append(box);
+  requestAnimationFrame(() => { if (firstBound) scroll.scrollTop = Math.max(0, firstBound.offsetTop - 4); });
+  return sec;
+};
+
+/** The leading + tracking LADDERS — the primitives themselves (#388 part B). Read-only, and shown at
+ *  all for the reason the size ladder is: these are the steps every rung is chosen from, and without
+ *  this table they are visible nowhere in the app — you would only ever see the handful of values some
+ *  rung happens to bind. #384 locked both ladders, so there is nothing here to edit; what IS editable
+ *  is which step each rung binds, one tier up on Semantics. */
+const renderRungLadders = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Leading & tracking ladders', 'The steps every leading and tracking rung is chosen from. Fixed and brand-invariant, like the size ladder — the gaps are deliberate, so a value between two steps is not a value this system emits. Binding a rung to one of these is on Semantics.');
+  const ladderTable = (caption: string, ladder: readonly number[], fmt: (v: number) => string,
+    boundBy: (v: number) => string[], preview: (host: HTMLElement, v: number) => void): void => {
+    const box = el('div', 'mtbl');
+    box.append(el('p', 'mtbl-cap', caption));
+    const scroll = el('div', 'mtbl-scroll');
+    const tbl = el('table', 'mtbl-tbl');
+    const thead = el('thead');
+    const htr = el('tr');
+    // Four columns on the same 112/148/148/390 grid every other tier table uses (#363) — a 2-column
+    // table here would have broken the one-grid rule the tab is built on. The 3rd column is what makes
+    // a read-only ladder worth showing at all: 15 bare numbers teach nothing, 15 rendered steps show
+    // you what the gaps between them actually cost.
+    htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'Used by'),
+      el('th', 'mtbl-mode', ''), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+    thead.append(htr); tbl.append(thead);
+    const tb = el('tbody');
+    for (const v of ladder) {
+      const who = boundBy(v);
+      // No row-level "unused" class: an unbound step is the COMMON case here (15 steps, ~6 rungs), so
+      // dimming the majority of the table would read as an error state. The faint "not bound" cell
+      // below carries it. (`el`'s 1st arg is the TAG — a class concatenated into it silently produces
+      // an invalid element name, which is exactly what the first draft of this line did.)
+      const tr = el('tr');
+      const nc = el('td', 'mtbl-stick');
+      nc.append(el('span', 'mtbl-name mono', fmt(v)));
+      tr.append(nc);
+      const wc = el('td', 'mtbl-mode');
+      // An unbound step is the COMMON case (15 steps, ~6 rungs), so it must read as ordinary rather
+      // than as a warning — "not used" in the faint tier, never a ✗ or an amber flag.
+      wc.append(el('span', 'ltbl-who' + (who.length ? '' : ' none'), who.length ? who.join(', ') : 'not bound'));
+      tr.append(wc);
+      tr.append(el('td', 'mtbl-mode'));
+      // `.ltbl-samp`, exactly as the rung table uses — NOT `.mtbl-spec-t`. That class is nowrap +
+      // ellipsis, and a nowrap block contributes its full single-line width as min-content, so the
+      // line-height specimen forced the fill column to 590px while the short tracking one sat at 239
+      // (#369's trap, reproduced). `.ltbl-samp` wraps and caps at 52ch, which bounds the contribution
+      // and lets both tables settle on the same grid.
+      const pc = el('td', 'mtbl-fill mtbl-spec');
+      const pv = el('div', 'ltbl-samp');
+      preview(pv, v);
+      pc.append(pv);
+      tr.append(pc);
+      tb.append(tr);
+    }
+    tbl.append(tb); scroll.append(tbl); box.append(scroll);
+    sec.append(box);
+  };
+  // Same specimen strings the rung table uses, so a step reads identically whether you are looking at
+  // the ladder or at the rung bound to it.
+  ladderTable('Line height', LINE_HEIGHT_LADDER, (v) => `${v.toFixed(2)}×`,
+    (v) => ty.lineHeights.filter((l) => Math.abs(l.value - v) < 1e-9).map((l) => l.key),
+    (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
+  ladderTable('Letter spacing', LETTER_SPACING_LADDER, (v) => `${v}em`,
+    (v) => ty.letterSpacings.filter((l) => Math.abs(l.em - v) < 1e-9).map((l) => l.key),
+    (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
+  return sec;
+};
+
+/** The rung → ladder-step BINDINGS (Semantics tab). Mode-invariant values, so this section never
+ *  varies by mode; the per-mode re-point half is `renderRepoints`, below it on the same tab. Moved
+ *  off the primitives tab in #388 part B — a rung is a named role, not raw material, and sitting it
+ *  beside the ladder was what made the two read as one conflated thing. */
+const renderLeadingTracking = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Leading & tracking rungs', 'Each named rung binds one step of the fixed ladders on Primitives. Re-point a rung here and every style using it reflows — one binding each, shared by every mode unless a mode re-points it below. Which rung a category lands on is chosen for you from its size and role, and nudged per category on Text styles.');
+  // #363 — the shared `.mtbl` table format, but its GEOMETRY only, not its semantics. These rungs are
+  // mode-invariant primitives, so there is NO mode axis and the table gets no mode columns: adding them
+  // would assert a dimension these values do not have. Same rule that keeps Category setup and
+  // Responsive out of this format. The three fixed columns use the same width tokens as every other
+  // table on the page, which is the whole point — each tier tab reads on one column grid.
+  const ramp = (caption: string, steps: { key: string; val: number }[],
+    globalKey: string, modeField: 'lineHeights' | 'letterSpacings',
+    ladder: readonly number[], fmt: (v: number) => string,
+    preview: (host: HTMLElement, v: number) => void): void => {
+    const box = el('div', 'mtbl');
+    box.append(el('p', 'mtbl-cap', caption));
+    const scroll = el('div', 'mtbl-scroll');
+    const tbl = el('table', 'mtbl-tbl');
+    const thead = el('thead'), htr = el('tr');
+    htr.append(el('th', 'mtbl-stick', 'Rung'), el('th', 'mtbl-mode', 'Value'),
+      el('th', 'mtbl-mode', 'Used by'), el('th', 'mtbl-fill mtbl-spec', 'Specimen'));
+    thead.append(htr); tbl.append(thead);
+    const tb = el('tbody');
+    steps.forEach((s, idx) => {
+      const tr = el('tr');
+      const nc = el('td', 'mtbl-stick');
+      nc.append(el('span', 'mtbl-name mono', s.key));
+      tr.append(nc);
+      // #388 — a SELECT of ladder steps, not a free number. #384 made the engine refuse off-ladder
+      // values, and this control had kept `step="0.05"` from `min="0.8"`, so arrow-keying from 1.30
+      // landed on 1.35 — inside the deliberate 1.30→1.40 gap. The engine threw, `rebuild()` caught it,
+      // and the user saw the field still showing the value the system had just rejected. Binding to an
+      // existing step is what a locked ladder means; typing was never the right verb.
+      //
+      // Steps that would CROSS a neighbor are rendered disabled rather than omitted: the ramp order is
+      // a real constraint, and showing it grayed teaches it, where hiding it would look like the ladder
+      // is shorter than it is.
+      const vc = el('td', 'mtbl-mode');
+      const sel = selectEl('sm ltbl-sel');
+      sel.setAttribute('aria-label', `${caption} ${s.key}`);
+      const lo = idx > 0 ? steps[idx - 1].val : -Infinity;
+      const hi = idx < steps.length - 1 ? steps[idx + 1].val : Infinity;
+      for (const v of ladder) {
+        const o = optionEl(String(v), fmt(v), Math.abs(v - s.val) < 1e-9) as HTMLOptionElement;
+        if (v < lo - 1e-9 || v > hi + 1e-9) {
+          o.disabled = true;
+          o.title = `Would cross ${v < lo ? steps[idx - 1].key : steps[idx + 1].key} — the rung names are a relative-emphasis ramp, so they stay in order`;
+        }
+        sel.append(o);
+      }
+      // `applyFull`, not `apply`: TWO things in this table are derived from the rung values and neither
+      // survives a volatile-only repaint. The obvious one is this row's SPECIMEN — measured stale, the
+      // select read 1.00 while the sample still rendered at 1.05. The one that actually matters is the
+      // NEIGHBOURS' option ranges: `lo`/`hi` above come from `steps[idx±1]`, so moving `tight` re-derives
+      // what `snug` may legally select. Left stale, a now-illegal option stays clickable and the engine
+      // throws on it — a select whose whole purpose is making off-ladder values unreachable (#388).
+      // A surgical paint of just the specimen would have fixed the visible half and left the live one.
+      sel.onchange = () => { setPath(brandState, `${globalKey}.${s.key}`, Number(sel.value)); applyFull(); };
+      vc.append(sel);
+      tr.append(vc);
+      const who = [...new Set(ty.composites.filter((c) => (modeField === 'lineHeights' ? c.lineHeight : c.tracking) === s.key).map((c) => c.group))];
+      const wc = el('td', 'mtbl-mode');
+      wc.append(el('span', 'ltbl-who' + (who.length ? '' : ' none'), who.length ? who.join(', ') : 'not currently used'));
+      if (who.length) wc.title = who.join(', ');
+      tr.append(wc);
+      // The specimen must WRAP — a line-height rung is invisible on one line, so this is the one
+      // cell on the page that deliberately does not take `.mtbl-spec-t`'s nowrap+ellipsis.
+      const pc = el('td', 'mtbl-fill mtbl-spec');
+      const pv = el('div', 'ltbl-samp');
+      preview(pv, s.val);
+      pc.append(pv);
+      tr.append(pc);
+      tb.append(tr);
+    });
+    tbl.append(tb); scroll.append(tbl); box.append(scroll);
+    sec.append(box);
+  };
+  ramp('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })),
+    'typography.lineHeights', 'lineHeights', LINE_HEIGHT_LADDER, (v) => `${v.toFixed(2)}×`,
+    (host, v) => { host.textContent = 'Typography is the craft of endowing human language with a durable visual form.'; host.style.lineHeight = String(v); });
+  ramp('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })),
+    'typography.letterSpacings', 'letterSpacings', LETTER_SPACING_LADDER, (v) => `${v}em`,
+    (host, v) => { host.textContent = 'Typography & tracking'; host.style.letterSpacing = `${v}em`; host.style.fontSize = '16px'; });
+  return sec;
+};
+
+// ---- STYLES (semantics) ----------------------------------------------------
+
+/** Weight roles → numeric. A named role aliasing a primitive: semantic, and global —
+ *  `emphasis` is the same numeric in every category (#112). */
+/** One stepper cell. `canDown`/`canUp` come from the caller because the constraint is axis-specific:
+ *  a size ramp must stay strictly increasing and the engine REFUSES otherwise, while weight roles are
+ *  only warned about — so faking a hard bound on weights would invent a rule the engine does not have. */
+const stepCell = (o: {
+  px: number; canDown: boolean; canUp: boolean; pinned: boolean;
+  title?: (v: number) => string; label: string;
+  step: (dir: -1 | 1) => number | undefined; write: (v: number | undefined) => void;
+}): HTMLElement => {
+  const wrap = el('div', 'mcell');
+  const mk = (glyph: string, dir: -1 | 1, enabled: boolean) => {
+    const b = el('button', 'mstep', glyph) as HTMLButtonElement;
+    b.disabled = !enabled;
+    const to = o.step(dir);
+    b.title = enabled && to !== undefined ? `${o.px} → ${to}` : (dir < 0 ? 'Already at the lowest available' : 'Already at the highest available');
+    b.setAttribute('aria-label', `${o.label} ${dir < 0 ? 'down' : 'up'}`);
+    b.onclick = () => o.write(o.step(dir));
+    return b;
+  };
+  const val = el('span', 'mval mono' + (o.pinned ? ' pin' : ''), String(o.px));
+  val.title = o.title ? o.title(o.px) : (o.pinned ? 'Set here' : 'Following the baseline');
+  wrap.append(mk('−', -1, o.canDown), val, mk('+', 1, o.canUp));
+  if (o.pinned) {
+    const r = el('button', 'mreset', '↺') as HTMLButtonElement;
+    r.title = 'Follow the baseline again';
+    r.setAttribute('aria-label', `Reset ${o.label}`);
+    r.onclick = () => o.write(undefined);
+    wrap.append(r);
+  } else wrap.append(el('span', 'mreset-sp'));
+  return wrap;
+};
+
+/** The weight-role table — same shape and geometry as the size tables so they stack on one grid.
+ *  Rows are weight ROLES, not sizes: a role is one numeric shared by every category that uses it,
+ *  which is why this cannot be extra rows in the size table. */
+const WEIGHT_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+const renderWeightTable = (): HTMLElement => {
+  const ty = theme.typography;
+  const modes = rp.modes;
+  // #422 (reopened) — the specimen used to be one `<td>` built OUTSIDE the per-mode loop from the
+  // static baseline `w.value`, so it never moved for any per-mode edit. #424 (2026-08-03) responded by
+  // dropping the column outright, reasoning that "Weight roles by face" already answers "what does this
+  // weight look like" — but that table is deliberately MODE-BLIND (owner, 2026-08-01): its specimen is
+  // per FACE at the baseline numeric, never per mode, so it cannot show what THIS table is about — a
+  // role whose numeric itself differs per mode. Dropping the column traded a wrong answer for no answer.
+  //
+  // Fix, mirroring the pattern "Weight roles by face" DOES already establish — a specimen built INSIDE
+  // the per-column loop, from that column's own resolved value, rather than once after it (main.ts's
+  // per-face `td` loop below, ~line 3210). Applied here per mode instead of per face: each mode's cell
+  // gets its own "Ag 123" sample at that mode's actually-resolved weight (baseline override, mode-lever
+  // re-point, or fallback — the same `value` its stepper already computes and displays as a number).
+  // Living inside the existing mode column rather than a trailing column also sidesteps #424's overflow
+  // complaint — no new column, so the width #424 fixed stays fixed.
+  const textStack = ty.families.find((f) => f.group === 'body')?.stack.join(', ') ?? 'inherit';
+  const box = el('div', 'mtbl');
+  box.append(el('p', 'mtbl-cap', 'Weight roles'));
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', 'Role'));
+  for (const m of modes) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));
+    htr.append(th);
+  }
+  htr.append(el('th', 'mtbl-fill'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  for (const w of ty.weightRoles) {
+    const tr = el('tr');
+    const nameCell = el('td', 'mtbl-stick');
+    nameCell.append(el('span', 'mtbl-name mono', w.role));
+    tr.append(nameCell);
+    for (const m of modes) {
+      const isBase = m === 'light';
+      const override = isBase
+        ? (getPath(brandState, `typography.weightRoles.${w.role}`) as number | undefined)
+        : (getModeLever(m, `weights.${w.role}`) as number | undefined);
+      const value = override ?? (ty.weightRolesByMode?.[m]?.find((x) => x.role === w.role)?.value ?? w.value);
+      // The specimen: same "Ag 123" glyph sample the by-face table uses, at THIS column's resolved
+      // weight — never `w.value`, the row's baseline, which is exactly the bug #422 reported.
+      const spec = () => {
+        const samp = el('span', 'mtbl-spec-t tpw-samp wt-spec', 'Ag 123');
+        samp.style.fontWeight = String(value);
+        samp.style.fontFamily = textStack;
+        return samp;
+      };
+      // #423 — a derived mode accepts no levers, so its column is a READING of the resolved numeric,
+      // never a stepper. Rendering the stepper is what let a click reach the engine and print
+      // "mode 'hc-dark' is generate-only and not customizable" at the user.
+      if (!isBase && !modeIsEditable(m)) {
+        const td = el('td', 'mtbl-mode');
+        const self = el('span', 'mtbl-selfval mono', String(value));
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it resolves to ${value} and accepts no per-mode override.`;
+        td.append(self, spec());
+        tr.append(td);
+        continue;
+      }
+      const idx = WEIGHT_STEPS.indexOf(value);
+      const step = (dir: -1 | 1) => (idx >= 0 ? WEIGHT_STEPS[idx + dir] : undefined);
+      const td = el('td', 'mtbl-mode');
+      td.append(stepCell({
+        px: value,
+        // Ends of the scale only. Roles may cross each other — the engine allows it and the warning
+        // below says so — so a neighbor bound here would be a rule the system does not actually have.
+        canDown: step(-1) !== undefined,
+        canUp: step(1) !== undefined,
+        pinned: override !== undefined,
+        label: `${w.role} weight${isBase ? '' : ` in ${m}`}`,
+        title: (v) => `${v} — ${WEIGHT_NAME[v] ?? ''}`.trim(),
+        step,
+        write: (v) => {
+          if (isBase) setPath(brandState, `typography.weightRoles.${w.role}`, v);
+          else setModeLever(m, `weights.${w.role}`, v);
+          applyFull();
+        },
+      }), spec());
+      tr.append(td);
+    }
+    tr.append(el('td', 'mtbl-fill'));
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  return box;
+};
+
+const renderWeightRoles = (): HTMLElement => {
+  const ty = theme.typography;
+  const sec = palSection('Weight roles', 'Each role maps to one CSS numeric, shared by every category — a relative-emphasis ladder from subtle to max. Per category you choose which roles ship, not what they weigh.');
+  sec.append(renderWeightTable());
+  const eff = ty.weightRoles.map((w) => w.value);
+  if (eff.some((v, i) => i > 0 && v < eff[i - 1]))
+    sec.append(el('p', 'te-order-warn', '⚠ A heavier role now resolves lighter than one below it — the names read as relative emphasis (subtle → strong), so keeping them in order stays honest. A warning, not a block.'));
+  return sec;
+};
+
+/** One per-mode re-point table. Rows are RUNGS; a cell names the rung that mode substitutes — never
+ *  a number, because a mode may not redefine a primitive (the ladders are on Primitives). Selects,
+ *  not steppers: re-pointing is an enum choice with an Auto state, and doc 26 puts 3+ options in a
+ *  select. Same geometry tokens as the size and weight tables so all four line up on one grid. */
+const renderRepointTable = (
+  caption: string,
+  steps: { key: string; val: number | string; base?: string }[],
+  fmt: (v: number | string) => string,
+  modeField: 'lineHeights' | 'letterSpacings' | 'easings',
+  // The ladders re-point a rung at ANOTHER RUNG, so rows and options are the same set. Easing does
+  // not: rows are the four motion ROLES and options are the six CURVES (#522). Hence the seam —
+  // `options` defaults to `steps`, and `base` names the row's baseline target when it is not the row's
+  // own key (role `default` resolves to curve `standard`), which is what the self-map skip and the
+  // worth read-out must both key on rather than on the row name.
+  options?: { key: string; val: number | string }[],
+  // The ladders' rows ARE rungs; easing's are motion roles. A header reading "Rung" over a column of
+  // role names is the kind of wrong only a screenshot catches.
+  rowLabel = 'Rung',
+  // When the baseline binding lives in ANOTHER table (the two ladders), Light is a read-out and this
+  // stays undefined. Easing has no such table — its role→curve mapping was engine-fixed — so it passes
+  // a writer and Light becomes a select like every other column. Without this a mode could deviate
+  // from a baseline nobody could set: you could change Dark but not Light, which is backwards.
+  setBaseline?: (rowKey: string, curve: string | undefined) => void,
+): HTMLElement => {
+  const opts = options ?? steps;
+  const modes = rp.modes;
+  const box = el('div', 'mtbl');
+  box.append(el('p', 'mtbl-cap', caption));
+  const scroll = el('div', 'mtbl-scroll');
+  const tbl = el('table', 'mtbl-tbl');
+  const thead = el('thead'), htr = el('tr');
+  htr.append(el('th', 'mtbl-stick', rowLabel));
+  for (const m of modes) {
+    const th = el('th', 'mtbl-mode');
+    th.append(document.createTextNode(MODE_LABEL[m] ?? m));
+    if (m === 'light') th.append(el('span', 'mtbl-ro', ' baseline'));
+    else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));   // #423
+    htr.append(th);
+  }
+  htr.append(el('th', 'mtbl-fill'));
+  thead.append(htr); tbl.append(thead);
+  const tb = el('tbody');
+  for (const s of steps) {
+    const tr = el('tr');
+    const nameCell = el('td', 'mtbl-stick');
+    nameCell.append(el('span', 'mtbl-name mono', s.key));
+    tr.append(nameCell);
+    for (const m of modes) {
+      const td = el('td', 'mtbl-mode');
+      if (m === 'light' && setBaseline) {
+        // Light IS the baseline, and here it is settable: this select writes the brand-wide binding
+        // every other column is a substitution for.
+        const sel = selectEl('sm');
+        for (const t of opts) sel.append(optionEl(t.key, t.key, (s.base ?? s.key) === t.key));
+        sel.setAttribute('aria-label', `${s.key} baseline`);
+        sel.onchange = () => { setBaseline(s.key, sel.value); applyFull(); };
+        td.append(sel);
+        const worth = opts.find((t) => t.key === (s.base ?? s.key));
+        if (worth) td.append(el('span', 'mtbl-worth mono', fmt(worth.val)));
+      } else if (m === 'light') {
+        // Light IS the baseline, so its cell can only ever resolve to the row's own rung. Showing the
+        // VALUE rather than repeating the name earns the cell its width: it is the number every other
+        // cell in the row is a substitution for.
+        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
+        self.title = `The baseline. Change which ladder step ${s.key} binds in the table above — it is one binding, shared by every mode.`;
+        td.append(self);
+      } else if (!modeIsEditable(m)) {
+        // #423 — a derived mode holds no levers, so it can only ever resolve to the rung itself.
+        // Reading, not a select: the select's write reached the engine and printed its internal
+        // "generate-only and not customizable" string at the user.
+        const self = el('span', 'mtbl-selfval mono', fmt(s.val));
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it keeps the ${s.key} rung and accepts no per-mode re-point.`;
+        td.append(self);
+      } else {
+        const ov = getModeLever(m, `${modeField}.${s.key}`) as string | undefined;
+        // A set cell carries the same "pinned" weight the stepper tables give `.mval.pin`, so a scan
+        // down the column finds the overrides without reading every label.
+        const sel = selectEl(ov ? 'sm set' : 'sm');
+        // Rung NAMES only, no values. A closed select renders the same text it lists, and the shared
+        // column width ellipsised "relaxed · 1.65×" down to "relaxed · 1..." — truncating the one
+        // thing a cell must always say. The values are one column to the left, on every row.
+        sel.append(optionEl('', 'Auto', !ov));
+        for (const t of opts) {
+          if (t.key === (s.base ?? s.key)) continue;           // a self-map is a no-op; don't offer it
+          sel.append(optionEl(t.key, t.key, ov === t.key));
+        }
+        sel.setAttribute('aria-label', `${s.key} in ${MODE_LABEL[m] ?? m}`);
+        sel.onchange = () => { setModeLever(m, `${modeField}.${s.key}`, sel.value || undefined); applyFull(); };
+        td.append(sel);
+        // #388 — the VALUE this rung is worth in this mode, under the select. The complaint that opened
+        // #377 was that a cell reading "rung tight → rung snug" re-points a rung into its own axis and
+        // never says what it MEANS; the honest reading is "in Dark, tight = 1.15". It goes on a second
+        // LINE rather than into the option text because a closed select renders exactly what it lists,
+        // and "relaxed · 1.65×" ellipsised to "relaxed · 1..." at this column width — truncating the one
+        // thing the cell must always say. Height is the affordable axis here; width is not.
+        const worth = opts.find((t) => t.key === (ov ?? s.base ?? s.key));
+        if (worth) td.append(el('span', 'mtbl-worth mono' + (ov ? ' set' : ''), fmt(worth.val)));
+      }
+      tr.append(td);
+    }
+    tr.append(el('td', 'mtbl-fill'));
+    tb.append(tr);
+  }
+  tbl.append(tb); scroll.append(tbl); box.append(scroll);
+  return box;
+};
+
+/** Hidden entirely for a single-mode brand: with no second mode there is nothing to re-point to, and
+ *  every cell would be the read-only baseline. */
+const renderRepoints = (): HTMLElement | null => {
+  if (rp.modes.length < 2) return null;
+  const ty = theme.typography;
+  const sec = palSection('Leading & tracking per mode', 'A mode can swap one rung for another — a dark theme that wants everything a step looser, a compact mode that tightens. Rows are the rungs bound above, with what each is worth in the baseline column; every other column names the rung that mode substitutes. “Auto” keeps the rung itself.');
+  sec.append(renderRepointTable('Line height', ty.lineHeights.map((l) => ({ key: l.key, val: l.value })), (v) => `${v}×`, 'lineHeights'));
+  sec.append(renderRepointTable('Letter spacing', ty.letterSpacings.map((l) => ({ key: l.key, val: l.em })), (v) => `${v}em`, 'letterSpacings'));
+  return sec;
+};
+
+/** Category setup — the composite skeleton. Each ticked weight multiplies out into real
+ *  styles in the ramp; the leading/tracking nudges shift the engine's size-sensitive curve
+ *  for that category rather than flattening it to one value. */
+const renderCategorySetup = (): HTMLElement => {
+  const ty = theme.typography;
+  const roleOrder = ty.weightRoles.map((w) => w.role);
+  const sec = palSection('What each category is made of', 'Choose the weight roles each category ships, nudge its leading and tracking, and decide whether it gets italic and underlined-link variants. Each ticked weight multiplies out into a real style at every size in that category. The face is shown for context and set on Semantics.');
+  // #416 — everything in this table is MODE-INVARIANT by contract (#296): which weights a category
+  // ships and whether it gets italic/link decide which styles EXIST, and a mode never adds or removes
+  // a token. The nudges are brand-level too. It used to disable every control outside Light, which
+  // stated that correctly but illegibly — a greyed checkbox with the reason in a note above it. The
+  // rule is now stated positively and the controls are always live, which is also what stops them
+  // being stranded now that the mode bar has left this page (`currentMode` is global and can still be
+  // Dark from another page, which would have left this table permanently dead).
+  sec.append(el('p', 'te-shared-note', 'Shared across every mode. These choices decide which styles exist, and a mode never adds or removes one — it only overrides values (face, weight numerics, sizes, rungs), which is done on Semantics and above.'));
+  const italicG = new Set(ty.composites.filter((c) => c.italic).map((c) => c.group));
+  const linkG = new Set(ty.composites.filter((c) => c.link).map((c) => c.group));
+  const wrap = el('div', 'cs-wrap');
+  const table = el('table', 'cs-table');
+  const head = el('tr');
+  head.append(el('th', undefined, 'Category'), el('th', undefined, 'Face'));
+  // Header casing is SOURCE-ONLY tidying: every table header is `text-transform:uppercase`, so the
+  // rendered page was already consistent and none of this is visible. Measured before assuming —
+  // an earlier pass here added a `mono` class on the strength of "these are token identifiers", which
+  // rendered ui-monospace beside -apple-system in one header row. That was the only user-visible
+  // change in the whole casing question, and it made things worse. Reverted.
+  for (const r of roleOrder) head.append(el('th', 'cs-c', r));
+  head.append(el('th', 'cs-c', 'Leading'), el('th', 'cs-c', 'Tracking'), el('th', 'cs-c', 'Italic'), el('th', 'cs-c', 'Link'));
+  table.append(head);
+  const cb = (checked: boolean, onChange: (v: boolean) => void): HTMLInputElement => {
+    const c = el('input') as HTMLInputElement;
+    c.type = 'checkbox'; c.checked = checked;
+    c.onchange = () => onChange(c.checked);
+    return c;
+  };
+  // ±2 rungs, not ±1. The engine has always accepted `[-5, 5]` and `shiftRung` clamps at the ends of
+  // the ramp, so widening the range is a UI change only — three options were under-offering what the
+  // system could already do. The range is now DERIVED per category rather than fixed at ±2 (#377): a
+  // flat cap was wrong in both directions at once — it offered dead steps for categories sitting
+  // mid-ramp (from `normal`, +3/+4/+5 all clamp to `loose`) while hiding live ones for categories
+  // sitting at an end (`display` derives `tight`/`snug`, so reaching `loose` needs +5 and was simply
+  // unreachable). Both are the same mistake: guessing the range instead of computing it.
+  /** Steps that actually MOVE at least one composite in this category. A category can derive several
+   *  rungs (title spans three size bands), so the range runs from "enough negative to floor the
+   *  highest-derived composite" to "enough positive to top out the lowest". Engine-bounded to ±5. */
+  const nudgeSteps = (group: string, field: 'leadingShift' | 'trackingShift'): number[] => {
+    const keys: readonly string[] = field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS;
+    const idx = ty.composites.filter((c) => c.group === group)
+      .map((c) => keys.indexOf(derivedRungFor(field, c.group as any, c.sizePx)))
+      .filter((i) => i >= 0);
+    if (!idx.length) return [0];
+    const lo = Math.max(-5, -Math.max(...idx));
+    const hi = Math.min(5, (keys.length - 1) - Math.min(...idx));
+    const out: number[] = [];
+    for (let v = lo; v <= hi; v++) out.push(v);
+    return out;
+  };
+  /** #411 — a SIGNED DELTA, carrying no word that is also a rung name.
+   *
+   *  The old labels were `2 tighter · tighter · default · looser · …`, and `tighter`/`wider` are
+   *  literally `LETTER_SPACING_KEYS` entries: on Semantics `tighter` names THE TIGHTEST RUNG, on this
+   *  tab the same word meant "shift one rung tighter". Same word, two meanings, one tab apart.
+   *
+   *  Rung names cannot go in the select instead, because the control is a SHIFT and two categories
+   *  derive TWO rungs (title: compact at 18–24px, snug at 28–40px). `cozy` on title would be
+   *  ambiguous — `compact→cozy` (+1) or `snug→cozy` (+2)? — and binding the category to one rung
+   *  would flatten the size-sensitivity the nudge exists to preserve. */
+  const nudgeLabel = (v: number): string => (v === 0 ? 'default' : `${v < 0 ? '\u2212' : '+'}${Math.abs(v)}`);
+  /** What the delta RESOLVES TO — the concreteness the rung names would have given, and honest for a
+   *  two-band category in a way no single label can be. Computed through the engine's own `shiftRung`
+   *  rather than a local copy of its clamp, so this line cannot disagree with what the build does.
+   *
+   *  RAMP ORDER (tightest first), matching how both ladders read on Primitives and Semantics. Note
+   *  that #411's worked example wrote `compact–snug`, which is SIZE order — the same two rungs, listed
+   *  the other way. Ramp order is the issue's own stated lean and the one every other rung list on the
+   *  page already uses; it is a one-line change to `sort` if the example was the intent.
+   *
+   *  Values stay OFF this line: `compact 1.25×–snug 1.15×` measured 154.2px against a 91.3px cell.
+   *  They live on Semantics, where the per-mode table already shows them. */
+  const resolvedRungs = (group: string, field: 'leadingShift' | 'trackingShift', shift: number): string => {
+    const keys: readonly string[] = field === 'leadingShift' ? LINE_HEIGHT_KEYS : LETTER_SPACING_KEYS;
+    const idx = [...new Set(ty.composites.filter((c) => c.group === group)
+      .map((c) => keys.indexOf(shiftRung(keys, derivedRungFor(field, c.group as any, c.sizePx), shift)))
+      .filter((i) => i >= 0))].sort((a, b) => a - b);
+    return idx.map((i) => keys[i]).join('\u2013');
+  };
+  const nudge = (group: string, field: 'leadingShift' | 'trackingShift'): HTMLElement => {
+    const cur = (getPath(brandState, `typography.${field}.${group}`) as number | undefined) ?? 0;
+    const wrap = el('div', 'cs-nudgew');
+    const sel = selectEl('sm cs-nudge');
+    const steps = nudgeSteps(group, field);
+    for (const v of steps) sel.append(optionEl(String(v), nudgeLabel(v), v === cur));
+    // A hand-authored shift of ±3..±5 is legal in the engine and would otherwise match no option, so
+    // the select would show the first one and rewrite the value on the next change. Same intent as
+    // `renderPerModeSelect`'s "(custom)" fallback: surface it rather than silently losing it. The
+    // resolved line needs no such special case — it is computed from the shift, not enumerated.
+    if (!steps.includes(cur)) sel.append(optionEl(String(cur), nudgeLabel(cur), true));
+    // `.set` marks a category that has been moved off its derived curve, the same weight the per-mode
+    // tables give an override.
+    const worth = el('span', 'mtbl-worth mono' + (cur !== 0 ? ' set' : ''), resolvedRungs(group, field, cur));
+    sel.onchange = () => {
+      const n = Number(sel.value);
+      setPath(brandState, `typography.${field}.${group}`, n === 0 ? undefined : n);
+      // Written HERE as well as re-derived on the next paint. `apply()` repaints only the volatile
+      // region, and a derived affordance that waits for the next full paint lags the value it
+      // describes — measured in #415, where the `.set` class did exactly that. The sizes this reads
+      // are untouched by a nudge, so computing from the current theme is correct.
+      worth.textContent = resolvedRungs(group, field, n);
+      worth.classList.toggle('set', n !== 0);
+      apply();
+    };
+    wrap.append(sel, worth);
+    return wrap;
+  };
+  for (const g of TYPE_GROUP_ORDER) {
+    const comps = ty.composites.filter((c) => c.group === g);
+    const tr = el('tr');
+    const nameTd = el('td');
+    // Text styles was the ONLY tab that never named a token — and it is the tab that defines `type.*`.
+    // Primitives, Semantics and Preview all carry pills; Preview lists `type.display.3xl.strong` while
+    // the tab that CREATES it said nothing. A category is a family of composites rather than one leaf, so the pill names the
+    // NODE they are emitted under. It carried a trailing `*` first, which `.tpill`'s `direction:rtl`
+    // (left-ellipsis for long paths) reordered to the front — it rendered `*.type.display`. The count
+    // above it already says this is a set, and the tooltip says so in words.
+    nameTd.append(el('div', 'cs-name mono', g), el('div', 'cs-count', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`));
+    const catPill = tokenPill(`type.${g}`);
+    catPill.title = `Every style in this category is emitted under type.${g} — ${comps.length} of them`;
+    nameTd.append(catPill);
+    tr.append(nameTd);
+    // #415 — READ-ONLY. This was a select over the display/text/mono ROLES, and it is the control that
+    // exposed the tier as a mistake: with every role on one face it rendered several options all
+    // labelled "Inter" (the values were roles, the labels were faces), so picking one was guesswork.
+    // Collapsing the tier removes the choice from here rather than relabelling it — the category now
+    // binds a face directly, and `font.family.<category>` is a SEMANTIC token, so its editor belongs on
+    // Semantics next to the other semantics. Two live editors for one value is the state the mode-bar
+    // overlap already put this page in (#416); this does not add a third.
+    //
+    // It stays as a resolved READING because it is real context for the row — the weight set and the
+    // leading nudge beside it are choices you make knowing which face they land on — and because the
+    // per-mode value is genuinely different information from the baseline.
+    // The BASELINE face. Per-mode faces are a column axis on Semantics now (#416), so resolving this
+    // against `currentMode` would report a value this page no longer has a mode context for.
+    const faceOf = (cat: string): string => ty.families.find((f) => f.group === cat)?.stack[0] ?? '—';
+    const ftd = el('td');
+    const fname = el('div', 'cs-face', faceOf(g));
+    fname.title = ty.families.find((f) => f.group === g)?.stack.join(', ') ?? '';
+    ftd.append(fname);
+    ftd.append(el('div', 'cs-count', 'Set on Semantics'));
+    tr.append(ftd);
+    const has = new Set(comps.map((c) => c.weightRole));
+    for (const r of roleOrder) {
+      const td = el('td', 'cs-c');
+      td.append(cb(has.has(r), () => {
+        const next = roleOrder.filter((x) => (x === r ? !has.has(r) : has.has(x)));
+        setPath(brandState, `typography.weights.${g}`, next.length ? next : undefined); apply();
+      }));
+      tr.append(td);
+    }
+    const ltd = el('td', 'cs-c'); ltd.append(nudge(g, 'leadingShift')); tr.append(ltd);
+    const ttd = el('td', 'cs-c'); ttd.append(nudge(g, 'trackingShift')); tr.append(ttd);
+    const itd = el('td', 'cs-c');
+    itd.append(cb(italicG.has(g), (v) => {
+      const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : italicG.has(x)));
+      setPath(brandState, 'typography.italics', next); apply();
+    }));
+    tr.append(itd);
+    const ktd = el('td', 'cs-c');
+    ktd.append(cb(linkG.has(g), (v) => {
+      const next = TYPE_GROUP_ORDER.filter((x) => (x === g ? v : linkG.has(x)));
+      setPath(brandState, 'typography.links', next); apply();
+    }));
+    tr.append(ktd);
+    table.append(tr);
+  }
+  wrap.append(table);
+  sec.append(wrap);
+  // #411 — the sign convention has to be stated somewhere, since the labels are now bare deltas.
+  // `innerHTML`, not `el`'s text argument: `el` escapes, so the markup would render literally.
+  const nudgeNote = el('p', 'sl-note');
+  nudgeNote.innerHTML = 'The leading and tracking nudges shift that category’s whole curve: <b>+1 opens it by one rung, −1 tightens it</b>. Bigger headings keep tightening — they start from a different place. The line under each control names the rung the category lands on, or both rungs where it spans two size bands.';
+  sec.append(nudgeNote);
+  return sec;
+};
+// ---- object-value editors (#97) --------------------------------------------
+// Two BrandInput levers are objects (`surfaces`, `shadow.tint`) that renderControl can only
+// show read-only as "configured". These bespoke sub-forms make them editable — reading the
+// current value from brandState (falling back to the engine default), writing the object
+// fields via setPath, and re-resolving so the specimen repaints. (The third object lever,
+// typography.families, is covered by the typography editor above.)
+
+/** The neutral ramp steps a page surface / contrast floor can name (base can also be white/black).
+ *
+ *  Read off the brand's own neutral palette rather than hardcoded. The hardcoded list this replaces was
+ *  the same twenty steps written WITHOUT their zero padding — so the Backgrounds selects offered
+ *  "Neutral 50" while the fill selects three rows below, reading the palette directly, offered
+ *  "neutral 050" for the identical step. `050` is the one that matches the token (palette.neutral.050).
+ *  The stored value stays numeric (`SurfacesConfig.base` is a number, and Number('050') is 50); only the
+ *  label and the list's provenance change, so a brand whose ramp differs now gets its own steps. */
+const neutralStepOptions = (): Array<{ value: number; label: string }> => {
+  const pal = theme.palettes.find((p) => p.palette === theme.roleToPalette.neutral);
+  return (pal?.steps ?? []).map((s) => ({ value: Number(s.key), label: `${theme.roleToPalette.neutral} ${s.key}` }));
+};
+
+// ---- Surfaces & fills: full-width ROW layout (Layout A, #68) ----------------
+// One row per role: [56×56 swatch] [name + token pill (+desc)] [controls] [whitespace] [example, badge below].
+// Controls left / static content right; the example is locked to the right edge at a single fixed size for
+// every role (backgrounds/fills/text), with its contrast badge directly beneath. Replaces the old fill-grid
+// cards. Rows live in the stable head (rebuilt on applyFull — every surfaces edit calls applyFull).
+type SfRowOpts = { swatchHex: string; name: string; tokenPath: string; desc?: string; controls: HTMLElement; example: HTMLElement; badge?: HTMLElement; railNote?: string };
+const sfRow = (o: SfRowOpts): HTMLElement => {
+  const row = el('div', 'sf-row');
+  const sw = el('div', 'sf-sw'); sw.style.background = o.swatchHex;
+  const id = el('div', 'sf-id');
+  id.append(el('div', 'sf-name', o.name), tokenPill(o.tokenPath));
+  if (o.desc) id.append(el('p', 'sf-desc', o.desc));
+  const right = el('div', 'sf-right');
+  right.append(o.example);
+  if (o.badge) right.append(o.badge);
+  if (o.railNote) right.append(el('span', 'sf-railnote', o.railNote));
+  row.append(sw, id, o.controls, el('div'), right);   // col 4 (empty div) is the whitespace spacer
+  return row;
+};
+const sfCtl = (...blocks: HTMLElement[]): HTMLElement => { const c = el('div', 'sf-ctl'); c.append(...blocks); return c; };
+const sfCtlBlock = (label: string, control: HTMLElement): HTMLElement => { const b = el('div', 'sf-ctlblock'); b.append(el('span', 'pfk', label), control); return b; };
+// The text color is the resolved role for THIS surface, not a hardcoded invert flag — a custom
+// mode's Primary can be either light or dark, and a hardcoded dark ink went invisible on a dark
+// custom-mode surface (near-black on near-black). `textHex` is `text.primary` (against
+// background.primary) or `text.on-inverse` (against background.inverse.primary) — whichever the
+// caller's surface actually is.
+//
+// No accent dot any more (owner request). It painted `foreground.brand` on the Primary specimen and
+// `foreground.inverse.primary` on the Inverse one, so the two swatches were showing DIFFERENT roles
+// under identical treatment — and neither is what this section edits. On the inverse band the dot was
+// near-invisible besides (a dark neutral on a near-black band), which is how it read as an unidentifiable
+// smudge. The specimen's job here is to show the SURFACE and that its ink is legible on it; a swatch for
+// a role edited on another page was borrowing this one's evidence to say something else.
+const sfExSurface = (bg: string, label: string, textHex: string): HTMLElement => {
+  const ex = el('div', 'sf-ex sf-ex-surface'); ex.style.background = bg; ex.style.color = textHex;
+  ex.append(el('span', undefined, label)); return ex;
+};
+const sfExFill = (bg: string, label: string, fg?: string): HTMLElement => {
+  const ex = el('div', 'sf-ex sf-ex-fill'); ex.style.background = bg; if (fg) ex.style.color = fg; ex.textContent = label; return ex;
+};
+const sfExText = (inkHex: string, sample: string, surfaceHex: string): HTMLElement => {
+  const ex = el('div', 'sf-ex sf-ex-text'); ex.style.background = surfaceHex; ex.style.color = inkHex; ex.textContent = sample; return ex;
+};
+
+// A per-section contrast table (doc 26: contrast in context) built from the resolved roles across every
+// mode — the same numbers the per-row badges show for the active mode, sliced to this section's roles.
+// The consolidated cross-system table stays in Preview. Returns null when the section governs no pairs
+// (e.g. Backgrounds, whose surfaces are grounds — judged by the text/fills that sit on them).
+const sectionContrastRoles = (intro: string, roleLabels: Array<[string, string]>): HTMLElement | null => {
+  const all = resolveAllModes(theme) as Array<{ mode: Mode; roles: Record<string, { hex: string; ratio?: number; min?: number } | undefined> }>;
+  const graded = ([role]: [string, string]): boolean => all.some((m) => { const r = m.roles[role]; return !!r && r.min != null && r.min > 0 && r.ratio != null; });
+  const rows = roleLabels.filter(graded);
+  if (!rows.length) return null;
+  const det = el('details', 'contracts') as HTMLDetailsElement;
+  const sum = el('summary', 'contracts-sum');
+  sum.append(el('span', 'contracts-t', 'Contrast in this section'), el('span', 'contracts-hint', `${rows.length} pairs · all modes · the full system table lives in Preview`));
+  det.append(sum, el('p', 'np-note', intro));
+  const table = el('table', 'ctable');
+  const thead = el('tr'); thead.append(el('th', undefined, 'Role'));
+  for (const m of rp.modes) thead.append(el('th', 'mcol', MODE_LABEL[m] ?? m));
+  table.append(thead);
+  for (const [role, label] of rows) {
+    const tr = el('tr');
+    const td = el('td', 'pair'); td.append(el('span', 'pair-path mono', `color.${role}`), el('span', 'pair-sub', label)); tr.append(td);
+    for (const m of rp.modes) {
+      const cell = el('td', 'mcol');
+      const r = all.find((x) => x.mode === m)?.roles[role];
+      if (r && r.min != null && r.min > 0 && r.ratio != null) { const pass = r.ratio >= r.min; cell.append(el('span', `dot ${pass ? 'ok' : 'no'}`), el('span', 'ratio', r.ratio.toFixed(2))); }
+      else cell.textContent = '—';
+      tr.append(cell);
+    }
+    table.append(tr);
+  }
+  det.append(table);
+  return det;
+};
+/** #97 — page-surfaces editor. `surfaces.<mode>.{base,floorStep}` sets the primary surface the
+ *  preview paints on (and the worst-case neutral the saturated foregrounds validate against).
+ *  base = white / black / a tinted neutral step; floorStep is auto (engine-derived) unless pinned. */
+// Backgrounds (docs/24 #61) — mode-SCOPED like the rest of the Surfaces page (Text below is too): the
+// ACTIVE mode's primary surface (editable) + its inverse (derived, read-only), not both modes at once.
+// Switch modes on the header strip to set each mode's surface. Only renders on customizable modes
+// (renderScreen shows the generated note on a derived mode), so `currentMode` is light/dark/custom here.
+const renderSurfacesEditor = (): HTMLElement => {
+  const mode = currentMode;
+  const label = MODE_LABEL[mode] ?? mode;
+  const sec = palSection('Backgrounds', `The surface ${label} paints on (Primary) and its contrasting Inverse band — both set per mode. Switch modes above to set each mode’s surface.`);
+  const opt = (sel: HTMLSelectElement, v: string, t: string, on: boolean): void => { sel.append(optionEl(v, t, on)); };
+  const roles = (resolveAllModes(theme).find((x) => x.mode === mode)?.roles ?? {}) as Record<string, { hex: string; path?: string } | undefined>;
+  const primHex = roles['background.primary']?.hex ?? (mode === 'dark' ? '#000000' : '#ffffff');
+  // The resolved ink for THIS surface — `text.primary` is measured against `background.primary`
+  // exactly, so it's always legible here regardless of whether the mode's Primary is light or
+  // dark. Previously a hardcoded near-black went invisible on a dark custom mode.
+  const primText = roles['text.primary']?.hex ?? (mode === 'dark' ? '#f2f2f6' : '#191920');
+  // Primary — the base surface is only configurable for light/dark (`SurfacesConfig`); custom modes seed
+  // their surface from a base mode, so their Primary is shown read-only. (Inline check so TS narrows `mode`.)
+  if (mode === 'light' || mode === 'dark') {
+    const cur = brandState.surfaces?.[mode as 'light' | 'dark'];
+    const dflt: 'white' | 'black' = mode === 'dark' ? 'black' : 'white';
+    const baseVal = cur?.base ?? dflt;
+    const nOpts = neutralStepOptions();
+    const base = selectEl('cap');
+    opt(base, 'white', 'White', baseVal === 'white');
+    opt(base, 'black', 'Black', baseVal === 'black');
+    for (const s of nOpts) opt(base, String(s.value), s.label, baseVal === s.value);
+    base.onchange = () => { setPath(brandState, `surfaces.${mode}.base`, base.value === 'white' || base.value === 'black' ? base.value : Number(base.value)); applyFull(); };
+    // Contrast floor — the worst-case neutral bold fills validate against (auto unless pinned).
+    const floorHint = 'The worst-case neutral the engine validates bold fills against on this surface — the mode’s contrast baseline. Auto derives it from the base surface; pin a step to force a specific reference.';
+    const floor = selectEl('cap'); floor.title = floorHint;
+    // "Auto" names the floor it derived, like every other Auto on the page. The floor is not on the
+    // theme directly, but every contrast-gated role records it as the surface it was measured `against`
+    // — so a bold fill, whose whole definition is "clears its ratio on the floor", is the source.
+    const autoFloor = (roles['foreground.brand'] as { against?: string } | undefined)?.against;
+    opt(floor, '', autoFloor ? `Auto · ${autoFloor.replace('.', ' ')}` : 'Auto', cur?.floorStep == null);
+    for (const s of nOpts) opt(floor, String(s.value), s.label, cur?.floorStep === s.value);
+    floor.onchange = () => { setPath(brandState, `surfaces.${mode}.floorStep`, floor.value === '' ? undefined : Number(floor.value)); applyFull(); };
+    const floorBlock = sfCtlBlock('Contrast floor', floor); (floorBlock.firstChild as HTMLElement).title = floorHint;
+    sec.append(sfRow({
+      swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
+      // The section head already says "the surface <mode> paints on"; the row says what it can be SET to
+      // rather than repeating the definition three lines later.
+      desc: 'White, black, or a tinted neutral step.',
+      controls: sfCtl(sfCtlBlock('Base surface', base), floorBlock),
+      example: sfExSurface(primHex, 'Primary background', primText),
+    }));
+  } else {
+    sec.append(sfRow({
+      swatchHex: primHex, name: 'Primary', tokenPath: 'color.background.primary',
+      desc: 'Seeded from this custom mode’s base.',
+      controls: sfCtl(sfCtlBlock('Base surface', el('span', 'sf-derived', 'Seeds from its base mode'))),
+      example: sfExSurface(primHex, 'Primary background', primText),
+    }));
+  }
+
+  // Inverse — the contrasting band (dark heroes / inverse sections). ADJUSTABLE per mode via the A1
+  // override layer: "Auto" keeps the generated pairing; a neutral step repoints `background.inverse.primary`
+  // (the engine re-derives its contrast and warns, never blocks). `background.inverse.primary` is generated
+  // for every mode, so the row always renders — the `if` is a defensive guard.
+  const invHex = roles['background.inverse.primary']?.hex;
+  if (invHex) {
+    const nPal = theme.roleToPalette.neutral;
+    const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
+    const cur = brandState.overrides?.[mode]?.['background.inverse.primary']?.step;
+    // The shared `stepPicker`, so "Auto" NAMES the step it resolved to (`Auto · neutral 950`) exactly
+    // as the fill rows below do. A bare "Auto" is the same control minus the one fact it is holding.
+    // `baselineStepOf` (#330), not `stepKeyOf(r.path)` — the live role already reflects `cur` when an
+    // override is active, so naming it off `r.path` would have Auto echo the very override it clears.
+    const invSel = stepPicker(nPal, nSteps, baselineStepOf('background.inverse.primary', mode),
+      typeof cur === 'string' ? cur : undefined,
+      (step) => setFillOverride('background.inverse.primary', nPal, step));
+    // `text.on-inverse` is measured against `background.inverse.primary` exactly — the correct ink
+    // for this band regardless of which mode's inverse this is.
+    const invText = roles['text.on-inverse']?.hex ?? '#f2f2f6';
+    sec.append(sfRow({
+      swatchHex: invHex, name: 'Inverse', tokenPath: 'color.background.inverse.primary',
+      desc: 'The contrasting band for dark heroes / inverse sections — Auto follows the generated pairing; pick a neutral step to set it for this mode.',
+      // "Step", not "Base surface" — the Primary row's "Base surface" picks white/black/a neutral, this
+      // repoints a step through the override layer, which is what every other row on the page calls "Step".
+      controls: sfCtl(sfCtlBlock('Step', invSel)),
+      example: sfExSurface(invHex, 'Primary Inverse Background', invText),
+    }));
+  }
+  return sec;
+};
+
+/** A2c — per-mode foreground/text override. The text-color ladder (text.primary/secondary/tertiary) is
+ *  engine-derived and contrast-placed; this repoints a role to a specific NEUTRAL step for the current
+ *  mode via the A1 override layer. Symmetric across customizable modes (light + dark both write their
+ *  own override); "Auto" = the generated default; a pick below the text floor warns (never blocks). */
+const FG_ROLES: [string, string][] = [['text.primary', 'Primary text'], ['text.secondary', 'Secondary text'], ['text.tertiary', 'Tertiary text']];
+
+/* The other TWENTY `color.text.*` roles, which this section governs and did not show. The neutral ladder
+   above is three of twenty-three; the section titled "Text" was silently a section about neutral ink.
+   Split by what a control could mean, because "editable vs derived" turns out to be the wrong axis —
+   NOTHING here is authored. Even the ladder's picker sets no color: it repoints the role to a palette
+   STEP and the engine re-gates from there. So every row is derived, and the real question is which ones
+   have a step worth repointing.
+
+   PALETTE-ANCHORED — the role sits on its own palette at a contrast-gated step, so the same repoint the
+   ladder already offers applies, just keyed to that role's palette instead of neutral (exactly what the
+   Foreground fills editor does). `link.default` is here and its states are not: `modes.ts` walks hover
+   +1 and visited +2 off this base, so repointing the base moves the set coherently and repointing the
+   states individually would let them cross. */
+const TEXT_PALETTE_ROLES: Array<{ role: string; label: string; paletteKey: string; desc: string; sample: string }> = [
+  { role: 'text.brand', label: 'Brand ink', paletteKey: 'brand', desc: 'Brand-colored text — the ink form of the brand color, not the fill.', sample: 'Brand emphasis' },
+  { role: 'text.success', label: 'Success ink', paletteKey: 'success', desc: 'Success message text.', sample: 'Saved successfully' },
+  { role: 'text.warning', label: 'Warning ink', paletteKey: 'warning', desc: 'Warning message text.', sample: 'Check this before continuing' },
+  { role: 'text.danger', label: 'Danger ink', paletteKey: 'danger', desc: 'Error message text.', sample: 'Something went wrong' },
+  { role: 'text.info', label: 'Info ink', paletteKey: 'info', desc: 'Informational message text.', sample: 'For your reference' },
+  { role: 'text.brand-subtle', label: 'Brand ink, muted', paletteKey: 'brand', desc: 'The quiet variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Brand, quietly' },
+  // All five muted rows state the SAME contract, because the engine gives them the same one: they come
+  // off one `T(\`${r}-subtle\`, …, p.tertiaryMin)` loop in `modes.ts`, so the bar is identical per role.
+  // Four of them used to read "The quiet success variant." and so on (#578 nit 1) — never false, since
+  // they claimed nothing about gating, but the brand row explained the large-text bar and its four
+  // siblings didn't, so reading down the list you got the rule once and then four rows that looked like
+  // a different kind of token. Stated per row rather than hoisted into the section blurb: the badge is
+  // per row, and a reader checking one role should not have to scroll to learn what its bar is.
+  { role: 'text.success-subtle', label: 'Success ink, muted', paletteKey: 'success', desc: 'The quiet success variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Success, quietly' },
+  { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning', desc: 'The quiet warning variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Warning, quietly' },
+  { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger', desc: 'The quiet danger variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Danger, quietly' },
+  { role: 'text.info-subtle', label: 'Info ink, muted', paletteKey: 'info', desc: 'The quiet info variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Info, quietly' },
+  { role: 'text.link.default', label: 'Link', paletteKey: 'action', desc: 'Link ink at rest. Hover and visited walk one and two steps from here, so this row moves all four.', sample: 'A link in running text' },
+];
+
+/* DERIVED — shown, never editable, and the reason is per-role rather than a blanket policy. Each carries
+   the derivation in `why`, because a read-only row that does not say what decides it just looks broken.
+
+   `on-*` is the sharp case: it is `onColor(fill)`, a binary black/white pick whose whole job is clearing
+   AA against the fill beneath it. A step picker there would offer a list on which every entry except the
+   computed one fails the contract the role exists to satisfy — a control that can only be used wrongly is
+   worse than no control. The link states follow `link.default` by construction (see above). */
+const TEXT_DERIVED_ROLES: Array<{ role: string; label: string; from: string; why: string; onRole?: string; sample: string }> = [
+  { role: 'text.on-brand', label: 'On brand fill', from: 'Follows the brand fill', why: 'A near-black or near-white pick, whichever clears AA on the brand fill — repoint Foreground fills › Brand to move it.', onRole: 'foreground.brand', sample: 'On brand' },
+  { role: 'text.on-success', label: 'On success fill', from: 'Follows the success fill', why: 'A near-black or near-white pick, whichever clears AA on the success fill.', onRole: 'foreground.success', sample: 'On success' },
+  { role: 'text.on-warning', label: 'On warning fill', from: 'Follows the warning fill', why: 'A near-black or near-white pick, whichever clears AA on the warning fill.', onRole: 'foreground.warning', sample: 'On warning' },
+  { role: 'text.on-danger', label: 'On danger fill', from: 'Follows the danger fill', why: 'A near-black or near-white pick, whichever clears AA on the danger fill.', onRole: 'foreground.danger', sample: 'On danger' },
+  { role: 'text.on-info', label: 'On info fill', from: 'Follows the info fill', why: 'A near-black or near-white pick, whichever clears AA on the info fill.', onRole: 'foreground.info', sample: 'On info' },
+  { role: 'text.on-inverse', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'background.inverse.primary', sample: 'On inverse' },
+  { role: 'text.link.hover', label: 'Link — hover', from: 'Link, one step on', why: 'Link walked one palette step. Repoint Link above to move it.', sample: 'Hovered link' },
+  { role: 'text.link.visited', label: 'Link — visited', from: 'Link, two steps on', why: 'Link walked two palette steps. Repoint Link above to move it.', sample: 'Visited link' },
+  { role: 'text.link.focused', label: 'Link — focused', from: 'Link, unchanged', why: 'Identical to Link at rest by design — focus is carried by the ring, not a color shift.', sample: 'Focused link' },
+];
+/* These are COLOR specimens, not type specimens, so each string names the role's USE rather than
+   being filler. Two of the three used to be halves of a pangram ("The quick brown fox" / "Jumps over
+   the lazy dog") while the third already named its use — so one section taught the reader three
+   different things about what the sample text is for. A pangram is right where letterforms are the
+   subject (see RAMP_SAMPLE, which is deliberately long enough that the big rows clip); it is wrong
+   where the subject is a colour and the words are the only label the row has. */
+const TEXT_SAMPLE: Record<string, string> = { 'text.primary': 'Default body copy', 'text.secondary': 'Supporting detail', 'text.tertiary': 'Least-emphasis caption' };
+/** Repoint the whole link set from the one Link control, preserving the relationship the ENGINE builds.
+ *
+ *  Measured before writing this, and the measurement changed the design. `modes.ts` derives hover and
+ *  visited by walking one and two palette steps off `link.default` — but it does that while BUILDING the
+ *  baseline, and the override layer runs afterwards, per role. So a lone `text.link.default` override
+ *  does not propagate. It does something worse than nothing: repointing rest to `primary.750` leaves
+ *  hover at `600`, so hovering makes the link LIGHTER and focused stops matching rest. The generated
+ *  relationship is not merely lost, it is inverted, and every value involved still looks individually
+ *  reasonable — nothing in the resolved output says the set stopped being a set.
+ *
+ *  **A per-role override layer cannot preserve a between-role relationship; whoever offers the control
+ *  owns re-establishing it.** So this writes all four entries from one pick — the same +1/+2 walk, index
+ *  clamped at the ramp end — which is what lets the derived rows honestly say they follow Link.
+ *
+ *  "Auto" clears all four, so reverting is symmetric with every other picker in the section. */
+const LINK_ROLES = ['text.link.default', 'text.link.hover', 'text.link.visited', 'text.link.focused'] as const;
+const setLinkOverride = (palette: string, steps: string[], step: string | undefined): void => {
+  if (step === undefined) {                                   // Auto — revert the whole set together
+    for (const r of LINK_ROLES) setFillOverride(r, palette, undefined);
+    return;
+  }
+  const i = steps.indexOf(step);
+  const at = (n: number): string => steps[Math.min(i + n, steps.length - 1)];
+  setFillOverride('text.link.default', palette, step);
+  setFillOverride('text.link.hover', palette, at(1));
+  setFillOverride('text.link.visited', palette, at(2));
+  setFillOverride('text.link.focused', palette, step);         // focus is carried by the ring, not a shift
+};
+
+const renderForegroundEditor = (): HTMLElement => {
+  const sec = palSection('Text', `Every text color for ${MODE_LABEL[currentMode] ?? currentMode} — the neutral ladder, the semantic and link inks, and the derived inks that follow other decisions. “Auto” follows the generated, contrast-placed default; pick a step to override this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the surface it is rated against.`);
+  const nPal = theme.roleToPalette.neutral;
+  const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
+  const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
+  const surfaceHex = roles['background.primary']?.hex ?? (currentMode === 'dark' ? '#000000' : '#ffffff');
+  sec.append(subHead('Neutral ladder'));
+  for (const [role, label] of FG_ROLES) {
+    const r = roles[role]; if (!r) continue;
+    const cur = brandState.overrides?.[currentMode]?.[role]?.step;
+    // The shared `stepPicker` + `setFillOverride` — same control, same revert-prune, and "Auto" now
+    // names the step it landed on (`Auto · neutral 900`) as the fill rows already did. The hand-rolled
+    // copy this replaces differed from them in exactly one way: it withheld that.
+    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — `r` is the LIVE resolved role, so once `cur`
+    // is set it already reflects the override; naming Auto off it would have Auto echo `cur` back.
+    const sel = stepPicker(nPal, nSteps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
+      (step) => setFillOverride(role, nPal, step));
+    sec.append(sfRow({
+      swatchHex: r.hex, name: label, tokenPath: `color.${role}`,
+      controls: sfCtl(sfCtlBlock('Step', sel)),
+      example: sfExText(r.hex, TEXT_SAMPLE[role] ?? 'Sample text', surfaceHex),
+      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
+    }));
+  }
+  // The palette-anchored inks — same control as the ladder above, keyed to each role's own palette.
+  sec.append(subHead('Semantic & link ink'));
+  for (const { role, label, paletteKey, desc, sample } of TEXT_PALETTE_ROLES) {
+    const r = roles[role]; if (!r) continue;
+    const palette = (theme.roleToPalette as Record<string, string>)[paletteKey] ?? paletteKey;
+    const steps = (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
+    if (!steps.length) continue;
+    const cur = brandState.overrides?.[currentMode]?.[role]?.step;
+    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — same reasoning as the ladder above.
+    const sel = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
+      role === 'text.link.default' ? (step) => setLinkOverride(palette, steps, step) : (step) => setFillOverride(role, palette, step));
+    sec.append(sfRow({
+      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
+      controls: sfCtl(sfCtlBlock('Step', sel)),
+      example: sfExText(r.hex, sample, surfaceHex),
+      // The muted variants are gated too now (#570), at the LARGE-TEXT bar rather than the 4.5:1 the
+      // bold ink clears — so their badge carries that label. Without it the receipt is misleading in a
+      // way a bare number cannot fix: muted's 3.20 ✓ sits directly beneath bold's 5.59 ✓, and a reader
+      // comparing two green ticks has no way to tell they were measured against different bars. Naming
+      // the bar is the whole point of the change; the badge is where the promise is actually read.
+      badge: r.min != null && r.min > 0 && r.ratio != null
+        ? contrastBadge(r.ratio, r.min, role.endsWith('-subtle') ? `large text ${r.min}:1` : undefined)
+        : undefined,
+    }));
+  }
+
+  // Derived rows. Same row shape as everything above — swatch, name, token path, example, badge — so the
+  // value is as legible here as anywhere else; only the control slot differs. Showing these read-only
+  // rather than hiding them is the point: a role absent from the editor reads as a role that does not
+  // exist, which is how twenty of twenty-three went unnoticed in the first place.
+  sec.append(subHead('Derived — not editable'));
+  for (const { role, label, from, why, onRole, sample } of TEXT_DERIVED_ROLES) {
+    const r = roles[role]; if (!r) continue;
+    // Paint the sample on the surface this ink is actually rated against, not the page ground — white
+    // on-brand ink previewed on a white page is invisible, and would look like a bug in the value.
+    const on = onRole ? roles[onRole]?.hex : undefined;
+    sec.append(sfRow({
+      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc: why,
+      controls: sfCtl(sfCtlBlock('Source', el('span', 'sf-derived', from))),
+      example: sfExText(r.hex, sample, on ?? surfaceHex),
+      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
+    }));
+  }
+
+  // Every graded pair the section governs, not just the ladder's three — the table claimed to cover
+  // "this section" while listing a fifth of it. `sectionContrastRoles` already filters to roles that
+  // carry a floor, so the ungated muted variants drop out on their own.
+  const ct = sectionContrastRoles('The text-on-surface legibility pairs this section governs, computed on the resolved colors across every mode — the per-row badge verifies the active mode at the point of edit.', [
+    ...FG_ROLES,
+    ...TEXT_PALETTE_ROLES.map((t) => [t.role, t.label] as [string, string]),
+    ...TEXT_DERIVED_ROLES.map((t) => [t.role, t.label] as [string, string]),
+  ]);
+  if (ct) sec.append(ct);
+  return sec;
+};
+
+// ---- Foreground fills editor (docs/23 §2 "Foregrounds") -------------------
+// The bold semantic fills + the neutral surface tiers as cards, each repointable per mode via the A1
+// override layer (`theme.overrides`), same mechanism as Text & ink above but keyed to each role's own
+// palette. Distinct from Text & ink (the neutral INK ladder). Customizable modes only — on a derived
+// mode the whole page is the read-only note (renderScreen), so this never renders there.
+/** A palette step select with an "Auto" (the generated baseline) option — audit §8 candidate #3. `''` is
+ *  Auto; other values are step keys. */
+const stepPicker = (paletteName: string, steps: string[], autoStep: string, current: string | undefined, onPick: (step: string | undefined) => void, mark?: (step: string) => string): HTMLSelectElement => {
+  const sel = selectEl('cap');
+  // Auto carries the mark too. It is the engine's contract-satisfying pick, so leaving it bare in a
+  // marked list would make the one guaranteed-good option look like the failing ones.
+  sel.append(optionEl('', `Auto · ${paletteName} ${autoStep}${mark?.(autoStep) ?? ''}`, current == null));
+  for (const s of steps) sel.append(optionEl(s, `${paletteName} ${s}${mark?.(s) ?? ''}`, current === s));
+  sel.onchange = () => onPick(sel.value === '' ? undefined : sel.value);
+  return sel;
+};
+const FILL_ROLES: Array<{ role: string; label: string; paletteKey: string; desc: string }> = [
+  { role: 'foreground.brand', label: 'Brand', paletteKey: 'brand', desc: 'The bold brand fill — filled badges, nav indicators, brand accents.' },
+  { role: 'foreground.success', label: 'Success', paletteKey: 'success', desc: 'The bold success fill.' },
+  { role: 'foreground.warning', label: 'Warning', paletteKey: 'warning', desc: 'The bold warning fill.' },
+  { role: 'foreground.info', label: 'Info', paletteKey: 'info', desc: 'The bold info fill.' },
+  { role: 'foreground.danger', label: 'Danger', paletteKey: 'danger', desc: 'The bold danger fill.' },
+  { role: 'foreground.primary', label: 'Surface — card', paletteKey: 'neutral', desc: 'The default raised surface — a card.' },
+  { role: 'foreground.secondary', label: 'Surface — panel', paletteKey: 'neutral', desc: 'The second surface tier — a panel.' },
+  { role: 'foreground.tertiary', label: 'Surface — nested', paletteKey: 'neutral', desc: 'The third surface tier — a nested container.' },
+];
+const setFillOverride = (role: string, palette: string, step: string | undefined): void => {
+  const ov = brandState.overrides ?? (brandState.overrides = {});
+  const forMode = ov[currentMode] ?? (ov[currentMode] = {});
+  if (step === undefined) {                                   // revert to the generated baseline
+    delete forMode[role];
+    if (!Object.keys(forMode).length) delete ov[currentMode];
+    if (!Object.keys(ov).length) brandState.overrides = undefined;
+  } else forMode[role] = { palette, step };
+  applyFull();
+};
+const renderForegroundsEditor = (): HTMLElement => {
+  const sec = palSection('Foreground fills', `Bold semantic fills + neutral surface tiers for ${MODE_LABEL[currentMode] ?? currentMode} — “Auto” follows the generated, contrast-gated default; pick a step to override this mode (a pick below the fill's floor is warned, not blocked).`);
+  const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
+  for (const { role, label, paletteKey, desc } of FILL_ROLES) {
+    const r = roles[role]; if (!r) continue;
+    const palette = (theme.roleToPalette as Record<string, string>)[paletteKey] ?? paletteKey;
+    const steps = (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
+    if (!steps.length) continue;
+    const cur = brandState.overrides?.[currentMode]?.[role]?.step;
+    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — same reasoning as the interactive matrix.
+    const picker = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined, (step) => setFillOverride(role, palette, step));
+    // Neutral surface tiers are pale in Light modes but flip dark in Dark modes (#555 — a fixed dark
+    // ink went invisible on a dark-resolved tier), so the label ink is picked FROM the resolved fill
+    // rather than assumed; other fills keep white on-fill.
+    const isSurface = paletteKey === 'neutral';
+    const tier = label.split('—')[1]?.trim();                 // "Surface — card" → "card"
+    const exLabel = isSurface ? (tier ? tier[0].toUpperCase() + tier.slice(1) : 'Surface') : `${label} fill`;
+    sec.append(sfRow({
+      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
+      controls: sfCtl(sfCtlBlock('Step', picker)),
+      example: sfExFill(r.hex, exLabel, isSurface ? legibleInkOn(r.hex) : undefined),
+      badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
+      railNote: isSurface ? 'non-text · surface' : undefined,
+    }));
+  }
+  const ct = sectionContrastRoles('The on-fill legibility pairs this section governs, computed on the resolved colors across every mode — the per-row badge verifies the active mode at the point of edit.', FILL_ROLES.map((f) => [f.role, f.label] as [string, string]));
+  if (ct) sec.append(ct);
+  return sec;
+};
+
+/** #97 + #114 tidy — the Shadow group. Gathers every shadow control under one heading: the
+ *  `shadow.softness` blur dial (a generic slider lever, passed in so it leaves the geometry panel)
+ *  and the `shadow.tint = {hue, amount}` object editor (hue-shifts the base off pure black; amount 0 =
+ *  pure black, higher = a richer brand-hued near-black). Reads the resolved default (`theme.shadow.tint`)
+ *  when the brand hasn't set one; the elevation specimen recolors live. */
+const renderShadowEditor = (softness?: Lever): HTMLElement => {
+  // D (shadow) — outside the base mode, softness + tint go per-mode (modeLevers[mode].shadow); the
+  // slider shows the EFFECTIVE value (override ?? global) and moving it creates an override, with a
+  // "↺ Auto" reset that clears it (blank-slider has no natural Auto state, so the reset is explicit).
+  const perMode = currentMode !== 'light';
+  const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
+  const wrap = palSection('Shadow', perMode
+    ? `Blur softness + tint for ${modeLabel} — “Auto” follows the global shadow; a value overrides this mode (crisper/softer, warmer/cooler). The light↔dark reduction still applies on top.`
+    : 'Blur softness (crisp/product → soft/marketing) and a hue-shift of the shadow base off pure black. Tint amount 0 = pure black; higher = a richer, brand-hued near-black.');
+  const gTint = theme.shadow.tint;         // resolved global tint (what a mode inherits under Auto)
+  const gSoft = theme.shadow.softness;     // resolved global softness
+  const panel = wrap;                       // knobs append straight into the .psec (no nested .panel)
+  if (perMode) {
+    // A per-mode slider: effective = override ?? global; moving it writes modeLevers[mode].shadow.<path>
+    // via the shared setModeLever (prunes to byte-identical). Dragging back to EXACTLY the global value
+    // clears the override (no redundant "== global" override lingers), and the ↺ Auto reset clears it too.
+    const mkPer = (label: string, min: number, max: number, step: number, unit: string, path: string, global: number): void => {
+      const ov = getModeLever(currentMode, path) as number | undefined;
+      const eff = ov ?? global;
+      const knob = el('div', 'knob');
+      const head = el('div', 'sh-knob-head');
+      head.append(el('label', 'knob-label', label));
+      const auto = el('button', 'sh-auto') as HTMLButtonElement;
+      const setAuto = (overriding: boolean): void => { auto.textContent = overriding ? '↺ Auto' : `Auto (${global}${unit})`; auto.className = overriding ? 'sh-auto on' : 'sh-auto'; auto.disabled = !overriding; };
+      setAuto(ov !== undefined);
+      auto.onclick = () => { setModeLever(currentMode, path, undefined); applyFull(); };
+      head.append(auto);
+      knob.append(head);
+      const input = rangeInput({ min, max, step, value: eff });
+      const val = el('span', 'knob-val', `${eff}${unit}${ov !== undefined ? '' : ' · auto'}`);
+      input.oninput = () => {
+        const nv = Number(input.value);
+        const overriding = nv !== global;                    // landing back on the global prunes the override
+        setModeLever(currentMode, path, overriding ? nv : undefined);
+        val.textContent = `${input.value}${unit}${overriding ? '' : ' · auto'}`;
+        // update the ↺ Auto reset in place (no full re-render, so dragging stays smooth).
+        setAuto(overriding);
+        apply();
+        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
+      };
+      const body = el('div', 'knob-body'); body.append(input, val);
+      knob.append(body);
+      panel.append(knob);
+    };
+    const sLever = softness;
+    mkPer(sLever?.label ?? 'Shadow softness', (sLever?.min as number) ?? 0, (sLever?.max as number) ?? 2, (sLever?.step as number) ?? 0.1, '', 'shadow.softness', gSoft);
+    mkPer('Tint hue', 0, 360, 1, '°', 'shadow.tint.hue', gTint.hue);
+    mkPer('Tint amount', 0, 1, 0.05, '', 'shadow.tint.amount', gTint.amount);
+  } else {
+    const cur = brandState.shadow?.tint;
+    if (softness) panel.append(renderControl(softness));             // the blur dial, pulled out of the geometry panel
+    const mk = (key: 'hue' | 'amount', label: string, min: number, max: number, step: number, unit: string): void => {
+      const knob = el('div', 'knob');
+      knob.append(el('label', 'knob-label', label));
+      const input = rangeInput({ min, max, step, value: cur?.[key] ?? gTint[key] });
+      const val = el('span', 'knob-val', `${input.value}${unit}`);
+      input.oninput = () => {
+        setPath(brandState, `shadow.tint.${key}`, Number(input.value));
+        val.textContent = `${input.value}${unit}`;
+        apply();
+        refreshTintReadout?.();   // #305 — stable-head control, so repaint it rather than re-render
+      };
+      const body = el('div', 'knob-body'); body.append(input, val);
+      knob.append(body);
+      panel.append(knob);
+    };
+    mk('hue', 'Tint hue', 0, 360, 1, '°');
+    mk('amount', 'Tint amount', 0, 1, 0.05, '');
+  }
+  panel.append(tintReadout());
+  return wrap;
+};
+
+/** #305 — the tint sliders' honest feedback.
+ *
+ *  The shadow ramp runs at 10–14% alpha, so even a fully saturated tint moves the COMPOSITED shadow
+ *  only ~3 ΔE00 — visible, but nowhere near what the slider's travel implies. Without this read-out the
+ *  control looked broken: the reported symptom was "I cannot see the tint sliders changing the
+ *  examples", and the honest answer is that the base colour changes a lot while the shadow changes a
+ *  little. So show the base colour at FULL opacity (where the hue is unmistakable) beside the shadow as
+ *  actually painted, and say why they differ.
+ *
+ *  Refreshed IMPERATIVELY via `refreshTintReadout`, not by re-render. The shadow editor lives in the
+ *  stable head (doc-26: controls are built once and survive `apply()`; only the volatile bands
+ *  re-render), so a read-out that computed its colour at construction time would freeze at the value
+ *  it was born with. That is exactly the inert-control bug this issue is about — the first cut of this
+ *  fix shipped frozen and a browser check caught it, so the slider handlers call the refresh. */
+let refreshTintReadout: (() => void) | null = null;
+
+const tintReadout = (): HTMLElement => {
+  const row = el('div', 'sh-tintout');
+
+  // The colour goes on an INNER fill so the chip's checkerboard stays behind it — setting
+  // `style.background` on the chip itself would clobber the background-image shorthand and the 12%
+  // swatch would read as an opaque grey instead of a translucent near-black.
+  const swatch = (caption: string): { cell: HTMLElement; fill: HTMLElement } => {
+    const chip = el('div', 'sh-tintchip');
+    const fill = el('div', 'sh-tintfill');
+    chip.append(fill);
+    const cell = el('div', 'sh-tintcell');
+    cell.append(chip, el('div', 'sh-tintcap', caption));
+    return { cell, fill };
+  };
+  const solid = swatch('Tint color · 100%');
+  // The same colour at a mid-ramp alpha — what the eye actually gets on the ramp.
+  const painted = swatch('In a shadow · 12%');
+  row.append(solid.cell, painted.cell);
+
+  const note = el('div', 'sh-tintnote');
+  const hexLabel = el('b', undefined, '');
+  const noteText = document.createTextNode('');
+  note.append(hexLabel, noteText);
+
+  const refresh = (): void => {
+    // A mode with its own tint override re-derives its own base colour; otherwise it inherits the global.
+    const base = theme.shadow.shadowByMode?.[currentMode]?.colorRgb ?? theme.shadow.colorRgb;
+    const baseHex = hex(base);
+    const amount = theme.shadow.shadowByMode?.[currentMode]?.tint.amount ?? theme.shadow.tint.amount;
+    solid.fill.style.backgroundColor = baseHex;
+    painted.fill.style.backgroundColor = `${baseHex}1f`;   // 12% — mid-ramp
+    hexLabel.textContent = baseHex.toUpperCase() + ' ';
+    noteText.nodeValue = amount === 0
+      ? '— pure black. Raise Tint amount to shift the shadow base off black.'
+      : 'is the shadow base. Shadows paint it at 10–14% opacity, so the hue reads far subtler on the ramp than on the swatch above — that is the shadow doing its job, not the slider failing.';
+  };
+  refresh();
+  refreshTintReadout = refresh;
+
+  const wrap = el('div', 'sh-tintblock');
+  wrap.append(row, note);
+  return wrap;
+};
+
+// `as const` keeps the literal union so these stay assignable to the engine's TypeGroup
+// (the italic/link sets are keyed by it).
+const TYPE_GROUP_ORDER = ['display', 'title', 'body', 'label', 'caption', 'eyebrow', 'code'] as const;
+const TYPE_GROUP_BLURB: Record<string, string> = {
+  display: 'Hero and marketing-scale statements.', title: 'Section and page headings.',
+  body: 'Running copy and UI text.', label: 'Form labels, buttons, dense UI.',
+  caption: 'Secondary and supporting text.', eyebrow: 'Small uppercase kickers above headings.',
+  code: 'Inline code and tabular figures.',
+};
+// ONE string at every size and in every category, owner-directed. This used to shorten as the size
+// climbed ("Type" at 80px+, "Typography" at 40px+) and swap to a code snippet for `code`, so no two
+// rows were comparing the same letterforms — which is the whole reason to stack a ramp. `.tr-samp`
+// already clips with an ellipsis, so the big rows show real letterforms cut off rather than a
+// different, shorter word.
+const RAMP_SAMPLE = 'The quick brown fox';
+
+/** The full semantic ramp — every generated style at true size, grouped by category.
+ *  Resolves through the active mode's family / weight / leading / tracking. */
+/** The full ramp, EVERY MODE SIDE BY SIDE (owner decision, #268 follow-up).
+ *
+ *  It used to render one mode — whichever `currentMode` was — so a per-mode deviation was only
+ *  visible if you already suspected it and went looking. That is the wrong default for a dimension
+ *  the engine can vary five different ways (`families`, `weights`, `lineHeights`, `letterSpacings`,
+ *  `typeSizes`), and it is what made per-mode SIZES (#328/#347) effectively invisible in the UI.
+ *  Showing all modes at once makes the mode axis a property of the table rather than of the session.
+ *
+ *  Every row shows every mode — including modes where nothing differs. Confirming "identical
+ *  everywhere" is usually the thing you actually want, and a table whose shape shifts as you edit is
+ *  harder to read than a wider one that doesn't.
+ *
+ *  This is why the mode switcher is retired for the WHOLE typography page (see
+ *  `pageHasModeVaryingControl`): the editors above already resolve per column via
+ *  `setModeLever(m, ...)`, not `currentMode`, so there is no single "active" mode left for a switcher
+ *  to control. Showing every mode side by side here completes that column-per-mode design for
+ *  READING, matching what the editors already do for WRITING (#268). */
+const renderTypeRamp = (): HTMLElement => {
+  const ty = theme.typography;
+  const modes = rp.modes;
+  // Resolve the whole composite FOR ONE MODE. Each axis falls back to the brand-level value, which is
+  // what makes an untouched mode render identically rather than blank.
+  // #296 — the rungs are mode-invariant, so read them straight. What varies is WHICH rung a composite
+  // uses; resolving the key first and the value second keeps the preview honest about the two tiers.
+  const lhOf = (k: string): number => ty.lineHeights.find((l) => l.key === k)?.value ?? 1.5;
+  const lsOf = (k: string): number => ty.letterSpacings.find((l) => l.key === k)?.em ?? 0;
+  const inMode = (c: TypeComposite, m: string) => {
+    const fams = ty.familiesByMode?.[m] ?? ty.families;
+    const wrs = ty.weightRolesByMode?.[m] ?? ty.weightRoles;
+    const lhKey = c.lineHeightByMode?.[m] ?? c.lineHeight;
+    const lsKey = c.trackingByMode?.[m] ?? c.tracking;
+    // #347 — a re-sized rung carries its OWN mobile endpoint, so read the pair together. Taking
+    // sizeMinPx from the brand while sizePx came from the mode would print an incoherent fluid range.
+    const sizePx = c.sizeByMode?.[m] ?? c.sizePx;
+    const sizeMinPx = c.sizeMinByMode?.[m] ?? (c.sizeByMode?.[m] !== undefined ? sizePx : c.sizeMinPx);
+    return {
+      sizePx, sizeMinPx, lhKey, lsKey,
+      stack: fams.find((f) => f.group === c.group)?.stack.join(', ') ?? 'inherit',
+      weight: wrs.find((w) => w.role === c.weightRole)?.value ?? 400,
+    };
+  };
+
+  const sec = palSection('The full type ramp', `Every style the system generates — ${ty.composites.length} in total, grouped by category — resolved in all ${modes.length} ${modes.length === 1 ? 'mode' : 'modes'} side by side. This is what ships as tokens.`);
+  for (const g of TYPE_GROUP_ORDER) {
+    // Largest first, so the page reads big → small the whole way down and matches the size editors on
+    // Styles. A STABLE sort on size alone is what makes this safe: rows sharing a size (the weight
+    // roles, and the italic / link variants) keep their existing relative order, so only the size
+    // progression reverses. Sorting on anything else would reshuffle them.
+    const comps = ty.composites.filter((c) => c.group === g).sort((a, b) => b.sizePx - a.sizePx);
+    if (!comps.length) continue;
+    const block = el('div', 'tr-block');
+    const band = el('div', 'tr-band');
+    band.append(el('span', 'tr-band-n', g), el('span', 'tr-band-c mono', `${comps.length} ${comps.length === 1 ? 'style' : 'styles'}`),
+      el('span', 'tr-band-d', TYPE_GROUP_BLURB[g] ?? ''));
+    block.append(band);
+    for (const c of comps) {
+      const row = el('div', 'tr-row');
+      const meta = el('div', 'tr-meta');
+      meta.append(tokenPill(`type.${c.path}`));
+      meta.append(el('span', 'tr-attr mono', `${c.weightRole} · ${c.group}`));
+      row.append(meta);
+      // One column per mode. Scrolls horizontally rather than wrapping: a wrapped column would read as
+      // a new row, which is precisely the confusion a side-by-side table exists to remove.
+      const cols = el('div', 'tr-modes');
+      cols.style.gridTemplateColumns = `repeat(${modes.length}, minmax(220px, 1fr))`;
+      for (const m of modes) {
+        const v = inMode(c, m);
+        const col = el('div', 'tr-mode');
+        col.append(el('span', 'tr-mode-n', m));
+        const fluidTag = v.sizeMinPx !== v.sizePx ? ` · fluid ${v.sizeMinPx}→${v.sizePx}` : '';
+        col.append(el('span', 'tr-attr mono', `${v.sizePx}px · ${v.weight} · ${v.lhKey} ${lhOf(v.lhKey)}× · ${v.lsKey} ${lsOf(v.lsKey)}em${fluidTag}`));
+        const samp = el('div', 'tr-samp', RAMP_SAMPLE);
+        samp.style.fontFamily = v.stack;
+        samp.style.fontSize = `${v.sizePx}px`;
+        samp.style.fontWeight = String(v.weight);
+        samp.style.lineHeight = String(lhOf(v.lhKey));
+        samp.style.letterSpacing = `${lsOf(v.lsKey)}em`;
+        if (c.link) samp.style.textDecoration = 'underline';
+        if (c.italic) samp.style.fontStyle = 'italic';
+        if (c.textCase === 'uppercase') samp.style.textTransform = 'uppercase';
+        col.append(samp);
+        cols.append(col);
+      }
+      row.append(cols);
+      block.append(row);
+    }
+    sec.append(block);
+  }
+  return sec;
+};
+
+/** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
+ *  labelled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
+ *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads `rp.dims`
+ *  (live per lever); `none` = 0. */
+const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round'];
+const paintRadiusPreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const consumers: Record<string, Set<string>> = {};
+  for (const c of previewSpec.components) for (const v of c.variants) {
+    const rref = v.bindings.radius;
+    if (rref?.startsWith('radius.')) (consumers[rref.slice(7)] ??= new Set<string>()).add(c.id);
+  }
+  // D — reflect the current mode's per-mode radius ramp (modeLevers.radius) when it deviates, so the
+  // change is visible here rather than off in the export (the #158 lesson). Falls back to the global.
+  const byMode = theme.dims.radiusByMode?.[currentMode];
+  const list = el('div', 'rad-list');
+  for (const step of RADIUS_STEPS) {
+    const overridePx = byMode?.find((s) => s.name === step)?.px;
+    const px = step === 'none' ? 0 : (overridePx ?? rp.dims[`radius.${step}`] ?? 0);
+    const cell = el('div', 'rad-cell');
+    const sw = el('div', 'rad-sw');
+    sw.style.borderRadius = `${Math.min(px, 26)}px`;   // cap so `round` reads as a pill without overflowing the swatch
+    const cons = [...(consumers[step] ?? [])];
+    cell.append(sw, el('div', 'rad-lab mono', `${step} · ${px}px`), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
+    list.append(cell);
+  }
+  into.append(list);
+};
+
+/** The elevation ramp specimen: one card per shadow step (xs→2xl) on a light surface, so
+ *  the shadow ramp — and the shadow-softness lever that reshapes every step — is visible
+ *  (the single card in the component preview only shows one step). Reads `rp.shadows`. */
+const SHADOW_STEPS = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
+const renderShadowSpecimen = (): HTMLElement => {
+  const wrap = palSection('Elevation ramp', 'The shadow ramp xs→2xl — the softness + tint levers reshape every step, resolved for the mode in view (see the preview below for the mode-reduced dark shadow).');
+  const m: Mode = currentMode;   // #171 — every specimen reflects the mode-context selection
+  const list = el('div', 'sh-list');
+  // `inset` rides along after the ramp. The engine emits 7 shadow tokens and this specimen showed 6 —
+  // `shadow.inset` appeared NOWHERE on the page, so the one token you could not see was the one whose
+  // shape you most need to (an inner shadow reads nothing like an elevation step). It is deliberately
+  // not a ramp STEP — it is a different kind of shadow, not a rung — so it is labelled apart rather
+  // than appended to xs…2xl as if it were the next size up.
+  for (const step of [...SHADOW_STEPS, 'inset']) {
+    const css = rp.shadows[`shadow.${step}`]?.[m];
+    if (!css) continue;
+    const cell = el('div', 'sh-cell');
+    const card = el('div', 'sh-card');
+    card.style.boxShadow = css;                                   // resolved value inline (specimen reads the model directly)
+    cell.append(card, el('div', 'sh-lab mono', step), tokenPill(`shadow.${step}`));
+    list.append(cell);
+  }
+  wrap.append(list);
+  return wrap;
+};
+
+/** The control-size preview: the component-size tier (sm→xl) as mini control boxes at their resolved
+ *  height + horizontal padding, so the DENSITY lever has a visible payoff (the preview components bind
+ *  the space scale directly, not `size.*`, so nothing else shows the size tier). Mode-aware (D): reflects
+ *  the current mode's per-mode density (`theme.dims.sizesByMode`) when it deviates, else the global tier.
+ *  Fills a caller-owned node so it repaints beside the density control (#265). */
+const paintSizePreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const byMode = theme.dims.sizesByMode?.[currentMode];
+  const sizes = byMode ?? theme.dims.sizes;
+  const list = el('div', 'sz-list');
+  for (const z of sizes) {
+    const cell = el('div', 'sz-cell');
+    const box = el('div', 'sz-box', z.name);
+    box.style.height = `${z.height}px`;
+    box.style.padding = `0 ${z.padX}px`;
+    cell.append(box, el('div', 'sz-lab mono', `${z.name} · ${z.height}px · pad ${z.padX}/${z.padY}`), tokenPill(`size.${z.name}.height`));
+    list.append(cell);
+  }
+  into.append(list);
+};
+
+/** The spacing preview (#265): the resolved space.* ramp as proportional bars — the spacing rhythm has no
+ *  other visible payoff (preview components bind space refs but don't show the ladder). Read-only from
+ *  `rp.dims` (no engine change). Derives its steps from the ACTUAL resolved keys (sorted by scale), not a
+ *  hardcoded list — the resolved model only carries the steps the preview binds, so a fixed list would
+ *  show phantom 0px rows. `space.100` (= 1×) is the rhythm anchor. */
+const paintSpacingPreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  // Read the SCALE off the theme, not `rp.dims`. `rp.dims` is consumption-driven — it holds only the
+  // dimension refs the preview COMPONENTS happen to bind — so this specimen rendered whichever four
+  // steps a component used (`space.100/150/200/300`) out of the eighteen the engine emits, under a
+  // heading that says "the spacing rhythm". A scale specimen has to show the scale; which steps some
+  // component consumes is a different question, and not this section's.
+  const steps = theme.dims.space.map((s) => ({ ref: `space.${s.key}`, px: s.px }));
+  const list = el('div', 'sp-list');
+  for (const { ref: k, px } of steps) {
+    const cell = el('div', 'sp-cell');
+    // TRUE px, not a percentage of the pane. The old `Math.max(2, (px/maxPx)*100)%` floored at 2
+    // PERCENT — about 10px — so `space.0` and `space.025` (0px and 2px) drew identically and nothing
+    // in the ramp was to scale. The whole ladder tops out at 96px and this section is now full width,
+    // so the honest rendering fits: 8px is 8px, and 0 is nothing.
+    const bar = el('div', 'sp-bar'); bar.style.width = `${px}px`;
+    if (px === 0) bar.classList.add('zero');
+    // `tokenPill`, not mono text. The path was already visible here — but Corner radius and
+    // Density & size, on this same page, name theirs with the shared pill, so one of three specimens
+    // was saying the same kind of thing in a different component (doc 26: reuse the kit).
+    const lab = el('div', 'sp-lab');
+    lab.append(tokenPill(k), el('span', 'sp-px mono', `${px}px`));
+    cell.append(lab, bar);
+    list.append(cell);
+  }
+  into.append(list);
+};
+
+/** The three primitive scales that had no home (review, 2026-08-04): `dimension.*` (36), the raw grid
+ *  every geometry alias resolves onto; `border-width.*` (4) and `icon.size.*` (5), both named aliases
+ *  onto it. All read-only — read off the theme, not `rp.dims`, for the reason the spacing specimen
+ *  was fixed: `rp.dims` holds only what preview COMPONENTS bind, which is a different question. */
+const paintPrimitivesPreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const scale = (label: string, rows: Array<{ ref: string; px: number }>, wrapCls: string): HTMLElement => {
+    const box = el('div', 'pv-scale');
+    box.append(el('div', 'pv-scale-t', label));
+    const list = el('div', wrapCls);
+    for (const { ref, px } of rows) {
+      const cell = el('div', 'pv-cell');
+      cell.append(tokenPill(ref), el('span', 'sp-px mono', `${px}px`));
+      list.append(cell);
+    }
+    box.append(list);
+    return box;
+  };
+  // border-width and icon.size are ALIASES onto the grid, so they are shown next to it rather than as
+  // separate scales — the point is that they resolve onto the same ladder.
+  const BW: Array<[string, number]> = [['none', 0], ['hairline', 1], ['thick', 2], ['heavy', 4]];
+  // Two columns inside the now-full-width section: the 36-step grid is long and wants its own column,
+  // while border-width (4) and icon size (5) are short alias lists that read better stacked beside it
+  // than strung out underneath a list three times their length.
+  //
+  // The grid uses `pv-rows` — ONE column — for the same reason the alias lists do. It previously had a
+  // wrapping variant of its own, which reflowed 36 steps into three ragged columns and destroyed the
+  // one property the specimen exists to show: that this is a monotonic ladder. A reader checks a scale
+  // by running an eye down it, and wrapping turns "is the next step bigger" into a column-order puzzle.
+  // Long is correct here; the section is a reference, not a summary.
+  const cols = el('div', 'pv-cols');
+  const left = el('div', 'pv-col'); const right = el('div', 'pv-col');
+  left.append(scale(`Dimension grid — ${theme.dims.grid.length} steps`, theme.dims.grid.map((px) => ({ ref: `dimension.${px}`, px })), 'pv-rows'));
+  right.append(
+    scale('Border width', BW.map(([k, px]) => ({ ref: `border-width.${k}`, px })), 'pv-rows'),
+    scale('Icon size', theme.dims.icons.map((i) => ({ ref: `icon.size.${i.name}`, px: i.px })), 'pv-rows'),
+  );
+  cols.append(left, right);
+  into.append(cols);
+};
+
+/** The layout specimen: the responsive-grid axis — breakpoints (min-widths) with their column/gutter/
+ *  margin grid, a base-column preview strip, and the container caps as proportional bars. The layout
+ *  levers (breakpoints / columns / containers, all in the Advanced panel) have no other visible payoff.
+ *  Reads `theme.layout` (not per-mode — layout composes with colour modes as a separate Figma axis). */
+// Layout previews, split so each can sit beside its own control (docs #264): the breakpoints ruler+table,
+// the base-column strip, the container-cap bars, and the fluid-type scaling list (#361). Each fills a
+// caller-owned node so `apply()` repaints it in place (the control next to it stays put — never rebuilt
+// mid-drag).
+const paintBreakpointsPreview = (into: HTMLElement): void => {
+  const ly = theme.layout;
+  into.innerHTML = '';
+  // A proportional min-width ruler — the breakpoints on a shared axis, so the steps read spatially.
+  const ruler = el('div', 'ly-ruler');
+  const rulerMax = Math.max(...ly.breakpoints.map((b) => b.px), 1) * 1.06;
+  for (const b of ly.breakpoints) {
+    const tick = el('div', 'ly-tick'); tick.style.left = `${(b.px / rulerMax) * 100}%`;
+    tick.append(el('span', 'ly-tick-name', b.name), el('span', 'ly-tick-px mono', `${b.px}px`));
+    ruler.append(tick);
+  }
+  into.append(ruler);
+  const table = el('table', 'ly-table');
+  const head = el('tr');
+  head.append(el('th', undefined, 'Breakpoint'), el('th', undefined, 'Token'), el('th', undefined, 'Min-width'), el('th', undefined, 'Columns'), el('th', undefined, 'Gutter'), el('th', undefined, 'Margin'));
+  table.append(head);
+  for (const g of ly.grid) {
+    const bp = ly.breakpoints.find((b) => b.name === g.bp);
+    const tr = el('tr');
+    const pillCell = el('td'); pillCell.append(tokenPill(`breakpoint.${g.bp}`));
+    tr.append(el('td', 'mono', g.bp), pillCell, el('td', 'mono', `${bp?.px ?? 0}px`), el('td', 'mono', String(g.columns)), el('td', 'mono', `${g.gutterPx}px`), el('td', 'mono', `${g.marginPx}px`));
+    table.append(tr);
+  }
+  // Six columns of tabular data have a real min-content width, and the split layout's preview pane is
+  // only ~392px at 1100px wide — where the table used to push the whole DOCUMENT into a horizontal
+  // scroll. Scrolling it inside its own pane is the same treatment Preview's token tables use
+  // (`pv-tscroll`), and it is what doc 26 asks of wide content: the table scrolls, the page never does.
+  const scroll = el('div', 'ly-tscroll'); scroll.append(table);
+  into.append(scroll);
+};
+const paintColumnsPreview = (into: HTMLElement): void => {
+  const ly = theme.layout;
+  into.innerHTML = '';
+  into.append(el('div', 'ly-cap', `${ly.baseColumns}-column base grid`));
+  const cols = el('div', 'ly-cols');
+  for (let i = 0; i < ly.baseColumns; i++) cols.append(el('div', 'ly-col'));
+  into.append(cols);
+};
+const paintContainersPreview = (into: HTMLElement): void => {
+  const ly = theme.layout;
+  into.innerHTML = '';
+  const cont = el('div', 'ly-cont');
+  // Scale against the widest VIEWPORT the system targets, not against containerMax. Normalising by
+  // containerMax made that bar 100% by construction, so the Container max slider could never move its
+  // own preview — the one thing the specimen is beside it to show. The top breakpoint is the honest
+  // reference (it is what "fluid" fills), and it is real data on this same page; the `max` guard keeps
+  // the bars inside the track if a brand caps content wider than its largest breakpoint.
+  const viewport = Math.max(...ly.breakpoints.map((b) => b.px), ly.containerMax, 1);
+  // The bar goes inside its own TRACK. Its width is a percentage, and a percentage resolves against
+  // the containing block — which was the whole row, including the 150px label the bar does not get to
+  // use. Only the 100% bar was wide enough to overflow, so only it was flex-shrunk (to the 330px that
+  // was actually free); every narrower bar rendered at its true fraction of the full 492px row. The
+  // arithmetic was right and the reference was wrong, which inflated every ratio the specimen exists
+  // to show by 492/330 ≈ 1.5 — a 720-on-1440 reading column drew at 75%, not 50%.
+  const bar = (path: string, px: number, label: string): HTMLElement => {
+    const row = el('div', 'ly-cont-row');
+    const track = el('div', 'ly-cont-track');
+    const b = el('div', 'ly-cont-bar');
+    b.style.width = `${Math.max(6, Math.min(100, (px / viewport) * 100))}%`;
+    track.append(b);
+    const lab = el('div', 'ly-cont-lab'); lab.append(tokenPill(path), el('span', 'ly-cont-val mono', label));
+    row.append(lab, track);
+    return row;
+  };
+  // `container.fluid` is the DEFAULT container and was the one member of the family with no row. Shown
+  // at the full track, which is what it means: no cap — so the two capped bars read as caps against it.
+  cont.append(bar('container.fluid', viewport, '100%'),
+    bar('container.max', ly.containerMax, `${ly.containerMax}px`),
+    bar('container.narrow', ly.containerNarrow, `${ly.containerNarrow}px`));
+  into.append(el('div', 'ly-cap', `Relative widths at a ${viewport}px viewport — the widest breakpoint.`));
+  into.append(cont);
+};
+
+/** What fluid actually DOES — previously invisible: neither the mobile floor nor the generated clamp()
+ *  was shown anywhere, so the toggle and the viewport pair changed nothing a designer could see. */
+const paintFluidPreview = (into: HTMLElement): void => {
+  const ty = theme.typography;
+  into.innerHTML = '';
+  const seen = new Set<string>();
+  const uniq = ty.composites.filter((c) => c.sizeMinPx !== c.sizePx)
+    .filter((c) => { const k = `${c.group}.${c.variant}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  // Fluid off (or nothing scaling) is a real state, not an empty one — say why the panel is bare.
+  if (!uniq.length) { into.append(el('p', 'sl-note', 'Nothing is scaling right now — every style resolves to a single size across the whole viewport range. Turn on fluid heading sizing to see the mobile floor and the generated clamp() for each style that scales.')); return; }
+  into.append(subHead(`What fluid does — ${uniq.length} scaling styles`));
+  const maxPx = Math.max(...uniq.map((c) => c.sizePx));
+  const list = el('div', 'fz-list');
+  for (const c of uniq) {
+    const row = el('div', 'fz-row');
+    row.append(el('span', 'fz-name mono', `${c.group}.${c.variant}`), el('span', 'fz-pair mono', `${c.sizeMinPx} → ${c.sizePx}px`));
+    const right = el('div', 'fz-right');
+    const bar = el('div', 'fz-bar');
+    const fill = el('div', 'fz-fill');
+    fill.style.left = `${(c.sizeMinPx / maxPx) * 100}%`;
+    fill.style.width = `${((c.sizePx - c.sizeMinPx) / maxPx) * 100}%`;
+    bar.append(fill);
+    const slope = (c.sizePx - c.sizeMinPx) / (ty.maxViewport - ty.minViewport);
+    const intercept = (c.sizeMinPx - slope * ty.minViewport) / 16;
+    const clamp = `clamp(${+(c.sizeMinPx / 16).toFixed(4)}rem, ${+intercept.toFixed(4)}rem + ${+(slope * 100).toFixed(4)}vw, ${+(c.sizePx / 16).toFixed(4)}rem)`;
+    const cl = el('div', 'fz-clamp mono', clamp); cl.title = clamp;
+    right.append(bar, cl);
+    row.append(right);
+    list.append(row);
+  }
+  into.append(list);
+  into.append(el('p', 'sl-note', 'The mobile floor is derived, not chosen: you set whether headings scale and the viewport range, but the floor comes from a fixed curve — titles drop about one rung, display converges hard so hero type stays usable on a phone.'));
+  // The convergence is deliberate but invisible: several desktop sizes can share one floor.
+  const byFloor = new Map<number, string[]>();
+  for (const c of uniq) { const k = c.sizeMinPx; byFloor.set(k, [...(byFloor.get(k) ?? []), `${c.group}.${c.variant}`]); }
+  const merged = [...byFloor.entries()].filter(([, v]) => v.length > 1);
+  if (merged.length) {
+    const w = el('p', 'fz-warn');
+    w.append(el('b', undefined, 'Sizes that merge on mobile. '));
+    w.append(document.createTextNode(`${merged.map(([px, v]) => `${v.join(' + ')} all land on ${px}px`).join('; ')} — distinct on desktop, identical on a phone. Fine if deliberate; a sign of more display steps than the mobile curve can express if not.`));
+    into.append(w);
+  }
+};
+
+/** The motion specimen (#114, redesigned #292 "trace the curve"): one large stage per semantic
+ *  transition (default/enter/exit/emphasized) — the ghost line is the easing curve's shape, the dot
+ *  traces it over the resolved duration. Motion can't show in the static component preview, so the
+ *  tempo lever had no payoff; here it does — the traces re-run on every re-render (i.e. the moment
+ *  you change the tempo), plus a Replay. A Playback control uniformly divides all four durations for
+ *  legibility only: it never changes the `${ms}ms` label (always the real resolved token value) or the
+ *  curve shape, and it preserves the ratio between transitions (exit stays 2× faster than default,
+ *  etc.) at any speed. `prefers-reduced-motion` is honoured (dot shown at its resting position, no
+ *  animation), nodding to the engine's derived reduced ramp. Kind-B specimen: reads `theme.motion`. */
+/** The easing curve for one stage, plotted 0→1 in a 100-unit viewBox (SVG). Y is flipped (SVG y grows
+ *  down). Percent-based, not px, so the stage scales for free. */
+const motionStageSvg = (bez: number[]): SVGElement => {
+  const W = 100, H = 100, P = 11.364;
+  const x = (t: number): number => P + t * (W - 2 * P);
+  const y = (v: number): number => H - P - v * (H - 2 * P);
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('class', 'mo-stage-svg');
+  const axis = document.createElementNS(SVGNS, 'path');
+  axis.setAttribute('d', `M${x(0)},${y(1)} L${x(0)},${y(0)} L${x(1)},${y(0)}`);
+  axis.setAttribute('class', 'mo-stage-axis'); axis.setAttribute('fill', 'none');
+  const [x1, y1, x2, y2] = bez.length === 4 ? bez : [0.4, 0, 0.2, 1];
+  const line = document.createElementNS(SVGNS, 'path');
+  line.setAttribute('d', `M${x(0)},${y(0)} C${x(x1)},${y(y1)} ${x(x2)},${y(y2)} ${x(1)},${y(1)}`);
+  line.setAttribute('class', 'mo-stage-line'); line.setAttribute('fill', 'none');
+  svg.append(axis, line);
+  return svg;
+};
+const MOTION_SLOWMO_OPTIONS = [1, 2, 4, 8];
+let motionSlowmo = 4;   // uniform playback divisor for the trace (#292) — never touches the ms label, the curve, or the ratio between transitions
+const renderMotionSpecimen = (): HTMLElement => {
+  const mo = theme.motion;
+  // D — reflect the current mode's per-mode tempo (modeLevers.tempo) when it deviates, so the ramp
+  // re-runs at the mode's speed here rather than only in the export (the #158 lesson). Duration is the
+  // mode-varying part; easing/transitions are tempo-invariant. Falls back to the global ramp.
+  const moByMode = mo.motionByMode?.[currentMode];
+  const durOf = (role: string): number => (moByMode?.duration ?? mo.duration)[role] ?? 0;
+  const tempoLabel = moByMode?.tempo ?? mo.tempo;
+  const wrap = palSection('Motion', `The semantic transitions at tempo '${tempoLabel}' — each stage traces the resolved duration + easing curve. Playback below is a legibility aid only (the ms label is always the real token value); reduce-motion is honoured (the engine also derives a reduced ramp).`);
+
+  const toolbar = el('div', 'mo-toolbar');
+  const slowmoLabel = el('label', 'mo-slowmo');
+  slowmoLabel.append(document.createTextNode('Playback '));
+  // View-only: this writes `motionSlowmo`, a module-local view variable, and repaints. It edits no
+  // token in any mode, so it must not make the specimen read "Editing · All modes" (#574).
+  const select = viewOnly(el('select', 'mo-slowmo-sel')) as HTMLSelectElement;
+  for (const v of MOTION_SLOWMO_OPTIONS) {
+    const opt = el('option', undefined, v === 1 ? 'real speed' : `1/${v}×`) as HTMLOptionElement;
+    opt.value = String(v);
+    if (v === motionSlowmo) opt.selected = true;
+    select.append(opt);
+  }
+  select.onchange = () => { motionSlowmo = Number(select.value) || 1; paintVolatile(); };
+  slowmoLabel.append(select);
+  toolbar.append(slowmoLabel);
+  wrap.append(toolbar);
+
+  const grid = el('div', 'mo-grid');
+  const dots: { el: HTMLElement; anim: string }[] = [];
+  for (const t of mo.transitions) {
+    const ms = durOf(t.duration);
+    const playMs = ms * motionSlowmo;
+    const curveBez = mo.easing[t.easing] ?? mo.easing.standard;
+    const bez = `cubic-bezier(${curveBez.join(', ')})`;
+    const anim = `mo-trace-x ${playMs}ms linear both, mo-trace-y ${playMs}ms ${bez} both`;
+
+    const col = el('div', 'mo-col');
+    const stage = el('div', 'mo-stage');
+    stage.append(motionStageSvg(curveBez));
+    const dot = el('div', 'mo-dot');
+    dot.style.animation = anim;
+    stage.append(dot);
+    dots.push({ el: dot, anim });
+    col.append(stage);
+
+    const meta = el('div', 'mo-colmeta');
+    meta.append(el('div', 'mo-colname', t.name));
+    const metaRow = el('div', 'spec-metarow');
+    // The card IS `motion.transition.<name>` and showed only its two PARTS — the composite that binds
+    // them was the one token on the card without a pill. Named first, then what it resolves to.
+    metaRow.append(tokenPillWrapping(`motion.transition.${t.name}`), el('span', 'mo-meta mono', `${ms}ms · ${t.easing}`), tokenPill(`motion.duration.${t.duration}`), tokenPill(`motion.easing.${t.easing}`));
+    meta.append(metaRow);
+    if (motionSlowmo > 1) meta.append(el('div', 'mo-playnote mono', `playing at ${playMs}ms (1/${motionSlowmo}×)`));
+    meta.append(el('div', 'mo-coldesc', t.desc));
+    col.append(meta);
+    grid.append(col);
+  }
+  wrap.append(grid);
+
+  const replay = el('button', 'mo-replay', 'Replay') as HTMLButtonElement;
+  // Re-trigger by clearing the animation, forcing a reflow between so the browser restarts the keyframes.
+  replay.onclick = () => { for (const d of dots) { d.el.style.animation = 'none'; void d.el.offsetWidth; d.el.style.animation = d.anim; } };
+  wrap.append(replay);
+  return wrap;
+};
+
+// The inverse-surface + icon specimens were retired here (#69): the on-inverse family is now a first-class
+// row in every interactive matrix section (Fill · inverse / Text · inverse / On-fill · inverse), and the
+// icon-contrast payoff is the "Icon colors" global section's match-vs-distinct example — no separate
+// preview needed.
+
+/** The neutral-emphasis option labels — subtle (a light-grey surface) vs strong (a bold near-black/white
+ *  fill). Drives the Neutral section's "Button emphasis" lead in the interactive matrix. */
+const NEUTRAL_EMPHASES: Array<['subtle' | 'strong', string]> = [['subtle', 'subtle · light gray'], ['strong', 'strong · bold fill']];
+
+// ---- Gradient editor (docs/23 §2 "Gradients") -----------------------------
+// The gradient axis was on/off only; this edits the DEFINITION — kind (linear/radial), angle or
+// centre+shape, interpolation, and the ramp-aliased stops — writing an explicit `GradientInput[]`
+// to `brandState.gradients` (the engine's opt-in axis, `boolean | GradientInput[]`). `true` (the
+// toggle default) materialises to the engine's default single brand gradient for display; the first
+// edit writes it out explicitly. Stops alias the ramp (palette + step), never raw hex.
+const DEFAULT_GRADIENT = (): GradientInput => ({
+  name: 'brand', kind: 'linear', angle: 135, interpolation: 'oklch',
+  stops: [{ palette: 'primary', step: 600, position: 0 }, { palette: 'primary', step: 350, position: 1 }],
+});
+/** The editable gradient array — materialising the `true` default and treating `false`/absent as empty. */
+const readGradients = (): GradientInput[] => {
+  const g = brandState.gradients;
+  if (Array.isArray(g)) return g;
+  if (g === true) return [DEFAULT_GRADIENT()];
+  return [];
+};
+/** Write the array back; an empty array collapses to `false` (off) so the toggle + specimen agree. */
+const writeGradients = (arr: GradientInput[]): void => { brandState.gradients = arr.length ? arr : false; applyFull(); };
+/** Resolve a stop's `{palette, step}` alias to its ramp hex (for the live preview). */
+const gradStopHex = (palette: string, step: number): string =>
+  theme.palettes.find((p) => p.palette === palette)?.steps.find((s) => s.num === step)?.hex ?? '#888888';
+/** Build the CSS gradient from an INPUT gradient (stops resolved through the ramp) — reads palette/step
+ *  aliases rather than pre-resolved hexes; interpolates `in <g.interpolation>` (Chromium-native), matching
+ *  whatever the Interpolation select is set to, the same value the engine honors — not hardcoded. */
+const inputGradientCss = (g: GradientInput): string => {
+  const stops = g.stops.slice().sort((a, b) => a.position - b.position)
+    .map((s) => `${gradStopHex(s.palette, s.step)} ${Math.round(s.position * 100)}%`).join(', ');
+  const interp = g.interpolation ?? 'oklch';
+  return (g.kind ?? 'linear') === 'radial'
+    ? `radial-gradient(${g.shape ?? 'ellipse'} at ${Math.round((g.center?.[0] ?? 0.5) * 100)}% ${Math.round((g.center?.[1] ?? 0.5) * 100)}% in ${interp}, ${stops})`
+    : `linear-gradient(${g.angle ?? 135}deg in ${interp}, ${stops})`;
+};
+
+/** The Gradients section — a bespoke on/off toggle (own `applyFull` so the editor mounts/unmounts) plus,
+ *  when on, one editor card per gradient. */
+const renderGradientsSection = (host: HTMLElement): void => {
+  const on = !!brandState.gradients;
+  // On/off toggle — the shared toggleField, but its callback rebuilds the workspace (applyFull) so the
+  // editor mounts/unmounts (it lives in the sections layer, not the volatile specimens).
+  const desc = leverByKey('gradients')?.description ?? 'Ship one or more decorative brand gradients (opt-in). Stop colors alias the ramp and interpolate in OKLCH.';
+  host.append(knob('Gradients', toggleField(on, (checked) => { brandState.gradients = checked; applyFull(); }), desc));
+  if (!on) return;
+
+  const grads = readGradients();
+  const palNames = theme.palettes.map((p) => p.palette);
+  const grid = el('div', 'gr-ed-list');
+  grads.forEach((g, gi) => grid.append(renderGradientCard(g, gi, grads, palNames)));
+  host.append(grid);
+  // Add gradient — a fresh linear gradient with a unique slug name (name is a token path segment).
+  const add = addButton('+ Add gradient', () => {
+    const arr = readGradients();
+    const used = new Set(arr.map((x) => x.name));
+    let n = arr.length + 1, name = `gradient-${n}`;
+    while (used.has(name)) name = `gradient-${++n}`;
+    arr.push({ ...DEFAULT_GRADIENT(), name });
+    writeGradients(arr);
+  }, 'gr-ed-add');
+  host.append(add);
+};
+
+/** One gradient's editor card — preview · kind/geometry/interpolation · ramp-aliased stops. */
+const renderGradientCard = (g: GradientInput, gi: number, all: GradientInput[], palNames: string[]): HTMLElement => {
+  const kind = g.kind ?? 'linear';
+  const card = el('div', 'gr-ed-card');
+  // Header — the gradient's editable name (a token-path segment, so it's slugified on commit and kept
+  // unique against the other gradients) + its live token pill + remove.
+  const head = el('div', 'gr-ed-head');
+  const nameInput = el('input', 'gr-ed-nameinput') as HTMLInputElement;
+  nameInput.value = g.name; nameInput.setAttribute('aria-label', 'Gradient name');
+  nameInput.onchange = () => {
+    let v = nameInput.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!v) { nameInput.value = g.name; return; }              // empty → revert, name is a required path segment
+    const used = new Set(all.filter((_, i) => i !== gi).map((x) => x.name));
+    while (used.has(v)) v = `${v}-2`;
+    const arr = readGradients(); arr[gi] = { ...arr[gi], name: v }; writeGradients(arr);   // applyFull re-renders with the new pill
+  };
+  head.append(nameInput, tokenPill(`gradient.${g.name}`));
+  head.append(removeButton(() => { const arr = readGradients(); arr.splice(gi, 1); writeGradients(arr); }, 'Remove gradient'));
+  card.append(head);
+  // Live preview.
+  const sw = el('div', 'gr-ed-sw'); sw.style.background = inputGradientCss(g);
+  card.append(sw);
+
+  // Geometry controls — kind, then angle (linear) or shape + centre (radial), then interpolation.
+  const ctrls = el('div', 'gr-ed-ctrls');
+  const mut = (fn: (gg: GradientInput) => void): void => { const arr = readGradients(); fn(arr[gi]); writeGradients(arr); };
+  const labeledSelect = (label: string, opts: [string, string][], cur: string, onPick: (v: string) => void): HTMLElement => {
+    const wrap = el('div', 'gr-ed-field');
+    wrap.append(el('label', 'gr-ed-lab', label));
+    const sel = selectEl('cap');
+    for (const [v, t] of opts) sel.append(optionEl(v, t, v === cur));
+    sel.onchange = () => onPick(sel.value);
+    wrap.append(sel);
+    return wrap;
+  };
+  ctrls.append(labeledSelect('Kind', [['linear', 'Linear'], ['radial', 'Radial']], kind, (v) => mut((gg) => { gg.kind = v as 'linear' | 'radial'; })));
+  if (kind === 'linear') {
+    const f = el('div', 'gr-ed-field');
+    f.append(el('label', 'gr-ed-lab', `Angle · ${g.angle ?? 135}°`));
+    const range = rangeInput({ className: 'gr-ed-range', min: 0, max: 360, step: 5, value: g.angle ?? 135 });
+    range.oninput = () => { (f.firstChild as HTMLElement).textContent = `Angle · ${range.value}°`; sw.style.background = inputGradientCss({ ...g, angle: Number(range.value) }); };
+    range.onchange = () => mut((gg) => { gg.angle = Number(range.value); });
+    f.append(range);
+    ctrls.append(f);
+  } else {
+    ctrls.append(labeledSelect('Shape', [['ellipse', 'Ellipse'], ['circle', 'Circle']], g.shape ?? 'ellipse', (v) => mut((gg) => { gg.shape = v as 'circle' | 'ellipse'; })));
+    const center = g.center ?? [0.5, 0.5];
+    const centerField = (label: string, idx: 0 | 1): HTMLElement => {
+      const f = el('div', 'gr-ed-field');
+      f.append(el('label', 'gr-ed-lab', label));
+      const num = numberField({ className: 'gr-ed-num', min: 0, max: 100, step: 5, value: Math.round(center[idx] * 100) });
+      num.onchange = () => mut((gg) => { const c: [number, number] = [...(gg.center ?? [0.5, 0.5])] as [number, number]; c[idx] = clampUnit(Number(num.value) / 100); gg.center = c; });
+      f.append(num);
+      return f;
+    };
+    ctrls.append(centerField('Center X %', 0), centerField('Center Y %', 1));
+  }
+  ctrls.append(labeledSelect('Interpolation', [['oklch', 'OKLCH'], ['srgb', 'sRGB']], g.interpolation ?? 'oklch', (v) => mut((gg) => { gg.interpolation = v as 'oklch' | 'srgb'; })));
+  card.append(ctrls);
+
+  // Stops — each aliases the ramp (palette + step) with a position; add/remove.
+  card.append(el('h5', 'gr-ed-stopsh', 'Stops'));
+  const stopsWrap = el('div', 'gr-ed-stops');
+  g.stops.forEach((st, si) => stopsWrap.append(renderGradientStop(g, gi, st, si, palNames, mut)));
+  card.append(stopsWrap);
+  const addStop = addButton('+ Add stop', () => mut((gg) => {
+    const last = gg.stops[gg.stops.length - 1];
+    gg.stops = [...gg.stops, { palette: last?.palette ?? palNames[0], step: last?.step ?? 500, position: 1 }];
+  }), 'gr-ed-addstop');
+  card.append(addStop);
+  return card;
+};
+
+/** A single gradient stop row — swatch · palette · step · position % · remove (kept ≥2 stops). */
+const renderGradientStop = (g: GradientInput, gi: number, st: { palette: string; step: number; position: number }, si: number, palNames: string[], mut: (fn: (gg: GradientInput) => void) => void): HTMLElement => {
+  const row = el('div', 'gr-ed-stop');
+  row.append(swatch(gradStopHex(st.palette, st.step), 'gr-ed-stopsw'));
+  const palSel = selectEl('fill');
+  for (const p of palNames) palSel.append(optionEl(p, p, p === st.palette));
+  // Changing palette re-homes the step to the nearest valid step in the new palette.
+  palSel.onchange = () => mut((gg) => {
+    const steps = theme.palettes.find((p) => p.palette === palSel.value)?.steps ?? [];
+    const keep = steps.find((s) => s.num === gg.stops[si].step)?.num ?? steps.find((s) => s.num === 500)?.num ?? steps[Math.floor(steps.length / 2)]?.num ?? gg.stops[si].step;
+    gg.stops[si] = { ...gg.stops[si], palette: palSel.value, step: keep };
+  });
+  const stepSel = selectEl('fill');
+  const steps = theme.palettes.find((p) => p.palette === st.palette)?.steps ?? [];
+  for (const s of steps) stepSel.append(optionEl(String(s.num), s.key, s.num === st.step));
+  stepSel.onchange = () => mut((gg) => { gg.stops[si] = { ...gg.stops[si], step: Number(stepSel.value) }; });
+  const pos = numberField({ className: 'gr-ed-num', min: 0, max: 100, step: 5, value: Math.round(st.position * 100), title: 'Position %' });
+  pos.onchange = () => mut((gg) => { gg.stops[si] = { ...gg.stops[si], position: clampUnit(Number(pos.value) / 100) }; });
+  row.append(palSel, stepSel, pos);
+  if (g.stops.length > 2) {
+    row.append(removeButton(() => mut((gg) => { gg.stops = gg.stops.filter((_, i) => i !== si); }), 'Remove stop', 'gr-ed-stoprm'));
+  }
+  return row;
+};
+const clampUnit = (n: number): number => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
+
+/** Inline-SVG icon glyphs (stroke, `currentColor` via the `stroke` attr) — dependency-free line icons,
+ *  authored here so the specimen stays buildless. 24×24 viewBox, rounded caps/joins. */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const ICON_PATH: Record<string, string> = {
+  bell: '<path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/>',
+  arrow: '<path d="M5 12h13M12 6l6 6-6 6"/>',
+  search: '<circle cx="11" cy="11" r="7"/><line x1="20.5" y1="20.5" x2="16" y2="16"/>',
+  dot: '<circle cx="12" cy="12" r="8"/>',
+  star: '<path d="M12 3l2.6 5.6 6 .7-4.4 4.1 1.2 6L12 16.9 6.6 19.4l1.2-6L3.4 9.3l6-.7z"/>',
+  check: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5 5-5.5"/>',
+  triangle: '<path d="M12 4l9 16H3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17" x2="12" y2="17.01"/>',
+  x: '<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12" y2="8.01"/>',
+};
+const iconEl = (name: string, stroke: string): SVGElement => {
+  const svg = document.createElementNS(SVGNS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('width', '22'); svg.setAttribute('height', '22');
+  svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', stroke); svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
+  svg.innerHTML = ICON_PATH[name] ?? ICON_PATH.dot;
+  return svg;
+};
+
+// ---- shared bits -----------------------------------------------------------
+const hero = (title: string, lede: string): HTMLElement => {
+  const h = el('div', 'hero');
+  if (title) h.append(el('h1', undefined, title));
+  if (lede) h.append(el('p', 'lede', lede));
+  return h;
+};
+// ---- shell -----------------------------------------------------------------
+const app = document.getElementById('app')!;
+let workspace: HTMLElement;
+let modeStripHost: HTMLElement;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
+let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
+
+/** #268 — the switcher appears only where a mode-varying control actually exists.
+ *
+ *  The governing rule is the one #268 proposed and #176's decision 2 implies: modes live in the
+ *  SEMANTIC layer, so a purely primitive surface has nothing to switch. This is deliberately a
+ *  predicate rather than a per-page flag — placement is DERIVED from what a page contains, so a new
+ *  page inherits the right answer instead of needing a decision.
+ *
+ *  Three pages fail it today, unconditionally:
+ *   • `layout` — nothing layout-related exists in `ModeLevers` or carries a `*ByMode` field. It is
+ *     mode-invariant outright, not merely primitive.
+ *   • `palettes` — a ramp is mode-invariant, and choosing which STEP a mode lands on is a Surfaces
+ *     concern, not a Palettes one (see the in-function measurement below).
+ *   • `typography` — since #416 the whole page edits every mode-varying value it has (families,
+ *     weight roles, leading/tracking re-points, per-size pins) as a COLUMN PER MODE, so there is
+ *     nothing left for a switcher to drive. The editors write via column-scoped `setModeLever(m, ...)`,
+ *     not `currentMode` — there is no single "active" mode left for the bar to control.
+ *
+ *  `preview` is a fourth, conditional case: it fails outside the style-guide view, where every mode is
+ *  already rendered as its own column (see the per-view measurement in the function body).
+ *
+ *  Stated as a POSITIVE list of the pages that have the axis, not `!== 'layout'`: the negative form
+ *  silently grants the switcher to any page added later, which is how Preview would have got one. */
+const pageHasModeVaryingControl = (): boolean => {
+  if (page === 'layout') return false;
+  // Palettes has NO mode-varying value at all — a ramp is mode-invariant, and choosing which STEP a
+  // mode lands on is a Surfaces concern. Measured rather than argued: the workspace markup is
+  // byte-identical between Light and Dark (34555 chars both), so the switcher changed nothing and
+  // only claimed the page had an axis. #268's audit found this and Layout together; Layout was fixed
+  // and this was missed.
+  if (page === 'palettes') return false;
+  // Preview is read-only and shows every mode side by side, so there is nothing for a switcher to
+  //  do — the same reasoning that hides it on Primitives, reached from the other direction.
+  // #416 — Typography edits every mode-varying value it has (families, weight roles, leading and
+  // tracking re-points, per-size pins) as a COLUMN PER MODE, so there is nothing left for a switcher
+  // to drive. Same conclusion as Primitives and Preview, reached from the other end: those have no
+  // per-mode values, this one shows them all at once.
+  if (page === 'typography') return false;
+  // Preview is THREE views with three different answers, so the rule lands per VIEW, not per page.
+  // Measured Light->Dark on the rendered TEXT (#439):
+  //   Style guide         8 of 373 lines differ — it renders the ACTIVE mode, and says so
+  //                       ("ON LIGHT SURFACE" -> "ON DARK SURFACE"). The bar does real work.
+  //   Contrast contracts  0 of 54  — every mode is already a column (Pair | Light | Dark | HC ...)
+  //   Token list          1 of 940 — one caption; every mode is already a column pair
+  // The two column views meet exactly the condition stated for Typography above: when every
+  // mode-varying value is a column, the bar has nothing left to drive. Same rule, finer grain.
+  if (page === 'preview') return previewView === 'styleguide';
+  return true;
+};
+
+/** Repaint the mode-selector strip at the top of the workspace (#432) — page furniture, not header
+ *  chrome. Called on mode change, on menu toggles, and by apply/applyFull; it carries no per-mode
+ *  contrast marks any more (#54 retired, owner decision), but currentMode's "on" state still needs a
+ *  refresh. No-op before the first build (the start screen has no workspace yet). */
+function renderModeStrip(): void {
+  if (!modeStripHost) return;
+  modeStripHost.innerHTML = '';
+  // Hidden, never disabled: a greyed-out switcher still claims the page has modes and just won't let
+  // you use them. `currentMode` is untouched, so leaving and returning restores the mode you were in.
+  if (!firstRun && pageHasModeVaryingControl()) modeStripHost.append(renderModeContext());
+  // A page with no bar must not leave an empty sticky box holding its own padding.
+  modeStripHost.style.display = modeStripHost.childElementCount ? '' : 'none';
+  syncChromeHeight();
+}
+
+/** `--chrome-h` positions the sticky rail AND the sticky mode bar, so it must track the real header.
+ *  It used to be read off the mode strip's parent — fine while the strip lived in the chrome, wrong
+ *  now that it doesn't. Measured from the chrome element itself, and re-read whenever the chrome can
+ *  change height: the global error bar shows and hides inside it. */
+function syncChromeHeight(): void {
+  if (chromeHost) document.documentElement.style.setProperty('--chrome-h', `${chromeHost.offsetHeight}px`);
+}
+
+const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
+  palettes: renderPrimitives,
+  surfaces: renderSurfacesPage,
+  interactive: renderInteractivePage,
+  typography: renderTypographyPage,
+  elevation: renderElevationPage,
+  sizeRadius: renderSizeRadiusPage,
+  layout: renderLayoutPage,
+  motion: renderMotionPage,
+  preview: renderPreviewPage,
+};
+/** Attach the mode badge to every section on the page, in ONE post-render pass.
+ *
+ *  Deliberately not done inside the section builders: there are already THREE ways a `.psec` comes
+ *  into existence — `palSection`, `renderPaletteSection` (its own `.psec-h`, which also carries a
+ *  remove button), and `renderGlobalBehavior`, which assembles bare `.psec` nodes with no head at
+ *  all. Wiring each one means a fourth builder silently ships without badges, which is the same
+ *  shape as the negative mode-bar rule that let Palettes keep an inert switcher for a month (#430).
+ *  A pass over the rendered DOM cannot be forgotten by code that does not know it exists.
+ *
+ *  Placement follows whatever head the section has, so the badge lands top-right in all three:
+ *  both head variants are already `justify-content:space-between` flex rows; a headless section
+ *  gets the badge positioned against its own box instead. */
+const attachModeBadges = (root: HTMLElement): void => {
+  // Badges belong to the pages that carry a mode bar — the scope SECTION_MODE_SCOPE already states,
+  // now enforced instead of assumed. It was assumed, and the assumption broke: the map is keyed by
+  // section TITLE, and the token list builds its sections with `palSection(capitalize(category))`,
+  // so its `icon` category minted a section titled `Icon` that collided with the Style guide's
+  // 'Icon' entry. One stray "Shared / All modes" badge on the token list, on the one category out of
+  // ~14 whose name happened to match. The token list is a read-only listing with no bar, and it
+  // already states its own mode scope per section ("mode-invariant, one value" / "each mode aliases
+  // its own target") from the token data rather than from a name — strictly better information than
+  // the badge. Gating on the bar's own predicate fixes the collision at the root rather than by
+  // renaming one of the two sections, which would leave the next collision to be found by eye.
+  if (!pageHasModeVaryingControl()) return;
+  for (const sec of [...root.querySelectorAll('.psec')] as HTMLElement[]) {
+    if (sec.querySelector('.msb')) continue;
+    const title = sec.querySelector('.psec-t')?.textContent?.trim();
+    const scope = title ? SECTION_MODE_SCOPE[title] : undefined;
+    if (!scope) continue;
+    // Value editors only — see TOKEN_CONTROL_SEL. `button` was excluded from the start for this exact
+    // hazard, and the reasoning was right but ONE ELEMENT TYPE TOO NARROW (#574): Motion has both a
+    // preview button (excluded) and a playback `select` (counted), so the specimen badged itself
+    // "Editing · All modes". The old comment here claimed "every section with a real control has at
+    // least one input/select, and every section without one has zero of anything" — true when written,
+    // false the moment a view-state select appeared, and nothing re-checked it. Measured on all six bar
+    // pages: of the 98 controls this selector counts, 95 provably mutate the persisted brand, one is
+    // single-option, one re-renders before it can be read, and the only genuinely quiet one is the
+    // playback select — which is now marked rather than assumed away.
+    const hasControls = sec.querySelector(TOKEN_CONTROL_SEL) !== null;
+    // ONE path, not two (#562). A section with no head gets one BUILT here — its title + description
+    // moved into a `.psec-txt`, exactly the shape `palSection` produces — rather than the badge being
+    // absolutely positioned against the section box. That old fallback (`top:0;right:0`) is what put
+    // the badge flush against the border on four Interactive sections: outside the section's own 20/24
+    // padding, and with none of the flex head's under-720px column reflow. Those four now call
+    // `palSection` like the rest, so this branch is unreached today. It is kept, and made correct,
+    // because the value of a post-render pass is that a NEW section builder cannot forget it — and
+    // "cannot forget" buys nothing if what it falls back to is misplaced.
+    let head = sec.querySelector('.psec-head') ?? sec.querySelector('.psec-h');
+    if (!head) {
+      const built = el('div', 'psec-head'), txt = el('div', 'psec-txt');
+      for (const n of [...sec.children] as HTMLElement[])
+        if (n.classList.contains('psec-t') || n.classList.contains('psec-d')) txt.append(n);
+      built.append(txt); sec.prepend(built); head = built;
+    }
+    head.append(modeScopeBadge(scope, hasControls));
+  }
+};
+
+function renderWorkspace(): void {
+  // #485: `innerHTML = ''` below tears down and rebuilds the entire page, which resets scroll
+  // position as a side effect — every applyFull() caller (select onchange, etc.) was jumping the
+  // page to the top on every edit. Save/restore here fixes it once for every current AND future
+  // applyFull() call site, rather than patching each one individually.
+  const scrollY = window.scrollY;
+  workspace.innerHTML = '';
+  // Page furniture, not global chrome (#432). Re-minted every render because the workspace is cleared;
+  // `currentMode` is module state, so the SELECTION survives navigation exactly as it did in the header.
+  modeStripHost = el('div', 'modebar');
+  workspace.append(modeStripHost);
+  renderModeStrip();
+  PAGE_RENDERERS[page](workspace);
+  attachModeBadges(workspace);
+  // The bar belongs UNDER the page's title + lede, not above it. It scopes the CONTROLS; the hero is
+  // the page's identity, and a scope control sitting above the name of the thing it scopes reads as
+  // chrome again — which is what moving it out of the header (#432) was meant to stop. Repositioned
+  // here rather than inside each page renderer for the same reason the badges are: there is more than
+  // one renderer, and a new one would forget.
+  // Below the hero — and below a VIEW switcher when one immediately follows it. On Preview the
+  // Style guide / Contrast contracts / Token list segment changes what the page shows, and the bar
+  // is hidden on two of those three (#452). With the bar above the segment, switching views made
+  // the segment itself jump up and down the page; below it, the segment holds still and only the
+  // thing that actually varies moves. A control that changes the page outranks a control that
+  // scopes it.
+  const hero = workspace.querySelector(':scope > .hero');
+  const next = hero?.nextElementSibling;
+  const anchorEl = next?.classList.contains('pvseg') ? next : hero;
+  if (anchorEl) anchorEl.after(modeStripHost);
+  syncStuck();
+  // #485: restore the scroll position saved before the teardown above. Clamps naturally if the
+  // rebuilt page is shorter than before.
+  window.scrollTo(0, scrollY);
+}
+
+/** The bar is sticky, so page content slides under it. Without a shadow that reads as a hard cut at
+ *  the bar's own background colour rather than as a layer. `.stuck` is applied only once the bar has
+ *  actually reached its sticky position, so a page scrolled to the top shows no shadow at all — a
+ *  permanent one would claim there is content above when there is not.
+ *
+ *  Measured against the LIVE chrome height rather than a baked offset: the global error bar lives in
+ *  the chrome and changes its height when it appears, which would leave a fixed threshold wrong for
+ *  exactly the situation where the user is reading an error. */
+function syncStuck(): void {
+  if (!modeStripHost) return;
+  const chromeH = chromeHost?.offsetHeight ?? 0;
+  modeStripHost.classList.toggle('stuck', modeStripHost.getBoundingClientRect().top <= chromeH + 0.5);
+}
+let stuckBound = false;
+const bindStuck = (): void => {
+  if (stuckBound) return;
+  stuckBound = true;
+  let queued = false;
+  const onScroll = (): void => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; syncStuck(); });
+  };
+  addEventListener('scroll', onScroll, { passive: true });
+  addEventListener('resize', onScroll, { passive: true });
+};
+
+// ---- brand setup — selector menu: name + namespace, switch / new / import --------
+let barHost: HTMLElement;
+let brandMenuOpen = false;
+let exportMenuOpen = false;
+let navMenuOpen = false;
+let importOpen = false;
+let importErr: string | null = null;
+let importText = '';            // M-17: survives re-renders so a failed paste isn't wiped
+let importPending: BrandInput | null = null;   // #160: validated import awaiting confirm-overwrite
+let outsideBound = false;
+
+/** Replace the working brand wholesale (switch / new / import) and re-render. */
+const loadBrand = (input: BrandInput): void => {
+  brandState = structuredClone(input);
+  brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; importPending = null;
+  page = 'palettes';
+  rebuild();
+  currentMode = rp.modes[0];
+  build();
+};
+
+/** Set the generated modes from the toggles. Light is always present; HC adds hc-light, plus
+ *  hc-dark only when dark is also on; wireframe (greyscale, generate-only) appends last — the
+ *  engine's canonical mode order (docs/11 Pillar 1). */
+const setModes = (dark: boolean, hc: boolean, wire: boolean): void => {
+  const m: Mode[] = ['light'];
+  if (dark) m.push('dark');
+  if (hc) { m.push('hc-light'); if (dark) m.push('hc-dark'); }
+  if (wire) m.push('wireframe');
+  brandState.modes = m;
+  rebuild();
+  if (!rp.modes.includes(currentMode)) currentMode = rp.modes[0];   // dropped the selected mode
+  build();                                                          // bar toggles + preview mode selector both change
+};
+
+/** Trigger a client-side file download (Blob → object URL → anchor click). */
+const download = (filename: string, text: string, mime: string): void => {
+  const url = URL.createObjectURL(new Blob([text], { type: mime }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+};
+
+// L-11: a design.md pasted with a bare numeric `id:` (e.g. `id: 2026`) parses `id` as a
+// number; `.trim()` on a number throws and crashes BOTH exports. Coerce to string first.
+const slug = (): string => String(lastGoodInput.id || 'brand').trim().replace(/\s+/g, '-') || 'brand';
+
+// Both exports run off the LAST-GOOD state, never the live one (M-15). Previously tokens.json
+// re-ran `brandTheme(brandState)` uncaught — a failing edit threw in the click handler (no
+// download, no feedback) — and design.md serialized the failing state into a brief its own
+// importer rejects. The last-good input/theme is always valid and is exactly what the ramps +
+// preview already show (the errbar tells the user the current edit is what's unresolved).
+/** Export the last-good brand as design.md — round-trips straight back into Import. */
+const exportDesignMd = (): void => download(`${slug()}.design.md`, toDesignMd(lastGoodInput), 'text/markdown');
+
+/** Export the resolved DTCG token tree (buildTree) of the last-good theme, namespaced under `root`. */
+const exportTokens = (): void => {
+  const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
+  download(`${slug()}.tokens.json`, JSON.stringify(tree, null, 2), 'application/json');
+};
+
+// design.md import (#160) — one validation path shared by the start-screen upload card and the
+// post-setup import, so both reject the same off-spec input with the same friendly errors.
+const MD_FILE_RE = /\.(md|markdown|txt)$/i;
+const IMPORT_ACCEPT = '.md,.markdown,.txt,text/markdown,text/plain';
+
+/** Engine acceptance IS the validation: parse the design.md, then confirm the engine builds it.
+ *  Returns the BrandInput or a friendly error — the working brand is never touched here. (The full
+ *  schema validator is node-bound, so it can't run here; brandTheme's guards cover the rest.)
+ *
+ *  Mirrors cli.ts's dialect auto-detection (#556): a design.md may be ENGINE-NATIVE (frontmatter
+ *  compiles 1:1 to BrandInput, read by `parseDesignMd`) or STANDARD (brand-skills / google-labs —
+ *  a flat `colors:` hex map, read by `parseStandardDesignMd` + `standardToBrandInput`). Before this
+ *  fix the web import path only ever tried the native parser, so a standard-dialect file like
+ *  `examples/wendys.design.md` parsed into an empty/malformed BrandInput and crashed inside
+ *  `brandTheme` with an engine-internals error ("Cannot read properties of undefined (reading 'l')")
+ *  instead of importing. Detection is the same rule cli.ts uses: a top-level flat `colors:` map is
+ *  the standard dialect (engine-native briefs never have one). */
+const validateDesignMd = (text: string): { input: BrandInput } | { error: string } => {
+  if (!text.trim()) return { error: 'Nothing to import — the file is empty.' };
+
+  // ---- detect dialect: a top-level flat `colors:` map is the standard dialect ----
+  let std;
+  try { std = parseStandardDesignMd(text); }
+  catch (e) { return { error: `That doesn't read as a design.md: ${(e as Error).message}` }; }
+  const isStandard = isStandardDesignMd(std);
+
+  let input: BrandInput;
+  if (isStandard) {
+    try { input = standardToBrandInput(std).input; }
+    catch (e) { return { error: `Parsed as a standard-dialect design.md, but couldn't classify '${std.name}': ${(e as Error).message}` }; }
+  } else {
+    try { input = parseDesignMd(text).input; }
+    catch (e) { return { error: `That doesn't read as a design.md: ${(e as Error).message}` }; }
+  }
+
+  try { brandTheme(input); }
+  catch (e) { return { error: `Parsed, but the engine rejected it: ${(e as Error).message}` }; }
+  return { input };
+};
+
+/** Read an uploaded File as design.md text, rejecting non-markdown/text file types up front (#160). */
+const readDesignMdFile = (file: File): Promise<{ text: string } | { error: string }> => {
+  const okType = MD_FILE_RE.test(file.name) || /^text\//.test(file.type || '');
+  if (!okType) return Promise.resolve({ error: `That's not a design.md — upload a .md file (got "${file.name}").` });
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = () => resolve({ text: String(r.result ?? '') });
+    r.onerror = () => resolve({ error: `Couldn't read "${file.name}".` });
+    r.readAsText(file);
+  });
+};
+
+/** Post-setup import: validate, then STAGE for confirm-overwrite — loadBrand replaces the working
+ *  brand, so we never overwrite current edits without an explicit Replace (#160). */
+const stageImport = (text: string): void => {
+  importText = text;              // M-17: keep the paste so an error re-render doesn't wipe it
+  const res = validateDesignMd(text);
+  if ('error' in res) { importErr = res.error; importPending = null; renderBar(); return; }
+  importErr = null; importPending = res.input; renderBar();
+};
+
+const renderBrandMenu = (): HTMLElement => {
+  const menu = el('div', 'brandmenu');
+
+  menu.append(el('div', 'bm-cap', 'Current brand'));
+  const field = (label: string, value: string, mono: boolean, oninput: (v: string, input: HTMLInputElement) => void): HTMLElement => {
+    const f = el('label', 'bm-field');
+    f.append(el('span', 'bm-lab', label));
+    const inp = el('input', 'bm-in' + (mono ? ' mono' : '')) as HTMLInputElement;
+    inp.value = value; inp.spellcheck = false;
+    inp.oninput = () => oninput(inp.value, inp);
+    f.append(inp);
+    return f;
+  };
+  menu.append(field('Name', brandState.id, false, (v) => {
+    brandState.id = v.trim() || 'untitled';
+    (barHost.querySelector('.bs-name') as HTMLElement).textContent = brandState.id;
+  }));
+  const nsHint = el('p', 'bm-hint');
+  const setHint = () => { nsHint.textContent = `Tokens emit under ${brandState.root ?? 'prism'}.*`; };
+  menu.append(field('Namespace', brandState.root ?? 'prism', true, (v, inp) => {
+    const t = v.trim();
+    if (ROOT_RE.test(t)) { brandState.root = t; inp.classList.remove('bad'); setHint(); }
+    else inp.classList.add('bad');
+  }));
+  setHint();
+  menu.append(nsHint);
+
+  // Modes are back in this dropdown (#432), reversing #171 — which had moved them to an "Edit modes"
+  // popover on the mode strip, "next to the mode you're viewing". Two things changed since: the strip
+  // moved onto the page, where a popover competes with page content rather than hanging off a header;
+  // and WHICH modes a brand generates turned out to be brand configuration, sitting more naturally
+  // beside namespace and the example brands than beside a per-page selector. Selecting a mode stays on
+  // the strip — only managing the SET moved. Rendered inline rather than as a nested popover.
+  menu.append(el('div', 'bm-div'));
+  menu.append(el('div', 'bm-cap', 'Modes'));
+  menu.append(renderModeSetMenu(renderBar, true));
+
+  menu.append(el('div', 'bm-div'));
+  menu.append(el('div', 'bm-cap', 'Examples'));
+  for (const name of Object.keys(BRANDS)) {
+    const b = el('button', 'bm-item' + (name === brandState.id ? ' cur' : '')) as HTMLButtonElement;
+    const d = el('span', 'bm-dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
+    b.append(d, el('span', undefined, name));
+    b.onclick = () => loadBrand(BRANDS[name]);
+    menu.append(b);
+  }
+
+  menu.append(el('div', 'bm-div'));
+  const nb = el('button', 'bm-item', '+ New brand') as HTMLButtonElement;
+  // Web: return to the start moment (the same three paths) rather than silently loading the default.
+  // Plugin: keep the direct neutral-default load — this handler is SHARED UI (not host-DCE'd), and the
+  // plugin start moment is a deferred cross-lane follow-up, so it must not surface the web start screen.
+  nb.onclick = () => {
+    brandMenuOpen = false;
+    if (PRISM3_HOST !== 'figma') { firstRun = true; build(); } else loadBrand(NEW_BRAND());
+  };
+  menu.append(nb);
+  const imp = el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement;
+  imp.onclick = () => { importOpen = !importOpen; importErr = null; importPending = null; renderBar(); };
+  menu.append(imp);
+
+  if (importOpen) {
+    const box = el('div', 'bm-import');
+    if (importPending) {
+      // Validated already — confirm before overwriting the working brand (#160).
+      box.append(el('p', 'bm-confirm', `Replace the current brand with “${importPending.id}”? This overwrites your current edits.`));
+      const row = el('div', 'bm-confirm-row');
+      const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
+      rep.onclick = () => { const inp = importPending!; importPending = null; loadBrand(inp); };
+      const can = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
+      can.onclick = () => { importPending = null; renderBar(); };
+      row.append(rep, can);
+      box.append(row);
+    } else {
+      const ta = el('textarea', 'bm-ta') as HTMLTextAreaElement;
+      ta.placeholder = 'Paste a design.md — --- YAML frontmatter --- then prose…';
+      ta.spellcheck = false;
+      ta.value = importText;                                   // M-17: restore across re-renders
+      ta.oninput = () => { importText = ta.value; };           // a mode-toggle mid-paste won't lose it
+      box.append(ta);
+      if (importErr) box.append(el('p', 'bm-err', importErr));
+      const row = el('div', 'bm-import-row');
+      const up = el('label', 'bm-upload');
+      const fi = el('input', 'bm-file') as HTMLInputElement;
+      fi.type = 'file'; fi.accept = IMPORT_ACCEPT;
+      fi.onchange = async () => {
+        const f = fi.files?.[0]; if (!f) return;
+        const read = await readDesignMdFile(f);
+        if ('error' in read) { importErr = read.error; importPending = null; renderBar(); return; }
+        stageImport(read.text);
+      };
+      up.append(el('span', undefined, '↑ Upload .md'), fi);
+      const load = el('button', 'bm-load', 'Load') as HTMLButtonElement;
+      load.onclick = () => stageImport(ta.value);
+      row.append(up, load);
+      box.append(row);
+    }
+    menu.append(box);
+  }
+
+  // Export + Apply-to-Figma moved OUT of this dropdown (#159) — they're their own bar affordances
+  // now (Export is an artifact output, not a brand source; Apply is the plugin's primary CTA).
+  return menu;
+};
+
+/** Export dropdown (#159) — the two download artifacts. design.md round-trips back into Import;
+ *  tokens.json is the resolved DTCG tree. A pure output menu, split from the brand switcher. */
+const renderExportMenu = (): HTMLElement => {
+  const menu = el('div', 'brandmenu exportmenu');
+  menu.append(el('div', 'bm-cap', 'Export'));
+  const closeThen = (fn: () => void) => () => { exportMenuOpen = false; renderBar(); fn(); };
+  const expMd = el('button', 'bm-item', '↓ design.md') as HTMLButtonElement;
+  expMd.onclick = closeThen(exportDesignMd);
+  const expTok = el('button', 'bm-item', '↓ tokens.json — DTCG') as HTMLButtonElement;
+  expTok.onclick = closeThen(exportTokens);
+  menu.append(expMd, expTok);
+  menu.append(el('p', 'bm-hint', 'design.md re-imports here; tokens.json is the resolved tree.'));
+  return menu;
+};
+
+/** The Apply-to-Figma status pill — reached only in the plugin, via the `commit.isFigma` branch.
+ *
+ *  Not dead-code-eliminated on web, whatever the branch's own comment used to claim. Measured: the web
+ *  bundle contains this function and its class names, because `isFigma` is a RUNTIME property of the
+ *  commit host, not the build-time `PRISM3_HOST` define. What IS eliminated is `figmaCommit`'s body in
+ *  `write-adapter.ts` (no `pluginMessage` reaches the web bundle), so nothing here can ever fire — the
+ *  branch is unreachable rather than absent. Behavior is identical either way; only the claim was wrong.
+ *
+ *  A headline plus an on-demand detail, NOT one line of prose. The main thread's summary is ~150
+ *  characters spanning five axes; the bar pill was `max-width:220px` with `nowrap` + ellipsis, so a
+ *  result reading "…, 4 misses" rendered as "palette 118 (+0), color 2…" — the miss count computed
+ *  correctly and then discarded by a CSS rule. The headline carries the verdict at pill scale and the
+ *  detail carries what a designer chasing a miss actually needs, wrapped rather than clipped.
+ *
+ *  Pending renders as text with no disclosure: there is nothing to expand yet, and a control that
+ *  appears and then changes meaning when the result lands is worse than one that appears with it. */
+function renderApplyStatus(state: Exclude<typeof applyState, null>): HTMLElement {
+  if (state === 'pending') return el('span', 'bar-seed', 'Writing to Figma…');
+  const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (applyDetailOpen ? ' open' : '');
+  const btn = el('button', cls) as HTMLButtonElement;
+  // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
+  // type and color), and an element with a class but no rule is a name reserved against nothing — the
+  // shape `lint:classes` exists to discourage.
+  btn.append(document.createTextNode(state.headline), el('span', 'caret', applyDetailOpen ? '▴' : '▾'));
+  // The accessible name has to carry the headline, because the caret glyph is the only other content and
+  // a screen reader would otherwise announce a bare triangle. `aria-expanded` states the disclosure, and
+  // `aria-controls` names the row it opens — which lives in the chrome, not inside this button.
+  btn.setAttribute('aria-expanded', applyDetailOpen ? 'true' : 'false');
+  btn.setAttribute('aria-controls', APPLY_DETAIL_ID);
+  btn.setAttribute('aria-label', `${state.headline} — apply details`);
+  btn.onclick = () => { applyDetailOpen = !applyDetailOpen; renderBar(); syncApplyDetail(); };
+  return btn;
+}
+
+/** The expanded apply detail — a row in the CHROME under the bar, not a popover hanging off the pill.
+ *
+ *  A popover was the first shape and it was measured wrong: at the narrow tier the bar wraps to two
+ *  rows (pre-existing — the brand/export/nav controls take row one and Apply takes row two), so an
+ *  absolutely-positioned panel under the pill covered the Apply button itself. Hiding the primary CTA
+ *  behind its own status is worse than the truncation this replaced.
+ *
+ *  The chrome row is the pattern already established for exactly this by #388's `errbar-global`: status
+ *  that belongs to the whole app rather than to a page, mounted once in the chrome, pushing content
+ *  down rather than covering it. Being in flow it cannot overlap anything at any width, needs no
+ *  z-index, and needs no outside-click dismissal — it is not an overlay. `--chrome-h` must be re-read
+ *  because everything sticky below the chrome is positioned from it. */
+const APPLY_DETAIL_ID = 'apply-detail';
+let applyDetailHost: HTMLElement | null = null;
+const syncApplyDetail = (): void => {
+  if (!applyDetailHost) return;
+  const show = applyDetailOpen && applyState !== null && applyState !== 'pending';
+  applyDetailHost.style.display = show ? '' : 'none';
+  if (show) applyDetailHost.textContent = (applyState as { summary: string }).summary;
+  syncChromeHeight();
+};
+
+/** The brand bar (#159) — a horizontal row of brand-level utilities, replacing the single
+ *  overloaded dropdown. Left: brandmark. Right: brand switcher (identity + examples + new +
+ *  import — a brand *source*), Export (artifact *output*), and, in the plugin only, the primary
+ *  Apply-to-Figma CTA (the terminal action of the plugin flow). Modes live in the workspace
+ *  mode-context strip (#171), not here. The bar is sticky (see `.bar`). */
+function renderBar(): void {
+  barHost.innerHTML = '';
+  const mark = el('div', 'brandmark');
+  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3'), el('span', 'studio', 'Theme studio'));
+  barHost.append(mark);
+
+  const actions = el('div', 'bar-actions');
+
+  // Brand switcher — identity, examples, new, import.
+  const bWrap = el('div', 'barmenu-wrap');
+  const sel = el('button', 'brandsel' + (brandMenuOpen ? ' open' : '')) as HTMLButtonElement;
+  const dot = el('span', 'dot'); dot.style.background = hex(oklchToRgb(brandState.primary));
+  sel.append(dot, el('span', 'bs-name', brandState.id), el('span', 'caret', '▾'));
+  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; addModeOpen = false; addModeName = ''; } renderBar(); };
+  bWrap.append(sel);
+  if (brandMenuOpen) bWrap.append(renderBrandMenu());
+  actions.append(bWrap);
+
+  // Export — the download artifacts.
+  const eWrap = el('div', 'barmenu-wrap');
+  const exp = el('button', 'barbtn' + (exportMenuOpen ? ' open' : '')) as HTMLButtonElement;
+  // The word is its own span so the narrow bar can drop to icon-only (the arrow alone) without
+  // touching the arrow or the caret. Nested inside one span with the space INSIDE the label, so
+  // wide layout renders "↓ Export" exactly as before — no extra flex gap appears between them.
+  const expText = el('span');
+  expText.append(document.createTextNode('↓'), el('span', 'barbtn-lab', ' Export'));
+  exp.append(expText, el('span', 'caret', '▾'));
+  exp.setAttribute('aria-label', 'Export');   // stable accessible name once the word is hidden
+  exp.onclick = (e) => { e.stopPropagation(); exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; renderBar(); };
+  eWrap.append(exp);
+  if (exportMenuOpen) eWrap.append(renderExportMenu());
+  actions.append(eWrap);
+
+  // Pages — the rail as a menu. Below 900 the rail stops being a sidebar (see the stylesheet); left
+  // as a static stack it is ~690px of destinations sitting above every page's content, so on a phone
+  // you scroll past the whole nav before reaching anything. Same dropdown pattern as the two controls
+  // beside it rather than a drawer — one overlay behaviour in this bar, not two. Hidden above 900,
+  // where the real sidebar is back.
+  const nWrap = el('div', 'barmenu-wrap');
+  const nav = el('button', 'barbtn navbtn' + (navMenuOpen ? ' open' : '')) as HTMLButtonElement;
+  const curPage = NAV.find((s) => s.key === page);
+  // Same nested-span shape as Export: the space lives INSIDE the label span, so hiding the label
+  // leaves a bare glyph with no orphaned whitespace and no extra flex gap.
+  const navText = el('span');
+  navText.append(document.createTextNode('☰'), el('span', 'navbtn-lab', ' ' + (curPage?.label ?? 'Pages')));
+  nav.append(navText, el('span', 'caret', '▾'));
+  nav.setAttribute('aria-label', 'Pages');
+  nav.onclick = (e) => {
+    e.stopPropagation();
+    navMenuOpen = !navMenuOpen; brandMenuOpen = false; exportMenuOpen = false; importOpen = false;
+    renderBar();
+  };
+  nWrap.append(nav);
+  if (navMenuOpen) nWrap.append(renderNavMenu());
+  actions.append(nWrap);
+
+  // Apply to Figma — plugin-only, the primary CTA (the plugin's terminal action). Never rendered on
+  // web (`commit.isFigma` false — a runtime property, so the branch is unreachable there rather than
+  // eliminated; see `renderApplyStatus`). Its status is `applyState`; the #109 boot read-back keeps its own
+  // pill, shown only until the first apply, after which the write's own result is the newer fact and
+  // "what was in the file when I opened it" is no longer what the designer is asking about.
+  if (commit.isFigma) {
+    // #480: independent of the applyState/seedInfo slot below — a restore refusal is a fact about
+    // BOOT, not about the write button, and must stay visible even once an apply (or the read-back)
+    // has something else to say in that slot.
+    if (restoreError) {
+      // `title` carries the full message — the pill itself truncates (`.bar-seed` is a fixed-width,
+      // single-line, ellipsized slot), and this is the one boot fact worth reading in full.
+      const pill = el('span', 'bar-seed bad', `Saved brand not restored — ${restoreError}`);
+      pill.title = restoreError;
+      actions.append(pill);
+    }
+    if (applyState) actions.append(renderApplyStatus(applyState));
+    else if (seedInfo) actions.append(el('span', 'bar-seed' + (seedInfo.ok ? '' : ' bad'), seedInfo.summary));
+    const pending = applyState === 'pending';
+    // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
+    // enough that a button which neither moves nor disables reads as broken — and a second click posts a
+    // second concurrent write over the same variables. Disabled while in flight is both the signal and
+    // the guard.
+    const applyBtn = el('button', 'barbtn primary', pending ? '⋯ Applying…' : '↳ Apply to Figma') as HTMLButtonElement;
+    applyBtn.disabled = pending;
+    // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
+    applyBtn.onclick = () => { applyState = 'pending'; applyDetailOpen = false; renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
+    actions.append(applyBtn);
+  }
+
+  barHost.append(actions);
+
+  if (!outsideBound) {
+    document.addEventListener('mousedown', (e) => {
+      // The apply detail is NOT dismissed here, deliberately: it is a row in the chrome rather than an
+      // overlay, so it obscures nothing and a click elsewhere is not a request to close it. Auto-closing
+      // it would also lose a miss report the moment the designer clicked the control they came to fix.
+      if ((brandMenuOpen || exportMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
+        brandMenuOpen = false; exportMenuOpen = false; navMenuOpen = false; importOpen = false; addModeOpen = false; addModeName = ''; renderBar();
+      }
+    });
+    outsideBound = true;
+  }
+}
+
+/** The rail's destinations as a dropdown, for the widths where the rail is not a sidebar. Renders
+ *  from the same `NAV` data and reuses the rail's own `.stage-t` title+subtitle block, so the
+ *  subtitles survive the move — they are doing real work ("Surfaces & fills / Backgrounds, text,
+ *  gradients" teaches what the page is) and a bare label list would drop them. The divider before
+ *  the `view` destination and the ordering note both come across too, so nothing the sidebar shows
+ *  is silently lost on the way into the menu. */
+const renderNavMenu = (): HTMLElement => {
+  const menu = el('div', 'brandmenu navmenu');
+  menu.append(el('div', 'bm-cap', 'Pages'));
+  NAV.forEach((s) => {
+    if ('view' in s && s.view) menu.append(el('div', 'bm-div'));
+    const it = el('button', 'nav-item' + (s.key === page ? ' cur' : '')) as HTMLButtonElement;
+    const t = el('span', 'stage-t');
+    t.append(el('b', undefined, s.label), el('small', undefined, s.sub));
+    it.append(t);
+    it.onclick = () => {
+      navMenuOpen = false;
+      if (page !== s.key) { page = s.key; build(); } else renderBar();
+    };
+    menu.append(it);
+  });
+  menu.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
+  return menu;
+};
+
+/** Seed a fresh brand from a single hex color: the engine grows a full system from one primary, so
+ *  the color's OKLCH becomes the primary anchor and the neutral leans to its hue (a subtle brand tint). */
+const seedFromColor = (hexVal: string): BrandInput => {
+  const o = rgbToOklch(hexToRgb(hexVal));
+  return { ...NEW_BRAND(), primary: o, neutral: { hue: o.h, chroma: 0.006 } };
+};
+
+/** The first-run START SCREEN (#149 follow-up). Web boots here when nothing is persisted, instead of
+ *  silently loading the demo. One brand color bootstraps a full theme, so the paths are: start from
+ *  your color, start from a neutral default, or open an example. Each lands in the editor (loadBrand →
+ *  rebuild persists it), so a reload restores the working brand and the start screen doesn't reappear. */
+const renderStartScreen = (): HTMLElement => {
+  const view = el('div', 'startview');
+  const col = el('div', 'start-col');
+  const mark = el('div', 'start-mark');
+  mark.append(el('span', 'logo'), el('span', 'wordmark', 'Prism3'), el('span', 'studio', 'Theme studio'));
+  col.append(mark);
+  col.append(el('h1', 'start-h', 'Start a new brand.'));
+  col.append(el('p', 'start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));
+
+  const enter = (input: BrandInput): void => { firstRun = false; loadBrand(input); };
+
+  // Path 1 — from your color (the hero path: a single primary bootstraps everything).
+  const c1 = el('div', 'start-card start-hero');
+  c1.append(el('h2', 'start-ct', 'Start from your color'));
+  c1.append(el('p', 'start-cd', 'Your primary brand color; everything else takes smart defaults you can tune.'));
+  const row = el('div', 'start-color-row');
+  const swatch = el('input', 'start-swatch') as HTMLInputElement; swatch.type = 'color'; swatch.value = '#5e4bc3';
+  const hexIn = el('input', 'start-hex') as HTMLInputElement; hexIn.type = 'text'; hexIn.value = '#5e4bc3'; hexIn.setAttribute('aria-label', 'Brand color hex');
+  const HEX = /^#[0-9a-f]{6}$/i;
+  swatch.oninput = () => { hexIn.value = swatch.value; };
+  hexIn.oninput = () => { if (HEX.test(hexIn.value)) swatch.value = hexIn.value; };
+  const go = el('button', 'start-go', 'Create theme →') as HTMLButtonElement;
+  go.onclick = () => enter(seedFromColor(HEX.test(hexIn.value) ? hexIn.value : swatch.value));
+  row.append(swatch, hexIn, go);
+  c1.append(row);
+  col.append(c1);
+
+  // Path 2 — a neutral, unopinionated default (set color later).
+  const c2 = el('div', 'start-card start-row2');
+  const t2 = el('div', 'start-c2t');
+  t2.append(el('h2', 'start-ct', 'Start with a neutral default'), el('p', 'start-cd', 'An unopinionated starting theme — jump in and set your color later.'));
+  const b2 = el('button', 'start-alt', 'Start blank') as HTMLButtonElement;
+  b2.onclick = () => enter(NEW_BRAND());
+  c2.append(t2, b2);
+  col.append(c2);
+
+  // Path 3 — open a fully-built example (aurora / harbor), explicitly framed as examples.
+  const c3 = el('div', 'start-card');
+  c3.append(el('h2', 'start-ct', 'Explore an example'));
+  c3.append(el('p', 'start-cd', 'Open a fully-built example to see what the engine produces from a brand.'));
+  const chips = el('div', 'start-chips');
+  for (const name of Object.keys(BRANDS)) {
+    const chip = el('button', 'start-chip') as HTMLButtonElement;
+    const d = el('span', 'dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
+    chip.append(d, el('span', undefined, name));
+    chip.onclick = () => enter(BRANDS[name]);
+    chips.append(chip);
+  }
+  c3.append(chips);
+  col.append(c3);
+
+  // Path 4 — import an existing design.md by upload (#160). No overwrite confirm: it's the first-run
+  // screen, there's no brand to replace. File type + engine-acceptance are both validated first.
+  const c4 = el('div', 'start-card start-row2');
+  const t4 = el('div', 'start-c2t');
+  t4.append(el('h2', 'start-ct', 'Import a design.md'), el('p', 'start-cd', 'Already have a design.md? Upload it to load the full brand.'));
+  const err4 = el('p', 'start-imp-err');
+  t4.append(err4);
+  const up4 = el('label', 'start-alt start-upload');
+  const fi4 = el('input', 'start-file') as HTMLInputElement;
+  fi4.type = 'file'; fi4.accept = IMPORT_ACCEPT;
+  fi4.onchange = async () => {
+    err4.textContent = '';
+    const f = fi4.files?.[0]; if (!f) return;
+    const read = await readDesignMdFile(f);
+    if ('error' in read) { err4.textContent = read.error; return; }
+    const res = validateDesignMd(read.text);
+    if ('error' in res) { err4.textContent = res.error; return; }
+    enter(res.input);
+  };
+  up4.append(el('span', undefined, '↑ Upload…'), fi4);
+  c4.append(t4, up4);
+  col.append(c4);
+
+  view.append(col);
+  return view;
+};
+
+const build = (): void => {
+  app.innerHTML = '';
+  if (firstRun) { app.append(renderStartScreen()); return; }   // first run: the start moment stands in for the app
+  // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
+  // the persistent mode selector. Both sticky together so the mode context never scrolls away.
+  const chrome = el('header', 'chrome');
+  chromeHost = chrome;
+  barHost = el('div', 'bar');
+  chrome.append(barHost);
+  // The mode bar is NOT tier 2 of the chrome any more (#432): it scopes the controls on the page, so
+  // it is minted by renderWorkspace at the top of the workspace instead. Chrome keeps brand + errors.
+  // #388 — the error surface lives in the CHROME, not in a page. It used to be rendered only by
+  // `renderPrimitives`' paint closure, so an engine throw from any other page set `lastError` and showed
+  // nothing: on Typography an off-ladder rung silently kept the old value while the field displayed the
+  // rejected one. Per-page rendering is the shape that caused the hole — the next page added would have
+  // forgotten it too — so this is mounted once and refreshed by `syncErrorBar` on every apply.
+  // `syncErrorBar` — not a literal `display:none` — sets the initial state: page nav re-runs `build()`,
+  // so hardcoding "hidden" here would drop a live error the moment the user changed page, which is the
+  // very hole this bar closes. The host is minted fresh each build; its visibility is always derived.
+  globalErrHost = el('div', 'errbar errbar-global');
+  chrome.append(globalErrHost);
+  syncErrorBar();
+  // The apply detail sits in the chrome for the same reason the error bar does (#388): it is app-level
+  // status, and a per-page or popover home would either be forgotten by the next page or cover the CTA
+  // it describes. Minted unconditionally — `renderApplyStatus` is plugin-only, so on web `applyState`
+  // stays null and `syncApplyDetail` keeps this hidden. Visibility is always derived, never hardcoded
+  // here: page nav re-runs `build()`, which would otherwise collapse an open detail.
+  applyDetailHost = el('div', 'applystat-detail');
+  applyDetailHost.id = APPLY_DETAIL_ID;
+  chrome.append(applyDetailHost);
+  syncApplyDetail();
+  app.append(chrome);
+  renderBar();
+  renderModeStrip();
+  bindStuck();
+
+  const shell = el('div', 'shell');
+  const rail = el('nav', 'rail');
+  // Rail-as-data (docs/23 §7): a flat list of focused destinations, no ordinals — top-to-bottom order
+  // carries the compose sequence. A `view` destination (Preview) sits after a divider.
+  NAV.forEach((s) => {
+    if ('view' in s && s.view) rail.append(el('div', 'rail-div'));
+    const it = el('button', 'stage' + (s.key === page ? ' active' : '')) as HTMLButtonElement;
+    const t = el('span', 'stage-t');
+    t.append(el('b', undefined, s.label), el('small', undefined, s.sub));
+    it.append(t);
+    it.onclick = () => { if (page !== s.key) { page = s.key; build(); } };
+    rail.append(it);
+  });
+  rail.append(el('p', 'rail-note', 'Ordered the way a theme composes — palettes first, then how they’re applied to surfaces and interaction, then type and form. Preview renders the whole system.'));
+  // The page states which build it is (#474). `/dist/main.js` is served from an invariant URL, so a
+  // cached bundle is indistinguishable from a fresh one by looking at it — a shipped change was
+  // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
+  // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
+  // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
+  const stamp = el('p', 'rail-build');
+  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', PRISM3_BUILD));
+  stamp.title = PRISM3_BUILD === 'local'
+    ? 'Built outside the deploy — no commit to report.'
+    : `Deployed from commit ${PRISM3_BUILD}.`;
+  rail.append(stamp);
+  shell.append(rail);
+
+  workspace = el('section', 'ws');
+  shell.append(workspace);
+  app.append(shell);
+  renderWorkspace();
+};
+
+// ---- inlined stylesheet (self-contained bundle) ----------------------------
+const STYLE = `
+:root{
+  /* #355 — the two lightest tiers failed AA 4.5:1 on --paper (--faint 2.31:1, --muted 4.36:1), which is
+     the dashboard failing the same bar it enforces on generated brand output. Both moved DOWN rather than
+     the convention being re-scoped: every one of the 143 uses is 9-15px text, and WCAG large text starts
+     at 18.66px bold / 24px regular, so nothing here qualified for the 3:1 large-text allowance (SC 1.4.3,
+     the same text-vs-non-text distinction #352 is drawing in the engine).
+     The ramp is SHIFTED, not collapsed: --faint parks on the AA floor (the lightest legal value on this
+     paper) and --muted moves clear of it, so four visually distinct tiers survive. Darkening --faint alone
+     to 4.63:1 would have landed it on #6d6d74 while a minimal --muted fix lands on #6e6e76 — the same
+     color, silently deleting a tier. Contrast is stated against --paper, the WORSE of the two surfaces
+     (--panel is lighter, so every pairing clears by more there). */
+  --ink:#18181b; --ink2:#3d3d44; --muted:#55555a; --faint:#6d6d74;
+  /* #285 — the STATUS set. There was no set before this: three different greens (#1f9d63 / #1a9c52 /
+     #1a7f4b) and three different reds (#c9342f / #dd3322 / #b0341a) for two concepts, scattered as
+     literals. That is why nobody noticed two greens, one red and the amber were all under AA — nothing
+     held them to a shared bar. Every value below clears 4.5:1 on --paper and --panel, the two grounds
+     lint-contrast.mjs checks them against; see that file's PAIRS for the exact set held to the bar. */
+  --ok:#1a7f4b; --warn:#a35e00; --danger:#c9342f;
+  /* #446 — the TINT grounds. Two verdict badges each invented their own tinted background with its
+     own hardcoded darker green/red, because #285 audited the status set against --paper and --panel
+     and never against a tint of the status color itself. Measured: on --paper a tint of --ok fails
+     AA at EVERY percentage (5% is already 4.24), because --ok on plain --paper is 4.53 — at the
+     floor, so any darkening of the ground goes under. Both badges in fact sit inside a white
+     --panel, where 6% clears with margin: --ok 4.63, --danger 4.79.
+     6% is therefore a CEILING, not a preference, and these tokens are only safe on --panel.
+     Darkening --ok/--danger instead was rejected: #285 already tuned them to clear 4.5:1 on --paper
+     and --panel (see above), and moving them would spend that margin for no gain here.
+     Hex first, color-mix second: if an engine lacks color-mix the first declaration stands, so the
+     shared plugin webview degrades to the same value rather than to no background. */
+  --ok-tint:#f1f7f4;      --ok-tint:color-mix(in srgb, var(--ok) 6%, #fff);
+  --ok-edge:#bfdbcd;      --ok-edge:color-mix(in srgb, var(--ok) 28%, #fff);
+  --danger-tint:#fcf3f3;  --danger-tint:color-mix(in srgb, var(--danger) 6%, #fff);
+  --danger-edge:#f0c6c5;  --danger-edge:color-mix(in srgb, var(--danger) 28%, #fff);
+  --paper:#f2f3f6; --panel:#ffffff; --line:#e7e8ec; --line2:#dcdde2;
+  --r:10px; --r-sm:7px; --r-xs:6px;
+  /* Per-mode table geometry — shared so tables stack down the page on the same grid. The SIZE table
+     sets these because it is the widest case: its stepper cell needs ~132px where a weight select
+     needs ~90px and a leading select ~130px, and its row labels are the shortest. Future tables
+     (weights, leading, tracking) consume these rather than choosing their own, so the columns cannot
+     drift apart. Change here, not per table. */
+  /* Shared vertical padding for the full-size form controls, so a select and a .seg standing side by
+     side in one control bar come out the same height. They did not: the select measured 40.9px and
+     the segmented control 46.9px, a visible 6px step between two fields on the same row.
+     The 6px was not arbitrary and not in the buttons — a .seg is a TRACK around its buttons, and its
+     inner button already matched the select exactly (40.9px both). The extra height is the track:
+     both controls carry a 1px border, but only the seg adds 2px of padding on each side, so it runs
+     4px taller before the button is even measured. Hence .seg-b subtracts 2px per side, NOT 3 —
+     subtracting the border as well double-counts it and lands the seg 2px SHORT, which is what the
+     first attempt did (38.9 against 40.9). Measured both times; the arithmetic is easy to get wrong
+     in the confident direction.
+     State the padding once here and both stay locked together if it ever moves. .select.sm sets its
+     own padding and is deliberately untouched — it is the compact variant, a different size. */
+  --ctl-py:9px;
+  --tbl-col-name:112px; --tbl-col-mode:148px;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,Roboto,sans-serif;
+  --mono:ui-monospace,'SF Mono','JetBrains Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.55}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.faint{color:var(--faint)}
+/* WCAG 2.2 SC 2.5.8 Target Size (Minimum) convention (#559): decouples the optical (painted) box
+ * from a >=24 CSS px HIT box via an unpainted ::before. The pseudo is position:absolute — out
+ * of flow — so it never shifts layout or grows what's actually painted; it only widens where clicks
+ * register. max(24px,100%) floors each dimension at 24px but never shrinks below the host's own
+ * box, so a control already past the floor (.toggle's 38px width) gets no hit-area padding it
+ * doesn't need — the pseudo exactly overlays it on that axis instead of narrowing it to 24px.
+ * --hit-dx/--hit-dy (CSS px, default 0 = centered) bias the box off-center for a host packed too
+ * tightly to expand symmetrically without eating a neighboring target's edge. .adv-x is why these
+ * exist: only 2px of clearance to its OWN input on one side vs. 8px to the next breakpoint cell on
+ * the other — 22.77px of whitespace total, 1.23px short of the 24px floor even before any bias, so
+ * some encroachment on a neighbor's box is unavoidable. Biased fully toward the roomier side (see
+ * .adv-x below), measured live (#559) at zero overlap into the paired input and ~1.2px into the
+ * FAR edge of the next cell's input — never the input this button's own row belongs to. */
+.hit-min{position:relative}
+.hit-min::before{content:'';position:absolute;top:50%;left:50%;width:max(24px,100%);height:max(24px,100%);transform:translate(calc(-50% + var(--hit-dx,0px)),calc(-50% + var(--hit-dy,0px)))}
+#app{max-width:1200px;margin:0 auto;padding:0 40px 120px}
+
+/* First-run start screen */
+.startview{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 24px;background:var(--paper)}
+.start-col{width:100%;max-width:560px;display:flex;flex-direction:column;gap:14px}
+.start-mark{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.start-h{margin:0;font-size:34px;font-weight:680;letter-spacing:-0.025em;color:var(--ink)}
+.start-lede{margin:0 0 6px;font-size:15px;line-height:1.55;color:var(--muted);max-width:48ch}
+.start-card{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:20px}
+.start-hero{border-color:var(--line2);box-shadow:0 1px 2px rgba(24,24,27,.05)}
+.start-ct{margin:0 0 4px;font-size:15px;font-weight:620;color:var(--ink)}
+.start-cd{margin:0;font-size:13px;line-height:1.5;color:var(--faint)}
+.start-color-row{display:flex;align-items:center;gap:10px;margin-top:15px}
+.start-swatch{width:44px;height:38px;padding:0;border:1px solid var(--line2);border-radius:var(--r-xs);background:none;cursor:pointer}
+.start-hex{width:108px;padding:8px 10px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-variant-numeric:tabular-nums;background:var(--paper);color:var(--ink)}
+.start-go{margin-left:auto;padding:9px 16px;border:none;border-radius:var(--r-sm);background:var(--ink);color:#fff;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
+.start-go:hover{background:#000}
+.start-row2{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.start-c2t{min-width:0}
+.start-alt{flex:none;padding:9px 15px;border:1px solid var(--line2);border-radius:var(--r-sm);background:var(--panel);color:var(--ink);font:inherit;font-size:13px;font-weight:540;cursor:pointer}
+.start-alt:hover{border-color:var(--ink)}
+.start-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}
+.start-chip{display:flex;align-items:center;gap:8px;padding:7px 13px 7px 9px;border:1px solid var(--line2);border-radius:999px;background:var(--panel);font:inherit;font-size:13px;color:var(--ink);cursor:pointer}
+.start-chip:hover{border-color:var(--ink)}
+.start-chip .dot{width:12px;height:12px;border-radius:50%;flex:none}
+
+.chrome{position:sticky;top:0;z-index:20;background:var(--paper)}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:26px 2px 12px}
+/* Sticky at the chrome's lower edge so the mode context still never scrolls away — the property
+   it had as tier 2 of the header, preserved through the move (#432). Background is required:
+   page content scrolls underneath it. z-index sits below .chrome (20) so it tucks, not overlaps. */
+.modebar{position:sticky;top:var(--chrome-h,120px);z-index:15;background:var(--paper);padding:10px 2px 14px;transition:box-shadow .16s ease}
+/* Only while actually stuck — see syncStuck. Soft and short-throw: it should read as the bar
+   sitting above the page, not as a drop shadow on a card. */
+.modebar.stuck{box-shadow:0 10px 14px -12px rgba(20,22,30,.42)}
+@media(prefers-reduced-motion:reduce){.modebar{transition:none}}
+.brandmark{display:flex;align-items:center;gap:11px}
+.logo{width:18px;height:18px;border-radius:var(--r-xs);background:conic-gradient(from 210deg,#5e4bc3,#0088be,#2f6833,#a13731,#5e4bc3)}
+.wordmark{font-weight:640;letter-spacing:-0.02em;font-size:16px}
+.studio{color:var(--muted);font-size:13px;border-left:1px solid var(--line2);padding-left:11px}
+.bar-actions{display:flex;align-items:center;gap:10px}
+.barmenu-wrap{position:relative}
+.brandsel,.barbtn{display:flex;align-items:center;gap:9px;font:inherit;font-weight:560;border:1px solid var(--line2);background:var(--panel);padding:8px 13px;border-radius:var(--r-sm);font-size:13.5px;cursor:pointer;color:var(--ink);white-space:nowrap}
+.brandsel.open,.barbtn.open,.barbtn:hover,.brandsel:hover{border-color:var(--ink2)}
+.brandsel .dot{width:12px;height:12px;border-radius:4px}
+.brandsel .caret,.barbtn .caret{color:var(--faint);margin-left:2px}
+.barbtn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.barbtn.primary:hover{background:var(--ink2);border-color:var(--ink2)}
+/* Off by default; the max-width:900 rule below turns it on where the rail turns off. This base
+   declaration must come BEFORE that rule — a media query adds no specificity, so a later
+   .navbtn{display:none} would simply win at every width and the control would never appear. */
+.navbtn{display:none}
+.bar-seed{font-size:11.5px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-seed.bad{color:#a12}
+/* The apply status pill + its detail row. The pill is bounded and single-line like .bar-seed — that
+   constraint is fine for a ≤24-char headline and was only wrong for the 150-char summary, which now
+   lives in the detail row below the bar. Colors come from the #285 status set on the #446 tint grounds:
+   that exact pairing (--ok on --ok-tint, --danger on --danger-tint) is what lint:contrast already
+   measures, so the pill inherits a checked ratio instead of inventing a green. */
+.applystat{display:flex;align-items:center;gap:7px;font:inherit;font-size:11.5px;font-weight:560;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:5px 10px;cursor:pointer;color:var(--ink2);white-space:nowrap}
+.applystat.ok{background:var(--ok-tint);border-color:var(--ok-edge);color:var(--ok)}
+.applystat.bad{background:var(--danger-tint);border-color:var(--danger-edge);color:var(--danger)}
+.applystat .caret{color:currentColor;opacity:.65;margin-left:0}
+/* Wrapped, not clipped — the whole point of the row. IN FLOW inside the chrome, deliberately not an
+   absolutely-positioned popover: at the narrow tier the bar wraps to two rows, and a panel hanging off
+   the pill covered the Apply button it was reporting on (measured at 480). In flow it pushes content
+   instead, so it cannot overlap anything at any width and needs no z-index. Same reasoning and same
+   home as .errbar-global (#388), and unlike that one it does carry its own rules. */
+.applystat-detail{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;line-height:1.55;color:var(--ink2)}
+/* max-height + scroll: the menu had neither, which was survivable while it was short. Folding the
+   mode set in (#432) pushed it to ~716px, and at a 700px-tall window it ran 89px past the bottom
+   of the viewport with the last items simply unreachable. Bounded to the space below the header. */
+.brandmenu{position:absolute;top:calc(100% + 8px);right:0;width:288px;max-height:calc(100vh - var(--chrome-h, 120px) - 24px);overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px;z-index:20;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12)}
+.exportmenu{width:232px}
+.bm-cap{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:4px 2px 6px}
+.bm-field{display:flex;align-items:center;gap:10px;padding:4px 2px}
+.bm-lab{font-size:12.5px;color:var(--ink2);width:78px;flex:none}
+.bm-in{flex:1;min-width:0;padding:6px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper)}
+.bm-in.bad{border-color:#d23;background:#fdecec}
+.bm-hint{margin:2px 2px 4px;font-size:11px;color:var(--faint);font-family:var(--mono)}
+.bm-div{height:1px;background:var(--line);margin:8px 0}
+.bm-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:13px;color:var(--ink2);padding:8px 8px;border-radius:var(--r-xs);cursor:pointer}
+.bm-item:hover{background:var(--paper)}
+.bm-item.cur{color:var(--ink);font-weight:600}
+.bm-dot{width:11px;height:11px;border-radius:3px;flex:none}
+.bm-import{margin-top:6px;display:flex;flex-direction:column;gap:8px}
+.bm-ta{width:100%;height:120px;resize:vertical;padding:9px;border:1px solid var(--line2);border-radius:var(--r-xs);font-family:var(--mono);font-size:12px;background:var(--paper);line-height:1.5}
+.bm-err{margin:0;font-size:11.5px;color:#a12;line-height:1.5}
+.bm-load{align-self:flex-start;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:7px 16px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
+.bm-file,.start-file{display:none}
+.bm-import-row,.bm-confirm-row{display:flex;align-items:center;gap:8px}
+.bm-upload{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-xs);padding:7px 12px;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.bm-upload:hover{border-color:var(--ink);color:var(--ink)}
+.bm-cancel{border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-xs);padding:7px 14px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
+.bm-cancel:hover{border-color:var(--ink)}
+.bm-confirm{margin:2px 2px 8px;font-size:12.5px;line-height:1.55;color:var(--ink2)}
+.start-upload{display:inline-flex;align-items:center;gap:6px}
+.start-imp-err{margin:9px 0 0;font-size:12px;color:#a12;line-height:1.5}
+
+.shell{display:grid;grid-template-columns:210px minmax(0,1fr);gap:60px;align-items:start;margin-top:20px}
+.rail{position:sticky;top:calc(var(--chrome-h, 120px) + 10px);display:flex;flex-direction:column;gap:4px}
+.rail-div{height:1px;background:var(--line);margin:10px 10px}
+.stage{display:flex;align-items:center;gap:13px;text-align:left;border:1px solid transparent;background:none;font:inherit;padding:11px 12px;border-radius:var(--r-sm);cursor:pointer;color:var(--ink2)}
+.stage:hover{background:var(--panel)}
+.stage.active{background:var(--panel);border-color:var(--line2)}
+.stage-t{display:flex;flex-direction:column;line-height:1.3;gap:2px}
+.stage-t b{font-weight:600;font-size:13.5px}
+.stage.active .stage-t b{color:var(--ink)}
+.stage-t small{color:var(--faint);font-size:11.5px}
+.rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
+/* Build identity (#474) — quiet by default, legible when you go looking for it. */
+.rail-build{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;color:var(--faint);font-size:11px;margin:12px 8px 0;user-select:text}
+.rail-build-b{font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--muted)}
+
+.hero{padding:6px 0 4px}
+.hero h1{margin:0;font-size:40px;font-weight:660;letter-spacing:-0.03em;line-height:1.08}
+.lede{color:var(--muted);max-width:60ch;margin:18px 0 0;font-size:16px;line-height:1.65}
+
+/* Each primitive section pairs its control card (left) with the ramps it drives (right),
+   so a change to the card is always visible in the palette beside it (#158). */
+/* ---- Palettes page (#59): per-role section containers + full-width palette rows ---- */
+.psec{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 24px 22px;margin-top:22px}
+.psec:first-of-type{margin-top:8px}
+/* The head becomes a row so the mode badge can sit top-right; .psec-txt keeps the title+description
+   stacked as before, so nothing about their own spacing moves. */
+.psec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.psec-txt{min-width:0}
+.psec-t{margin:0;font-size:13px;font-weight:680;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted)}
+/* Label + scope: the label is small, letterspaced and muted; the scope is heavier and darker, so the
+   eye lands on the part that actually changes. Achromatic by design — see modeScopeBadge. */
+.msb{display:inline-flex;align-items:baseline;gap:6px;flex:none;border-radius:99px;padding:4px 11px;
+     border:1px dashed var(--line2);background:transparent;white-space:nowrap}
+.msb.on{border-style:solid;border-color:transparent;background:var(--paper)}
+.msb-k{font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.msb-v{font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--muted)}
+.msb.on .msb-v{color:var(--ink)}
+@media(max-width:720px){.psec-head{flex-direction:column;gap:8px}}
+.psec-d{margin:4px 0 0;color:var(--faint);font-size:13px;line-height:1.5}
+.psec .errbar{margin-top:16px}
+.prow{padding:20px 0 6px}
+.prow+.prow{border-top:1px solid var(--line);margin-top:4px}
+.phead{display:flex;align-items:center;gap:22px;margin-bottom:16px;flex-wrap:wrap}
+.pident{display:flex;align-items:center;gap:14px;min-width:0}
+.pswrap{position:relative;flex:none;line-height:0}
+.pswatch{width:56px;height:56px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line2);padding:0;background:none;overflow:hidden;cursor:default}
+.prow.authored .pswatch{cursor:pointer}
+.prow.authored .pswatch:hover{box-shadow:0 0 0 3px var(--line)}
+.plock{position:absolute;right:-5px;top:-5px;width:20px;height:20px;border-radius:6px;background:var(--ink);border:1px solid var(--ink);display:flex;align-items:center;justify-content:center}
+.plock svg{width:11px;height:11px;stroke:var(--panel);fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.pidcol{min-width:0;display:flex;flex-direction:column;gap:5px}
+.pname{font-size:16px;font-weight:620;letter-spacing:-0.01em;text-transform:capitalize}
+.pname-input{width:130px;max-width:130px;padding:5px 8px;border:1px solid var(--line2);border-radius:var(--r-xs);font-size:14px;background:var(--paper);color:var(--ink)}
+.psub{display:flex;align-items:center;gap:9px;flex-wrap:wrap;min-height:20px}
+.phex{color:var(--muted);font-size:12.5px}
+.prow:not(.show-hex) .phex{display:none}
+.prole{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:999px;padding:2px 10px}
+.prole-dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.prm{margin-left:2px}
+/* Every field is a TWO-ROW grid: the label in a row that sizes to it, the control in a common band
+   below, centered. Bottom-aligning instead (the previous align-items:flex-end) made each field hang
+   from its own baseline, so a 55px Source field and a 66px slider field put their labels 10.6px
+   apart and their controls 1.3px apart -- the ragged look #67 tried to fix by equalizing heights,
+   which only holds while every control happens to be the same height. Aligning the two ROWS is
+   height-independent. Row 2 is minmax(33px,auto) -- at least as tall as the tallest control
+   (select 33, range 32) so the controls share a band, and free to grow so a taller control on any
+   other surface using pfield is never clipped.
+   Trap, and the reason two earlier passes at this "failed" while looking correct in the stylesheet:
+   the slider field's range input carries the generic class name .range (paired with psl-range), and
+   .range is also a standalone rule further down (.range{margin-top:10px}). That 10px inflated grid
+   row 2 to 44px, which is what made the field 66px and sent the control mid-line 25.6px off. Not
+   visible from that rule alone, so it is neutralized here at a specificity that beats the
+   single-class original (.pfield.slider .psl-range{margin:0}). Do not "simplify" it back out.
+   #516 removed the equivalent .slider{margin-top:16px} rule and its .pfield.slider{margin-top:0}
+   neutralizer outright: that pairing had exactly one consumer and fully cancelled out, so
+   lint:classes flagged it as dead code once it started checking for exactly this collision. .range
+   is exempted from that same check (range/psl-range share a stem), so it was left in place, still
+   doing real work. */
+/* gap:20 not 22 (#394 follow-up): under Pinned color the ident column grows about 61px wider (the hex
+   readout only Pinned shows, .show-hex), and at that width ident+origin+anchor's natural sizes summed
+   to 800.45px against an 800px row -- 0.45px over. flex-wrap is all-or-nothing, so that sub-pixel
+   overflow forced the WHOLE line to break, dropping Anchor onto its own row under a completely
+   different top edge than Source/Hue/Chroma, which is worse than the height mismatch this issue
+   started from. This only has one consumer with more than one field in .porigin (the neutral row's
+   Source+Hue+Chroma; every statusRow origin holds a lone Source pfield, where an internal gap is a
+   no-op), so tightening it here doesn't touch statusRow spacing. -2px per gap (2 internal gaps) reclaims
+   4px, comfortably clearing the 0.45px deficit with margin for font-rendering variance. */
+.porigin{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.pfield{display:grid;grid-template-rows:auto minmax(33px,auto);gap:7px}
+.pfield > :nth-child(2){align-self:center}
+.pfield.r{margin-left:auto;justify-items:end}
+.pfk{font-size:9.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--faint)}
+.panchor{display:inline-flex;align-items:center;height:31px;padding:0 11px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);font-size:13px;color:var(--ink)}
+.panchor.dia::before{content:"◆";color:var(--ink2);font-size:9px;margin-right:6px}
+.panchor.none,.panchor.note{color:var(--muted)}
+/* Neutral row: row 1 is the label paired with its live readout. It sizes itself, so it comes out the
+   same height as the plain .pfk row the other fields have and the Source / Hue / Chroma labels share
+   one top edge — the previous fixed height:15px was 0.3px taller than the label it contained.
+   Centered, not baseline: under align-items:baseline the 12px readout has the greater top-to-baseline
+   distance, so IT sets the row baseline and the 9.5px label gets pushed 1px down — measured. Which
+   of the two wins is a function of the font metrics, so centering is the stable choice here. */
+.pfield.slider .psl-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.psl-val{color:var(--muted);font-size:12px;line-height:1}
+.pfield.slider .psl-range{width:150px;accent-color:var(--ink);height:32px;margin:0}
+.pfield.slider.ro{opacity:.5}
+.pramp{display:flex;flex-direction:column}
+/* #334 — container, not viewport: .pramp-wrap is the ramp's true available width (viewport minus the
+   210px rail + 60px gap the >900px sidebar layout charges against it, minus #app's + .psec's own
+   padding) — the quantity the narrow-tier rules below actually care about. A plain @media(max-width)
+   query can only read viewport width, which is why the existing #315 tiers (640px / 480px, see below)
+   went numb the moment the sidebar appeared at 901px: 901px of viewport is LESS ramp room than 900px,
+   once the rail switches on, and no viewport-width query can express that inversion. Establishing a
+   containment context here — inline-size only, so it does not also make .pramp-wrap's own height
+   independent of content — lets the @container rules under .lab / .lab-hex below key off the same
+   512px / 352px thresholds the viewport queries use, but evaluated against the box the ramp actually
+   has, sidebar or not. Kept ADDITIVE to the #315 media queries rather than replacing them: below 900px
+   (no sidebar) the two mechanisms agree and either one alone would fire; removing the older one would
+   be an unrelated cleanup this fix doesn't need to make. */
+.pramp-wrap{container-type:inline-size}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.panel-head h2{margin:0;font-size:15px;font-weight:620;letter-spacing:-0.01em}
+/* A segmented control is a FORM CONTROL, not a rung on the navigation ladder (#439). It was the last
+   user of the solid --ink selected fill that the mode chip just gave up — which left the loudest
+   selection treatment in the app governing whether a path prints long or short, the least
+   consequential choice on the page. Its own row is the evidence for what it is: Show (select) ·
+   Alias path (segmented) · Category (select), three controls of equal rank, with doc 26's existing
+   rule picking the form (3+ options -> select, binary -> segmented).
+   So it reads at the weight of the select beside it: a recessed --paper track with a raised
+   --panel thumb, matching the select's fill and type size rather than out-shouting the page.
+   The principle this states: selection weight tracks SCOPE, and a display preference has none. */
+.seg{display:flex;border:1px solid var(--line2);border-radius:var(--r-xs);padding:2px;gap:2px;background:var(--paper)}
+.seg-b{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:calc(var(--ctl-py) - 2px) 12px;border-radius:5px;cursor:pointer}
+.seg-b:hover{color:var(--ink)}
+.seg-b.on{background:var(--panel);color:var(--ink);font-weight:560;box-shadow:0 1px 2px rgba(20,22,30,.10)}
+
+/* Native color inputs: strip the browser's swatch inset so the color fills the whole control (no white gutter). */
+input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+input[type=color]::-webkit-color-swatch{border:none;border-radius:inherit}
+input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
+.rx{width:28px;height:28px;flex:none;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-xs);color:var(--faint);cursor:pointer;font-size:15px;line-height:1}
+.rx:hover{background:#fdecec;color:#a12;border-color:#f2c6c6}
+.addbtn{margin-top:14px;border:1px dashed var(--line2);background:none;border-radius:var(--r-sm);padding:9px 15px;font:inherit;font-size:13px;color:var(--muted);cursor:pointer;width:100%}
+.addbtn:hover{border-color:var(--ink);color:var(--ink)}
+
+.slider-top{display:flex;align-items:baseline;justify-content:space-between;font-size:13px;color:var(--ink2)}
+.slider-top .val{color:var(--muted);font-size:12.5px}
+.range{width:100%;margin-top:10px;accent-color:var(--ink)}
+.np-note{color:var(--faint);font-size:12px;line-height:1.55;margin:16px 0 0}
+
+
+.band{margin-bottom:16px}
+.band:last-child{margin-bottom:0}
+.strip{display:flex;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line2)}
+.sw{flex:1;height:72px;position:relative}
+.sw.is-anchor::after{content:"";position:absolute;inset:0;border:2.5px solid var(--ink);border-radius:2px;pointer-events:none}
+.labs{display:flex;margin-top:9px}
+/* min-width:0 overrides the flex-item default (min-width:auto, i.e. "never shrink below my content's
+   min-content size") — without it, ten unbreakable hex strings like "#e2e2e2" set a floor under .lab
+   that flex:1 cannot shrink past, and the row pushes .labs (then the page) wider rather than yielding.
+   That floor is what #334's overflow actually was: not specific to the 901-919px band, just most
+   visible there because the @container rule below still had headroom above it. .lab-hex pairs the
+   shrink with text-overflow:ellipsis so a genuinely too-narrow hex elides instead of vanishing or
+   smearing into its neighbor — the same elision pattern .tpill already uses (#289) — and keeps the
+   full value in "title" for hover, same reasoning as .tpill's. */
+.lab{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:0 6px}
+.lab-step{font-size:12px;font-weight:600;color:var(--ink2)}
+.lab-step.on{color:var(--ink);font-weight:700}
+.lab-step.on::before{content:"◆ ";font-size:8px;color:var(--ink2);vertical-align:1px}
+.lab-hex{font-size:11px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Same two tiers as the #315 media queries below (padding at 512px, hex dropped at 480px viewport =
+   352px of content once #app's 40px sides + .psec's 24px sides are subtracted) — evaluated against the
+   .pramp-wrap container's own width instead of the viewport, so the 901px sidebar transition lands in
+   the tier its available space actually calls for. */
+@container(max-width:512px){.lab{padding:0 3px}}
+@container(max-width:352px){.lab-hex{display:none}}
+/* The dashboard <select> component (doc 24 C1) — one base class owns every dropdown's cosmetics + the
+   consistent chevron; sm / fill / cap are additive size/context modifiers. */
+.select{appearance:none;-webkit-appearance:none;font:inherit;font-size:13.5px;padding:var(--ctl-py) 11px;padding-right:28px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%2371717a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;background-size:11px}
+.select:disabled{opacity:.6}
+.select.sm{font-size:12.5px;padding:6px 9px;padding-right:26px}
+.select.fill{flex:1;min-width:0}
+.select.cap{max-width:260px}
+
+.sub-lab{margin:34px 0 12px}
+.sub-lab:first-child{margin-top:8px}
+.sub-t{font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin:0}
+.knob{padding:14px 0;border-bottom:1px solid var(--line)}
+.knob:last-child{border-bottom:0}
+.knob-label{display:block;font-weight:600;font-size:13.5px}
+.knob-body{display:flex;align-items:center;gap:10px}
+.knob > .knob-body{margin-top:8px}
+.knob input[type=range]{flex:1;accent-color:var(--ink)}
+/* Toggle rendered as a switch (pill track + sliding thumb), not a native checkbox. */
+input.toggle{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;margin:0;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;transition:background .15s ease}
+input.toggle::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s ease}
+input.toggle:checked{background:var(--ink)}
+input.toggle:checked::after{transform:translateX(16px)}
+input.toggle:disabled{opacity:.5;cursor:default}
+.knob input:disabled{opacity:.5}
+.knob .select{margin-top:8px}
+.knob-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.knob-val.ro{margin-top:6px}
+.knob-desc{margin:7px 0 0;font-size:12px;color:var(--faint);line-height:1.5}
+.type-editor{margin-bottom:8px}
+.te-font{width:100%;margin-top:8px;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;background:var(--paper)}
+.te-wrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* The number-input component (doc 24 C2) — .num owns the shared field cosmetics; the context classes
+   below carry only width / size / alignment deltas. */
+.num{padding:6px 8px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;background:var(--paper)}
+.te-weight{width:88px;font-variant-numeric:tabular-nums;text-align:right}
+.te-cat-wrap{overflow-x:auto;margin-top:12px}
+.te-cat{border-collapse:collapse;width:100%;font-size:12.5px}
+.te-cat th,.te-cat td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.te-cat th{font-size:11px;font-weight:600;color:var(--muted);text-transform:lowercase;letter-spacing:0.02em}
+.te-cat tr:last-child td{border-bottom:none}
+.te-cat th:first-child,.te-cat td:first-child,.te-cat th:nth-child(2),.te-cat td:nth-child(2){text-align:left}
+.te-cat-name{color:var(--ink);font-size:12px}
+.te-c{width:1%}
+.te-cat input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink);cursor:pointer}
+.te-cbwrap{position:relative;display:inline-flex;align-items:center;justify-content:center}
+.te-warn{position:absolute;top:-7px;right:-9px;font-size:10px;line-height:1;pointer-events:none}
+.te-cat td.unavail input[type=checkbox]{opacity:.32}
+.te-cat td.unavail{background:repeating-linear-gradient(-45deg,transparent,transparent 4px,rgba(120,120,130,.06) 4px,rgba(120,120,130,.06) 5px)}
+.te-cat-note{margin:10px 2px 0;font-size:11.5px;line-height:1.5;color:var(--faint)}
+/* D (typography) — per-mode notes + shared read-only markers. */
+.te-order-warn{margin:10px 2px 0;font-size:12px;color:#a12;line-height:1.5}
+.te-shared-note{margin:4px 2px 10px;font-size:12px;color:var(--faint);line-height:1.5}
+.te-shared-ro{margin:6px 0 0;font-size:13.5px;font-weight:560;color:var(--ink2)}
+.te-cat select:disabled,.te-cat input:disabled{opacity:.55;cursor:not-allowed}
+/* D (typography) — the per-mode leading/tracking ramps (read-only chips in Light, inputs in a mode). */
+.te-shared-ro-note{margin:4px 2px 10px;font-size:12px;color:var(--faint);line-height:1.5}
+.te-ramp{display:flex;flex-wrap:wrap;gap:8px}
+.te-ramp-cell{display:flex;flex-direction:column;gap:4px;min-width:74px}
+.te-ramp-key{font-size:11px;color:var(--muted)}
+.te-ramp-in{width:74px;padding:5px 7px;font-size:12px}
+.te-ramp-ro{font-size:13px;color:var(--ink2);padding:5px 0}
+/* D (shadow) — per-mode softness/tint: the knob header carries an Auto/reset affordance. */
+.sh-knob-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.sh-auto{font:inherit;font-size:11px;color:var(--muted);background:none;border:none;padding:0;cursor:default}
+.sh-auto.on{color:var(--ink2);cursor:pointer;text-decoration:underline}
+/* #305 tint read-out — the tint color at full opacity beside the same color at a mid-ramp 12%.
+   The checkerboard under the 12% chip is what makes a translucent near-black legible as translucent;
+   on a flat panel it would just read as a slightly different flat gray. */
+.sh-tintblock{margin-top:14px;padding-top:14px;border-top:1px dashed var(--line2)}
+.sh-tintout{display:flex;gap:14px}
+.sh-tintcell{display:flex;flex-direction:column;gap:6px;min-width:0}
+.sh-tintchip{width:76px;height:44px;border-radius:var(--r-xs);border:1px solid var(--line2);overflow:hidden;
+  background-color:#fff;
+  background-image:linear-gradient(45deg,#e6e6e8 25%,transparent 25%,transparent 75%,#e6e6e8 75%),linear-gradient(45deg,#e6e6e8 25%,transparent 25%,transparent 75%,#e6e6e8 75%);
+  background-size:10px 10px;background-position:0 0,5px 5px}
+.sh-tintfill{width:100%;height:100%}
+.sh-tintcap{font-family:var(--mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.sh-tintnote{margin-top:10px;font-size:11.5px;line-height:1.5;color:var(--faint)}
+.sh-tintnote b{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+/* Specimen meta row — a mono label + its token pill(s) inline (type / motion specimens). */
+.spec-metarow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.obj-row{display:flex;gap:8px;margin-top:8px}
+
+.stage-vol{display:flex;flex-direction:column}
+.pvhost{display:flex;flex-direction:column;gap:16px}
+.pv-tscroll{overflow-x:auto;margin-top:8px}
+/* Contract tally — the one number this view exists to produce, stated before the 32 rows rather than
+   left to be scanned out of them. */
+.pv-tally{font-size:12.5px;font-weight:600;margin:10px 0 0;padding:9px 12px;border-radius:var(--r-sm);border:1px solid var(--line)}
+.pv-tally.ok{color:var(--ok);background:var(--panel)}
+.pv-tally.no{color:var(--danger);background:var(--panel)}
+/* Shadow and typography values are long single-line strings in a table whose Token column is narrow and
+   whose row has slack to spare. Let the value column take that slack and wrap, so the exhaustive dump
+   is actually exhaustive — the title attribute was carrying content the view is supposed to SHOW. */
+.toktable td.mcol .tok-hexv{white-space:normal;word-break:break-word}
+.toktable td.pair{white-space:nowrap;width:1%}
+.type-spec{margin-bottom:8px}
+.ts-list{display:flex;flex-direction:column;gap:22px;padding:14px 0 2px}
+.ts-row{display:flex;flex-direction:column;gap:8px;min-width:0}
+.ts-meta{font-size:11.5px;color:var(--faint)}
+.ts-sample{color:var(--ink);letter-spacing:-0.02em;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Type-specimen variants strip — the weights each group ships + italic/link/size-range (the type sub-levers). */
+.ts-variants{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-top:2px}
+.ts-var{font-size:14px;color:var(--ink2);line-height:1.2}
+.ts-var-range{font-size:11px;color:var(--faint);align-self:center}
+.shadow-spec{margin-bottom:8px}
+.sh-list{display:flex;flex-wrap:wrap;gap:28px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
+.sh-cell .tpill{margin-top:2px}
+.sh-cell{display:flex;flex-direction:column;align-items:center;gap:10px}
+.sh-card{width:64px;height:64px;border-radius:10px;background:#fff}
+.sh-lab{font-size:11.5px;color:#5b6472}
+.motion-spec{margin-bottom:8px}
+/* Top clearance as PADDING, matching .prow's padding:20px 0 6px — the convention every other
+   palSection follows, since .psec-d carries no bottom margin and the next element owns the gap.
+   The old margin:-4px pulled the row UP by more than .psec-d's entire 4px top margin, so the
+   select sat tighter to the description than a plain 0-margin element would have. */
+/* Duration ramp / easing set / springs — read-only tiers. Reuse .ctable (the dense read-only table
+   component) rather than minting a fourth table style; the Layout pass just retired a third one. */
+.mo-ramp{margin-top:10px}
+.mo-ramp td:nth-child(2),.mo-ramp td:nth-child(4){white-space:nowrap}
+.mo-ramp-name{font-size:12.5px;font-weight:640;color:var(--ink);margin-right:8px}
+.mo-ramp-ms{margin-right:8px}
+.mo-ramp-note{font-size:11px;color:var(--faint)}
+.mo-ramp-foot{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:12px}
+.mo-ms-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.mo-ms-chip{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel)}
+.mo-ms-val{font-size:13px;font-weight:640;color:var(--ink)}
+.mo-ez-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:12px;margin-top:8px}
+.mo-ez-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+/* position:relative is LOAD-BEARING. .mo-stage-svg is absolutely positioned (the specimen's .mo-stage
+   is relative and contains it); a static parent lets it escape to the viewport, and six curves then
+   render at 1500x1500 as giant diagonal strokes across the whole page. overflow:hidden does not save
+   you — an abspos descendant whose containing block is outside the element is not clipped by it.
+   Every DOM assertion passed while this was happening; only a screenshot showed it. */
+.mo-ez-stage{position:relative;width:100%;height:82px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel);overflow:hidden}
+/* Card pills WRAP rather than elide. Six curves in one row makes a ~123px card, and
+   motion.easing.expressive needs ~225px — no column width fixes that, so the label takes a second
+   line. tokenPill's <wbr> keeps the break on a dot. (Same call as the Preview gallery's card pills.) */
+.mo-ez-card .tpill,.mo-spring-card .tpill,.mo-ms-chip .tpill,.mo-colmeta .tpill{white-space:normal;overflow:visible;direction:ltr;word-break:break-word;max-width:100%}
+.mo-ez-name{font-size:13px;font-weight:640;color:var(--ink)}
+.mo-ez-bez{font-size:10.5px;color:var(--faint)}
+.mo-spring-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:8px}
+.mo-spring-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel)}
+.mo-spring-nums{display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--muted)}
+.mo-toolbar{display:flex;justify-content:flex-end;margin:0 0 4px;padding-top:20px}
+.mo-slowmo{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--faint)}
+.mo-slowmo-sel{font:inherit;font-size:12px;color:var(--ink2);background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-xs);padding:4px 8px;cursor:pointer}
+.mo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;padding:14px 0 2px}
+@media(max-width:760px){.mo-grid{grid-template-columns:repeat(2,1fr)}}
+.mo-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.mo-stage{position:relative;aspect-ratio:1;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.mo-stage-svg{position:absolute;inset:0;width:100%;height:100%}
+.mo-stage-axis{stroke:var(--line2);stroke-width:1.5}
+.mo-stage-line{stroke:var(--line2);stroke-width:2.5;stroke-linecap:round}
+.mo-dot{position:absolute;width:10px;height:10px;border-radius:50%;background:var(--ink);left:11.364%;top:88.636%;transform:translate(-50%,-50%);animation-iteration-count:1;animation-fill-mode:both}
+@keyframes mo-trace-x{from{left:11.364%}to{left:88.636%}}
+@keyframes mo-trace-y{from{top:88.636%}to{top:11.364%}}
+.mo-colmeta{display:flex;flex-direction:column;gap:4px}
+.mo-colname{font-size:13px;font-weight:700}
+.mo-meta{font-size:11.5px;color:var(--faint)}
+/* #555 — --faint is already tuned to the AA floor on --paper (#355); fading it further with
+   opacity multiplies its already-floor ratio down below the gate (measured 3.12:1 rendered),
+   invisible to lint:contrast because the gate checks the token value, not the composited render.
+   De-emphasis here comes from a darker ink at full opacity instead, never from fading a floor value. */
+.mo-playnote{font-size:10.5px;color:var(--muted)}
+.mo-coldesc{font-size:11.5px;color:var(--muted)}
+.mo-replay{margin-top:14px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:7px 14px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
+.mo-replay:hover{border-color:var(--ink);color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.mo-dot{animation:none!important;left:88.636%!important;top:11.364%!important}}
+.radius-spec{margin-bottom:8px}
+.rad-list{display:flex;flex-wrap:wrap;gap:24px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
+.rad-cell{display:flex;flex-direction:column;align-items:center;gap:9px;min-width:72px}
+.rad-sw{width:72px;height:52px;background:var(--ink);opacity:.85}
+.rad-lab{font-size:11.5px;color:var(--muted)}
+.rad-cons{font-size:11px;color:var(--faint);text-align:center;max-width:88px;line-height:1.35}
+/* D (density) — the control-size specimen: mini controls at their resolved height + padding. */
+.sz-list{display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px;border-radius:var(--r-sm);padding:24px 20px;background:var(--paper);margin-top:14px}
+.sz-cell{display:flex;flex-direction:column;align-items:center;gap:9px}
+.sz-box{display:flex;align-items:center;justify-content:center;min-width:44px;background:var(--ink);color:var(--panel);border-radius:6px;font-size:12px;font-weight:560}
+.sz-lab{font-size:11px;color:var(--muted);white-space:nowrap}
+/* Spacing ramp preview (#265) — the space.* steps as proportional bars (spacing has no other payoff). */
+.sp-list{display:flex;flex-direction:column;gap:7px;border-radius:var(--r-sm);padding:22px 20px;background:var(--paper);margin-top:14px}
+/* Label and bar on ONE row. Stacked, the 18 steps ran ~950px tall while the bars — now drawn at their
+   true px — used a fraction of the width the section had just gained. A fixed label column keeps every
+   bar starting at the same x, which is what makes the ramp readable as a ramp. */
+.sp-cell{display:flex;align-items:center;gap:14px;min-height:20px}
+.sp-cell .sp-lab{width:142px;flex:none;justify-content:flex-start}
+/* The read-only primitive scales (review). Dense wrap for the 36-step grid; one-per-row for the two
+   short alias scales, which read as lists rather than as a ladder. */
+.pv-scale{margin-bottom:16px}
+.pv-scale:last-child{margin-bottom:0}
+.pv-scale-t{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:7px}
+.pv-rows{display:flex;flex-direction:column;gap:5px}
+.pv-cell{display:flex;align-items:center;gap:6px}
+.sp-lab{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.sp-px{font-size:11px;color:var(--faint);flex:none}
+/* Alpha & opacity — reuses the palette row + band components; only the checkerboard ground and the
+   inner fill are new. The GROUND is the swatch and the alpha goes on an inner .ao-fill: colouring the
+   swatch itself REPLACES the ground, which is how #442 shipped ten identical white steps. */
+.ao-chk{background-image:linear-gradient(45deg,#d8d8dc 25%,transparent 25%),linear-gradient(-45deg,#d8d8dc 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d8d8dc 75%),linear-gradient(-45deg,transparent 75%,#d8d8dc 75%);
+  background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;background-color:var(--paper)}
+.ao-chk.dark{background-image:linear-gradient(45deg,#4a4a52 25%,transparent 25%),linear-gradient(-45deg,#4a4a52 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#4a4a52 75%),linear-gradient(-45deg,transparent 75%,#4a4a52 75%);background-color:#2a2a31}
+.ao-fill{position:absolute;inset:0}
+.pswatch.ao-chk{position:relative}
+/* Focus ring (review) — the numbers beside a live specimen; 2px at 2px offset is judged by eye. */
+.fr-wrap{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
+.fr-list{display:flex;flex-direction:column;gap:7px;min-width:0}
+.fr-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fr-v{font-size:11.5px;color:var(--ink2);font-weight:600}
+.fr-why{font-size:11.5px;color:var(--faint)}
+.fr-ex{display:flex;gap:22px;padding:6px 4px}
+.fr-excell{display:flex;flex-direction:column;gap:9px;align-items:center}
+.fr-btn{padding:7px 14px;border-radius:var(--r-xs);background:var(--panel);border:1px solid var(--line2);font-size:12.5px;color:var(--ink)}
+.fr-exlab{font-size:10.5px;color:var(--faint)}
+/* No min-width: the bar is drawn at its real px, so a floor would re-introduce exactly the lie this
+   fixed (0px and 2px rendering the same). space.0 draws nothing and says so in its label. */
+.sp-bar{height:12px;background:var(--ink);opacity:.55;border-radius:3px}
+.sp-bar.zero{width:0;border-left:1px dashed var(--line2);height:12px;opacity:1}
+/* A stacked block: the specimen owns the section's full width instead of a ~490px right column. */
+.cs-preview-full{margin-top:14px}
+/* Primitive scales: the long grid beside the two short alias lists. */
+.pv-cols{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start}
+.pv-col{min-width:0;display:flex;flex-direction:column;gap:20px}
+@media(max-width:760px){.pv-cols{grid-template-columns:1fr}}
+/* Manifest-advanced scalar/enum levers — exposed as a normal panel (no disclosure). */
+.adv-panel{margin-top:12px}
+/* Advanced object/list bespoke editors (responsive type, breakpoints, emphasized easing). */
+.adv-row{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12.5px;color:var(--ink2)}
+.adv-row-lab{min-width:150px}
+.adv-num{width:88px;padding:5px 7px;font-size:12px}
+.adv-unit{font-size:11px;color:var(--faint)}
+.adv-bplist{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.adv-bp{display:flex;align-items:center;gap:2px}
+/* --hit-dx:4px (see .hit-min above) shifts the 24px hit box entirely rightward, into the 8px flex
+   gap toward the NEXT breakpoint cell rather than the 2px gap to this button's own input — measured
+   live to land at 0px overlap on the paired input, ~1.2px on the far edge of the next cell's input. */
+.adv-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;--hit-dx:4px}
+.adv-x:hover{color:#a12}
+.adv-add{border:1px dashed var(--line2);background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px;border-radius:var(--r-xs);padding:5px 10px}
+/* Layout specimen — breakpoint/grid table + column preview + container bars. */
+.layout-spec{margin-bottom:8px}
+.ly-table{border-collapse:collapse;width:100%;font-size:12px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+/* 7px/8px is .ctable's padding. At 12px the six columns plus nowrap headers overran the 492px preview
+   pane and clipped the Margin column — the 12px header fixed one wrap by creating a worse defect. */
+.ly-table th,.ly-table td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+.ly-table th:first-child,.ly-table td:first-child{text-align:left}
+/* Header typography matches .ctable — 12px/700, sentence case. It was 11px/600 and, uniquely in the
+   whole app, text-transform: lowercase — a third header treatment beside .mtbl-tbl's 9.5px uppercase
+   and .ctable's 12px sentence case, on a table that is doing exactly .ctable's job (dense, read-only).
+   Measured across all nine pages before changing it — the Typography pass produced a casing FALSE
+   positive by comparing textContent, so this compares the computed textTransform instead.
+   The right-aligned numerics and the bordered shell stay: those are earning their difference. */
+.ly-table th{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:normal;background:var(--panel);white-space:nowrap}
+.ly-table tr:last-child td{border-bottom:none}
+/* The table's scroll pane. margin-bottom moves off .ly-table onto the wrapper so the spacing below the
+   table is unchanged; the table keeps width:100% and simply overflows this box when it must. */
+.ly-tscroll{overflow-x:auto;margin-bottom:16px}
+.ly-tscroll>.ly-table{margin-bottom:0}
+.ly-cap{font-size:11.5px;color:var(--muted);margin:0 2px 8px}
+.ly-ruler{position:relative;height:44px;margin:2px 2px 22px;border-bottom:2px solid var(--line2)}
+.ly-tick{position:absolute;bottom:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding-left:5px}
+.ly-tick::before{content:'';position:absolute;left:0;bottom:0;width:2px;height:11px;background:var(--ink2)}
+.ly-tick-name{font-size:10.5px;font-weight:640;color:var(--ink2);line-height:1}
+.ly-tick-px{font-size:9.5px;color:var(--faint);line-height:1}
+.ly-cols{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;height:44px;margin-bottom:18px}
+.ly-col{background:var(--ink);opacity:.14;border-radius:3px}
+.ly-cont{display:flex;flex-direction:column;gap:8px}
+.ly-cont-row{display:flex;align-items:center;gap:12px}
+/* 172px, not 150: at 150 the widest pill (container.narrow, 115px) plus its value left no room, so the
+   two ran together — "container.narrow720px" was literally the row's text content. */
+.ly-cont-lab{font-size:11.5px;color:var(--muted);min-width:172px;display:flex;align-items:center;gap:7px}
+/* margin-left:auto right-aligns the three values into a column against the track, instead of letting
+   each one start wherever its pill happens to end (100% / 1440px / 720px read ragged otherwise). */
+.ly-cont-val{flex:none;margin-left:auto}
+/* The track is what a bar's percentage resolves against. Without it, 100% meant the whole row —
+   including the label — and only the bar wide enough to overflow got shrunk back to reality. */
+.ly-cont-track{flex:1;min-width:0}
+.ly-cont-bar{height:16px;background:var(--ink);opacity:.55;border-radius:3px}
+/* fluid is the uncapped default — drawn as an outline so it reads as "no cap" rather than as a third
+   solid bar competing with the two that ARE caps. */
+.ly-cont-row:first-child .ly-cont-bar{background:transparent;opacity:1;border:1px dashed var(--line2)}
+/* Controls-beside-previews pages (#264 Layout, #265 Size & radius): each control sits next to its live
+   preview, so a change is visible without scrolling. The control column is fixed-narrow (no full-width
+   sliders); the preview takes the rest and wraps under the controls on a narrow viewport. */
+.cs-split{display:grid;grid-template-columns:minmax(220px,280px) 1fr;gap:28px;align-items:start}
+@media(max-width:820px){.cs-split{grid-template-columns:1fr;gap:18px}}
+.cs-ctl-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.cs-preview{min-width:0}
+.cs-ctl-stack{display:flex;flex-direction:column;gap:18px}
+.cs-ctl{display:flex;flex-direction:column;gap:8px}
+.cs-ctl-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.cs-ctl-lab{font-weight:600;font-size:13px;color:var(--ink)}
+.cs-ctl-val{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px}
+.cs-range{width:100%;accent-color:var(--ink)}
+.gradient-spec{margin-bottom:8px}
+.gr-list{display:flex;flex-wrap:wrap;gap:22px;border:1px solid var(--line);border-radius:var(--r);padding:24px;background:var(--panel)}
+.gr-cell{display:flex;flex-direction:column;gap:10px}
+.gr-sw{width:200px;height:96px;border-radius:var(--r-xs);border:1px solid var(--line)}
+.gr-lab{font-size:11.5px;color:var(--muted)}
+/* Gradient editor (docs/23 §2) — one card per gradient. */
+.gr-ed-list{display:flex;flex-direction:column;gap:14px;margin-top:12px}
+.gr-ed-card{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:22px}
+.gr-ed-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.gr-ed-name{margin:0;font-size:15px;font-weight:620;color:var(--ink)}
+.gr-ed-head .rx{margin-left:auto}
+.gr-ed-sw{width:100%;height:120px;border-radius:var(--r-sm);border:1px solid var(--line);margin-bottom:16px}
+.gr-ed-ctrls{display:flex;flex-wrap:wrap;gap:16px 20px;align-items:flex-end}
+.gr-ed-field{display:flex;flex-direction:column;gap:6px}
+.gr-ed-lab{font-size:12px;font-weight:560;color:var(--muted)}
+.gr-ed-range{width:180px;accent-color:var(--ink)}
+.gr-ed-num{width:96px;padding:9px 11px;font-size:13.5px}
+.gr-ed-stopsh{margin:20px 0 10px;font-size:12.5px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.gr-ed-stops{display:flex;flex-direction:column;gap:10px}
+.gr-ed-stop{display:flex;align-items:center;gap:10px}
+.gr-ed-stopsw{width:34px;height:34px;flex:none;border-radius:var(--r-xs);border:1px solid var(--line2)}
+.gr-ed-stop .gr-ed-num{flex:none}
+.gr-ed-stoprm{flex:none}
+.gr-ed-addstop{margin-top:12px;width:auto;padding:7px 13px;font-size:12px}
+.gr-ed-add{margin-top:14px}
+.gr-ed-nameinput{font:inherit;font-size:15px;font-weight:620;color:var(--ink);background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-xs);padding:6px 10px;width:150px}
+/* Mode-context strip (#171) — one mode at a time; sticky so the context stays reachable while
+   scrolling the stage. The whole stage below reflects the selected mode. */
+.modectx{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0;padding:0}
+/* Control bars are BARE (#485). A white card is what a CONTENT section looks like, so a control bar
+   wearing one reads as a sibling of the thing it operates rather than as the operator: .tok-ctrls
+   rendered background #ffffff / border 1px / radius 10, byte-for-byte the section card directly
+   below it. Stripping the card leaves cards meaning exactly one thing. Safe for the sticky bar
+   because the opaque ground lives on .modebar, the sticky HOST, not on .modectx -- scrolled content
+   is still occluded and .stuck still carries the shadow. */
+/* Scroll, never wrap. Wrapping was affordable in the header, where the bar owned the full window
+   width; in the content column it is narrower, so a brand with several modes wrapped to a second
+   row and spent real vertical space on every page — worst on mobile, where it was already a
+   second sticky strip. Overflow scrolls instead, so the bar's height is constant at any mode count. */
+.mctx-modes{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin}
+.mctx-modes>*{flex:none}
+.mctx-cap{font-size:11px;font-weight:640;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+.mctx-b{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--paper);border-radius:var(--r-sm);padding:5px 11px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
+.mctx-b:hover{border-color:var(--ink)}
+/* #439 — the selected chip is a WHITE ground with an ink border plus a 1px ring, not a solid ink
+   fill. Mode is a SCOPE, not a destination: dressing it as the loudest tab on the page made it
+   heavier than the rail that chooses the page, which only got worse when the bar moved into the
+   content column (#432). The ring keeps it findable without it shouting.
+   The read-only marker no longer needs a white-on-dark variant either. */
+/* INSET ring, not an outset one. An outset ring is painted OUTSIDE the border box, and this chip
+   lives in .mctx-modes, which scrolls (#432). Setting overflow-x:auto makes overflow-y compute
+   to auto as well -- per spec, visible on one axis becomes auto when the other is not visible --
+   so the strip clips vertically, and the strip is exactly as tall as its chips. Measured: chip
+   box 116.9-149.1, ring wanted 115.9-150.1, clipped top AND bottom, leaving the sides only.
+   Inset paints the same 2px of contiguous ink (1px border + 1px ring) entirely within the
+   border box, so it looks the same, cannot be clipped, and changes no outer dimension. */
+.mctx-b.on{background:var(--panel);color:var(--ink);border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:560}
+/* "View only", not "auto": these modes are derived and the engine REFUSES per-mode levers on them,
+   so the honest fact is that you cannot edit here — which is what a user needs, where "auto" only
+   described how the mode was produced. Sits inside the chip rather than as a caption beneath it:
+   after the wrap-to-scroll change (#432) the bar spends width freely and height not at all. */
+.mctx-vo{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;color:var(--faint);border:1px solid var(--line2);border-radius:4px;padding:0 4px;line-height:1.5;white-space:nowrap}
+/* Inline variant (#432): the same editor embedded in the brand menu, which is itself a popover —
+   so it drops the positioning, shadow, border and fixed width and simply flows in the parent. */
+.mctx-menu.inline{position:static;width:auto;padding:0;background:none;border:0;box-shadow:none;z-index:auto}
+.mctx-menu{position:absolute;right:0;top:calc(100% + 7px);width:264px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);box-shadow:0 10px 30px rgba(20,22,30,.14);padding:10px;z-index:20}
+.mctx-mcap{font-size:11px;font-weight:640;text-transform:uppercase;letter-spacing:.045em;color:var(--faint);padding:4px 6px 8px}
+.mctx-opt{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;font:inherit;font-size:13.5px;color:var(--ink2);padding:7px 6px;border-radius:var(--r-xs);cursor:pointer;text-align:left}
+.mctx-opt:hover{background:var(--paper)}
+.mctx-box{width:16px;height:16px;flex:none;border:1px solid var(--line2);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#fff}
+.mctx-opt.on .mctx-box{background:var(--ink);border-color:var(--ink)}
+/* #57 — Light row is locked (base mode): muted, grayed check, no hover — reads as non-interactive. */
+.mctx-opt.fixed{cursor:default;opacity:.72}
+.mctx-opt.fixed:hover{background:none}
+.mctx-opt.fixed .mctx-box{background:var(--muted);border-color:var(--muted)}
+.mctx-always{margin-left:auto;font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--faint)}
+.mctx-opt.disabled{color:var(--faint);cursor:not-allowed}
+.mctx-opt.disabled:hover{background:none}
+.mctx-div{height:1px;background:var(--line);margin:8px 4px}
+.mctx-note{font-size:11.5px;line-height:1.5;color:var(--faint);margin:6px 6px 2px}
+/* C2 — custom-mode rows + add form in the Edit-modes popover. */
+.mctx-custom{display:flex;align-items:center;gap:8px;padding:6px 6px;font-size:13px;color:var(--ink2)}
+.mctx-cname{font-weight:560}
+.mctx-cbase{font-size:11px;color:var(--faint)}
+.mctx-crm{margin-left:auto;width:22px;height:22px;flex:none;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-xs);color:var(--faint);cursor:pointer;font-size:14px;line-height:1}
+.mctx-crm:hover{background:#fdecec;color:#a12;border-color:#f2c6c6}
+.mctx-addform{display:flex;flex-direction:column;gap:10px;padding:8px 6px}
+/* #56 — labeled add-mode fields (name + base). */
+.mctx-addfield{display:flex;flex-direction:column;gap:4px}
+.mctx-addlab{font-size:11px;font-weight:560;color:var(--muted);letter-spacing:.01em}
+.mctx-addname{padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper)}
+.mctx-adderr{margin:0;font-size:11.5px;color:#a12;line-height:1.4}
+.mctx-adderr:empty{display:none}
+.mctx-addbtns{display:flex;gap:8px}
+.mctx-addbtn{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:6px 14px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
+.mctx-addcancel{border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-xs);padding:6px 12px;font:inherit;font-size:13px;color:var(--ink2);cursor:pointer}
+/* A2a — generated-mode (HC/wireframe) read-only view: an explanation + a per-mode contract verdict. */
+.genview{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;margin:8px 0 0}
+.genview-t{margin:0;font-size:16px;font-weight:640;letter-spacing:-0.01em}
+.genview-d{margin:10px 0 0;color:var(--muted);font-size:14px;line-height:1.6;max-width:64ch}
+.genview-chip{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:7px 12px;border-radius:var(--r-sm);font-size:13px;font-weight:540}
+.genview-chip.ok{background:var(--ok-tint);color:var(--ok);border:1px solid var(--ok-edge)}
+.genview-chip.no{background:var(--danger-tint);color:var(--danger);border:1px solid var(--danger-edge)}
+.gv-mark{font-weight:700}
+.genview-hint{margin:14px 0 0;color:var(--faint);font-size:12.5px;line-height:1.55}
+.cbadge{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;font-size:11px;border:1px solid var(--line2)}
+.cbadge.ok{background:var(--ok-tint);border-color:var(--ok-edge)}
+.cbadge.no{background:var(--danger-tint);border-color:var(--danger-edge)}
+.cb-lab{color:var(--muted)}
+.cb-ratio{font-variant-numeric:tabular-nums;font-weight:600}
+.cbadge.ok .cb-mark{color:var(--ok)}.cbadge.no .cb-mark{color:var(--danger)}
+.tpill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--line);color:var(--faint)}
+/* #289 — long paths elide rather than wrapping. Applied to .tpill itself, not to the two
+   containers that happened to be reported: the pill is used in 27 places and any narrow one has the
+   same problem, so per-context rules would just wait for the next narrow column. max-width:100% plus
+   a min-width:0 parent is what lets it shrink; where the pill has room, nothing changes. */
+.tpill{display:inline-block;position:relative;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top;direction:rtl;text-align:left}
+/* direction:rtl moves the ellipsis to the START, so the ELIDED end is the shared namespace prefix and
+   the visible end is the tail that distinguishes siblings — color.foreground.brand vs
+   color.foreground.brand-subtle stay tellable apart, where a right-side ellipsis renders both as the
+   same stub. The path is pure-ASCII with no trailing punctuation, so bidi reordering is a no-op on it
+   (asserted in the audit: every pill's text node still equals its title). */
+.sg-failpill{padding-right:19px}
+.sg-failpill .sg-fx{position:absolute;right:6px;top:2px;margin:0}
+/* Interactive & action colors — per-mode note + add-accent row (#69). */
+.ic-modenote{margin:0 0 14px;font-size:12.5px;color:var(--muted);line-height:1.55;padding:10px 13px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm)}
+/* A2c — per-mode foreground/text override rows. */
+.fg-row{display:flex;align-items:center;gap:12px;margin-top:10px}
+.fg-sw{width:34px;height:34px;flex:none;border-radius:var(--r-xs);border:1px solid var(--line2)}
+.ic-add{display:flex;align-items:center;gap:12px;margin-top:14px}
+.ic-addbtn{width:auto;margin-top:0;flex:none}
+.ic-addhint{font-size:13px;color:var(--muted)}
+/* Backgrounds card — the contrast-floor sub-control appended below the card body. */
+/* Backgrounds Inverse card — the derived, read-only surface (docs/24 #61). */
+.bg-derived{font-size:12.5px;color:var(--faint);font-style:italic}
+.bg-floor{display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.bg-floor-lab{font-size:12.5px;font-weight:560;color:var(--muted)}
+.bg-floor .select{margin-left:auto}
+/* Interactive matrix (#69) — global-behavior caption, per-palette section header, slot rows, states. */
+.gcap{margin:8px 0 2px;padding:0 2px}
+.gcap-t{margin:0;font-size:12.5px;font-weight:680;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.gcap-d{margin:4px 0 0;color:var(--faint);font-size:12.5px;line-height:1.5;max-width:660px}
+.psec-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.arow{padding:26px 2px}
+.arow+.arow{border-top:1px solid var(--line)}
+.arow-main{display:grid;grid-template-columns:56px minmax(0,1fr) 300px;gap:20px;align-items:start}
+.arow-lead .arow-main{grid-template-columns:minmax(0,1fr) 300px}
+.asw{width:56px;height:56px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line2)}
+.amid{min-width:0;display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.alabel{font-size:14px;font-weight:640;line-height:1.2;color:var(--ink)}
+.amid .sf-ctlblock{width:100%}
+.amid .select{max-width:300px}
+.amid .tpill{line-height:1.4}
+.adesc{font-size:11.5px;color:var(--faint);line-height:1.45;max-width:340px}
+.aex{width:300px;justify-self:end;display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.aex .cbadge{align-self:flex-end}
+/* Its own display:flex, no longer inherited from .aex: the two-up row is now nested INSIDE the .aex
+   column rather than sharing an element with it, so the column can stack a contrast receipt beneath. */
+.aex-two{display:flex;flex-direction:row;gap:14px}
+.aex-spec{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;align-items:center}
+.exbox{width:100%;min-height:72px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:14px 16px;overflow:hidden}
+/* #555 — background is set inline per element (exGround, mode-resolved); this is only the fallback
+   for the instant before JS runs, and the border override for the (now inline-dark) box. */
+.exbox.dark{background:#0d0d10;border-color:transparent}
+.ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap;background:var(--ibtn-bg)}
+.ibtn:hover{background:var(--ibtn-hbg,var(--ibtn-bg))}
+.ibtn.is-pressed,.ibtn.is-pressed:hover{background:var(--ibtn-pbg,var(--ibtn-hbg,var(--ibtn-bg)))}
+.ibtn svg{width:16px;height:16px}
+.ilink{font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px;color:var(--ilink-fg)}
+.ilink:hover{color:var(--ilink-hfg,var(--ilink-fg))}
+.ilink.is-pressed,.ilink.is-pressed:hover{color:var(--ilink-pfg,var(--ilink-hfg,var(--ilink-fg)))}
+/* #291 — live hover/pressed on interactive examples: :hover is CSS-native; pressed is click-to-pin
+   (see wirePress) since a bare :active vanishes on mouse-up, too fleeting to evaluate a color. */
+.pinnable{cursor:pointer}
+.pinnable.is-pressed{outline:2px solid var(--ink2);outline-offset:2px}
+.inote{display:inline-flex;align-items:center;gap:7px;font-size:14px}
+.inote-ic{display:inline-flex}
+.inote-ic svg{width:17px;height:17px}
+.astates{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line2);margin-left:76px}
+.astates-h{font-family:var(--mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.astates-g{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.astate{border:1px solid var(--line);border-radius:var(--r-xs);background:var(--paper);padding:11px 12px;display:flex;flex-direction:column;gap:9px}
+.astate-h{display:flex;align-items:center;gap:10px}
+.astate-sw{width:30px;height:30px;border-radius:6px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.astate-n{font-size:12.5px;font-weight:600;color:var(--ink)}
+.astate .select{width:100%;font-size:12px;padding:6px 9px;padding-right:26px}
+/* .aex-two had its own grid-column:1/-1 here; it is now nested inside .aex, which carries the span,
+   so the nested copy applied to a non-grid child and did nothing. */
+@media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
+/* #560 — between the 900px stack breakpoint and #app's 1200px cap, .arow-main's middle (mid) column is
+   exactly viewport minus 800px (the 56px swatch + two 20px gaps + 300px .aex are fixed; the mid column
+   absorbs 100% of any remaining slack via minmax(0,1fr), so the relationship is 1:1). The two longest
+   token paths in the system (…on-inverse.fill.rest / …on-inverse.text.rest, both 325px at the pill's
+   font) need the mid column at 327px (325 + the pill's 1px+1px border) to render unclipped — which needs
+   viewport 1127px or wider. Below that, from ~1114px up to ~1126px, those two are the ONLY pills that
+   still clip (every shorter path already fits); 1120px sits inside that narrow band. Trimming the .aex
+   example column by 12px in this same band moves the cure threshold down to viewport 1115px, which
+   covers the whole 1114-1126px band with margin — the pill needs 7 more px, this gives it 12. Scoped to
+   .arow:not(.arow-lead) because lead rows (Action palette, Button emphasis, ...) use a different grid
+   template with no swatch column and never carry a pill — touching .arow-lead's copy of .aex would only
+   leave dead space in its 300px track, so it stays out of the selector rather than being ignored by
+   coincidence. Below 900px this is moot (.aex already goes full-width); above 1200px #app's own
+   max-width caps further viewport growth from helping anyway, so the band stops there. */
+@media(min-width:901px) and (max-width:1199px){.arow:not(.arow-lead) .arow-main{grid-template-columns:56px minmax(0,1fr) 288px}.arow:not(.arow-lead) .aex{width:288px}}
+/* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
+/* The identity track is 256px, not 168px, because the token PATH has to be readable. At 168px three of
+   the page's thirteen paths elided — and #289's rtl elision keeps the tail, so
+   color.background.inverse.primary rendered as an unreadable "…kground.inverse.primary". The widest
+   path this page can show measures 252px at the pill's font; 256 clears it with slack. The width comes
+   out of track 4, which is the deliberate whitespace spacer — breathing room is not worth buying with
+   an identifier the row exists to name. */
+.sf-row{display:grid;grid-template-columns:56px 256px 172px 1fr 228px;gap:20px;align-items:start;padding:24px 0}
+.sf-row+.sf-row{border-top:1px solid var(--line)}
+.sf-sw{width:56px;height:56px;flex:none;border-radius:var(--r-sm);border:1px solid var(--line2)}
+.sf-id{min-width:0;padding-top:2px}
+.sf-name{font-size:14.5px;font-weight:620;letter-spacing:-.01em;line-height:1.25;color:var(--ink)}
+.sf-id .tpill{margin-top:7px;line-height:1.4}
+.sf-desc{font-size:12px;color:var(--faint);margin-top:7px;line-height:1.45}
+.sf-ctl{display:flex;flex-direction:column;gap:12px;min-width:0}
+.sf-ctlblock{display:flex;flex-direction:column;gap:6px}
+.sf-ctlblock .select{width:100%}
+.sf-derived{font-size:12px;color:var(--faint);font-style:italic;height:36px;display:flex;align-items:center}
+.sf-right{grid-column:5;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.sf-ex{width:228px;height:52px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;padding:0 16px;overflow:hidden}
+.sf-ex-surface{gap:11px;font-size:13px}
+.sf-ex-fill{color:#fff;font-weight:600;font-size:13.5px}
+.sf-ex-text{font-size:14.5px}
+.sf-railnote{font-size:10.5px;color:var(--faint)}
+/* Collapses at 1208px, not 900px. The five-column layout has a HARD floor: four of its tracks are
+   fixed (56+256+172+228) and the gaps add 80, so it needs 792px of row box and cannot shrink an
+   inch below that. The row box runs viewport-400, so 792 is not available until ~1192px — every
+   width below that renders a layout that cannot fit, pushing .sf-ex past the panel edge and
+   scrolling the document. 1208 leaves the spacer track a little width at the boundary rather than
+   exactly zero. (Was 1120 against a 704px floor, before the identity track widened to fit the paths.) */
+@media(max-width:1208px){.sf-row{grid-template-columns:56px 1fr;gap:14px}.sf-row .sf-ctl,.sf-right{grid-column:1/-1;align-items:flex-start}.sf-ex{width:100%}}
+.contracts{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:18px 20px}
+.contracts-sum{list-style:none;cursor:pointer;display:flex;align-items:baseline;gap:10px}
+.contracts-sum::-webkit-details-marker{display:none}
+.contracts-sum::before{content:'▸';color:var(--faint);font-size:11px;align-self:center;transition:transform .12s ease}
+.contracts[open] .contracts-sum::before{transform:rotate(90deg)}
+.contracts-t{font-size:15px;font-weight:620;color:var(--ink)}
+.contracts-hint{font-size:11.5px;font-weight:500;color:var(--faint)}
+.contracts:not([open]) .np-note{display:none}
+.ctable{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}
+.ctable th,.ctable td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+.ctable .mcol{text-align:center}
+/* Token list: value columns read best flush-left (swatch+hex / px), overriding the shared centring. */
+.toktable .mcol{text-align:left}
+.pair{color:var(--ink2)}
+.pair-path{display:block;color:var(--ink2)}
+.pair-sub{display:block;font-size:11px;color:var(--faint);margin-top:1px}
+.pvseg{display:inline-flex;gap:2px;padding:3px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);margin:2px 0 22px}
+.pvseg-b{font:inherit;font-size:13px;padding:7px 15px;border:none;background:none;color:var(--ink2);border-radius:var(--r-xs);cursor:pointer}
+.pvseg-b:hover{color:var(--ink)}
+.pvseg-b.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.tok-val{display:inline-flex;align-items:center;gap:7px}
+.tok-sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid var(--line2);flex:none}
+.tok-shadow{display:inline-block;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;color:var(--muted)}
+/* Token list, tier split (#390). The two-line cell is the both-Show state: alias over value. */
+/* L3 of the selection ladder (#439): a tab group NESTED inside another tab group. The token list's
+   Primitives/Semantics segment sits directly under Preview's own Style guide/Contrast/Token list
+   segment, and both were rendering the identical filled treatment 67px apart -- nothing said the
+   second row lived INSIDE the first.
+   Underline rather than a second gray: a third fill would need a value quieter than --paper but
+   louder than transparent, i.e. a three-step gray ramp inside one component, and it would break
+   again the moment anyone retuned those grays. Changing the KIND of emphasis cannot collide.
+   The track chrome goes too -- a nested group is not a control surface of its own. */
+.tok-seg{margin:2px 0 0;background:none;border:0;padding:0;gap:18px;border-radius:0}
+.tok-seg .pvseg-b{padding:7px 1px;border-radius:0;color:var(--muted);box-shadow:inset 0 -2px 0 transparent}
+.tok-seg .pvseg-b:hover{color:var(--ink)}
+.tok-seg .pvseg-b.on{background:none;color:var(--ink);font-weight:560;box-shadow:inset 0 -2px 0 var(--ink)}
+.tok-ctrls{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;margin:18px 0 8px}
+.tok-two{display:flex;flex-direction:column;gap:3px}
+.tok-stack{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
+.tok-alias{color:var(--ink2);font-size:11.5px;white-space:nowrap}
+.tok-chain{color:var(--faint);cursor:help}
+.tok-hexv{color:var(--faint);font-size:11.5px;white-space:nowrap;display:inline-block;max-width:260px;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom}
+.tok-callout{margin:10px 0 0;padding:7px 10px;background:var(--paper);border-radius:var(--r-xs);color:var(--muted);font-size:11.5px;line-height:1.5}
+.tok-empty{color:var(--faint);font-size:13px;padding:16px 2px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:999px;margin-right:5px;vertical-align:middle}
+/* Status DOTS are non-text (SC 1.4.11, 3:1) and already cleared that bar — they join the set for
+   consistency, not compliance. One status green should be one green. */
+.ratio{font-variant-numeric:tabular-nums;color:var(--muted)}
+/* The global bar (#388) carries .errbar-global as a marker only — it deliberately has NO rules of its
+   own. A full-bleed variant was written first and was silently inert: it sat above .errbar at equal
+   specificity, so every declaration lost the source-order tiebreak. Rendered, the plain .errbar card
+   matches the mode bar it sits under, so the right fix was to delete the override, not to reorder it.
+   (No backticks in this stylesheet — it is a template literal; see #366.) */
+.errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
+
+/* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */
+/* The surface picker — one control for the whole view, above the sections it governs. */
+.sg-surfbar{display:flex;flex-direction:column;gap:6px;margin:18px 0 8px}
+/* Asymmetric on purpose, matching .tok-ctrls: more room above than below, so proximity groups the
+   bar with the content it scopes. The old 12/10 was near-symmetric and left it floating between. */
+.sg-surfrow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap}
+.sg-surfstack{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+/* HEIGHT comes from the row, not from a number: align-self:stretch takes the swatch to whatever the
+   select beside it measures. A hard 33px was 8px short of the select and reproduced, in a brand new
+   control, the exact mismatch #484 had just removed from the segmented one — so the dimension that
+   was complained about is the one that must not be hand-set.
+   WIDTH is stated, because it cannot be derived: aspect-ratio:1 does not resolve a flex item's main
+   size from a STRETCHED cross size, and trying it collapsed the swatch to 2px (the borders alone).
+   A width that drifts a little from square if the control height changes is cosmetic; a height that
+   drifts from its neighbor is the bug.
+   No inner ring. One was added to "keep a near-white ground from vanishing into the field it sits next
+   to", and it cannot do that: composited at .55 over a white fill it resolves to 255, byte-identical to
+   the fill it was meant to distinguish. Over the inverse ground it computes to 146 and IS visible, which
+   is the one ground that never needed help. The --line2 border is what actually separates the swatch
+   from the field, on every ground, and it was already there — measured 1.118:1 border-vs-swatch on the
+   Page ground, against the ~1.05 the ring would have contributed (#504 review).
+   No backticks in this block: it lives inside a TS template literal, so one closes the CSS string. */
+.sg-surfsw{align-self:stretch;width:41px;border-radius:var(--r-xs);border:1px solid var(--line2);
+  flex:none}
+.sg-surfbar .pfk{flex:none}
+/* The mode's own canvas behind the specimens. Inset from the .psec so the studio shell still reads as
+   the frame; the re-scoped custom properties (set inline) carry the theme to everything inside. */
+.sg-ground{margin-top:14px;padding:18px 18px 20px;border-radius:var(--r);border:1px solid var(--line);
+  color:var(--ink);transition:background .12s ease}
+.sg-ground .sub-t{color:var(--muted)}
+.sg-grid{display:grid;gap:14px;margin-top:2px}
+.sg-g3{grid-template-columns:repeat(3,1fr)}.sg-g5{grid-template-columns:repeat(5,1fr)}
+.sg-cw{display:flex;flex-direction:column;gap:8px;min-width:0}
+/* Gallery pills WRAP instead of eliding. #289's elision is right in a table cell, where a column can
+   only be so wide and siblings differ by their tail; here the grid width is fixed by the semantic set
+   (five status columns), so a ~148px card could never fit color.foreground.warning and every semantic
+   pill in the Bold and Subtle rows rendered as "…r.foreground.warning". A pill under a card has the
+   vertical room a table cell does not, so it takes a second line and stays readable. */
+.sg-pills{display:flex;gap:6px;flex-wrap:wrap}
+.sg-pills .tpill{white-space:normal;overflow:visible;direction:ltr;word-break:break-word}
+.sg-card{position:relative;min-height:118px;border-radius:var(--r);border:1px solid var(--line);padding:14px;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.sg-bcard{background:transparent!important}
+.sg-mid{justify-content:center}
+.sg-icard{min-height:104px;align-items:center;justify-content:center;background:var(--paper)}
+/* Scrim: the card is the page surface, the dim layer carries the alpha over all of it, and a small
+   panel floats on top — the token doing its real job. Padding is zeroed because the dim layer runs to
+   the card's edge. */
+.sg-scrimcard{padding:0;overflow:hidden}
+.sg-scrimdim{width:100%;flex:1;display:flex;align-items:center;justify-content:center}
+.sg-scrimpanel{border-radius:var(--r-sm);padding:14px 20px;box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.sg-ico svg{width:26px;height:26px;display:block}
+.sg-lab{font-weight:640;font-size:14px;line-height:1.2}
+.sg-sub{font-size:12px;opacity:.9}
+.sg-failmk{position:absolute;top:8px;right:8px;width:15px;height:15px;border-radius:50%;background:#d21b1b;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.sg-failpill{border-color:#e6a2a2!important;color:#b42318!important}
+.sg-fx{color:#d23;font-weight:800;margin-left:3px}
+/* Token column 244px, not 190px: the longest path here (color.text.warning-subtle) needs 211px plus the
+   cell's 30px of padding, and at 190 the -subtle and link rows wrapped to two lines while their
+   siblings did not — ragged row heights for no gain. The width comes off the two specimen columns,
+   which hold a single word each and have it to spare. */
+.sg-tcg{display:grid;grid-template-columns:1fr 1fr minmax(150px,244px);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:2px}
+.sg-tc{padding:10px 15px;display:flex;align-items:center;min-height:44px}
+.sg-tc.sg-l{background:var(--lbg)}.sg-tc.sg-r{background:var(--dbg)}.sg-tc.sg-t{background:var(--panel);border-left:1px solid var(--line)}
+.sg-tchd{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;min-height:0;padding-top:8px;padding-bottom:8px}
+.sg-samp{font-size:15px;font-weight:600}
+.sg-tcrow{box-shadow:inset 0 1px 0 rgba(128,128,128,.14)}
+.sg-pblock{margin-top:30px}.sg-pblock:first-of-type{margin-top:6px}
+.sg-phd{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.sg-rn{font-weight:660;font-size:14.5px}
+.sg-trow{display:grid;grid-template-columns:120px 1fr;gap:22px;align-items:start;padding:20px 0;border-top:1px solid var(--line)}
+.sg-tlab{font-size:12.5px;font-weight:640}
+.sg-tlfoot{margin-top:8px;display:flex;flex-direction:column;gap:5px;align-items:flex-start;font-size:10.5px;color:var(--muted)}
+.sg-foothint{display:inline-flex;align-items:center;gap:6px}
+.sg-btns{display:flex;gap:24px;flex-wrap:wrap}
+.sg-btns.sg-inv{background:var(--sg-invp);border-radius:9px;padding:16px 18px;margin:-9px 0}
+.sg-bcol{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.sg-st{font-size:10.5px;color:var(--muted);text-transform:capitalize;font-weight:600}
+.sg-btns.sg-inv .sg-st{color:var(--sg-invp-ink)}
+.sg-btn{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:8px 14px;border:1.5px solid transparent;min-width:96px;text-align:center;cursor:default;white-space:nowrap}
+.sg-callout{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;margin-top:16px;line-height:1.5}
+.tpill[data-sgtip]{position:relative}
+.tpill[data-sgtip]:hover::after{content:attr(data-sgtip);position:absolute;z-index:40;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);background:#111417;color:#f2f4f5;font-family:var(--mono);font-size:11px;font-weight:500;white-space:nowrap;padding:6px 9px;border-radius:7px;box-shadow:0 6px 20px rgba(0,0,0,.28);pointer-events:none}
+.tpill[data-sgtip]:hover::before{content:"";position:absolute;z-index:40;left:50%;bottom:calc(100% + 3px);transform:translateX(-50%);border:5px solid transparent;border-top-color:#111417;pointer-events:none}
+@media(max-width:760px){.sg-g3,.sg-g5{grid-template-columns:repeat(2,1fr)}}
+/* Heading sizes — shape cards, range, and the per-size table (#328 follow-through) */
+/* Label + description, then controls. The gap under the description is what was missing: the cards
+   sat hard against the heading with the explanation stranded below them. */
+.tsz-field{margin-top:22px}
+.tsz-field:first-of-type{margin-top:6px}
+.tsz-flabel{display:block;font-weight:600;font-size:13.5px;color:var(--ink)}
+.tsz-fdesc{margin:3px 0 12px;font-size:12.5px;color:var(--muted);line-height:1.5;max-width:72ch}
+
+/* Option cards: a select cannot carry a sentence per option, and the shape is a foundational choice
+   made once. Deviation from doc 26 (3+ options → select) — the rule that earns it is in doc 24. */
+.shape-cards{display:grid;gap:9px;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));width:100%}
+.shape-card{text-align:left;font:inherit;cursor:pointer;background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:12px 13px 13px;display:flex;flex-direction:column;gap:3px}
+.shape-card:hover:not(:disabled){border-color:var(--muted)}
+.shape-card:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.shape-card.on{border-color:var(--ink);background:var(--panel);box-shadow:0 0 0 1px var(--ink)}
+.shape-card:disabled{opacity:.5;cursor:not-allowed}
+.shape-card b{font-size:13px;color:var(--ink)}
+.shape-card.on b::after{content:' ✓';font-size:11px}
+.shape-blurb{font-size:11.5px;color:var(--muted);line-height:1.4}
+.shape-nums{font-size:10.5px;color:var(--faint);margin-top:2px}
+.shape-blocked{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink2);background:var(--paper);border:1px solid var(--line2);border-radius:var(--r-sm);padding:9px 11px}
+.shape-release{font:inherit;font-size:12px;padding:4px 10px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--panel);color:var(--ink);cursor:pointer}
+.shape-release:hover{border-color:var(--muted)}
+.shape-release:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+
+/* Range — the two fields align on their CONTROLS, not their labels, so the select and the toggle
+   sit on one line however tall the labels wrap. */
+.range-row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;width:100%}
+.range-f{display:flex;flex-direction:column;gap:6px}
+.range-f > .pfk{line-height:1.2}
+.range-f .select{min-width:158px}
+.range-tg{display:flex;align-items:center;min-height:31px}
+.range-tglab{font-size:12.5px;color:var(--ink);white-space:nowrap}
+
+.szt-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.szt-headlab{font-size:13px;font-weight:620;color:var(--ink)}
+.szt-badge{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:100px;background:var(--paper);border:1px solid var(--line2);color:var(--ink2)}
+.mtbl{margin-top:18px}
+.mtbl-cap{margin:0 0 7px;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+/* Wide tables scroll in their own container so the page body never does (doc 26). The size column is
+   pinned so the names survive that scroll. A trailing FILLER column absorbs any slack, which is what
+   keeps the size column and every mode column at a fixed width whether the brand has one mode or six
+   — without it width:100% hands all the spare width to the single-mode case. */
+.mtbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
+.mtbl-tbl{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.mtbl-tbl th,.mtbl-tbl td{padding:6px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+.mtbl-tbl thead th{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--paper)}
+.mtbl-tbl tbody tr:last-child td{border-bottom:0}
+.mtbl-stick{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line);width:var(--tbl-col-name);min-width:var(--tbl-col-name)}
+.mtbl-tbl thead .mtbl-stick{z-index:3;background:var(--paper)}
+/* Mode columns are equal and fixed: past roughly five modes the total exceeds the pane and the
+   container scrolls, rather than the columns compressing until the steppers stop fitting. */
+.mtbl-mode{width:var(--tbl-col-mode);min-width:var(--tbl-col-mode)}
+.mtbl-fill{width:auto;padding:0 !important;border-bottom-color:var(--line)}
+.mtbl-fill.mtbl-spec{padding:6px 12px !important;min-width:150px}
+.mtbl-spec-t{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);font-size:14px}
+.mtbl-name{font-size:12.5px;font-weight:600;color:var(--ink)}
+/* Out-of-range rows stay VISIBLE rather than disappearing — a size the ramp could have is a fact
+   worth showing, and its absence from the table was reading as "this brand has no lg display". */
+.mtbl-off td{background:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(24,24,27,.028) 5px,rgba(24,24,27,.028) 10px)}
+.mtbl-off .mtbl-stick{background:var(--panel)}
+.mtbl-off .mtbl-name{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px}
+.mtbl-offval{font-size:12.5px;color:var(--faint)}
+/* Light's cell in a re-point table: it can only name itself, so it is text rather than a select. */
+.mtbl-selfval{font-size:12.5px;color:var(--muted);white-space:nowrap}
+/* What a rung is WORTH in this mode (#388) — a second line under the per-mode select, not option text.
+   display:block is what keeps it off the select's line, so the column width is untouched; the .set tier
+   matches the select's own set-state so a scan down a column finds the overrides in one pass.
+   (No backticks in this stylesheet — it is a template literal; see #366.) */
+.mtbl-worth{display:block;margin-top:3px;font-size:11px;color:var(--faint);white-space:nowrap}
+.mtbl-worth.set{color:var(--ink2);font-weight:600}
+/* A select's intrinsic min-width is its WIDEST OPTION, and the table is auto-layout, so a long rung
+   label silently pushed the mode column past the shared token (166px against the stepper tables'
+   148px) and broke the down-page column parity these tables exist to hold. Clamp the control to the
+   column and let the closed select ellipsis instead. 24px is the cell's horizontal padding. */
+.mtbl-mode .select{width:calc(var(--tbl-col-mode) - 24px);min-width:0;text-overflow:ellipsis}
+.mtbl-mode .select.set{font-weight:650;border-color:var(--ink2)}
+.mtbl-ro{font-size:10px;color:var(--faint);font-weight:400;text-transform:none;letter-spacing:0}
+/* The stepper states the constraint: a disabled −/+ means this size has no room that way, where a
+   filtered dropdown just omitted the option and never said why. */
+.mcell{display:inline-flex;align-items:center;gap:4px}
+.mstep{font:inherit;font-size:13px;line-height:1;width:22px;height:24px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;flex:none}
+.mstep:hover:not(:disabled){border-color:var(--muted)}
+.mstep:disabled{opacity:.32;cursor:not-allowed}
+.mstep:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.mval{font-size:12.5px;min-width:32px;text-align:center;color:var(--muted)}
+.mval.pin{color:var(--ink);font-weight:650}
+.mreset{font:inherit;font-size:12px;line-height:1;width:20px;height:24px;border:1px solid transparent;border-radius:var(--r-xs);background:none;color:var(--faint);cursor:pointer;flex:none}
+.mreset:hover{color:var(--ink2)}
+.mreset:focus-visible{outline:2px solid var(--ink2);outline-offset:1px}
+.mreset-sp{display:inline-block;width:20px;flex:none}
+
+/* Typography Preview tab — read-only specimens at size, in every mode. */
+.tp-fam{font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+/* Same 112px / 148px as the tables, from the shared tokens, so the page reads on one grid even
+   where the content is a specimen rather than a control. */
+
+/* Typography — the four tier tabs (#272, resplit in #388 part B) */
+.tabnote{font-size:12.5px;color:var(--faint);margin:10px 0 0}
+/* #415 — the three-card binding grid (.tf-grid/.tf-card/.tf-role/.tf-desc) is gone with the three
+   family roles it was sized for; seven categories read as a table on the tab's shared grid. Deleted
+   rather than left inert, which is the .errbar-global lesson from #388. */
+/* The bulk-set: one action for the single-face brand, which the collapse would otherwise make a
+   seven-field chore. flex:none on the button keeps its intrinsic width out of the row's sizing —
+   the trap #369/#388 kept hitting. */
+.tf-bulk{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:2px 0 0}
+.tf-bulklab{font-size:12.5px;color:var(--ink2);font-weight:560}
+/* #558 — .tf-addbtn's base padding/font-size (7px 16px / 13px) is tuned to match .tf-in (36.1px),
+   its OTHER pairing below in "Add face". Here it instead sits beside .select.sm (33.4px, the compact
+   variant — correct and unchanged everywhere else it's used standalone). Scoped so only this row's
+   button drops to .select.sm's own padding-block (6px) and font-size (12.5px), landing both controls
+   at the same 33.4px rather than inventing a third height for the row. */
+.tf-bulk .tf-addbtn{padding:6px 16px;font-size:12.5px}
+.tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
+.tf-stat{font-size:11px;font-weight:600}
+/* A token pill is white-space:nowrap, so its full single-line width is its MIN-CONTENT contribution
+   and the 148px column width property is only a hint it happily blows past — the intrinsic-width trap
+   #360/#369/#388, measured again here at 829px vs the shared 798px grid. An explicit px cap clamps
+   the intrinsic contribution; the pill already ellipsizes and carries the full path in its title attribute. */
+.mtbl-mode .tpill{max-width:124px}
+/* NOT a contrast verdict, despite the ok/no class names — this renders the font-status column
+   ("✓ 36 styles" / "⚠ Figma lacks it" in the plugin, "✓ Installed" / "⚠ Not installed" on web).
+   An unloadable face is a WARNING, not a failure, so --warn is deliberate. Do not fold it into
+   the verdict palette. */
+.tf-stat.ok{color:var(--ok)}.tf-stat.no{color:var(--warn)}
+/* The specimen's own caveat, shown only when Figma can load a face this device cannot render — so
+   "Ag 123" is the fallback while the status column truthfully reads ✓. Faint and inline beside the
+   specimen because it qualifies THAT cell; promoting it would read as an error, which it is not. */
+.tf-fbnote{margin-left:8px;font-size:11px;color:var(--faint);white-space:nowrap;vertical-align:2px}
+/* The specimen is display:block in this table, which would push the note onto its own line. Only
+   inside .mtbl-spec, and only so the note can sit BESIDE "Ag 123" as approved — measured at 560px
+   (a narrow plugin panel) with no cell overflow and no horizontal scroll beyond the pre-existing 146px. */
+.mtbl-spec .tf-prev{display:inline-block;vertical-align:baseline}
+/* line-height must exceed the font's em box (~1.2) or descenders clip */
+.tf-prev{border-top:1px solid var(--line);padding-top:10px;font-size:26px;line-height:1.4;overflow:hidden;white-space:nowrap}
+/* #415 — the resolved face per category on Text styles: a READING, not a control. Same type
+   treatment as .cs-name so the row's two identity cells sit on one baseline. */
+.cs-face{font-size:12.5px;font-weight:600;color:var(--ink);line-height:1.3;overflow-wrap:anywhere}
+.tf-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
+.tf-note b{color:var(--ink2)}
+.tf-note.warn{background:#fff8ed;border-color:#f0d9b5;color:#7a5320}
+.tf-note.warn b{color:#5c3d16}
+/* Typeface library (#269) — the primitive tier as full-width rows: identity left, the
+   derived facts in the middle, specimen right. Full-width rather than cards because the
+   list grows with the brand and the fallback stack needs the horizontal room. */
+/* The typeface library as a table (#363), on the same column grid as the rung tables above. */
+/* The ONE table on this tab whose Face column is not the shared 112px: the token path now reads as a
+   subtitle under the face name, and font.typeface.jetbrains-mono is 190px on one line. Scoped by class
+   rather than by moving --tbl-col-name, because that token holds this tab's four tables on one column
+   grid (#363/#404) and three of them are read-only ladders with nothing to widen FOR. Two measured
+   costs, both accepted: this table's mode columns now start at 552 where the ladders' start at 448, so
+   the Face column is the only one that no longer lines up down the page; and in a 560px plugin panel
+   the container's existing horizontal overflow goes 146px → 186px, +40. The pinned column is what makes
+   the second one tolerable — scrolled fully right, the face name and its path are still both visible.
+   The alternative was a four-line path pill in a 112px cell (tried; less readable than an elided one). */
+.tf-libtbl .mtbl-stick{width:216px;min-width:216px}
+/* Both were capped at 88px for the 112px column; at 216 they can use it. Still capped rather than
+   free: the cell is auto-layout, so an uncapped nowrap pill would push the column past 216 on a long
+   slug — the intrinsic-width trap .mtbl-mode .tpill documents. 192 = 216 − 24 of cell padding, which
+   fits every realistic path on one line (jetbrains-mono 190); a longer one elides from the FRONT,
+   keeping the slug that identifies it, and carries the full path in its title. */
+.tf-libname{display:block;font-size:12.5px;font-weight:650;color:var(--ink);max-width:192px;line-height:1.3;overflow-wrap:anywhere}
+.tf-vf{display:block;margin-top:3px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tf-libpath{display:block;margin-top:5px}
+.tf-libpath .tpill{max-width:192px}
+.tf-usedby{font-size:11.5px;color:var(--ink2);display:block;max-width:124px;line-height:1.35;overflow-wrap:anywhere}
+/* An unbound face is a real state since #287, not an error — muted, never warning-colored. */
+.tf-usedby.unbound{color:var(--faint);font-style:italic}
+.tf-fall{display:block;margin-top:4px;font-size:11px;color:var(--faint);line-height:1.5;overflow-wrap:anywhere}
+.mtbl-spec .tf-prev{border-top:0;padding-top:0;font-size:22px;line-height:1.25}
+.tf-derivenote{font-size:12px;color:var(--faint);line-height:1.55;margin:11px 0 0}
+/* Staging a face (#287 follow-up). The remove control sits in the FILL column so no fixed-width cell
+   grows past its token — that is what keeps the tier tables on one 112/148/148 grid. */
+.tf-rm{float:right;border:none;background:none;color:var(--faint);cursor:pointer;font-size:16px;line-height:1;padding:0 2px;margin-left:8px}
+.tf-rm:hover{color:var(--ink)}
+.tf-add{display:flex;align-items:center;gap:8px;margin-top:12px}
+.tf-addin{flex:0 1 260px;width:auto;min-width:0}
+/* #113 follow-up — the font combobox. The datalist this replaces was browser CHROME: dark in
+   Figma's iframe, flipped UP over the field, and unscrollable at 2,334 options. Page DOM instead, on
+   the .brandmenu popover model (max-height + overflow-y:auto), which is what makes it themeable,
+   positionable and scrollable at all. The wrapper carries .tf-addin's flex basis because the INPUT is
+   now nested inside it — leaving it on the input alone would collapse the field to content width. */
+.tf-combo{position:relative;flex:0 1 260px;min-width:0}
+.tf-combo .tf-addin{flex:none;width:100%}
+.tf-cbolist{position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:264px;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:4px;z-index:20;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12);overscroll-behavior:contain}
+/* Names render in the UI face by design (owner call): the host list mixes locally-installed families
+   with Figma CLOUD fonts, and networkAccess:none means a cloud face would fall back and read as
+   broken. One face is honest; a half-working specimen is not. */
+.tf-cbo{padding:6px 9px;border-radius:var(--r-xs);font-size:13px;color:var(--ink);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tf-cbo:hover,.tf-cbo.on{background:var(--paper)}
+.tf-cbo.on{box-shadow:inset 0 0 0 1px var(--line2)}
+.tf-adderr{font-size:12px;color:var(--danger);margin:8px 0 0}
+/* #405 — the add-face SUBMIT CTA, modelled on .bm-load (the app's existing inline solid button) so it
+   reads as "commit this" rather than borrowing .adv-add's dashed reveal look. flex:none keeps its
+   intrinsic width out of the row's sizing, the trap #369/#388 kept hitting. White on --ink is
+   17.72:1. */
+.tf-addbtn{flex:none;border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:7px 16px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
+.tf-addbtn:hover{background:#000;border-color:#000}
+.tf-unbound{font-size:11.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;line-height:1.45}
+.sl-note{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:12px 0 0}
+/* position:relative makes the ladder the offsetParent, so a row's offsetTop is relative to
+   it — without it the open-on-first-in-use-rung scroll overshoots to the bottom. */
+/* #404 — the size ladder moved onto the shared table, so the bespoke row grid, the dimming, the
+   levered-rung dot and the three-key legend are all gone. Everything they styled went with them
+   rather than being left as dead rules (the .errbar-global lesson from #388). Two survive:
+   .sl-samp is the big Ag specimen, and .sl-tall keeps the 460px scroll box the 22 full-size rows
+   still need — .mtbl-scroll only handles the horizontal axis. */
+.sl-samp{line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sl-tall{max-height:460px;overflow-y:auto}
+/* The header has to STICK here and nowhere else: this is the only tier table that scrolls
+   vertically, and 22 rows of full-size specimens scroll the column labels away within one row.
+   The corner cell outranks the rest because .mtbl-stick is already sticky on the left axis —
+   without the bump it slides under its own row headers at the intersection. */
+.sl-tall thead th{position:sticky;top:0;z-index:2}
+.sl-tall thead .mtbl-stick{z-index:4}
+/* The availability marks, carried over from the deleted primitive weight scale (#362) — the mark
+   vocabulary is unchanged, only its home. tpw-samp overrides the shared specimen size down, since
+   this cell holds a mark beside it in a face column rather than owning a full-width row.
+   (No backticks in here — this whole block is a template literal.) */
+.tpw-mark{font-size:12px;margin-right:7px}
+.tpw-mark.yes{color:var(--ink)}/* Also not a verdict: ● / ○ / ? for whether a typeface SHIPS a weight. "no" is absence, not
+   failure, so --faint is right — coloring it --danger would read as an error the user caused. */
+.tpw-mark.no{color:var(--faint)}
+/* #555 — was var(--line2), a border-hairline color (~1.36:1 on white), reused here as text. The "?"
+   needs its own text-legible tier distinct from "no"'s --faint; --muted is the next tier up. */
+.tpw-mark.unknown{color:var(--muted)}
+.tpw-samp{display:inline;font-size:15px}
+/* #422 — the weight-roles-per-mode specimen. Same "Ag 123" sample as the by-face table's .tpw-samp,
+   but a second LINE under the stepper/reading rather than inline beside it — matching .mtbl-worth's
+   "second line under the per-mode control" pattern, since the stepper's four glyphs already fill most
+   of the 148px column and an inline specimen would wrap mid-cell instead of stacking cleanly. */
+.wt-spec{display:block;margin-top:4px}
+/* Leading & tracking rungs in the shared table format (#363). The value control is width-BOUNDED, not
+   auto: a control that sizes to its content is what breaks column parity in an auto-layout table.
+   #388 swapped the number input for a ladder select and the bound has to come with it — a closed
+   select's intrinsic width is its WIDEST OPTION (#360's trap), so left auto it would be sized by
+   whichever label happens to be longest today (-0.015em) and would silently re-size the column the
+   day a ladder label grows. 124px is measured against that widest label, not picked. */
+.ltbl-sel{width:124px;max-width:100%}
+.ltbl-who{font-size:11px;color:var(--ink2);display:block;max-width:124px;line-height:1.35}
+.ltbl-who.none{color:var(--faint);font-style:italic}
+/* The one specimen on the page that must WRAP — leading is invisible on a single line, so this
+   deliberately does not inherit .mtbl-spec-t's nowrap+ellipsis. */
+.ltbl-samp{font-size:13px;color:var(--ink2);line-height:inherit;max-width:52ch}
+.wr-row{display:grid;grid-template-columns:96px 168px 1fr auto;gap:14px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.wr-row:first-of-type{border-top:0}
+.wr-name{font-size:13px;font-weight:640}
+.wr-samp{font-size:20px;line-height:1.4;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cs-wrap{overflow-x:auto}
+.cs-table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+.cs-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:0 9px 10px;white-space:nowrap}
+.cs-table th.cs-c,.cs-table td.cs-c{text-align:center}
+.cs-table td{padding:9px;border-top:1px solid var(--line);vertical-align:middle}
+.cs-name{font-size:12px;font-weight:640}
+.cs-count{font-size:10.5px;color:var(--faint)}
+.cs-table input[type=checkbox]{width:15px;height:15px;accent-color:var(--ink);cursor:pointer;margin:0}
+/* 11 columns in an 850px content column — keep the selects tight so the table fits without
+   relying on the horizontal scroll, which hides the italic/link toggles at the right edge. */
+.cs-table td{padding:9px 6px}
+.cs-table th{padding:0 6px 10px}
+.cs-table .select{max-width:100px}
+/* 92px was measured against the old word-form labels ("2 tighter", "much tighter") before #411
+   replaced them with signed deltas. The widest label today is "default" (the zero case; every other
+   value is a short +N/-N), well inside this box, so there is slack rather than a tight fit — this
+   table still has only ~8px of slack per nudge column before it exceeds the 800px pane and .cs-wrap
+   starts scrolling the LINK column out of sight, but the value control itself is no longer the
+   constraint that set 92px. Left wide rather than re-measured down: shrinking it is a real change,
+   not a comment fix. */
+.cs-table .select.cs-nudge{max-width:92px}
+.fz-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:4px}
+.fz-row{display:grid;grid-template-columns:150px 96px 1fr;gap:12px;padding:9px 13px;border-top:1px solid var(--line);align-items:center;font-size:12px}
+.fz-row:first-child{border-top:0}
+.fz-name{font-size:11px}
+.fz-pair{font-size:11px;color:var(--muted)}
+.fz-bar{position:relative;height:7px;background:var(--paper);border-radius:4px;border:1px solid var(--line)}
+.fz-fill{position:absolute;top:0;bottom:0;background:var(--ink2);border-radius:4px;opacity:.75}
+.fz-clamp{font-size:10px;color:var(--faint);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fz-warn{font-size:12.5px;background:#fff8ed;border:1px solid #f0d9b5;color:#7a5320;border-radius:var(--r-sm);padding:10px 13px;line-height:1.5;margin:10px 0 0}
+.tr-block{margin-top:34px}.tr-block:first-of-type{margin-top:4px}
+.tr-band{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 13px;margin-bottom:6px}
+.tr-band-n{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
+.tr-band-c{font-size:10.5px;color:var(--muted)}
+.tr-band-d{font-size:11.5px;color:var(--faint)}
+.tr-row{display:grid;gap:6px;padding:14px 0;border-top:1px solid var(--line)}
+.tr-row:first-of-type{border-top:0}
+.tr-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tr-attr{font-size:10.5px;color:var(--faint)}
+/* true size; padding keeps descenders inside the clip box even at tight leading */
+.tr-samp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:.24em;margin-top:2px}
+/* Per-mode ramp columns — one per mode, side by side. Scrolls horizontally rather than wrapping: a
+   wrapped column reads as a new row, which is the confusion the side-by-side table exists to remove.
+   min-width:0 on the column is what actually lets the sample's ellipsis work inside a grid track. */
+.tr-modes{display:grid;gap:14px;overflow-x:auto;padding-bottom:2px}
+.tr-mode{min-width:0;border-left:1px solid var(--line);padding-left:11px}
+.tr-mode:first-child{border-left:0;padding-left:0}
+.tr-mode-n{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);margin-bottom:2px}
+@media(max-width:760px){.tf-bulk{align-items:stretch;flex-direction:column}}
+/* minmax(0,1fr), not a bare 1fr — a grid item's automatic minimum is min-content, so a bare
+   1fr track never clamps and the widest child drags the whole column past the viewport.
+   The desktop rule above already uses the idiom; the collapse override had lost it (#144). */
+/* Below 900 the rail is not a sidebar. It used to become a static stack, which measured ~690px tall
+   and pushed every page's content below the fold; it is now hidden and its destinations move into
+   the Pages menu in the bar, which costs 0px of vertical space. The two must switch together —
+   whichever way this breakpoint moves, exactly one of rail/navbtn is visible at any width. */
+@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr);gap:40px}.rail{display:none}.navbtn{display:flex}.phead{gap:16px}.pfield.r{margin-left:0}}
+/* Narrow viewports (#144). The plugin iframe runs this same UI, so its window lands here:
+   gutters, hero and chrome all shrink, and nothing is allowed to overflow horizontally. */
+/* The bar's dropdowns are anchored right:0 to their wrapper, which is only safe while the wrapper
+   sits at the viewport's right edge. When the bar wraps, the actions land at the LEFT and a 288px
+   panel hangs ~152px off-screen — invisible to an overflow sweep, because a closed menu isn't in
+   the DOM at all. margin-left:auto keeps the actions right-aligned on their own wrapped row, which
+   fixes the cause; the max-width is the belt-and-braces cap for viewports under ~312px. */
+/* Right-aligning the row is necessary but not sufficient: each menu anchors to its OWN wrapper,
+   and the brand button is not the rightmost item, so its panel still started ~122px short of the
+   edge and hung 9px off at 360px. Dropping the wrappers to static makes the actions row itself the
+   containing block, so both panels align to the row's right edge — the one edge that is always
+   flush with the viewport gutter, whatever the buttons ahead of them are doing. */
+@media(max-width:640px){#app{padding:0 16px 72px}.bar{flex-wrap:wrap;gap:10px;padding:16px 2px 10px}.bar-actions{flex-wrap:wrap;margin-left:auto;position:relative}.barmenu-wrap{position:static}.brandmenu{max-width:calc(100vw - 24px)}.hero h1{font-size:28px;letter-spacing:-0.02em}.lede{font-size:15px;margin-top:14px}.shell{gap:28px}.lab{padding:0 3px}}
+/* Compact bar. Full labels need ~455px and the row has 456 at 480px — i.e. it only "fits" by a
+   pixel, so the treatment starts before the numbers get tight. Dropping the "Theme studio"
+   descriptor and the Export word (the ↓ and caret stay, and aria-label keeps the accessible name)
+   takes the row to ~278px, which is a single line down to ~312px of viewport. */
+@media(max-width:560px){.studio{display:none}.barbtn-lab{display:none}}
+/* The Pages control. Hidden by default — the 900 rule above turns it on exactly where the rail
+   turns off. It keeps the current page name while there is room for it (159–173px of bar slack at
+   480–900), which is the orientation a bare glyph cannot give; below 480 it degrades to the glyph.
+   Below 380 the wordmark goes too: a third control needs ~54px and the bar has only 53px of slack
+   at 360 and 13px at 320, so without this the row wraps back to two lines on small phones. */
+@media(max-width:480px){.navbtn-lab{display:none}}
+@media(max-width:380px){.wordmark{display:none}}
+.navmenu{width:300px;max-height:calc(100vh - 130px);overflow-y:auto}
+.nav-item{display:flex;width:100%;text-align:left;border:0;background:none;font:inherit;padding:9px 8px;border-radius:var(--r-xs);cursor:pointer;color:var(--ink2)}
+.nav-item:hover{background:var(--paper)}
+.nav-item.cur{background:var(--paper)}
+.nav-item.cur .stage-t b{color:var(--ink)}
+.navmenu .rail-note{margin:14px 8px 2px;padding-top:12px}
+/* Below ~480 the 10 hex read-outs under a ramp cannot fit (each needs ~45px, the row has ~406):
+   drop the hex and keep the step number, so labels stay 1:1 under their swatches. Wrapping or
+   scrolling the row would break that alignment, which is the whole point of a ramp. */
+/* The contrast + breakpoint tables have more columns than 456px can hold, and neither shrinks:
+   ly-table pushed the page 57px, ctable was silently clipped by an ancestor (worse — the cells
+   were unreadable rather than reachable). display:block turns each into its own scroll box, so
+   the table scrolls and the page does not. Applied only here; both fit unaided at 640+. */
+@media(max-width:480px){#app{padding:0 12px 64px}.hero h1{font-size:24px}.lab-hex{display:none}.ctable,.ly-table{display:block;overflow-x:auto}}
+/* Plugin resize grip (#144) — plugin-only; a Figma iframe has no window chrome of its own.
+   touch-action:none so the pointer capture owns the gesture instead of the page scrolling. */
+.resize-grip{position:fixed;right:0;bottom:0;width:16px;height:16px;z-index:60;cursor:nwse-resize;touch-action:none;color:var(--faint)}
+.resize-grip::after{content:"";position:absolute;right:3px;bottom:3px;width:9px;height:9px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;border-bottom-right-radius:2px;opacity:.45}
+.resize-grip:hover::after{opacity:.9}
+`;
+const styleEl = document.createElement('style');
+styleEl.textContent = STYLE;
+document.head.append(styleEl);
+
+/** Distance from the pointer to the window's edge while the grip is held. The grip sits flush in
+ *  the corner, so the dragged size is the pointer position plus this — the same small offset
+ *  Figma's own resize sample uses. */
+const GRIP_INSET = 5;
+
+/** Mount the plugin window's resize grip (#144). Attached to `body`, not `#app`, because `#app` is
+ *  re-rendered wholesale on every state change and the grip must outlive that. Pointer capture is
+ *  what makes the drag survive the pointer leaving the 16px target — without it the gesture dies
+ *  the moment you move faster than the window resizes. Gated on the `PRISM3_HOST` define rather
+ *  than `commit.isFigma` so the branch is statically false on web and esbuild really does drop
+ *  this function (a runtime check would keep it). The three CSS rules still ride along in the
+ *  shared stylesheet, which is a string constant — not worth splitting for ~150 bytes. */
+const mountResizeGrip = (): void => {
+  const grip = el('div', 'resize-grip');
+  grip.title = 'Drag to resize the plugin window';
+  let dragging = false;
+  const sizeFrom = (e: PointerEvent): [number, number] => [e.clientX + GRIP_INSET, e.clientY + GRIP_INSET];
+  grip.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    grip.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  grip.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const [w, h] = sizeFrom(e);
+    commit.requestResize(w, h, false);
+  });
+  // Pointer-up AND pointer-cancel both end the drag: cancel fires if the browser takes the
+  // gesture back, and without it `dragging` would stay true and the next hover would resize.
+  const end = (e: PointerEvent): void => {
+    if (!dragging) return;
+    dragging = false;
+    if (grip.hasPointerCapture(e.pointerId)) grip.releasePointerCapture(e.pointerId);
+    const [w, h] = sizeFrom(e);
+    commit.requestResize(w, h, true);   // commit → the host persists this size
+  };
+  grip.addEventListener('pointerup', end);
+  grip.addEventListener('pointercancel', end);
+  document.body.append(grip);
+};
+if (PRISM3_HOST === 'figma') mountResizeGrip();
+
+build();

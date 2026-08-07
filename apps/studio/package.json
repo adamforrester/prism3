@@ -1,0 +1,21 @@
+{
+  "name": "@prism3/studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Prism3 theme studio \u2014 the DOM host that renders theming knobs (from the lever manifest) + a live component preview and per-mode contrast overlay (from previewSpec + resolvePreview). One of the two rendering hosts over the engine core (docs/08, docs/09).",
+  "scripts": {
+    "dev": "esbuild src/main.ts --bundle --format=esm --outdir=dist --define:PRISM3_HOST=\"'web'\" --define:PRISM3_BUILD=\"'local'\" --servedir=. --serve=127.0.0.1:5173",
+    "build": "esbuild src/main.ts --bundle --format=esm --outdir=dist --define:PRISM3_HOST=\"'web'\" --define:PRISM3_BUILD=\"'local'\" --sourcemap",
+    "build:site": "node build-site.mjs",
+    "typecheck": "tsc --noEmit",
+    "audit:modes": "node mode-audit.mjs",
+    "lint:contrast": "node lint-contrast.mjs",
+    "lint:classes": "node lint-classes.mjs",
+    "check:ignore": "node vercel-ignore-check.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm run build:site --workspace @prism3/web",
-  "outputDirectory": "web/public",
-  "ignoreCommand": "bash web/vercel-ignore.sh",
+  "buildCommand": "npm run build:site --workspace @prism3/studio",
+  "outputDirectory": "apps/studio/public",
+  "ignoreCommand": "bash apps/studio/vercel-ignore.sh",
   "headers": [
     {
       "source": "/(.*)",

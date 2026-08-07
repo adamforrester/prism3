@@ -2,10 +2,9 @@
   "name": "prism3",
   "private": true,
   "type": "module",
-  "description": "Prism3 monorepo \u2014 the token generation engine and the surfaces (web dashboard, Figma plugin) that render from its shared contracts. The engine core stays buildless (run via tsx); the adapters bundle it.",
+  "description": "Prism3 monorepo \u2014 the token generation engine and the surfaces (theme studio, Figma plugin) that render from its shared contracts. The engine core stays buildless (run via tsx); the adapters bundle it.",
   "workspaces": [
-    "web",
-    "plugin",
+    "apps/*",
     "packages/*"
   ]
 }
