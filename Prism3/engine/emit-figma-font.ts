@@ -23,33 +23,29 @@ import { desc } from './emit-figma-color';
 import type { FigmaResolvedType, FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 // Named-instance derivation for fontStyle (fix #5). Numeric weight → the family's
-// real style name, plugin-resolved from loaded fonts. Mono families lack Semi Bold,
-// so 600 falls back to Medium (matches the fixture note). Style names are Figma's
-// canonical strings, not CSS — plugins call figma.loadFontAsync({ family, style }).
+// preferred style-name GUESS; the plugin write lane (#499/#530) resolves this against
+// the family's REAL loaded styles (spelling-insensitive + weight synonyms) before use,
+// so this table only needs to name the single best-guess spelling per weight — it is
+// no longer where mono weight suppression lives (that hardcoded guess was removed,
+// #538). Style names are Figma's canonical strings, not CSS — plugins call
+// figma.loadFontAsync({ family, style }).
 const WEIGHT_STYLE_NAME: Record<number, string> = {
   100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular', 500: 'Medium',
   600: 'Semi Bold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black',
 };
-const WEIGHT_STYLE_NAME_MONO: Record<number, string> = {
-  ...WEIGHT_STYLE_NAME,
-  600: 'Medium', // JetBrains Mono / most mono families lack Semi Bold → collapse
-};
 
-/** Style name for a given FACE + numeric weight (+ italic). `mono` selects the mono-specific table,
- *  because mono families lack certain weights (JetBrains Mono has no Semi Bold).
- *
- *  KEYED ON THE FACE, not the category. #415 keyed it on `code` — the category the retired `mono`
- *  ROLE existed to serve — which is right for every default brand and wrong the moment a brand binds
- *  a mono face somewhere else: `families.body: 'JetBrains Mono'` emitted `Semi Bold`, a style that
- *  face does not have, and `figma.loadFontAsync({family, style})` fails on it rather than degrading.
- *  Before #415 the ROLE travelled with the face, so the old code got this case right by accident of
- *  its keying. Asking the face is correct under both shapes.
+/** Style name for a given FACE + numeric weight (+ italic). `mono` is still keyed on the FACE
+ *  (not the category) for a real, separate reason — #415: a brand binding JetBrains Mono to
+ *  `families.body` needs the face, not the category, to pick a face-appropriate table. It no longer
+ *  selects a different table (the mono-specific collapse was a hardcoded guess working around a
+ *  spelling-variance bug the write-time resolver, #499/#530, now handles properly — removed in
+ *  #538), so both callers currently read the same `WEIGHT_STYLE_NAME` table; the parameter stays so
+ *  a future face-specific table has somewhere to hook in without a signature change.
  *
  *  Italic follows Figma's naming: Regular→`Italic` (not `Regular Italic`), otherwise `<Weight> Italic`
  *  (e.g. `Bold Italic`, `Semi Bold Italic`). */
 export const fontStyleName = (mono: boolean, numericWeight: number, italic = false): string => {
-  const table = mono ? WEIGHT_STYLE_NAME_MONO : WEIGHT_STYLE_NAME;
-  const base = table[numericWeight] ?? 'Regular';
+  const base = WEIGHT_STYLE_NAME[numericWeight] ?? 'Regular'; // `mono` reserved — see doc comment above
   if (!italic) return base;
   return base === 'Regular' ? 'Italic' : `${base} Italic`;
 };
@@ -326,8 +322,8 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
       properties: {
         fontFamily: { bound: true, variable: `font/family/${familyCategory}`, collection: 'core-font', resolvedType: 'STRING' },
         // fontStyle baked — derived from weight-role (+ italic modifier) via the
-        // named-instance table (e.g. Bold, Bold Italic). Mono families collapse
-        // Semi Bold → Medium (see fontStyleName).
+        // named-instance table (e.g. Bold, Bold Italic); the plugin write lane
+        // resolves this guess against the family's real styles (see fontStyleName).
         fontStyle: { bound: false, value: styleName },
         fontSize: { bound: true, variable: sb.variable, collection: sb.collection, resolvedType: 'FLOAT' },
         fontWeight: { bound: true, variable: `font/weight-role/${weightRole}`, collection: 'core-font', resolvedType: 'FLOAT' },

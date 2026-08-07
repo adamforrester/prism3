@@ -4377,25 +4377,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(upperMismatch.length === 0, 'figma text-styles: textCase preserved (eyebrow UPPER, else ORIGINAL)' + (upperMismatch.length ? ` — ${upperMismatch.slice(0, 3).join('; ')}` : ''));
   ok(decoMismatch.length === 0, 'figma text-styles: textDecoration preserved (-link → UNDERLINE, else NONE)' + (decoMismatch.length ? ` — ${decoMismatch.slice(0, 3).join('; ')}` : ''));
 
-  // fontStyleName table sanity — mono collapses 600 to Medium (JetBrains Mono has no Semi Bold).
+  // fontStyleName table sanity (#538): the mono-specific collapse table is gone — it was a hardcoded
+  // guess (600→Medium) working around a spelling-variance bug the write-time resolver (#499/#530) now
+  // handles properly against the family's REAL loaded styles. So mono and non-mono now AGREE on every
+  // weight; asserting agreement (rather than pinning the old 600→Medium collapse) is the regression
+  // guard — if a mono-specific table ever creeps back in, this fails.
   ok(fontStyleName(false, 700) === 'Bold' && fontStyleName(false, 600) === 'Semi Bold', 'figma fontStyleName: sans weight → real style name (700=Bold, 600=Semi Bold)');
-  // Keyed on the FACE now, not the category — #415 keyed it on `code`, which is right for a default
-  // brand and wrong for any brand that binds a mono face elsewhere. See the regression test below.
-  ok(fontStyleName(true, 600) === 'Medium' && fontStyleName(true, 400) === 'Regular', 'figma fontStyleName: a mono face collapses 600→Medium (JetBrains Mono lacks Semi Bold)');
+  ok(fontStyleName(true, 600) === fontStyleName(false, 600) && fontStyleName(true, 400) === fontStyleName(false, 400),
+    'figma fontStyleName: mono and non-mono tables agree at every weight (#538 — no more hardcoded mono collapse)');
   {
-    // THE REGRESSION: a mono face on a NON-code category. #415 emitted `Semi Bold` here — a style
-    // JetBrains Mono does not have, which `figma.loadFontAsync({family, style})` fails on outright
-    // rather than degrading. Non-vacuous by construction: the same brand's `display` (a sans face)
-    // must still say `Semi Bold`, so this fails if the mono table is ever applied to everything.
+    // #415's regression, re-verified post-#538: a mono face on a NON-code category (`body`) must not
+    // be treated differently from a sans face (`display`) in the same brand — both now emit the SAME
+    // guess (`Semi Bold`), since the mono/non-mono tables agree. The `mono` flag stays plumbed through
+    // to `fontStyleName` — keyed on the FACE, not the category, per #415 — but no longer selects a
+    // different table. If the family genuinely lacks `Semi Bold` under any spelling, the plugin write
+    // lane (#499/#530) resolves that against Figma's real loaded styles and skips-with-warning (#237)
+    // rather than the engine silently guessing a substitute here.
     const monoBody = brandTheme({ id: 'mono-body', primary: { l: 0.5, c: 0.15, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
       typography: { families: { body: 'JetBrains Mono' }, weights: { body: ['default', 'emphasis'], display: ['emphasis'] } } } as any);
     const st = buildFigmaTextStyles(monoBody).styles;
     const bodyEmph = st.filter((x: any) => /^body\/.*\/emphasis$/.test(x.name));
     const dispEmph = st.filter((x: any) => /^display\/.*\/emphasis$/.test(x.name));
-    ok(bodyEmph.length > 0 && bodyEmph.every((x: any) => (x.properties.fontStyle as any).value === 'Medium'),
-      `[review] a MONO face on \`body\` takes the mono style table (600→Medium, not Semi Bold) — got ${(bodyEmph[0]?.properties.fontStyle as any)?.value}`);
+    ok(bodyEmph.length > 0 && bodyEmph.every((x: any) => (x.properties.fontStyle as any).value === 'Semi Bold'),
+      `figma fontStyleName: a MONO face on body no longer collapses 600→Medium — got ${(bodyEmph[0]?.properties.fontStyle as any)?.value}`);
     ok(dispEmph.length > 0 && dispEmph.every((x: any) => (x.properties.fontStyle as any).value === 'Semi Bold'),
-      '[review] …and a SANS face in the same brand still says Semi Bold — the table is chosen per face, not globally');
+      'figma fontStyleName: …and a SANS face in the same brand still says Semi Bold — mono and non-mono agree (#538)');
   }
 }
 // (13) EMIT-FIGMA DIMS (docs/10 §7 item 2) — the geometric axis has NO fixtures

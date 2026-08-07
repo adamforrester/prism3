@@ -39,8 +39,18 @@
  * surfaces, where it measured 2.09:1 (hc-light) / 2.40:1 (hc-dark), below SC 1.4.11 in the two modes
  * that exist for users who most depend on seeing focus. No existing value moves — this ADDS a path,
  * which is why `CONTRACT_VERSION` moves too (a MINOR, unlike 0.3.1/0.3.2 above). (#573)
+ *
+ * 0.3.4: `WEIGHT_STYLE_NAME_MONO` (a hardcoded 600→Medium collapse for mono faces) is removed from
+ * `emit-figma-font.ts`. It was a guess working around a spelling-variance bug (`Semi Bold` vs
+ * `SemiBold`) that #499/#530 already fixed properly — the plugin write lane now resolves the emitted
+ * style name against the family's REAL loaded styles at write time, so a mono family carrying 600
+ * under any spelling now resolves it correctly instead of having it suppressed. `fontStyleName`'s
+ * `mono` and non-`mono` tables now agree at every weight; no corpus brand's default configuration
+ * exercises a mono face at weight 600 (`code` only ever takes the `default` role), so this bumps the
+ * version for the behavior change without moving any committed corpus artifact. Values only — no
+ * token name moved, so `CONTRACT_VERSION` stands. (#538)
  */
-export const ENGINE_VERSION = '0.3.3';
+export const ENGINE_VERSION = '0.3.4';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
