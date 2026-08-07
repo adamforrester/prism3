@@ -29,7 +29,7 @@ the generated tree, `scoreConsumption(refs, tree, root)` returns two metrics:
   the reported `invented[]` list is unique + sorted.
 - **primitive-leak rate** — valid refs that reach *past* the semantic layer into a raw
   primitive tier (`palette` / `dimension` / `font` — `PRIMITIVE_TIERS`, exactly the `core-*`
-  grouping). A consumer should reach for `color.action.default`, not `palette.primary.600`.
+  grouping). A consumer should reach for `color.interactive.primary.fill.rest`, not `palette.primary.600`.
   A *smell* rate, not a hard fail — primitives are occasionally legitimate.
 
 Gated in `test.ts`: clean/invented/leak/normalise/occurrence-rate/empty cases.

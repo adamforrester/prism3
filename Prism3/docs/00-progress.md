@@ -7,6 +7,22 @@
 
 ---
 
+## (2026-08-07) — Prose audit: retired by name, still taught as current — action.* purged from docs 01/06/14/17/31 + engine README (#550)
+
+**STATUS: shipped (docs-only).** Six files: `Prism3/engine/README.md`, `Prism3/docs/{01-token-architecture,06-surface-and-content-color-model,14-component-layer,17-consumption-eval,31-descriptive-vocabulary}.md`.
+
+**The bug.** `color.action.*` stopped being emitted a while back — the live interactive layer is `interactive.{primary,neutral,destructive}.*` (docs/20), disabled ink is the cross-cutting `disabled.on-fill`, not a per-family `.disabled` state. Several docs never got the memo: the engine README taught `action.*` as the current model in one passage while correctly calling it retired forty lines earlier (self-contradiction, not just staleness); docs/01's "As built" blockquote — whose entire job is to state current truth over the surrounding draft spec — had the polarity backwards, naming `action.*` as committed and `interactive`/`text.on-emphasis` as superseded; docs/06 carried `action.*`, `text.on-action`, `text.on-disabled` in sections marked resolved/locked with no superseded marker at all; docs/14, docs/17, and docs/31 used dead names (`color.action.default`, `modeLevers.<mode>.radiusScale`) as teaching examples of correct usage.
+
+**Verification, not assumption.** Walked `out/aurora.tokens.json` (committed, regenerated) to get the real emitted shape before touching prose: color groups are `background, scrim, foreground, interactive, disabled, field, text, icon, border` — no `action` anywhere. Confirmed `text.on-{semantic}`/`text.on-inverse` exist but `text.on-primary`/`text.on-action`/`text.on-disabled` do not. Confirmed `disabled.on-fill` is the single cross-cutting ink-on-disabled-fill token (Carbon's `text-on-color-disabled`), not a per-family `action.disabled`/`text.on-disabled` pair. Confirmed `radius` (not `radiusScale`) is the `modeLevers.<mode>.*` key in `theme-schema.json` (`additionalProperties: false` would reject `radiusScale` there — the global lever keeps that name, only the per-mode override renamed).
+
+**One number changed underneath the rename, not just the name.** The README's aurora-floor illustration said `action.default` resolves to `accent.600` at 4.95:1. The current equivalent, `interactive.primary.fill.rest`, resolves to `accent.500` at 3.76:1 (`modes-report.md`, aurora light) — the fill target is 3:1 now, not the old 4.5:1 text-like bar, so the numbers moved along with the states splitting from a single `default` into `rest`/`hover`/`pressed`/… Updated the illustration's numbers to match rather than just swapping the token name onto stale figures.
+
+**Scope discipline, deliberately narrow.** Left `docs/17-consumption-eval.md` line ~103 alone — it's a historical record of what an agent actually guessed in a past eval run (`color.action.*` was live vocabulary then), not a teaching example of current-correct usage; rewriting it would falsify the experiment log. Left docs/06 §6 decision 1 ("`action` placement — top-level `action.*`") alone too — same historical-decision-record class as the eval line, and not one of the three passages named in the issue. Didn't touch `foreground.danger.default` (should be `foreground.danger`, no `.default`) sitting one line from the `action.default` fix in the README's aurora dialect passage — a real dead name, but a different one than this issue's `action.*` vocabulary, and touching it risked colliding with #551/#554 editing the same README concurrently for unrelated stale claims. Flagging it here since nothing else will: `foreground.danger.default` in `Prism3/engine/README.md`'s aurora-dialect paragraph is still wrong and needs its own fix.
+
+**Gates:** `regen.ts` / `regen.ts --check` (88 artifacts, worktree-clean count per the CLAUDE.md note) / `test.ts` (1920 passed) / `mcp-test.ts` (49 passed) / `token-contract.ts --check` (unchanged, contract 2.1.0) / `lint-skills.ts` (clean) / `lint-us-english.ts` (clean, 94 files — required a one-off `npm run build` in `web/` since the fresh worktree had no `dist/` for the gate's built-bundle scope check; not a source change) all green.
+
+---
+
 ## (2026-08-07) — Dashboard prose audit: seven stale/misdirecting user-visible strings (#547)
 
 **STATUS: shipped.** `web/src/main.ts` only. Companion to #552 (internal code comments, same file,

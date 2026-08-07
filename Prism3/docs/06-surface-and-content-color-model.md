@@ -99,17 +99,25 @@ consistent.
 | `text.disabled` | disabled / inactive ink |
 | `text.{brand,success,warning,danger,info}` | **bold** semantic ink |
 | `text.{…}-subtle` | **subtle / muted** semantic ink (the "quiet danger") — gated at the **large-text / non-text bar** (3:1, 4.5:1 in HC), not the 4.5:1 the bold form clears, so it is for large text and non-text accents rather than body copy (#570) |
-| `text.on-primary / on-{semantic} / on-action` | ink for *on top of* a solid fill (paired contrast) |
+| `text.on-{semantic}` (e.g. `on-brand`/`on-success`/`on-danger`) | ink for *on top of* a solid semantic fill (paired contrast) |
 | `text.on-inverse` | ink on an inverse surface (renamed from `on-emphasis`) |
 | `text.link.{default,hover,visited,focused}` | interactive text (links) — **no `disabled`** (a disabled link is an anti-pattern) |
 
 `icon.*` mirrors `text.*`, diverging only when `iconContrast: '3:1'` lets
 secondary/semantic icons resolve against the WCAG 1.4.11 non-text floor.
 
-### `action.*` — interactive (top-level)
+### `interactive.<color>.*` — interactive
 
-`action.{default, hover, pressed, focused, selected, disabled}` — the interactive
-fill and its states. Kept top-level (Prism2 + KB 31 both do this). `text.link.*`
+> **Superseded naming:** this section originally specified a top-level `action.*`
+> family (see §6 decision 1 below). The as-built model instead ships
+> `interactive.<color>.*` — see `01-token-architecture.md` §4.1 and the engine
+> README. Kept here for the historical decision record.
+
+`interactive.<color>.fill.{rest, hover, pressed, focused, selected}` (+ `on-fill`,
+`text`, `border`, `overlay.*`) across `primary`/`neutral`/`destructive` (+ opt-in
+`accent`) — the interactive fill and its states. Kept top-level (Prism2 + KB 31
+both do this). The disabled case is the cross-cutting `disabled.*` family (one
+treatment for any intent), not a per-family `.disabled` state. `text.link.*`
 and `border.focus` are its text/border expressions.
 
 ### `border.*` — edges
@@ -189,12 +197,13 @@ Carbon, Apple HIG, Tailwind, Primer) + KB 31 §halation/§tint-not-black:
   read pure black better), so `hc-light`/`hc-dark` retain pure black & white for
   maximum contrast — with a pure-extreme fallback in standard modes too if a
   softened `on-*` pick can't clear AA on a given fill.
-- **`text.on-disabled` + `icon.on-disabled`** — a dedicated label/ink for a
+- **`disabled.on-fill`** — a dedicated label/ink for a
   **disabled fill** (Carbon's `text-on-color-disabled`), resolved against that
   fill (not the page) so it stays muted-but-legible (clears the disabled target,
-  ~3:1). One pair covers `action.disabled` and `foreground.danger.disabled` (same
-  neutral fill). The rest of the field uses a blanket disabled-opacity rule; the
-  dedicated token is the more rigorous model.
+  ~3:1). One cross-cutting token covers every disabled fill (interactive states
+  and `foreground.danger` alike) rather than a token per family. The rest of the
+  field uses a blanket disabled-opacity rule; the dedicated token is the more
+  rigorous model.
 
 ## 7. Engine impact
 

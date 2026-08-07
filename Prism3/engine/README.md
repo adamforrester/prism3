@@ -157,10 +157,14 @@ dual-outline (C40) technique documented for any-background 3:1. Icons can take a
 separate **3:1 non-text floor** (SC 1.4.11) via the `iconContrast` theme input
 (`'text'` default mirrors text; `'3:1'` lets secondary/semantic icons run lighter).
 
-Interactivity is the top-level `action.*` fill carrying STATES (default/hover/
-pressed/focused/selected/disabled), with `text.link.*` and `border.focus` as its
-ink/edge expressions — not a duplicated parallel tree per property. Role keys nest
-(`action.hover`, `foreground.danger.pressed`, `text.on-action`, `background.inverse.primary`).
+Interactivity lives in the `interactive.<color>.*` family (`primary`/`neutral`/
+`destructive`, + opt-in `accent`), each carrying a `fill` with STATES (rest/hover/
+pressed/focused/selected), plus `on-fill`, `text`, `border`, and `overlay.*`
+washes — with `text.link.*` and `border.focus` as its dedicated ink/edge
+expressions, and the cross-cutting `disabled.*` family (not a per-family
+disabled state) covering the disabled case for any intent. Role keys nest
+(`interactive.primary.fill.hover`, `foreground.danger.pressed`, `text.on-inverse`,
+`background.inverse.primary`).
 
 **Contrast is measured against the floor surface, not the pure extreme.** The
 saturated, contract-bearing foregrounds (action + states, vivid semantic text,
@@ -175,8 +179,8 @@ The base surface is configurable: a brand can declare a non-white/black page via
 `surfaces` (e.g. `{ light: { base: 50 } }`), and the floor moves with it — a
 tinted base floors one step further toward mid, and the engine flags the choice
 in notes for confirmation. Aurora exercises this: its light page is `neutral.50`,
-so the floor is `neutral.100` and `action.default` resolves to `accent.600`
-(4.95:1 on that page) — two steps off the naive white-only pick. NB sets no
+so the floor is `neutral.100` and `interactive.primary.fill.rest` resolves to
+`accent.500` (3.76:1 on that page) — a step off the naive white-only pick. NB sets no
 surface override, so it keeps the white/`neutral.950` defaults unchanged.
 
 ## DTCG output (`out/*.tokens.json`)
@@ -191,7 +195,7 @@ Two emit profiles prove the same engine serves both regression and product:
   declared a primary + neutral + an azure `accent`. The engine added
   `success`/`warning` from canonical hues and a `danger` red carved at hue 27
   (because violet is not red), and — because the brand named `accent` as its
-  `actionPalette` — `action.default` → `{prism.palette.accent.600}` while the
+  `actionPalette` — `interactive.primary.fill.rest` → `{prism.palette.accent.500}` while the
   brand hue lives at `foreground.brand` → `{prism.palette.primary.*}` and
   `foreground.danger.default` → `{prism.palette.danger.*}`. Action, brand, and danger are
   three distinct palettes: the white-label requirement, with action decoupled
@@ -237,8 +241,10 @@ the identical code path.
 
 Mode-invariant, generated from one personality lever — `motionPersonality.tempo`
 (snappy/standard/relaxed) scales a non-linear **duration** ramp; **easing** ships
-field-verified beziers by role (`standard`/`enter`=decelerate/`exit`=accelerate/
-`emphasized`, plus a `calm` accessibility curve); **spring** tokens
+field-verified beziers split into a curve tier, named for shape (`standard`/
+`decelerate`/`accelerate`/`expressive`, plus a `calm` accessibility curve) and a
+role tier, named for use, that points at one (`default`→standard, `enter`→
+decelerate, `exit`→accelerate, `emphasized`→expressive); **spring** tokens
 (`snappy`/`gentle`/`bouncy`) carry M3 spatial params by perceptual outcome;
 **composite `transition.*`** tokens bundle a duration + easing (the Atlassian
 "intent" layer); and **reduce-motion is derived** (`duration-reduced`: informational
