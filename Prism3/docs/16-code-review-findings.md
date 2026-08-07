@@ -1,9 +1,11 @@
 # 16 — Project code review: findings (2026-07-03)
 
 > A full-codebase review of the engine (`Prism3/engine/*`), the web adapter
-> (`web/src/main.ts`), and the regression harness — **findings only, nothing
-> fixed**. This doc is the fix backlog: each finding carries location, a concrete
-> failure scenario, whether an existing gate would catch it, and confidence.
+> (`web/src/main.ts`), and the regression harness — **findings only as of the
+> 2026-07-03 review; three have since been fixed on `main` (CR-01, CR-06, CR-07 —
+> marked below), the rest remain open**. This doc is the fix backlog: each finding
+> carries location, a concrete failure scenario, whether an existing gate would
+> catch it, and confidence.
 > Method: baseline gates confirmed green first (test.ts **336/336**, nb-regression
 > report clean, emit-dtcg 622/622 aliases + 248/248 contrasts, regenerated `out/*`
 > byte-identical), then five independent review passes over partitions (core
@@ -46,12 +48,13 @@ and cleanly disproven. The serious problems cluster in four cross-cutting themes
 
 ## 1. High severity
 
-### CR-01 — `contrast()` rounds before every threshold comparison: WCAG false passes
+### CR-01 — `contrast()` rounds before every threshold comparison: WCAG false passes  ·  ✅ FIXED
 - **Where:** `engine/color.ts:112-114`; consumed by `engine/modes.ts:44,65,187-188` and every contract check in `test.ts`.
 - **What:** the ratio is `Math.round(x*100)/100` *inside* `contrast()`, and all pass/fail decisions compare the rounded value. WCAG conformance is defined on the un-rounded ratio.
 - **Failure (verified by probe):** `#007ea1` on black → true ratio **4.49898** → engine reports **4.50** → passes an AA 4.5:1 contract it fails. Same class at 3:1 and 7:1. Because `pickMinPass` deliberately selects the *least*-extreme passing candidate, resolved roles sit exactly in this marginal zone by design — the bug targets the engine's own sweet spot. The rounded value also lands in `ResolvedRole.ratio` and every emitted description, so shipped claims inherit it.
 - **Gate coverage:** none possible as-is — the gates compare the same rounded value (theme 1 above). **Confidence:** certain.
 - **Fix shape (for later):** compare raw, round only at display/emit boundaries; add a gate with a known 4.49-raw pair.
+- **Status:** fixed on `main` — `engine/color.ts` `contrast()` now returns the raw ratio (rounding pushed to display/emit boundaries only, per its own inline comment referencing this finding).
 
 ### CR-02 — The contrast floor is two steps shallower than the shipped surface ladder
 - **Where:** `engine/modes.ts:96-109` (floor = base±50) vs the emitted `background.tertiary` (base±100) and `foreground.secondary/tertiary` (base±100/150).
@@ -78,16 +81,18 @@ and cleanly disproven. The serious problems cluster in four cross-cutting themes
 - **Gate coverage:** parser gates are happy-path only. **Confidence:** certain.
 - **Related (M-18, L-08):** the serializer escapes `"` as `\"` but the parser never unescapes — `parseDesignMd(toDesignMd(x)) ≡ x` breaks for any string containing a quote (e.g. font stack `'Font "Display", serif'`); the round-trip gate only exercises quote-free inputs. Closing-fence detection is prefix-based (`--- levers ---` closes the frontmatter early); duplicate keys last-win silently.
 
-### CR-06 — The NB regression cannot fail
+### CR-06 — The NB regression cannot fail  ·  ✅ FIXED
 - **Where:** `engine/nb-regression.ts:170-188` (no `process.exitCode` anywhere — verified); denominator shrink at `:68,146-153`; mean-of-means verdict at `:170-182`.
 - **What:** it is a report generator. ΔE00 outliers, contract failures, and dimension mismatches render as ⚠️/❌ *rows in markdown* and exit 0. Additionally: (a) generated steps missing from the reference file are silently `continue`d, so a truncated/renamed fixture shrinks the comparison to nothing (0/0 → `NaN` mean flows into the verdict); (b) the ≤3 tolerance is on the mean-of-means — a single catastrophic step (ΔE 15) hides under a good aggregate; (c) the amber.600/red.300 "NB hand kinks" explanation is static prose that would keep printing over a *new* engine bug with the same signature; (d) the contract block indexes `specs[0]`/`specs[3]` positionally under hardcoded "red"/"neutral" labels (L-12).
 - **Failure:** a ramp-math regression ships while CI (or the CLAUDE.md gate ritual `a && b && c`) stays green; only a human reading the report notices.
 - **Gate coverage:** test.ts re-implements the *contrast* contracts but nothing gates the ΔE00 fidelity measurement itself. **Confidence:** certain.
+- **Status:** fixed on `main` — `engine/nb-regression.ts` sets `process.exitCode = 1` on any failure (ΔE00 ceiling, covered-count, contract, or dimension check), and the functional checks are folded into the same `failures` accumulator.
 
-### CR-07 — Web: brand-controlled palette name reaches `innerHTML` (XSS)
+### CR-07 — Web: brand-controlled palette name reaches `innerHTML` (XSS)  ·  ✅ FIXED
 - **Where:** `web/src/main.ts:146` (`meta.innerHTML = \`anchor <b class="mono">${name}/${aKey}</b>\``); `name` is verbatim `brandColors[].name` (no validation, CR-03), reachable via pasted `design.md` import and the accent rename input.
 - **Failure:** paste a design.md with `brandColors: [{ name: "<img src=x onerror=…>", … }]` — parser handles the quoted string, `brandTheme` accepts it, script fires on the next ramp paint. Everything else in main.ts correctly uses `textContent`; this is the one data-bearing `innerHTML` sink. (Same injection class, lower risk: `visualize.ts` skips `esc()` for palette names/alias targets/titles — L-10.)
 - **Gate coverage:** web has typecheck+build only; no behavioural tests. **Confidence:** certain.
+- **Status:** fixed on `main` — the flagged sink (`meta.innerHTML` interpolating `name`/`aKey` directly) is gone; `web/src/main.ts` now carries an explicit comment that external names use `textContent`, never `innerHTML`.
 
 ### CR-08 — emit-figma layout axis breaks for any non-5-breakpoint brand
 - **Where:** `engine/emit-figma.ts:647,686` (hardcoded 5 `LAYOUT_MODES`) vs `engine/theme.ts:632-645` (`breakpoints` is variable-length, 1–7 names).
@@ -176,6 +181,7 @@ New gates worth adding when fixes land, in rough order of leverage:
 ---
 
 *Review inputs: five partition passes (2026-07-03) + independent re-verification
-of CR-01/03/04/06/07 by probe and code-read. Baseline: `main` @ 253f2be. Nothing
-in this document has been fixed; every fix should land as its own PR with its
-gate, per the working principles in the root CLAUDE.md.*
+of CR-01/03/04/06/07 by probe and code-read. Baseline: `main` @ 253f2be. As of this
+update, CR-01, CR-06, and CR-07 have been fixed on `main` (marked above); every
+other finding remains open and every fix should land as its own PR with its gate,
+per the working principles in the root CLAUDE.md.*

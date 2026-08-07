@@ -7,8 +7,11 @@
 > mapping a materializer needs to actually call `createComponent()` / `setBoundVariable()`.
 > This doc closes that gap: a field survey of how best-in-class systems express button
 > structure, the `anatomy` schema shape it implies, and — the surprise — **three token
-> axes the engine is missing**. Nothing here is built; this is the contract the build
-> follows.
+> axes the engine was missing**. The survey and the schema it specified are now built —
+> `AnatomyDef` (`component-schema.ts`), the structural projection (`anatomy-figma.ts`,
+> #327), and Button's `anatomy` block (`components/button.ts`) all exist, and the three
+> token gaps below have shipped. This doc is kept as the field-survey record and the
+> contract the build followed.
 >
 > Scope note: the survey deliberately did **not** re-derive "what parts does a button
 > have" — the KB briefs already answer that (`components/button.md` §2 is a cited,
@@ -17,15 +20,16 @@
 
 ---
 
-## 1. Why this wasn't already answered
+## 1. Why this wasn't already answered (at the time this doc was written)
 
-Three things exist and none of them is the structural layer:
+Three things exist and, at the time of the original survey, none of them was the
+structural layer. That has since changed — the structural layer is now built too:
 
 | Layer | Where it lives | Status |
 |---|---|---|
 | **Semantic contract** — props, variants, states, a11y | `ComponentDef` (`component-schema.ts`) + KB §15 | ✅ built; 5 components authored |
 | **Values** — padding, height, radius, type, colour×state | engine tokens, bound in `components/*.ts` | ✅ built (~60 bindings on Button) |
-| **Structure** — node tree, layout, slot→property mapping | *nowhere* | ❌ **the gap** |
+| **Structure** — node tree, layout, slot→property mapping | `AnatomyDef` (`component-schema.ts`) + `anatomy-figma.ts` projection | ✅ built (#327) |
 
 `ComponentDef` binds `size.medium.padding-x → size.md.padding-x`, but nothing says
 *what that padding is applied to*, whether the row is horizontal, what it aligns to, or
@@ -117,31 +121,28 @@ the difference between a button that looks hand-tuned and one that looks generat
 
 ---
 
-## 3. Engine token gaps (the survey's second deliverable)
+## 3. Engine token gaps (the survey's second deliverable)  ·  shipped
 
-Three additions to the token tier, in dependency order. All are *engine* work, not
-component work — which is why finding them now matters.
+Three additions to the token tier, in dependency order, identified by the survey. All
+three have since shipped.
 
-1. **`size.*.gap`** — the label↔visual gap, per size. Cheapest: it extends the existing
-   `size.*` component tier (which already carries `height` / `padding-x` / `padding-y`), and
-   it must scale with size exactly as padding does. **Open sub-decision:** a dedicated scale
-   (Spectrum's `text-to-visual`) vs. reusing `space.*` (Carbon). Spectrum's argument is that
-   text-to-visual optical spacing is *not* the same rhythm as layout spacing; Carbon's is
-   simplicity. Lean: dedicated, per Spectrum — it is the same argument the engine already
-   accepts for `size.*` existing at all.
-2. **`icon.size.*`** — there is **no `icon` category in the token tree at all** (verified:
-   the emitted categories are palette, color, opacity, motion, font, type, shadow, gradient,
-   breakpoint, grid, container, dimension, space, radius, border-width, focus, size). A
-   button's leading visual has no size to bind to. The KB's `icon.md` brief is the one
-   `components/_schema.md` cites as the example where anatomy carries real weight
-   ("Icon's grid/stroke optical metrics") — so **the research exists; the token tier
-   doesn't**.
-3. **`size.*.padding-visual`** (naming TBD) — the slot-side padding from §2.3. Splitting
-   `padding-x` into label-side and visual-side. This is the one with a **migration cost**:
-   every existing binding and the preview spec assume a single `padding-x`.
+1. **`size.*.gap`** — the label↔visual gap, per size. Shipped as a dedicated scale
+   (Spectrum's `text-to-visual` lean, not a reuse of `space.*`) — it extends the existing
+   `size.*` component tier (which already carries `height` / `padding-x` / `padding-y`)
+   and scales with size exactly as padding does. Verify: `prism.size.<step>.gap` is in
+   the emitted token tree for every size step.
+2. **`icon.size.*`** — at the time of the survey there was **no `icon` category in the
+   token tree at all**. That gap is closed: the emitted tree now has a top-level
+   `icon.size.{xs,sm,md,lg,xl}` category, so a button's leading visual has a size to bind
+   to. The KB's `icon.md` brief remains the anatomy reference
+   (`components/_schema.md` cites it, "Icon's grid/stroke optical metrics").
+3. **`size.*.padding-x-visual`** — the slot-side padding from §2.3, splitting `padding-x`
+   into label-side and visual-side. Shipped as `prism.size.<step>.padding-x-visual` in
+   the emitted tree, alongside the original `padding-x`.
 
-A fourth, optional: a **min-width multiplier** — derived, not a token, but it needs a home
-if we want Spectrum's `height × multiplier` behaviour.
+A fourth, optional and still not built: a **min-width multiplier** — derived, not a
+token, would need a home if the engine adopts Spectrum's `height × multiplier`
+behaviour.
 
 ---
 

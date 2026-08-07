@@ -19,10 +19,10 @@ designer and the autonomous agent hit the same brain and get the same levers
 
 | Surface | Who drives it | Input it produces | LLM? | Status |
 |---|---|---|---|---|
-| **Figma plugin** | designer | knobs → `BrandInput`; themes the live file | no | to build (new — §2) |
-| **Web playground** | designer / anyone | knobs → `BrandInput`; live preview | no | to build (continuity with the plugin — §3) |
+| **Figma plugin** | designer | knobs → `BrandInput`; themes the live file | no | ✅ built (`plugin/`, §7 step 4 — write host materialises the generated system) |
+| **Web playground** | designer / anyone | knobs → `BrandInput`; live preview | no | ✅ built (`web/`, §7 step 3) |
 | **CLI** | dev / agent | a `design.md` file | optional | ✅ built (dual-dialect) |
-| **MCP server** | agent | structured tool-call args | yes (the point) | to build |
+| **MCP server** | agent | structured tool-call args | yes (the point) | ✅ built (`engine/mcp.ts`, §7 step 5) |
 | **Figma MCP** | agent | writes variables/styles directly | yes | available now (§5) |
 
 The point of naming them together: they are **not five products**. They are five
@@ -163,9 +163,10 @@ honoured from the start rather than retrofitted:
      `typeScale` knobs are live** (mutate `BrandInput` → re-resolve → repaint). `resolvePreview`
      now also returns `dims` + `type` (from the pure `tree.ts` `buildTree`), so chips render real
      radius/padding/type. Density/motion/shadow stay read-only until the chips render those axes.
-4. **New Figma plugin shell** — the same renderer wearing a Figma face: bundles the core,
-   renders knobs from the manifest, materialises via `$extensions.prism3.figma` (§2/§5).
-   Absorbs the three separate Figma plugins' *function* (`09 §4`).
+4. **New Figma plugin shell — ✅ BUILT (`plugin/`).** The same renderer wearing a Figma
+   face: bundles the core, renders knobs from the manifest, materialises via
+   `$extensions.prism3.figma` (§2/§5) through `plugin/src/write-figma.ts`'s idempotent
+   apply. Absorbs the three separate Figma plugins' *function* (`09 §4`).
 5. **MCP adapter — ✅ DONE (2026-07-04, `engine/mcp.ts`).** "An agent themes Prism3" as a
    callable surface. **Dependency-free JSON-RPC 2.0 over stdio** (no MCP SDK — owned like the
    YAML parser + colour math). Three tools: `list_levers` (the lever manifest verbatim — the

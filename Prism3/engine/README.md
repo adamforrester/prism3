@@ -376,9 +376,9 @@ brands schema-conform.
   engine gap.
 
 **Next increments:**
-- The raw-figma / code→Figma round-trip writer (the contract is complete —
-  `$extensions.prism3.figma` carries every transform directive across all axes,
-  gradients included — but the writer that drives the user's plugin to
-  update-in-place vs build-from-scratch is still backlog); downstream pipeline
-  (Style Dictionary / Figma MCP); a theming playground (see `docs/04`). All token
-  categories are now generated.
+- The raw-figma / code→Figma round-trip writer has shipped: `$extensions.prism3.figma`
+  carries every transform directive across all axes (gradients included), `emit-figma.ts`
+  plus the CLI paste-path builder produce the write payload, and `plugin/src/write-figma.ts`
+  drives the Figma plugin to apply it idempotently (find-by-name-and-update). Remaining:
+  downstream pipeline (Style Dictionary / Figma MCP). The theming playground
+  (`web/`, see `docs/04`) is also built. All token categories are now generated.

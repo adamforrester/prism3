@@ -115,12 +115,15 @@ Gates as always: `test.ts`, `nb-regression` (unaffected — NB declares no overr
 
 ## 7. Dashboard surface — ✅ built
 
-The web dashboard exposes `roleColors` as a **bespoke "Semantic role palettes" control** on the
-semantic stage (`web/src/main.ts` `renderRoleColors`): a `success`/`warning`/`danger`/`info` dropdown
-each offering `auto (engine default)` + the declared palettes (`primary`/`neutral`/`brandColors`).
-It's *not* a lever (a structured map, not a scalar), so it doesn't come from the lever manifest.
-Verified live — re-basing `danger → primary` repaints the danger alert to the brand hue while its
-contracts stay green in every mode. Action stays on its existing `actionPalette` lever.
+The web dashboard exposes `roleColors` inline on the **Palettes page**, per status ramp
+(`web/src/main.ts` `statusRow`, #59) — not as a separate bespoke control. Each of
+`success`/`warning`/`danger`/`info` gets a **"Source" select**: `Auto` (engine default),
+`Custom hue…` (seeds the ramp from a picked hex, writes `status.<role>`), or `Use <palette>`
+(borrows a declared palette — `primary` or any `brandColors` entry — writes `roleColors.<role>`).
+The two mechanisms are mutually exclusive per role. It's *not* a lever (a structured map, not
+a scalar), so it doesn't come from the lever manifest. Verified live — re-basing `danger →
+primary` repaints the danger alert to the brand hue while its contracts stay green in every
+mode. Action stays on its existing `actionPalette` lever.
 
 ---
 

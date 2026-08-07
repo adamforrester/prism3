@@ -92,22 +92,21 @@ gated column outright.
 
 ## 4. Our own skills: the gate comes first
 
-Two skills ship today (`Prism3/skills/prism3-theme`, `prism3-consume`) and **`prism3-theme` is already
-stale**: line 82 still teaches an agent to "map adjectives → levers — the judgment the brief pays
-for", which #471 replaced with a controlled vocabulary the engine resolves *and logs*. An agent
-following it hand-picks numbers and loses the audit trail. Line 61 documents `radiusScale` as
-number-only.
+Two skills ship today (`Prism3/skills/prism3-theme`, `prism3-consume`). `prism3-theme` **was**
+stale — it used to teach an agent to "map adjectives → levers — the judgment the brief pays
+for", which #471 replaced with a controlled vocabulary the engine resolves *and logs*, and it
+used to document `radiusScale` as number-only. Both are fixed: the skill now teaches the
+`personality` vocabulary and named `radiusScale` stops (`sharp`/`modest`/`standard`/`soft`/`round`).
 
-**Nothing caught that**, because skills are shipped surfaces with no gate — unlike `out/**`, the
-emitted schema contracts and `web/dist`, all of which the US-English gate already scans.
+That fix now has a gate behind it: `engine/lint-skills.ts` runs in CI, checking that every
+lever, token or prop name a skill quotes resolves against the live manifest / schema / emitted
+names, that every CLI invocation it prints actually runs, and that `Prism3/skills/**` is covered
+by the US-English scan — the same class of drift the `personality` staleness above was.
 
-So the order is not negotiable:
+So the order was:
 
-1. **Gate the skills first.** Mechanically checkable without judgment: every lever, token or prop name
-   a skill quotes must resolve against the live manifest / schema / emitted names; every CLI
-   invocation it prints must actually run; and `Prism3/skills/**` joins the US-English scan. The
-   `personality` drift above is exactly what check one catches.
-2. **Fix `prism3-theme`** — it is wrong today, and it is the skill most likely to be used.
+1. **Gate the skills first.** ✅ done — `engine/lint-skills.ts`, CI-gated.
+2. **Fix `prism3-theme`** — ✅ done, per above.
 3. **Then write the internal `build-component` lane**, and not before a second component has gone
    through the pipeline. Button is a sample of one; a skill written now would encode its accidents as
    rules. `docs/32` is the backlog it should draw from.

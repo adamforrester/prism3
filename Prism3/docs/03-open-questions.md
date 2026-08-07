@@ -169,17 +169,19 @@ So "elevation" is a **shadow** decision; "which fill" is a **surface ladder** de
 
 ---
 
-## Item 5 — Icon contrast floor (3:1 toggle)  ·  **OPEN (parked by decision)**
+## Item 5 — Icon contrast floor (3:1 toggle)  ·  **RESOLVED**
 
-The property-led model ships `icon.*` as a full peer group, but for now icons
-**mirror `text` values** (same 4.5:1 resolution) — a deliberate starting point.
-Icons are *non-text* under WCAG (graphical objects, SC 1.4.11), so their floor is
-**3:1**, not 4.5:1; relaxing icons to 3:1 would let them use lighter/more-saturated
-steps than text and legitimately diverge. **Decision needed:** is the 3:1 floor a
-global default, or a per-engagement/user-selected toggle (some brands prefer
-icon=text for simplicity)? Until decided, `icon` = `text` byte-for-byte. Wiring is
-a one-line floor swap in `modes.ts` (resolve `icon.*` against `nonTextMin` instead
-of reusing the text picks).
+The property-led model ships `icon.*` as a full peer group. Icons are *non-text*
+under WCAG (graphical objects, SC 1.4.11), so their floor is **3:1**, not 4.5:1;
+relaxing icons to 3:1 lets them use lighter/more-saturated steps than text and
+legitimately diverge — but some brands prefer `icon` = `text` for simplicity, so
+the decision needed was global default vs. per-brand toggle.
+
+**Shipped as a per-brand lever, `iconContrast: 'text' | '3:1'`** (`theme.ts`,
+`levers.ts` — `advanced` group, default `'text'`), wired in `modes.ts`: under
+`'3:1'`, icon colour resolution honours the WCAG non-text floor (including
+`icon.link.*`, guarded at the profile's own `semanticMin`, #557) instead of
+mirroring the text picks.
 
 ---
 
