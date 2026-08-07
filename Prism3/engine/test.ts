@@ -3797,6 +3797,11 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // short ramp could float it onto bold's rung and the "quiet" variant would stop being quiet — a
 // regression no contrast assertion can see, because both values would be perfectly accessible.
 // Measured floor at the time of writing: 1.16 worst-case separation, 0 identical-hex collisions.
+// That 1.16 is over EVERYTHING this loop walks — 200 combos, both families, all four modes (worst:
+// harbor + nb hc-dark warning/danger, and aurora/light/icon.*). It is not the 1.45–1.78 the #570 entry
+// and `modes.ts` quote, which is the 25 LIGHT `text` combos the option table compared. Both are right;
+// a separation figure means nothing without its scope, and the two were briefly read as a conflict
+// (#578). State the scope with the number wherever one of these is quoted.
 // Asserting non-identity rather than a ratio threshold is deliberate: the ramp step count is a
 // brand lever, so a fixed separation minimum would fail honest brands. Identity is the real defect.
 {

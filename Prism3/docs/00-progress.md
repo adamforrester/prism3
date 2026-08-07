@@ -281,6 +281,53 @@ from the shared checkout).
 
 ---
 
+## (2026-08-06) — Four muted rows say what they're held to, and the separation number is the real one (#578 closed)
+
+**STATUS: shipped.** `web/src/main.ts` (`TEXT_PALETTE_ROLES`), `Prism3/engine/modes.ts` +
+`Prism3/engine/test.ts` comments, and the #570 option table above. `out/*` **byte-identical** — every
+code change is a comment or a UI string.
+
+**Nit 1 — the asymmetry, not an error.** `text.brand-subtle` explained the large-text bar; its four
+siblings still read `'The quiet success variant.'`. Never false (they claimed nothing about gating), but
+reading down the list you got the rule once and then four rows that looked like a different kind of
+token. Verified in `modes.ts` first that the claim transfers verbatim: all five come off one
+`T(\`${r}-subtle\`, …, p.tertiaryMin)` loop, so the bar is identical per role and the brand row's wording
+is true of each. Repeated literally per row rather than hoisted into a shared constant or the section
+blurb — the badge is per row, a reader checking one role shouldn't scroll to learn its bar, and a shared
+suffix would have to be un-shared the first time one role's bar diverges.
+
+**Nit 2 — the number was wrong in the safe direction, which is the interesting part.** The #570 table
+said muted↔bold separation was "~1.73". Re-measured with independent WCAG math (not the engine's
+`contrast`, so this is a second derivation): **1.45–1.78** over the 25 light `text` combos, floor at
+**wendys/brand 1.45**. The reviewer's range is exact. The decision it supported still holds — 3:1 keeps
+the distinction, 4.5 collapses it to 1.21–1.48 — but the headroom over that ceiling is a hair, not the
+comfortable gap "~1.73" implied. **A number quoted to justify a decision has to be right even when the
+decision survives**, because the next person reasons from the margin, not the ordering.
+
+**And the measurement has two traps, both now written beside it.** #578 names the first: the tempting
+probe subtracts the two *page-contrast* ratios, a different quantity that reads 2.15–3.05 on the same
+corpus. The second is mine, found while reproducing the figure: **`test.ts` (10d) quotes 1.16 as the
+floor and is also correct** — it walks 200 combos across `text`+`icon` and all four modes (worst: hc-dark
+warning/danger, and aurora/light/`icon.danger` at 1.16), where the option table compared 25 light `text`
+combos. Two right numbers that read as a contradiction. *A separation figure without its scope is
+unusable*, so both sites now state theirs and cross-reference the other.
+
+**Verification.** Drove the built bundle headless: all five muted rows render the full contract
+(`large-text`, `non-text`, `3:1`, `4.5:1`, "not body copy") — 5/5. Then confirmed the probe could fail,
+per doc 34: reverting the `info` row's rendered text to the old short string dropped it to 4/5 and named
+`info`. One check was **discarded rather than reported** — a badge-vs-description cross-check whose regex
+matched the `4.5:1` numerals *inside the description prose* (`hops: 0`, it never left the description
+element), so it was measuring the claim against itself. Badge correctness is `test.ts` (10d)'s job
+anyway. `npm run audit:modes` is unavailable here for the pre-existing #333 reason (no Playwright
+dependency) and audits mode badges, not these strings.
+
+**Gates:** `regen --check` 88 byte-match · `test.ts` 1920/0 · `mcp-test.ts` 49/0 ·
+`token-contract --check` unchanged · `lint-skills` clean · `lint-us-english` clean, 94 files · NB
+regression exit 0 · DTCG aliases + contrast contracts pass · web `tsc` clean + build · `lint:contrast`
+clean · `lint:classes` clean (801 mints / 535 rules). No version bump.
+
+---
+
 ## (2026-08-06) — The US-English gate can now tell "clean" from "nothing to scan" (#387 closed)
 
 **STATUS: shipped.** `Prism3/engine/lint-us-english.ts`, plus two rows and a direction in
@@ -1456,13 +1503,17 @@ on a number nobody had computed, so it got computed before choosing:
 | | at 3:1 | at 4.5:1 |
 |---|---|---|
 | light values that move | **0 of 25** | 24 of 25 |
-| muted↔bold separation | ~1.73 (unchanged) | **1.21–1.48** |
+| muted↔bold separation | **1.45–1.78** (unchanged) | **1.21–1.48** |
 
 Every light muted in the corpus *already* cleared 3:1 (worst: harbor 3.16), so option 1 costs nothing
 today — it converts a coincidence into a contract. Option 4.5 halves the separation from bold, which
 erases the distinction the role exists for: a "quiet danger" that reads as loud as the loud one is not
 worth emitting. **The safest-sounding option was the one that destroyed the feature.** Worth keeping in
 view whenever an a11y bar is raised by reflex.
+
+*(Separation row corrected 2026-08-06 per #578 — it read "~1.73" and the real range is 1.45–1.78, floor
+at wendys/brand. The decision stands; the margin over 4.5's 1.48 ceiling is thinner than the old number
+implied. See the corrected note in `modes.ts` for the two ways this measurement goes wrong.)*
 
 **The HC bug found on the way.** A fixed rung cannot answer a raised bar, so muted was **byte-identical
 in `light` and `hc-light`** (nb: 3.85 in both, against a 4.5 HC bar) — a user who switched to HC for
