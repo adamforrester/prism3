@@ -277,3 +277,156 @@ refinements to fold into the plan. Verdicts:
 **Net:** §9a is sound; Pillar 4's export core is a **facts-in, partitioned-files-out** module with
 per-family format options, a shared sanitizer + `generator` block, a `propertyAliases` option, and
 a Prism3-side unfolder feeding it. Revised total ≈ **2 weeks + 2–3 days** on the TP migration.
+
+
+---
+
+## 10. Second repo-review (2026-08-06) — the separability estimate was wrong, and C is now the live option
+
+A Token-Press-side agent re-ran the §7 checklist against current TP source, and a Prism3-side spike
+ran Style Dictionary 5.5.0 against `out/nb.tokens.json`. Between them they **confirm** §7.6, **correct**
+§7.1, and surface one finding neither review had.
+
+### 10a. The correction that matters — §7.1's "✅ cleaner than assumed" was measuring the wrong thing
+
+§7.1 concluded separability was confirmed because there are **zero `figma.*` runtime calls** in the
+shaping layer, and costed the boundary at **~1 day**. That observation is still true. The conclusion
+drawn from it is not.
+
+The shaping layer has no runtime calls and is **saturated with Figma TYPES**. Measured references:
+`typography-converter.ts` 52, `exporter.ts` 53, `validator.ts` 25, `base-converter.ts` 9. More
+structurally:
+
+- **There is no intermediate representation.** The pipeline is
+  `Figma Variable[] → TokenExporter.buildDTCGFile → JSON tree → zip`, with formatting inline during
+  traversal.
+- `TokenExporter` **constructs its own scanner** rather than receiving one, and `exportToZip` calls
+  `scanner.scanAll()` as step one. You cannot hand it tokens.
+- `ConversionContext` embeds `Map<string, Variable>`; composite conversion cannot be invoked without
+  Figma `Variable` objects.
+- Type resolution is driven by `VariableScope` plus name regexes — a layer Prism3 can never exercise,
+  since the engine knows its types at generation time.
+
+Revised estimate: **not ~1 day, and not a wrapper — a substantial rewrite of the export path**, because
+the neutral model has to be invented first and every converter re-typed against it.
+
+> **"No runtime calls" is not "decoupled."** The first review measured the dependency it could grep for
+> and inferred the one it could not. Type coupling is invisible to that search and is the coupling that
+> actually blocks extraction.
+
+Worth generalizing: this is the same shape as several findings in `32` — a check that looks conclusive
+because it measured the thing that was easy to measure. TP's own `docs/AGENT_HANDOFF.md` records the
+"pure of `figma.*`" claim, which is literally true and misleading on exactly the point being decided.
+
+### 10b. Three orthogonal mode axes — which rules out adopting TP's model wholesale
+
+Prism3 emits **three independent mode axes**, not one:
+
+| axis | modes |
+|---|---|
+| theme | light, dark, hc-light, hc-dark |
+| breakpoint | sm, md, lg, xl, 2xl |
+| viewport | desktop, mobile |
+
+TP encodes mode as **directory path** (`tokens/<mode>/<collection>.json`), with mode absent from the
+token structure entirely and `hasMultiMode` computed, not configurable. A flat directory namespace
+cannot express three independent axes — verified downstream: sourcing `shared/ + light/` from a TP
+export of a Prism3 file leaves **10 unresolved references**, because the breakpoint and viewport modes
+are missing. TP's own example SD configs source exactly two globs and would break on our output.
+
+So §7.6's "shapes diverge" is sharper than recorded: they do not merely differ, **neither is a
+configuration of the other**, and TP's is structurally unable to carry our system.
+
+### 10c. …and our model is invisible to the ecosystem
+
+The other half, from the SD spike. Prism3 stores per-mode values under `$extensions.prism3.modes`.
+Style Dictionary 5.5.0 with `usesDtcg: true` emitted **551 leaves → 551 CSS variables, 1:1** — one value
+per token, silently, with 133 of them wrong for dark mode. No warning.
+
+The generalization is the important part: **`$extensions` is defined by DTCG as ignorable.** This is not
+an SD omission that an adapter patches; every conforming consumer is blind to it, permanently. A
+Prism3-specific adapter would be load-bearing forever.
+
+**Neither representation is right:**
+
+| | conforming consumers | multi-axis |
+|---|---|---|
+| Prism3 (`$extensions`) | ❌ invisible | ✅ carries all three |
+| Token Press (per-mode dirs) | ✅ valid standalone DTCG | ❌ flattens to one namespace |
+
+DTCG has no mode mechanism; both tools invented one; both inventions fail differently. **This is now the
+gating decision** — for this doc, for `19`'s code library, and for any export contract. Suggested
+direction (needs its own issue): emit **both** — the canonical tree as source of truth, plus flattened
+per-mode trees that are valid standalone DTCG.
+
+### 10d. Two of the three consumption problems are not ours to fix
+
+The spike found three problems with SD output. Only one is a token-side concern:
+
+- **Alias flattening** (0 `var()` refs) — an SD config flag (`outputReferences`). TP hits it identically;
+  the flag is missing from every TP example config too. Not a formatter problem.
+- **Lossy typography** (font shorthand drops letter-spacing, text-case, decoration, fluid minimum) — an
+  SD *transform* choice. TP's JSON is correct and complete; the CSS shorthand is lossy by design.
+- **Mode blindness** — the real one, and §10b/§10c say why it is not solved by sharing code.
+
+This materially weakens Option B as previously argued: **the extraction would pay an IR rewrite to solve
+mode handling alone**, and mode handling is precisely where TP's model does not work for us.
+
+### 10e. Where this leaves A / B / C
+
+**Option C (move the whole plugin in) is now the live proposal**, on an argument §3 could not see: it
+costed C as "org convenience," and the coordination tax has since proven concrete rather than
+notional. Reaching TP required a prompt handoff to another agent in another repo; the findings came back
+excellent and now live in a chat transcript rather than in code either side can gate on. That recurs
+every time, and ownership is not the issue — the org already owns both.
+
+**But §9's central correction applies to C unchanged, and is the gate:**
+
+> Pick the canonical shape before extracting, else drift just moves from "two codebases" to "one
+> codebase with two configs."
+
+Absorbing TP without settling §10c produces **one repo containing two incompatible mode models**, which
+is worse than two repos containing them — because it looks like one system and is not. So C should be
+sequenced as **decide → absorb → reconcile**, never absorb-then-decide.
+
+What C buys that B does not, and this is real: one issue tracker with working sub-issues and
+dependencies (the same argument `19 §7.1` already made for the code library), one CI, one agent context,
+and the ability to fix TP directly rather than negotiate. What it costs: absorbing a mature plugin's
+backlog and Figma API surface while `536`, the component tier and the code library are all still open.
+
+### 10f. Low-risk moves available today, independent of A/B/C
+
+Both reviews agree these are liftable now:
+
+1. **`DTCGValidator`** (716 lines, TP `utils/dtcg-validator.ts`) — **highest value.** Producer-agnostic
+   by construction (validates emitted JSON, not Figma input), imported only by tests in TP, and
+   **neither tool validates its emitted output today**. Prism3 gains an output-conformance gate
+   immediately with no coupling to resolve.
+2. **`token-name-utils.ts`** (222 lines, zero Figma references) — buys identical names and alias strings
+   across both tools, so their outputs compose in one SD build. Real interop without an IR.
+3. `font-weight-utils.ts`, `roundToPrecision`, `CUBIC_BEZIER_MAP`, and the `types/dtcg.ts` definitions.
+
+On (3): TP's typography emits `1.0499999523162842` because `TypographyConverter.formatDimension` never
+calls `roundToPrecision`, unlike its own variable path. That is the **same float32 class** recorded in
+`00` (`104.99999523162842`) — the same bug found independently in two codebases, which is the strongest
+argument in this document for a shared rounding utility.
+
+### 10g. The export-options question, largely dissolved
+
+TP's option surface is 16 flags (`src/types/plugin.ts:74-114`), and its SD-compat preset only changes
+**value shape** — and only because **Style Dictionary 3.x** could not parse DTCG. SD 4.x/5.x parse it
+natively with `usesDtcg: true`, which the spike confirmed.
+
+So if we target SD 4/5, most of that surface is unnecessary. The genuinely relevant remainder is small:
+units (px/rem), color format, line-height output, and name casing. `emitDTCGKeys` is declared and never
+read; `formatCss`/`formatRawFigma`/`formatDotNotation` add extra non-DTCG files rather than varying the
+DTCG. **Parity is a much smaller question than it has appeared.**
+
+### 10h. Also uncovered, worth filing against Token Press regardless
+
+- Typography `lineHeight` float noise (see §10f).
+- `outputReferences` absent from every example SD config.
+- `emitDTCGKeys` is a dead option.
+- Gradients are not handled at all (`DTCGTokenType` has no gradient member) — Prism3 emits them.
+- `compileTransitionComposites` detects transitions by **name-sniffing** emitted keys
+  (`duration`/`delay`/`timing`/`easing`), which is fragile and would not belong in a shared core.
