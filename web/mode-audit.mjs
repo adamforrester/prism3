@@ -105,9 +105,18 @@ const snap = () => page.evaluate(() => {
         ? (/^Non-editable/i.test(badge.textContent ?? '') ? 'none'
           : /All modes/i.test(badge.textContent ?? '') ? 'all-modes' : 'per-mode')
         : null,
-      // The axis the badge's third state turns on, measured the same way main.ts decides it: value
-      // editors only, buttons excluded (they play a motion preview, they do not set anything).
-      hasControls: s.querySelector('input:not([disabled]), select:not([disabled]), textarea:not([disabled])') !== null,
+      // The axis the badge's third state turns on. Value editors only: buttons excluded (they play a
+      // motion preview), and `[data-view-only]` excluded (#574 — a playback speed is not a token).
+      //
+      // THIS AGREES WITH main.ts BY CONSTRUCTION, so on its own it cannot catch the bug it exists to
+      // catch. It reproduced #574 exactly: the audit reported 28/28 correct with the defect on screen,
+      // because both sides asked the same question. `--check-badges` therefore also checks editability
+      // against an independent signal — see `probeSection` — rather than only restating this selector.
+      // Same lesson as #575's (10h): a gate built from its subject's own expression is blind.
+      hasControls: s.querySelector('input:not([disabled]):not([data-view-only]), select:not([disabled]):not([data-view-only]), textarea:not([disabled]):not([data-view-only])') !== null,
+      // Every control the badge SKIPS, so the check can prove each one really is view-only.
+      skipped: [...s.querySelectorAll('[data-view-only]:not([disabled])')]
+        .map((e, i) => ({ i, tag: `${e.tagName.toLowerCase()}.${e.className || '-'}` })),
       // #562 — is the badge INSIDE the section's own padding box? Four Interactive sections shipped with
       // it flush against the border because they built no `.psec-head`, so `attachModeBadges` fell back
       // to `position:absolute;top:0;right:0`. Every gate the badges had checked whether a badge exists
@@ -155,7 +164,7 @@ for (const stage of stages) {
                   // A section that does not vary per mode but HAS a control edits one value every
                   // mode uses -- that is 'all-modes', not the same offer as an untouchable specimen.
                   expected: v.trim() === 'EDITS' ? 'per-mode' : s.hasControls ? 'all-modes' : 'none',
-                  badge: s.badge, inset: s.inset });
+                  badge: s.badge, inset: s.inset, stage, skipped: s.skipped });
     console.log(`   ${v}  ${s.name}${s.badge ? '' : '   (no badge)'}`);
   }
 }
@@ -167,6 +176,91 @@ console.log(`Totals across bar pages: ${JSON.stringify(tally)}\n`);
 // page renders against the verdict measured in the same pass closes that: a renamed section loses
 // its map entry and shows up as `missing`, and a section that stops (or starts) editing per mode
 // shows up as a mismatch. Exits non-zero so it can gate.
+/**
+ * Ask a section what its controls actually DO, without asking the markup again.
+ *
+ * The independent signal: a control that edits a token mutates `brandState`, and a successful rebuild
+ * persists that to `localStorage` under `prism3:brandInput`. So poke a control and watch the blob. A
+ * token control moves it; a view-state control cannot. Measured over all six bar pages before this was
+ * written: of the 98 controls the badge counts, 95 move the blob, one is single-option, one re-renders
+ * before it can be read, and the only genuinely quiet one is Motion's playback select.
+ *
+ * BOTH DIRECTIONS, and the second one is the one that matters. Checking only that skipped controls are
+ * quiet is worthless as a gate on this bug: delete the marker and there is nothing left to check, so
+ * the audit passes. Measured — that exact mutation passed 28/28 with the defect back on screen, which
+ * is how #574 shipped in the first place. The direction with teeth is the converse: a section badged
+ * EDITABLE must contain a control that provably moves the brand. Motion without its marker fails that,
+ * because its only counted control is a playback speed.
+ *
+ * `editProof` stops at the first control that moves the blob — that is exactly the claim `hasControls`
+ * makes (a `querySelector`: does at least one exist), so proving one is proving the claim, and it also
+ * steps past single-option controls and ones that re-render themselves away.
+ *
+ * A poke that silently fails to fire would leave the blob unchanged and read as proof of
+ * view-only-ness, so `outcome` is reported separately from `moved`: 'unproven' is never 'proven'.
+ */
+const probeSection = async (c) => {
+  await page.locator('.stage').filter({ hasText: c.stage }).first().click();
+  await page.waitForTimeout(500);
+  return page.evaluate(({ secName, wantEditProof }) => {
+    const KEY = 'prism3:brandInput';
+    const COUNTED = 'input:not([disabled]):not([data-view-only]), select:not([disabled]):not([data-view-only]), textarea:not([disabled]):not([data-view-only])';
+    const find = () => [...document.querySelectorAll('.psec')]
+      .find((s) => (s.querySelector('.psec-t')?.textContent ?? '').trim() === secName);
+    const tagOf = (e) => `${e.tagName.toLowerCase()}.${e.className || '-'}${e.type ? `[${e.type}]` : ''}`;
+    // Nudge a control to a value it does not already hold, fire both events a handler might listen for,
+    // and report whether changing anything was possible at all.
+    const poke = (e) => {
+      if (!e) return 'gone';
+      if (e.tagName === 'SELECT') {
+        const other = [...e.options].find((o) => o.value !== e.value);
+        if (!other) return 'single-option';
+        e.value = other.value;
+      } else if (e.type === 'checkbox') e.checked = !e.checked;
+      else if (e.type === 'range' || e.type === 'number') {
+        const step = Number(e.step) || 1;
+        const up = Number(e.value || 0) + step;
+        e.value = String(up > Number(e.max || Infinity) ? Number(e.value) - step : up);
+      } else e.value = `${e.value}~`;
+      e.dispatchEvent(new Event('input', { bubbles: true }));
+      e.dispatchEvent(new Event('change', { bubbles: true }));
+      return 'poked';
+    };
+    // Skipped controls first: a poke re-renders the section, and the marked control is the one that
+    // will not, so reading it before anything else avoids chasing a stale handle.
+    const sec0 = find();
+    if (!sec0) return { name: secName, err: 'section-gone' };
+    const skips = [];
+    const marked = [...sec0.querySelectorAll('[data-view-only]:not([disabled])')];
+    for (let i = 0; i < marked.length; i++) {
+      const s = find();
+      const e = s ? [...s.querySelectorAll('[data-view-only]:not([disabled])')][i] : null;
+      const tag = e ? tagOf(e) : '?';
+      const before = localStorage.getItem(KEY);
+      const outcome = poke(e);
+      skips.push({ tag, outcome, moved: before !== localStorage.getItem(KEY) });
+    }
+    // Then the editability claim: poke counted controls until one moves the brand.
+    let editProof = null;
+    if (wantEditProof) {
+      const n = (find()?.querySelectorAll(COUNTED) ?? []).length;
+      const tried = [];
+      for (let i = 0; i < n; i++) {
+        const s = find();
+        const e = s ? [...s.querySelectorAll(COUNTED)][i] : null;
+        const tag = e ? tagOf(e) : '?';
+        const before = localStorage.getItem(KEY);
+        const outcome = poke(e);
+        const moved = before !== localStorage.getItem(KEY);
+        tried.push(`${tag}:${outcome}${moved ? '/moved' : ''}`);
+        if (moved) { editProof = { tag, tried }; break; }
+      }
+      if (!editProof) editProof = { tag: null, tried, counted: n };
+    }
+    return { name: secName, skips, editProof };
+  }, { secName: c.name, wantEditProof: c.expected !== 'none' });
+};
+
 if (process.argv.includes('--check-badges')) {
   const bad = claims.filter((c) => c.badge !== c.expected);
   // A badge that sits outside its section's padding box is a placement bug, checked in the same pass
@@ -180,8 +274,37 @@ if (process.argv.includes('--check-badges')) {
   }
   for (const c of flush)
     console.log(`   ${c.page} / ${c.name}\n      badge escapes the section padding box: top ${c.inset.top}px, right ${c.inset.right}px (both must be >= 0)`);
-  if (bad.length || flush.length) { console.log(`\n${bad.length + flush.length} mismatch(es).\n`); process.exit(1); }
-  console.log(`   ✓ every badge matches what the page actually does, and all ${claims.filter((c) => c.inset).length} sit inside their section padding\n`);
+
+  // Third axis (#574): what the badge CLAIMS about editability, checked against what the controls do to
+  // the brand — not against the same `querySelector` main.ts used, which is how the badge and the audit
+  // agreed on a wrong answer for two months. Every section badged editable must contain a control that
+  // provably moves the persisted brand, and every control the badge skips must provably not.
+  // This runs LAST because a poke edits the brand: the per-mode measurement above must be taken on an
+  // untouched theme, and it already has been by the time we get here.
+  const unproven = [];
+  let proved = 0, quiet = 0;
+  for (const c of claims.filter((c) => c.expected !== 'none' || c.skipped?.length)) {
+    const p = await probeSection(c);
+    if (p.err) { unproven.push(`${c.page} / ${c.name}: ${p.err}`); continue; }
+    for (const r of p.skips ?? []) {
+      if (r.outcome !== 'poked')
+        unproven.push(`${c.page} / ${c.name}: ${r.tag} is marked view-only but could not be exercised (${r.outcome}) — unproven, not proven`);
+      else if (r.moved)
+        unproven.push(`${c.page} / ${c.name}: ${r.tag} is marked view-only but MOVED the persisted brand — it edits a token`);
+      else quiet++;
+    }
+    if (p.editProof && !p.editProof.tag)
+      unproven.push(`${c.page} / ${c.name}: badged '${c.badge}' but NO control here moves the brand `
+        + `(${p.editProof.counted} counted: ${p.editProof.tried.join(', ') || 'none'}) — a view control is not a token control`);
+    else if (p.editProof) proved++;
+  }
+  for (const u of unproven) console.log(`   ${u}`);
+  if (bad.length || flush.length || unproven.length) {
+    console.log(`\n${bad.length + flush.length + unproven.length} mismatch(es).\n`);
+    process.exit(1);
+  }
+  console.log(`   ✓ every badge matches what the page actually does, all ${claims.filter((c) => c.inset).length} sit inside their section padding,`
+    + `\n     ${proved} editable section(s) provably move the brand, and ${quiet} skipped control(s) provably do not\n`);
 }
 await browser.close();
 server.close();

@@ -7,6 +7,79 @@
 
 ---
 
+## (2026-08-06) — a playback select badged a specimen as editable, and the audit agreed with it (#574 closed)
+
+**STATUS: shipped.** `web/src/main.ts`, `web/mode-audit.mjs`. No engine change, no artifact change,
+neither version moves. `audit:modes --check-badges` **28/28**, and it now proves two things it used to
+assume.
+
+**The bug.** The Motion page's Motion section — the transition traces — rendered **"Editing · All
+modes"**. Nothing in it edits a token. `attachModeBadges` decides the badge's third state by *measuring*
+the DOM for `input/select/textarea`, and Motion contains a `select`: the **playback speed** control,
+which writes `motionSlowmo`, a module-local view variable, and repaints. The badge was telling the truth
+about the DOM and lying about the design system.
+
+**Two correct decisions colliding, not a careless line.** `SECTION_MODE_SCOPE` maps `'Motion': 'shared'`
+— right, the bar does not scope it. Editability is measured rather than declared (#437) — also right, a
+hand-declared flag drifts the day a section changes. The guard already excluded `button`, *with a comment
+naming this exact hazard* ("counting them would badge Motion's specimen as editable"). The reasoning was
+correct and the exclusion was **one element type too narrow**: Motion has both a preview button
+(excluded) and a view-state select (counted). **Presence of a control is not evidence of editability** —
+`hasControls` conflated "a user can change something here" with "a user can change a *token* here".
+
+**Fixed by marking the exception, not by abandoning the measurement.** A `data-view-only` attribute, set
+through a `viewOnly()` helper at construction, excluded from a single shared `TOKEN_CONTROL_SEL`. Not the
+`.mo-slowmo-sel` class: keying the badge to one specimen's class name is how the second view control
+would reintroduce the bug, which is precisely how #575 happened — a mapping re-derived at a second site
+with no shared name to grep for. This is that shared name.
+
+**Checked whether Motion was the only site instead of assuming it.** A probe enumerated every badged
+section on all six bar pages with the controls the selector counts: 28 badged sections, and Motion's
+playback select is the **only** view-state control among them today. Worth having measured — the same
+probe is what turned up the next finding.
+
+**The audit agreed with the bug, and fixing that was most of the work.** `mode-audit.mjs` computed
+`expected` from *the same `querySelector`* main.ts used, so it reported **28/28 correct with the defect
+on screen**. The issue flagged this. What it did not anticipate is that the obvious fix — copy the new
+exclusion into the audit too — leaves the gate **still unfalsifiable**, and I only found that by running
+the mutation rather than reasoning about it: with the marker deleted (the original bug restored) the
+strengthened audit passed **28/28**, because the only new axis inspected *skipped* controls and deleting
+the marker leaves none.
+
+So the gate needed the **converse** direction, which is the one with teeth: a section badged *editable*
+must contain a control that provably moves the brand. The independent signal is that a token control
+mutates `brandState`, which a successful rebuild persists to `localStorage`; a view control cannot.
+Measured across all six bar pages before relying on it: of the **98** controls the badge counts, **95**
+move the persisted blob, one is single-option, one re-renders before it can be read, and the only
+genuinely quiet one is the playback select. `--check-badges` now poke-tests both directions.
+
+**Mutations.** M1 remove the marker (the original bug): **caught** — *"Motion: badged 'all-modes' but NO
+control here moves the brand (1 counted: select.mo-slowmo-sel:poked) — a view control is not a token
+control"*. Under the skipped-only version of the gate, M1 **passed 28/28**; that measurement is why the
+second direction exists. M2 mark a *real* token control view-only (Easing's baseline selects): **caught**,
+4 failures — a marker cannot be used to silence a real editor. M3 let the audit's selector drift back to
+its pre-#574 form while main.ts keeps the exclusion: **caught** by both axes at once.
+
+**The gate reports "unproven" separately from "proven".** A poke that silently fails to fire — stale
+handle after a re-render, single-option select, an event the handler ignores — leaves the blob unchanged
+and would otherwise read as *proof* of view-only-ness. Outcome and result are reported as two facts, and
+a control that could not be exercised fails rather than passes. Same failure mode as #575's (10h-ii),
+where the first version of the gate asserted something false and only counting caught it.
+
+**Ordering trap for whoever touches this next:** the poke pass edits the brand, so it must run *after*
+the light/dark measurement, not interleaved with it. It does. Moving it earlier would corrupt the very
+per-mode diff the audit exists to produce, and the symptom would be a plausible-looking table.
+
+**Note this audit is not in CI** — Playwright is deliberately not a repo dependency (#333), so
+`--check-badges` is a local gate run with `PLAYWRIGHT_MODULE` pointed at a copy. The badge logic itself
+has no unit coverage; that is the same #333 boundary #575 hit, stated rather than papered over.
+
+Gates: audit **28/28** (14 editable sections provably move the brand, 1 skipped control provably does
+not), regen 88 in sync, test.ts 1797/0 (unchanged — no engine code touched), contract 2.0.0 / 484, MCP
+49/49, NB regression PASS, US-English 94, lint-classes clean, lint-skills clean, `tsc` clean.
+
+---
+
 ## (2026-08-06) — The style guide read the fill from the wrong method, and fixing it exposed a second bug (#575 closed)
 
 **STATUS: shipped.** `Prism3/engine/modes.ts`, `test.ts`, `web/src/main.ts`. No token moves and no
