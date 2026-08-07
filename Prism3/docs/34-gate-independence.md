@@ -9,18 +9,21 @@
 
 ## Why this file exists
 
-#582 was filed at three instances in three days. Auditing for it found **twelve, spanning
-2026-07-03 to 2026-08-06** — the oldest being an anchor-ΔE gate that compared two identically clipped
-values, five weeks before anyone named the pattern. So this is not a recent cluster to watch; it is
-the most frequently repeated defect class in the repo's history, and it was never once found by a
-gate. Every instance was found by a person or an agent mutating code by hand.
+#582 was filed at three instances in three days. Auditing for it found twelve, spanning **2026-07-03
+to 2026-08-06** — the oldest being an anchor-ΔE gate that compared two identically clipped values, five
+weeks before anyone named the pattern. So this is not a recent cluster to watch; it is the most
+frequently repeated defect class in the repo's history, and it was never once found by a gate. Every
+instance was found by a person or an agent mutating code by hand. The live count is
+[the register below](#the-register-so-the-count-is-auditable), not a number in this paragraph — #387
+added two rows the day after the audit closed.
 
 Each is already written down — in a comment beside the gate, in a
 `Prism3/docs/00-progress.md` entry, sometimes both. That is right for the specific trap and wrong for
 the pattern: **the next person to collapse a gate into its subject will be reading a different
-file**, and the comment that would have warned them sits in the one they are not reading. Twelve
-instances in twelve different files is the signal that this needs a home someone can find *before*
-writing the gate.
+file**, and the comment that would have warned them sits in the one they are not reading. A dozen
+instances across a dozen files is the signal that this needs a home someone can find *before* writing
+the gate — and #387 is the proof that a comment is not that home: it collapsed a self-check into a
+reimplementation **in the same file whose header already documents #511, the identical mistake.**
 
 **Instances marked `[in review]` cite a fix that has not merged yet**, so the identifiers they name do
 not resolve on `main` — the lesson is durable, the name may still change. Every other name here was
@@ -101,6 +104,14 @@ naming the gate; shared, 7 failures and none from it.
 `querySelector`* `web/src/main.ts` used to render the badge, and reported **28/28 correct with the
 defect on screen**.
 
+`#387` — `lint-us-english.ts`'s detection self-check evaluated its own inline
+`[PATTERN, STEMS].some(...)` instead of driving `scan()`, so it validated a **reimplementation**.
+Removing `STEMS` from the real scan and adding a genuine `A greyscale mode.` to the gated engine README
+left all seven samples passing and printed `✓ clean` at exit 0. Fixed by extracting one `enGb(text)`
+both callers drive — and note the direction: here the duplication was the *defect* and the sharing is
+the fix, because the two callers are the gate's subject and its fixture, not a gate and its subject.
+**Ask which two things the gate compares, not whether code is shared.**
+
 **Tell:** you can point at one function both sides call.
 
 ### 3. The obvious fix inherits the hole
@@ -179,6 +190,15 @@ cases is to assert **representation, not totals** — `REQUIRED_SURFACES` in `li
 each promised surface and fails if it is absent from the compared set. *A gate needs to prove it
 looked, not only that it can see.*
 
+**And check the promise list in both directions (#387).** Forward alone — *every promised surface has
+at least one file* — can only police surfaces someone remembered to promise, which is the "two edits,
+and the second is the one that rots" trap. `lint-us-english.ts` committed exactly that twice more
+*while a comment saying so sat directly above the list*, leaving two hand-named surfaces in scope but
+outside every promise, hence droppable in silence. The **converse** — *every scanned file is claimed by
+some promised surface* — is what makes the list self-maintaining, and it found both the moment it
+existed. Same argument as shape 3: when a list needs a second edit to stay true, derive it or check the
+other direction, because another reminder is the fix that already failed.
+
 **A declaration that also satisfies the check it exempts you from.** `omits: personality` was itself
 prose *about* `personality`, so the exemption was suppressed twice and only the second suppression
 was ever load-bearing — mutating the exemption dead exited 0 (#514). Keep the two inputs disjoint:
@@ -189,16 +209,20 @@ more.** A compensating defect is invisible by construction until its partner is 
 that follows a detector fix is evidence about the past, not damage from the change. Scoping the prose
 test to the body turned 7 pre-existing holes red at once.
 
-## The twelve, so the count is auditable
+## The register, so the count is auditable
 
 Newest first. Shape numbers refer to the sections above. Every row was found by hand, none by a gate —
-which is the argument for reading this file rather than rediscovering it.
+which is the argument for reading this file rather than rediscovering it. **Add a row when you find
+one**; the table is the count, and the prose above deliberately stops naming a number (#568 — a count
+written in prose is a landmark that goes stale, and this one went stale within a day of being written).
 
 `scope` and `decl` in the shape column are the two **adjacent** modes from the section above, not
 independence failures — counted because they are the same silence from a different cause.
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-06 | `lint-us-english.ts` self-check (#387) | 2 | `greyscale` shipping in a gated file, `✓ clean` |
+| 2026-08-06 | `lint-us-english.ts` promise list (#387) | scope | two hand-named surfaces droppable in silence |
 | 2026-08-06 `[in review]` | `test.ts` anatomy stub (#536 item 3) | 4 | a 4×4 focus ring on a full-size button |
 | 2026-08-06 `[in review]` | `web/mode-audit.mjs` (#574) | 2, then 3 | 28/28 with the wrong badge on screen — twice |
 | 2026-08-06 `[in review]` | style-guide outline gate (#575) | 2 | `helper === helper`; 7 failures, none its own |
