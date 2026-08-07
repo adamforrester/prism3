@@ -22,6 +22,7 @@ import { contrast } from './color';
 import { Theme, brandTheme, BrandInput } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, ModeResult } from './modes';
+import { buildOverlaySet } from './emit-dtcg-overlay';
 import { buildAiMetadata } from './ai-metadata';
 import { parseDesignMd } from './design-md';
 import { buildTree, Stats } from './tree';
@@ -46,6 +47,16 @@ export const emitTheme = (theme: Theme, outDir: string): { tree: any; modes: Mod
   writeFileSync(resolve(outDir, `${theme.id}.tokens.json`), JSON.stringify(built.tree, null, 2) + '\n');
   // AI-readable metadata sidecar (agent surface for the semantic layer).
   writeFileSync(resolve(outDir, `${theme.id}.ai.json`), JSON.stringify(buildAiMetadata(theme, built.tree), null, 2) + '\n');
+  // The CONFORMING projection (#609). The tree above stays the source of truth; these are what a
+  // consumer with no Prism3-specific code can actually read, because `$extensions` is ignorable by
+  // spec and a stock build otherwise sees one value per token. Base + overlay, composed by the
+  // consumer's own multi-source merge — see `emit-dtcg-overlay.ts` for why overlays and not full
+  // per-mode trees.
+  const projected = buildOverlaySet(built.tree);
+  writeFileSync(resolve(outDir, `${theme.id}.base.tokens.json`), JSON.stringify(projected.base, null, 2) + '\n');
+  for (const { mode, tree } of projected.overlays) {
+    writeFileSync(resolve(outDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
+  }
   return built;
 };
 

@@ -7,6 +7,87 @@
 
 ---
 
+## (2026-08-07) — #609 closed: a conforming PROJECTION alongside the canonical tree
+
+**STATUS: shipped.** New `Prism3/engine/emit-dtcg-overlay.ts` (pure, no I/O); `emit-dtcg.ts` writes
+`<brand>.base.tokens.json` + `<brand>.<mode>.overlay.tokens.json` for all four corpus brands;
+`ENGINE_VERSION` 0.3.4 → 0.4.0 (behavior change); `CONTRACT_VERSION` unmoved at 2.1.0 — no token
+**name** moved, which is the whole reason the two versions are separate. 104 committed artifacts.
+
+**The defect.** The canonical tree carries per-mode values under `$extensions.prism3.modes`. DTCG
+defines `$extensions` as **ignorable**, so this is not a tooling gap that a better consumer closes —
+it is permanent by spec. Measured with a stock Style Dictionary: 556 leaves → 556 CSS variables,
+1:1, under a single `:root`, with 133 of them wrong for dark and **no warning anywhere**. A consumer
+does not get a degraded system; it gets a light-only one it has no way to notice.
+
+**The decision, and the one that was rejected.** The obvious fix — move mode values into the tree
+proper — was not taken. The canonical shape is right *for us*: one tree, one alias graph, modes as
+metadata on the leaf they modify. So `$extensions` **stays the source of truth** and the engine emits
+a second, projected set beside it. Two shapes, one generator, neither pretending to be the other.
+
+**Overlays rather than full per-mode trees — the load-bearing choice.** Size is the visible argument
+(133 of 556 leaves differ for dark; overlays cut the theme-axis artifact set 1,532 KB → 685 KB), but
+it is not the real one. Prism3 has **three orthogonal mode axes** — theme, breakpoint, viewport.
+Crossed directories need 4 × 5 × 2 = 40 files; base + per-axis overlays need 11, and a consumer
+composes `base + theme-dark + breakpoint-md`. A flat per-mode namespace cannot express that at all —
+which is exactly where Token Press's model fails on our output (`docs/12 §10b`). Choosing on size
+alone would have picked the same shape for a reason that does not survive the second axis landing.
+
+**Scope, stated so nobody assumes more.** The `modes` extension carries the **theme axis only**.
+Breakpoint and viewport live elsewhere in the tree (`$extensions.prism3.responsive`, and the layout
+values themselves), so there is nothing here to flatten them from. The overlay *form* generalizes to
+all three; this implementation covers the one axis the mechanism currently expresses.
+
+**The NO CUSTOM CODE bar held.** The projection is only worth anything if a consumer reads it with
+stock tooling — an adapter we ship is an adapter every client inherits forever. Verified: SD's native
+multi-source support merges `base + overlay` into output identical to a full per-mode tree with no
+preprocessor, no custom transform, no custom format. The one thing needed was `log.warnings:
+'disabled'` to silence the collision notice, and that is a **config option**, not shipped code — the
+distinction the rule turns on. `check:consumability` asserts this against the config **source**,
+because a preprocessor rewrites values and leaves every count identical.
+
+**A correction worth keeping.** The consumability gate's pinned assertions were originally written as
+*"fix #609 and these fail."* Under the decision actually taken that is wrong: the canonical tree stays
+extension-based **by design**, so those assertions stay true forever. They were re-framed from
+*evidence of a defect* to *documentation of why the projection exists*, and the #609 acceptance test
+is the separate projected-build block (base 556/556; each mode 556/556 with 423 refs under its own
+`[data-theme="…"]`; dark differs 133, hc-dark 138, hc-light 99).
+
+**Two independence failures, both found by mutating code — neither by running the suite.**
+
+1. A first draft asserted the base carries no modes via `!JSON.stringify(x).includes('"modes"')`. It
+   failed on `$extensions.prism3.figma.modes` — a descriptive list of Figma collection modes, which
+   is documentation, not a hidden value. **A substring proxy for a structural property matches
+   whatever else happens to share the word.** Replaced with a `carriesModeValues()` walk, plus the
+   inverse assertion on the canonical tree so the check cannot go vacuous.
+2. The overlay-size assertion said only *"a strict subset."* Mutation O2 — include every leaf that has
+   a mode entry, changed or not — produced **553 of 575 and passed**. 96% redundant is a strict
+   subset, and it defeats the entire reason overlays exist. Fixed by deriving the expected count
+   **independently**, walking the canonical tree for leaves whose mode value actually differs.
+
+**And the sweep found a third the tests could not see.** Mutation O4 — return the base leaf unchanged
+instead of the mode's value — left every count above correct, because **which leaves are selected is
+independent of what value they carry.** The only gate that noticed was `check:consumability`, which
+reads one brand through a CSS build. A contract of this function belongs in a test of *this
+function*, so an assertion was added resolving each overlay leaf by path against the canonical tree.
+Re-verified: O4 now names itself in the engine suite. Final sweep O1–O5 — all five caught, each by an
+assertion that names the defect. **Two of the five were only caught because a previous mutation round
+forced a rewrite; the suite had been green through both.**
+
+**One thing that only CI would have caught.** `ci.yml` pins the artifact count (`88`), and adding 16
+files takes it to 104 — but `regen --check` reports its own count and passes either way, so the whole
+local suite stayed green on a change that would have failed CI. Updated in `ci.yml` and in CLAUDE.md's
+worktree note, which quotes the same number.
+
+**Gates:** engine ×7 (`regen --check` 104 artifacts, tests 1998/0, MCP 49/0, token-contract,
+lint-skills, nb-regression, lint-doc-gates), web ×5, plugin ×3 (0 `node:` builtins), tokens
+consumability, `lint-us-english` last. All pass.
+
+**Next along this line:** #635 (extend the consumability gate past `nb` to the whole corpus) and #636
+(lift `DTCGValidator`). Neither is blocked by this.
+
+---
+
 ## (2026-08-07) — Voice lint gate: a sibling to lint-us-english.ts for voice-standard.md §2 (#617)
 
 **STATUS: shipped, clean, wired into CI.** New `Prism3/engine/lint-voice.ts`, gated the same surfaces

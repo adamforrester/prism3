@@ -27,6 +27,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
+import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
@@ -8260,6 +8261,102 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(viaXThrows, `#332: ${label} reaches brandTheme() via the design.md/x-prism3 entry path and throws`);
     ok(viaXThrows === expectDirectThrows, `#332: ${label} — the x-prism3 path and the direct brandTheme() path agree on rejection (both throw)`);
   }
+}
+
+// ---- #609: the conforming PROJECTION (base + per-mode overlays) --------------------------------
+// The canonical tree keeps `$extensions.prism3.modes` as the source of truth. These artifacts are the
+// projection a conforming consumer can actually read, since DTCG defines `$extensions` as ignorable.
+{
+  const t = buildTree(brandTheme({ id: 'p', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as never)).tree;
+  const modes = overlayModes(t);
+  ok(modes.length >= 3, `overlay: every declared mode is found by walking the tree (${modes.join(', ')})`);
+
+  const base = buildBase(t);
+  ok(leafCount(base) === leafCount(t), `overlay: the base carries every leaf (${leafCount(base)}/${leafCount(t)})`);
+  // THE CONTRACT of the base: no `modes` survives. If it did, a consumer reading the base could still
+  // find a second value it is silently ignoring — which is the exact defect the projection exists to
+  // remove, and the base would be the canonical tree wearing a different filename.
+  // STRUCTURAL, not a string match. The first draft asserted `!JSON.stringify(x).includes('"modes"')`
+  // and failed on `$extensions.prism3.figma.modes` — a descriptive list of which Figma collection
+  // modes exist, which is documentation, not a hidden value. A substring proxy for a structural
+  // property matches whatever else happens to share the word.
+  const carriesModeValues = (n: unknown): boolean => {
+    if (!n || typeof n !== 'object') return false;
+    const o = n as Record<string, any>;
+    if ('$value' in o) return !!o.$extensions?.prism3?.modes;
+    return Object.entries(o).some(([k, v]) => !k.startsWith('$') && carriesModeValues(v));
+  };
+  ok(!carriesModeValues(base),
+    'overlay: the base carries NO per-mode VALUE map — a consumer cannot be silently ignoring a value');
+  ok(carriesModeValues(t), 'overlay: ...and the canonical tree still does (the check is not vacuous)');
+  ok(JSON.stringify(base).includes('"contrast"'),
+    'overlay: descriptive extensions SURVIVE in the base — only the hidden-value one is stripped');
+
+  // The expected size is derived INDEPENDENTLY — by walking the canonical tree and counting leaves
+  // whose mode value actually differs — rather than measured off the overlay. Mutation is why: an
+  // earlier draft asserted only "a strict subset", and a mutant that included every unchanged leaf
+  // produced 553 of 575 and passed. 96% redundant is a strict subset, and it defeats the entire
+  // reason overlays exist. A size assertion has to compare against a second derivation, not itself.
+  const expectedDelta = (mode: string): number => {
+    let n = 0;
+    const walk = (x: unknown): void => {
+      if (!x || typeof x !== 'object') return;
+      const o = x as Record<string, any>;
+      if ('$value' in o) {
+        const mv = o.$extensions?.prism3?.modes?.[mode];
+        if (mv && '$value' in mv && JSON.stringify(mv.$value) !== JSON.stringify(o.$value)) n++;
+        return;
+      }
+      for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) walk(v);
+    };
+    walk(t);
+    return n;
+  };
+  for (const m of modes) {
+    const ov = buildOverlay(t, m);
+    const n = leafCount(ov);
+    ok(n === expectedDelta(m),
+      `overlay ${m}: exactly the leaves that changed (${n}, independently expected ${expectedDelta(m)})`);
+    ok(n > 0 && n < leafCount(t) * 0.5,
+      `overlay ${m}: a real delta, not a near-copy (${n} of ${leafCount(t)})`);
+    ok(!carriesModeValues(ov), `overlay ${m}: carries no per-mode value map either`);
+
+    // ...and the VALUE each overlay leaf carries is the mode's, not the base's. Mutation found this
+    // gap: making `buildOverlay` return the base leaf unchanged left every count above correct — the
+    // selection of WHICH leaves is independent of WHAT value they carry — and the only gate that
+    // noticed was the CSS-parsing consumability check, which reads one brand through a build. A
+    // contract of this function belongs in a test of this function. Resolved by path against the
+    // canonical tree, so it compares two derivations rather than the overlay against itself.
+    const at = (tree: unknown, path: string[]): any => path.reduce<any>((acc, k) => acc?.[k], tree);
+    const valueFails: string[] = [];
+    const checkValues = (n: unknown, path: string[]): void => {
+      if (!n || typeof n !== 'object') return;
+      const o = n as Record<string, any>;
+      if ('$value' in o) {
+        const canon = at(t, path);
+        const want = canon?.$extensions?.prism3?.modes?.[m]?.$value;
+        if (JSON.stringify(o.$value) !== JSON.stringify(want)) valueFails.push(`${path.join('.')}=${JSON.stringify(o.$value)}≠${JSON.stringify(want)}`);
+        else if (JSON.stringify(o.$value) === JSON.stringify(canon?.$value)) valueFails.push(`${path.join('.')}:unchanged-from-base`);
+        return;
+      }
+      for (const [k, v] of Object.entries(o)) if (!k.startsWith('$')) checkValues(v, [...path, k]);
+    };
+    checkValues(ov, []);
+    ok(valueFails.length === 0,
+      `overlay ${m}: every leaf carries the MODE's value, and it differs from base${valueFails.length ? ` — ${valueFails.slice(0, 3).join(', ')}` : ''}`);
+  }
+
+  // A leaf whose mode value EQUALS its default must not appear. The engine emits those, and including
+  // them would make an overlay look bigger than the change it represents.
+  const equalMode = { x: { $type: 'color', $value: '#fff', $extensions: { prism3: { modes: { dark: { $value: '#fff' } } } } } };
+  ok(leafCount(buildOverlay(equalMode, 'dark')) === 0,
+    'overlay: a mode value identical to the default is excluded (the overlay reports real change only)');
+  const diffMode = { x: { $type: 'color', $value: '#fff', $extensions: { prism3: { modes: { dark: { $value: '#000' } } } } } };
+  ok(leafCount(buildOverlay(diffMode, 'dark')) === 1,
+    'overlay: a mode value that DIFFERS is included (the exclusion above is not blanket)');
+
+  const set = buildOverlaySet(t);
+  ok(set.overlays.length === modes.length, `overlay: the set carries one overlay per mode (${set.overlays.length})`);
 }
 
 // ------------------------------------------------------------------- report

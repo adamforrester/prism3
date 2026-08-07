@@ -32,19 +32,26 @@ preprocessor being added — it rewrites values and leaves every count identical
 cheapest way to make a future failure disappear would be the exact move that destroys the gate's
 meaning.
 
-## Why the gate passes while the output is broken
+## Why the canonical tree collapses, and why that is not a defect
 
-It is a **characterization** gate. The emitter has a known defect (#609): per-mode values live under
-`$extensions.prism3.modes`, which DTCG defines as *ignorable*, so every conforming consumer silently
-sees one value per token — measured, **556 leaves → 556 CSS variables, 1:1**, with three of four modes
-invisible.
+It is a **characterization** gate. Read against `<brand>.tokens.json`, per-mode values live under
+`$extensions.prism3.modes`, which DTCG defines as *ignorable* — so a conforming consumer sees one value
+per token. Measured: **556 leaves → 556 CSS variables, 1:1**, three of four modes invisible.
 
-A gate that simply went red would block every unrelated PR or get skipped. A gate that went green would
-be lying. So it **pins the measured behavior** instead:
+That was filed as #609 and originally written up here as a defect awaiting a fix. #609 resolved the
+other way, and the correction matters: the canonical tree **keeps** `$extensions` as the source of
+truth, and the engine emits a conforming **projection** beside it (`<brand>.base.tokens.json` plus one
+`<brand>.<mode>.overlay.tokens.json` per theme mode). So the collapse above is permanent and
+deliberate, and the assertions that pin it now document *why* the projection exists rather than
+flagging something to fix.
 
-- **fix #609** → the pinned assertions fail; update them and close the issue
-- **make it worse** → the pinned assertions fail
-- **change nothing** → green, and the gap prints on every run so it stays visible
+Both are measured here, and they answer different questions:
+
+- the **pinned** assertions — the canonical tree still collapses exactly as recorded. Move it and they
+  fail, in either direction.
+- the **projected** block — the #609 acceptance test. Base + overlay through the same stock config:
+  every token present in every mode, alias references intact, each mode under its own
+  `[data-theme="…"]` selector, and each overlay actually differing from base.
 
 Same posture `regen --check` takes toward `out/`: the job is to have a **memory**, not an opinion.
 
@@ -61,9 +68,13 @@ Mutation-verified. Three mutations, three caught:
 | a mode preprocessor is added | the `[RULE]` source assertions |
 | `outputReferences` switched off | the `var(--` reference count + the pinned light-mode value |
 | the selector changed (simulating a mode fix) | the exact-selector assertion |
+| an overlay carries base values, not the mode's | the per-mode `actually differs from base` assertion |
 
 The first two survived the gate's first draft, which counted only names. Counting cannot see values,
-references, or forbidden code.
+references, or forbidden code. The fourth is the one this gate caught that the engine's own unit tests
+could not — *which* leaves an overlay selects is independent of *what value* they carry, so every count
+stayed correct. An assertion was added upstream in `Prism3/engine/test.ts` too; a contract of a
+function belongs in a test of that function, not only in a gate three artifacts downstream.
 
 ## Dependency posture
 
@@ -78,5 +89,11 @@ Figma plugin sandbox; a dependency reaching into it would end that.
 | `sd.consumer.mjs` | the naive build — a stranger's config, deliberately unhelpful to us |
 | `check-consumability.mjs` | the gate: measures the gap, pins it, enforces the rule |
 
-A **production** config (whatever adapters #609 lands on) will be a second config here. It must never
-be merged into the consumer one — the consumer config's value is entirely conditional on staying naive.
+`sd.consumer.mjs` exports two builds: `buildConsumer` (one source, the canonical tree) and
+`buildProjected` (two sources, base + one overlay). Both are the same stock config with no
+preprocessor, transform or format of ours — the only difference is `source`, and `log.warnings:
+'disabled'` to silence the collision notice that multi-source merging is *supposed* to raise. That is a
+config **option**, not code a consumer has to run, which is the line the `[RULE]` assertions enforce.
+
+Any future **production** config must be a second file here. It must never be merged into the consumer
+one — the consumer config's value is entirely conditional on staying naive.
