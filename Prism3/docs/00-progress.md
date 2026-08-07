@@ -7,6 +7,69 @@
 
 ---
 
+## (2026-08-07) — CLAUDE.md housekeeping: staleness pass + 21% smaller
+
+**STATUS: docs only.** No engine change, no emitted artifact. `CLAUDE.md` only, plus this entry.
+
+**Why now: it had grown 2.8x in 17 days, monotonically.** 6,435 bytes on 2026-07-21 -> 17,921 on
+2026-08-07, and not one commit in that history ever removed anything; 8.5KB of it landed in the final
+three days. At ~4.5k tokens it was the single largest fixed cost on every session in the repo.
+
+**It passed the official heuristic while failing its intent.** Anthropic's guidance is "target under
+200 lines per CLAUDE.md file" — we were at **84 lines**, comfortably under, because the lines were
+enormous: principle 4 was a **3,496-character single paragraph**. The same guidance says organized
+sections beat dense paragraphs for adherence, so the line-count check would never have caught this.
+Worth remembering the next time a size rule looks satisfied: **check the measure the rule is a proxy
+for, not the proxy.**
+
+**The bloat mechanism, stated so it can be recognized again.** Each entry is a rule of about one
+sentence followed by ten times that in incident narrative — the story of the bug that produced the
+rule. Two sections were 66% of the file; the top six lines were 63%. And three of the six
+(gate-independence, versioning, voice) **already had a canonical doc, and said so in their own last
+sentence** — the file carried a compressed retelling *beside* the pointer to the full one. The
+US-English bullet was the same shape against `lint-us-english.ts`'s own header comment, which
+documents all four traps in more detail than CLAUDE.md did.
+
+**So the compression rule applied here was: keep the rule and the pointer, drop the retelling.** Every
+trap, every "never do X" and every gate name survives; what left was narrative that a linked doc holds
+better. Principle 4 additionally went from one paragraph to a structured list, which is a legibility
+fix as much as a size one.
+
+**Staleness found by verifying every checkable claim against the tree, not by reading.** The opening
+section made **five consecutive false statements** ("design-tokens-only", "no source code", "no build
+pipeline", "no package manager", "no README") before a parenthetical that retracted only some of them
+— a fresh agent read all five as fact. Also removed: `.DS_Store` "present at every directory level"
+(zero exist, they are gitignored); a hardcoded `/Users/aforrester/Documents/Prism3` root that is wrong
+in every worktree, container and CI run; "there is nothing to build, lint, or test" contradicted by
+principle 4 in the same file; an 88-vs-89 stray-artifact note that no longer reproduces; and two counts
+that had drifted ("twelve instances" -> the register holds 14; "92 files" -> 94).
+
+**One of those deserves its own line, because the file was violating a rule it cites.** `docs/34` says
+plainly that *a count written in prose is a landmark that goes stale* — and CLAUDE.md then wrote "all
+twelve instances" of that very register. Both stale counts are now phrased so they cannot rot.
+
+**`#349` was cited for a change it has no traceable connection to.** CLAUDE.md credited it with
+converting the schema contract + engine README to US English; the outcome is real (both are in the
+gate's scope, verified), but `#349` appears nowhere in this log and its only in-repo trace is
+`test.ts`, about CLI side-effects on import. Attribution dropped, claim kept.
+
+**What did NOT change, deliberately.** `CONTRIBUTING.md` and the PR template were left alone — #613's
+gate requires all three to carry every gate name, so this pass had to stay inside that constraint
+rather than thin the list. Verified after every edit: `lint-doc-gates.ts` stays green.
+
+**Deferred on purpose: `.claude/rules/`.** Path-scoped rules (`paths:` frontmatter) are the documented
+fix for a large CLAUDE.md — instructions load only when Claude reads matching files. They are also a
+**silent-failure surface**: a glob that stops matching does not error, it just never loads, which is
+`docs/34`'s "scope silence" in a new place. With a `web/` -> `studio`/`dashboard` rename under
+discussion (docs/35), any rule scoped to `web/**` would go quiet the moment it landed. So this waits
+until after the rename, and the rename checklist should carry the rules directory when it does.
+
+**Result: 17,921 -> 14,191 bytes (-20.8%), ~930 tokens back on every session.** Longest line 3,496 ->
+1,506. Gates: `lint-doc-gates.ts` clean, `lint-us-english.ts` clean, `regen --check` 88/88 — `out/*`
+byte-identical, nothing here touches the generation path.
+
+---
+
 ## (2026-08-07) — Naming & packaging decided as one thing, around the eject boundary (docs/35, new)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New
