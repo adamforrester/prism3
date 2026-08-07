@@ -102,8 +102,9 @@ export interface HostCommit {
   postTheme(input: unknown): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
-   *  here to keep this DOM layer free of the engine type import), and the available font families
-   *  (the #113 Figma arm — a plain `string[]`, so it needs no such care).
+   *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
+   *  stored blob can't be trusted, and the available font families (the #113 Figma arm — a plain
+   *  `string[]`, so it needs no such care).
    *
    *  `apply-result` and `seed-info` are SEPARATE kinds, and the distinction is the point. They carry
    *  the same field shape, which is why this adapter used to collapse them into one — but they answer
@@ -117,6 +118,7 @@ export interface HostCommit {
         | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'seed-info'; ok: boolean; summary: string }
         | { kind: 'restore-input'; input: unknown }
+        | { kind: 'restore-input-error'; message: string }
         | { kind: 'font-list'; families: string[]; styles: number[] },
     ) => void,
   ): void;
@@ -143,7 +145,7 @@ const figmaCommit = (): HostCommit => ({
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const m = (e.data && e.data.pluginMessage) as
-        | { type?: string; ok?: boolean; headline?: string; summary?: string; input?: unknown; families?: unknown; styles?: unknown }
+        | { type?: string; ok?: boolean; headline?: string; summary?: string; input?: unknown; message?: string; families?: unknown; styles?: unknown }
         | undefined;
       if (!m) return;
       if (m.type === 'apply-result') {
@@ -156,6 +158,8 @@ const figmaCommit = (): HostCommit => ({
         cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? '') });
       } else if (m.type === 'restore-input' && m.input) {
         cb({ kind: 'restore-input', input: m.input });
+      } else if (m.type === 'restore-input-error') {
+        cb({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') });
       } else if (m.type === 'font-list' && Array.isArray(m.families)) {
         // Filter to strings at the boundary: this arrives over postMessage, so the shape is asserted
         // rather than guaranteed, and a non-string would reach `textContent` downstream.

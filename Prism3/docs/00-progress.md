@@ -244,6 +244,74 @@ artifacts do).
 
 ---
 
+## (2026-08-07) — Persisted `BrandInput` gets a version stamp + loud refusal (#480)
+
+**STATUS: done — floor only, per the issue's own framing.** `Prism3/engine/persist-input.ts`,
+`plugin/src/persist-figma.ts`, `plugin/src/main.ts`, `plugin/src/messages.ts`,
+`web/src/write-adapter.ts`, `web/src/main.ts`, `web/src/persist-local.ts`, tests updated.
+
+**The finding.** #478's live materialisation drive found the `brandInput` blob persisted in Prism
+Test File v2 is a **pre-#341/#415 shape** — old `families.display`/`text`/`mono` role names, and a
+**numeric** `displayCeiling` (128) where the current schema expects a rung name. `restoreInput`
+(#131) reads this blob to rehydrate the shared UI's knobs on boot. The dangerous part: the version
+guard (`PERSIST_VERSION` in `persist-input.ts`) already existed — but it was never bumped across
+either #341 or #415, both of which changed the `BrandInput` shape underneath it. A blob written
+before those PRs still carries `v: 1`, which was *still* the current version, so the guard's own
+check passed and it decoded straight into today's shape. A numeric `displayCeiling` in a field
+typed as a rung-name string is exactly the silent-mis-parse risk named in the issue: it can look
+like a valid value rather than failing to parse at all.
+
+**What shipped (#480 option 1 — "the floor").** `PERSIST_VERSION` bumped 1 → 2. More importantly,
+the guard's failure mode changed: `deserializeBrandInput` used to collapse *every* untrusted case
+(absence, corruption, drift) to `null`, which the UI treats identically to "no theme yet". Now only
+genuine absence (nothing ever stored — `raw === ''`) returns `null`; any NON-EMPTY blob that can't
+be trusted (unparseable JSON, no recognizable version stamp, a version this build doesn't
+understand, or a missing `input`) throws `UnrecognizedPersistedInputError` instead. The throw
+propagates through `persist-figma.ts`'s `restoreInput` to `main.ts`'s `restoreToUi`, which catches
+it and posts a new `restore-input-error` bridge message (`messages.ts`); the shared UI
+(`write-adapter.ts` → `main.ts`) renders it as a loud, dedicated status pill (`bar-seed bad`,
+independent of the existing `seedInfo`/`applyState` slots) naming the mismatch and telling the
+designer to re-theme or re-import. The web `localStorage` adapter (`persist-local.ts`) deliberately
+does **not** propagate the throw — a stale local cache from a previous engine build during active
+development is routine and has no "file" to explain a refusal about, so it's caught and folded back
+into `null` (first-run), preserving pre-#480 behavior there.
+
+**Why `PERSIST_VERSION` and not `CONTRACT_VERSION`.** `CONTRACT_VERSION` (see docs/30) answers "can
+my app still resolve the token *names* it references" — a different consumer (a downstream app
+binding to `prism.color.text.primary`) and a different surface (`schema/token-contract.json`).
+`PERSIST_VERSION` already existed as its own independent counter for exactly this shape (the
+*input*, not the output), predating this fix by many PRs (`persist-input.ts` was last touched at
+#265, before both #341 and #415) — reusing it, not inventing a third version axis, was the point:
+the mechanism was right, only the discipline of bumping it on shape change was missing.
+
+**Deliberately NOT built: migration (#480 option 2).** The issue frames three options and is
+explicit: *"Suggest doing (1) now and deciding (2) based on whether any file worth restoring
+actually carries the old shape."* No forward-migration for the pre-#341/#415 shape
+(`families.text` → its current role name, numeric `displayCeiling` → the matching rung) is
+implemented here. That decision needs to be made on its own — Prism Test File v2 is confirmed to
+carry the old shape (so there is at least one candidate), but whether it's worth migrating rather
+than just re-theming is a separate call this PR does not make.
+
+**Verification.** Unit-testable with no live Figma — the pure core + the plugin's `SharedDataPort`
+shim cover it: `Prism3/engine/test.ts` (persist block) asserts every untrusted-but-present case
+throws `UnrecognizedPersistedInputError` (corrupt JSON, wrong/missing version, missing input,
+non-object), that a `v: 1` blob is refused, and that genuine absence still returns `null`;
+`plugin/test-persist.ts` adds the literal reported case — a `v: 1` blob carrying the old
+`families.display/text/mono` shape and a numeric `displayCeiling` — asserting it throws with a
+message naming the mismatched version. Both pass (`npx tsx Prism3/engine/test.ts`,
+`npx tsx plugin/test-persist.ts`, and the full `npm test` in `plugin/`). Not verified live in
+Figma — the new `restore-input-error` bridge message and its UI pill are exercised only through the
+`SharedDataPort`/`HostCommit` shims, not a real plugin session; a live check (open Prism Test File
+v2, confirm the pill renders) is still worth doing before closing out the migration decision.
+
+**Gates:** `regen.ts` / `--check`, `test.ts` (1932 passed), `mcp-test.ts` (49 passed),
+`token-contract.ts --check` (unchanged, 485 guaranteed paths), `lint-skills.ts`, `lint-us-english.ts`
+(94 files, clean — required a `web/` rebuild first since it scans `web/dist/*.js`), NB regression
+(all pass), plugin `tsc --noEmit` (both tsconfigs) and `npm test` (all green), web `tsc --noEmit`
+and `npm run build` — all green.
+
+---
+
 ## (2026-08-07) — Naming & packaging decided as one thing, around the eject boundary (docs/35, new)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New

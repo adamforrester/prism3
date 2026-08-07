@@ -7,9 +7,17 @@
  * the same pure `persist-input.ts` core (serialise + version guard) — the identical pure-core / thin-
  * port split as `persist-figma.ts` (`SharedDataPort`), just `localStorage` instead of `figma.root`.
  *
- * A missing/corrupt/version-drifted blob deserialises to `null` — the single "no stored brand" signal
- * the boot path branches on to decide first-run (show the start screen) vs. returning (restore). The
+ * A missing/corrupt/version-drifted blob resolves to `null` — the single "no stored brand" signal the
+ * boot path branches on to decide first-run (show the start screen) vs. returning (restore). The
  * payload is the same knobs the UI shows (no secrets), and `BrandInput` is small plain JSON.
+ *
+ * #480 gave the engine's `deserializeBrandInput` a loud `throw` for a present-but-untrusted blob, so
+ * a Figma file can tell the designer their saved brand needs re-import instead of silently opening on
+ * defaults. This adapter deliberately does NOT propagate that: `localStorage` is a browser cache, not
+ * a shared artifact someone themed and handed off — a stale entry from a previous engine version is
+ * routine (every deploy can bump `PERSIST_VERSION`), there is no "file" to explain a refusal about,
+ * and interrupting boot over it would break the editor for a cache the user never had to think about.
+ * `restoreInput` here catches the throw and treats it exactly like absence, same as before #480.
  *
  * PURE-adjacent: imports only the engine's persist core + types. `LocalStore` is the minimal slice of
  * the Web Storage API the adapter touches, so it's unit-testable against a `Map`-backed shim, and the
@@ -43,8 +51,10 @@ export const persistInput = (store: LocalStore, input: BrandInput): void => {
 
 /**
  * Read the persisted brand back, or `null` if none is stored / the blob can't be trusted (absence,
- * corruption, or schema drift all collapse to `null` via the pure guard) — the "first run, start from
- * the start screen" signal. A throwing/absent store also yields `null`.
+ * corruption, or schema drift all collapse to `null`) — the "first run, start from the start screen"
+ * signal. A throwing/absent store also yields `null`. #480: `deserializeBrandInput` now THROWS for a
+ * present-but-untrusted blob rather than returning `null` — caught here and folded back into `null`,
+ * since a stale local cache is not the loud-refusal case #480 is about (see the module doc above).
  */
 export const restoreInput = (store: LocalStore): BrandInput | null => {
   let raw: string | null;
@@ -53,7 +63,12 @@ export const restoreInput = (store: LocalStore): BrandInput | null => {
   } catch {
     return null; // storage unavailable — treat as first-run
   }
-  return raw ? deserializeBrandInput(raw) : null;
+  if (!raw) return null;
+  try {
+    return deserializeBrandInput(raw);
+  } catch {
+    return null; // corrupt / version-drifted local cache — same as first-run, no file to warn about
+  }
 };
 
 /** Clear the persisted brand (for an explicit "start over" / new-brand reset). Best-effort. */

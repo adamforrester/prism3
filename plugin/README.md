@@ -89,11 +89,16 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   blob back, and if trusted posts `restore-input`; the shared UI loads it via `loadBrand`, so re-opening a
   themed file boots on that brand instead of the default `aurora`.
 - ✅ **Versioned + defensive** — pure `engine/persist-input.ts` (`PERSIST_VERSION`) tags the blob;
-  `deserializeBrandInput` returns `null` on parse error / version drift / absence. The blob is PUBLIC
-  shared-data (any plugin can write it), so this envelope guard is deliberately shallow — the SHAPE gate is
-  downstream: the restore handler runs `brandTheme` (as Import does) and keeps defaults on reject, so a
-  versioned-but-malformed payload can't crash the boot render. Bump the version (and add a migration there)
-  on an incompatible `BrandInput` change.
+  `deserializeBrandInput` returns `null` only on genuine absence (nothing ever stored). A NON-EMPTY
+  blob it can't trust — parse error, no recognizable version stamp, or a version this build doesn't
+  understand — THROWS `UnrecognizedPersistedInputError` instead (#480), and `restoreToUi` catches it
+  and posts `restore-input-error` so the UI tells the designer the file needs re-import rather than
+  silently opening on defaults. The blob is PUBLIC shared-data (any plugin can write it), so once past
+  the version check the envelope guard is still deliberately shallow — the SHAPE gate is downstream:
+  the restore handler runs `brandTheme` (as Import does) and keeps defaults on reject, so a
+  versioned-but-malformed payload can't crash the boot render. Bump the version on an incompatible
+  `BrandInput` change (#480 is the stamp/refusal floor only — no migration for old shapes is built;
+  that's a deliberately separate decision, see `Prism3/docs/00-progress.md`).
 - ✅ **Knobs only** — restore does NOT re-write `figma.variables` (they're already in the file). The port
   (`plugin/src/persist-figma.ts`) is a minimal `SharedDataPort`, shim-tested in `test-persist.ts`.
 

@@ -35,11 +35,17 @@ export const persistInput = (root: SharedDataPort, input: BrandInput): void =>
   root.setSharedPluginData(NS, KEY, serializeBrandInput(input));
 
 /**
- * Read the persisted brand back, or `null` if none is stored / the blob can't be trusted (absence,
- * corruption, or schema drift all collapse to `null` via the pure guard) — the "start from defaults"
- * signal. `getSharedPluginData` returns `''` when unset, which short-circuits to `null`.
+ * Read the persisted brand back, or `null` if none is stored — `getSharedPluginData` returns `''`
+ * when unset, which is the "start from defaults" signal (a genuinely fresh file).
+ *
+ * #480: a NON-EMPTY blob that can't be trusted (old/foreign/corrupt shape, or a schema version this
+ * build doesn't recognize) THROWS `UnrecognizedPersistedInputError` from the pure guard rather than
+ * collapsing to `null` — absence and drift are no longer the same signal. The caller (`main.ts`'s
+ * `restoreToUi`) must catch it and surface a loud, user-visible refusal instead of silently keeping
+ * the UI on defaults, which is what let a pre-#341/#415 blob's numeric `displayCeiling` risk a silent
+ * mis-parse.
  */
 export const restoreInput = (root: SharedDataPort): BrandInput | null => {
   const raw = root.getSharedPluginData(NS, KEY);
-  return raw ? deserializeBrandInput(raw) : null;
+  return deserializeBrandInput(raw);
 };
