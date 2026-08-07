@@ -1,7 +1,7 @@
 # 16 — Project code review: findings (2026-07-03)
 
 > A full-codebase review of the engine (`Prism3/engine/*`), the web adapter
-> (`web/src/main.ts`), and the regression harness — **findings only as of the
+> (`apps/studio/src/main.ts`), and the regression harness — **findings only as of the
 > 2026-07-03 review; three have since been fixed on `main` (CR-01, CR-06, CR-07 —
 > marked below), the rest remain open**. This doc is the fix backlog: each finding
 > carries location, a concrete failure scenario, whether an existing gate would
@@ -63,7 +63,7 @@ and cleanly disproven. The serious problems cluster in four cross-cutting themes
 - **Gate coverage:** none — contracts are only measured against the recorded `against` surface. **Confidence:** certain on numbers; the *intent* question (is text-on-fg.tertiary a supported pairing?) is an owner decision — either move the floor to base±150 or document the pairing restriction and encode it in the preview contracts + `.ai.json` `avoid_when`.
 
 ### CR-03 — No duplicate/reserved palette-name guard: `brandColors` silently hijacks engine ramps
-- **Where:** `engine/theme.ts:784-822` (no name validation) with last-wins consumers `engine/tree.ts:277` and `engine/modes.ts:332`; also reachable from the web accent-rename input (`web/src/main.ts:218-222`) and any imported `design.md`.
+- **Where:** `engine/theme.ts:784-822` (no name validation) with last-wins consumers `engine/tree.ts:277` and `engine/modes.ts:332`; also reachable from the web accent-rename input (`apps/studio/src/main.ts:218-222`) and any imported `design.md`.
 - **What:** `brandColors: [{ name: 'neutral', … }]` produces two `neutral` palettes; `new Map(...)` and `palette[p.palette] = node` both keep the last one. Order effects cut both ways: a brandColor named `neutral`/`primary` **replaces** the engine ramp the whole surface model is built on; one named `success`/`danger` is itself **replaced** by the later-pushed status ramp (so `actionPalette` binds to the synthesized status colour, not the brand's).
 - **Failure:** contrast picks are recomputed against the corrupted ramp and pass self-consistently — **gates stay green on nonsense output**. No error anywhere.
 - **Gate coverage:** no. **Confidence:** certain (two review passes found it independently).
@@ -89,10 +89,10 @@ and cleanly disproven. The serious problems cluster in four cross-cutting themes
 - **Status:** fixed on `main` — `engine/nb-regression.ts` sets `process.exitCode = 1` on any failure (ΔE00 ceiling, covered-count, contract, or dimension check), and the functional checks are folded into the same `failures` accumulator.
 
 ### CR-07 — Web: brand-controlled palette name reaches `innerHTML` (XSS)  ·  ✅ FIXED
-- **Where:** `web/src/main.ts:146` (`meta.innerHTML = \`anchor <b class="mono">${name}/${aKey}</b>\``); `name` is verbatim `brandColors[].name` (no validation, CR-03), reachable via pasted `design.md` import and the accent rename input.
+- **Where:** `apps/studio/src/main.ts:146` (`meta.innerHTML = \`anchor <b class="mono">${name}/${aKey}</b>\``); `name` is verbatim `brandColors[].name` (no validation, CR-03), reachable via pasted `design.md` import and the accent rename input.
 - **Failure:** paste a design.md with `brandColors: [{ name: "<img src=x onerror=…>", … }]` — parser handles the quoted string, `brandTheme` accepts it, script fires on the next ramp paint. Everything else in main.ts correctly uses `textContent`; this is the one data-bearing `innerHTML` sink. (Same injection class, lower risk: `visualize.ts` skips `esc()` for palette names/alias targets/titles — L-10.)
 - **Gate coverage:** web has typecheck+build only; no behavioural tests. **Confidence:** certain.
-- **Status:** fixed on `main` — the flagged sink (`meta.innerHTML` interpolating `name`/`aKey` directly) is gone; `web/src/main.ts` now carries an explicit comment that external names use `textContent`, never `innerHTML`.
+- **Status:** fixed on `main` — the flagged sink (`meta.innerHTML` interpolating `name`/`aKey` directly) is gone; `apps/studio/src/main.ts` now carries an explicit comment that external names use `textContent`, never `innerHTML`.
 
 ### CR-08 — emit-figma layout axis breaks for any non-5-breakpoint brand
 - **Where:** `engine/emit-figma.ts:647,686` (hardcoded 5 `LAYOUT_MODES`) vs `engine/theme.ts:632-645` (`breakpoints` is variable-length, 1–7 names).

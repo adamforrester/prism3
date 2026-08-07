@@ -36,7 +36,7 @@
  *     against what the live file actually contains and names the remainder as orphans, because
  *     create-or-update-by-name is structurally blind to a rename (the new name is created, the old
  *     one is simply never touched again). This is the paste path's half of #479 — the plugin
- *     executor (`plugin/src/write-figma.ts` `orphansOf`) has reported orphans on every apply since
+ *     executor (`apps/plugin/src/write-figma.ts` `orphansOf`) has reported orphans on every apply since
  *     #529, but that path is only reachable from inside Figma; the paste path is the ONLY write path
  *     an MCP-driven session can use, and it read back nothing about drift until now. Report only —
  *     deleting a variable a designer may have bound to a layer is destructive and unrecoverable from
@@ -116,7 +116,7 @@ const colourModes = (brand: string): string[] =>
 
 // The disk-read SHELL: read the emitted raw-figma files → collections → the pure `buildWritePlan`.
 // Every pass below (and `aliasRows`) projects THIS plan, so the CLI paste-path and the live plugin
-// executor (`plugin/src/write-figma.ts`) share one source of truth for scopes / values / per-mode
+// executor (`apps/plugin/src/write-figma.ts`) share one source of truth for scopes / values / per-mode
 // aliases / hidden flags — they can't drift.
 const planFor = (brand: string): WritePlan =>
   buildWritePlan({
@@ -490,7 +490,7 @@ return {effects:{total:E.length,created:effectsCreated},paints:{total:P.length,c
 // ---- pass: text-styles (the only pass that must LOAD a resource) ------------------------
 // Text Styles are a third API surface (`figma.createTextStyle`), and the first write that must
 // `loadFontAsync` before `fontName` can be set. FONT FALLBACK = SKIP-WITH-WARNING (the #237 owner
-// decision, mirrored from `plugin/src/write-text-styles.ts`): a family/style that won't load is
+// decision, mirrored from `apps/plugin/src/write-text-styles.ts`): a family/style that won't load is
 // recorded in `skipped[]`, never substituted with a wrong face and never thrown — so one missing
 // weight costs one style rather than the whole paste.
 //

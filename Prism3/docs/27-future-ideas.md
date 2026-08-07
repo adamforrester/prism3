@@ -152,7 +152,7 @@ should describe what it is now.
 
 **Recommended name: `prism3`.** The strongest evidence is that the repo already calls
 itself that internally: the root `package.json` is `"name": "prism3"`, and the workspaces
-are `@prism3/web` / `@prism3/plugin` with `@prism3/components` planned. The repo name
+are `@prism3/studio` / `@prism3/plugin` with `@prism3/components` planned. The repo name
 should match the npm scope already in use. (`prism3-platform` was considered and rejected
 in `09 §1` — though as the name for a *fresh* repo, a different question. The extra word
 disambiguates nothing when there's only one.)

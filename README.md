@@ -14,7 +14,7 @@ brands. The engine is the active surface; the hand-built layer is its regression
 |---|---|
 | [`Prism3/`](Prism3/) | The **generation engine** — a brand is a small validated input that expands into a full token tree, AI metadata, and platform outputs (DTCG + Figma). Start here for engine work. See [`Prism3/README.md`](Prism3/README.md). |
 | [`Tokens/`](Tokens/) | The **legacy hand-built tokens** — Prism2 (`nbds.pds.*`) and New Balance, in two parallel formats (Figma variable export + DTCG). The engine's regression target, not a build output. |
-| [`web/`](web/) | The **dashboard** — a browser host over the engine's shared lever/preview contracts. See [`web/README.md`](web/README.md). |
+| [`web/`](web/) | The **dashboard** — a browser host over the engine's shared lever/preview contracts. See [`apps/studio/README.md`](apps/studio/README.md). |
 
 ## Running the engine
 

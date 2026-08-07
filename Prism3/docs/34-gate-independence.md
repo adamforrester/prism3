@@ -100,8 +100,8 @@ by adding a **structural** claim the declaration cannot satisfy by moving: a rol
 against, was tried and **reverted after measurement**. Independent, the mutation fires 10 failures all
 naming the gate; shared, 7 failures and none from it.
 
-`#574` `[in review]` — `web/mode-audit.mjs` computed its `expected` value from *the same
-`querySelector`* `web/src/main.ts` used to render the badge, and reported **28/28 correct with the
+`#574` `[in review]` — `apps/studio/mode-audit.mjs` computed its `expected` value from *the same
+`querySelector`* `apps/studio/src/main.ts` used to render the badge, and reported **28/28 correct with the
 defect on screen**.
 
 `#387` — `lint-us-english.ts`'s detection self-check evaluated its own inline
@@ -230,7 +230,7 @@ for the other.
 
 **Scope silence — a clean result from a gate that never looked.** Proving a scan *works* and proving
 it *runs* are different claims. Deleting a scan's call site left every self-check assertion passing
-over skills the gate never opened (`lint-skills.ts`, #514); dropping `web/dist` from the US-English
+over skills the gate never opened (`lint-skills.ts`, #514); dropping `apps/studio/dist` from the US-English
 gate's scope cost exactly **one file** of 92, so no count-based floor could catch it. The fix in both
 cases is to assert **representation, not totals** — `REQUIRED_SURFACES` in `lint-us-english.ts` names
 each promised surface and fails if it is absent from the compared set. *A gate needs to prove it
@@ -273,7 +273,7 @@ independence failures — counted because they are the same silence from a diffe
 | 2026-08-06 | `lint-us-english.ts` self-check (#387) | 2 | `greyscale` shipping in a gated file, `✓ clean` |
 | 2026-08-06 | `lint-us-english.ts` promise list (#387) | scope | two hand-named surfaces droppable in silence |
 | 2026-08-06 `[in review]` | `test.ts` anatomy stub (#536 item 3) | 4 | a 4×4 focus ring on a full-size button |
-| 2026-08-06 `[in review]` | `web/mode-audit.mjs` (#574) | 2, then 3 | 28/28 with the wrong badge on screen — twice |
+| 2026-08-06 `[in review]` | `apps/studio/mode-audit.mjs` (#574) | 2, then 3 | 28/28 with the wrong badge on screen — twice |
 | 2026-08-06 `[in review]` | style-guide outline gate (#575) | 2 | `helper === helper`; 7 failures, none its own |
 | 2026-08-06 `[in review]` | `outlineFillRole` (#575) | 5 | a one-token state slip, past 1852 tests |
 | 2026-08-06 | border-contrast gate (#573) | 1 | 5.94 reported where the ring measures 1.00 |

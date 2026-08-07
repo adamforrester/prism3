@@ -36,7 +36,7 @@
  *     the floor" — is legitimate. Fixed the same way lint-us-english.ts fixes every false positive:
  *     by widening an allow-set (`JUST_ALLOWED`, a phrase-context regex), never by dropping "just"
  *     from the scan.
- *  3. "!" IS SCOPED BY CONTEXT, NOT BY WORD. `web/dist/main.js` is a bundle containing real code
+ *  3. "!" IS SCOPED BY CONTEXT, NOT BY WORD. `apps/studio/dist/main.js` is a bundle containing real code
  *     (`!==`, `!=`) and inlined CSS (`!important`) alongside real prose — the exact reason that file
  *     is in scope at all (trap 2 in lint-us-english.ts: `levers.ts` prose is inlined there and a
  *     source-only scan would miss it, so the built bundle has to be opened directly). A prose "!" is
@@ -46,22 +46,22 @@
  *     icon, e.g. `el("b","sg-fx","!")`, where the character before "!" is the string's own opening
  *     quote, not a word character) and the character after to be neither "=" (excludes `!=`/`!==`)
  *     nor a letter (excludes `!important`/`!default`/`!DOCTYPE`). Checked directly against the real
- *     bundle before landing this pattern: `web/dist/main.js` carries 130 `!==`, 5 `!important`, and 4
+ *     bundle before landing this pattern: `apps/studio/dist/main.js` carries 130 `!==`, 5 `!important`, and 4
  *     bare `"!"` icon-glyph occurrences today, none of which this pattern flags (verified by the
  *     SELF_CHECK samples below, drawn from the real bundle's own text).
  *  4. CODE COMMENTS ARE EXEMPT, AND THIS GATE ACTUALLY IMPLEMENTS THAT — DELIBERATELY UNLIKE
  *     lint-us-english.ts. voice-standard.md §2 states the exemption explicitly; lint-us-english.ts's
- *     own header records that it RETIRED the equivalent exemption for `web/src` in #464, because
+ *     own header records that it RETIRED the equivalent exemption for `apps/studio/src` in #464, because
  *     which comments a bundler keeps is an implementation detail the gate cannot see and therefore
  *     cannot rely on. That reasoning does not transfer here, because the two rule sets have opposite
  *     false-positive profiles in comments: an en-GB spelling in a comment is rare and trivial to
  *     avoid, but this repo's own comment style — as read throughout this very file and its sibling
  *     gates — uses "just"/"simply" constantly as ordinary connective prose. A structural exemption is
  *     what makes this gate usable at all, not a convenience. Mechanically: real TypeScript `//` and
- *     `/* *\/` comments never reach `web/dist/main.js` in the first place — esbuild strips them
+ *     `/* *\/` comments never reach `apps/studio/dist/main.js` in the first place — esbuild strips them
  *     (confirmed by grepping the built bundle for known source-comment text and finding none). The
  *     ONE place a comment survives into the shipped bundle is C-style block comments written as
- *     literal STRING CONTENT — the CSS-in-template-literal stylesheet in `web/src/main.ts` — because
+ *     literal STRING CONTENT — the CSS-in-template-literal stylesheet in `apps/studio/src/main.ts` — because
  *     esbuild does not parse the inside of a string, so whatever bytes are there ship unchanged. So
  *     the exemption has exactly one job: blank out `/* ... *\/` spans in `.js` bundle files before any
  *     rule runs, preserving length and newlines so line numbers on a REAL hit stay accurate. JSON and
@@ -70,7 +70,7 @@
  *     is not impossible) for no benefit.
  *
  * SCOPE — imported from `regen.ts`, identical set to `lint-us-english.ts`: `out/**`, the emitted
- * `schema/`+report artifacts, `web/dist/*.js` (the BUILT bundle — same trap 2 reasoning), the schema
+ * `schema/`+report artifacts, `apps/studio/dist/*.js` (the BUILT bundle — same trap 2 reasoning), the schema
  * contract, the engine README, and shipped skills. A new emitted artifact is covered automatically
  * because both gates read the same `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` exports; nobody has to
  * remember to add it here separately.
@@ -189,8 +189,8 @@ const gated: string[] = [
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'Prism3/schema', f)),
   ...ENGINE_ARTIFACTS.map((f) => join(repo, 'Prism3/engine', f)),
   // trap 2 (lint-us-english.ts): what actually ships. REQUIRED — see walkRequired. `build`, not
-  // `build:site`, which writes web/public/dist instead.
-  ...walkRequired(join(repo, 'web/dist'), 'the web bundle is not built — run `npm run -w @prism3/web build` (NOT build:site, which writes web/public/dist)')
+  // `build:site`, which writes apps/studio/public/dist instead.
+  ...walkRequired(join(repo, 'apps/studio/dist'), 'the web bundle is not built — run `npm run -w @prism3/studio build` (NOT build:site, which writes apps/studio/public/dist)')
     .filter((f) => f.endsWith('.js')),
   join(repo, 'Prism3/schema/theme-schema.json'),
   join(repo, 'Prism3/engine/README.md'),
@@ -203,7 +203,7 @@ const gated: string[] = [
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
 // One true-positive sample per rule, the stated "just" exception, and three code-context samples
-// pulled from patterns that actually occur in web/dist/main.js today — so this doubles as the
+// pulled from patterns that actually occur in apps/studio/dist/main.js today — so this doubles as the
 // regression test for the false-positive fix, not just a demonstration of the true positives.
 const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'You can simply update the value.', expectRule: 'banned-word' },
@@ -219,9 +219,9 @@ const SELF_CHECK: { sample: string; expectRule: string | null }[] = [
   { sample: 'Sorry, we could not complete this.', expectRule: 'apology' },
   { sample: 'Applied — 88 variables written!', expectRule: 'exclamation' },
   { sample: 'if (a !== b) return a;', expectRule: null },                     // code operator, not prose
-  { sample: 'animation:none!important;left:0', expectRule: null },            // inlined CSS from web/dist, not prose
+  { sample: 'animation:none!important;left:0', expectRule: null },            // inlined CSS from apps/studio/dist, not prose
   { sample: '<!doctype html><html lang="en">', expectRule: null },            // markup, not prose
-  { sample: 'el("b", "sg-fx", "!")', expectRule: null },                      // bare "!" icon glyph, real pattern from web/dist
+  { sample: 'el("b", "sg-fx", "!")', expectRule: null },                      // bare "!" icon glyph, real pattern from apps/studio/dist
 ];
 const selfFails = SELF_CHECK.filter(({ sample, expectRule }) => {
   const hits = voiceHits(sample);
@@ -246,7 +246,7 @@ selfFails.push(...commentSelfFails);
 // lint-us-english.ts, and for the same reason: the detection self-check above proves the scanner can
 // still see "simply", not that the file containing it was ever opened.
 const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
-  { label: 'the built web bundle (web/dist/*.js)', test: (f) => f.includes('/web/dist/') && f.endsWith('.js') },
+  { label: 'the built web bundle (apps/studio/dist/*.js)', test: (f) => f.includes('/apps/studio/dist/') && f.endsWith('.js') },
   { label: 'emitted artifacts (Prism3/engine/out)', test: (f) => f.includes('/Prism3/engine/out/') },
   { label: 'the schema contract (Prism3/schema)', test: (f) => f.includes('/Prism3/schema/') },
   { label: 'shipped skills (Prism3/skills/**/SKILL.md)', test: (f) => f.includes('/Prism3/skills/') },

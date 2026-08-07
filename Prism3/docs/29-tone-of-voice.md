@@ -280,7 +280,7 @@ unusual position and it makes mechanical enforcement more valuable than review.
    there's no marketing site planned near-term, that column is speculative and should be
    marked as such rather than treated as settled.
 2. **Does the plugin need a distinct voice from the web dashboard?** Treated as one channel
-   here because they share `web/src` (docs/09). If the plugin ever addresses a different
+   here because they share `apps/studio/src` (docs/09). If the plugin ever addresses a different
    reader — e.g. a Dev Mode surface (docs/27 Idea 1) reads to a *developer*, not a designer
    — that's a fifth column, not a variation of A.
 3. **Doc 26 §Controls & labels** — resolve §6.
@@ -300,7 +300,7 @@ list and the non-native-reader rationale. **Still unretrieved:** Carbon (MDX pat
 rendered page truncates) and Atlassian (JS-rendered) — so the read of the design-system
 field in §1 rests on Polaris alone, and a second DS-native opinion would strengthen it.
 In-repo
-evidence: `Prism3/engine/levers.ts`, `web/src/main.ts` role descriptions,
+evidence: `Prism3/engine/levers.ts`, `apps/studio/src/main.ts` role descriptions,
 `Prism3/engine/ai-metadata.ts` (the generated-prose surface), `26-cross-page-ui-conventions`
 §Controls & labels, `CLAUDE.md` US-English gate. KB: `04-documentation` §"The
 voice-and-tone matrix as a system artefact" (the shape this inherits), `00-principles`

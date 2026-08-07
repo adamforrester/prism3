@@ -5,7 +5,7 @@
  * data reshape of the already-resolved raw-figma collection files (`buildFigmaColor`'s
  * `{ palette, color[] }`). It is the SOURCE OF TRUTH both write paths consume:
  *   • the CLI string-emitter (`materialise-to-figma.ts`) — the paste-into-`figma_execute` path,
- *   • the live plugin executor (`plugin/src/write-figma.ts` → `figma.variables.*`).
+ *   • the live plugin executor (`apps/plugin/src/write-figma.ts` → `figma.variables.*`).
  * Extracting it means the two paths can't drift: the collapse-proof per-mode alias binding, the
  * scopes, and the hidden-primitive flags are decided ONCE, here.
  *

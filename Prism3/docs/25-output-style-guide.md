@@ -90,7 +90,7 @@ not bending `ResolvedPreview`.
 design as the spec to hit.** Reasoning:
 
 - **Architecture mismatch.** Prism3's plugin is a **pure host-neutral plan → thin tested executor**
-  (`engine/write-plan.ts` + `emit-figma-*` build the plan; `plugin/src/write-figma.ts` / `write-styles.ts`
+  (`engine/write-plan.ts` + `emit-figma-*` build the plan; `apps/plugin/src/write-figma.ts` / `write-styles.ts`
   execute it against a mockable `VariablesApi` / `StylesApi`, unit-tested with an in-memory shim). The
   prior art is the **opposite shape** — 2,980 lines of interleaved live-Figma reads + drawing, no seam,
   no tests. Porting it wholesale imports an untested monolith that reads the file live, contradicting
@@ -99,15 +99,15 @@ design as the spec to hit.** Reasoning:
   setup, color math — which `engine/color.ts` already owns) are ~200 lines and cheap to rewrite clean;
   the ~2,800 lines of Figma-variable reading + component-set housekeeping are exactly what *not* to carry.
 - **Channel-gating fits the rebuild.** Add a pure `StyleGuidePlan` (engine, built from the emit
-  projections) + a `plugin/src/write-style-guide.ts` executor invoked behind a new `apply-style-guide`
-  message, mirroring `apply-theme` (`plugin/src/main.ts` ~`:107`) and gated like the other Output lanes.
+  projections) + a `apps/plugin/src/write-style-guide.ts` executor invoked behind a new `apply-style-guide`
+  message, mirroring `apply-theme` (`apps/plugin/src/main.ts` ~`:107`) and gated like the other Output lanes.
 
 **Shape to build:**
 ```
 engine/   build-style-guide-plan.ts  → StyleGuidePlan (rows + column spec + specimen kinds, per category)
                                         fed by buildFigmaColor / buildFloatWritePlan / buildStylesPlan
                                         + DTCG typography leaves; pure, unit-testable
-plugin/src/write-style-guide.ts       → applyStyleGuidePlan(plan, figma) — GRID frame + cell drawing;
+apps/plugin/src/write-style-guide.ts       → applyStyleGuidePlan(plan, figma) — GRID frame + cell drawing;
                                         idempotent find-by-name; tested against the in-memory shim
                                         message: apply-style-guide (channel/Figma-only, docs/18 §gating)
 ```

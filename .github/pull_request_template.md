@@ -31,16 +31,16 @@
 - [ ] `npx tsx Prism3/engine/token-contract.ts --check` → unchanged / bumped to _…_
 - [ ] `npx tsx Prism3/engine/lint-skills.ts` → clean
 - [ ] `npx tsx Prism3/engine/lint-doc-gates.ts` → clean
-- [ ] `npm run -w @prism3/web typecheck` → clean
-- [ ] `npm run -w @prism3/web build` → succeeds
-- [ ] `npm run -w @prism3/web check:ignore` → clean
-- [ ] `npm run -w @prism3/web lint:contrast` → clean
-- [ ] `npm run -w @prism3/web lint:classes` → clean — a NEW class-name combination fails here until it's added to `ALLOWED` in `web/lint-classes.mjs`
+- [ ] `npm run -w @prism3/studio typecheck` → clean
+- [ ] `npm run -w @prism3/studio build` → succeeds
+- [ ] `npm run -w @prism3/studio check:ignore` → clean
+- [ ] `npm run -w @prism3/studio lint:contrast` → clean
+- [ ] `npm run -w @prism3/studio lint:classes` → clean — a NEW class-name combination fails here until it's added to `ALLOWED` in `apps/studio/lint-classes.mjs`
 - [ ] `npm run -w @prism3/plugin typecheck` → clean
 - [ ] `npm run -w @prism3/plugin test` → _N/N passed_
 - [ ] `npm run -w @prism3/plugin build` → succeeds, 0 `node:` builtins in `dist/main.js`
 - [ ] `npm run -w @prism3/tokens check:consumability` → clean — a stock Style Dictionary over the emitted DTCG; runs over EVERY emitted brand (#635); a *characterization* gate, so green means "every brand's mode collapse and `[object Object]` count still match their pinned baselines (permanent by DTCG design, #609) **and** each base+overlay projection still reads back"
-- [ ] `npx tsx Prism3/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `web/dist/*.js` bundle
+- [ ] `npx tsx Prism3/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `apps/studio/dist/*.js` bundle
 - [ ] `npx tsx Prism3/engine/lint-voice.ts` → clean — voice-standard.md §2 banned-phrase list (#617); sibling to lint-us-english.ts, same reason it runs here
 
 ## out/* + fixtures

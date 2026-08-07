@@ -191,7 +191,7 @@
 > regen-gated Figma-native tree (`emit-figma.ts` → committed `out/figma/<brand>/`),
 > and composites survive the round trip via the materialization directive below —
 > `materialise-to-figma.ts` drives the write, and the companion plugin
-> (`plugin/src/write-figma.ts`) applies it idempotently (find-by-name-and-update).
+> (`apps/plugin/src/write-figma.ts`) applies it idempotently (find-by-name-and-update).
 > Captured here so the contract continues to shape composite design as we add more
 > of them (typography, shadow).
 
@@ -249,7 +249,7 @@ representation at all — without the manifest they vanish on the way back).
 `$extensions.prism3.figma` disposition + scope, so composites are born knowing how they
 decompose. *Shipped:* the `emit-figma.ts` writer producing `variables[]` (Tier A
 + Tier B atoms) **and** a style manifest, plus the companion Figma plugin
-(`plugin/src/write-figma.ts`) that applies it as an idempotent update-in-place patch
+(`apps/plugin/src/write-figma.ts`) that applies it as an idempotent update-in-place patch
 (find-by-name-and-update). `03-open-questions` Item 9 (update-in-place vs
 build-from-scratch) still tracks that choice as the open design question; the shipped
 writer took the update-in-place lean.
@@ -291,6 +291,6 @@ now that this has graduated from analysis to build.
 
 The engine now covers **every token category** NB and Prism2 ship, and the
 cross-cutting plumbing has shipped too: the Figma round-trip writer
-(`emit-figma.ts` + `plugin/src/write-figma.ts`) and the theming playground
+(`emit-figma.ts` + `apps/plugin/src/write-figma.ts`) and the theming playground
 (`web/`) are both built. What remains is deepening those surfaces, not new
 token categories.

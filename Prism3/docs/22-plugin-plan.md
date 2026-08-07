@@ -9,14 +9,14 @@
 ## 1. The vision — one UI, many front doors
 
 A designer's knobs, a standalone web playground, and an agent's MCP calls all drive the **same**
-engine through the **same** UI. We maintain **one** web UI (`web/src`) and reuse it verbatim inside
+engine through the **same** UI. We maintain **one** web UI (`apps/studio/src`) and reuse it verbatim inside
 the Figma plugin — not two near-identical UIs. This is the owner's explicit goal, and it's the
 architecture the pure-core design already affords (`18 §5`).
 
 ```
 Engine core (pure TS, no deps) ─── runs anywhere: browser, plugin iframe, Node
         │
-   UI layer (vanilla web/src) ─── shared VERBATIM in web + plugin iframe
+   UI layer (vanilla apps/studio/src) ─── shared VERBATIM in web + plugin iframe
         │  computes a resolved token model, calls apply(model)
    ┌────┴───────────────┬─────────────────────┐
   Web adapter            Plugin adapter          MCP adapter
@@ -61,11 +61,11 @@ manifest fields via Context7 / the Figma MCP skill when the build starts.
 | 2 ✅ | #107 | **Done (#120).** Plugin scaffold — manifest + two-context split + typed postMessage bridge (vanilla) |
 | 3 ✅ | #108 | **Done.** Main-thread write adapter — pure `WritePlan` (`buildWritePlan`) → live `figma.variables`, idempotent; colour axis (`core-palette` + `color`) |
 | 4 ✅ | #109 | **Done.** Read-back — `readFigmaVariables` → host-neutral `ReadbackSnapshot` + pure `verifyReadback` (contract check); seeds theming an existing file at #110 |
-| 5 ✅ | #110 | **Done.** One build, two outputs — the shared `web/src` UI bundles into the plugin iframe (host selected at build time via `PRISM3_HOST`); live knobs → #108 write, boot read-back → #109 seed panel. The no-fork thesis, proven. |
-| 6 ✅ | #131 | **Done.** Knob round-trip — persist the live `BrandInput` in `figma.root` shared-data on every apply; rehydrate the UI from it on boot (pure `persist-input.ts` version guard + `plugin/src/persist-figma.ts` port + `restore-input` bridge msg). Closes #110's informational-only seed. |
+| 5 ✅ | #110 | **Done.** One build, two outputs — the shared `apps/studio/src` UI bundles into the plugin iframe (host selected at build time via `PRISM3_HOST`); live knobs → #108 write, boot read-back → #109 seed panel. The no-fork thesis, proven. |
+| 6 ✅ | #131 | **Done.** Knob round-trip — persist the live `BrandInput` in `figma.root` shared-data on every apply; rehydrate the UI from it on boot (pure `persist-input.ts` version guard + `apps/plugin/src/persist-figma.ts` port + `restore-input` bridge msg). Closes #110's informational-only seed. |
 | 7 ✅ | #146 | **Done (#148).** Write scope beyond colour — the FLOAT-variable axes (`core-dimension`/`space`/`radius`/`size`/`border-width`/`focus`/`opacity`/`layout`) materialise too. Node-free `emit-figma-dims.ts` + pure `buildFloatWritePlan` + `applyFloatPlan` (cross-collection aliases, per-breakpoint layout modes). Typography + shadow/gradient (Figma Styles) remain own issues. |
 | 8 ✅ | shadow/gradient | **Done.** Write scope reaches Figma **Styles** — shadow → Effect Styles (`shadow/*` + `shadow-dark/*`), gradient → Paint Styles (baked resolved stops + angle→`gradientTransform`). Node-free `emit-figma-styles.ts` + pure `buildStylesPlan`/`gradientTransformFor` + `applyStylesPlan` (new `StylesApi` port, the first non-variable write). |
-| 9 ✅ | #237 | **Done.** Typography write — `emit-figma-font.ts` (node-free plan) + `plugin/src/write-text-styles.ts` (`applyTextStylePlan`), wired in `plugin/src/main.ts`. Closes the lane #112/#113 tracked. |
+| 9 ✅ | #237 | **Done.** Typography write — `emit-figma-font.ts` (node-free plan) + `apps/plugin/src/write-text-styles.ts` (`applyTextStylePlan`), wired in `apps/plugin/src/main.ts`. Closes the lane #112/#113 tracked. |
 
 Related lanes filed alongside: web functional-foundation + editor work (#96–#104), the engine
 type-model expansion (#105), and the components-as-data → Figma spike (#111).

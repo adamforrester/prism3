@@ -158,14 +158,14 @@ honoured from the start rather than retrofitted:
    Fastest loop, no sandbox constraints; the cleanest proof the shared contracts drive a
    real UI before the harder Figma host. *(Ordering + packaging locked in `09` — the web
    host precedes the plugin; both live as packages in this repo's monorepo.)*
-   - **✅ Scaffold + live colour/radius/type (PR #23/#24/#25/B)** — `@prism3/web` renders knobs
+   - **✅ Scaffold + live colour/radius/type (PR #23/#24/#25/B)** — `@prism3/studio` renders knobs
      from the manifest + preview + overlay from `resolvePreview`; **colour + `radiusScale` +
      `typeScale` knobs are live** (mutate `BrandInput` → re-resolve → repaint). `resolvePreview`
      now also returns `dims` + `type` (from the pure `tree.ts` `buildTree`), so chips render real
      radius/padding/type. Density/motion/shadow stay read-only until the chips render those axes.
 4. **New Figma plugin shell — ✅ BUILT (`plugin/`).** The same renderer wearing a Figma
    face: bundles the core, renders knobs from the manifest, materialises via
-   `$extensions.prism3.figma` (§2/§5) through `plugin/src/write-figma.ts`'s idempotent
+   `$extensions.prism3.figma` (§2/§5) through `apps/plugin/src/write-figma.ts`'s idempotent
    apply. Absorbs the three separate Figma plugins' *function* (`09 §4`).
 5. **MCP adapter — ✅ DONE (2026-07-04, `engine/mcp.ts`).** "An agent themes Prism3" as a
    callable surface. **Dependency-free JSON-RPC 2.0 over stdio** (no MCP SDK — owned like the

@@ -84,11 +84,11 @@ mismatch with this file as the regression:
   version was already bumped correctly.
 - `npx tsx Prism3/engine/lint-us-english.ts` — US English across every shipped
   surface (~93 files). **Build the web bundle FIRST** (`npm run build
-  --workspace @prism3/web`): this gate scans `web/dist/main.js` — `build:site`
-  writes to `web/public/dist` instead and will not satisfy this gate. Running
+  --workspace @prism3/studio`): this gate scans `apps/studio/dist/main.js` — `build:site`
+  writes to `apps/studio/public/dist` instead and will not satisfy this gate. Running
   against a stale or missing bundle is a false pass (fixed to fail closed in #502).
   Note CSS-in-JS is NOT covered by the
-  "code comments are exempt" carve-out — text inside `/* */` in `web/src/main.ts`'s
+  "code comments are exempt" carve-out — text inside `/* */` in `apps/studio/src/main.ts`'s
   CSS template literal ships verbatim into the bundle as string content.
 - `npx tsx Prism3/engine/cli.ts <example> [--fidelity]` if the CLI/dialects changed.
 
@@ -141,7 +141,7 @@ misplace it — diff3 has no "most-recent-first" concept. After any rebase/merge
 
 Also check what the diff *invalidates*: a shipped skill or doc describing an engine
 surface can be silently staled by a change to it, and nothing gates that — unlike
-`out/**`, `schema/`, and `web/dist`, which the US-English gate does scan.
+`out/**`, `schema/`, and `apps/studio/dist`, which the US-English gate does scan.
 
 ## Independent verification — don't just re-read the PR's claims
 The PR body's numbers and reasoning are the thing under review, not evidence for it.
@@ -198,7 +198,7 @@ Re-derive the load-bearing ones yourself:
   is a rolling window (not a calendar-day reset) and rejected deploys are not queued, so
   an intermittent Vercel failure is routine. Always read the `gates` check-run status
   separately; never conflate the two.
-- The Vercel-deployed bundle reads only `web/src` + `Prism3/{engine,schema}`.
+- The Vercel-deployed bundle reads only `apps/studio/src` + `Prism3/{engine,schema}`.
   `plugin/**`, `Tokens/**` and `Prism3/engine/out/**` are not build inputs, so a change
   confined to those needs no Vercel-impact check.
 - **Force-push discipline**: always `--force-with-lease`. If rejected as stale, re-fetch

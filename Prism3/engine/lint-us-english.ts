@@ -17,14 +17,14 @@
  *     CLAUDE.md says this gate enforces, and `greyscale` shipped in `theme-schema.json` past 90-file
  *     scans. Stems with no productive suffix get their own substring scan (STEMS). Pattern PLUS
  *     list — replacing one with the other just moves the blind spot.
- *  2. SOURCE GREPS MISS WHAT SHIPS. `engine/levers.ts` prose is inlined into `web/dist/main.js`, so
+ *  2. SOURCE GREPS MISS WHAT SHIPS. `engine/levers.ts` prose is inlined into `apps/studio/dist/main.js`, so
  *     the built bundle is scanned directly. A `.ts` grep would have called the bundle clean.
  *  3. NOT LOOKING READ AS LOOKING AND FINDING NOTHING — the correction this pass makes, and the trap
- *     the first two were only half-protected from. Trap 2 puts `web/dist/main.js` in scope, but the
+ *     the first two were only half-protected from. Trap 2 puts `apps/studio/dist/main.js` in scope, but the
  *     directory is a BUILD OUTPUT: in a tree where it was never built, `walk` returned `[]`, the file
  *     count silently dropped, and the gate printed `✓ clean` having never opened the bundle. The two
- *     build scripts write to different directories (`build` → `web/dist`, `build:site` →
- *     `web/public/dist`), so running the plausible-looking one produced a confident false pass. It
+ *     build scripts write to different directories (`build` → `apps/studio/dist`, `build:site` →
+ *     `apps/studio/public/dist`), so running the plausible-looking one produced a confident false pass. It
  *     fooled a reviewer on #495 while the reviewer protocol named the wrong command. `readFileSync`
  *     had the same shape — `catch { return [] }` made an unreadable file count as a clean one.
  *     Both now fail closed via `blind[]`. **A gate must not report a number it did not earn**, which
@@ -140,10 +140,10 @@ const walk = (dir: string): string[] => {
 /**
  * `walk` for a directory whose ABSENCE is itself a failure.
  *
- * The hole this closes: `web/dist` is a build output, so a tree where it was never built silently
+ * The hole this closes: `apps/studio/dist` is a build output, so a tree where it was never built silently
  * contributed zero files and the gate printed `✓ clean` without ever opening the bundle — while trap 2
  * above is the whole reason the bundle is scanned at all. Worse, the two build scripts write to
- * DIFFERENT places (`web/package.json` `build` → `web/dist`; `build-site.mjs` → `web/public/dist`), so
+ * DIFFERENT places (`apps/studio/package.json` `build` → `apps/studio/dist`; `build-site.mjs` → `apps/studio/public/dist`), so
  * running the wrong one produced a confident false pass. That is not hypothetical: it fooled a
  * reviewer on #495, and the reviewer protocol was itself naming the wrong command.
  *
@@ -163,8 +163,8 @@ const gated: string[] = [
   ...SCHEMA_ARTIFACTS.map((f) => join(repo, 'Prism3/schema', f)),
   ...ENGINE_ARTIFACTS.map((f) => join(repo, 'Prism3/engine', f)),
   // trap 2: what actually ships. REQUIRED — see walkRequired. Note `build`, not `build:site`: the
-  // latter writes web/public/dist, which this does not scan.
-  ...walkRequired(join(repo, 'web/dist'), 'the web bundle is not built — run `npm run -w @prism3/web build` (NOT build:site, which writes web/public/dist)')
+  // latter writes apps/studio/public/dist, which this does not scan.
+  ...walkRequired(join(repo, 'apps/studio/dist'), 'the web bundle is not built — run `npm run -w @prism3/studio build` (NOT build:site, which writes apps/studio/public/dist)')
     .filter((f) => f.endsWith('.js')),
   // Converted and folded in (owner decision) — previously reported-but-not-fatal because CLAUDE.md
   // held their conversion open. Gated now: leaving a clean surface ungated only defers the regression.
@@ -202,7 +202,7 @@ const selfFails = SELF_CHECK.filter(({ sample, expect }) => enGb(sample).length 
   .map((c) => `"${c.sample}" should${c.expect ? '' : ' NOT'} be flagged`);
 // ...and a second self-check, on SCOPE rather than detection. The one above proves the scanner can
 // still recognize `colours`; it says nothing about whether the file containing it was ever opened.
-// That is the gap trap 3 came through — every pattern sample passed while `web/dist` was absent.
+// That is the gap trap 3 came through — every pattern sample passed while `apps/studio/dist` was absent.
 //
 // Asserted PER SURFACE, not as a total, and that distinction is the whole point. A total-count floor
 // was tried first and is worthless here: dropping the entire built bundle costs exactly ONE file
@@ -217,7 +217,7 @@ const selfFails = SELF_CHECK.filter(({ sample, expect }) => enGb(sample).length 
 // the promise list quietly stops describing it. Only the converse makes the list self-maintaining;
 // the forward check can only police surfaces someone remembered to promise.
 const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
-  { label: 'the built web bundle (web/dist/*.js) — trap 2', test: (f) => f.includes('/web/dist/') && f.endsWith('.js') },
+  { label: 'the built web bundle (apps/studio/dist/*.js) — trap 2', test: (f) => f.includes('/apps/studio/dist/') && f.endsWith('.js') },
   { label: 'emitted artifacts (Prism3/engine/out)', test: (f) => f.includes('/Prism3/engine/out/') },
   { label: 'the schema contract (Prism3/schema)', test: (f) => f.includes('/Prism3/schema/') },
   // Skills joined the scope but not this list, which is the same false-pass class the guard exists

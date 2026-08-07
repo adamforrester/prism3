@@ -89,7 +89,7 @@ hosted. It earns its place at the edges; it does not enter the core.
 
 Keep persistence, auth, transport, and model calls **outside** the core; keep the export core
 a standalone module with **no host assumptions**. We already do both (the browser bundle
-enforces the first — the I/O shells don't bundle; `web/README.md`). The single failure mode to
+enforces the first — the I/O shells don't bundle; `apps/studio/README.md`). The single failure mode to
 guard is **leakage**: a DB call, an env secret, a Bedrock invocation, or a Lambda-ism creeping
 into a layer-1 module. If that line holds, the AWS decision — whenever it firms up — costs a
 new shell and a storage layer, not an architecture change.

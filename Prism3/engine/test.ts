@@ -878,7 +878,7 @@ for (const b of brands) {
     'float-plan: every radius aliases dimension/0 in the wireframe mode (sharp corners)');
 
   // verifyFloatReadback guard: a colour-only snapshot (no `float`) is NOT a float failure; a dangling
-  // FLOAT alias IS caught. (The full write→read→verify round-trip is covered in plugin/test-readback.)
+  // FLOAT alias IS caught. (The full write→read→verify round-trip is covered in apps/plugin/test-readback.)
   const colourOnly = verifyFloatReadback({ collections: [], palette: [], color: [] }, false);
   ok(colourOnly.ok, 'verifyFloatReadback: colour-only snapshot passes (float axes absent, not failed)');
   const dangling = verifyFloatReadback({
@@ -7685,7 +7685,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // plan for a brand, rather than the two silently drifting apart. What this can't do without a live
 // Figma file is prove the pasted JS finds the RIGHT orphans in a REAL file — that needs the same
 // live materialisation drive #479 itself was found on (Prism Test File v2), which is out of reach
-// here; the plugin path's end-to-end shim coverage (`plugin/test-write.ts`) is the nearest thing to
+// here; the plugin path's end-to-end shim coverage (`apps/plugin/test-write.ts`) is the nearest thing to
 // that this repo has, and it exercises the algorithm this pass mirrors, not this pass's own string.
 {
   const verify = passJs('nb', 'verify');
@@ -7847,7 +7847,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // A raw 0x00 in a TypeScript source is legal to the compiler and invisible in an editor, but it makes
 // the file BINARY to the whole grep/ripgrep family — content searches return "binary file matches"
 // with no lines, silently hiding the file from exactly the tool used to navigate it. It bit twice:
-// once in `web/src/main.ts` (typed as a separator, broke a Playwright `select_option` because the
+// once in `apps/studio/src/main.ts` (typed as a separator, broke a Playwright `select_option` because the
 // option values no longer matched) and once in `tree.ts:548`'s `stackKey`, where it hid the engine's
 // largest source file from content search.
 //
@@ -7856,7 +7856,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // which makes this a cheap total ban rather than a judgement call. Scans the engine plus both
 // bundled surfaces, since the class has now appeared in each.
 {
-  const roots = [HERE, resolve(HERE, '../../web/src'), resolve(HERE, '../../plugin/src')];
+  const roots = [HERE, resolve(HERE, '../../apps/studio/src'), resolve(HERE, '../../apps/plugin/src')];
   const TEXT = /\.(ts|tsx|js|mjs|json|md|html|css)$/;
   const sources: string[] = [];
   const walk = (dir: string, into: string[]): void => {

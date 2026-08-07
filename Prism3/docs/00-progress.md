@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-07) — `apps/` + `packages/`: the studio and plugin move, `@prism3/web` → `@prism3/studio` (#624)
+
+**STATUS: layout + rename.** 41 files move under `apps/`, 37 modified, no emitted artifact changes —
+`regen --check` still 104, byte-identical. No version bump: nothing the engine emits moved.
+
+**Why the name had to go now.** `@prism3/web` occupied the namespace `19` §3 reserves for
+`@prism3/web-components`. Shipping a component library beside an unrelated *dashboard* called
+`@prism3/web` is permanent confusion, and the asymmetry is the whole argument: renaming a private
+workspace is an afternoon; renaming a *published* package clients import is a deprecation cycle. The
+window closes when the component packages ship. `apps/` vs `packages/` also encodes doc 35 §1's eject
+boundary — `apps/` is what we run and never ship.
+
+**THREE BREAKAGES A GREP FOR `@prism3/web` COULD NOT HAVE FOUND**, each caught by running a gate:
+
+1. **`typeRoots` was depth-relative.** `plugin/tsconfig.main.json` carried
+   `["../node_modules/@types", "../node_modules/@figma"]`, resolving to the repo root from `plugin/`
+   and to a non-existent `apps/node_modules` from `apps/plugin/`. Failed as `TS2688: Cannot find type
+   definition file for 'plugin-typings'` — nothing to do with the string `web`.
+2. **The plugin's UI tsconfig compiles the studio's source.** `tsconfig.ui.json` included
+   `../web/src/main.ts`, and `build.mjs` resolves `../web/src` for both the bundle entry and its watch
+   root. That cross-package dependency is #110's no-fork thesis made literal — one UI source, two
+   outputs — and it is invisible unless you read the build script.
+3. **Runtime paths are not imports.** `test-write.ts` / `test-readback.ts` do
+   `readFileSync(resolve(HERE, '../Prism3/schema/nb-measured.json'))`. The earlier pass rewrote
+   `from '../Prism3/…'` and left these untouched, so typecheck and build both passed and the plugin
+   suite died on `ENOENT` at `/apps/Prism3/schema/nb-measured.json`.
+
+The through-line: a rename verified by searching for the renamed *string* misses everything that
+depended on the *depth*. Only running each gate found these.
+
+**The scope guard earned its keep.** `lint-us-english` and `lint-voice` both hard-code the built
+bundle's path and `walkRequired` it, so a missed rename cannot degrade into a quiet pass. Verified by
+mutation rather than assumed: pointing the scope back at `web/dist` fails, and removing
+`apps/studio/dist` fails — both with the "not evidence" message, not a green run over 109 files. Both
+now report `the built web bundle (apps/studio/dist/*.js)` with a count of 1, which is the
+*representation* check doc 34 asks for rather than a file count.
+
+**The lockfile ghost recurred, exactly as #645 predicted.** `npm install --package-lock-only` added
+`apps/studio` and `apps/plugin` and relinked `node_modules/@prism3/*` correctly — and left `web` and
+`plugin` behind as `"extraneous": true` records pointing at directories that no longer exist. Same
+failure mode, same non-remedy: re-running the command changes nothing. Pruned by hand here, then
+confirmed by re-running it and getting no further diff. `code-library` is deliberately left alone —
+that one is #645's, and duplicating the deletion would only conflict.
+
+**`.gitignore` mattered more than it looks.** It listed `web/dist/`, `web/public/`, `plugin/dist/`.
+Left stale, the first `build:site` after this lands would have committed the entire built site.
+
+**WHAT IS NOT VERIFIED, and it is the riskiest surface.** #624 names the Vercel deploy as the thing a
+green typecheck cannot catch, and `vercel.json` changed on all three of its path keys —
+`buildCommand`'s workspace, `outputDirectory`, `ignoreCommand` — plus the `PATHS` trigger list inside
+`vercel-ignore.sh`. **The account is deployment-rate-limited (`api-deployments-free-per-day`) until
+roughly 2026-08-08 18:00 UTC, so no deploy could be run against this branch.** What *was* verified
+locally: `build:site` writes to `apps/studio/public/` as `outputDirectory` now claims, and
+`check:ignore` still reconciles the skip list against esbuild's real metafile (13 bundle inputs, 31
+excluded). What remains unproven is that Vercel itself resolves the new paths. **Do not merge this
+without watching the first deploy.**
+
+**Deliberately not rewritten:** `docs/35-naming-and-packaging.md` argues *for* this rename and quotes
+`@prism3/web` as the name being replaced — rewriting it would erase the argument. `00-progress` is
+append-only history, same rule. The `docs/superpowers/` plans are dated records.
+
+**Gates:** engine ×7 (104 artifacts, tests 2024/0, MCP 49/0), studio ×5, plugin ×3 (0 `node:`
+builtins), tokens consumability, both prose gates last. All 19 pass.
+
+---
+
 ## (2026-08-07) — The consumability gate covers the whole corpus, and found `[object Object]` (#635)
 
 **STATUS: gate only.** No engine change, no emitted artifact moved, no version bump. Two files in
