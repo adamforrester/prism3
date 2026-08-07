@@ -662,26 +662,75 @@
         }
       ]
     },
-    "interactive.primary.border": {
-      "$description": "Primary interactive border (outline).",
+    "interactive.primary.border.rest": {
+      "$description": "Primary interactive border — the outline edge.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The border of an OUTLINE primary interactive element.",
       "avoid_when": "Do not use as ink (use interactive.primary.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.palette.primary.500}",
-        "dark": "{prism.palette.primary.500}",
-        "hc-light": "{prism.palette.primary.500}",
-        "hc-dark": "{prism.palette.primary.500}"
+        "light": "{prism.palette.primary.600}",
+        "dark": "{prism.palette.primary.450}",
+        "hc-light": "{prism.palette.primary.650}",
+        "hc-dark": "{prism.palette.primary.350}"
       },
       "paired_with": [
+        "interactive.primary.text.rest",
         "background.primary"
       ],
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 3.77
+          "ratio": 5.59
+        }
+      ]
+    },
+    "interactive.primary.border.hover": {
+      "$description": "Primary interactive border — the outline edge (hover state).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The border of an OUTLINE primary interactive element on pointer hover.",
+      "avoid_when": "Do not use as ink (use interactive.primary.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.650}",
+        "dark": "{prism.palette.primary.400}",
+        "hc-light": "{prism.palette.primary.700}",
+        "hc-dark": "{prism.palette.primary.300}"
+      },
+      "paired_with": [
+        "interactive.primary.text.hover",
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 6.81
+        }
+      ]
+    },
+    "interactive.primary.border.pressed": {
+      "$description": "Primary interactive border — the outline edge (pressed state).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The border of an OUTLINE primary interactive element while pressed.",
+      "avoid_when": "Do not use as ink (use interactive.primary.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.700}",
+        "dark": "{prism.palette.primary.350}",
+        "hc-light": "{prism.palette.primary.750}",
+        "hc-dark": "{prism.palette.primary.250}"
+      },
+      "paired_with": [
+        "interactive.primary.text.pressed",
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 8.2
         }
       ]
     },
@@ -892,26 +941,75 @@
         }
       ]
     },
-    "interactive.destructive.border": {
-      "$description": "Destructive interactive border (outline).",
+    "interactive.destructive.border.rest": {
+      "$description": "Destructive interactive border — the outline edge.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The border of an OUTLINE destructive interactive element.",
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.palette.danger.500}",
-        "dark": "{prism.palette.danger.500}",
-        "hc-light": "{prism.palette.danger.500}",
-        "hc-dark": "{prism.palette.danger.500}"
+        "light": "{prism.palette.danger.550}",
+        "dark": "{prism.palette.danger.450}",
+        "hc-light": "{prism.palette.danger.650}",
+        "hc-dark": "{prism.palette.danger.350}"
       },
       "paired_with": [
+        "interactive.destructive.text.rest",
         "background.primary"
       ],
       "contrast_with": [
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 3.76
+          "ratio": 4.6
+        }
+      ]
+    },
+    "interactive.destructive.border.hover": {
+      "$description": "Destructive interactive border — the outline edge (hover state).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The border of an OUTLINE destructive interactive element on pointer hover.",
+      "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.600}",
+        "dark": "{prism.palette.danger.400}",
+        "hc-light": "{prism.palette.danger.700}",
+        "hc-dark": "{prism.palette.danger.300}"
+      },
+      "paired_with": [
+        "interactive.destructive.text.hover",
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 5.59
+        }
+      ]
+    },
+    "interactive.destructive.border.pressed": {
+      "$description": "Destructive interactive border — the outline edge (pressed state).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The border of an OUTLINE destructive interactive element while pressed.",
+      "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.650}",
+        "dark": "{prism.palette.danger.350}",
+        "hc-light": "{prism.palette.danger.750}",
+        "hc-dark": "{prism.palette.danger.250}"
+      },
+      "paired_with": [
+        "interactive.destructive.text.pressed",
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 6.79
         }
       ]
     },
@@ -1087,8 +1185,8 @@
         }
       ]
     },
-    "interactive.neutral.border": {
-      "$description": "Neutral interactive border (outline).",
+    "interactive.neutral.border.rest": {
+      "$description": "Neutral interactive border — the outline edge.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The border of an OUTLINE neutral interactive element.",
       "avoid_when": "Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
@@ -1100,6 +1198,7 @@
         "hc-dark": "{prism.palette.neutral.500}"
       },
       "paired_with": [
+        "interactive.neutral.text.rest",
         "background.primary"
       ],
       "contrast_with": [
@@ -1107,6 +1206,54 @@
           "token": "background.primary",
           "min": "3:1",
           "ratio": 3.2
+        }
+      ]
+    },
+    "interactive.neutral.border.hover": {
+      "$description": "Neutral interactive border — the outline edge (hover state).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The border of an OUTLINE neutral interactive element on pointer hover.",
+      "avoid_when": "Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.550}",
+        "dark": "{prism.palette.neutral.450}",
+        "hc-light": "{prism.palette.neutral.600}",
+        "hc-dark": "{prism.palette.neutral.400}"
+      },
+      "paired_with": [
+        "interactive.neutral.text.hover",
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 4.56
+        }
+      ]
+    },
+    "interactive.neutral.border.pressed": {
+      "$description": "Neutral interactive border — the outline edge (pressed state).",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The border of an OUTLINE neutral interactive element while pressed.",
+      "avoid_when": "Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.650}",
+        "dark": "{prism.palette.neutral.350}",
+        "hc-light": "{prism.palette.neutral.700}",
+        "hc-dark": "{prism.palette.neutral.300}"
+      },
+      "paired_with": [
+        "interactive.neutral.text.pressed",
+        "background.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.primary",
+          "min": "3:1",
+          "ratio": 6.72
         }
       ]
     },
@@ -1271,17 +1418,17 @@
         }
       ]
     },
-    "interactive.primary.on-inverse.border": {
+    "interactive.primary.on-inverse.border.rest": {
       "$description": "Primary interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.palette.primary.500}",
-        "dark": "{prism.palette.primary.500}",
-        "hc-light": "{prism.palette.primary.500}",
-        "hc-dark": "{prism.palette.primary.500}"
+        "light": "{prism.palette.primary.450}",
+        "dark": "{prism.palette.primary.600}",
+        "hc-light": "{prism.palette.primary.350}",
+        "hc-dark": "{prism.palette.primary.650}"
       },
       "paired_with": [
         "background.inverse.primary"
@@ -1290,7 +1437,53 @@
         {
           "token": "background.inverse.primary",
           "min": "3:1",
-          "ratio": 4.24
+          "ratio": 5
+        }
+      ]
+    },
+    "interactive.primary.on-inverse.border.hover": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.650}",
+        "hc-light": "{prism.palette.primary.300}",
+        "hc-dark": "{prism.palette.primary.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 5.93
+        }
+      ]
+    },
+    "interactive.primary.on-inverse.border.pressed": {
+      "$description": "Primary interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.350}",
+        "dark": "{prism.palette.primary.700}",
+        "hc-light": "{prism.palette.primary.250}",
+        "hc-dark": "{prism.palette.primary.750}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 6.91
         }
       ]
     },
@@ -1455,17 +1648,17 @@
         }
       ]
     },
-    "interactive.destructive.on-inverse.border": {
+    "interactive.destructive.on-inverse.border.rest": {
       "$description": "Destructive interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.palette.danger.500}",
-        "dark": "{prism.palette.danger.500}",
-        "hc-light": "{prism.palette.danger.500}",
-        "hc-dark": "{prism.palette.danger.500}"
+        "light": "{prism.palette.danger.450}",
+        "dark": "{prism.palette.danger.550}",
+        "hc-light": "{prism.palette.danger.350}",
+        "hc-dark": "{prism.palette.danger.650}"
       },
       "paired_with": [
         "background.inverse.primary"
@@ -1474,7 +1667,53 @@
         {
           "token": "background.inverse.primary",
           "min": "3:1",
-          "ratio": 4.25
+          "ratio": 4.94
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.border.hover": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.400}",
+        "dark": "{prism.palette.danger.600}",
+        "hc-light": "{prism.palette.danger.300}",
+        "hc-dark": "{prism.palette.danger.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 5.84
+        }
+      ]
+    },
+    "interactive.destructive.on-inverse.border.pressed": {
+      "$description": "Destructive interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.350}",
+        "dark": "{prism.palette.danger.650}",
+        "hc-light": "{prism.palette.danger.250}",
+        "hc-dark": "{prism.palette.danger.750}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 6.9
         }
       ]
     },
@@ -1639,7 +1878,7 @@
         }
       ]
     },
-    "interactive.neutral.on-inverse.border": {
+    "interactive.neutral.on-inverse.border.rest": {
       "$description": "Neutral interactive ink on an inverse surface.",
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
@@ -1659,6 +1898,52 @@
           "token": "background.inverse.primary",
           "min": "3:1",
           "ratio": 3.51
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.border.hover": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.450}",
+        "dark": "{prism.palette.neutral.500}",
+        "hc-light": "{prism.palette.neutral.400}",
+        "hc-dark": "{prism.palette.neutral.600}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 5
+        }
+      ]
+    },
+    "interactive.neutral.on-inverse.border.pressed": {
+      "$description": "Neutral interactive ink on an inverse surface.",
+      "meaning": "Interactivity / actions",
+      "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
+      "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.350}",
+        "dark": "{prism.palette.neutral.600}",
+        "hc-light": "{prism.palette.neutral.300}",
+        "hc-dark": "{prism.palette.neutral.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 6.92
         }
       ]
     },
@@ -4006,8 +4291,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.on-inverse.border.pressed",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.text.pressed",
         "color.text.link.hover"
@@ -4025,7 +4312,9 @@
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.interactive.primary.border.hover",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.on-inverse.border.hover",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.brand",
@@ -4042,6 +4331,10 @@
       "aliased_by": [
         "color.icon.brand-subtle",
         "color.icon.link.visited",
+        "color.interactive.primary.border.pressed",
+        "color.interactive.primary.border.rest",
+        "color.interactive.primary.on-inverse.border.pressed",
+        "color.interactive.primary.on-inverse.border.rest",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.pressed",
@@ -4058,6 +4351,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.interactive.primary.border.hover",
+        "color.interactive.primary.on-inverse.border.hover",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.link.hover"
@@ -4074,8 +4369,10 @@
         "color.icon.brand-subtle",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-inverse.border.rest",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest",
         "color.text.brand",
@@ -4094,10 +4391,8 @@
         "color.border.brand",
         "color.border.focus-inverse",
         "color.icon.brand-subtle",
-        "color.interactive.primary.border",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
-        "color.interactive.primary.on-inverse.border",
         "color.text.brand-subtle"
       ]
     },
@@ -4127,7 +4422,9 @@
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.rest",
+        "color.interactive.primary.on-inverse.border.rest",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.rest",
         "color.text.brand",
@@ -4143,8 +4440,12 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.interactive.primary.border.hover",
+        "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.on-inverse.border.hover",
+        "color.interactive.primary.on-inverse.border.rest",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.on-inverse.text.rest",
         "color.interactive.primary.text.hover",
@@ -4165,9 +4466,13 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.icon.link.visited",
+        "color.interactive.primary.border.hover",
+        "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.fill.selected",
+        "color.interactive.primary.on-inverse.border.hover",
+        "color.interactive.primary.on-inverse.border.pressed",
         "color.interactive.primary.on-inverse.text.hover",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.text.hover",
@@ -4186,8 +4491,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.interactive.primary.on-inverse.border.pressed",
         "color.interactive.primary.on-inverse.text.pressed",
         "color.interactive.primary.text.pressed",
         "color.text.link.hover"
@@ -4318,6 +4625,8 @@
       "aliased_by": [
         "color.disabled.on-fill",
         "color.icon.secondary",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.on-inverse.border.pressed",
         "color.text.secondary"
       ]
     },
@@ -4328,7 +4637,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.field.placeholder"
+        "color.field.placeholder",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.on-inverse.border.pressed"
       ]
     },
     "palette.neutral.400": {
@@ -4339,7 +4650,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.field.border.hover",
-        "color.interactive.neutral.on-inverse.border"
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.on-inverse.border.hover",
+        "color.interactive.neutral.on-inverse.border.rest"
       ]
     },
     "palette.neutral.450": {
@@ -4358,7 +4671,9 @@
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
-        "color.interactive.neutral.border",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.on-inverse.border.hover",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -4377,8 +4692,9 @@
         "color.disabled.text",
         "color.field.border.rest",
         "color.icon.tertiary",
-        "color.interactive.neutral.border",
-        "color.interactive.neutral.on-inverse.border",
+        "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.on-inverse.border.hover",
+        "color.interactive.neutral.on-inverse.border.rest",
         "color.text.tertiary"
       ]
     },
@@ -4395,8 +4711,9 @@
         "color.field.border.hover",
         "color.field.border.rest",
         "color.icon.tertiary",
-        "color.interactive.neutral.border",
-        "color.interactive.neutral.on-inverse.border",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.rest",
+        "color.interactive.neutral.on-inverse.border.rest",
         "color.text.tertiary"
       ]
     },
@@ -4413,6 +4730,9 @@
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.on-inverse.border.hover",
+        "color.interactive.neutral.on-inverse.border.pressed",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -4425,7 +4745,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.disabled.on-fill",
-        "color.field.placeholder"
+        "color.field.placeholder",
+        "color.interactive.neutral.border.pressed"
       ]
     },
     "palette.neutral.700": {
@@ -4437,6 +4758,8 @@
       "aliased_by": [
         "color.border.secondary",
         "color.icon.secondary",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.on-inverse.border.pressed",
         "color.text.secondary"
       ]
     },
@@ -5129,8 +5452,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.on-inverse.border.pressed",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.text.pressed"
       ]
@@ -5144,7 +5469,9 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.icon.danger",
+        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.on-inverse.border.hover",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover",
         "color.text.danger"
@@ -5158,6 +5485,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.danger-subtle",
+        "color.interactive.destructive.border.pressed",
+        "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.on-inverse.border.pressed",
+        "color.interactive.destructive.on-inverse.border.rest",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.pressed",
@@ -5172,8 +5503,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.on-inverse.border.hover",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover"
       ]
@@ -5187,8 +5520,10 @@
       "aliased_by": [
         "color.icon.danger",
         "color.icon.danger-subtle",
+        "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.on-inverse.border.rest",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.rest",
         "color.text.danger",
@@ -5205,9 +5540,7 @@
         "color.border.danger",
         "color.foreground.danger",
         "color.icon.danger-subtle",
-        "color.interactive.destructive.border",
         "color.interactive.destructive.fill.rest",
-        "color.interactive.destructive.on-inverse.border",
         "color.text.danger-subtle"
       ]
     },
@@ -5218,8 +5551,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.on-inverse.border.rest",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.rest"
       ]
@@ -5232,8 +5567,10 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.danger",
+        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
+        "color.interactive.destructive.on-inverse.border.hover",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover",
         "color.text.danger"
@@ -5246,6 +5583,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.border.pressed",
+        "color.interactive.destructive.border.rest",
+        "color.interactive.destructive.on-inverse.border.pressed",
+        "color.interactive.destructive.on-inverse.border.rest",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.on-inverse.text.rest",
         "color.interactive.destructive.text.pressed",
@@ -5261,7 +5602,9 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.icon.danger",
+        "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
+        "color.interactive.destructive.on-inverse.border.hover",
         "color.interactive.destructive.on-inverse.text.hover",
         "color.interactive.destructive.text.hover",
         "color.text.danger"
@@ -5274,8 +5617,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
+        "color.interactive.destructive.on-inverse.border.pressed",
         "color.interactive.destructive.on-inverse.text.pressed",
         "color.interactive.destructive.text.pressed"
       ]

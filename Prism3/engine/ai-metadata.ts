@@ -144,7 +144,13 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
   }
   if (slot === 'on-fill') return { desc: `Ink on the ${c} interactive fill`, when_to_use: `The label / icon placed on a filled ${c} interactive element.`, avoid_when: `Do not use on the page or on outline controls — use interactive.${c}.text.`, paired_with: [`interactive.${c}.fill.rest`] };
   if (slot === 'text') return { desc: `${cap(c)} interactive ink (outline / text appearance)`, when_to_use: `The ink for OUTLINE and TEXT ${c} interactive elements (no fill behind it).`, avoid_when: `Do not use on a filled ${c} control (use interactive.${c}.on-fill).`, paired_with: ['background.primary'] };
-  if (slot === 'border') return { desc: `${cap(c)} interactive border (outline)`, when_to_use: `The border of an OUTLINE ${c} interactive element.`, avoid_when: `Do not use as ink (use interactive.${c}.text) or as a page divider (use border.primary).`, paired_with: ['background.primary'] };
+  // The border is stateful (#576), so it is described per state exactly like `fill` — and it names
+  // its matching ink as `paired_with`, because by default the two ARE the same value and an agent
+  // choosing one should know the other tracks it.
+  if (slot === 'border') {
+    const st = state && state !== 'rest' ? ` (${state} state)` : '';
+    return { desc: `${cap(c)} interactive border — the outline edge${st}`, when_to_use: `The border of an OUTLINE ${c} interactive element${sc(state)}.`, avoid_when: `Do not use as ink (use interactive.${c}.text) or as a page divider (use border.primary).`, paired_with: [`interactive.${c}.text.${state ?? 'rest'}`, 'background.primary'] };
+  }
   if (slot === 'on-inverse') return { desc: `${cap(c)} interactive ink on an inverse surface`, when_to_use: `The ink for an outline/text ${c} control placed on a dark hero / inverse section — a light CTA on dark.`, avoid_when: `Do not use on the standard page (use interactive.${c}.text) or on a ${c} fill (use interactive.${c}.on-fill).`, paired_with: ['background.inverse.primary'] };
   if (slot === 'overlay') return { desc: `${cap(c)} interactive overlay${state ? ` — ${state}` : ''}`, when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).`, avoid_when: `Do not use as an opaque fill (use interactive.${c}.fill.* or foreground.${c}-subtle) or as a modal backdrop (use scrim.*).`, paired_with: ['text.primary'] };
   return { desc: `${cap(c)} interactive ${slot}`, when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };

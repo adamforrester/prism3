@@ -625,21 +625,57 @@
       }
     },
     {
-      "name": "color/interactive/primary/border",
+      "name": "color/interactive/primary/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Primary interactive border (outline)",
+      "description": "primary interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0.8313725590705872,
+        "g": 0.3450980484485626,
+        "b": 0.3490196168422699,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "palette/primary/400"
+      }
+    },
+    {
+      "name": "color/interactive/primary/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive border — hover (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.8509804010391235,
+        "g": 0.43529412150382996,
+        "b": 0.4274509847164154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/350"
+      }
+    },
+    {
+      "name": "color/interactive/primary/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive border — pressed (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.5176470875740051,
+        "b": 0.5058823823928833,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/300"
       }
     },
     {
@@ -774,12 +810,12 @@
       }
     },
     {
-      "name": "color/interactive/primary/on-inverse/border",
+      "name": "color/interactive/primary/on-inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "primary interactive border on a dark / inverse surface (outline on a dark hero)",
+      "description": "primary interactive border — rest (the outline edge; follows the ink)",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -789,6 +825,42 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/primary/500"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive border — hover (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.7098039388656616,
+        "g": 0.0235294122248888,
+        "b": 0.15294118225574493,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/550"
+      }
+    },
+    {
+      "name": "color/interactive/primary/on-inverse/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "primary interactive border — pressed (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.125490203499794,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/600"
       }
     },
     {
@@ -1018,21 +1090,57 @@
       }
     },
     {
-      "name": "color/interactive/destructive/border",
+      "name": "color/interactive/destructive/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Destructive interactive border (outline)",
+      "description": "destructive interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.8588235378265381,
+        "g": 0.32156863808631897,
+        "b": 0.33725491166114807,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/danger/450"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive border — hover (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.40392157435417175,
+        "b": 0.40392157435417175,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/400"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.8941176533699036,
+        "g": 0.48235294222831726,
+        "b": 0.47843137383461,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/350"
       }
     },
     {
@@ -1167,21 +1275,57 @@
       }
     },
     {
-      "name": "color/interactive/destructive/on-inverse/border",
+      "name": "color/interactive/destructive/on-inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "destructive interactive border on a dark / inverse surface (outline on a dark hero)",
+      "description": "destructive interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.7137255072593689,
+        "g": 0.24705882370471954,
+        "b": 0.26274511218070984,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/danger/550"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive border — hover (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.6352941393852234,
+        "g": 0.2078431397676468,
+        "b": 0.2235294133424759,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/600"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/on-inverse/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.5607843399047852,
+        "g": 0.16862745583057404,
+        "b": 0.18431372940540314,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/650"
       }
     },
     {
@@ -1411,12 +1555,12 @@
       }
     },
     {
-      "name": "color/interactive/neutral/border",
+      "name": "color/interactive/neutral/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "Neutral interactive border (outline)",
+      "description": "neutral interactive border — rest (the outline edge; follows the ink)",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -1426,6 +1570,42 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/neutral/550"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive border — hover (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.501960813999176,
+        "g": 0.5098039507865906,
+        "b": 0.5137255191802979,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/450"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive border — pressed (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.6000000238418579,
+        "g": 0.6039215922355652,
+        "b": 0.6117647290229797,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/350"
       }
     },
     {
@@ -1560,12 +1740,12 @@
       }
     },
     {
-      "name": "color/interactive/neutral/on-inverse/border",
+      "name": "color/interactive/neutral/on-inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
-      "description": "neutral interactive border on a dark / inverse surface (outline on a dark hero)",
+      "description": "neutral interactive border — rest (the outline edge; follows the ink)",
       "value": {
         "r": 0.5529412031173706,
         "g": 0.5568627715110779,
@@ -1575,6 +1755,42 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/neutral/400"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive border — hover (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.45490196347236633,
+        "g": 0.4588235318660736,
+        "b": 0.46666666865348816,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/500"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/on-inverse/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "neutral interactive border — pressed (the outline edge; follows the ink)",
+      "value": {
+        "r": 0.3529411852359772,
+        "g": 0.3607843220233917,
+        "b": 0.3686274588108063,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/600"
       }
     },
     {

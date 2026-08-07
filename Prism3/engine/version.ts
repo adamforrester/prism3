@@ -56,8 +56,19 @@
  * DTCG defines as ignorable, so the projection is what a stock consumer can actually read. A minor
  * rather than a patch because the artifact SET grew, not because anything existing moved — no token
  * name and no canonical value changed, so `CONTRACT_VERSION` stands. (#609)
+ *
+ * 0.5.0: the interactive outline EDGE is stateful — `interactive.<c>.border` (one value anchored at
+ * palette step 500) becomes `interactive.<c>.border.{rest,hover,pressed}`, and the same for
+ * `on-inverse.border`. Values move as well as names: the chromatic columns now FOLLOW THEIR INK,
+ * which lands on a different ramp step than the old anchor in 34 of 40 corpus brand×mode×column
+ * combinations — 17 of 20 for `primary` alone, and in every dark, hc-light and hc-dark mode. (The old
+ * anchor was step 500 escalated by `chromatic()` only as far as `nonTextMin` demanded, so it already
+ * sat off 500 in 2 of those 40; the count above is measured old-vs-new, not "differs from 500".)
+ * Both versions move — this is the rare change that is simultaneously a behaviour change and a name
+ * change, so it is worth stating that they moved for different reasons rather than as one event.
+ * (#576)
  */
-export const ENGINE_VERSION = '0.4.0';
+export const ENGINE_VERSION = '0.5.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -84,8 +95,27 @@ export const ENGINE_VERSION = '0.4.0';
  * Named as a flat suffix rather than nested under either existing leaf on purpose: both
  * `border.focus.inverse` and `border.inverse.focus` would turn a path consumers already reference
  * into a GROUP, which is a MAJOR break to add a token nobody asked to pay for. (#573) (484 → 485)
+ *
+ * 3.0.0: the interactive outline edge becomes stateful — the 6 bare `interactive.<c>.border` /
+ * `interactive.<c>.on-inverse.border` leaves are REPLACED by `border.{rest,hover,pressed}` under
+ * each. 6 removed, 18 added, so MAJOR; the removals are in `DEPRECATIONS` pointing at `border.rest`.
+ * (#576) (485 → 497)
+ *
+ * This deliberately takes the opposite decision to 2.1.0 above, and the difference is the point.
+ * 2.1.0 refused to turn an existing leaf into a group and paid a naming asymmetry
+ * (`border.focus-inverse`) to keep a MINOR. Here the leaf becomes a group anyway, because the reason
+ * to avoid it was the cost to consumers and the project is pre-alpha with none: the flat-suffix
+ * dodge buys nothing and would leave `border-hover` permanently out of step with the
+ * `{rest,hover,pressed}` shape that `fill.*` and `text.*` already use. Choose the right shape when
+ * the break is free; pay for compatibility when someone is actually holding the other end.
+ *
+ * The alias that would have made this a MINOR is not merely undesirable, it is unrepresentable: a
+ * node cannot be both a token (`$value`) and a group. Probed against stock Style Dictionary, a
+ * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
+ * children silently — so the states would be invisible to exactly the conforming consumers #631's
+ * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
  */
-export const CONTRACT_VERSION = '2.1.0';
+export const CONTRACT_VERSION = '3.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -113,6 +143,18 @@ export const DEPRECATIONS: Deprecation[] = [
   { path: 'motion.easing.enter', replacedBy: 'motion.easing.decelerate', since: '2.0.0' },
   { path: 'motion.easing.exit', replacedBy: 'motion.easing.accelerate', since: '2.0.0' },
   { path: 'motion.easing.emphasized', replacedBy: 'motion.easing.expressive', since: '2.0.0' },
+  // #576 — the outline edge gained states, so each bare leaf became a group. `border.rest` is the
+  // honest replacement: it is the state the single value actually WAS (the resting edge), so a
+  // consumer following the pointer keeps the same intent rather than silently adopting a hover.
+  // Recorded even though the project has no consumers yet — `classify` refuses a `replacedBy` that
+  // is not in the live guaranteed set, so these 6 entries are a free check that the rename landed on
+  // paths that exist, in a diff where 6 removals and 18 additions are otherwise easy to fat-finger.
+  { path: 'color.interactive.primary.border', replacedBy: 'color.interactive.primary.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.neutral.border', replacedBy: 'color.interactive.neutral.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.destructive.border', replacedBy: 'color.interactive.destructive.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.interactive.primary.on-inverse.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.interactive.neutral.on-inverse.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.interactive.destructive.on-inverse.border.rest', since: '3.0.0' },
 ];
 
 /** Semver levels, ordered — `LEVELS.indexOf` is the comparison. */

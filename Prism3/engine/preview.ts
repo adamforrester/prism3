@@ -62,16 +62,21 @@ export const previewSpec: PreviewSpec = {
       variants: [
         {
           name: 'rest',
-          bindings: { bg: 'color.background.primary', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text.rest', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' },
-          contracts: [{ fg: 'color.interactive.primary.text.rest', bg: 'color.background.primary', min: TEXT, label: 'label on page' }, { fg: 'color.interactive.primary.border', bg: 'color.background.primary', min: UI, label: 'border on page' }],
+          bindings: { bg: 'color.background.primary', border: 'color.interactive.primary.border.rest', text: 'color.interactive.primary.text.rest', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' },
+          contracts: [{ fg: 'color.interactive.primary.text.rest', bg: 'color.background.primary', min: TEXT, label: 'label on page' }, { fg: 'color.interactive.primary.border.rest', bg: 'color.background.primary', min: UI, label: 'border on page' }],
         },
         // hover/pressed add the translucent overlay wash over the page. The wash's contrast is
         // gated at the CORE on the composited result (docs/20 §10) — which the preview can't
-        // recompute from role hexes — so these states are VISUAL (no contract pair); the ink +
-        // border (which carry the contract) don't change from rest. Matches the Button def's
-        // `primary.outline.overlay.{hover,pressed}` slots (components/button.ts).
-        { name: 'hover', bindings: { bg: 'color.interactive.primary.overlay.hover', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text.rest', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' } },
-        { name: 'pressed', bindings: { bg: 'color.interactive.primary.overlay.pressed', border: 'color.interactive.primary.border', text: 'color.interactive.primary.text.rest', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' } },
+        // recompute from role hexes — so no contract pair is declared for the WASH.
+        //
+        // The border and ink DO move now (#576): both walk toward more contrast per state, so each
+        // variant binds its own. Before that the border had one value and this comment said the ink
+        // and border "don't change from rest" — true when written, and exactly the kind of claim
+        // that goes stale silently when the token surface underneath it grows states.
+        { name: 'hover', bindings: { bg: 'color.interactive.primary.overlay.hover', border: 'color.interactive.primary.border.hover', text: 'color.interactive.primary.text.hover', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' },
+          contracts: [{ fg: 'color.interactive.primary.border.hover', bg: 'color.background.primary', min: UI, label: 'hover border on page' }] },
+        { name: 'pressed', bindings: { bg: 'color.interactive.primary.overlay.pressed', border: 'color.interactive.primary.border.pressed', text: 'color.interactive.primary.text.pressed', radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis' },
+          contracts: [{ fg: 'color.interactive.primary.border.pressed', bg: 'color.background.primary', min: UI, label: 'pressed border on page' }] },
       ],
     },
     {
@@ -112,8 +117,10 @@ export const previewSpec: PreviewSpec = {
       variants: [
         { name: 'default', bindings: { text: 'color.text.secondary', type: 'type.label.md.emphasis', padX: 'space.200', padY: 'space.150' },
           contracts: [{ fg: 'color.text.secondary', bg: 'color.background.primary', min: TEXT, label: 'label on page' }] },
-        { name: 'selected', bindings: { text: 'color.text.brand', indicator: 'color.interactive.primary.border', type: 'type.label.md.emphasis', padX: 'space.200', padY: 'space.150' },
-          contracts: [{ fg: 'color.text.brand', bg: 'color.background.primary', min: TEXT, label: 'selected label' }, { fg: 'color.interactive.primary.border', bg: 'color.background.primary', min: UI, label: 'indicator' }] },
+        // The indicator is a RESTING mark, not an interaction edge — the nav item is selected, not
+        // hovered — so it takes `border.rest` specifically rather than tracking states (#576).
+        { name: 'selected', bindings: { text: 'color.text.brand', indicator: 'color.interactive.primary.border.rest', type: 'type.label.md.emphasis', padX: 'space.200', padY: 'space.150' },
+          contracts: [{ fg: 'color.text.brand', bg: 'color.background.primary', min: TEXT, label: 'selected label' }, { fg: 'color.interactive.primary.border.rest', bg: 'color.background.primary', min: UI, label: 'indicator' }] },
       ],
     },
     {

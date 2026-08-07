@@ -63,7 +63,11 @@ export const iconButton: ComponentDef = {
     'primary.filled.fill.hover': 'color.interactive.primary.fill.hover',
     'primary.filled.fill.pressed': 'color.interactive.primary.fill.pressed',
     'primary.filled.icon': 'color.interactive.primary.on-fill',
-    'primary.outline.border': 'color.interactive.primary.border',
+    // The outline edge is stateful (#576) and this component declares hover/pressed, so bind all
+    // three — an unqualified key alone would project a hovered outline identical to its rest.
+    'primary.outline.border': 'color.interactive.primary.border.rest',
+    'primary.outline.border.hover': 'color.interactive.primary.border.hover',
+    'primary.outline.border.pressed': 'color.interactive.primary.border.pressed',
     'primary.outline.icon': 'color.interactive.primary.text.rest',
     'primary.text.icon': 'color.interactive.primary.text.rest',
     // neutral (default — now stateful)
@@ -71,7 +75,9 @@ export const iconButton: ComponentDef = {
     'neutral.filled.fill.hover': 'color.interactive.neutral.fill.hover',
     'neutral.filled.fill.pressed': 'color.interactive.neutral.fill.pressed',
     'neutral.filled.icon': 'color.interactive.neutral.on-fill',
-    'neutral.outline.border': 'color.interactive.neutral.border',
+    'neutral.outline.border': 'color.interactive.neutral.border.rest',
+    'neutral.outline.border.hover': 'color.interactive.neutral.border.hover',
+    'neutral.outline.border.pressed': 'color.interactive.neutral.border.pressed',
     'neutral.outline.icon': 'color.interactive.neutral.text.rest',
     'neutral.text.icon': 'color.interactive.neutral.text.rest',
     // destructive
@@ -79,7 +85,9 @@ export const iconButton: ComponentDef = {
     'destructive.filled.fill.hover': 'color.interactive.destructive.fill.hover',
     'destructive.filled.fill.pressed': 'color.interactive.destructive.fill.pressed',
     'destructive.filled.icon': 'color.interactive.destructive.on-fill',
-    'destructive.outline.border': 'color.interactive.destructive.border',
+    'destructive.outline.border': 'color.interactive.destructive.border.rest',
+    'destructive.outline.border.hover': 'color.interactive.destructive.border.hover',
+    'destructive.outline.border.pressed': 'color.interactive.destructive.border.pressed',
     'destructive.outline.icon': 'color.interactive.destructive.text.rest',
     'destructive.text.icon': 'color.interactive.destructive.text.rest',
     // cross-cutting disabled

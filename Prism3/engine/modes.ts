@@ -541,21 +541,49 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the gated pick; hover/pressed walk the palette toward MORE contrast (like the fill states), so an
   // outline/text control "comes forward" as the user engages. `walkable` is false for neutral, whose ink
   // is already the strongest neutral (no palette position to step) — its states collapse onto rest.
-  const iText = (name: string, restCand: Cand, palette: string, walkable: boolean): void => {
+  const iText = (name: string, restCand: Cand, palette: string, walkable: boolean): Record<string, Cand> => {
     const restNum = (restCand as RatedNum).num;
+    const byState: Record<string, Cand> = {};
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = (st === 'default' || !walkable) ? restCand
         : walk(palette, restNum, st === 'hover' ? 1 : 2, dir, guardFrom(contrast(restCand.rgb, baseRgb), baseRgb, cfg.secondaryMin));
       put(`interactive.${name}.text.${stKey}`, rated(c, baseRgb),
         `${name} interactive ink — ${stKey} (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
+      byState[stKey] = c;
     }
+    return byState;
+  };
+  /**
+   * The outline EDGE, per state — `border.{rest,hover,pressed}`, the same shape as `text.*` and
+   * `fill.*` (#576). It used to be ONE value pinned at step 500, which made two promises the engine
+   * could not keep: the Interactive page's `outlineInteraction: 'none'` blurb says "the border and
+   * ink carry the state on their own" while the border had no states to carry them with, and the
+   * common intent "make the outline's edge match its label" was unreachable — measured across the
+   * corpus, 16 of 20 brand×mode combinations put the pinned 500 border on a different ramp step
+   * from the ink, and EVERY dark mode did.
+   *
+   * The default is therefore to FOLLOW THE INK, and it does so by consuming the very candidates
+   * `iText` resolved rather than re-deriving the step from the palette. That is deliberate: two
+   * derivations of "the same step" are two things that can drift, and the whole defect this closes
+   * was a second site re-deriving a mapping (#575). One derivation, passed by value.
+   *
+   * The gate stays at `nonTextMin`, not the ink's `secondaryMin`: a border carries no text, so SC
+   * 1.4.11 governs it (the same category correction #352 made for fills). Following the ink can
+   * never FAIL that gate — the ink already cleared the stricter text bar — so matching is always
+   * contrast-safe, which is a large part of why it is the right default rather than merely a
+   * convenient one. The declared minimum is still the border's own, so a future non-matching source
+   * is held to the right bar rather than inheriting the ink's.
+   */
+  const iBorder = (name: string, inkByState: Record<string, Cand>, ground: RGB, slot: string, against: string): void => {
+    for (const stKey of ['rest', 'hover', 'pressed'] as const)
+      put(`interactive.${name}.${slot}${stKey}`, rated(inkByState[stKey], ground),
+        `${name} interactive border — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
   };
 
   // primary — the action palette, contrast-verified.
   iFill('primary', actionRest, r2p.action, fillFloorMin);
-  iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true);
-  put('interactive.primary.border', rated(chromatic(r2p.action, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Primary interactive border (outline)', 'background.primary', cfg.nonTextMin);
+  iBorder('primary', iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true), baseRgb, 'border.', 'background.primary');
 
   // destructive — the danger palette (its own interactive column, no scavenging).
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
@@ -564,8 +592,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     ? chromatic(r2p.danger, daAnchor, floorRgb, fillFloorMin, true)
     : paletteRole('danger', floorRgb, fillFloorMin);
   iFill('destructive', iDestructiveRest, r2p.danger, fillFloorMin);
-  iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true);
-  put('interactive.destructive.border', rated(chromatic(r2p.danger, 500, baseRgb, cfg.nonTextMin), baseRgb), 'Destructive interactive border (outline)', 'background.primary', cfg.nonTextMin);
+  iBorder('destructive', iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true), baseRgb, 'border.', 'background.primary');
 
   // neutral — the achromatic column that was the historical miss (docs/20 §12). The
   // `neutralEmphasis` lever picks the fill: 'subtle' (default) a light grey (min 0 — a
@@ -576,7 +603,25 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const neutralAnchor = neutralStrong ? (cfg.family === 'light' ? 800 : 150) : (cfg.family === 'light' ? 150 : 850);
   iFill('neutral', neutralStepR(neutralAnchor), r2p.neutral, neutralStrong ? cfg.nonTextMin : 0);
   iText('neutral', pickMostExtreme(textCands, baseRgb), r2p.neutral, false);   // strongest neutral — states collapse onto rest
-  put('interactive.neutral.border', pickMinPass(ramp, baseRgb, cfg.nonTextMin), 'Neutral interactive border (outline)', 'background.primary', cfg.nonTextMin);
+  // Neutral is the ONE column whose border does NOT follow the ink, and the reason is measurable
+  // rather than aesthetic: its ink is `pickMostExtreme` (step 950 light / 025 dark — near-black or
+  // near-white) while its edge is `pickMinPass` (400–550, a mid grey). Those are opposite ends of
+  // the ramp ON PURPOSE, and the ink is `walkable: false`, so its three states all collapse onto
+  // rest. Following it would therefore do BOTH wrong things at once — repaint every neutral outline
+  // near-black, and leave the border stateless again, which is the defect this closes.
+  //
+  // So neutral keeps its own anchor and walks the neutral ramp for its states, which is exactly the
+  // `field.border` idiom (rest + a two-step-stronger hover, re-gated at `nonTextMin`) extended to a
+  // third state. Two steps per state, matching `field.border.hover`'s reasoning verbatim: a border
+  // is a hairline, and one step is a far weaker cue on 1px of chrome than on a filled button.
+  const nBdRest = pickMinPass(ramp, baseRgb, cfg.nonTextMin);
+  const nBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === nBdRest.path)!.num;
+  const nBdGuard = guardFrom(contrast(nBdRest.rgb, baseRgb), baseRgb, cfg.nonTextMin);
+  iBorder('neutral', {
+    rest: nBdRest,
+    hover: walk(r2p.neutral, nBdNum, 2, dir, nBdGuard),
+    pressed: walk(r2p.neutral, nBdNum, 4, dir, nBdGuard),
+  }, baseRgb, 'border.', 'background.primary');
 
   // extensible interactive columns (docs/20 §3) — N opt-in `interactive.<name>.*` families, each
   // promoting a declared palette (the generalised accent lever). Same fill+states / text / border
@@ -591,8 +636,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
     const rest = chromatic(entry.palette, anchor, floorRgb, fillFloorMin, pinned);
     iFill(entry.name, rest, entry.palette, fillFloorMin);
-    iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true);
-    put(`interactive.${entry.name}.border`, rated(chromatic(entry.palette, 500, baseRgb, cfg.nonTextMin), baseRgb), `${entry.name} interactive border (outline)`, 'background.primary', cfg.nonTextMin);
+    iBorder(entry.name, iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true), baseRgb, 'border.', 'background.primary');
   }
 
   // inverse surface-context (docs/20 §9): the ink for an OUTLINE / TEXT interactive control
@@ -608,12 +652,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const invColumn = (name: string, palette: string | null, anchor: number): void => {
       const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
       const textNum = (textRest as RatedNum).num;
+      const invInk: Record<string, Cand> = {};
       for (const st of ['default', 'hover', 'pressed'] as const) {
         const stKey = st === 'default' ? 'rest' : st;
         const c: Cand = (st === 'default' || !palette) ? textRest
           : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
         put(`interactive.${name}.on-inverse.text.${stKey}`, rated(c, invRgb),
           `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
+        invInk[stKey] = c;
       }
       // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
       // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
@@ -628,18 +674,36 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       }
       put(`interactive.${name}.on-inverse.on-fill`, onColor(fillRest.rgb),
         `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.on-inverse.fill.rest`, onMin);
-      // The outline EDGE on the dark band. Same anchor as the page border (step 500) but nudged
-      // against `invRgb` and declared against the inverse surface, so the contract count covers it.
-      // Without this the page border was the only one emitted and it is verified against
-      // `background.primary` only — a mid-tone clears 3:1 on BOTH grounds just inside a window
-      // (page-contrast 3.00 … ~6.48 for the emitted inverse surface), and nothing checked the far
-      // edge of it. The two nudged brands sit at 3.76/3.77 because `chromatic(..., nonTextMin)`
-      // pushes them TO the floor, which is the safe end; Wendy's brand red is naturally dark, is
-      // never nudged, clears the page at 5.88 untouched and landed 3.30 on the inverse band — 0.30
-      // from failing, with every gate green. A darker action color than that fails outright (#467).
-      put(`interactive.${name}.on-inverse.border`,
-        palette ? rated(chromatic(palette, 500, invRgb, cfg.nonTextMin), invRgb) : pickMinPass(ramp, invRgb, cfg.nonTextMin),
-        `${name} interactive border on a dark / inverse surface (outline on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
+      // The outline EDGE on the dark band, now per state (#576) and following the on-inverse ink,
+      // for the same reason the page border does — the intent "the edge matches its label" is no
+      // less true on a dark hero, and `invInk` is already resolved and gated against `invRgb`.
+      //
+      // This REPLACES a step-500 pick nudged against `invRgb`, and #467's finding is why the
+      // replacement is safe rather than merely equivalent. That pick was declared against the
+      // inverse surface so the contract covers it; before it existed the page border was the only
+      // edge emitted and was verified against `background.primary` alone — a mid-tone clears 3:1 on
+      // BOTH grounds just inside a window (page-contrast 3.00 … ~6.48 for the emitted inverse
+      // surface) and nothing checked the far edge. Wendy's brand red, never nudged, landed 3.30 on
+      // the inverse band — 0.30 from failing with every gate green, and a darker action color fails
+      // outright. Following the ink retires that whole margin problem: the ink is gated at
+      // `secondaryMin` against `invRgb`, a STRICTER bar than the border's `nonTextMin`, so the edge
+      // now inherits a pick that has already cleared 4.5:1 on this exact ground instead of one
+      // sitting 0.30 above 3:1. The declared minimum stays the border's own — a future
+      // non-matching source must be held to its own bar, not to the ink's.
+      //
+      // Neutral has no palette, so its ink is `pickMostExtreme` and its states collapse; it takes
+      // the same own-anchor treatment as the page-ground neutral border above.
+      if (palette) iBorder(name, invInk, invRgb, 'on-inverse.border.', 'background.inverse.primary');
+      else {
+        const iBdRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
+        const iBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === iBdRest.path)!.num;
+        const iBdGuard = guardFrom(contrast(iBdRest.rgb, invRgb), invRgb, cfg.nonTextMin);
+        iBorder(name, {
+          rest: iBdRest,
+          hover: walk(r2p.neutral, iBdNum, 2, -dir, iBdGuard),
+          pressed: walk(r2p.neutral, iBdNum, 4, -dir, iBdGuard),
+        }, invRgb, 'on-inverse.border.', 'background.inverse.primary');
+      }
     };
     invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
     invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);

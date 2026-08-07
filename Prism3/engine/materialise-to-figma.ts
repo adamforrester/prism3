@@ -612,7 +612,9 @@ return {
   backgroundPrimaryByMode:perMode,
   slotScopes:{
     'interactive/primary/text':scope('color/interactive/primary/text'),
-    'interactive/primary/border':scope('color/interactive/primary/border'),
+    'interactive/primary/border/rest':scope('color/interactive/primary/border/rest'),
+    'interactive/primary/border/hover':scope('color/interactive/primary/border/hover'),
+    'interactive/primary/border/pressed':scope('color/interactive/primary/border/pressed'),
     'disabled/fill':scope('color/disabled/fill'),
     'disabled/on-fill':scope('color/disabled/on-fill'),
     'disabled/text':scope('color/disabled/text'),
