@@ -7863,6 +7863,12 @@ input.toggle:disabled{opacity:.5;cursor:default}
    the trap #369/#388 kept hitting. */
 .tf-bulk{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:2px 0 0}
 .tf-bulklab{font-size:12.5px;color:var(--ink2);font-weight:560}
+/* #558 — .tf-addbtn's base padding/font-size (7px 16px / 13px) is tuned to match .tf-in (36.1px),
+   its OTHER pairing below in "Add face". Here it instead sits beside .select.sm (33.4px, the compact
+   variant — correct and unchanged everywhere else it's used standalone). Scoped so only this row's
+   button drops to .select.sm's own padding-block (6px) and font-size (12.5px), landing both controls
+   at the same 33.4px rather than inventing a third height for the row. */
+.tf-bulk .tf-addbtn{padding:6px 16px;font-size:12.5px}
 .tf-in{width:100%;padding:7px 9px;border:1px solid var(--line2);border-radius:var(--r-xs);font:inherit;font-size:13px;background:var(--paper);color:var(--ink);min-width:0}
 .tf-stat{font-size:11px;font-weight:600}
 /* A token pill is white-space:nowrap, so its full single-line width is its MIN-CONTENT contribution

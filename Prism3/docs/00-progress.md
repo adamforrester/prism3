@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-07) — `.tf-bulk` row height mismatch: `select.sm` vs `.tf-addbtn` (#558)
+
+**STATUS: shipped.** `web/src/main.ts` CSS only — one 6-line scoped rule, no runtime/behavior change.
+
+Typography → Semantics → Typefaces, the "Set every text category to" row (`.tf-bulk`): `select.sm`
+measured 33.4px, `.tf-addbtn` ("Apply to all") measured 36.1px beside it. Traced both box models —
+`.select.sm` is `padding:6px 9px` at `font-size:12.5px`, `.tf-addbtn` is `padding:7px 16px` at
+`font-size:13px`, neither sets its own `line-height` so both inherit `body`'s `1.55`; the arithmetic
+(`12.5*1.55+12+2border=33.375` vs `13*1.55+14+2border=36.15`) reproduces the reported pixels almost
+exactly and confirmed neither number was a rendering-engine surprise, just the CSS as written.
+
+**`.tf-addbtn` is not a free-floating value — it already has an established, correct pairing
+elsewhere.** It's also the "Add face" submit CTA on Primitives, sitting beside `.tf-in` (a text input:
+`padding:7px 9px`, `font-size:13px`), and that pairing already lands both at 36.1px — the comment above
+the rule even says it was modelled on that pairing (#405). So `.tf-addbtn`'s base values are correct for
+its OTHER usage; changing them globally to chase `.select.sm`'s 33.4px would have fixed this row and
+broken that one. `.select.sm` likewise is correct everywhere else it appears — always standalone, never
+previously paired with a button, so nothing else in the file validates or invalidates its height in a
+row context. `.tf-bulk` turned out to be the only place in the file pairing `select.sm` with a button at
+all, so there was no third existing "compact select + button" convention to defer to either.
+
+**Fix: a `.tf-bulk .tf-addbtn` scoped override**, dropping only this row's button to
+`padding:6px 16px;font-size:12.5px` — literally `.select.sm`'s own padding-block and font-size numbers,
+reused rather than invented, landing both controls at the same 33.375px. `.select.sm` and the base
+`.tf-addbtn` rule are both untouched, so the Add-face/`.tf-in` pairing stays exactly as it was.
+
+**Verified live**, not just by arithmetic: built `web/dist` and drove it with Playwright
+(`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, per #333 — this repo still carries no
+Playwright dependency). Before the fix: `select.sm` 33.375px / `.tf-addbtn` 36.140625px, matching the
+issue's reported 33.4/36.1 to sub-pixel precision. After: both 33.375px exactly. Separately measured the
+Primitives "Add face" row (`.tf-in` + `.tf-addbtn`) post-fix to confirm the scoped selector didn't leak:
+still 36.140625px both, unchanged.
+
+**Trap for next time:** when two adjacent controls in a row mismatch height, check whether either class
+already has an established, correct pairing ELSEWHERE in the file before equalizing — the button here
+looked like the obvious thing to shrink, but it was `.select.sm` sitting in an unfamiliar context
+(paired with a button for the first time anywhere in the file) that was the actual anomaly, not the
+button's own values.
+
+---
+
 ## (2026-08-07) — Prose audit: `main.ts` comments asserting retired mechanisms (#552)
 
 **STATUS: shipped.** `web/src/main.ts` comments only — no runtime behavior change. Sibling to #547 (same
