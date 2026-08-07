@@ -240,10 +240,13 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // is the argument for the converse direction rather than a fifth reminder.
   { label: 'the emitted reports (ENGINE_ARTIFACTS)', test: (f) => ENGINE_ARTIFACTS.some((a) => f.endsWith(`/${a}`)) },
   { label: 'the engine README', test: (f) => f.endsWith('/Prism3/engine/README.md') },
-  // …and the FIFTH, added with the surface rather than after it. Matched exactly, not by suffix: a
-  // `endsWith('/README.md')` test would also claim `Prism3/engine/README.md`, so deleting the engine
-  // README's own line would leave it silently claimed here and its absence would stop being fatal —
-  // the converse check can only protect a promise that describes one surface.
+  // …and the FIFTH, added with the surface rather than after it. Matched exactly, not by suffix, and
+  // the hazard runs one way only. `endsWith('/README.md')` would be satisfied by the ENGINE README's
+  // file, so dropping the ROOT README from `gated` would leave THIS surface still represented — by a
+  // file it does not describe — and the SCOPE check above would stop firing while real en-GB shipped
+  // in the front door unseen. The mirror case never arises: the engine's own line is exact too and no
+  // root-level file can satisfy `endsWith('/Prism3/engine/README.md')`, so its absence stays fatal
+  // either way. A promise loose enough to describe two surfaces protects neither.
   { label: 'the root README (the repo front door)', test: (f) => f === join(repo, 'README.md') },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);

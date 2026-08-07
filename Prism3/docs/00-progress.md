@@ -256,9 +256,12 @@ it. Fixing the prose without fixing the scope buys one clean pass and nothing af
 **Gate 1 — US English (`lint-us-english.ts`).** The root README joins `gated` and gets its own
 `REQUIRED_SURFACES` line, added in the same edit rather than after it, since the converse check exists
 because that pairing has now been missed four times. Its `test` matches the path **exactly** rather
-than by `endsWith('/README.md')`: a suffix test would also claim `Prism3/engine/README.md`, so
-deleting the engine README's line would leave it silently claimed by this one and its absence would
-stop being fatal. A promise that describes two surfaces cannot protect either. Scan is 110 → 111
+than by `endsWith('/README.md')`, and the hazard runs one way only: a suffix test would be satisfied
+by `Prism3/engine/README.md`, so dropping the **root** README from `gated` would leave the *root*
+surface still represented — by a file that is not it — and its absence would stop being fatal while
+real en-GB shipped in the front door. The mirror case never arises: the engine's own test is exact
+too, and no root-level file can satisfy it. A promise loose enough to describe two surfaces protects
+neither. Scan is 110 → 111
 files. **Tamper-tested** per the standard for a gate change: a `colour` injected into the README
 fails the gate naming `README.md` and its line, exit 1; reverted, clean at exit 0.
 
@@ -270,9 +273,14 @@ carries a *categorical* summary on purpose. Forcing enumeration would make it a 
 CONTRIBUTING §3 — a new place to drift, created by the gate whose whole job is stopping drift.
 
 So it gets a second contract at a different strength: whatever the README summarizes, it must **name
-the two places that hold the real list** (`.github/workflows/ci.yml` and `CONTRIBUTING.md`). A reader
-who meets a stale summary still has a path to the authority, and no future edit can quietly cut it.
-The rejected alternative was to leave the README out with a comment recording the omission as a
+the two places that hold the real list** (`.github/workflows/ci.yml` and `CONTRIBUTING.md`). Be
+precise about what that buys, because it is easy to read as more: **it gates the pointer, not the
+summary.** A summary that goes stale still passes; so does one gutted from five categories to one, as
+long as both pointers survive. That is the intended scope — a stale summary beside a live pointer
+still routes the reader to the authority — but it means the summary itself is watched by nobody, and
+gating it would mean demanding the enumeration rejected two paragraphs up. What the check makes
+impossible is **severing** the path. Before this landed the README did both: 4 gates against CI's 21
+*and* neither authority named, a summary with no way out of it. The rejected alternative was to leave the README out with a comment recording the omission as a
 decision — honest, but it gates nothing, and this file had already drifted once with nothing
 watching. **Flagged in the PR as open to reviewer override**, since it is a judgement about what the
 README is for rather than a correctness fix. Tamper-tested the same way: strip the CONTRIBUTING.md
@@ -297,6 +305,20 @@ first step is `npm ci`.
 the gate fails closed on the missing surface. Also note **`lint-voice.ts` still does not cover the
 root README** — deliberately left alone as out of scope for this change, but it is the same hole one
 gate over, and the README was checked by hand against the §2 list in the meantime. Worth an issue.
+
+**Review follow-up (#646, comment-only — no behavior changed).** Both gate mechanisms survived
+independent mutation testing; both *comments describing them* did not, and that is the failure class
+this entry is about, one level up. `lint-doc-gates.ts` claimed the README "must NOT claim completeness
+while going stale in silence" — it can: five categories gutted to one, both pointers left intact,
+EXIT=0. `lint-us-english.ts` named the wrong victim for the suffix hazard — the engine README's
+absence is fatal either way (its own test is exact and unsatisfiable from the root), while the root
+README's is the one a suffix test would mask. Both comments now say what the code does, and both are
+re-verified by re-running the reviewer's mutations. **The lesson worth keeping is not either fix but
+the shape of them:** a comment asserting a protection the adjacent code does not provide is the exact
+defect this PR exists to close, and it shipped twice inside the PR that closes it. When writing a
+gate, state the property you can demonstrate by mutation — then run the mutation, including the one
+that should *pass*, since a gate's scope is defined as much by what it lets through as by what it
+catches.
 
 ---
 

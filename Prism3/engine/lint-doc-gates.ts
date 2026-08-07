@@ -85,10 +85,15 @@ const REQUIRED_DOCS: { label: string; path: string }[] = [
 // drift. The summary's failure mode is different from a checklist's, and needs a different check.
 //
 // So the README is held to a WEAKER but still structural contract: whatever it summarizes, it must
-// name the two places that hold the real list. A reader who lands on a summary that has gone stale
-// still has a path to the authority, and a future edit cannot quietly sever it. What it must NOT do
-// is claim completeness while going stale in silence — which is exactly the state it was in before
-// this landed, listing 4 gates against CI's 21 with nothing watching.
+// name the two places that hold the real list. What this gates is the POINTER, not the summary — and
+// the distinction is the whole point, so read it literally rather than as an understatement. A
+// summary that goes stale still passes. A summary gutted from five categories to one still passes,
+// with both pointers intact (verified by mutation in review of #646). This check cannot detect that,
+// and is not trying to: a stale summary beside a live pointer still routes the reader to the
+// authority, which is what the README is for. What no future edit can do is SEVER that path. Before
+// this landed the README both listed 4 gates against CI's 21 AND named neither authority — a summary
+// with no way out of it. The dead end is what this closes; the drift above it is deliberately not
+// gated, because gating it would mean demanding enumeration, which is the outcome rejected above.
 //
 // This is the more conservative of the two options considered; the other was to leave the README out
 // entirely with a comment recording the omission as a decision. That records the reasoning but gates
