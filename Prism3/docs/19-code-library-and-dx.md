@@ -175,6 +175,46 @@ not part of this slice but adjacent) is **#259**.
 
 ---
 
+## 9. First consumption evidence (2026-08-06 spike) — the DTCG output is not consumable unmodified
+
+The whole chain below §8 assumes a standard tool can read our DTCG. **Nothing had ever tested that.**
+A scratch spike ran Style Dictionary 5.5.0 against `out/nb.tokens.json`. Findings, all measured:
+
+| # | finding | severity |
+|---|---|---|
+| 1 | **Modes silently dropped.** 551 leaves → 551 CSS vars, 1:1. Per-mode values live in `$extensions.prism3.modes`, which SD does not read. 133 of 551 vars wrong for dark, 138 for hc-dark. No warning. | 🔴 |
+| 2 | **Aliases flattened.** Zero `var()` references; every alias resolved to a literal. The semantic→primitive relationship is erased unless the consumer sets `outputReferences: true`. | 🟠 |
+| 3 | **Composite typography lossy.** 38 tokens collapse into a CSS `font` shorthand that drops letter-spacing, text-case, text-decoration, and the fluid *minimum* size. | 🟠 |
+| 4 | **A mode-aware adapter is ~15 lines** — a preprocessor swapping `$value` from the extension, plus `outputReferences`, yields correct per-mode files with references intact. | 🟢 |
+
+**The generalization, which is bigger than Style Dictionary:** `$extensions` is defined by DTCG as
+ignorable, so **every conforming consumer is blind to our modes**, not just SD. An adapter would be
+load-bearing forever. See `12 §10c` — this is now the gating decision for this whole layer, because
+whatever the code library consumes is whatever the engine emits.
+
+Two consequences for §8's first slice:
+
+- The **token→CSS leg is available now** and is not blocked by §7's open decisions; it depends only on
+  the DTCG output. The **component leg is genuinely blocked** on §7.2 (author-headless vs wrap), which
+  has no lean recorded anywhere.
+- Findings 2 and 3 are **Style Dictionary configuration and transform choices**, not token-side defects
+  — worth knowing before anyone "fixes" the emitter for them.
+
+**Also settled by the spike:** who owns platform output. Since the mode representation is a Prism3
+extension, no third-party tool can be expected to handle it — so a first-party adapter or emitter is
+required regardless of whether Style Dictionary is in the pipeline. Leaving it to consumers means each
+writes it independently and unverified, which relocates the risk the token contract exists to prevent
+to somewhere we cannot gate.
+
+The mode decision this forces is filed as **#609**, with the unified-export target (`12 §11`) as its
+motivating use case — whatever this layer consumes is whatever that decision produces.
+
+**Style Dictionary would be this repo's first real runtime dependency.** It belongs in a workspace
+alongside `web`/`plugin`, never imported by the engine core — the buildless, no-`npm install` invariant
+is what lets the engine bundle into the Figma plugin sandbox.
+
+---
+
 *Cross-refs: `14` (component-data layer + build sequence), `18` (plugin/host capability), `08`
 (shared control layer / lever manifest), `09` (monorepo), `15` (deployment neutrality). KB: `03 §6/§7`
 (components-as-data + the .ai.json fields), `27` (headless primitives + intent metadata for LLM
