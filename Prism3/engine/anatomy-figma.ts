@@ -1101,8 +1101,20 @@ for(const [name,key] of bare)if(!referenced.has(key))propMiss.push('property '+n
  * chunk given a slice would place its members as though the slice were the whole set — `col` indices
  * restart at 0 and chunk 2 lands on top of chunk 1. Chunked pasting therefore hands the FULL plan
  * list to this and slices the *cells*, which keeps every member's coordinate absolute.
+ *
+ * EXPORTED for the plugin's `applyComponentPlan` (#487 step 5), which is the third caller and the
+ * first outside this file. Shared rather than reimplemented because the alternative is a second copy
+ * of the three set-level guards and the varying-axis grid rule, and the comments above record what
+ * happens to a second copy of anything in this lane.
+ *
+ * BUT NOT SHAREABLE BY A PARITY GATE, and that is the load-bearing half. `test.ts` compares the two
+ * executors' OBSERVABLE RESULTS — the axes Figma derived, the properties, the member coordinates —
+ * precisely because both paths call THIS. A gate that instead compared two calls to `planSetLayout`
+ * would be comparing one expression to itself and could not fail (docs/34). What the gate is
+ * actually checking is everything downstream of here: node building, combine ordering, position
+ * writing, read-backs. Do not "simplify" it into a shared-helper comparison.
  */
-const setLayout = (plans: AnatomyPlan[], fn: string) => {
+export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   if (!plans.length) throw new Error(`${fn}: no plans`);
   // ONE COMPONENT PER SET, and the two guards below cannot cover it. Both reason about
   // `planComponentName`, which is built from `coord`/`size`/`slots` and deliberately carries NO
@@ -1167,7 +1179,7 @@ const setLayout = (plans: AnatomyPlan[], fn: string) => {
 };
 
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
-  const { cells, props, refs, axes, rows, cols } = setLayout(plans, 'planSetToPluginJs');
+  const { cells, props, refs, axes, rows, cols } = planSetLayout(plans, 'planSetToPluginJs');
 
   return stripPayloadComments(`const PLANS=${JSON.stringify(cells)};
 const PROPS=${JSON.stringify(props)};
@@ -1468,7 +1480,7 @@ export const planSetChunks = (
   // `setLayout` per slice instead would compute `rowLabels`/`colVals` from a fifth of the members, so a
   // later chunk's `col` indices would restart at 0 and it would land on top of the first — #510's
   // stacking bug, reintroduced one chunk at a time.
-  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals } = setLayout(plans, 'planSetChunks');
+  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals } = planSetLayout(plans, 'planSetChunks');
 
   // `name` + `root` only. `row`/`col`/`group` are all derivable from the name inside the payload, and
   // the payload's bytes are the budget this whole function exists to respect.
