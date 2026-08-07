@@ -7,6 +7,86 @@
 
 ---
 
+## (2026-08-07) — Prose audit: `main.ts` comments asserting retired mechanisms (#552)
+
+**STATUS: shipped.** `web/src/main.ts` comments only — no runtime behavior change. Sibling to #547 (same
+file, disjoint scope: rendered user copy vs. code comments); expect a rebase, not a conflict, since the
+two touch different lines almost everywhere.
+
+**All seven mechanism claims were still live and all corrected, by re-reading the code they described
+rather than trusting the issue text.** `pageHasModeVaryingControl`'s JSDoc claimed Typography keeps the
+mode bar and its editors write via `currentMode`; the function actually returns `false` for the whole
+page (three pages fail it unconditionally now, not two — `layout`, `palettes`, `typography` — plus
+`preview` conditionally), and the editors write via column-scoped `setModeLever(m, ...)`.
+`renderTypeRamp` repeated the same false claim; both fixed together. The `-inv` pair warning near the
+status-color darkening logic described a variable (`--ok-inv`/`--warn-inv`/`--danger-inv`) that grepped
+to nothing anywhere in the repo, and `lint-contrast.mjs`'s `PAIRS` never measures against `--ink` —
+removed the false warning, pointed at the real gate instead. The `.slider`/`.range` neutralizer comment
+still described a `.slider{margin-top:16px}` rule PR #516 deleted three weeks ago along with its
+neutralizer; only `.range` survives (exempted from `lint:classes` because `range`/`psl-range` share a
+stem), so the comment now only claims what's still true. `renderModeStrip`'s two comments called the
+strip "the persistent header mode-selector" with "per-mode contrast ✓/✗ marks" — it's workspace
+furniture (#432), and the marks were retired by #54; both sites fixed. The mode-context block claimed
+"view-only until the override layer exists" and put the mode-set config in an "Edit modes" popover on
+the strip — the override layer (`brandState.overrides`, `modeAnchors`, `modeLevers`) is written
+throughout, and the config UI moved to the brand dropdown menu back in #432 (a second, accurate comment
+already said so three lines below the stale one — deleted the stale duplicate rather than trying to
+reconcile two docstrings for the same function). `LIVE_CONTROLS`'s comment cited #97/#99 as still-open
+work; all three bespoke editors and all three specimens now exist and are routed, so it was rewritten to
+describe what's actually left on the generic fallback path (`baseMd`, `disabledMin`, and
+`radiusScale`/`density`/`shadow.softness`/`motionPersonality.tempo` specifically on Light, where a
+per-mode bespoke editor takes over everywhere else). The "Semantic tab" comment named a NAV tab that
+doesn't exist (it's "Interactive"), a `disabledStrategy` value (`'accessible'`) that isn't one of the
+real values (`full`/`reduced`), and a "trailing catch-all" that a repo-wide grep doesn't find — like the
+mode-context case, an accurate replacement comment already sat directly below it; deleted the stale one.
+
+**Ten drifted numbers, six unchanged from the issue's snapshot, three needed correcting, one genuinely
+brand-dependent split.** Measured live against the current engine (aurora + harbor, matching the file's
+own resolution logic — `buildTree`/`resolveAllModes` over `brandTheme`), not assumed from the issue text:
+- "6 of 147 colour roles alias the same target in every mode" → **151 colour roles total** (was 147,
+  brand-invariant), **10 keep the same alias every mode on aurora, 9 on harbor** (was 6 — the one number
+  that had drifted on both brands, not just one).
+- "441 of them (every colour)" override entries → **453** (was 441; the shadow-shape count, 7, was
+  already correct and unchanged).
+- "(30 of them: grid → space → dimension)" one-hop semantic aliases → **32 on aurora, 30 on harbor**
+  (harbor still matches the original number exactly; aurora has since grown an extra breakpoint tier).
+- "every one of the 38 composites" → **37 on aurora, 38 on harbor** (harbor unchanged; aurora dropped one).
+- "the 8 duration-ms primitives" → **9 on aurora, 8 on harbor** (harbor unchanged).
+- "~4 of 21 steps" → **~4 of 20 steps** (the ramp has always been the engine's 20-step scale per
+  `ramp.ts`; 21 was wrong, and correcting it makes the neighboring "80% fail" claim land exactly instead
+  of approximately).
+- "the pill is used in 17 places" → **27** (literal `tokenPill(` call-site count, file has grown).
+- "every one of the ~130 uses is 9-15px" (`--faint`/`--muted`) → **143** combined usages (literal count).
+- "reaching loose needs +4 or +5" → **needs +5** (the `+4` case doesn't occur in current `display`-group
+  leading data on either brand — dropped, not just re-numbered).
+- "92px measured: widest label '2 tighter'" → the quoted label doesn't exist any more (#411 replaced
+  word-form nudge labels with signed deltas); rewrote to name the actual current widest label
+  ("default") rather than invent a new unverified pixel figure — no browser in this environment to
+  re-measure text width honestly, so the box is left wide with the reasoning corrected rather than the
+  number re-guessed.
+
+Three of the four brand-dependent numbers (composites, duration-ms primitives, one-hop aliases) turned
+out to still exactly match **harbor** as originally written — only aurora had drifted, and only the
+same-alias-every-mode count had drifted on *both* brands. Comments now cite aurora (the file's actual
+boot default, `bootBrand() → BRANDS.aurora`) with harbor noted parenthetically where they differ, so the
+number a reader checks against a fresh `npm run dev` matches what's written.
+
+**One corrupted comment.** Near `tokenPill`'s doc, two sentences about text-selection-exactness and
+`text-overflow` had been spliced together mid-word (a duplicated "which is what keeps a text..." clause
+with the connecting text missing). Rewritten as one coherent sentence; no factual content was recovered
+or lost, just the readability.
+
+**Gates run locally, all green:** `regen.ts` (comment-only change, artifacts byte-identical after
+regen), `regen.ts --check` (88 artifacts in this worktree, per the documented worktree-vs-main-checkout
+discrepancy), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (unchanged,
+contract 2.1.0), `lint-skills.ts` (clean), `lint-us-english.ts` (94 shipped files, clean — run *after*
+`npm run -w @prism3/web build` so the bundle is in scope, per its own documented trap), `npm run -w
+@prism3/web typecheck` (clean at every intermediate step, not just at the end — re-run after every edit
+inside the `STYLE` template literal per the backtick trap), `npm run -w @prism3/web build` (530.2kb,
+succeeds).
+
+---
+
 ## (2026-08-07) — Fix: plugin read-back never surfaced the `icon` FLOAT collection
 
 **STATUS: shipped.** Found during independent review of #597, not filed as an issue first — CI on

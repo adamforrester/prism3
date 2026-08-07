@@ -77,9 +77,11 @@ const ROOT_RE = /^[a-z][a-z0-9-]*$/;
 // Every ATOMIC control is live — it edits brandState and re-runs the engine on change.
 // Liveness is by control TYPE, not a per-key allowlist: sliders, enums, palette-refs, and
 // toggles all have real handlers (a bad value just surfaces the error bar, never crashes —
-// rebuild() is try/caught). Object/list levers (families, surfaces, brand colors) stay
-// read-only until their bespoke editors land (#97). Not every live axis is mirrored in the
-// shared preview yet (density/motion/shadow need specimens, #99) — but the control works.
+// rebuild() is try/caught). Object/list levers (families, surfaces, brand colors) all got their
+// bespoke editors (#97) — this generic path is what's left over: baseMd, disabledMin, and
+// radiusScale/density/shadow.softness/motionPersonality.tempo on Light, where a bespoke per-mode
+// editor takes over everywhere else. density/motion/shadow all have live preview specimens now
+// (#99) — paintSizePreview, renderMotionSpecimen, renderShadowSpecimen.
 const LIVE_CONTROLS = new Set(['slider', 'enum', 'palette-ref', 'toggle']);
 
 const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-light': 'HC light', 'hc-dark': 'HC dark', wireframe: 'Wireframe' };
@@ -159,8 +161,9 @@ const rebuild = (): void => {
 // edits — add/remove color, Derive⇄Pin, stage switch); build() re-renders the shell.
 let paintVolatile: () => void = () => {};
 let globalErrHost: HTMLElement | null = null;
-// renderModeStrip repaints the persistent header mode-selector (#171 promoted to the global header,
-// docs/23 §7) — its per-mode contrast ✓/✗ marks track the theme, so every edit refreshes it too.
+// renderModeStrip repaints the mode-selector strip that sits at the top of the workspace (#432) — it
+// carries no contrast marks any more (#54 retired, owner decision), but still needs to refresh on
+// every edit because currentMode's "on" state and the derived-mode "view only" tag both track it.
 /** Keep the global error bar honest after every rebuild. `lastError` is set by `rebuild()`'s catch and
  *  means "the live edit did not resolve; you are looking at the last good theme" — a state the user must
  *  be told about wherever they are, not only on the page that happens to render it. */
@@ -248,14 +251,14 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
  *  hover bubble both carry the full path, and the emitted path itself is unchanged, which is what
  *  doc-26's namespace rule is actually about.
  *
- *  The path stays a SINGLE text node and the elision is purely visual, which is what keeps a text
- *  `text-overflow` bites), which is what keeps a text selection exact — today's pill is one text node
- *  too, so anything that split it would REGRESS copy/paste. Two earlier attempts did exactly that:
- *  `inline-flex` head+tail laid out correctly but flex items are blockified, so a selection came back
- *  as `color\n.background.primary`; switching to `inline-block` with the tail's width reserved in `ch`
- *  fixed the newline but the head's `max-width:100%` resolved against the pill's own shrink-to-fit
- *  width — circular — which collapsed the head to nothing on 181 of 198 pills. Both measured, not
- *  reasoned about. `title` carries the full path for the elided case. */
+ *  The path stays a SINGLE text node and the elision is purely visual — only where `text-overflow`
+ *  bites does the rendered text truncate — which is what keeps a text selection exact: today's pill
+ *  is one text node, so anything that split it would REGRESS copy/paste. Two earlier attempts did
+ *  exactly that: `inline-flex` head+tail laid out correctly but flex items are blockified, so a
+ *  selection came back as `color\n.background.primary`; switching to `inline-block` with the tail's
+ *  width reserved in `ch` fixed the newline but the head's `max-width:100%` resolved against the
+ *  pill's own shrink-to-fit width — circular — which collapsed the head to nothing on 181 of 198
+ *  pills. Both measured, not reasoned about. `title` carries the full path for the elided case. */
 const tokenPill = (path: string): HTMLElement => {
   const p = el('span', 'tpill mono', path);
   p.title = path;
@@ -1037,9 +1040,9 @@ const shadowCss = (layers: unknown): string => Array.isArray(layers)
 // Typography carried this split first (#272, via `.pvseg`); this generalises it. Two defects forced
 // it, and each is invisible until the tiers are apart: PRIMITIVES HAVE NO MODES, so the four mode
 // columns rendered four identical cells for all 142 palette steps; and a semantic's resolved value is
-// only half of it — which token it ALIASES is the editable relationship, and only 6 of 147 colour
-// roles alias the same target in every mode, so the alias has to live INSIDE each mode cell rather
-// than in one shared column.
+// only half of it — which token it ALIASES is the editable relationship, and only 10 of 151 colour
+// roles alias the same target in every mode (aurora; harbor: 9), so the alias has to live INSIDE each
+// mode cell rather than in one shared column.
 type TokTier = 'primitive' | 'semantic';
 let tokTier: TokTier = 'primitive';
 let tokShow: 'both' | 'alias' | 'value' = 'both';
@@ -1076,7 +1079,7 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   const valueAt = (node: TreeNode, m: Mode): unknown => {
     const ov = node.$extensions?.prism3?.modes?.[m];
     if (m === baseMode || !ov) return node.$value;
-    // Two override shapes exist in the emitted tree. 441 of them (every colour) are
+    // Two override shapes exist in the emitted tree. 453 of them (every colour) are
     // `{ $value, aliasOf, … }`; shadow's 7 are the RAW layer array. Reading only `ov.$value` made
     // every dark shadow render as an em-dash in the one view whose job is the exhaustive dump — the
     // table said "no dark value" for a family that has one, on all 7 rows.
@@ -1140,8 +1143,8 @@ const renderPreviewTokens = (host: HTMLElement): void => {
     if (wantAlias && parts.length) {
       // STACKED, one labelled row per part. Chosen over an inline join because the five paths run
       // ~123 characters — about 775px at this size, i.e. the whole 850px content column, so every
-      // one of the 38 composites would scroll sideways. Stacking costs height in one section only;
-      // `type.*` is the only shape in the system with more than one alias.
+      // one of the 37 composites would scroll sideways (aurora; harbor: 38). Stacking costs height
+      // in one section only; `type.*` is the only shape in the system with more than one alias.
       const g = el('div', 'tok-stack');
       for (const part of parts) {
         g.append(el('span', 'pfk', part.label));   // the shared micro-label (doc 26), not a new variant
@@ -1150,8 +1153,9 @@ const renderPreviewTokens = (host: HTMLElement): void => {
       wrap.append(g);
     } else if (wantAlias && alias) {
       const a = el('span', 'mono tok-alias', tokPath === 'short' && canShort ? alias.split('.').slice(1).join('.') : alias);
-      // A semantic that aliases another SEMANTIC (30 of them: grid → space → dimension). The one-hop
-      // target is the editable relationship, so that is what shows; the chain is on the marker.
+      // A semantic that aliases another SEMANTIC (32 of them: grid → space → dimension; harbor: 30).
+      // The one-hop target is the editable relationship, so that is what shows; the chain is on the
+      // marker.
       const hop = hopAt(node, m);
       if (hop && tokTierOf(hop) === 'semantic') {
         const c = el('span', 'tok-chain', ' ›');
@@ -1755,10 +1759,6 @@ const statusRow = (role: StatusRole): { row: HTMLElement; refresh: () => void } 
   return { row, refresh };
 };
 
-// The Semantic tab groups its 8 controls into intent sub-sections (design review §1) rather
-// than one flat panel. `disabledMin` nests under `disabledStrategy` — it only bites when the
-// strategy is 'accessible'. A trailing catch-all renders any ungrouped semantic lever so a
-// future addition can't be silently dropped.
 // The Interactive page groups its controls into intent sub-sections. (Gradients — formerly a "Features"
 // group here — now lives on the Surfaces page; page surfaces + text/ink are bespoke editors there.)
 const subHead = (title: string): HTMLElement => { const s = el('div', 'sub-lab'); s.append(el('h3', 'sub-t', title)); return s; };
@@ -1834,7 +1834,7 @@ const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string)
  *  the place you discover the problem only after choosing. Applies to every contrast-gated override
  *  picker, not just one row — the same reasoning holds everywhere the layer is used.
  *
- *  Marks the PASSING steps, not the failing ones. On a subtle tint only ~4 of 21 steps clear the label,
+ *  Marks the PASSING steps, not the failing ones. On a subtle tint only ~4 of 20 steps clear the label,
  *  so flagging failures put a warning on 80% of the list — technically accurate and useless, since a
  *  list that is nearly all warnings reads as noise rather than guidance. The short list is the useful
  *  signal, so it is the one that gets marked. (Interim: if #320 lands on clamping, the failing steps
@@ -2374,12 +2374,12 @@ const renderInteractiveMatrix = (host: HTMLElement): void => {
 
 // === Mode context control (#171) ==========================================================
 // A workspace-level single-select switcher that puts the WHOLE stage into ONE mode at a time —
-// editing one mode at a time (docs/11 Pillar 2 authoring context; view-only until the override
-// layer exists). Three tiers by how a mode's values are produced: light/dark are GENERATED (and,
-// once Pillar 2 lands, editable); hc-light/hc-dark/wireframe are DERIVED-only (auto from the
+// editing one mode at a time (docs/11 Pillar 2 authoring context). Three tiers by how a mode's
+// values are produced: light/dark are GENERATED and editable, writing through `modeLevers` /
+// `modeAnchors` / `brandState.overrides`; hc-light/hc-dark/wireframe are DERIVED-only (auto from the
 // contrast contracts, read-only verification views); primitives are mode-independent so this
 // control never renders on that stage. Replaces the mode chips that used to overflow the brand
-// dropdown — the set-config (which modes exist) now lives in the "Edit modes" popover here.
+// dropdown. Managing WHICH modes exist moved to the brand menu (#432) — see `renderModeSetMenu`.
 let addModeOpen = false;         // C2 — the "+ Add mode" inline form is expanded
 let addModeName = '';            // C2 — survives popover re-renders
 const DERIVED_MODES = new Set<string>(['hc-light', 'hc-dark', 'wireframe']);
@@ -2393,9 +2393,6 @@ const modeIsEditable = (m: string): boolean => !DERIVED_MODES.has(m);
 const RESERVED_MODE_NAMES = new Set<string>(['light', 'dark', 'hc-light', 'hc-dark', 'wireframe']);
 const modeAllPass = (m: Mode): boolean => rp.contracts.every((ct) => !ct.byMode[m] || ct.byMode[m]!.pass);
 
-/** The mode-SET config — which modes this brand generates/exports (relocated out of the brand
- *  dropdown). Light always; dark / HC / wireframe opt-in (docs/11 Pillar 1). `+ Add mode` (a custom
- *  mode seeded from a chosen base, then tuned) is gated until the override-layer engine work lands. */
 /** The mode-SET editor (which modes this brand generates + custom modes). Host-agnostic since #432:
  *  it moved from a popover on the mode strip into the brand menu, so the caller supplies both the
  *  repaint (the strip and the brand menu are re-rendered by different functions) and whether to drop
@@ -2955,9 +2952,10 @@ const renderEasingEditor = (): HTMLElement => {
 /** The duration ramp, read-only — what Tempo actually scales.
  *
  *  Tempo's whole job is to move this ramp and the page never showed it: 3 of the 6 semantic steps
- *  appeared only as pills inside the transitions specimen, the 8 `duration-ms` primitives they alias
- *  appeared nowhere, and the reduced ramp appeared nowhere at all — while two separate lines of copy
- *  claimed "reduce-motion is derived". A promise made twice and evidenced zero times.
+ *  appeared only as pills inside the transitions specimen, the 9 `duration-ms` primitives they alias
+ *  (aurora; harbor: 8) appeared nowhere, and the reduced ramp appeared nowhere at all — while two
+ *  separate lines of copy claimed "reduce-motion is derived". A promise made twice and evidenced zero
+ *  times.
  *
  *  Reads the CURRENT MODE's re-derived ramp (`motionByMode[mode]`) the same way the specimen does. A
  *  mode can run its own tempo, so reading `theme.motion` directly would print Light's numbers under a
@@ -4684,8 +4682,8 @@ const renderCategorySetup = (): HTMLElement => {
   // system could already do. The range is now DERIVED per category rather than fixed at ±2 (#377): a
   // flat cap was wrong in both directions at once — it offered dead steps for categories sitting
   // mid-ramp (from `normal`, +3/+4/+5 all clamp to `loose`) while hiding live ones for categories
-  // sitting at an end (`display` derives `tight`/`snug`, so reaching `loose` needs +4 or +5 and was
-  // simply unreachable). Both are the same mistake: guessing the range instead of computing it.
+  // sitting at an end (`display` derives `tight`/`snug`, so reaching `loose` needs +5 and was simply
+  // unreachable). Both are the same mistake: guessing the range instead of computing it.
   /** Steps that actually MOVE at least one composite in this category. A category can derive several
    *  rungs (title spans three size bands), so the range runs from "enough negative to floor the
    *  highest-derived composite" to "enough positive to top out the lowest". Engine-bounded to ±5. */
@@ -5404,9 +5402,11 @@ const RAMP_SAMPLE = 'The quick brown fox';
  *  everywhere" is usually the thing you actually want, and a table whose shape shifts as you edit is
  *  harder to read than a wider one that doesn't.
  *
- *  This does NOT retire the mode switcher on Semantics/Text styles: the editors above still resolve against
- *  `currentMode` and WRITE per-mode overrides. Seeing every mode removes the need to switch for
- *  READING, never for EDITING (#268). */
+ *  This is why the mode switcher is retired for the WHOLE typography page (see
+ *  `pageHasModeVaryingControl`): the editors above already resolve per column via
+ *  `setModeLever(m, ...)`, not `currentMode`, so there is no single "active" mode left for a switcher
+ *  to control. Showing every mode side by side here completes that column-per-mode design for
+ *  READING, matching what the editors already do for WRITING (#268). */
 const renderTypeRamp = (): HTMLElement => {
   const ty = theme.typography;
   const modes = rp.modes;
@@ -6063,21 +6063,21 @@ let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
  *  predicate rather than a per-page flag — placement is DERIVED from what a page contains, so a new
  *  page inherits the right answer instead of needing a decision.
  *
- *  The two surfaces that fail it today, from the audit #268 was waiting on:
+ *  Three pages fail it today, unconditionally:
  *   • `layout` — nothing layout-related exists in `ModeLevers` or carries a `*ByMode` field. It is
  *     mode-invariant outright, not merely primitive.
- *   • `typography → Primitives` — the typeface library, the size ladder and the leading/tracking
- *     ladders are all primitives, and #296 fixed them as mode-INVARIANT. The four-tab split (#388
- *     part B) draws this line exactly, which is why the rule needs no new taxonomy.
+ *   • `palettes` — a ramp is mode-invariant, and choosing which STEP a mode lands on is a Surfaces
+ *     concern, not a Palettes one (see the in-function measurement below).
+ *   • `typography` — since #416 the whole page edits every mode-varying value it has (families,
+ *     weight roles, leading/tracking re-points, per-size pins) as a COLUMN PER MODE, so there is
+ *     nothing left for a switcher to drive. The editors write via column-scoped `setModeLever(m, ...)`,
+ *     not `currentMode` — there is no single "active" mode left for the bar to control.
  *
- *  Typography → SEMANTICS and → TEXT STYLES both keep it, and that is not an inconsistency: family
- *  roles, weight roles, rung bindings, per-size pins and the category editors all resolve against
- *  `currentMode` and WRITE per-mode overrides. Showing every mode at once (the side-by-side ramp)
- *  makes the switcher redundant for READING, never for editing — an editor still needs one mode to
- *  write into.
+ *  `preview` is a fourth, conditional case: it fails outside the style-guide view, where every mode is
+ *  already rendered as its own column (see the per-view measurement in the function body).
  *
- *  Stated as a POSITIVE list of the tabs that have the axis, not `!== 'primitives'`: the negative
- *  form silently grants the switcher to any tab added later, which is how Preview would have got one. */
+ *  Stated as a POSITIVE list of the pages that have the axis, not `!== 'layout'`: the negative form
+ *  silently grants the switcher to any page added later, which is how Preview would have got one. */
 const pageHasModeVaryingControl = (): boolean => {
   if (page === 'layout') return false;
   // Palettes has NO mode-varying value at all — a ramp is mode-invariant, and choosing which STEP a
@@ -6105,9 +6105,10 @@ const pageHasModeVaryingControl = (): boolean => {
   return true;
 };
 
-/** Repaint the persistent mode-selector strip in the global header. Called on mode change, on menu
- *  toggles, and by apply/applyFull (the per-mode contrast marks track the theme). No-op before the
- *  first build (the start screen has no header). */
+/** Repaint the mode-selector strip at the top of the workspace (#432) — page furniture, not header
+ *  chrome. Called on mode change, on menu toggles, and by apply/applyFull; it carries no per-mode
+ *  contrast marks any more (#54 retired, owner decision), but currentMode's "on" state still needs a
+ *  refresh. No-op before the first build (the start screen has no workspace yet). */
 function renderModeStrip(): void {
   if (!modeStripHost) return;
   modeStripHost.innerHTML = '';
@@ -6811,7 +6812,7 @@ const STYLE = `
 :root{
   /* #355 — the two lightest tiers failed AA 4.5:1 on --paper (--faint 2.31:1, --muted 4.36:1), which is
      the dashboard failing the same bar it enforces on generated brand output. Both moved DOWN rather than
-     the convention being re-scoped: every one of the ~130 uses is 9–15px text, and WCAG large text starts
+     the convention being re-scoped: every one of the 143 uses is 9-15px text, and WCAG large text starts
      at 18.66px bold / 24px regular, so nothing here qualified for the 3:1 large-text allowance (SC 1.4.3,
      the same text-vs-non-text distinction #352 is drawing in the engine).
      The ramp is SHIFTED, not collapsed: --faint parks on the AA floor (the lightest legal value on this
@@ -6823,9 +6824,8 @@ const STYLE = `
   /* #285 — the STATUS set. There was no set before this: three different greens (#1f9d63 / #1a9c52 /
      #1a7f4b) and three different reds (#c9342f / #dd3322 / #b0341a) for two concepts, scattered as
      literals. That is why nobody noticed two greens, one red and the amber were all under AA — nothing
-     held them to a shared bar. Every value below clears 4.5:1 on --paper, the worse of the two light
-     surfaces. The -inv pair is for INVERTED (dark) panels and is measured against --ink instead;
-     darkening those would break them, which is the trap this audit exists to avoid. */
+     held them to a shared bar. Every value below clears 4.5:1 on --paper and --panel, the two grounds
+     lint-contrast.mjs checks them against; see that file's PAIRS for the exact set held to the bar. */
   --ok:#1a7f4b; --warn:#a35e00; --danger:#c9342f;
   /* #446 — the TINT grounds. Two verdict badges each invented their own tinted background with its
      own hardcoded darker green/red, because #285 audited the status set against --paper and --panel
@@ -6834,8 +6834,8 @@ const STYLE = `
      floor, so any darkening of the ground goes under. Both badges in fact sit inside a white
      --panel, where 6% clears with margin: --ok 4.63, --danger 4.79.
      6% is therefore a CEILING, not a preference, and these tokens are only safe on --panel.
-     Darkening --ok/--danger instead was rejected: #285 chose them deliberately and the -inv pair is
-     measured against --ink, which the comment above warns darkening would break.
+     Darkening --ok/--danger instead was rejected: #285 already tuned them to clear 4.5:1 on --paper
+     and --panel (see above), and moving them would spend that margin for no gain here.
      Hex first, color-mix second: if an engine lacks color-mix the first declaration stands, so the
      shared plugin webview degrades to the same value rather than to no background. */
   --ok-tint:#f1f7f4;      --ok-tint:color-mix(in srgb, var(--ok) 6%, #fff);
@@ -7038,12 +7038,16 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    (select 33, range 32) so the controls share a band, and free to grow so a taller control on any
    other surface using pfield is never clipped.
    Trap, and the reason two earlier passes at this "failed" while looking correct in the stylesheet:
-   the slider field carries the generic class names .slider and .range. BOTH were standalone rules
-   further down (.slider{margin-top:16px}, .range{margin-top:10px}). The 16px was
-   the entire label misalignment -- not anything to do with flex alignment -- and the 10px inflated
-   grid row 2 to 44px, which is what made the field 66px and sent the control mid-line 25.6px off.
-   Neither is visible from these rules alone, so both are neutralized here at a specificity that
-   beats the single-class originals. Do not "simplify" them back out. */
+   the slider field's range input carries the generic class name .range (paired with psl-range), and
+   .range is also a standalone rule further down (.range{margin-top:10px}). That 10px inflated grid
+   row 2 to 44px, which is what made the field 66px and sent the control mid-line 25.6px off. Not
+   visible from that rule alone, so it is neutralized here at a specificity that beats the
+   single-class original (.pfield.slider .psl-range{margin:0}). Do not "simplify" it back out.
+   #516 removed the equivalent .slider{margin-top:16px} rule and its .pfield.slider{margin-top:0}
+   neutralizer outright: that pairing had exactly one consumer and fully cancelled out, so
+   lint:classes flagged it as dead code once it started checking for exactly this collision. .range
+   is exempted from that same check (range/psl-range share a stem), so it was left in place, still
+   doing real work. */
 .porigin{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
 .pfield{display:grid;grid-template-rows:auto minmax(33px,auto);gap:7px}
 .pfield > :nth-child(2){align-self:center}
@@ -7508,7 +7512,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .cbadge.ok .cb-mark{color:var(--ok)}.cbadge.no .cb-mark{color:var(--danger)}
 .tpill{font-size:10.5px;padding:2px 7px;border-radius:5px;background:var(--panel);border:1px solid var(--line);color:var(--faint)}
 /* #289 — long paths elide rather than wrapping. Applied to .tpill itself, not to the two
-   containers that happened to be reported: the pill is used in 17 places and any narrow one has the
+   containers that happened to be reported: the pill is used in 27 places and any narrow one has the
    same problem, so per-context rules would just wait for the next narrow column. max-width:100% plus
    a min-width:0 parent is what lets it shrink; where the pill has room, nothing changes. */
 .tpill{display:inline-block;position:relative;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:top;direction:rtl;text-align:left}
@@ -7999,10 +8003,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .cs-table td{padding:9px 6px}
 .cs-table th{padding:0 6px 10px}
 .cs-table .select{max-width:100px}
-/* 92px, measured rather than picked: the widest label ("2 tighter") needs 91px including the chevron
-   padding, and this table has only ~8px of slack per nudge column before it exceeds the 800px pane and
-   .cs-wrap starts scrolling the LINK column out of sight. "much tighter" needed 118px and cost exactly
-   that — which is why the ±2 steps are numbered instead. */
+/* 92px was measured against the old word-form labels ("2 tighter", "much tighter") before #411
+   replaced them with signed deltas. The widest label today is "default" (the zero case; every other
+   value is a short +N/-N), well inside this box, so there is slack rather than a tight fit — this
+   table still has only ~8px of slack per nudge column before it exceeds the 800px pane and .cs-wrap
+   starts scrolling the LINK column out of sight, but the value control itself is no longer the
+   constraint that set 92px. Left wide rather than re-measured down: shrinking it is a real change,
+   not a comment fix. */
 .cs-table .select.cs-nudge{max-width:92px}
 .fz-list{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:4px}
 .fz-row{display:grid;grid-template-columns:150px 96px 1fr;gap:12px;padding:9px 13px;border-top:1px solid var(--line);align-items:center;font-size:12px}
