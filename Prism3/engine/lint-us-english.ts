@@ -170,6 +170,13 @@ const gated: string[] = [
   // held their conversion open. Gated now: leaving a clean surface ungated only defers the regression.
   join(repo, 'Prism3/schema/theme-schema.json'),
   join(repo, 'Prism3/engine/README.md'),
+  // The ROOT README — the repo's front door, and the single most-read prose surface here. It was
+  // outside this gate while `Prism3/engine/README.md` one line above sat inside it, which is how a
+  // `colour` survived in it: the scope was drawn around what the ENGINE emits and what the engine
+  // documents, and the file a stranger opens first belonged to neither. Same class as trap 2 — the
+  // scan was narrower than the standard it claimed to enforce, and being ungated is what made that
+  // invisible rather than the spelling being hard to see.
+  join(repo, 'README.md'),
   // The token-name baseline (#464). Named EXPLICITLY, unlike everything above it, because it is
   // deliberately not a `regen` artifact — a baseline regen could rewrite would silently agree with
   // the deletion it exists to catch. That exemption bought a blind spot in this gate at the same
@@ -233,6 +240,14 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // is the argument for the converse direction rather than a fifth reminder.
   { label: 'the emitted reports (ENGINE_ARTIFACTS)', test: (f) => ENGINE_ARTIFACTS.some((a) => f.endsWith(`/${a}`)) },
   { label: 'the engine README', test: (f) => f.endsWith('/Prism3/engine/README.md') },
+  // …and the FIFTH, added with the surface rather than after it. Matched exactly, not by suffix, and
+  // the hazard runs one way only. `endsWith('/README.md')` would be satisfied by the ENGINE README's
+  // file, so dropping the ROOT README from `gated` would leave THIS surface still represented — by a
+  // file it does not describe — and the SCOPE check above would stop firing while real en-GB shipped
+  // in the front door unseen. The mirror case never arises: the engine's own line is exact too and no
+  // root-level file can satisfy `endsWith('/Prism3/engine/README.md')`, so its absence stays fatal
+  // either way. A promise loose enough to describe two surfaces protects neither.
+  { label: 'the root README (the repo front door)', test: (f) => f === join(repo, 'README.md') },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {

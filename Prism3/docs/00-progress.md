@@ -229,6 +229,103 @@ taxonomy question with 7 open issues attached, not lockfile hygiene.
 
 ---
 
+## (2026-08-07) — The root README is accurate again, and two gates now cover it (owner request, no issue)
+
+**STATUS: content fix + two gate-scope additions, both tamper-tested.** `README.md`, plus
+`lint-us-english.ts` (scope) and `lint-doc-gates.ts` (a second, weaker contract). All 104 emitted
+artifacts byte-identical; no engine behavior touched, no version bump. Prompted directly by the owner
+ahead of sharing the repo link externally — the README is the front door and had stopped describing
+the repo.
+
+**What it had drifted into.** Two of five workspaces missing from the Layout table entirely
+(`plugin/`, `packages/tokens/`) despite CI running five gates between them. No link to the live
+dashboard, which has been deployed at `https://prism3-ds.vercel.app/` for weeks — a stranger landing
+on the repo could not see the thing at all. No way to run the dashboard locally, because "Running the
+engine" covered engine entrypoints and nothing said the surfaces are npm workspaces. `colour`, in the
+most-read file in the repo. And the gates section listing **4** contracts as "the correctness
+contract... every change must keep green" against `ci.yml`'s **21** steps.
+
+**The diagnosis that made the fix small: every one of those is a scope hole, not a writing problem.**
+Nobody forgot how to spell `color`. The engine README was inside the US-English gate and the root
+README was outside it, because the scope had been drawn around *what the engine emits* and *what the
+engine documents* — and the file a stranger opens first is neither. Same for the gates section: #610
+built `lint-doc-gates.ts` precisely to stop a gate list drifting away from `ci.yml`, and it polices
+`CLAUDE.md`, `CONTRIBUTING.md` and the PR template while the README drifted to 4-against-21 beside
+it. Fixing the prose without fixing the scope buys one clean pass and nothing after it.
+
+**Gate 1 — US English (`lint-us-english.ts`).** The root README joins `gated` and gets its own
+`REQUIRED_SURFACES` line, added in the same edit rather than after it, since the converse check exists
+because that pairing has now been missed four times. Its `test` matches the path **exactly** rather
+than by `endsWith('/README.md')`, and the hazard runs one way only: a suffix test would be satisfied
+by `Prism3/engine/README.md`, so dropping the **root** README from `gated` would leave the *root*
+surface still represented — by a file that is not it — and its absence would stop being fatal while
+real en-GB shipped in the front door. The mirror case never arises: the engine's own test is exact
+too, and no root-level file can satisfy it. A promise loose enough to describe two surfaces protects
+neither. Scan is 110 → 111
+files. **Tamper-tested** per the standard for a gate change: a `colour` injected into the README
+fails the gate naming `README.md` and its line, exit 1; reverted, clean at exit 0.
+
+**Gate 2 — the doc/CI sync gate, and why the README is held to a *weaker* contract.** The obvious
+move is to add `README.md` to `REQUIRED_DOCS` and be done. That is wrong, and worth recording why,
+because it will look like an oversight to the next reader. `REQUIRED_DOCS` demands **enumeration** —
+every `ci.yml` gate named. The README's stated design is that it "points, it doesn't restate", and it
+carries a *categorical* summary on purpose. Forcing enumeration would make it a fourth copy of
+CONTRIBUTING §3 — a new place to drift, created by the gate whose whole job is stopping drift.
+
+So it gets a second contract at a different strength: whatever the README summarizes, it must **name
+the two places that hold the real list** (`.github/workflows/ci.yml` and `CONTRIBUTING.md`). Be
+precise about what that buys, because it is easy to read as more: **it gates the pointer, not the
+summary.** A summary that goes stale still passes; so does one gutted from five categories to one, as
+long as both pointers survive. That is the intended scope — a stale summary beside a live pointer
+still routes the reader to the authority — but it means the summary itself is watched by nobody, and
+gating it would mean demanding the enumeration rejected two paragraphs up. What the check makes
+impossible is **severing** the path. Before this landed the README listed 4 gates against CI's 21 and
+named only one of the two authorities — `CONTRIBUTING.md` twice (the banner and the next-steps list),
+`.github/workflows/ci.yml` not at all, so the check would have failed on 1 of 2 pointers, measured by
+running it against the pre-PR README rather than asserted. A weakened signpost, not a dead end: one
+route to the real list survived. One severed pointer of two is still the hole this closes.
+The rejected alternative was to leave the README out with a comment recording the omission as a
+decision — honest, but it gates nothing, and this file had already drifted once with nothing
+watching. **Flagged in the PR as open to reviewer override**, since it is a judgement about what the
+README is for rather than a correctness fix. Tamper-tested the same way: strip the CONTRIBUTING.md
+reference and the gate fails naming the missing pointer; restored, clean.
+
+Both checks drive `missingTokens`, extracted here as the one place membership is decided — `docHas`,
+`findGaps` and the pointer check now share it. That is deliberate and not a DRY reflex: this file's
+own self-check exists because a reimplementation once validated itself instead of the shipping path.
+
+**Content changes, for the record.** Live dashboard linked in the second paragraph (re-confirmed HTTP
+200); `plugin/` and `packages/tokens/` added to the Layout table in the existing two-link style; a
+"Running the dashboard" section using the commands `web/README.md` actually documents; `colour` →
+`color`; the gates section rewritten as five honest categories covering the plugin, Style Dictionary,
+shipped-text and web-chrome gates it omitted entirely, with `ci.yml` named as the authority; "Node ≥
+20" → "CI runs it on Node 22", since the root `package.json` has no `engines` field and 20 was an
+untested number implying a guarantee; and "No build, no `npm install`" scoped to the engine core,
+where it is true and notable, rather than sitting where a newcomer reads it as repo-wide while CI's
+first step is `npm ci`.
+
+**Trap for whoever re-verifies this.** `lint-us-english.ts` reads `web/dist/*.js`, so run
+`npm run -w @prism3/web build` (**not** `build:site`, which writes `web/public/dist`) before it, or
+the gate fails closed on the missing surface. Also note **`lint-voice.ts` still does not cover the
+root README** — deliberately left alone as out of scope for this change, but it is the same hole one
+gate over, and the README was checked by hand against the §2 list in the meantime. Worth an issue.
+
+**Review follow-up (#646, comment-only — no behavior changed).** Both gate mechanisms survived
+independent mutation testing; both *comments describing them* did not, and that is the failure class
+this entry is about, one level up. `lint-doc-gates.ts` claimed the README "must NOT claim completeness
+while going stale in silence" — it can: five categories gutted to one, both pointers left intact,
+EXIT=0. `lint-us-english.ts` named the wrong victim for the suffix hazard — the engine README's
+absence is fatal either way (its own test is exact and unsatisfiable from the root), while the root
+README's is the one a suffix test would mask. Both comments now say what the code does, and both are
+re-verified by re-running the reviewer's mutations. **The lesson worth keeping is not either fix but
+the shape of them:** a comment asserting a protection the adjacent code does not provide is the exact
+defect this PR exists to close, and it shipped twice inside the PR that closes it. When writing a
+gate, state the property you can demonstrate by mutation — then run the mutation, including the one
+that should *pass*, since a gate's scope is defined as much by what it lets through as by what it
+catches.
+
+---
+
 ## (2026-08-07) — A pending button no longer changes width: the spinner overlays the label when there is no leading visual to replace (#612)
 
 **STATUS: schema + projection + payload + gates.** All 88 emitted artifacts byte-identical, no version

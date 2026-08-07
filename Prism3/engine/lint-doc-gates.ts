@@ -44,6 +44,11 @@
  * `docHas` checks that each piece appears as a substring *somewhere* in a doc, not that the full
  * command line appears verbatim or that the pieces sit adjacent.
  *
+ * TWO STRENGTHS OF CONTRACT: the three checklist documents must ENUMERATE every gate; the root
+ * `README.md` must only POINT at the two that hold the list. The README is a signpost by its own
+ * stated design, so holding it to enumeration would create a fourth copy of the checklist — see
+ * `POINTER_DOC` below for the full reasoning and the option that was rejected.
+ *
  * ONE DIRECTION ONLY, DELIBERATELY: this checks that every ci.yml gate is represented in the docs, not
  * the converse. `CONTRIBUTING.md` §3 also documents `emit-dtcg.ts`/`emit-figma.ts` as local-only
  * commands with no matching `ci.yml` step — that is fine on purpose (they are covered transitively by
@@ -69,6 +74,35 @@ const REQUIRED_DOCS: { label: string; path: string }[] = [
   { label: 'CONTRIBUTING.md', path: resolve(repo, 'CONTRIBUTING.md') },
   { label: '.github/pull_request_template.md', path: resolve(repo, '.github/pull_request_template.md') },
 ];
+
+// The root `README.md` is DELIBERATELY not in REQUIRED_DOCS above, and this is what it gets instead.
+//
+// The three docs above are checklists — someone reads them to learn what to run, so a checklist
+// shorter than `ci.yml` actively misleads, which is the #601/#602 defect. The README is not a
+// checklist: it states outright that it "points, it doesn't restate", and it carries a categorical
+// summary of the gates on purpose. Requiring it to enumerate all ~21 steps would make it a second
+// copy of CONTRIBUTING §3 — a fourth place to drift, added by a gate whose entire purpose is to stop
+// drift. The summary's failure mode is different from a checklist's, and needs a different check.
+//
+// So the README is held to a WEAKER but still structural contract: whatever it summarizes, it must
+// name the two places that hold the real list. What this gates is the POINTER, not the summary — and
+// the distinction is the whole point, so read it literally rather than as an understatement. A
+// summary that goes stale still passes. A summary gutted from five categories to one still passes,
+// with both pointers intact (verified by mutation in review of #646). This check cannot detect that,
+// and is not trying to: a stale summary beside a live pointer still routes the reader to the
+// authority, which is what the README is for. What no future edit can do is SEVER that path. Before
+// this landed the README listed 4 gates against CI's 21 AND named only one of the two authorities:
+// `CONTRIBUTING.md` twice (the banner and the next-steps list), `.github/workflows/ci.yml` not at
+// all — so this check would have failed on 1 of the 2 pointers, measured by running it against the
+// pre-PR README. A weakened signpost, then, not a dead end: one route to the real list survived. One
+// severed pointer of two is still the hole this closes; the drift above it is deliberately not
+// gated, because gating it would mean demanding enumeration, which is the outcome rejected above.
+//
+// This is the more conservative of the two options considered; the other was to leave the README out
+// entirely with a comment recording the omission as a decision. That records the reasoning but gates
+// nothing, and the README had already drifted once. Open to reviewer override.
+const POINTER_DOC = { label: 'README.md', path: resolve(repo, 'README.md') };
+const REQUIRED_POINTERS = ['.github/workflows/ci.yml', 'CONTRIBUTING.md'];
 
 // See the file header's SCOPE note — this is the one exclusion that can't be inferred from shape
 // alone, because its `run:` genuinely contains an `npx tsx` invocation.
@@ -133,9 +167,14 @@ export const gateTokensOf = (run: string): string[][] => {
   return out;
 };
 
+/** Which of `tokens` are absent from a doc. The ONE place membership is decided — `docHas`, `findGaps`
+ *  and the README pointer check below all drive this, so a change to what "mentioned" means moves all
+ *  three together instead of leaving a copy behind. */
+export const missingTokens = (docText: string, tokens: string[]): string[] => tokens.filter((t) => !docText.includes(t));
+
 /** A doc "represents" a token set when every token in it appears somewhere in the doc's text — not
  *  adjacent, not in order (see the file header's substance-not-verbatim note). */
-export const docHas = (docText: string, tokens: string[]): boolean => tokens.every((t) => docText.includes(t));
+export const docHas = (docText: string, tokens: string[]): boolean => missingTokens(docText, tokens).length === 0;
 
 type Finding = { step: string; doc: string; missing: string[] };
 
@@ -149,10 +188,8 @@ export const findGaps = (steps: Step[], docs: { label: string; text: string }[])
     const tokenSets = gateTokensOf(step.run);
     for (const tokens of tokenSets) {
       for (const doc of docs) {
-        if (!docHas(doc.text, tokens)) {
-          const missing = tokens.filter((t) => !doc.text.includes(t));
-          findings.push({ step: step.name, doc: doc.label, missing });
-        }
+        const missing = missingTokens(doc.text, tokens);
+        if (missing.length) findings.push({ step: step.name, doc: doc.label, missing });
       }
     }
   }
@@ -225,6 +262,19 @@ if (docHas('the sample workspace runs typecheck only', ['typecheck', '@prism3/sa
   selfFails.push('docHas is satisfied when a required token is actually missing (false pass)');
 }
 
+// 4b. The README pointer contract — both directions, driven through `missingTokens`, the same
+//     function the real check below calls. A pointer check that cannot fail is worse than no pointer
+//     check, because it makes the README look covered.
+if (missingTokens('summary only; the gates live elsewhere', REQUIRED_POINTERS).length !== REQUIRED_POINTERS.length) {
+  selfFails.push('the README pointer check passes a doc naming neither authority (it cannot fail)');
+}
+if (missingTokens('the full list is in .github/workflows/ci.yml; the checklist in CONTRIBUTING.md', REQUIRED_POINTERS).length) {
+  selfFails.push('the README pointer check flags a doc that DOES name both authorities (false positive)');
+}
+if (!missingTokens('see .github/workflows/ci.yml for the full list', REQUIRED_POINTERS).includes('CONTRIBUTING.md')) {
+  selfFails.push('the README pointer check is satisfied by naming only one of the two authorities');
+}
+
 // 5. findGaps end to end — the core "can this gate actually fail" proof (docs/34's central test).
 //    A doc missing a real gate's token must produce a finding NAMING that step and that doc; the same
 //    doc, once it mentions the token, must produce none for it. And the named exclusion must survive
@@ -261,7 +311,7 @@ if (!existsSync(CI_PATH)) {
   console.error(`\n❌ ${resolve(repo, '.github/workflows/ci.yml')} not found — this gate has nothing to compare against.`);
   process.exit(1);
 }
-const missingDocs = REQUIRED_DOCS.filter((d) => !existsSync(d.path));
+const missingDocs = [...REQUIRED_DOCS, POINTER_DOC].filter((d) => !existsSync(d.path));
 if (missingDocs.length) {
   console.error('\n❌ required doc(s) not found — this gate cannot check what it never opened:');
   for (const d of missingDocs) console.error(`    ${d.label}`);
@@ -283,7 +333,19 @@ if (candidates.length < 10) {
 
 const findings = findGaps(realSteps, realDocs);
 
-console.log(`Doc/CI gate-sync check — ${candidates.length} contributor-facing gate step(s) in ci.yml, checked against ${realDocs.length} doc(s).`);
+// The README's weaker contract — see POINTER_DOC above for why it is not held to enumeration.
+const lostPointers = missingTokens(readFileSync(POINTER_DOC.path, 'utf8'), REQUIRED_POINTERS);
+
+console.log(`Doc/CI gate-sync check — ${candidates.length} contributor-facing gate step(s) in ci.yml, checked against ${realDocs.length} doc(s) + ${POINTER_DOC.label} (pointers only).`);
+if (lostPointers.length) {
+  console.error(`\n❌ ${POINTER_DOC.label} summarizes the gates without naming ${lostPointers.length} of the ${REQUIRED_POINTERS.length} place(s) that hold the real list:\n`);
+  for (const p of lostPointers) console.error(`    ${p}`);
+  console.error('\n  The README carries a CATEGORICAL summary on purpose and is not required to enumerate');
+  console.error('  every step — but a summary that no longer points at the authority is how it drifted to');
+  console.error('  4 gates against CI\'s 21. Keep the pointers, or move the README into REQUIRED_DOCS and');
+  console.error('  accept the full enumeration.');
+  process.exit(1);
+}
 if (findings.length) {
   console.error(`\n❌ ${findings.length} gate(s) undocumented:\n`);
   for (const f of findings) console.error(`    "${f.step}" is missing from ${f.doc} (no mention of: ${f.missing.join(', ')})`);
