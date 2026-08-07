@@ -184,3 +184,101 @@ Merge what's in flight, rename, then start a fresh session.
 
 Also update after renaming: the local remote (`git remote set-url`), and any bookmark or
 integration configured by URL.
+
+---
+
+## Idea 5 — Normative requirement levels (RFC 2119) on generated guidance
+
+**Raised 2026-08-04 · status: logged, not scoped.** Owner-raised from a Nathan Curtis post
+endorsing Cloudflare's engineering-standards approach. Worth taking seriously on lineage
+alone: Curtis is the source of several POVs this repo already builds on (components-as-data,
+the Specs CLI read-back verifier in `14` §4, the three-tier token taxonomy).
+
+### Lineage
+
+- **RFC 2119** (Bradner, 1997) — the IETF convention giving `MUST` / `SHOULD` / `MAY` precise,
+  agreed meanings in specification prose. Decades old; the novelty is not the keywords.
+- **Cloudflare Codex** ([blog, 2026](https://blog.cloudflare.com/engineering-standards-enforcement/))
+  — engineering standards written as RFCs with 2119 levels, enforced by AI agents across code
+  review, a local CLI, linters, spec review and incident reports. Scale: ~230,000 violations
+  flagged, ~16,000 merge blocks. Two-stage lifecycle: **approved** RFCs produce non-blocking
+  findings; only after **explicit promotion to enforced** do `MUST` violations block a merge.
+  Structure they landed on:
+  ```json
+  { "rfc": 14, "title": "…", "status": "approved", "domain": "control-plane",
+    "statements": [ { "slug": "…", "section": ["…"], "level": "MUST", "text": "…", "href": "…" } ] }
+  ```
+- **Curtis's read** — *"RFCs, supplemental requirements in MUST/SHOULD/…. This is where design
+  systems are going, augmenting the more strongly modeled visual, prop and binding intent with
+  additional content that can be not just accepted or governed, but ENFORCED."* The punchline he
+  pulled out is about **format**: *"Over time, we moved to a richer structured format so that
+  agents could filter the content they needed more accurately."*
+
+### Why this reads differently from here than it does for most systems
+
+The article is a story about an org with lots of **written** standards and no enforcement,
+building enforcement. Prism3 is the mirror image, and that inverts what's worth taking.
+
+| | Cloudflare's starting point | Prism3 today |
+|---|---|---|
+| Written normative statements | extensive | **implicit** — `avoid_when` prose carries no level |
+| Enforcement | the thing they had to build | **already 5 gates in CI** — `regen --check` (byte-drift), `test.ts`, `nb-regression`, `lint-us-english`, `token-contract --check` (485 pinned paths + `CONTRACT_VERSION`), plus computed contrast contracts and alias resolution |
+| Mechanism | AI agents, because the standards aren't computable | **deterministic**, because ours mostly are |
+| Structured for agents | the lesson they learned over time | **already done** — `lever-manifest.json`, `preview-spec.json`, the `.ai.json` sidecar |
+
+So the gap is not enforcement. It is the cheap half: **the guidance the engine already generates
+is normative in intent but unlabelled.** Shipping today in `out/*.ai.json`:
+
+> `avoid_when: "Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon)."`
+
+That is a `MUST`, in an agent-facing artifact, with no level and no gate.
+
+### What looks worth adopting
+
+1. **Levels on generated guidance.** `level: MUST | SHOULD` on `.ai.json` entries. Cheapest
+   possible change with real payoff — the prose is *generated*, so it is one edit in
+   `ai-metadata.ts`, not thousands of strings; and it serves precisely the agent-filtering point
+   Curtis pulled out.
+2. **The approved → enforced lifecycle.** The genuinely smart bit, and we have an *unnamed*
+   version already: `26-cross-page-ui-conventions` is effectively "approved" (a checklist someone
+   audits), `lint-us-english.ts` is "enforced" (blocks CI). `token-contract.ts`'s `CONTRACT_VERSION`
+   bump is a promotion ceremony in all but name. Naming the states makes the distinction legible.
+3. **Machine-readable `status`.** Docs carry status *implicitly* — `06` says "Status: proposal,
+   for red-line"; `03` items say RESOLVED — but an agent can't filter on prose. Cloudflare puts it
+   in frontmatter.
+
+### What looks wrong to adopt
+
+- **The RFC governance ceremony** — numbering, domains, an approval workflow. That is org-scale
+  machinery for coordinating many teams against 230k findings. This is one repo. Adopting the
+  ceremony without the scale is the speculative abstraction `CLAUDE.md` working-principle #2 rules
+  out.
+- **AI code review as the primary mechanism.** The sharpest divergence. Cloudflare reaches for an
+  AI reviewer *because their standards aren't mechanically checkable*. Ours mostly are, and this
+  repo's whole thesis is deterministic verification. **An AI reviewer is strictly weaker than a
+  test wherever a test is possible** — non-deterministic, unauditable, and it cannot be
+  tamper-tested the way every gate here is. Rule if we adopt: **mechanize first; agent-review only
+  the genuinely unmechanizable residue.**
+
+### The trap
+
+**A normative label with no gate behind it is worse than no label** — it manufactures the
+appearance of rigor. Same failure KB `04` names for the voice matrix ("decays into a docs page
+nobody reads"). So `MUST` must mean *"a gate exists"*, not *"we mean it strongly."* Under that
+rule, adopting levels **creates an obligation**: every `MUST` either gets a gate or gets
+downgraded to `SHOULD`. That is a feature — it keeps the label honest — but it is the real cost,
+and it should be priced before starting.
+
+### Where it would land first
+
+- **The component layer** (`14`, `28`) — not yet built, so requirements could be labelled at
+  authoring time instead of retrofitted. `14` §3 already notes a11y contracts "are not
+  representable in Figma at all — they live in the definition, the `.ai.json`, and the code
+  outputs": MUST-shaped statements explicitly needing an enforceable home.
+- **The voice standard** — `voice-standard.md` §2 is literally a MUST list awaiting a gate
+  (#617). The pattern is already in flight; this would name it.
+
+*Refs: `14` §3–§4 (component-layer contracts + the Specs CLI verifier), `28` (the anatomy schema
+that would carry them), `30-versioning-and-compatibility` (the closest existing governed
+contract), `voice-standard.md` §2 + #617, KB `04` (enforcement-or-decay), `13` (inspirations —
+where Curtis-sourced ideas are logged).*
