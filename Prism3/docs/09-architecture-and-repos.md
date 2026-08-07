@@ -67,14 +67,14 @@ prism3/                            (this repo — grows into the monorepo)
 │   ├── schema/                    lever-manifest.json · preview-spec.json · theme-schema.json
 │   └── docs/
 ├── web/                           NEW — the dashboard adapter (DOM/CSS host)
-└── figma-plugin/                  NEW — the plugin adapter (Figma sandbox host)
+└── plugin/                        NEW — the plugin adapter (Figma sandbox host)
 
 brand-skills/      own repo — EXTRACT (assets → design.md)   [upstream, public]
 knowledge-base/    own repo — the practice POV / reference    [reference]
 ```
 
 **Build boundary.** The "no build, run via `tsx`" invariant applies to the **core's dev
-loop** and stays intact. The **adapters** (`web/`, `figma-plugin/`) get a bundler for the
+loop** and stays intact. The **adapters** (`web/`, `plugin/`) get a bundler for the
 first time — a browser/Figma bundle is a packaging step, not a port (`08 §2`). Keep the
 bundler at the adapter layer; the core is imported as source, never pre-built.
 

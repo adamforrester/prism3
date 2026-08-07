@@ -7,6 +7,80 @@
 
 ---
 
+## (2026-08-07) — Prose audit: eleven docs still called shipped capabilities unbuilt (#551)
+
+**STATUS: fixed.** Docs-only. Eleven status-prose corrections across `Prism3/docs/*`,
+`Prism3/engine/README.md`, and `plugin/README.md` — each claimed something was
+unbuilt/backlog/TODO that has actually shipped on `main`. Verified each against current
+code before writing the fix (not just against the issue's description):
+
+1. `docs/05-token-coverage-roadmap.md` — the Figma round-trip section ("unbuilt…
+   Backlog (large)") → `emit-figma.ts` + `materialise-to-figma.ts` + `plugin/src/write-figma.ts`
+   all exist and are regen-gated; marked shipped, closing summary updated to match.
+2. `docs/28-component-anatomy-schema.md` — "Nothing here is built" / "nowhere ❌" /
+   "no `icon` category at all" → `AnatomyDef` (#327), the emitted tree carries
+   `size.*.gap`, `size.*.padding-x-visual`, and `icon.size.{xs,sm,md,lg,xl}` (walked a
+   committed `out/*.tokens.json` to confirm the exact leaf names before writing the fix).
+3. `Prism3/engine/README.md` "Next increments" — writer "still backlog" → shipped, with
+   `plugin/src/write-figma.ts`'s idempotent apply named. Hit the US-English gate here:
+   quoting the real filename `materialise-to-figma.ts` (en-GB spelling, a pre-existing
+   project identifier out of this PR's scope to rename) trips `lint-us-english.ts` because
+   `engine/README.md` is one of its explicitly gated surfaces and the scan is plain
+   substring matching with no markdown/identifier awareness — worked around by describing
+   the file instead of quoting its name, rather than touching the gate or renaming the file.
+4. `docs/08-theming-interfaces.md` — §1's status table said all three surfaces (Figma
+   plugin, web playground, MCP server) were "to build" while §7 already marked two ✅;
+   reconciled §1 with reality (`plugin/`, `web/`, `engine/mcp.ts` all built) and marked
+   §7 step 4 (Figma plugin shell) ✅ too, which had been left unmarked.
+5. `docs/07-e2e-journey.md` — the layer-4 status row and §9 items 3–5 were stale; MCP
+   (`engine/mcp.ts`, 6 tools, CI-gated) and the plugin write path are done; the component
+   library (§9 item 5) marked 🔶 started (5 components authored in `engine/components/*`,
+   WC/React/Storybook/Code Connect projections still pending) rather than claiming it done.
+6. `docs/33-skills-adoption-plan.md` — "`prism3-theme` is already stale" / "no gate" →
+   both fixed (the skill teaches `personality` + named `radiusScale` stops;
+   `engine/lint-skills.ts` is CI-gated). Phrased as "gated in CI", not "the skill is
+   currently perfect" — did not investigate the sibling #549 staleness claim.
+7. `docs/22-plugin-plan.md` — "Only typography remains" → shipped as #237
+   (`emit-figma-font.ts` + `plugin/src/write-text-styles.ts`, wired in `plugin/src/main.ts`);
+   added as row 9 in the phase table rather than editing row 8's text in place.
+8. `docs/03-open-questions.md` Item 5 (icon contrast floor) → marked **RESOLVED**: shipped
+   as the per-brand `iconContrast: 'text' | '3:1'` lever (`theme.ts`, `levers.ts`, wired in
+   `modes.ts`). Left Item 9 (update-in-place vs build-from-scratch) alone — it's a
+   different open question than the one #551 named, and is still genuinely open in prose
+   even though the shipped writer took the update-in-place lean; noted that lean in
+   `docs/05` without overclaiming Item 9 itself was formally resolved.
+9. `docs/21-semantic-role-rebasing.md` §7 — described a since-removed `renderRoleColors`
+   bespoke control; `roleColors` now lives inline per status ramp on the Palettes page
+   (`statusRow`, #59) via a Source select (Auto / Custom hue / Use `<palette>`). Rewrote
+   to match current `web/src/main.ts`.
+10. `docs/16-code-review-findings.md` — verified CR-01 (`contrast()` no longer rounds
+    before threshold comparisons — `color.ts` now has an explicit comment citing this
+    finding), CR-06 (`nb-regression.ts` sets `process.exitCode = 1` on any failure), and
+    CR-07 (the flagged `innerHTML` sink is gone; `main.ts` now comments that external
+    names use `textContent`) fixed on `main`. Marked only those three; left the doc's
+    "findings only, nothing fixed" framing for the rest since the other findings weren't
+    checked and remain presumed open.
+11. Three small ones: `docs/04-theming-playground.md` header ("Not slated for build yet")
+    → built, it's `web/`. `plugin/README.md` (~178–180) — Apply materialises "core-palette
+    + color" only → corrected to the whole generated system (8 FLOAT collections +
+    shadow/gradient styles + font vars/Text Styles), matching what the same README's own
+    #237 section already documented. `docs/09-architecture-and-repos.md` — repo sketch
+    named a `figma-plugin/` directory that was never the real name → `plugin/` (both
+    occurrences).
+
+**Scope discipline.** Left `Prism3/engine/README.md` and other shared docs otherwise
+untouched — sibling issues #550 and #554 (concurrent agents) touch the same files at
+different, non-overlapping claims; only item 3's exact passage was edited here.
+
+**Gates.** Full CLAUDE.md §4 sequence green: `regen.ts` / `--check` (88 artifacts in this
+worktree, no drift — expected per CLAUDE.md's worktree note), `test.ts` (1920 passed),
+`mcp-test.ts` (49 passed), `token-contract.ts --check` (485 guaranteed, unchanged),
+`lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions, PASS),
+`lint-us-english.ts` (94 files, run after a `web` build — see item 3 above for the one
+false-alarm-shaped hit it caught).
+
+---
+
 ## (2026-08-07) — Five stale-prose fixes across shipped decisions-log strings and the MCP surface (#548)
 
 **STATUS: shipped.** `Prism3/engine/theme.ts`, `Prism3/engine/mcp.ts`, `Prism3/engine/ai-metadata.ts`,

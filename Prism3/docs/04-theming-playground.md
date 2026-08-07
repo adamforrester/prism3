@@ -1,10 +1,11 @@
 # 04 — Theming Playground / Dashboard (direction)
 
-> A backlog **direction note**, not a spec or a commitment. Captures the intended
-> consumer-facing surface for the engine: a simple theming dashboard that reskins
-> real components and composed pages live as token values change. Prompted by a
-> r/DesignSystems playground (below) that mirrors where we want to go. Not slated
-> for build yet — documented so the direction survives.
+> Originally a backlog **direction note**, not a spec or a commitment — captured the
+> intended consumer-facing surface for the engine: a simple theming dashboard that
+> reskins real components and composed pages live as token values change. Prompted
+> by a r/DesignSystems playground (below) that mirrors where we want to go. **Built**:
+> the playground is live as `web/` (the dashboard/theme studio). This file stays as
+> the reference/why the direction was chosen.
 >
 > **Update (2026-07-01):** the playground now has a committed shape in
 > `08-theming-interfaces` — it shares one **lever manifest** + live-preview model

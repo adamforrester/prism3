@@ -26,7 +26,7 @@ deterministic shell + template composition fed by real system context, not freef
 | 1 — **DTCG tokens + descriptions** | the themed token layer, machine-readable | ✅ the engine emits this today (DTCG + `.ai.json` + Figma directives) |
 | 2 — **Component metadata** (`.ai.json` per component) | anatomy, when-to-use, slot contracts | ⬜ future — the code component library |
 | 3 — **Agent instructions** (`AGENTS.md`/`CLAUDE.md`) | how an agent should use layers 1–2 | ⬜ future |
-| 4 — **MCP exposure / Figma pipeline** | the surface agents actually call | ◑ partial — engine exists; MCP + Figma binding to build |
+| 4 — **MCP exposure / Figma pipeline** | the surface agents actually call | ✅ built — `engine/mcp.ts` (6 tools, CI-gated by `mcp-test.ts`) and the Figma plugin write path (`plugin/src/write-figma.ts`) both exist |
 
 The whole E2E vision reduces to one sentence: **Prism3 built layer 1; the journey is to
 complete layers 2–4 so an agent can operate the pipeline end-to-end — without forcing a
@@ -279,11 +279,15 @@ seat — it extracts, it does not build). This section stays as the layer's plac
 2. **`design.md` + CLI adapter.** Authoring on-ramp; proves the front door; no LLM required
    to use it, agent-draftable when wanted. ✅ done (2026-07-01) — see §6.
 3. **MCP adapter over the core.** Turns "agent themes Prism3" from aspiration to a callable
-   surface — the §15 MCP-first payoff.
+   surface — the §15 MCP-first payoff. ✅ done — `engine/mcp.ts`, 6 tools, CI-gated by
+   `mcp-test.ts`.
 4. **Fold the core into the Prism3 Figma plugin** as the Figma materialization adapter
-   (§5); retire the plugin's separate brain.
+   (§5); retire the plugin's separate brain. ✅ done — `plugin/` bundles the core;
+   `plugin/src/write-figma.ts` is the materialization adapter.
 5. **(Later) Component library** as components-as-data → WC + React + Storybook + `.ai.json`
-   + Code Connect (layers 2–3), reusing the UIC research in the KB.
+   + Code Connect (layers 2–3), reusing the UIC research in the KB. 🔶 started —
+   `engine/components/*` has begun (button, icon-button, text-field, field-label,
+   field-message); WC/React/Storybook/Code Connect projections still to come.
 
 ---
 

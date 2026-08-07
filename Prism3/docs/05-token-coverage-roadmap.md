@@ -185,12 +185,15 @@
 
 ---
 
-## Cross-cutting: Figma round-trip (code → Figma export)  ·  backlog
+## Cross-cutting: Figma round-trip (code → Figma export)  ·  shipped
 
-> Not a token category — an **export target**. The engine emits DTCG today; getting
-> generated tokens *back into Figma* is unbuilt, and composites don't survive a naive
-> export. Captured here so the contract can shape composite design as we add more of
-> them (typography, shadow). **Build deferred; analysis recorded.**
+> Not a token category — an **export target**. The engine emits DTCG *and* a
+> regen-gated Figma-native tree (`emit-figma.ts` → committed `out/figma/<brand>/`),
+> and composites survive the round trip via the materialization directive below —
+> `materialise-to-figma.ts` drives the write, and the companion plugin
+> (`plugin/src/write-figma.ts`) applies it idempotently (find-by-name-and-update).
+> Captured here so the contract continues to shape composite design as we add more
+> of them (typography, shadow).
 
 **The pipeline (as it actually is in the example packages).** Raw Figma variable
 export → **a custom plugin (Adam's)** that preps it into DTCG / SD-ready JSON →
@@ -244,14 +247,17 @@ representation at all — without the manifest they vanish on the way back).
 
 **Split of work.** *Now-step (cheap, deferred by decision):* tag every leaf with its
 `$extensions.prism3.figma` disposition + scope, so composites are born knowing how they
-decompose. *Backlog (large):* the `emit-figma.ts` writer producing `variables[]` (Tier A
-+ Tier B atoms) **and** a style manifest, plus the companion Figma plugin to apply it.
-Open decision (update-in-place vs build-from-scratch) tracked in `03-open-questions` Item 9.
+decompose. *Shipped:* the `emit-figma.ts` writer producing `variables[]` (Tier A
++ Tier B atoms) **and** a style manifest, plus the companion Figma plugin
+(`plugin/src/write-figma.ts`) that applies it as an idempotent update-in-place patch
+(find-by-name-and-update). `03-open-questions` Item 9 (update-in-place vs
+build-from-scratch) still tracks that choice as the open design question; the shipped
+writer took the update-in-place lean.
 
 **KB write-up (backlog).** No POV in the vault yet on composite tokens surviving the
 Figma round-trip (closest: `05-development-support`, `22-token-architecture-extensions`).
 Worth a practice note — styles-vs-variables, decompose-to-atoms, the manifest pattern —
-when this graduates from analysis to build.
+now that this has graduated from analysis to build.
 
 ---
 
@@ -283,6 +289,8 @@ when this graduates from analysis to build.
    Figma, Paint Style materialization, worst-case-stop contrast. Aurora demos a
    linear brand + a radial glow.
 
-The engine now covers **every token category** NB and Prism2 ship. What remains is
-cross-cutting plumbing (the Figma round-trip writer) and a theming playground, not
-new token categories.
+The engine now covers **every token category** NB and Prism2 ship, and the
+cross-cutting plumbing has shipped too: the Figma round-trip writer
+(`emit-figma.ts` + `plugin/src/write-figma.ts`) and the theming playground
+(`web/`) are both built. What remains is deepening those surfaces, not new
+token categories.
