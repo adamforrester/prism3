@@ -1804,6 +1804,54 @@ const iRoles = (): RoleMap => (resolveAllModes(theme).find((x) => x.mode === cur
 const stepsOf = (palette: string): string[] => (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
 const capWord = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
+// ---- "Auto" baselines (#330) -----------------------------------------------
+// Every override/anchor picker's "Auto" option must NAME the step it actually resolves to — the
+// engine's TRUE generated/contrast-placed baseline, independent of whatever is live right now. The
+// naive way to get that label is `stepKeyOf(r.path)` off `iRoles()`/`resolveAllModes(theme)` — but
+// those already reflect the CURRENT override/anchor, so the moment one goes active, "Auto" silently
+// starts echoing the user's own last pick instead of the baseline it claims to be. Then clicking
+// "Auto" (which genuinely clears the deviation and re-resolves) lands on a DIFFERENT value than the
+// option just displayed — a control lying about its own behavior.
+//
+// Fixed by resolving a THEME CLONE with just the one live deviation removed, rather than patching
+// the live (deviation-inclusive) resolved role — so this stays correct even if the engine ever
+// derives one role's baseline from another role's own deviation (a per-field patch could not notice
+// that; a full re-resolve always sees it). `baselineOf` is the shared primitive; `WITHOUT` names
+// which deviation this particular control's own "Auto" clears — there are two, because the engine
+// has two independent live-deviation layers, not one:
+//   - baselineStepOf     — the A1 per-mode COLOUR-OVERRIDE layer (`theme.overrides`, written by
+//                           `setFillOverride`). Every Source/Step select in the interactive matrix,
+//                           the Surfaces fill/foreground/text editors, and Backgrounds → Inverse.
+//   - baselineAnchorStepOf — the A2b per-mode FILL-ANCHOR layer (`theme.modeAnchors` / the column's
+//                           global `actionAnchorStep`/`destructiveAnchorStep`/`interactivePalettes[
+//                           ].anchorStep`, written by `col.setStep`). Only the interactive matrix's
+//                           Fill · rest row for columns that anchor a family (primary/destructive/
+//                           accents) — Neutral has no anchor and uses `baselineStepOf` like everything
+//                           else.
+const baselineOf = (roleKey: string, mode: Mode, without: (t: Theme) => Theme): string => {
+  const roles = resolveAllModes(without(theme)).find((x) => x.mode === mode)?.roles as RoleMap | undefined;
+  return stepKeyOf(roles?.[roleKey]?.path);
+};
+const baselineStepOf = (roleKey: string, mode: Mode = currentMode): string =>
+  baselineOf(roleKey, mode, (t) => {
+    const modeOv = { ...(t.overrides?.[mode] ?? {}) };
+    delete modeOv[roleKey];
+    return { ...t, overrides: { ...t.overrides, [mode]: modeOv } };
+  });
+/** `name` is the interactive column (`primary` / `destructive` / an `interactivePalettes` entry's
+ *  name) — mirrors exactly what `anchor().setStep(undefined)` clears for that same (name, mode):
+ *  the per-mode pin outside Light, or Light's own global pin (whichever of the three fields applies
+ *  to this column) on Light itself. */
+const baselineAnchorStepOf = (roleKey: string, mode: Mode, name: string): string =>
+  baselineOf(roleKey, mode, (t) => (mode === 'light'
+    ? {
+        ...t,
+        actionAnchorStep: name === 'primary' ? undefined : t.actionAnchorStep,
+        destructiveAnchorStep: name === 'destructive' ? undefined : t.destructiveAnchorStep,
+        interactivePalettes: t.interactivePalettes.map((p) => (p.name === name ? { ...p, anchorStep: undefined } : p)),
+      }
+    : { ...t, modeAnchors: { ...t.modeAnchors, [mode]: { ...(t.modeAnchors?.[mode] ?? {}), [name]: undefined } } }));
+
 /** `#rrggbb`(+alpha) → an `rgba()` string, so a translucent overlay wash paints honestly (a faint swatch). */
 const rgbaOf = (r: RoleRes): string => {
   const h = (r.hex ?? '#000000').replace('#', '');
@@ -1953,7 +2001,7 @@ const iStates = (roles: RoleMap, palette: string, cells: Array<[string, string]>
     const r = roles[roleKey]; if (!r) continue; any = true;
     const cell = el('div', 'astate');
     const head = el('div', 'astate-h'); head.append(swatch(r.hex, 'astate-sw'), el('span', 'astate-n', name));
-    cell.append(head, roleSourceSelect(roleKey, palette, stepKeyOf(r.path)));
+    cell.append(head, roleSourceSelect(roleKey, palette, baselineStepOf(roleKey)));
     g.append(cell);
   }
   if (!any) return null;
@@ -1984,7 +2032,7 @@ const slotRow = (o: { name: string; slot: string; label: string; palette: string
   const roleKey = `interactive.${o.name}.${o.slot}`;
   const r = roles[roleKey]; if (!r) return null;
   return iRow({
-    swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, stepKeyOf(r.path)),
+    swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, baselineStepOf(roleKey)),
     pill: `color.${roleKey}`, desc: o.desc, example: iExample(o.example(roles), iBadge(roles[o.badgeRole ?? roleKey])),
     states: o.states ? iStates(roles, o.palette, o.states) : null,
   });
@@ -2006,8 +2054,8 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
   let warn: string | undefined;
   if (col.setStep) {
     const steps = stepsOf(col.palette);
-    select = stepPicker(col.palette, steps, stepKeyOf(r.path), steps.find((k) => Number(k) === col.stepValue),
-      (step) => col.setStep!(step === undefined ? undefined : Number(step)));
+    select = stepPicker(col.palette, steps, baselineAnchorStepOf(`interactive.${col.name}.fill.rest`, currentMode, col.name),
+      steps.find((k) => Number(k) === col.stepValue), (step) => col.setStep!(step === undefined ? undefined : Number(step)));
     // Apply-but-warn, like every other override in this file (#331). A pin that misses the floor
     // is APPLIED — the swatch, the example and the derived hover/pressed all show the step you
     // actually picked — and the miss is reported here. It used to substitute the nearest passing
@@ -2019,7 +2067,7 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
     if (min > 0 && ratio < min)
       warn = `${stepKeyOf(r.path)} doesn't clear the contrast floor here — ${ratio.toFixed(2)}:1 against ${r.against}, needs ${min}:1. Applied as picked; hover, pressed, text and on-fill all derive from it.`;
   } else {
-    select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, stepKeyOf(r.path));
+    select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, baselineStepOf(`interactive.${col.name}.fill.rest`));
   }
   return iRow({
     swatchBg: r.hex, label: 'Fill · rest', select, pill: `color.interactive.${col.name}.fill.rest`,
@@ -2040,7 +2088,7 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
   return iRow({
     swatchBg: rgbaOf(r), label: 'Overlay wash',
-    select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, stepKeyOf(r.path)),
+    select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
     pill: `color.interactive.${col.name}.overlay.hover`,
     desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — it composites over any surface.',
     // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
@@ -2070,7 +2118,7 @@ const subtleFillRow = (col: ICol): HTMLElement | null => {
   const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
   return iRow({
     swatchBg: r.hex, label: 'Subtle tint',
-    select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, stepKeyOf(r.path)),
+    select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, baselineStepOf(`interactive.${col.name}.subtle-fill.hover`)),
     pill: `color.interactive.${col.name}.subtle-fill.hover`,
     desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
     // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
@@ -5006,7 +5054,9 @@ const renderSurfacesEditor = (): HTMLElement => {
     const cur = brandState.overrides?.[mode]?.['background.inverse.primary']?.step;
     // The shared `stepPicker`, so "Auto" NAMES the step it resolved to (`Auto · neutral 950`) exactly
     // as the fill rows below do. A bare "Auto" is the same control minus the one fact it is holding.
-    const invSel = stepPicker(nPal, nSteps, stepKeyOf(roles['background.inverse.primary']?.path),
+    // `baselineStepOf` (#330), not `stepKeyOf(r.path)` — the live role already reflects `cur` when an
+    // override is active, so naming it off `r.path` would have Auto echo the very override it clears.
+    const invSel = stepPicker(nPal, nSteps, baselineStepOf('background.inverse.primary', mode),
       typeof cur === 'string' ? cur : undefined,
       (step) => setFillOverride('background.inverse.primary', nPal, step));
     // `text.on-inverse` is measured against `background.inverse.primary` exactly — the correct ink
@@ -5130,7 +5180,9 @@ const renderForegroundEditor = (): HTMLElement => {
     // The shared `stepPicker` + `setFillOverride` — same control, same revert-prune, and "Auto" now
     // names the step it landed on (`Auto · neutral 900`) as the fill rows already did. The hand-rolled
     // copy this replaces differed from them in exactly one way: it withheld that.
-    const sel = stepPicker(nPal, nSteps, stepKeyOf(r.path), typeof cur === 'string' ? cur : undefined,
+    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — `r` is the LIVE resolved role, so once `cur`
+    // is set it already reflects the override; naming Auto off it would have Auto echo `cur` back.
+    const sel = stepPicker(nPal, nSteps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
       (step) => setFillOverride(role, nPal, step));
     sec.append(sfRow({
       swatchHex: r.hex, name: label, tokenPath: `color.${role}`,
@@ -5147,7 +5199,8 @@ const renderForegroundEditor = (): HTMLElement => {
     const steps = (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
     if (!steps.length) continue;
     const cur = brandState.overrides?.[currentMode]?.[role]?.step;
-    const sel = stepPicker(palette, steps, stepKeyOf(r.path), typeof cur === 'string' ? cur : undefined,
+    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — same reasoning as the ladder above.
+    const sel = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
       role === 'text.link.default' ? (step) => setLinkOverride(palette, steps, step) : (step) => setFillOverride(role, palette, step));
     sec.append(sfRow({
       swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
@@ -5239,7 +5292,8 @@ const renderForegroundsEditor = (): HTMLElement => {
     const steps = (theme.palettes.find((p) => p.palette === palette)?.steps ?? []).map((s) => s.key);
     if (!steps.length) continue;
     const cur = brandState.overrides?.[currentMode]?.[role]?.step;
-    const picker = stepPicker(palette, steps, stepKeyOf(r.path), typeof cur === 'string' ? cur : undefined, (step) => setFillOverride(role, palette, step));
+    // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — same reasoning as the interactive matrix.
+    const picker = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined, (step) => setFillOverride(role, palette, step));
     // Neutral surface tiers are pale fills — paint the example label in ink, not white; other fills keep white on-fill.
     const isSurface = paletteKey === 'neutral';
     const tier = label.split('—')[1]?.trim();                 // "Surface — card" → "card"
