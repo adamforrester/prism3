@@ -4,7 +4,7 @@ The token→code leg of `docs/19`. **Only the token leg.** The component leg (we
 Storybook) is genuinely blocked on the author-headless-vs-wrap decision (#252), which has no lean
 recorded anywhere — so nothing component-shaped belongs here yet.
 
-What exists today is one thing: **a gate that answers whether a stranger could consume our tokens.**
+What exists today is one thing: **a gate that answers whether a stranger could consume our tokens** — measured across every brand the engine emits.
 
 ```bash
 npm run -w @prism3/tokens check:consumability
@@ -55,6 +55,48 @@ Both are measured here, and they answer different questions:
 
 Same posture `regen --check` takes toward `out/`: the job is to have a **memory**, not an opinion.
 
+## Scope — every brand, and why that mattered
+
+The gate originally measured **one** brand (`nb`), which answered "can a stranger consume `nb`?" and
+was silent on the other three. #635 widened it to the whole corpus.
+
+Brands are **discovered** from `Prism3/engine/out/`, so a fifth is covered the day it lands. The four
+known profiles are then asserted **by name**, because a gate with a scope must prove each promised
+surface is represented rather than count files — if `aurora` stopped being emitted, a count-based
+check would report "3 brands, all green" and the only brand with gradients would have left the corpus
+unnoticed.
+
+| brand | what it exercises that the others do not |
+|---|---|
+| `nb` | the legacy `nbds.*` dialect, and the hand-authored regression target |
+| `aurora` | gradients (Paint Styles) + a decoupled action palette |
+| `harbor` | a third input profile |
+| `wendys` | the standard-dialect front door (`parseStandard` + classifier) |
+
+**Every expectation is derived per brand.** Leaf counts, mode lists and the token root all differ —
+`nb` roots at `nbds`, the rest at `prism` — so a shared literal would be one measurement standing in
+for four. The page-background check reads the root off each brand's own tree and compares the
+canonical build against that brand's dark projection, rather than asserting a hard-coded color.
+
+## What widening it found: `[object Object]`
+
+Fourteen values across the corpus reach the CSS as the literal string `[object Object]` — Style
+Dictionary's output for a composite type it has no transform for.
+
+| type | brands | count | note |
+|---|---|---|---|
+| `spring` | all four | 3 each | a Prism3 type with no DTCG equivalent, so no consumer has a transform for it |
+| `gradient` | `aurora` | 2 | a **standard DTCG composite type** — a conforming consumer reading a conforming type gets garbage |
+
+**Three of them are in `nb`, the brand the gate already measured.** It reported 556 leaves → 556
+variables, a perfect 1:1, while three of those 556 were unusable. The count was right and the output
+was broken — which is the precise shape of defect a count is structurally unable to see, and the
+reason the value-integrity assertion now exists.
+
+These are **pinned, not fixed** (#642): #635 is about measuring all four brands, and each defect it
+surfaces gets its own decision, the same way #609 came out of measuring one. Widening the pin to make a future
+failure go away would be the same move as adding a preprocessor — it ends the measurement.
+
 ## Independence
 
 Per CLAUDE.md principle 4 and `docs/34`: `leaves` is counted by walking the **source JSON**, `vars` by
@@ -69,6 +111,9 @@ Mutation-verified. Three mutations, three caught:
 | `outputReferences` switched off | the `var(--` reference count + the pinned light-mode value |
 | the selector changed (simulating a mode fix) | the exact-selector assertion |
 | an overlay carries base values, not the mode's | the per-mode `actually differs from base` assertion |
+| a brand leaves the corpus | the `[SCOPE]` by-name assertions |
+| the corrupt-value scan is disabled | the per-brand `[CORRUPT]` pins |
+| the token root is hard-coded to one dialect | the page-background check, on the three `prism`-rooted brands |
 
 The first two survived the gate's first draft, which counted only names. Counting cannot see values,
 references, or forbidden code. The fourth is the one this gate caught that the engine's own unit tests
