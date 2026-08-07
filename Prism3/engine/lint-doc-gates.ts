@@ -91,8 +91,11 @@ const REQUIRED_DOCS: { label: string; path: string }[] = [
 // with both pointers intact (verified by mutation in review of #646). This check cannot detect that,
 // and is not trying to: a stale summary beside a live pointer still routes the reader to the
 // authority, which is what the README is for. What no future edit can do is SEVER that path. Before
-// this landed the README both listed 4 gates against CI's 21 AND named neither authority — a summary
-// with no way out of it. The dead end is what this closes; the drift above it is deliberately not
+// this landed the README listed 4 gates against CI's 21 AND named only one of the two authorities:
+// `CONTRIBUTING.md` twice (the banner and the next-steps list), `.github/workflows/ci.yml` not at
+// all — so this check would have failed on 1 of the 2 pointers, measured by running it against the
+// pre-PR README. A weakened signpost, then, not a dead end: one route to the real list survived. One
+// severed pointer of two is still the hole this closes; the drift above it is deliberately not
 // gated, because gating it would mean demanding enumeration, which is the outcome rejected above.
 //
 // This is the more conservative of the two options considered; the other was to leave the README out

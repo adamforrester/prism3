@@ -279,8 +279,12 @@ summary.** A summary that goes stale still passes; so does one gutted from five 
 long as both pointers survive. That is the intended scope — a stale summary beside a live pointer
 still routes the reader to the authority — but it means the summary itself is watched by nobody, and
 gating it would mean demanding the enumeration rejected two paragraphs up. What the check makes
-impossible is **severing** the path. Before this landed the README did both: 4 gates against CI's 21
-*and* neither authority named, a summary with no way out of it. The rejected alternative was to leave the README out with a comment recording the omission as a
+impossible is **severing** the path. Before this landed the README listed 4 gates against CI's 21 and
+named only one of the two authorities — `CONTRIBUTING.md` twice (the banner and the next-steps list),
+`.github/workflows/ci.yml` not at all, so the check would have failed on 1 of 2 pointers, measured by
+running it against the pre-PR README rather than asserted. A weakened signpost, not a dead end: one
+route to the real list survived. One severed pointer of two is still the hole this closes.
+The rejected alternative was to leave the README out with a comment recording the omission as a
 decision — honest, but it gates nothing, and this file had already drifted once with nothing
 watching. **Flagged in the PR as open to reviewer override**, since it is a judgement about what the
 README is for rather than a correctness fix. Tamper-tested the same way: strip the CONTRIBUTING.md
