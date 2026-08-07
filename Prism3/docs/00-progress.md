@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-07) — Weight roles specimen goes per-mode, reopening #422's own prior "drop the column" fix
+
+**STATUS: shipped.** `renderWeightTable` (`web/src/main.ts`) now renders one specimen per MODE cell,
+resolved from that mode's own `value` (baseline override, mode-lever re-point, or fallback) — the same
+number its stepper already computes and shows as digits. Previously the specimen was gone entirely.
+
+**Why this reopens rather than follows #424.** #422 was filed as "the specimen is frozen at baseline."
+#424 (2026-08-03, same day) closed it by deleting the Specimen column outright, reasoning that "Weight
+roles by face" already answers what a weight looks like. It doesn't, for this table's actual question:
+that table is deliberately MODE-BLIND (owner, 2026-08-01) — its per-face specimen is fixed at the row's
+baseline numeric, never the mode-resolved one. So #424 traded a wrong-but-visible answer for no answer,
+and the GitHub issue was never actually closed (state stayed `open` — the commit trailer `(#423, #422)`
+wasn't a closing keyword). This PR is the fix #422 was originally asking for.
+
+**Open design call — resolved toward the codebase's own precedent, not the only defensible answer.**
+Now that a role's numeric can differ per mode, one specimen per row is ambiguous: light/baseline always
+(simple, silently wrong once a mode re-points), current-mode-only (matches the mode strip's own scoping
+elsewhere), or one specimen per mode cell. Went with **per-mode-cell**, because that's what "Weight roles
+by face" already does structurally (a specimen built INSIDE the per-column loop, from that column's own
+data) — mirroring it here per mode instead of per face keeps the table's shape self-consistent with its
+neighbor rather than introducing a third pattern. It also has a free side effect: living inside the
+existing mode column (as a second line under the stepper, via a new `.wt-spec{display:block}` — same
+"second line under the control" shape as `.mtbl-worth`) rather than a trailing column means #424's
+overflow fix (888px → ~704px) is untouched; nothing new was added to the table's width. **Open to being
+overridden toward baseline-only or current-mode-only if a reviewer prefers either** — this was a
+consistency-driven default, not a claim that per-mode-cell is the only right shape.
+
+**Verification.** Live in a real browser (Playwright, `PLAYWRIGHT_MODULE` pointed at a global install,
+mode-audit.mjs's pattern — this repo takes no Playwright dependency, see #333): stepped Dark's `subtle`
+weight from 300→400 on the `harbor` sample brand — Dark's own specimen (`fontWeight`) updated to 400 live,
+while Light/HC light/HC dark specimens on the same row stayed at 300, independently resolved. Also
+exercised the derived-mode (`auto`) reading branch on `aurora`: its specimen re-renders correctly off the
+resolved reading, not just the editable-stepper branch.
+
+Gates: `regen --check` (88, worktree-clean count) · `test.ts` 1920/0 · `mcp-test.ts` 49/0 ·
+`token-contract.ts --check` (485 guaranteed, unchanged) · `lint-skills.ts` clean · NB regression PASS
+(11/11 contrast, 23/23 dimensions, ΔE00 mean 1.95) · `lint-us-english.ts` clean (94 files) · web
+typecheck + build clean.
+
+---
+
 ## (2026-08-07) — Fix: the "gates" checklists in CLAUDE.md, CONTRIBUTING.md and the PR template didn't equal what CI runs
 
 **STATUS: shipped.** Docs only — `CLAUDE.md`, `CONTRIBUTING.md`, `.github/pull_request_template.md`.

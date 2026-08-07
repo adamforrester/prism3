@@ -4441,6 +4441,21 @@ const WEIGHT_STEPS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 const renderWeightTable = (): HTMLElement => {
   const ty = theme.typography;
   const modes = rp.modes;
+  // #422 (reopened) — the specimen used to be one `<td>` built OUTSIDE the per-mode loop from the
+  // static baseline `w.value`, so it never moved for any per-mode edit. #424 (2026-08-03) responded by
+  // dropping the column outright, reasoning that "Weight roles by face" already answers "what does this
+  // weight look like" — but that table is deliberately MODE-BLIND (owner, 2026-08-01): its specimen is
+  // per FACE at the baseline numeric, never per mode, so it cannot show what THIS table is about — a
+  // role whose numeric itself differs per mode. Dropping the column traded a wrong answer for no answer.
+  //
+  // Fix, mirroring the pattern "Weight roles by face" DOES already establish — a specimen built INSIDE
+  // the per-column loop, from that column's own resolved value, rather than once after it (main.ts's
+  // per-face `td` loop below, ~line 3210). Applied here per mode instead of per face: each mode's cell
+  // gets its own "Ag 123" sample at that mode's actually-resolved weight (baseline override, mode-lever
+  // re-point, or fallback — the same `value` its stepper already computes and displays as a number).
+  // Living inside the existing mode column rather than a trailing column also sidesteps #424's overflow
+  // complaint — no new column, so the width #424 fixed stays fixed.
+  const textStack = ty.families.find((f) => f.group === 'body')?.stack.join(', ') ?? 'inherit';
   const box = el('div', 'mtbl');
   box.append(el('p', 'mtbl-cap', 'Weight roles'));
   const scroll = el('div', 'mtbl-scroll');
@@ -4454,13 +4469,6 @@ const renderWeightTable = (): HTMLElement => {
     else if (!modeIsEditable(m)) th.append(el('span', 'mtbl-ro', ' auto'));
     htr.append(th);
   }
-  // #422 — no Specimen column. It was wired to `w.value`, the STATIC baseline, so it never moved for
-  // any edit in any mode; it only varied row-to-row, which is what made it look like it worked. The
-  // fix is not to re-wire it: this table answers "what NUMBER does each role resolve to per mode", and
-  // rendering that number is a question `Weight roles by face` below already owns and answers better,
-  // per FACE — "600 in a face that stops at 500" is the fact that matters, and that table was
-  // deliberately made mode-blind (owner, 2026-08-01). Dropping the column also takes the table from
-  // 888px (overflowing) to ~704px, inside the container at four modes.
   htr.append(el('th', 'mtbl-fill'));
   thead.append(htr); tbl.append(thead);
   const tb = el('tbody');
@@ -4475,6 +4483,14 @@ const renderWeightTable = (): HTMLElement => {
         ? (getPath(brandState, `typography.weightRoles.${w.role}`) as number | undefined)
         : (getModeLever(m, `weights.${w.role}`) as number | undefined);
       const value = override ?? (ty.weightRolesByMode?.[m]?.find((x) => x.role === w.role)?.value ?? w.value);
+      // The specimen: same "Ag 123" glyph sample the by-face table uses, at THIS column's resolved
+      // weight — never `w.value`, the row's baseline, which is exactly the bug #422 reported.
+      const spec = () => {
+        const samp = el('span', 'mtbl-spec-t tpw-samp wt-spec', 'Ag 123');
+        samp.style.fontWeight = String(value);
+        samp.style.fontFamily = textStack;
+        return samp;
+      };
       // #423 — a derived mode accepts no levers, so its column is a READING of the resolved numeric,
       // never a stepper. Rendering the stepper is what let a click reach the engine and print
       // "mode 'hc-dark' is generate-only and not customizable" at the user.
@@ -4482,7 +4498,7 @@ const renderWeightTable = (): HTMLElement => {
         const td = el('td', 'mtbl-mode');
         const self = el('span', 'mtbl-selfval mono', String(value));
         self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it resolves to ${value} and accepts no per-mode override.`;
-        td.append(self);
+        td.append(self, spec());
         tr.append(td);
         continue;
       }
@@ -4504,7 +4520,7 @@ const renderWeightTable = (): HTMLElement => {
           else setModeLever(m, `weights.${w.role}`, v);
           applyFull();
         },
-      }));
+      }), spec());
       tr.append(td);
     }
     tr.append(el('td', 'mtbl-fill'));
@@ -8004,6 +8020,11 @@ input.toggle:disabled{opacity:.5;cursor:default}
    failure, so --faint is right — coloring it --danger would read as an error the user caused. */
 .tpw-mark.no{color:var(--faint)}.tpw-mark.unknown{color:var(--line2)}
 .tpw-samp{display:inline;font-size:15px}
+/* #422 — the weight-roles-per-mode specimen. Same "Ag 123" sample as the by-face table's .tpw-samp,
+   but a second LINE under the stepper/reading rather than inline beside it — matching .mtbl-worth's
+   "second line under the per-mode control" pattern, since the stepper's four glyphs already fill most
+   of the 148px column and an inline specimen would wrap mid-cell instead of stacking cleanly. */
+.wt-spec{display:block;margin-top:4px}
 /* Leading & tracking rungs in the shared table format (#363). The value control is width-BOUNDED, not
    auto: a control that sizes to its content is what breaks column parity in an auto-layout table.
    #388 swapped the number input for a ladder select and the bound has to come with it — a closed
