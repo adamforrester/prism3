@@ -47,7 +47,7 @@ disciplines, both already proven elsewhere:
   map cleanly.
 
 **The binding insight — why this composes with the engine.** A component definition
-binds its visual props to the **locked token names** (`11`): `color.action.default`,
+binds its visual props to the **locked token names** (`11`): `color.interactive.primary.fill.rest`,
 `radius.md`, `space.100`, `font.label`. That makes the definition **brand- and
 mode-invariant structure**; brands and modes are value-columns the engine already
 supplies. Build the Button set *once* and every brand/mode materializes correctly,

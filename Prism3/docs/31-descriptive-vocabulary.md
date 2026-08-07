@@ -124,7 +124,7 @@ An agent learns the vocabulary from `list_levers` without reading this file:
 
 ## What this does not do
 
-- **No per-mode stops.** `modeLevers.<mode>.radiusScale` still takes a number: a per-mode deviation
+- **No per-mode stops.** `modeLevers.<mode>.radius` still takes a number: a per-mode deviation
   is a precision instrument, and reaching for one means you know the value you want.
 - **No new tokens.** Traits move lever *values*, so the token-name contract (docs/30) is untouched;
   a brand that declares no vocabulary emits byte-identical output.
