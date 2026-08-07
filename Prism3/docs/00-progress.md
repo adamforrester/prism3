@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-07) — Button's default intent is `primary`, and hierarchy moves to the appearance axis
+
+**STATUS: def + gates only.** All 88 emitted artifacts byte-identical, no version bump. Two files
+(`components/button.ts`, `test.ts`), +4 assertions (1934 total).
+
+**The decision, from the design owner:** the default intent flips `neutral` → `primary`. The brand
+colour is what a button is *expected* to look like, so an unqualified `<Button>` should be on-brand
+rather than gray.
+
+**What the old default got wrong was not the rule — it was which axis the rule applies to.** The
+brief's §4/§15 default was `neutral`, justified by "one primary per view, so the loud button is the
+deliberate choice." That rule survives intact. But it counts primaries per view *as if emphasis lived
+on `intent`*, and this def deliberately made intent and appearance **orthogonal** — so rank is
+carried by APPEARANCE (filled > outline > text) within one intent. The owner's framing settled it: a
+three-button form *is* often three primaries, one of each appearance. The thing being rationed is
+**one FILLED per view**, not one primary. Guidance rewritten accordingly (`usage`, one `do`, one
+`dont`), plus a new `do` for the case `neutral` actually serves: a control with no brand weight at
+all (a toolbar, a dense table row) — a *chosen* look, not what you get by omission.
+
+**The projection is default-blind, which is why this ships as zero artifact drift.**
+`anatomy-figma.ts` never reads `props[].default`; the 648 variants are enumerated from
+`variants.intent` and every member is explicit. So the change is entirely to the *code* API — worth
+knowing before anyone goes looking for a moved token, and worth knowing in the other direction too:
+a default cannot be wrong in a way `regen --check` will ever notice.
+
+**The find: the two surfaces already disagreed, and nothing reported it.** Figma treats a set's
+FIRST member as its thumbnail, and the enumeration has always led with `intent=primary`. So for as
+long as the code default was `neutral`, a designer opening the set and a developer writing
+`<Button>` got buttons in **different colours** — and every gate was green, because no gate compared
+those two surfaces. The flip closes it; the guidance contradiction was the visible half of the same
+defect. Now asserted, against the *emitted member name* rather than the axis list, so reordering
+`variants.intent` fails it too.
+
+**A VALUE ASSERTION ALONE WOULD HAVE LET THIS SHIP HALF-DONE.** The pre-existing gate was one
+`default === 'neutral'` check. Flipping it to `'primary'` passes while the prose one screen away
+still says "keep exactly one primary per view" — a def that contradicts itself, green. This is the
+*pinned number carries no verdict* shape again (doc 34): counts and values say what happens, only
+prose says anyone chose it, and nothing gates prose. So two of the four new assertions read the
+**docs strings** — one requiring the primary-rationing wording is gone, one requiring the FILLED
+rule and the word `appearance` are present. Both directions, because "the old wording is absent" is
+also what an empty `docs` returns.
+
+**Mutations — 5/5 caught by name**, and two harness bugs of mine before that, both worth recording
+because each would have printed a clean sweep:
+
+| mutation | result |
+|---|---|
+| revert `default` to `neutral` | ✅ 2 failures — the value assertion *and* the thumbnail one |
+| put "one primary per view" back in `usage` | ✅ named |
+| strip **every** mention of the FILLED rule | ✅ named |
+| reorder `variants.intent` so primary isn't first | ✅ named — the thumbnail assertion alone |
+
+- **The harness grepped for `FAIL`/`✗`; `test.ts` prints `❌`.** Every mutation read MISS while three
+  were in fact firing. A mutation harness that cannot parse its subject's output reports the same
+  thing as a gate that does not exist — check the tally moved, not just the pattern.
+- **The first FILLED mutation edited `docs.do` only, while `docs.usage` still carried "exactly one
+  FILLED per view/region".** The assertion matched the surviving copy and passed. A mutation must
+  remove **every** instance of what the gate looks for; a gate over concatenated prose needs a
+  mutation over concatenated prose.
+
+**Deferred, unchanged:** an `accent` intent (the owner notes it maps to the old `secondary` naming)
+stays optional and brand-conditional via `theme.interactivePalettes`. #612's `pending`/`leading`
+half stays open — still a modeling question, not a redundancy.
+
+---
+
 ## (2026-08-07) — CLAUDE.md housekeeping: staleness pass + 21% smaller
 
 **STATUS: docs only.** No engine change, no emitted artifact. `CLAUDE.md` only, plus this entry.

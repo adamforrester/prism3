@@ -5741,8 +5741,36 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   }
 
   // Button carries the reconciled two-axis model bound to interactive.* (docs/20): intent
-  // {primary,neutral,destructive} × appearance {filled,outline,text}, neutral default.
-  ok(button.props.find((p) => p.name === 'intent')?.default === 'neutral', 'component: Button intent defaults to neutral (one primary per view)');
+  // {primary,neutral,destructive} × appearance {filled,outline,text}, PRIMARY default.
+  //
+  // Reversed 2026-08-07 (was `neutral`). The old default came from "one primary per view", which
+  // counts primaries as if emphasis lived on `intent` — but this def made intent and appearance
+  // orthogonal, so rank is carried by APPEARANCE and a three-action form is three primaries at
+  // filled/outline/text. The constraint is one FILLED per view, not one primary.
+  const intentProp = button.props.find((p) => p.name === 'intent');
+  ok(intentProp?.default === 'primary', `component: Button intent defaults to primary — the brand colour is the expected look of a button (got '${intentProp?.default}')`);
+  // The DEFAULT AND THE GUIDANCE HAVE TO AGREE, and that is the half a value assertion misses. The
+  // prose said "keep exactly one primary per view" while the default handed you a primary — so a
+  // developer writing `<Button>` twice violated the def's own rule with no way to notice. Flipping
+  // the default without rewriting the rule is the failure this pins: assert the docs no longer
+  // ration PRIMARIES, since the thing being rationed is now the filled appearance.
+  const guidance = [button.docs!.usage, ...button.docs!.do, ...button.docs!.dont].join(' ');
+  ok(!/one primary per view|exactly one primary|multiple primaries competing/i.test(guidance),
+    'component: Button docs no longer ration primaries — with primary as the default, "one primary per view" would contradict the default it sits beside');
+  ok(/one FILLED/i.test(guidance) && /appearance/i.test(guidance),
+    'component: Button docs ration the FILLED appearance instead, and say hierarchy is the appearance axis — the rule survives, the axis it applies to changed');
+  // AND THE TWO SURFACES AGREE. Figma treats a set's FIRST member as its thumbnail, and the
+  // enumeration has always led with `intent=primary` — so while the code default was `neutral`, a
+  // designer opening the set and a developer writing `<Button>` got different buttons, in different
+  // colours, with nothing anywhere reporting the disagreement. That is the actual defect the default
+  // flip closes; the guidance contradiction above is the half that was visible. Asserted against the
+  // EMITTED name rather than the axis list, so reordering the enumeration fails here too.
+  const firstMember = planComponentName(figmaAnatomyPlan(button, button.variants.size[0], {
+    leading: false, trailing: false, swapTarget: 'FPO-default-icon',
+    intent: button.variants.intent[0], appearance: button.variants.appearance[0], state: 'rest',
+  }));
+  ok(new RegExp(`intent=${intentProp?.default}\\b`).test(firstMember),
+    `component: the Figma set's first member (its thumbnail) carries the SAME intent as the code default — '${intentProp?.default}' (${firstMember})`);
   ok(JSON.stringify(button.variants.appearance) === JSON.stringify(['filled', 'outline', 'text']), 'component: Button appearance axis is filled/outline/text (reconciled)');
   ok(!Object.values(button.tokens).some((v) => /color\.action\.|color\.foreground\.danger\.|foreground\.secondary/.test(String(v))), 'component: Button binds interactive.*/disabled.*, not the legacy action./danger./secondary roles');
   ok(iconButton.inherits === 'button' && !!iconButton.props.find((p) => p.name === 'aria-label')?.required, 'component: IconButton inherits button + REQUIRES an accessible name');
