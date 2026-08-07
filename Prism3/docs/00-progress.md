@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-07) — Fix: "Auto" override-picker label showed the live (overridden) step, not the true baseline (#330)
+
+**STATUS: shipped, PR open.** `web/src/main.ts` only — no engine change, no emitted-artifact change.
+
+**The bug, confirmed live before touching anything.** Every per-mode color-override picker's "Auto"
+option is built by `stepPicker` to read `Auto · <palette> <step>`, and every call site computed that
+`<step>` as `stepKeyOf(r.path)` off `iRoles()`/`resolveAllModes(theme)` — the theme's CURRENT resolved
+state, which already reflects any active override or fill-anchor pin. So the instant a user set an
+override, "Auto" silently started echoing their own last pick instead of the engine's baseline — then
+clicking "Auto" (which correctly clears the deviation via `setFillOverride`/`col.setStep(undefined)`
+and re-resolves) landed on a DIFFERENT value than the option had just displayed. Verified with a real
+Playwright session (`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, mode-audit.mjs's pattern,
+throwaway probe script, not committed) against unmodified `main` before writing any fix: set an
+override, reopen the picker, and the Auto label had drifted to the override's own step every time.
+
+**Fix: one shared primitive, two thin wrappers, not six-plus independent patches.** `baselineOf(roleKey,
+mode, without)` resolves `roleKey` against a THEME CLONE with `without` applied — a full re-resolve, not
+a patch of the live role, so it stays correct even if the engine ever derives one role's baseline from
+another role's own deviation (a field patch could not notice that; a fresh `resolveAllModes` always
+would). Two wrappers, because the engine has two independent live-deviation layers, not one:
+- `baselineStepOf(roleKey, mode)` — clears `theme.overrides[mode][roleKey]` (the A1 per-mode
+  colour-override layer `setFillOverride` writes). Covers every Source/Step select in the interactive
+  matrix, the Surfaces fill/foreground/text editors, and Backgrounds → Inverse.
+- `baselineAnchorStepOf(roleKey, mode, name)` — clears whichever of `theme.modeAnchors[mode][name]` /
+  `theme.actionAnchorStep` / `theme.destructiveAnchorStep` / `theme.interactivePalettes[i].anchorStep`
+  applies (the A2b fill-anchor layer `col.setStep` writes) — mirroring exactly what that same picker's
+  own `onPick(undefined)` clears. Needed because the interactive matrix's "Fill · rest" row for
+  anchor-bearing columns (primary/destructive/accents) is driven by the anchor layer, not the override
+  layer; Neutral has no anchor and uses `baselineStepOf` like everything else. Discovering this second
+  layer live (the anchor-branch picker showed the identical drift-then-correct-revert symptom) is why
+  the fix isn't a single find-and-replace of `stepKeyOf(r.path)` → `baselineStepOf(roleKey)`.
+
+**Eight call sites fixed**, all confirmed live pre/post-fix with the same Playwright probe (override →
+reopen picker → confirm Auto label unchanged → click Auto → confirm the resulting swatch matches
+exactly what the label displayed, for every site): the interactive matrix's generic per-state cell
+(`iStates`, e.g. Fill · rest → Hover), its labeled slot cell (`slotRow`), `fillRestRow`'s two branches
+(the anchor branch for Primary/Destructive/accents, and the plain-override branch for Neutral),
+`overlayRow` (Overlay wash · hover), `subtleFillRow` (Subtle tint · hover — the originally-reported
+instance), Surfaces → Backgrounds → Inverse, and Surfaces → Foreground fills editor.
+
+**Deviation from the intake note, and why.** The intake said `renderForegroundEditor`'s Text & ink
+picker (the neutral ladder + palette-anchored inks) does NOT have this bug because it labels Auto bare
+`'Auto'` — that was true of an earlier hand-rolled version of that control, but a prior refactor moved it
+onto the same shared `stepPicker` everything else uses (its own comment says as much: "the hand-rolled
+copy this replaces … withheld" the auto step), so on current `main` it reads `Auto · neutral 900` and
+carries the identical bug. Confirmed live the same way as the other eight sites before deciding to fix
+it: label drifted after an override, then correctly reverted on Auto click. Fixed both its call sites
+(`baselineStepOf`) rather than leaving a ninth, now-provably-broken instance in a PR whose whole point is
+closing this class of bug — flagging the deviation here per this file's own instruction to record what a
+diff can't show. **Trap for whoever revisits this:** a stated "X doesn't have this bug" claim is only as
+current as the code it was checked against — always re-verify live against the actual branch tip rather
+than trusting a prior description, however specific.
+
+**Explicitly untouched, per the issue:** the separate complaint that Subtle tint's default (primary 100)
+"reads too dark" and should default to 050 — that's the engine's baseline computation, a design
+question, not this display bug. `fillRestRow`'s own contrast-floor warning message (`warn = ...
+stepKeyOf(r.path) doesn't clear the contrast floor…`) is intentionally left reading the LIVE resolved
+role — it's reporting the consequence of the pin the user just applied, not naming a baseline.
+
+**Gates:** `regen.ts` / `--check` (88 artifacts, worktree-expected), `test.ts` (1920/1920),
+`mcp-test.ts` (49/49), `token-contract.ts --check` (485 guaranteed, unchanged), `lint-skills.ts`,
+`nb-regression.ts` (pass), `lint-us-english.ts` (94 files, clean), `web` `typecheck` + `build`,
+`lint-contrast.mjs`, `lint-classes.mjs` — all green.
+
+---
+
 ## (2026-08-07) — Fix: `lint:classes` was red on `main` — #602's own allowlist fix never landed
 
 **STATUS: shipped.** `web/lint-classes.mjs` only — one `ALLOWED` entry added.
