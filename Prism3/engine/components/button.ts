@@ -223,9 +223,10 @@ export const button: ComponentDef = {
       spinner: {
         kind: 'overlay',
         replaces: 'leadingVisual',
+        overlaysWhenAbsent: 'label',
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes the leading visual\'s position rather than the label\'s — replacing a centred label collapses the width, which the brief\'s don\'t-list prohibits explicitly.',
+        note: 'Takes the leading visual\'s cell when there is one (Primer: "the spinner replaces only that visual slot, and the button label remains visible") — width identical, because the cell was already the icon\'s size. With NO leading visual there is no cell to take, so it goes out of flow, centered, and the label holds the width open at zero opacity (React Aria). The old note here ruled out the label\'s position on the grounds that replacing a centered label collapses the width, which conflated REPLACE with REMOVE: removing the label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the label-only case for as long as it stood (#612).',
       },
       focusRing: {
         kind: 'absolute',
@@ -328,7 +329,7 @@ export const button: ComponentDef = {
       'Use a button for navigation to a URL — use a link / link-button',
       'Stack multiple FILLED buttons competing for attention (multiple primaries are fine — differentiate them by appearance)',
       'Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)',
-      'Replace the label with a centred spinner (collapses width) — swap the leading visual instead',
+      'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
     ],
     contentGuidelines: 'Verb-first, specific, sentence case, no terminal punctuation, ≤3 words to bound i18n expansion.',
   },

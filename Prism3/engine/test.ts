@@ -5825,6 +5825,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   }));
   ok(new RegExp(`intent=${intentProp?.default}\\b`).test(firstMember),
     `component: the Figma set's first member (its thumbnail) carries the SAME intent as the code default — '${intentProp?.default}' (${firstMember})`);
+  // THE SAME SHAPE AGAIN, one axis over. The don't-list read "Replace the label with a centred spinner
+  // (collapses width) — swap the leading visual instead", which was sound advice for as long as the
+  // spinner only ever took the leading cell. Once it learned to overlay the label (#612), the prose
+  // prohibited by name the thing the projection now does — and every gate stayed green, because 1,948
+  // assertions read the projection and not one read this string. So tie the two together: whatever the
+  // def declares about the absent-leading case, the guidance must not forbid.
+  ok(/overlay|zero opacity/i.test(guidance) === !!button.anatomy!.parts.spinner.overlaysWhenAbsent,
+    'component: Button guidance and the spinner def agree about overlaying the label — the def declares a fallback, so the prose may not prohibit one (#612)');
+  ok(!/collapses width\)\s*—\s*swap the leading visual instead/i.test(guidance),
+    'component: the don\'t-list no longer bans a centered spinner outright — REMOVING the label collapses the width, overlaying it does not, and the old wording conflated the two');
+  // What the rule is actually protecting is the accessible name, so say that and gate that.
+  ok(/screen readers? lose|a11y|accessibility|loses? the name/i.test(guidance),
+    'component: and the surviving prohibition names the real cost — a removed label takes the accessible name with it, which is why the overlay is held at zero opacity rather than hidden');
   ok(JSON.stringify(button.variants.appearance) === JSON.stringify(['filled', 'outline', 'text']), 'component: Button appearance axis is filled/outline/text (reconciled)');
   ok(!Object.values(button.tokens).some((v) => /color\.action\.|color\.foreground\.danger\.|foreground\.secondary/.test(String(v))), 'component: Button binds interactive.*/disabled.*, not the legacy action./danger./secondary roles');
   ok(iconButton.inherits === 'button' && !!iconButton.props.find((p) => p.name === 'aria-label')?.required, 'component: IconButton inherits button + REQUIRES an accessible name');
@@ -5872,9 +5885,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // avatars, counters and spinners, KB button.md §2).
     ok(['container', 'leadingVisual', 'label', 'trailingVisual', 'spinner'].every((p) => p in a.parts), 'anatomy: the brief\'s parts are all declared');
     ok(!Object.keys(a.parts).some((p) => /Icon$/.test(p)), 'anatomy: slots use the *Visual vocabulary, not *Icon');
-    // The spinner takes the LEADING VISUAL's position, never the label's — replacing a centred
-    // label collapses the width, which the brief's don't-list prohibits by name.
+    // The spinner takes the LEADING VISUAL's cell when there is one, AND declares what to do when
+    // there isn't. This comment used to end at the first clause, reasoning that the label's position
+    // was out of bounds because "replacing a centred label collapses the width, which the brief's
+    // don't-list prohibits by name" — conflating REPLACE with REMOVE. Removing the label collapses the
+    // width; overlaying it at zero opacity does not. That conflation is what left `leading: false`
+    // with no rule at all, so the spinner took a cell that did not exist at rest and the most common
+    // button shape in the system grew 28px mid-submit (#612).
     ok(a.parts.spinner.kind === 'overlay' && a.parts.spinner.replaces === 'leadingVisual', 'anatomy: the pending spinner replaces the leading visual (width-preserving), not the label');
+    ok(a.parts.spinner.overlaysWhenAbsent === 'label', 'anatomy: and it declares the label as its fallback for the coordinate where there is no leading visual to replace — every optional `replaces` needs one or the part grows on that state (#612)');
 
     // ---- the projection ----------------------------------------------------------------------
     // #326's asymmetry is the reason a plan is built per slot-fill rather than per size alone. Two
@@ -6482,10 +6501,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // a FIXED axis absorbs the stroke silently (the value is the value), and only a hugging axis
           // grows by it. That is why the defect was width-only on a button whose height is bound, and a
           // stub that grew both axes would misreport it as symmetric.
+          // A TEXT node measures its CHARACTERS (#612), which is the third time this stub has had to stop
+          // measuring a constant for the same reason. It returned 0 for text, so a hug-sized button
+          // measured only its own padding — 16px at medium — and the overlay geometry it was written to
+          // gate became arithmetically vacuous: `(16 - 16) / 2` is 0, so a spinner CENTERED on the button
+          // and a spinner PINNED TO ITS CORNER produced identical coordinates, and the assertion passed
+          // either way. 6px per character is a crude proxy for advance width and deliberately not exact:
+          // what the gate needs is a label WIDER than the spinner, so the centering offset is non-zero
+          // and a corner-pin is distinguishable from a center. See the `height`/border-box notes below —
+          // same finding, arrived at from three different directions now.
           get width() {
             const bv = node.boundVariables as Record<string, { value?: number }>;
             const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
             if (bv.width) return bv.width.value ?? 0;
+            if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
             const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
             const hug = ((node.children as Record<string, unknown>[]) ?? [])
               .filter((c) => c.layoutPositioning !== 'ABSOLUTE')
@@ -6832,6 +6861,56 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const wide = ((widePage.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).find((c) => c.name === 'focusRing');
       ok(wide?.x === -6 && wide?.y === -6,
         `anatomy/ring: a brand whose ring offset is 6 gets a ring at -6 — the value is READ from the variable at paste, not baked into the plan (${JSON.stringify([wide?.x, wide?.y])})`);
+    }
+
+    // ---- the CENTERED overlay, EXECUTED (#612) ----------------------------------------------------
+    // The plan-level gates above prove `absoluteCenter`/`zeroOpacity` are SET. This block proves the
+    // payload ACTS on them, which is a separate claim and the one that reaches a designer: the plan is
+    // a JSON literal the payload can ignore in silence. Modeled on the ring's block for the same
+    // reason it exists — geometry that throws nothing and reports nothing is only caught by measuring.
+    {
+      const pend = figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state: 'pending', leading: false, trailing: false, swapTarget: 'FPO-default-icon' });
+      const pendOpts = { vars: [...planBoundVars(pend.root), ...planPaintVars(pend.root)], styles: planTextStyles(pend.root), comps: ['FPO-default-icon'] };
+      const pendJs = planToPluginJs(pend);
+      const pendPage: StubPage = { children: [] };
+      const pendRun = await runPayload(pendJs, { ...pendOpts, page: pendPage });
+      ok(pendRun.misses.length === 0,
+        `anatomy/pending: a label-only pending paste runs CLEAN${pendRun.misses.length ? ` — ${JSON.stringify(pendRun.misses)}` : ''}`);
+      const pRoot = pendPage.children[0] as Record<string, unknown>;
+      const pKids = ((pRoot?.children as Record<string, unknown>[]) ?? []);
+      const spin = pKids.find((c) => c.name === 'spinner'), lbl = pKids.find((c) => c.name === 'label');
+      // OUT OF FLOW, read back through the stub's rejection model. If Figma discards this the spinner
+      // takes a cell and the button grows — the #612 defect, restored at paste time only.
+      ok(spin?.layoutPositioning === 'ABSOLUTE' && JSON.stringify(spin?.constraints) === JSON.stringify({ horizontal: 'CENTER', vertical: 'CENTER' }),
+        `anatomy/pending: the spinner is lifted out of the flow and CENTER-constrained on both axes — STRETCH would distort a round spinner (${JSON.stringify([spin?.layoutPositioning, spin?.constraints])})`);
+      // THE LABEL IS STILL BUILT, still sized, and merely transparent. Read off the built tree because
+      // this is precisely what `visible:false` or a dropped node would NOT give us, and neither would
+      // report a miss.
+      ok(lbl?.opacity === 0 && (lbl?.width as number) > 0,
+        `anatomy/pending: the label is built at zero opacity and still MEASURES — a hidden or dropped label yields its cell and the button collapses instead (${JSON.stringify([lbl?.opacity, lbl?.width])})`);
+      ok(spin?.opacity !== 0, `anatomy/pending: the spinner itself is fully opaque — the zero applies to the part being covered, not the coverer (${spin?.opacity})`);
+      // CENTERED ON THE PARENT'S MEASURED BOX, and the parent must measure something first or the
+      // centering assertion is satisfied by any square at 0,0. Same unfalsifiability trap the ring's
+      // `built.width > 4` guard exists for (doc 34, shape 4).
+      ok((pRoot.width as number) > (spin?.width as number),
+        `anatomy/pending: the button measures wider than the spinner before the centering is asserted — otherwise the maths below is vacuous (${JSON.stringify([pRoot?.width, spin?.width])})`);
+      ok(spin?.x === ((pRoot.width as number) - (spin?.width as number)) / 2 && spin?.y === ((pRoot.height as number) - (spin?.height as number)) / 2,
+        `anatomy/pending: the spinner is centered on the button's box, not pinned to a corner (${JSON.stringify([spin?.x, spin?.y])} in ${JSON.stringify([pRoot?.width, pRoot?.height])})`);
+      // AND IT KEEPS ITS OWN SIZE. The ring is `resize`d to its target; this must NOT be, because
+      // `resize` clears the size binding and a spinner stretched to the button's width is not a
+      // spinner. Invisible in the position maths above — a full-width node centers fine.
+      ok(spin?.width === spin?.height && (spin?.width as number) < (pRoot.width as number),
+        `anatomy/pending: the centered spinner keeps its own SQUARE size rather than being resized to its parent (${JSON.stringify([spin?.width, spin?.height])})`);
+      // The two payload writes, mutated. `misses[]` covers the first; only the built tree covers the
+      // second, which is why both are asserted from different sources above.
+      const liftGutted = await runPayload(pendJs.replace("kid.layoutPositioning=lift;", 'void lift;'), pendOpts);
+      ok(liftGutted.misses.some((m) => /spinner\.layoutPositioning -> DISCARDED/.test(m)),
+        `anatomy/pending: a centered child Figma refuses to lift IS reported — silence here is a button that grows on pending (${JSON.stringify(liftGutted.misses)})`);
+      const opacityGutted: StubPage = { children: [] };
+      await runPayload(pendJs.replace('kid.opacity=0;', 'void 0;'), { ...pendOpts, page: opacityGutted });
+      const ogLabel = ((opacityGutted.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).find((c) => c.name === 'label');
+      ok(ogLabel?.opacity !== 0,
+        'anatomy/pending: the opacity mutation actually reaches the built label — proving the assertion above reads the payload\'s write and not a stub default');
     }
 
     // ---- COMPONENT PROPERTIES on the assembled set (#487 step 6) --------------------------------
@@ -7268,8 +7347,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // The 54 are exactly the `leading=true` half of `pending`: the spinner REPLACES the leading visual,
     // so it inherits the same square size binding, the same icon paint and the same position, and the
     // only difference left is that the node is called `spinner` instead of `leadingVisual`. With
-    // `leading=false` there is nothing to replace, so the spinner ADDS a node and the row genuinely
-    // differs. A layer rename is invisible on the canvas — both are FPO icons of identical size and
+    // `leading=false` there is nothing to replace, so the spinner adds a node — since #612 an
+    // OUT-OF-FLOW one, centered over a label held at zero opacity, so the row genuinely differs on the
+    // canvas without differing in width. A layer rename is invisible on the canvas — both are FPO icons of identical size and
     // color — so the honest count for "looks the same" is 54, not 0. The
     // structural count is what a diff sees; the paint count is what a human sees. Assert BOTH, because
     // asserting only the structural one is what let "144" into the PR table in the first place — and
@@ -8100,15 +8180,83 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // rule. Without this a pending button insets as though its leading cell were empty.
   const padOf = (state: string, leading: boolean): string =>
     figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state, leading, trailing: false }).root.bound.paddingLeft;
-  ok(padOf('pending', false) === padOf('rest', true),
-    '#536: a pending button insets its leading side as though a visual is there — because one is');
+  ok(padOf('pending', true) === padOf('rest', true),
+    '#536: a pending button with a leading visual insets as though a visual is there — because one is (the spinner took that cell)');
   ok(padOf('rest', false) !== padOf('rest', true), 'padding: the slot-aware rule still distinguishes empty from filled at rest (control)');
 
-  // THE CONSEQUENCE, asserted rather than left to be discovered: because the spinner takes the
-  // leading cell either way, `pending` collapses across the leading axis. Correct — a pending button
-  // has a visual there regardless — but it is a NEW duplicate pair and belongs in item 1's count.
-  ok(render('pending', false) === render('pending', true),
-    '#536: pending renders identically across the leading axis (the spinner occupies that cell either way)');
+  // REWRITTEN BY #612, and both of the assertions this replaces were PINNING THE DEFECT.
+  //
+  // They read `padOf('pending', false) === padOf('rest', true)` — a label-only pending button insets
+  // like a button that HAS a leading visual — and `render('pending', false) === render('pending', true)`
+  // — pending renders the same whether or not a leading visual was asked for. Both were true, both were
+  // green, and together they describe a button that GROWS by 28px the moment it starts submitting: the
+  // spinner arrived in a cell that did not exist at rest, and the left padding tightened to the visual
+  // value to sit against it. The comment above the second one even called the collapse "correct".
+  //
+  // This is the shape worth naming: an assertion written from the same mental model as the code
+  // CONFIRMS the model rather than testing it. Nothing here was measuring width, which is the only
+  // thing the replace-the-leading-visual rule exists to protect, so the projection was free to break it
+  // while three assertions reported clean. What follows measures width — the count of IN-FLOW cells
+  // plus the resolved padding, which is exactly what determines a hug-sized frame's width — and does it
+  // across ALL FOUR slot combinations rather than the one the old pair happened to sample.
+  const widthShape = (state: string, leading: boolean, trailing: boolean) => {
+    const p = figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state, leading, trailing, swapTarget: 'FPO-default-icon' });
+    // Absolutely-positioned children take no cell — that IS the mechanism — so they are excluded from
+    // the cell count and their presence must not change the answer.
+    const inFlow = (p.root.children ?? []).filter((c) => !c.absoluteCenter && !c.absoluteInset).map((c) => c.name);
+    return JSON.stringify({ cells: inFlow.length, padL: p.root.bound.paddingLeft, padR: p.root.bound.paddingRight, gap: p.root.bound.itemSpacing });
+  };
+  for (const [ld, tr] of [[true, false], [false, false], [false, true], [true, true]] as [boolean, boolean][]) {
+    ok(widthShape('pending', ld, tr) === widthShape('rest', ld, tr),
+      `#612: a button entering pending does not change WIDTH — same in-flow cell count and same padding at leading=${ld} trailing=${tr} (rest ${widthShape('rest', ld, tr)} vs pending ${widthShape('pending', ld, tr)})`);
+  }
+  // AND THE TWO MECHANISMS ARE THE RIGHT WAY ROUND, which the width check alone cannot tell: reserving
+  // a permanent empty leading cell would also hold width stable, at the cost of every plain button
+  // being 28px wider forever. So assert WHICH mechanism fires where.
+  const kids = (state: string, leading: boolean) =>
+    (figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state, leading, trailing: false, swapTarget: 'FPO-default-icon' }).root.children ?? []);
+  const withLead = kids('pending', true), noLead = kids('pending', false);
+  ok(withLead.some((c) => c.name === 'spinner' && !c.absoluteCenter) && !withLead.some((c) => c.zeroOpacity),
+    '#612: WITH a leading visual the spinner takes that cell in the flow, and nothing is hidden — Primer\'s rule, width free');
+  ok(noLead.some((c) => c.name === 'spinner' && c.absoluteCenter) && noLead.some((c) => c.name === 'label' && c.zeroOpacity),
+    '#612: with NO leading visual the spinner goes out of flow centered and the label holds the width at zero opacity — React Aria\'s rule');
+  // The label is STILL THERE, and this is the accessibility half. `visible: false` would also hold the
+  // cell open in Figma but is prohibited in code — "Do not use `visibility: hidden` or `display: none`
+  // as these remove the element from the accessibility tree" — so assert the node survives with its
+  // text style and characters intact, not merely that something occupies the cell.
+  const hiddenLabel = noLead.find((c) => c.name === 'label');
+  ok(!!hiddenLabel?.textStyle && hiddenLabel?.characters !== undefined && hiddenLabel?.zeroOpacity === true,
+    `#612: the overlaid label keeps its type style and copy — zero opacity, not removed, so it stays in the a11y tree and pairs as "Save, pending" (${JSON.stringify({ style: hiddenLabel?.textStyle, chars: hiddenLabel?.characters })})`);
+  // Z-ORDER: the spinner must come AFTER the label in `children`, or it renders behind a node whose
+  // entire purpose is to be invisible. Reads as cosmetic, is not.
+  ok(noLead.findIndex((c) => c.name === 'spinner') > noLead.findIndex((c) => c.name === 'label'),
+    '#612: the out-of-flow spinner is spliced AFTER the label it covers — later in children is above in z-order');
+  // The in-flow case keeps the opposite order, because there the spinner IS the leading cell.
+  ok(withLead.findIndex((c) => c.name === 'spinner') < withLead.findIndex((c) => c.name === 'label'),
+    '#536: the spinner takes the leading visual\'s position, before the label, when it takes a cell at all');
+  // NO CELL IS STOLEN FROM THE LABEL. An out-of-flow overlay owns no cell, so it must not inherit the
+  // overlaid part's component property — inheriting the label's would point a `characters` write at an
+  // INSTANCE_SWAP node, which type-checks in the plan and throws at paste.
+  ok(!noLead.find((c) => c.name === 'spinner')?.propertyRef,
+    '#612: an out-of-flow spinner inherits NO component property — there is no leading cell to repoint, and the label\'s text property is not the spinner\'s to claim');
+  ok(noLead.find((c) => c.name === 'label')?.propertyRef?.field === 'characters',
+    '#612: the overlaid label keeps its OWN text property — being covered does not surrender it');
+
+  // The fallback is REQUIRED when the replaced part is optional, and the gate is what makes that true
+  // for the next def rather than only for this one. Both directions: removing the declaration must
+  // fail, and naming a part that cannot serve as a floor must fail too.
+  const noFallback = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, overlaysWhenAbsent: undefined } } } } as ComponentDef;
+  ok(validateComponentDef(noFallback).errors.some((x) => /which is OPTIONAL — declare 'overlaysWhenAbsent'/.test(x)),
+    '#612 gate: an overlay over an OPTIONAL part with no fallback fails validation — that is the coordinate where it takes a cell of its own and the button grows');
+  const optionalFallback = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, overlaysWhenAbsent: 'trailingVisual' } } } } as ComponentDef;
+  ok(validateComponentDef(optionalFallback).errors.some((x) => /is optional — the fallback must be a part that is always present/.test(x)),
+    '#612 gate: a fallback that is itself optional fails — it reintroduces the defect one level down');
+  const selfFallback = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
+    spinner: { ...button.anatomy!.parts.spinner, overlaysWhenAbsent: 'leadingVisual' } } } } as ComponentDef;
+  ok(validateComponentDef(selfFallback).errors.some((x) => /duplicates 'replaces'/.test(x)),
+    '#612 gate: naming `replaces` as the fallback fails — the fallback exists for the case that part is absent');
 
   // The overlay is found by kind+when, not by name, so a second def projects with no emitter change.
   const noWhen = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
