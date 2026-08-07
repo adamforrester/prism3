@@ -394,6 +394,51 @@ dependencies (the same argument `19 §7.1` already made for the code library), o
 and the ability to fix TP directly rather than negotiate. What it costs: absorbing a mature plugin's
 backlog and Figma API surface while `536`, the component tier and the code library are all still open.
 
+#### 10e-i. C′ — the exporter lands in the PRISM PLUGIN, and §10a's objection does not apply to it
+
+**Owner reframing (2026-08-06), and it is a materially better version of C.** §3 dismissed the plugin
+shell as having "no shared value with the engine." That is now demonstrably wrong — **the shell is
+exactly where the value is.** The destination for TP's exporter is not `Prism3/engine/`; it is
+`plugin/`, alongside the write path that already exists.
+
+**This dissolves §10a's blocking objection rather than answering it.** The "substantial rewrite"
+estimate was costed against a destination — the engine — that never sees Figma, so every `Variable`,
+`VariableScope` and name heuristic has to be abstracted into an IR before anything can move. In a
+**Figma plugin**, those types are native. TP's exporter is Figma-shaped because it is a Figma exporter,
+and so is `plugin/`. **The coupling that blocks one destination is irrelevant to the other.**
+
+**And the plugin is most of the way there already.** `plugin/src/read-figma.ts` produces a
+`ReadbackSnapshot` carrying collections + modes, palette, semantic colour with `valuesByMode`, the FLOAT
+axes per collection with `valuesByMode`, and style names — **it already reads per-mode values out of a
+live file.** The shared `web/src` UI it embeds already surfaces export (`design.md`, `tokens.json`
+downloads). So the plugin has a Figma **read leg** and an **export UI**; the only missing piece is
+`snapshot → DTCG`, which is precisely what TP's exporter is.
+
+Three consequences:
+
+1. **The round-trip verification becomes near-free.** `584` establishes that a DTCG-vs-DTCG diff cannot
+   attribute a fault across emit → write → export, and that a Figma-file checkpoint is a hard
+   prerequisite. If write, read and export all live in one plugin, that checkpoint stops being a
+   cross-tool diff and becomes an in-process comparison.
+2. **The mode decision gets a natural home.** The plugin holds *both* representations — the engine's
+   theme on one side, real Figma modes on the other. Whichever canonical shape §10c settles on, this is
+   the one context equipped to emit it.
+3. **Token Press lives on unchanged** as a standalone community plugin. Reusing the exporter is not the
+   same as retiring the plugin, and nobody using TP without Prism3 is forced to migrate.
+
+**The honest caveat, which is real work and not a blocker:** `ReadbackSnapshot` is a **verification**
+shape, not an **export** shape. It carries what answers *"did this materialize correctly"* — names,
+scopes, per-mode values. A full DTCG export also needs descriptions, `codeSyntax`, variable IDs, and the
+CONTENTS of text and effect styles (the snapshot holds style *names* only). The read leg needs widening.
+That is additive and bounded — considerably smaller than inventing an IR.
+
+**What does not change:** §10c is still the gate. Co-locating the exporter with the plugin does not
+reconcile `$extensions.prism3.modes` against per-mode directories; it only puts the code that would
+implement either one in the right place. Revised sequence:
+
+> **decide the mode shape → widen the read leg → port the exporter into `plugin/`**, with Token Press
+> continuing standalone throughout.
+
 ### 10f. Low-risk moves available today, independent of A/B/C
 
 Both reviews agree these are liftable now:
