@@ -81,7 +81,7 @@ export const parseStandardDesignMd = (text: string): StandardDesignMd => {
     // L-15: an unquoted `#hex` value is read as a YAML comment and stripped to null, which
     // would surface downstream as a baffling `invalid hex 'null'`. Point at the real cause.
     if (v == null || v === '')
-      throw new Error(`colour '${k}' has no value — a bare '#hex' is read as a comment; quote it, e.g. ${k}: "#3366ff"`);
+      throw new Error(`color '${k}' has no value — a bare '#hex' is read as a comment; quote it, e.g. ${k}: "#3366ff"`);
     colors[k] = String(v);
   }
   return {
