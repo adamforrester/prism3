@@ -80,7 +80,7 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
   // FLOAT axes (#146) — the geometric/dimensional collections. Read each present collection into the
   // same per-mode shape as colour (alias → target NAME, literal → the numeric value as an Rgba-less
   // ReadValue). Keyed by collection name so `verifyFloatReadback` can check presence + resolution.
-  const FLOAT_COLLECTIONS = ['core-dimension', 'space', 'radius', 'size', 'border-width', 'focus', 'opacity', 'layout'];
+  const FLOAT_COLLECTIONS = ['core-dimension', 'space', 'radius', 'size', 'icon', 'border-width', 'focus', 'opacity', 'layout'];
   const float: NonNullable<ReadbackSnapshot['float']> = {};
   for (const name of FLOAT_COLLECTIONS) {
     const coll = collections.find((c) => c.name === name);

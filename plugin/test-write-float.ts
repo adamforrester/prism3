@@ -5,8 +5,8 @@
  *   npx tsx plugin/test-write-float.ts
  *
  * Same shim shape as `test-write.ts`, widened for FLOAT vars (numeric per-mode values). Asserts the
- * eight FLOAT collections (`core-dimension`/`space`/`radius`/`size`/`border-width`/`focus`/`opacity`/
- * `layout`) materialise: all vars created, cross-collection aliases bound (space→dimension, size→…,
+ * nine FLOAT collections (`core-dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/
+ * `opacity`/`layout`) materialise: all vars created, cross-collection aliases bound (space→dimension, size→…,
  * layout grid→space) with ZERO misses, opacity stored as 0–100, `core-dimension` primitives hidden,
  * and a re-run is idempotent (+0 created, no duplicates). Also drives a wireframe brand to prove the
  * two-mode `radius` collection (every radius aliases `dimension/0` in the wireframe mode).
@@ -69,10 +69,10 @@ const r2 = await run();
 
 console.log('plugin FLOAT write-adapter (#146) — executor against in-memory figma.variables shim\n');
 
-// collections present — the eight FLOAT axes
-const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'border-width', 'focus', 'opacity', 'layout'];
+// collections present — the nine FLOAT axes
+const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'icon', 'border-width', 'focus', 'opacity', 'layout'];
 ok(EXPECTED.every((n) => shim.collections.some((c) => c.name === n)),
-  `all eight FLOAT collections created: ${EXPECTED.join(', ')}`);
+  `all nine FLOAT collections created: ${EXPECTED.join(', ')}`);
 
 // first run creates all vars; second is idempotent
 const totalVars = plan.reduce((n, p) => n + p.create.length, 0);

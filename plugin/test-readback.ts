@@ -112,7 +112,7 @@ await applyFloatPlan(buildFloatWritePlan(nbTheme), api);
 const snap2 = await readFigmaVariables(api);
 const fverdict = verifyFloatReadback(snap2, nbTheme.modes.includes('wireframe'));
 
-ok(!!snap2.float && ['core-dimension', 'space', 'radius', 'size', 'border-width', 'focus', 'opacity'].every((n) => !!snap2.float![n]),
+ok(!!snap2.float && ['core-dimension', 'space', 'radius', 'size', 'icon', 'border-width', 'focus', 'opacity'].every((n) => !!snap2.float![n]),
   'snapshot carries the FLOAT collections after the float write');
 ok(fverdict.ok, 'verifyFloatReadback: contract holds' + (fverdict.ok ? '' : ` — ${Object.entries(fverdict.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
 ok(fverdict.checks.aliasesResolve && fverdict.details.danglingAliases.length === 0, 'every FLOAT alias resolves — 0 dangling');
