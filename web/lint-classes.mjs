@@ -60,6 +60,8 @@ const ALLOWED = new Set([
   'mtbl-scroll sl-tall',        // sl-tall raises the scroll cap for the taller mode table
   'mtbl-spec-t tf-prev',        // typeface preview inside a mode-table specimen cell
   'mtbl-spec-t tpw-samp',       // type-pairing sample, same cell
+  'mtbl-spec-t tpw-samp wt-spec', // #422 — weight-roles specimen, one per MODE cell; wt-spec only adds
+                                 // margin-top:4px to stack it as a second line under the stepper
   'pswatch ro ao-chk',          // read-only palette swatch on the alpha-checker background
   'pvseg tok-seg',              // #466 — tok-seg is the L3 (nested) modifier of the view segment
   'sg-card sg-bcard', 'sg-card sg-icard', 'sg-card sg-mid', 'sg-card sg-scrimcard',
