@@ -7,6 +7,61 @@
 
 ---
 
+## (2026-08-07) — Fix: `applyFull()` selects jump the page to top (#485)
+
+**STATUS: shipped, fixed at the general level.** Some selects on Surfaces (`surfaces.${mode}.base`,
+`surfaces.${mode}.floorStep`) and the per-mode re-point `<select>` inside `renderRepointTable` (shared by
+Typography → Semantics line-height and letter-spacing) reset the viewport to the top of the page on
+every change. Root cause: both were `applyFull()` callers, and `applyFull()` → `renderWorkspace()` does
+`workspace.innerHTML = ''` then rebuilds the page from scratch — clearing scroll position as a side
+effect of the DOM teardown, not something any individual call site controlled.
+
+**Fixed once in `renderWorkspace()` itself, per the issue's own suggested direction, rather than
+patching each `applyFull()` call site.** Save `window.scrollY` immediately before the `innerHTML = ''`
+teardown, restore it with `window.scrollTo(0, scrollY)` after the rebuild completes (natural clamp if
+the rebuilt page is shorter). This fixes every current `applyFull()` caller — including ones the issue
+flagged as "likely share this" but didn't enumerate (main.ts ~1953/1963/1975/2041/2577/3677) — and every
+future one, since the fix lives at the teardown/rebuild boundary rather than at each writer. No call site
+was downgraded to `apply()`: nothing in the confirmed sites or spot-checks showed `apply()` (the light
+path — repaints only the volatile specimen area) already recomputing what `applyFull()` needed, so
+scroll-restore was the correct fix everywhere touched, not a stopgap.
+
+Page navigation (rail clicks → `build()`, which does `app.innerHTML = ''` before minting a fresh
+`workspace` and calling `renderWorkspace()`) is unaffected: `window.scrollY` is read *inside*
+`renderWorkspace()`, by which point `build()`'s own teardown has already collapsed the document height,
+so the captured value is already ~0 there — nav-to-top behavior is unchanged.
+
+**Verified live with Playwright** (`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, no repo
+dependency per #333): scrolled partway down, changed each confirmed select, confirmed `window.scrollY`
+holds steady. Spot-checked two of the "likely share this" sites (a Size & radius select, an Interactive
+page select) and confirmed the same fix covers them without any code specific to those pages. Confirmed
+the harness itself is meaningful by reverting the fix and rebuilding: all four confirmed sites plus the
+Interactive spot-check reproduced the jump (`scrollY` 400 → 0), then re-confirmed green after restoring.
+
+**Trap hit and recovered from, worth recording since it reproduces exactly the failure mode
+`CLAUDE.md`'s worktree section warns about:** mid-task, to compare fixed-vs-broken behavior, this session
+ran `git stash push -- web/src/main.ts` / `git stash pop` inside its own worktree. `refs/stash` is a
+single ref shared across **all** worktrees of a repository, not per-worktree — and another concurrent
+session was doing the same kind of stash dance in `/tmp/p3-tfbulk558` (`fix/tfbulk-height-558`, #558) at
+the same time. The pop returned the *other* session's stashed diff (an unrelated `.tf-addbtn` CSS change)
+into this worktree, and — by the same mechanism in reverse — this session's own `#485` diff ended up
+sitting in *their* worktree instead, stripped out of the shared stash stack entirely (`git stash list`
+came back empty after). Recovered by diffing both worktrees against `HEAD`, saving each diff to a `.patch`
+file, `git checkout -- web/src/main.ts` in both trees to null them out, then `git apply`-ing each patch
+back into its rightful worktree. Both worktrees confirmed clean afterward (each showing only its own
+change) and `refs/stash` confirmed empty. **Lesson: `git stash` (push, pop, or an editor/tool's
+auto-stash) must be treated as repo-global, exactly like a branch checkout — never run it in a worktree
+another session might be touching, not even transiently for local comparison.** Use `git diff` /
+`git apply` / a plain `.patch` file for any same-worktree toggle-the-fix-on-and-off need instead; it
+never touches a ref outside the current worktree.
+
+Gates run clean: `regen.ts` (no drift, 88 committed artifacts in this worktree — the documented
+worktree-vs-main-checkout count, see `CLAUDE.md`), `regen.ts --check`, `test.ts` (1920/1920),
+`mcp-test.ts` (49/49), `token-contract.ts --check` (485 guaranteed, unchanged), `lint-skills.ts`, the NB
+regression (PASS, ΔE00 mean 1.95), `lint-us-english.ts`, `web` typecheck, `web` build.
+
+---
+
 ## (2026-08-07) — `.tf-bulk` row height mismatch: `select.sm` vs `.tf-addbtn` (#558)
 
 **STATUS: shipped.** `web/src/main.ts` CSS only — one 6-line scoped rule, no runtime/behavior change.
