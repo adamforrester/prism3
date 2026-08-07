@@ -30,6 +30,7 @@
 - [ ] `npx tsx Prism3/engine/regen.ts --check` → _NN_ committed artifacts byte-match
 - [ ] `npx tsx Prism3/engine/token-contract.ts --check` → unchanged / bumped to _…_
 - [ ] `npx tsx Prism3/engine/lint-skills.ts` → clean
+- [ ] `npx tsx Prism3/engine/lint-doc-gates.ts` → clean
 - [ ] `npm run -w @prism3/web typecheck` → clean
 - [ ] `npm run -w @prism3/web build` → succeeds
 - [ ] `npm run -w @prism3/web check:ignore` → clean
