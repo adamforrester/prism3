@@ -7,6 +7,77 @@
 
 ---
 
+## (2026-08-07) — Rendered-contrast sweep: five confirmed defects fixed (#555)
+
+**STATUS: shipped.** Fixes the five confirmed-real clusters from the rendered-contrast sweep
+(`Prism3/docs/reports/rendered-contrast-2026-08-06.md`) — all below `lint:contrast` (#516), the value
+gate, by construction: it checks token *values*, this sweep checked what actually *renders*, and all
+five clusters are cases where a legal token value gets undermined by how `web/src/main.ts` composites
+it at render time. `lint:contrast` stayed green throughout, as expected — this fix operates entirely
+below it.
+
+**The shared root cause behind three of the five.** Clusters 1, 3, and 4 are the same mistake in three
+places: a specimen's ink and its ground are resolved *independently* — one hardcoded/CSS-fixed, the
+other mode-resolved — on the assumption that a fixed value and a mode-resolved value will always agree.
+They stop agreeing exactly at the case each specimen exists to demonstrate: an "inverse" band flips
+which side of light/dark it's on depending on the CURRENT mode (dark's inverse is light, not always
+dark), and a "neutral surface tier" flips from pale to dark between Light and Dark modes. A value that's
+correct in Light silently inverts into a same-color-on-itself failure in Dark. The fix in both directions
+is the same shape: stop assuming, compute the *other* half from what the first half actually resolved
+to — `legibleInkOn(bgHex)` picks whichever of a dark/light ink pair actually clears against a background
+whose lightness isn't known statically (added once, used by clusters 1 and 4); `exGround(dark)` reads
+the real `background.primary` / `background.inverse.primary` for the current mode instead of leaving
+`.exbox` transparent-through-to-chrome or hardcoding `.exbox.dark` to `#0d0d10` (cluster 3).
+
+**Cluster 2 (`.mo-playnote`) and 5 (`.tpw-mark.unknown`) were simpler, single-site fixes** — no
+shared mechanism with the others: `.mo-playnote` was fading an already-floor-adjacent `--faint`
+(4.628:1, #355's whole remaining margin) through `opacity: .75`, which the value gate cannot see
+because it never renders anything; swapped to `--muted` at full opacity, per the issue's own diagnosis
+("darker ink at full opacity, not a fade through the floor"). `.tpw-mark.unknown` was reusing
+`--line2` — a border-hairline color — as text color for the "?" glyph; swapped to `--muted`.
+
+**Verification: rendered, not just read.** This repo deliberately carries no Playwright dependency
+(#333); wrote a throwaway probe (not committed) using the `PLAYWRIGHT_MODULE` escape hatch
+`web/mode-audit.mjs` documents — build the app, serve it, launch headless Chromium, walk the DOM
+composite-over-opaque-ground (alpha-composite translucent layers, multiply cumulative CSS `opacity`
+into the ink) exactly as the original sweep did. Sanity-anchored first: `--ink` on `--paper` measured
+15.97:1 in every one of the three brand runs (aurora, harbor, wendys — wendys via the same
+`prism3:brandInput` localStorage-injection the report used, since the studio's own design.md upload
+only parses the engine-native dialect). All five clusters confirmed fixed post-build, pre/post:
+
+| cluster | before | after |
+|---|---|---|
+| 1 · style-guide inverse-row state labels | 1.51-1.61:1 | 5.03-17.48:1 |
+| 2 · `.mo-playnote` | 3.12:1 | 7.41:1 |
+| 3 · `.exbox` links (Dark) | 1.00-1.07:1 | 4.87-18.13:1 |
+| 4 · `.sf-ex-fill` Card/Panel/Nested (Dark) | 1.02-1.26:1 | 12.97-16.76:1 |
+| 5 · `.tpw-mark.unknown` (wendys) | 1.36:1 | 7.41:1 |
+
+**One thing the probe surfaced that is deliberately NOT fixed here.** Fixing cluster 3's box
+background exposed (rather than caused) a pre-existing, un-gated pairing: the "Overlay wash" specimen
+(`overlayRow`, Interactive page) renders `interactive.<palette>.text.rest` ink directly on its own
+translucent hover/pressed wash blended over the box — e.g. aurora Dark `#0088be` on `#252526`,
+3.83:1. This is not cluster 3's mechanism (no fixed-vs-mode-resolved mismatch; the wash is
+*correctly* translucent and *correctly* composites over whatever's behind it) and carries no
+`iBadge`/contrast contract in the app at all — confirmed by inspecting the live DOM, `overlayRow`'s
+`iRow` call passes no badge, unlike every gated pairing elsewhere on the page. It was already failing
+before this fix (originally miscomputed against the wrong, accidentally-white ground at 3.99:1,
+`.exbox span.ibtn`/`#0088be` in the original report's table) — my fix changed *which* wrong-looking
+number it produces, not whether it's gated. Flagging as a follow-up candidate, same as the `--line`
+hairline judgment call the original report already deferred to an owner decision.
+
+**Trap for whoever re-verifies this:** the probe's biggest time sink wasn't the fix, it was the
+harness. Typography carries **no in-page mode switcher at all** (`pageHasModeVaryingControl()` hard-
+excludes `'typography'` — every mode-varying value is already rendered as a column) so `currentMode`
+has to be set from a page that has one (any other page) before navigating to Typography; the mode then
+persists as global state. Separately, `renderScreen` swaps a page's entire body for a placeholder under
+a derived mode (`DERIVED_MODES` — hc-light/hc-dark/wireframe) carried over from a prior page, so a
+probe that leaves mode on `HC dark` after one page and navigates to a `renderScreen`-based page next
+finds no DOM to query at all, not a selector miss. Reset to a base mode before each new page, not just
+before each new mode within a page.
+
+---
+
 ## (2026-08-07) — Fix: "Auto" override-picker label showed the live (overridden) step, not the true baseline (#330)
 
 **STATUS: shipped, PR open.** `web/src/main.ts` only — no engine change, no emitted-artifact change.

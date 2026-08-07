@@ -132,6 +132,19 @@ let rp: ResolvedPreview = resolvePreview(theme);
 let currentMode: Mode = rp.modes[0];
 let lastError: string | null = null;
 
+// #555 — a legible ink for a background whose lightness isn't known statically (a resolved fill that
+// can land on either side of the light/dark line depending on mode, e.g. a neutral surface tier or an
+// "inverse of the current mode" band). Picks whichever of a fixed dark/light ink pair actually clears
+// against the given background, rather than assuming the background's lightness — the assumption that
+// produced #555's specimens (a hardcoded dark ink on a surface that turned out dark in Dark mode, and a
+// hardcoded light ink on an "inverse" band that turned out light because dark's inverse is light).
+// Falls back to the dark ink for a background this can't parse as hex (e.g. 'transparent').
+const legibleInkOn = (bgHex: string, dark = '#191920', light = '#f7f7f7'): string => {
+  if (!bgHex.startsWith('#')) return dark;
+  const bg = hexToRgb(bgHex);
+  return contrast(hexToRgb(dark), bg) >= contrast(hexToRgb(light), bg) ? dark : light;
+};
+
 const getPath = (o: any, p: string): any => p.split('.').reduce((a, k) => (a == null ? undefined : a[k]), o);
 const setPath = (o: any, p: string, v: unknown): void => {
   const ks = p.split('.');
@@ -1579,7 +1592,16 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     const row = el('div', 'sg-trow');
     const lab = el('div', 'sg-tlab', label);
     if (foot.length) { const f = el('div', 'sg-tlfoot'); foot.forEach((n) => f.append(n)); lab.append(f); }
-    const bs = el('div', 'sg-btns' + (inv ? ' sg-inv' : '')); if (inv) bs.style.setProperty('--sg-invp', paint(cur, 'background.inverse.primary'));
+    const bs = el('div', 'sg-btns' + (inv ? ' sg-inv' : ''));
+    if (inv) {
+      // #555 — the strip's own ground is `background.inverse.primary` for the CURRENT mode, and that
+      // is not always dark: in a Dark mode, the inverse of dark is light, so a state label ink fixed
+      // to a light gray (correct for the light-in-Light-mode case) went invisible on it. Pick the ink
+      // from the resolved strip color instead of assuming which side of light/dark it lands on.
+      const invBg = paint(cur, 'background.inverse.primary');
+      bs.style.setProperty('--sg-invp', invBg);
+      bs.style.setProperty('--sg-invp-ink', legibleInkOn(invBg, '#191920', '#c9ccce'));
+    }
     cols.forEach((c) => bs.append(c));
     row.append(lab, bs);
     return row;
@@ -1925,8 +1947,15 @@ const wirePress = (n: HTMLElement): void => {
   n.title = 'Click to hold the pressed state';
   n.onclick = (e) => { e.preventDefault(); n.classList.toggle('is-pressed'); };
 };
+// #555 — `.exbox` carried no background (transparent, so a `text.rest`/`text.on-inverse.rest` ink
+// resolved for the CURRENT mode fell through to the studio's own always-light chrome behind it), and
+// `.exbox.dark` hardcoded `#0d0d10` (correct only when "inverse" means dark, which is false in a Dark
+// mode — dark's inverse resolves LIGHT). Both specimens are meant to sit on the ground their ink was
+// actually measured against: `background.primary` for the regular treatment, `background.inverse.primary`
+// for the inverse one, both read for `currentMode` so they track whichever way that mode's inverse falls.
+const exGround = (dark: boolean): string => iRoles()[dark ? 'background.inverse.primary' : 'background.primary']?.hex ?? (dark ? '#0d0d10' : '#ffffff');
 const exBtn = (bg: string, fg: string, dark = false, label = 'Button', hover?: string, pressed?: string): HTMLElement => {
-  const box = el('div', 'exbox' + (dark ? ' dark' : ''));
+  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', bg); b.style.color = fg;
   if (hover) b.style.setProperty('--ibtn-hbg', hover);
   if (pressed) { b.style.setProperty('--ibtn-pbg', pressed); wirePress(b); }
@@ -1934,14 +1963,14 @@ const exBtn = (bg: string, fg: string, dark = false, label = 'Button', hover?: s
   box.append(b); return box;
 };
 const exLink = (color: string, dark = false, hover?: string, pressed?: string): HTMLElement => {
-  const box = el('div', 'exbox' + (dark ? ' dark' : ''));
+  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const a = el('a', 'ilink', 'Text link'); a.style.setProperty('--ilink-fg', color);
   if (hover) a.style.setProperty('--ilink-hfg', hover);
   if (pressed) { a.style.setProperty('--ilink-pfg', pressed); wirePress(a); }
   box.append(a); return box;
 };
 const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string): HTMLElement => {
-  const box = el('div', 'exbox' + (dark ? ' dark' : ''));
+  const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); b.style.color = edge; b.style.border = `1.5px solid ${edge}`;
   if (hoverWash) b.style.setProperty('--ibtn-hbg', hoverWash);
   if (pressedWash) { b.style.setProperty('--ibtn-pbg', pressedWash); wirePress(b); }
@@ -1949,7 +1978,7 @@ const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string,
   box.append(b); return box;
 };
 const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
-  const box = el('div', 'exbox');
+  const box = el('div', 'exbox'); box.style.background = exGround(false);
   const row = el('span', 'inote'); row.style.color = textColor;
   const ic = el('span', 'inote-ic'); ic.style.color = iconColor; ic.append(iconEl('bell', iconColor));
   row.append(ic, document.createTextNode('Notifications')); box.append(row); return box;
@@ -1958,7 +1987,7 @@ const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
  *  (`disabled.text`). Deliberately has no button chrome: drawing it as a button would imply a fill it is
  *  not measured against, which is the mistake the disabled section's own copy used to make in words. */
 const exTextOnPage = (color: string, label: string): HTMLElement => {
-  const box = el('div', 'exbox');
+  const box = el('div', 'exbox'); box.style.background = exGround(false);
   const t = el('span', 'inote', label); t.style.color = color;
   box.append(t); return box;
 };
@@ -5294,14 +5323,16 @@ const renderForegroundsEditor = (): HTMLElement => {
     const cur = brandState.overrides?.[currentMode]?.[role]?.step;
     // `baselineStepOf`, not `stepKeyOf(r.path)` (#330) — same reasoning as the interactive matrix.
     const picker = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined, (step) => setFillOverride(role, palette, step));
-    // Neutral surface tiers are pale fills — paint the example label in ink, not white; other fills keep white on-fill.
+    // Neutral surface tiers are pale in Light modes but flip dark in Dark modes (#555 — a fixed dark
+    // ink went invisible on a dark-resolved tier), so the label ink is picked FROM the resolved fill
+    // rather than assumed; other fills keep white on-fill.
     const isSurface = paletteKey === 'neutral';
     const tier = label.split('—')[1]?.trim();                 // "Surface — card" → "card"
     const exLabel = isSurface ? (tier ? tier[0].toUpperCase() + tier.slice(1) : 'Surface') : `${label} fill`;
     sec.append(sfRow({
       swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
       controls: sfCtl(sfCtlBlock('Step', picker)),
-      example: sfExFill(r.hex, exLabel, isSurface ? '#191920' : undefined),
+      example: sfExFill(r.hex, exLabel, isSurface ? legibleInkOn(r.hex) : undefined),
       badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
       railNote: isSurface ? 'non-text · surface' : undefined,
     }));
@@ -7381,7 +7412,11 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .mo-colmeta{display:flex;flex-direction:column;gap:4px}
 .mo-colname{font-size:13px;font-weight:700}
 .mo-meta{font-size:11.5px;color:var(--faint)}
-.mo-playnote{font-size:10.5px;color:var(--faint);opacity:.75}
+/* #555 — --faint is already tuned to the AA floor on --paper (#355); fading it further with
+   opacity multiplies its already-floor ratio down below the gate (measured 3.12:1 rendered),
+   invisible to lint:contrast because the gate checks the token value, not the composited render.
+   De-emphasis here comes from a darker ink at full opacity instead, never from fading a floor value. */
+.mo-playnote{font-size:10.5px;color:var(--muted)}
 .mo-coldesc{font-size:11.5px;color:var(--muted)}
 .mo-replay{margin-top:14px;border:1px solid var(--line2);background:var(--panel);border-radius:var(--r-sm);padding:7px 14px;font:inherit;font-size:12.5px;color:var(--ink2);cursor:pointer}
 .mo-replay:hover{border-color:var(--ink);color:var(--ink)}
@@ -7672,6 +7707,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .aex-two{display:flex;flex-direction:row;gap:14px}
 .aex-spec{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;align-items:center}
 .exbox{width:100%;min-height:72px;border-radius:var(--r-sm);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:14px 16px;overflow:hidden}
+/* #555 — background is set inline per element (exGround, mode-resolved); this is only the fallback
+   for the instant before JS runs, and the border override for the (now inline-dark) box. */
 .exbox.dark{background:#0d0d10;border-color:transparent}
 .ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap;background:var(--ibtn-bg)}
 .ibtn:hover{background:var(--ibtn-hbg,var(--ibtn-bg))}
@@ -7861,7 +7898,7 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .sg-btns.sg-inv{background:var(--sg-invp);border-radius:9px;padding:16px 18px;margin:-9px 0}
 .sg-bcol{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 .sg-st{font-size:10.5px;color:var(--muted);text-transform:capitalize;font-weight:600}
-.sg-btns.sg-inv .sg-st{color:#c9ccce}
+.sg-btns.sg-inv .sg-st{color:var(--sg-invp-ink)}
 .sg-btn{font:inherit;font-size:13px;font-weight:600;border-radius:8px;padding:8px 14px;border:1.5px solid transparent;min-width:96px;text-align:center;cursor:default;white-space:nowrap}
 .sg-callout{font-size:12.5px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 13px;margin-top:16px;line-height:1.5}
 .tpill[data-sgtip]{position:relative}
@@ -8090,7 +8127,10 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .tpw-mark{font-size:12px;margin-right:7px}
 .tpw-mark.yes{color:var(--ink)}/* Also not a verdict: ● / ○ / ? for whether a typeface SHIPS a weight. "no" is absence, not
    failure, so --faint is right — coloring it --danger would read as an error the user caused. */
-.tpw-mark.no{color:var(--faint)}.tpw-mark.unknown{color:var(--line2)}
+.tpw-mark.no{color:var(--faint)}
+/* #555 — was var(--line2), a border-hairline color (~1.36:1 on white), reused here as text. The "?"
+   needs its own text-legible tier distinct from "no"'s --faint; --muted is the next tier up. */
+.tpw-mark.unknown{color:var(--muted)}
 .tpw-samp{display:inline;font-size:15px}
 /* #422 — the weight-roles-per-mode specimen. Same "Ag 123" sample as the by-face table's .tpw-samp,
    but a second LINE under the stepper/reading rather than inline beside it — matching .mtbl-worth's
