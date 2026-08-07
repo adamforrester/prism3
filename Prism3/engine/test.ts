@@ -7256,6 +7256,39 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       };
       ok(pendingEq(true) && !pendingEq(false),
         'figmaProperties: pending reads as rest when there IS a leading visual to replace, and differs when there is not — the replacement is what hides it');
+
+      // THE CROSS-INTENT COLLAPSE (#612), and it needed its own measurement rather than an entry in the
+      // maps above. Everything before this line compares a row against its OWN `rest` sibling — same
+      // intent, same appearance, same size — so a collapse ACROSS intents is invisible to it however
+      // large. The 36 groups were sitting in the projected set unmeasured while three assertions above
+      // reported clean, which is the scope-silence mode: the counter was right about the question it
+      // asked and nobody had asked this one.
+      //
+      // ACCEPTED, not fixed. `disabled.*` is cross-cutting by design (docs/20 §7), so this asserts the
+      // collapse still HAPPENS — the inverse direction from every assertion above it. A future PR
+      // giving disabled a per-intent tint would fail here, correctly: that is a token-tier decision
+      // reversal (docs/20 §7) and it should not be able to land as a quiet side effect.
+      const distinctAcrossIntents = (state: string) =>
+        new Set(button.variants.intent.map((i) =>
+          sig(figmaAnatomyPlan(button, 'medium', { leading: true, trailing: false, swapTarget: 'FPO-default-icon', intent: i, appearance: 'filled', state })))).size;
+      // BOTH directions, because `1` alone is what a broken `sig` returns for everything. `rest` reading
+      // 3 is what proves the comparison can still tell intents apart at all — without it, a `sig` that
+      // returned a constant would pass the disabled assertion and look like a confirmed design decision.
+      ok(distinctAcrossIntents('disabled') === 1 && distinctAcrossIntents('rest') === 3,
+        `figmaProperties: all three intents collapse to ONE row at state=disabled (${distinctAcrossIntents('disabled')} distinct) and stay separate at rest (${distinctAcrossIntents('rest')}) — cross-cutting disabled.* (docs/20 §7), admitted in codeOnly per #612`);
+      // The row count the admission quotes, derived rather than restated. 36 groups × (3 − 1) = 72
+      // removable rows, and the entry says 72 — a number in an admission is a claim like any other.
+      const disabledGroups = button.variants.appearance.length * button.variants.size.length * 2 * 2;
+      ok(disabledGroups === 36 && disabledGroups * (button.variants.intent.length - 1) === 72,
+        `figmaProperties: the #612 admission's arithmetic holds — ${disabledGroups} collapsing groups × ${button.variants.intent.length - 1} redundant siblings = ${disabledGroups * (button.variants.intent.length - 1)} rows`);
+      // AND THE ADMISSION ITSELF HAS TO BE THERE. Found by mutation: renaming the #612 entry to
+      // something else left every assertion in this block green, because they all measure the
+      // PROJECTION and none of them read `codeOnly`. An accepted-by-design duplicate whose admission has
+      // silently vanished is indistinguishable from an unnoticed one — the entry IS the decision, and
+      // the count assertions above only say what happens, never that anyone chose it. This is the
+      // #536-item-1 lesson pointed at its own fix: a number without its prose does not carry a verdict.
+      ok(button.anatomy!.codeOnly.some((c) => c.trim().startsWith('intent-at-disabled')),
+        'figmaProperties: the intent-at-disabled collapse is ADMITTED in codeOnly (#612) — the decision to accept it is recorded, not just its consequence');
     }
 
     // Every projected axis is real, and every UNPROJECTED axis is admitted rather than merely absent.
@@ -7286,6 +7319,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       variants: { ...button.variants, min: ['a', 'b'] },
     } as ComponentDef).some((x) => /variants\.min is not projected/.test(x)),
       "figmaProperties gate: `min-width derivation` does NOT admit an axis named 'min' — the axis name must be a whole word too");
+
+    // AND THE SAME TRAP FROM THE OTHER END: a codeOnly entry about an axis-and-state INTERACTION must
+    // not launder dropping that whole AXIS. #612 admits the intent-at-disabled collapse, and the obvious
+    // wording — `intent at state=disabled — …` — LEADS with `intent`, so `admits('intent')` says yes and
+    // the gate protecting the entire intent axis silently switches off. Measured while writing that
+    // entry: with the leading-`intent ` wording, removing `intent` from `variantAxes` took
+    // `figmaPropertyErrors` from 1 error to 0. Shipped as `intent-at-disabled redundancy` instead.
+    //
+    // Asserted in both directions, because the point is not that the shipped entry is safe — it is that
+    // the hyphenated compound is WHY it is safe, and a future editor "tidying" the wording needs to fail
+    // here rather than discover this in a review.
+    const dropIntent = (codeOnly: string[]) => figmaPropertyErrors({
+      ...button,
+      anatomy: { ...button.anatomy!, codeOnly },
+      figmaProperties: { ...fp, variantAxes: fp.variantAxes.filter((a) => a !== 'intent') },
+    } as ComponentDef).some((x) => /variants\.intent is not projected/.test(x));
+    ok(dropIntent(button.anatomy!.codeOnly),
+      'figmaProperties gate: the shipped #612 admission does NOT admit dropping the whole `intent` axis — dropping it still fails');
+    ok(!dropIntent([...button.anatomy!.codeOnly, 'intent at state=disabled — the wording that launders it']),
+      'figmaProperties gate: an entry LEADING with a bare axis name WOULD launder the axis drop (so #612 leads with `intent-at-disabled`, a compound) — this is the shape where a declaration satisfies the check it exempts you from');
 
     // The count, stated so a change to any axis has to move a number a reviewer can see. 189 before
     // the slot-presence axes, 756 with them, and 648 now that `inactive` is code-only — the 108 rows

@@ -51,6 +51,65 @@ eight checks assert the file is structurally *sane*, never that it is *this bran
 
 ---
 
+## (2026-08-07) — Variant matrix shape: accept the disabled collapse, gate it, defer pending (#612)
+
+**STATUS: shipped (the disabled half).** Two decisions from #612, one implemented and one deliberately
+left open. `out/*` byte-identical, no version bump — a `codeOnly` entry and four assertions.
+
+**Decision 1 — the intent-at-disabled collapse is ACCEPTED, not fixed.** All three intents render one
+row at `state=disabled` (36 groups of 3). `disabled.*` is cross-cutting by design (docs/20 §7 —
+`color.disabled.fill` has no intent in the path), so this is the token tier being correct and the
+projection reporting it faithfully. The coordinate stays *meaningful*: a designer selecting
+`intent=destructive, state=disabled` finds it where they look and gets the right pixels; they are merely
+the same pixels as the other two intents. Pruning would make the set's shape depend on a per-coordinate
+measurement — a new class of thing to gate — for a **72-row (11%)** saving.
+
+**Decision 2 — pending/leading stays OPEN**, because it is a modeling question, not a redundancy. The
+spinner replaces the leading visual, so `leading=true|false` differ only by a layer name; but whether a
+leading icon should *survive* pending was never decided (#536 item 2 deferred it). Pruning would settle
+it by hiding it, and the 54 rows are the only thing still prompting the question.
+
+**Corrected the numbers before deciding, and they moved the argument.** #612 said "90 fewer rows, 648 →
+558" — wrong on both counts. That was the *visual duplicate* count carried into a *removable row* claim.
+The disabled cause removes **72**, not 36: collapsing three intents to one drops **two** rows per group.
+Real prune payoff is 648 → **522 (−19.4%)**, and in what a designer performs, 48 paste chunks → ~39. For
+scale, dropping a whole axis would give 648 → 324 (`trailing`) or → 216 (`size`), so pruning is a trim,
+not what brings the set near Figma's ~30-per-set guidance. Nothing breaks at 648 today: chunking splits
+by measured bytes.
+
+**THE FIND, and it is the sharpest instance of doc 34's "a declaration that also satisfies the check it
+exempts you from" so far.** `admits()` matches a `codeOnly` entry *leading* with the term. The obvious
+wording for this admission — `intent at state=disabled — …` — leads with `intent`, so it also admits
+dropping the **whole `intent` axis** from the projection. Measured: with that wording, removing `intent`
+from `variantAxes` took `figmaPropertyErrors` from **1 error to 0**. An entry documenting a 72-row
+redundancy would have silently switched off the gate protecting a 3-value axis. Shipped as
+`intent-at-disabled redundancy` — the hyphenated compound is what keeps the term from being a leading
+whole word — and **both directions are asserted**, because the point is not that the shipped wording is
+safe but that the compound is *why*, and a future editor tidying it must fail here.
+
+**The collapse was completely unmeasured.** Every prior assertion compares a row against its **own**
+`rest` sibling — same intent, same appearance, same size — so a collapse *across* intents is invisible to
+it however large. 36 groups sat in the projected set while three assertions above reported clean. Not a
+broken gate: the counter was right about the question it asked, and nobody had asked this one. Scope
+silence, doc 34.
+
+**Four mutations, and three of my first four were BAD** — worth recording, because the harness caught my
+own errors before it caught the code's:
+- *Pointing `disabled.fill` at an interactive token* is still one fixed token for all three intents, so
+  it cannot produce a per-intent difference. A real docs/20 §7 reversal has to change the **lookup**
+  (`paintOf` resolving `{intent}.{appearance}.{slot}` before `disabled.{slot}`) — that fires 8 failures.
+- *Mutating `withNames`* left `sig` untouched, and `distinctAcrossIntents` calls `sig` directly.
+- *Renaming the admission* survived everything — **a real gap**, now closed. Every assertion measured the
+  projection and none read `codeOnly`, so an accepted-by-design duplicate whose admission had vanished
+  was indistinguishable from an unnoticed one. The entry **is** the decision; the counts only say what
+  happens, never that anyone chose it. That is #536 item 1's lesson pointed at its own fix.
+
+**Both directions on the collapse assertion, for the same reason.** `distinctAcrossIntents('disabled')
+=== 1` alone is what a broken `sig` returns for *everything*, so `rest === 3` is asserted beside it.
+Confirmed: with `sig` stubbed to a constant, the `rest === 3` half is what fails.
+
+---
+
 ## (2026-08-07) — Duplicate variants: the pressed ghost button (#536 item 1)
 
 **STATUS: shipped.** Closes the last *defect* in #536's duplicate-variant finding. Three token keys and
