@@ -7,6 +7,70 @@
 
 ---
 
+## (2026-08-07) — Five stale-prose fixes across shipped decisions-log strings and the MCP surface (#548)
+
+**STATUS: shipped.** `Prism3/engine/theme.ts`, `Prism3/engine/mcp.ts`, `Prism3/engine/ai-metadata.ts`,
+`Prism3/engine/test.ts`. This cluster mattered because the prose SHIPS — into every generated artifact's
+decisions log (`out/*.tokens.json`, `out/*.ai.json`), into the `.ai.json` agent-metadata guidance, and
+into the MCP `tools/list` descriptions + per-call hints a consuming agent reads at runtime — so a wrong
+claim here misleads a consumer or agent, not just a maintainer reading source.
+
+**1 (HIGH). `solid-tint` named a token role that is never emitted.** Three sites in `theme.ts` (the
+`BrandInput.outlineInteraction` doc comment, the resolved-theme type's doc comment, and the runtime
+decisions-log note built in `nbThemeFrom`/`brandTheme` that ships into every generated artifact) all
+claimed `solid-tint` emits `foreground.<color>-subtle`. It never did — `modes.ts` (`interactiveOverlayFamily`
++ the `subtle-fill` write, ~line 143/742, #288) emits `interactive.<color>.subtle-fill.{hover,pressed,selected}`;
+`foreground.<color>-subtle` was never a real role for the per-column case (only the five fixed status
+semantics use `foreground.*`). `levers.ts` (~line 152–154) already had the corrected prose from a prior
+pass and was the reference for the right wording; all three `theme.ts` sites now name the actual emitted
+path. Propagated automatically by `regen.ts` into every `out/*.ai.json`/`.tokens.json` decisions log and
+into `modes-report.md` / `wendys-fidelity-report.md`.
+
+**2 (HIGH). `theme_brand`'s advertised payload size understated reality.** The shipped tool description
+and per-result `hint` both cited `~270,000`/`~220,000` chars (`~120,000` tokens combined) for `tokens`/
+`aiMetadata` on a four-mode brand. Measured fresh rather than trusted: called `callTool('theme_brand', …)`
+in-process against the exact `mcp-probe` fixture `test.ts` already uses for this size gate (`{ id, primary,
+neutral }`, `ALL_MODES` default = 4 modes) and diffed `content[0].text.length` per `include` combination.
+Real numbers: **tokens ≈ 536,770 chars, aiMetadata ≈ 287,283 chars, combined ≈ 823,581 chars (~205,000
+tokens)**. Neither of the two other numbers already in the file was right either: the shipped `270k/220k`
+undercounted (closer in relative terms but still off by roughly 2×), and a THIRD, "roughly-correct"
+internal comment nearby (`833,819`/`516,761` chars) overcounted by 55–80% against this same fixture —
+verified independently rather than treated as ground truth per the issue's instruction. Updated the
+shipped tool description, the shipped per-result hint, the two internal comments in `mcp.ts` that stated
+the same now-stale figures (for consistency within the file), and the `test.ts` assertion messages that
+restated the old numbers (`~490KB together` → `~824KB together`; `833,819 / 516,761 / 5,803 chars` →
+`536,770 / 287,283 / 3,653 chars`; `vs ~834,000 for tokens` → `vs ~537,000 for tokens`) — the assertions
+themselves already passed; only the message text was stale. `export_theme`'s own `~830,000 chars`
+description (a different tool, a different three-section bundle) was left alone — out of this issue's
+scope and not internally inconsistent with anything touched here.
+
+**3 (MED). `ai-metadata.ts`'s `font` primitive guidance said "(Phase 2)" for a tier that already
+shipped.** The typography semantic-composite tier it pointed at exists (same file, `type.*` entries,
+~line 300–347) and `out/nb.ai.json` carries 43 `type.*` composite entries today. Reworded to point at
+the `type.*` entries directly instead of a phase label that reads as "not built yet".
+
+**4 (MED). The weight-role note dropped the fifth role.** `nbThemeFrom`'s decisions note (ships in
+`out/nb.tokens.json` and every derivative report) said `weight roles subtle/default/emphasis/strong →
+300/400/600/700` — four roles. `WEIGHT_ROLE_ORDER` (`theme.ts`) has always included a fifth, `max`
+(default 900), and the emitted tree carries `weight-role.max`. Updated the note to list all five.
+
+**5 (MED). `mcp.ts`'s header comment undercounted its own tool surface.** Listed three tools
+(`list_levers`/`theme_brand`/`validate_brand`) in prose while `toolDefs` defines six — `score_consumption`,
+`theme_from_brief`, and `export_theme` were live and undocumented at the top of the file. Added all three
+with one-line descriptions matching their actual `toolDefs` entries.
+
+**Verification.** Full CLAUDE.md §4 sequence, run in the isolated worktree (`/tmp/p3-mcp548`, `web/dist`
+built locally just to satisfy the lint-us-english surface check — gitignored, not committed):
+`regen.ts` (regenerated, 8 emit steps ok) / `regen.ts --check` (**88** committed artifacts byte-match —
+this worktree's expected count, not the 89 the shared checkout sometimes shows), `test.ts` (**1920**
+passed), `mcp-test.ts` (**49** passed), `token-contract.ts --check` (guaranteed 485, unchanged),
+`lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions, **PASS**, aggregate ΔE00
+1.95), `lint-us-english.ts` (94 shipped files, clean). `out/*.ai.json`/`.tokens.json` diffs from `regen.ts`
+are exactly the expected propagation of items 1, 3 and 4's wording fixes into every brand's emitted
+decisions log and `.ai.json` — no unrelated drift.
+
+---
+
 ## (2026-08-07) — Prose audit: retired by name, still taught as current — action.* purged from docs 01/06/14/17/31 + engine README (#550)
 
 **STATUS: shipped (docs-only).** Six files: `Prism3/engine/README.md`, `Prism3/docs/{01-token-architecture,06-surface-and-content-color-model,14-component-layer,17-consumption-eval,31-descriptive-vocabulary}.md`.

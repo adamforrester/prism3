@@ -5366,7 +5366,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const payload = JSON.parse(themed.content[0].text);
   ok(payload.contracts.checks > 0 && payload.contracts.pass === payload.contracts.checks && payload.contracts.failures.length === 0, `MCP: theme_brand reports all ${payload.contracts.checks} contrast contracts passing`);
   ok(payload.aliases.broken.length === 0 && payload.aliases.resolved === payload.aliases.total, 'MCP: theme_brand reports every alias resolving');
-  ok(payload.tokens === undefined && payload.aiMetadata === undefined, 'MCP: theme_brand withholds the token tree + ai metadata by default (they measure ~490KB together)');
+  ok(payload.tokens === undefined && payload.aiMetadata === undefined, 'MCP: theme_brand withholds the token tree + ai metadata by default (they measure ~824KB together)');
   ok(typeof payload.hint === 'string' && payload.omitted.includes('tokens'), 'MCP: theme_brand SAYS what it withheld and how to ask for it');
   // The default result has to be small enough to actually spend on.
   ok(themed.content[0].text.length < 20_000, `MCP: the default theme_brand result stays under 20,000 chars (${themed.content[0].text.length.toLocaleString()})`);
@@ -5376,7 +5376,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // The decisions log ships BY DEFAULT. It was opt-in, grouped with `tokens` and `aiMetadata` under
   // "withheld by default" — a grouping by CATEGORY when the only thing justifying it is COST, and
-  // the costs differ by three orders of magnitude (833,819 / 516,761 / 5,803 chars). The tool's own
+  // the costs differ by two-to-three orders of magnitude (536,770 / 287,283 / 3,653 chars). The tool's own
   // description already claimed it returned "the decisions log by default", so description and
   // behaviour disagreed and the description was the correct half. These assert the fixed direction.
   ok(Array.isArray(payload.notes) && payload.notes.length > 0,
@@ -5389,7 +5389,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Guard the reason the default is affordable at all. If notes ever grow into a payload rather than
   // a log, this fails rather than quietly making every call expensive.
   const notesCost = themed.content[0].text.length - callTool('theme_brand', { brand, include: [] }).content[0].text.length;
-  ok(notesCost < 25_000, `MCP: the decisions log stays cheap enough to be a default (${notesCost.toLocaleString()} chars vs ~834,000 for tokens)`);
+  ok(notesCost < 25_000, `MCP: the decisions log stays cheap enough to be a default (${notesCost.toLocaleString()} chars vs ~537,000 for tokens)`);
   ok(toolDefs(brandSchema).find((t) => t.name === 'theme_brand')?.description.includes('decisions log by default'),
     'MCP: the tool description still advertises the default it actually has (these drifted apart once)');
   // The pre-wrap calling convention (a bare BrandInput) still works.
