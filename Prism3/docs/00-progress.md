@@ -7,6 +7,74 @@
 
 ---
 
+## (2026-08-07) — Sub-24px interactive targets, WCAG 2.5.8 (#559)
+
+**STATUS: shipped.** Fixes the primary target from the visual anomaly sweep (`.adv-bp button.adv-x`,
+the Layout breakpoint "×" remove button, measured 12.8×15px) and closes one of the two "worth a look"
+items; the third stays open as a convention decision. Respects the issue's own triage exactly — no
+scope expansion beyond what it flagged as fixable.
+
+**The convention: `.hit-min`.** A shared CSS class (`web/src/main.ts`, next to `.mono`/`.faint`) that
+decouples the optical (painted) box from a >=24 CSS px hit box via an unpainted `::before`,
+`position:absolute` so it's out of flow — never shifts layout, never grows what's actually painted,
+only widens where clicks register. Each dimension floors at `max(24px,100%)` — never shrinks below the
+host's own box, so a control already past the floor (`.toggle`'s 38px width) gets no unneeded
+horizontal padding; the pseudo just exactly overlays it on that axis. `--hit-dx`/`--hit-dy` custom
+properties (default 0, centered) let a packed host bias the box off-center instead of centering blind
+into a neighbor's territory.
+
+**`.adv-x` (fixed).** 12.77×15px own box, in a row with only 2px of clearance to its own paired
+`.adv-num` input on one side and 8px to the next breakpoint cell on the other — 22.77px of width
+available total, 1.23px short of the 24px floor even before any bias, so *some* encroachment on a
+neighbor's hit-box is mathematically unavoidable at this row's existing spacing (spacing itself was
+explicitly out of scope — no layout/gap change, per "no layout reflow in the surrounding row").
+`--hit-dx:4px` biases the box fully toward the roomier side; measured live with Playwright
+(`elementFromPoint` sweeps, 1px steps) at **zero overlap into the button's own paired input** and
+~1.2px into the far edge of the *next* cell's input — never the input this row's own button belongs
+to. Height needed no bias (15px own height, ~7.8px clearance each side in this row — ample). Verified:
+24×24+ hit box in both dimensions, `.adv-bp` cell x-coordinates identical pre/post-fix (zero reflow,
+pseudo is out-of-flow), "×" glyph screenshot-identical (pure overlay, no paint change).
+
+**`.knob-body input.toggle` (fixed).** 38×22px, 2px under on height only. `.hit-min`'s default
+(centered, no bias) is exactly right here: width `max(24px,100%)` = the toggle's own 38px (no
+horizontal change at all — confirmed via sweep, hit box stays exactly 430–468px, unchanged), height
+`max(24px,100%)` = 24px (was 22), closing the gap with ~8px/7px of margin to the knob-label above and
+knob-desc below (`.knob > .knob-body{margin-top:8px}`, `.knob-desc{margin:7px 0 0}`) — no risk of
+eating into either.
+
+**`.adv-row input[type=checkbox]` (left alone — spacing exception holds, as the issue predicted).**
+13×13px own box, but it's a **native `<label class="adv-row">` wrapping the checkbox** — clicking the
+label's text (`.adv-row-lab`, confirmed live: `page.locator('.adv-row-lab').click()` toggles the
+checkbox) makes the effective click target the *whole row*, not just the 13px box. Measured vertical
+clearance to the nearest other target (the `minViewport` row below) is ~26–29px — far past any
+reasonable 2.5.8 spacing-exception threshold. No fix applied; this is exactly the "likely saved by row
+pitch" the issue flagged for a look, confirmed rather than assumed.
+
+**Out of scope, untouched, as directed:** `.mcell button.mstep`/`.mreset` (weight steppers — spacing
+exception already conformant), `input[type=range]` sliders (flagged for a future convention decision,
+not asserted deficient), `.cs-c input[type=checkbox]` (style-guide toggles — conformant via spacing,
+listed in the issue so nobody re-flags it).
+
+**Verification.** Playwright (Chromium via `PLAYWRIGHT_MODULE` pointed at a global install — this repo
+still has no Playwright dependency, #333) measured live against the built `web/dist`: hit-area
+bounding boxes via `elementFromPoint` sweeps (not just `getBoundingClientRect`, which only reports the
+painted box), before/after screenshots of the affected rows byte-eyeballed for zero visual drift, and
+`.adv-bp` cell x-coordinates diffed pre/post-fix (identical) to confirm no layout reflow. All measurement
+scripts were scratch, not committed — the fix is CSS/DOM-class-only, no new npm dependency, no new
+committed test harness. `regen.ts`, `--check`, `test.ts`, `mcp-test.ts`, `token-contract.ts --check`,
+`lint-skills.ts`, `nb-regression.ts`, `lint-us-english.ts`, `web` `typecheck` and `build` all pass —
+none of these gates touch `web/src/main.ts` styling/DOM output, so a clean run here does not by itself
+prove the fix (the Playwright measurement is what does); it does prove the change introduced no
+regression elsewhere.
+
+**Trap for whoever reaches the range-slider convention decision next:** the same `.hit-min` class
+should mostly cover it, but sliders are a genuine gray area (the *thumb* is the semantic target, not
+the full track, and browsers don't expose the thumb as a separately stylable box without vendor
+pseudo-elements like `::-webkit-slider-thumb`/`::-moz-range-thumb`, which don't support `::before`
+themselves) — don't assume `.hit-min` drops in unchanged; measure the thumb's own hit box first.
+
+---
+
 ## (2026-08-07) — Weight roles specimen goes per-mode, reopening #422's own prior "drop the column" fix
 
 **STATUS: shipped.** `renderWeightTable` (`web/src/main.ts`) now renders one specimen per MODE cell,

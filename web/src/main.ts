@@ -231,7 +231,7 @@ const rangeInput = (o: { value: string | number; min?: number | string; max?: nu
  *  runs its own `apply()` / `applyFull()`. */
 const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HTMLElement => {
   const input = el('input') as HTMLInputElement;
-  input.type = 'checkbox'; input.className = 'toggle'; input.checked = checked;
+  input.type = 'checkbox'; input.className = 'toggle hit-min'; input.checked = checked;
   const val = el('span', 'knob-val', checked ? 'On' : 'Off');
   input.onchange = () => { val.textContent = input.checked ? 'On' : 'Off'; onToggle(input.checked); };
   return knobBody(input, val);
@@ -2887,7 +2887,7 @@ const renderBreakpointsControls = (): HTMLElement => {
       const cell = el('div', 'adv-bp');
       const inp = numberField({ className: 'adv-num', value: String(px) });
       inp.onchange = () => { const next = [...bps]; next[i] = Number(inp.value); commit(next); };
-      const rm = el('button', 'adv-x', '×') as HTMLButtonElement;
+      const rm = el('button', 'adv-x hit-min', '×') as HTMLButtonElement;
       rm.onclick = () => commit(bps.filter((_, j) => j !== i));
       cell.append(inp, rm); listEl.append(cell);
     });
@@ -6902,6 +6902,21 @@ html,body{margin:0}
 body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.55}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
 .faint{color:var(--faint)}
+/* WCAG 2.2 SC 2.5.8 Target Size (Minimum) convention (#559): decouples the optical (painted) box
+ * from a >=24 CSS px HIT box via an unpainted ::before. The pseudo is position:absolute — out
+ * of flow — so it never shifts layout or grows what's actually painted; it only widens where clicks
+ * register. max(24px,100%) floors each dimension at 24px but never shrinks below the host's own
+ * box, so a control already past the floor (.toggle's 38px width) gets no hit-area padding it
+ * doesn't need — the pseudo exactly overlays it on that axis instead of narrowing it to 24px.
+ * --hit-dx/--hit-dy (CSS px, default 0 = centered) bias the box off-center for a host packed too
+ * tightly to expand symmetrically without eating a neighboring target's edge. .adv-x is why these
+ * exist: only 2px of clearance to its OWN input on one side vs. 8px to the next breakpoint cell on
+ * the other — 22.77px of whitespace total, 1.23px short of the 24px floor even before any bias, so
+ * some encroachment on a neighbor's box is unavoidable. Biased fully toward the roomier side (see
+ * .adv-x below), measured live (#559) at zero overlap into the paired input and ~1.2px into the
+ * FAR edge of the next cell's input — never the input this button's own row belongs to. */
+.hit-min{position:relative}
+.hit-min::before{content:'';position:absolute;top:50%;left:50%;width:max(24px,100%);height:max(24px,100%);transform:translate(calc(-50% + var(--hit-dx,0px)),calc(-50% + var(--hit-dy,0px)))}
 #app{max-width:1200px;margin:0 auto;padding:0 40px 120px}
 
 /* First-run start screen */
@@ -7381,7 +7396,10 @@ input.toggle:disabled{opacity:.5;cursor:default}
 .adv-unit{font-size:11px;color:var(--faint)}
 .adv-bplist{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .adv-bp{display:flex;align-items:center;gap:2px}
-.adv-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px}
+/* --hit-dx:4px (see .hit-min above) shifts the 24px hit box entirely rightward, into the 8px flex
+   gap toward the NEXT breakpoint cell rather than the 2px gap to this button's own input — measured
+   live to land at 0px overlap on the paired input, ~1.2px on the far edge of the next cell's input. */
+.adv-x{border:none;background:none;color:var(--faint);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;--hit-dx:4px}
 .adv-x:hover{color:#a12}
 .adv-add{border:1px dashed var(--line2);background:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px;border-radius:var(--r-xs);padding:5px 10px}
 /* Layout specimen — breakpoint/grid table + column preview + container bars. */
