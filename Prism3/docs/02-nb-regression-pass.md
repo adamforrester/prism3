@@ -132,4 +132,4 @@ Net: the spine of the architecture — exact-anchor preservation, ~20-step bands
 
 ---
 
-*Companion files: `../schema/nb-measured.json` (the measured NB input), `01-token-architecture.md` (the architecture this tests). Source data: `Tokens/New Balance/tokens/tokens/shared/core-color.json` and siblings.*
+*Companion files: `../schema/nb-measured.json` (the measured NB input), `01-token-architecture.md` (the architecture this tests). Source data: `reference/New Balance/tokens/tokens/shared/core-color.json` and siblings.*

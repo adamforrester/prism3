@@ -17,7 +17,7 @@ re-resolve.
 | Path | What it is |
 |---|---|
 | [`Prism3/`](Prism3/) | The **generation engine** — a brand is a small validated input that expands into a full token tree, AI metadata, and platform outputs (DTCG + Figma). Start here for engine work. See [`Prism3/README.md`](Prism3/README.md). |
-| [`Tokens/`](Tokens/) | The **legacy hand-built tokens** — Prism2 (`nbds.pds.*`) and New Balance, in two parallel formats (Figma variable export + DTCG). The engine's regression target, not a build output. |
+| [`reference/`](reference/) | The **legacy hand-built tokens** — Prism2 (`nbds.pds.*`) and New Balance, in two parallel formats (Figma variable export + DTCG). The engine's regression target, not a build output. |
 | [`apps/studio/`](apps/studio/) | The **theme studio** — a browser host over the engine's shared lever/preview contracts, deployed at the link above. See [`apps/studio/README.md`](apps/studio/README.md). |
 | [`apps/plugin/`](apps/plugin/) | The **Figma plugin** — the write host over the same engine core, split across Figma's two isolated contexts (main thread + UI iframe) with a typed message bridge between them. See [`apps/plugin/README.md`](apps/plugin/README.md). |
 | [`packages/tokens/`](packages/tokens/) | The **consumability gate** — a stock Style Dictionary build over the emitted DTCG, kept deliberately naive so it answers whether a stranger could consume the output without code from us. See [`packages/tokens/README.md`](packages/tokens/README.md). |

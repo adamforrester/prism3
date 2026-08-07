@@ -145,7 +145,7 @@ designer's Token-Press export are structurally the same artifact. The #40 single
 export is a v1 stepping-stone that evolves into this.
 
 **The contract, grounded in Token Press v2.3.1** (evaluated 2026-07-03 against the plugin's
-agent brief AND its real output — the in-repo `Tokens/` layer *is* Token Press output, so it
+agent brief AND its real output — the in-repo `reference/` layer *is* Token Press output, so it
 doubles as the format reference and the engine's regression target).
 
 **Layout** (Token Press §7): a ZIP of DTCG JSON, **one file per collection**, in a
@@ -163,7 +163,7 @@ into `light/`+`dark/`. (The reason is SD's file-globber: two files with the same
 different `$value` per mode → last-write-wins / stack overflow. Per-mode dirs keep each mode's
 source set collision-free.)
 
-**Leaf + file shape** (confirmed against `Tokens/New Balance/tokens/tokens/shared/radius.json`):
+**Leaf + file shape** (confirmed against `reference/New Balance/tokens/tokens/shared/radius.json`):
 - Leaf: `{ $type, $value, $extensions.figma: { variableId, collection, scopes, codeSyntax } }`.
   `$value` is a raw value **or** a `{namespace.path}` alias.
 - File-level `$extensions`: `generator { name, version }` + `figma { collection {id,name,defaultModeId}, mode }`.

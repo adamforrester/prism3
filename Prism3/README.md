@@ -40,4 +40,4 @@ npx tsx Prism3/engine/nb-regression.ts   # regression vs real NB
 npx tsx Prism3/engine/emit-dtcg.ts       # emit DTCG + modes, validate
 ```
 
-The prior iterations (`../Tokens/Prism2`, `../Tokens/New Balance`) are retained as reference inputs — Prism3 is clean-sheet and cherry-picks the best mechanics from both.
+The prior iterations (`../reference/Prism2`, `../reference/New Balance`) are retained as reference inputs — Prism3 is clean-sheet and cherry-picks the best mechanics from both.

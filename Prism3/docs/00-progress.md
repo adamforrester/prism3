@@ -7,6 +7,70 @@
 
 ---
 
+## (2026-08-07) — `Tokens/` → `reference/`: the capital T had already spent a decision (#649)
+
+**STATUS: shipped.** 48 files moved (git recorded all 48 as pure renames — **0 insertions, 0
+deletions**), 25 references rewritten across 12 files, 3 `resolve()` calls updated. `regen --check`
+stays at **104, byte-identical**; no emitted artifact, no version bump. Tests 2034/0.
+
+**Why this was not cosmetic.** `35-naming-and-packaging` §8 had parked it: *"the legacy layer keeps
+its name; it is a fixture, not a deliverable."* Sound on its own terms, but it weighed the wrong cost.
+The name had already **spent a decision** — §2 of that same doc records that a top-level `tokens/` was
+*impossible* because `Tokens/` existed on a case-insensitive filesystem, so `packages/tokens` was
+constrained by a capital letter rather than chosen on merits (#623). The nesting turned out right
+anyway, but that is luck, not design. A fixture that vetoes a package name is not a cost-free fixture.
+
+**`reference/`, deliberately not `tokens/`.** It names what the corpus is *for* — the hand-built
+systems the engine is measured against — rather than what it contains. A top-level `tokens/` beside
+`packages/tokens/` would trade a capitalization oddity for a real ambiguity and re-invite the exact
+collision that prompted the rename. It also sidesteps the macOS trap entirely: a case-only rename
+needs **two** `git mv` steps through a temporary name or git records nothing, and a
+case-*and*-letter change needs one.
+
+**The sweep lesson from #651, applied from the start rather than found afterwards.** #648 renamed
+`web/` → `apps/studio/` with a pattern anchored on `web/<suffix>`, which is structurally blind to bare
+`` `web/` `` — and the bare form is exactly how prose names a directory. 25 references survived, four
+in `CLAUDE.md`, and **no gate could have caught them**: nothing reads a markdown backtick. So this
+sweep matched both forms and then **asserted zero survivors** with one grep. Worth recording that the
+same trap generalizes one step further than #649 stated: a `Tokens/` pattern is itself blind to
+`Tokens` with no slash ("the Tokens directory"). I checked that form explicitly before sweeping — it
+returned only identifiers (`missingTokens`, `renderPreviewTokens`) and the third-party product "Tokens
+Studio", so every real directory reference here carried the slash. That was luck, not a property of
+the pattern; the next rename should check it again rather than assume.
+
+**The gate that proves the move, and why green was not sufficient.** `nb-regression.ts` is the **only**
+gate that reads the directory. The interesting failure mode is not a wrong number — it is the gate
+**reporting less**: a path that silently stops resolving makes it measure fewer things and still look
+healthy. So the ΔE00 output was captured *before* the move and diffed after: **byte-identical**
+(aggregate mean ΔE00 1.95, 23/23 dimensions, 11/11 contrast contracts, 4×20 steps). Then I mutated one
+of the three paths to confirm the gate can actually go red — it throws and exits 1, so the dependency
+is real rather than assumed. That mutation step is the point of `34-gate-independence`: a green run
+only means something if the gate is capable of failing.
+
+**Three references were NOT a path substitution**, and a blanket `sed` would have quietly damaged all
+three:
+- **doc 09's ASCII tree** — `reference/` is 3 characters longer than `Tokens/`, so the description
+  column silently went out of alignment. Realigned to column 36, matching every sibling row. The same
+  block still says `web/`/`plugin/`, and that is deliberate: #651 left it alone because it is a *dated
+  aspirational layout* ("grows into the monorepo", "NEW —"), not a description of today's tree.
+- **the root README** — a markdown link whose *target* moved as well as its text.
+- **doc 35 §8** — a decision to reverse, not a name to change (below).
+
+**Doc 35 keeps two `Tokens/` references on purpose, and that is the interesting part.** §8's bullet is
+replaced (struck through, original verdict quoted) with the reversal and its reasoning. But §2's tree
+snapshot and its collision note are left exactly as written: the note — *"a top-level `tokens/` is
+impossible today, `Tokens/` already exists"* — is the **historical evidence for this very reversal**.
+Renaming it would erase the reason the reversal is justified and leave the doc asserting a constraint
+that no longer has a cause. A rename sweep's job is to update references to a thing; it is not to
+rewrite the record of why the thing was named that way.
+
+**Out of scope, unchanged:** `Prism3/` is #650, and that decomposition decision has not been made —
+it is 453 references across 83 files against this one's 25, and it is a decision, not a task. Also
+untouched by rule: `00-progress.md` history above this entry (append-only) and the dated
+`docs/superpowers/` plans.
+
+---
+
 ## (2026-08-07) — #648 follow-up: the bare `web/` and `plugin/` references it left behind
 
 **STATUS: prose only, 13 files.** No code, no artifact, no gate logic. Follow-up to #648, not a new

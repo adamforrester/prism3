@@ -174,7 +174,21 @@ assumption baked into the layout — the layout above supports all three.
   decide what goes inside them.
 - **#253** (brand-token flow) — see §6.
 - **The eject mechanism** (§7).
-- **`Tokens/`** — the legacy layer keeps its name; it is a fixture, not a deliverable.
+- **~~`Tokens/`~~ — REVISITED, and reversed (#649, 2026-08-07).** The original verdict was: *"the
+  legacy layer keeps its name; it is a fixture, not a deliverable."* That reasoning was sound on its
+  own terms — a fixture earns less naming care than a shipped surface — but it weighed the wrong
+  cost. The name was not merely untidy; **it had already spent a decision.** §2 above records the
+  consequence in its own words: a top-level `tokens/` was *impossible* because `Tokens/` existed on a
+  case-insensitive filesystem, so `packages/tokens` was constrained by a capital letter rather than
+  chosen on merits (the nesting turned out to be right anyway — but that is luck, not design). A
+  fixture that vetoes a package name is not a cost-free fixture. Renamed to **`reference/`**, which
+  names what the corpus is *for* — the hand-built systems the engine is measured against — rather
+  than what it contains. Deliberately **not** `tokens/`: a top-level `tokens/` beside
+  `packages/tokens/` would trade a capitalization oddity for a real ambiguity, and on this filesystem
+  it would re-invite the very collision that prompted the rename. §2's tree and its collision note
+  are left as written: the first is a dated snapshot of the layout this doc proposed, and the second
+  is the historical reasoning that produced `packages/tokens` — rewriting either would erase the
+  evidence for this reversal.
 
 ---
 

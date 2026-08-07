@@ -199,9 +199,9 @@ and the mechanism behind the demo:
    manual dashboard already makes.
 2. **Kill the last hand-maintained snapshot (new task).** Their drifted-`tokens.json`
    story maps *directly* onto our one remaining hand-sync: the legacy dual-format
-   `Tokens/` layer (raw-figma + DTCG, *"the same logical tokens twice… edit both,"*
+   `reference/` layer (raw-figma + DTCG, *"the same logical tokens twice… edit both,"*
    CLAUDE.md). The engine already embodies generate-don't-duplicate; decide whether
-   `Tokens/` stays an authored source or becomes a pure engine artifact with a parity
+   `reference/` stays an authored source or becomes a pure engine artifact with a parity
    assertion (the lever-manifest drift-gate pattern).
 3. **Live crossfade via typed `@property <color>` (cheap delight).** Registering the
    preview's colour vars as typed custom properties lets the browser interpolate them —
@@ -312,7 +312,7 @@ organization has."* The concrete moves:
 | Context authored machine-first, human artifact generated from it | Zinnia (docs repo → AI-exported website), our `25` / style-guide-generator | Output side done; **open audit** — are `Prism3/docs` + KB agents-first? |
 | Context has explicit tiers (universal / org / surface); intent/principles weigh most | Zinnia ("context needs layers", "principles carried the most weight"), KB 29/30, Astryx (intent-poor, a gap) | Adopt the vocabulary for `ai-metadata` + `brand-skills` tiers |
 | Retrieval-first agent access (search → fetch-on-demand, compact tiers) | Astryx CLI; ds-brain "AI index" | **Gap** — candidate `cli.ts query` subcommand; MCP adapter tool schema later |
-| Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash; Southleft (`tokens.json` generated from CSS at build, drift-asserted) | Engine gates prove the philosophy at the token tier; carry into the component layer. **Open task:** the legacy dual-format `Tokens/` layer is the one hand-synced snapshot left |
+| Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash; Southleft (`tokens.json` generated from CSS at build, drift-asserted) | Engine gates prove the philosophy at the token tier; carry into the component layer. **Open task:** the legacy dual-format `reference/` layer is the one hand-synced snapshot left |
 | Consumption-side evals (rubric, invented-name rate, isolated trials) | ds-brain, Zinnia (MCP-lifts-output demo + package-adoption dashboard) | **Partially closed** — `prism3-consume` cold-agent differential (`#1–#6`) runs it; extend when the MCP adapter lands |
 | Deterministic zero-LLM tooling as the differentiator over agentic equivalents | Specs CLI ("0 AI tokens" extraction), Southleft (local seed engine under the AI), our engine + planned plugin write leg | Core posture — `14` extends it to the component tier (write leg ours, verify leg Specs-CLI-shaped) |
 | AI proposes params → system derives (NL vibe → schema → live re-theme) | Southleft (prompt console; JSON schema = the contract) | **Gap / candidate task** — we have the plumbing (`brandState`→`apply`, `standard-design-md`, `theme-schema.json`); missing the NL front door |
