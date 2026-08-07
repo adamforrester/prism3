@@ -30,7 +30,7 @@ import { resolvePreview } from '../../Prism3/engine/resolve-preview';
 import type { ResolvedPreview } from '../../Prism3/engine/resolve-preview';
 import { resolveAllModes, outlineFillFamily, outlineFillRole } from '../../Prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '../../Prism3/engine/design-md';
-import { parseStandardDesignMd, standardToBrandInput } from '../../Prism3/engine/standard-design-md';
+import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '../../Prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../Prism3/engine/tree';
 import { ENGINE_VERSION } from '../../Prism3/engine/version';
 import { hostCommit } from './write-adapter';
@@ -6469,7 +6469,7 @@ const validateDesignMd = (text: string): { input: BrandInput } | { error: string
   let std;
   try { std = parseStandardDesignMd(text); }
   catch (e) { return { error: `That doesn't read as a design.md: ${(e as Error).message}` }; }
-  const isStandard = Object.keys(std.colors).length > 0;
+  const isStandard = isStandardDesignMd(std);
 
   let input: BrandInput;
   if (isStandard) {

@@ -752,6 +752,19 @@ negative control (stashing the `main.ts` fix, rebuilding, re-running against `we
 reproduced the exact reported error text before the fix and passed after — confirms the fix, not
 just the absence of a crash.
 
+**Addendum (same day, follow-up commit):** independent review caught a second instance of the same
+shape of trap, one gate over from the one above — `web/vercel-ignore.sh`'s `EXCLUDED` list still
+named `classify-colors.ts` and `standard-design-md.ts` as *not* bundled, which was true before this
+PR and false after. Left as-is, a future edit to either file would have been skipped by Vercel's
+ignore-build-step and shipped nothing — the exact `#474`/`#475` stale-deploy failure mode, this time
+via the deploy gate instead of the lint gate. Fixed by removing both from `EXCLUDED` (`check:ignore`
+now passes: 15 bundled / 29 excluded, was 13/31) and refreshing the file's own prose comment that
+stated the 13/31 split. Also took the reviewer's optional, non-blocking suggestion: the
+`isStandard` detection predicate (`Object.keys(std.colors).length > 0`) was duplicated verbatim in
+`web/src/main.ts` and `cli.ts`; factored into one exported `isStandardDesignMd()` in
+`standard-design-md.ts` (both files already import from there), so the rule now lives in one place.
+Full gate sequence re-run clean after both changes, including `check:ignore`.
+
 ---
 
 ## (2026-08-07) — Naming & packaging decided as one thing, around the eject boundary (docs/35, new)

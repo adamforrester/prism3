@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 import { Theme, brandTheme } from './theme';
 import { parseDesignMd } from './design-md';
-import { parseStandardDesignMd, standardToBrandInput } from './standard-design-md';
+import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from './standard-design-md';
 import { buildFidelityReport } from './fidelity';
 import { emitTheme, validateBrandInput } from './emit-dtcg';
 
@@ -106,7 +106,7 @@ const main = () => {
   let std;
   try { std = parseStandardDesignMd(text); }
   catch (e) { return fail(`parse error in ${designPath}: ${(e as Error).message}`); }
-  const isStandard = Object.keys(std.colors).length > 0;
+  const isStandard = isStandardDesignMd(std);
 
   if (isStandard) {
     // ---- STANDARD dialect: classify the flat colours into anchors ----
