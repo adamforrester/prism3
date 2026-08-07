@@ -7,6 +7,71 @@
 
 ---
 
+## (2026-08-07) — Dashboard prose audit: seven stale/misdirecting user-visible strings (#547)
+
+**STATUS: shipped.** `web/src/main.ts` only. Companion to #552 (internal code comments, same file,
+fixed by a different concurrent agent) — this pass touched only rendered strings (innerHTML/textContent/
+template-literal copy a user actually reads), not `//`/`/* */` documentation.
+
+**1–2 (HIGH/MED) — "Edit modes" pointed at a control #432 removed.** The mode-strip popover that used to
+manage which modes exist was retired in #432; that job moved to the brand menu's "Modes" section
+(`renderBrandMenu`). Three strings still told the user to go to "Edit modes": the derived-mode note's
+`genview-hint`, the derived-mode-cell tooltip in the typeface-bindings table, and (folded into the same
+fix) the derived-mode note's failing-chip text, which separately promised "see the preview below" — false
+on `sizeRadius`/`layout` (`controlSplitPage` returns right after the note, no specimen at all) and on
+`surfaces`/`typography` (`renderScreen` calls them with `() => []`, always empty). Repointed the "which
+modes exist" copy at the brand menu; repointed the failing-chip copy at Preview → Contrast contracts (a
+target that's real on every page, unlike a per-page "below" that isn't always there); dropped the
+`genview-hint`'s preview-below promise rather than auditing it per page, per the issue's stated
+preference for generalizing over building the missing renders.
+
+**3 (MED) — style-guide "Accent palettes are opt-in and would add blocks."** `renderPreviewStyleGuide`'s
+Interactive section only ever calls `paletteBlock` for Primary/Neutral/Destructive (plus a hand-built
+Disabled block) — it never loops over promoted accent palettes the way the live editing page does, so the
+blocks the blurb promised never render regardless of the opt-in state. Corrected the copy to say what the
+section actually covers instead of promising blocks that don't exist. **Left for reviewer
+consideration:** the alternative fix — looping the style guide over promoted accents the way the editor
+does — is a real feature, out of scope per the issue's explicit preference for correcting words over
+building behavior; flagging in case product wants that parity.
+
+**4 (MED) — the five `on-*` derived-role descriptions overclaimed "black or white."** `onColor` in
+`Prism3/engine/modes.ts` softens to a near-white (`N025`)/near-black (`N950`) neutral step in standard
+modes, escalating to pure black/white only if the softened pick can't clear `onMin` — pure extremes are
+the unconditional pick only in HC, and `TEXT_DERIVED_ROLES` is never shown in a derived mode (`renderScreen`
+swaps in `renderGeneratedNote` there), so the copy only needed to be right for the standard-mode case.
+Reworded `text.on-brand`/`on-success`/`on-warning`/`on-danger`/`on-info` to "a near-black or near-white
+pick" so the description doesn't contradict the resolved swatch shown beside it. **Deliberately left
+untouched:** the `/* DERIVED ... */` block comment two lines above (`"a binary black/white pick"`)
+restates the same inaccuracy but is a code comment, not rendered copy — in #552's scope, not this one.
+
+**5 (MED, real bug not just prose) — gradient live preview ignored the Interpolation select.**
+`inputGradientCss` hardcoded `in oklch` in the generated CSS regardless of `g.interpolation`, so picking
+sRGB in the per-gradient Interpolation dropdown never changed what the swatch rendered even though the
+engine does honor the per-gradient value. Fixed by reading `g.interpolation ?? 'oklch'` into both the
+linear and radial branches. Small, mechanical, matches the adjacent control — no other behavior changed.
+
+**6 (LOW) — motion hero named a curve that no longer exists.** "the emphasized easing curve" predates
+#531's rename; curves are now `linear`/`standard`/`decelerate`/`accelerate`/`expressive`/`calm`, and
+`emphasized` survives only as a transition *role* bound to the `expressive` curve. Swapped the hero copy
+to name the current curve. (The nearby "The Motion specimen traces the emphasized card" in
+`renderEasingEditor`'s description was checked and left alone — `emphasized` really is the name of one of
+the four transition cards the specimen draws, per `theme.ts`'s `transitions` array, so that string is
+still accurate.)
+
+**7 (LOW) — derived-chip tooltip overclaimed for wireframe.** "Auto-derived from your contrast contracts"
+was applied to every `.mctx-b.derived` chip, but wireframe is a mechanical grayscale (the file's own
+`renderGeneratedNote` copy already says so), not contrast-derived. Made the tooltip mode-conditional:
+wireframe gets its own accurate string, HC keeps the original.
+
+**Verification.** Item 5 is the one real logic change in this batch, so ran the full CLAUDE.md §4
+sequence rather than skipping to prose-only checks: `regen.ts` / `--check` (88 artifacts in this worktree,
+no drift), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (485
+guaranteed, unchanged), `lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions,
+PASS), `web` typecheck (clean) + build, then `lint-us-english.ts` against the freshly built bundle (94
+files, clean). All green.
+
+---
+
 ## (2026-08-07) — prism3-theme's SKILL.md prose drifted from three engine levers it documents (#549)
 
 **STATUS: shipped.** `Prism3/skills/prism3-theme/SKILL.md`, three table-row fixes. No engine code

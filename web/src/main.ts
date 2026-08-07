@@ -1566,7 +1566,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   host.append(ground(secDis));
 
   // Interactive — button sets in rows
-  const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. Accent palettes are opt-in and would add blocks.');
+  const secInt = palSection('Interactive', 'Each interactive palette in three treatments — filled, outline, inverse — with its rest / hover / pressed set laid out in a row. Each button is tagged with its exact fill token; the treatment label carries the supporting token. Disabled is one shared, stateless set. This style guide covers Primary, Neutral and Destructive only — accent palettes aren’t shown here.');
   const STATES = ['rest', 'hover', 'pressed'];
   const btn = (bg: string, fg: string, bd: string | null): HTMLElement => { const b = el('button', 'sg-btn', 'Button'); b.style.background = bg; b.style.color = fg; if (bd) b.style.borderColor = bd; return b; };
   const bcol = (bg: string, fg: string, bd: string | null, st: string, fullkey: string, subpath: string): HTMLElement => { const c = el('div', 'sg-bcol'); c.append(btn(bg, fg, bd), el('span', 'sg-st', st), sgPill(fullkey, subpath)); return c; };
@@ -1657,7 +1657,7 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   elevation: ['Elevation.', 'The shadow ramp — blur/offset softness and an optional brand-hued tint on the shadow base. Dark modes get a reduced set automatically.'],
   sizeRadius: ['Size & radius.', 'Component sizing (control height + paired padding, driven by density) and corner radius. Both go per-mode outside Light.'],
   layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
-  motion: ['Motion.', 'Tempo (the duration ramp) and the emphasized easing curve. Reduce-motion is derived.'],
+  motion: ['Motion.', 'Tempo (the duration ramp) and the expressive easing curve. Reduce-motion is derived.'],
   preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
 };
 
@@ -2503,7 +2503,11 @@ const renderModeContext = (): HTMLElement => {
     // where it is actionable — the contract tables, the derived-mode panel, and at export. Four green
     // ticks that are always green teach nothing; the same information is still one page away, and
     // `modeAllPass` still drives the read-only panel's verdict chip.
-    if (derived) b.title = 'Auto-derived from your contrast contracts — a read-only verification view.';
+    // Wireframe is a mechanical grayscale, not contrast-derived (see renderGeneratedNote's own copy for
+    // that mode) — the tooltip must not overclaim for it the way the HC modes' derivation legitimately can.
+    if (derived) b.title = m === 'wireframe'
+      ? 'Auto-derived — a mechanical grayscale, not contrast-derived. A read-only verification view.'
+      : 'Auto-derived from your contrast contracts — a read-only verification view.';
     b.onclick = () => { if (currentMode !== m) { currentMode = m; renderModeStrip(); renderWorkspace(); } else { renderModeStrip(); } };
     left.append(b);
   }
@@ -2529,9 +2533,13 @@ const renderGeneratedNote = (): HTMLElement => {
   const ok = modeAllPass(currentMode);
   const chip = el('div', 'genview-chip ' + (ok ? 'ok' : 'no'));
   chip.append(el('span', 'gv-mark', ok ? '✓' : '✗'),
-    el('span', undefined, ok ? 'Every contrast contract passes in this mode' : 'Some contracts fail in this mode — see the preview below'));
+    el('span', undefined, ok ? 'Every contrast contract passes in this mode' : 'Some contracts fail in this mode — see Preview → Contrast contracts'));
   box.append(chip);
-  box.append(el('p', 'genview-hint', 'Toggle which modes generate in the mode strip’s “Edit modes”. The preview below shows this mode applied to real components.'));
+  // Points at the brand menu, not the mode strip: managing WHICH modes exist moved there in #432 (see
+  // renderModeContext above). No blanket "preview below" promise here any more either — several pages
+  // that reach this note (Size & radius, Layout) render no specimen at all, and Surfaces/Typography pass
+  // an empty specimen list, so the claim was false on 4 of the 7 pages that can show this note.
+  box.append(el('p', 'genview-hint', 'Toggle which modes generate from the brand menu’s “Modes” section.'));
   return box;
 };
 
@@ -4120,7 +4128,7 @@ const renderTypefaceBindings = (): HTMLElement => {
         // interactive select here is what let a click reach the engine and surface
         // "mode 'hc-dark' is generate-only and not customizable" verbatim.
         const self = el('span', 'mtbl-selfval mono', base || '—');
-        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in Edit modes if you don't want it generated.`;
+        self.title = `${MODE_LABEL[m] ?? m} is auto-derived from Light and Dark — it takes the baseline face and accepts no per-mode override. Turn the mode off in the brand menu’s “Modes” section if you don't want it generated.`;
         td.append(self);
       } else {
         const ovRaw = getModeLever(m, `families.${cat}`);
@@ -5042,11 +5050,11 @@ const TEXT_PALETTE_ROLES: Array<{ role: string; label: string; paletteKey: strin
    computed one fails the contract the role exists to satisfy — a control that can only be used wrongly is
    worse than no control. The link states follow `link.default` by construction (see above). */
 const TEXT_DERIVED_ROLES: Array<{ role: string; label: string; from: string; why: string; onRole?: string; sample: string }> = [
-  { role: 'text.on-brand', label: 'On brand fill', from: 'Follows the brand fill', why: 'Black or white, whichever clears AA on the brand fill — repoint Foreground fills › Brand to move it.', onRole: 'foreground.brand', sample: 'On brand' },
-  { role: 'text.on-success', label: 'On success fill', from: 'Follows the success fill', why: 'Black or white, whichever clears AA on the success fill.', onRole: 'foreground.success', sample: 'On success' },
-  { role: 'text.on-warning', label: 'On warning fill', from: 'Follows the warning fill', why: 'Black or white, whichever clears AA on the warning fill.', onRole: 'foreground.warning', sample: 'On warning' },
-  { role: 'text.on-danger', label: 'On danger fill', from: 'Follows the danger fill', why: 'Black or white, whichever clears AA on the danger fill.', onRole: 'foreground.danger', sample: 'On danger' },
-  { role: 'text.on-info', label: 'On info fill', from: 'Follows the info fill', why: 'Black or white, whichever clears AA on the info fill.', onRole: 'foreground.info', sample: 'On info' },
+  { role: 'text.on-brand', label: 'On brand fill', from: 'Follows the brand fill', why: 'A near-black or near-white pick, whichever clears AA on the brand fill — repoint Foreground fills › Brand to move it.', onRole: 'foreground.brand', sample: 'On brand' },
+  { role: 'text.on-success', label: 'On success fill', from: 'Follows the success fill', why: 'A near-black or near-white pick, whichever clears AA on the success fill.', onRole: 'foreground.success', sample: 'On success' },
+  { role: 'text.on-warning', label: 'On warning fill', from: 'Follows the warning fill', why: 'A near-black or near-white pick, whichever clears AA on the warning fill.', onRole: 'foreground.warning', sample: 'On warning' },
+  { role: 'text.on-danger', label: 'On danger fill', from: 'Follows the danger fill', why: 'A near-black or near-white pick, whichever clears AA on the danger fill.', onRole: 'foreground.danger', sample: 'On danger' },
+  { role: 'text.on-info', label: 'On info fill', from: 'Follows the info fill', why: 'A near-black or near-white pick, whichever clears AA on the info fill.', onRole: 'foreground.info', sample: 'On info' },
   { role: 'text.on-inverse', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'background.inverse.primary', sample: 'On inverse' },
   { role: 'text.link.hover', label: 'Link — hover', from: 'Link, one step on', why: 'Link walked one palette step. Repoint Link above to move it.', sample: 'Hovered link' },
   { role: 'text.link.visited', label: 'Link — visited', from: 'Link, two steps on', why: 'Link walked two palette steps. Repoint Link above to move it.', sample: 'Visited link' },
@@ -5875,13 +5883,15 @@ const writeGradients = (arr: GradientInput[]): void => { brandState.gradients = 
 const gradStopHex = (palette: string, step: number): string =>
   theme.palettes.find((p) => p.palette === palette)?.steps.find((s) => s.num === step)?.hex ?? '#888888';
 /** Build the CSS gradient from an INPUT gradient (stops resolved through the ramp) — reads palette/step
- *  aliases rather than pre-resolved hexes; interpolates `in oklch` (the engine's intent, Chromium-native). */
+ *  aliases rather than pre-resolved hexes; interpolates `in <g.interpolation>` (Chromium-native), matching
+ *  whatever the Interpolation select is set to, the same value the engine honors — not hardcoded. */
 const inputGradientCss = (g: GradientInput): string => {
   const stops = g.stops.slice().sort((a, b) => a.position - b.position)
     .map((s) => `${gradStopHex(s.palette, s.step)} ${Math.round(s.position * 100)}%`).join(', ');
+  const interp = g.interpolation ?? 'oklch';
   return (g.kind ?? 'linear') === 'radial'
-    ? `radial-gradient(${g.shape ?? 'ellipse'} at ${Math.round((g.center?.[0] ?? 0.5) * 100)}% ${Math.round((g.center?.[1] ?? 0.5) * 100)}% in oklch, ${stops})`
-    : `linear-gradient(${g.angle ?? 135}deg in oklch, ${stops})`;
+    ? `radial-gradient(${g.shape ?? 'ellipse'} at ${Math.round((g.center?.[0] ?? 0.5) * 100)}% ${Math.round((g.center?.[1] ?? 0.5) * 100)}% in ${interp}, ${stops})`
+    : `linear-gradient(${g.angle ?? 135}deg in ${interp}, ${stops})`;
 };
 
 /** The Gradients section — a bespoke on/off toggle (own `applyFull` so the editor mounts/unmounts) plus,
