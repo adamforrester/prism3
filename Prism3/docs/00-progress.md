@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-07) — Backfill `DEPRECATIONS` for the 2.0.0 motion-easing rename (#543)
+
+**STATUS: shipped.** `Prism3/engine/version.ts`, `Prism3/docs/30-versioning-and-compatibility.md`,
+`Prism3/schema/token-contract.json`. No `CONTRACT_VERSION` bump — see below for why none was needed.
+
+**The bug.** #531 renamed the three guaranteed paths `motion.easing.{enter,exit,emphasized}` to
+`motion.easing.{decelerate,accelerate,expressive}` and correctly bumped `CONTRACT_VERSION` to 2.0.0
+(MAJOR, a rename is a removal + an add). But `DEPRECATIONS` — the table that exists *specifically* so
+a MAJOR removal ships its own migration — was left empty, and two docs comments went on to assert
+"nothing in the guaranteed surface has ever been renamed" as if that were still true: `version.ts`'s
+own comment on `DEPRECATIONS`, and `docs/30`'s §Deprecations section. Both said the opposite of what
+had just shipped.
+
+**The fix.** Populated `DEPRECATIONS` with the three rename entries (`since: '2.0.0'`, each
+`replacedBy` verified against the live guaranteed set — `motion.easing.{decelerate,accelerate,
+expressive}` all resolve). Rewrote both false comments to name this rename as the worked example
+instead of claiming the table has never been used.
+
+**The `--accept` question, resolved without a workaround.** The issue flagged this as open: the
+committed baseline (`schema/token-contract.json`) can only be rewritten by
+`token-contract.ts --accept`, which refuses unless `CONTRACT_VERSION` has already been bumped by the
+increment the diff requires — and this change adds no new path, removes none, retypes none, so
+`classify()` reports `level: 'none'`. Reading the gate's actual logic (not assumed) showed it already
+has the path this needs: `--accept` computes `informationalOnly` separately from `level` — true when
+`level === 'none'` but `deprecations` (or `brandDependent`, or `engineVersion`) differs from the
+baseline — and for `level: 'none'`, `satisfiesBump` only requires the *current* `CONTRACT_VERSION`
+equal the baseline's, which it already does (both 2.1.0 — a later PR, #573, bumped past 2.0.0 for an
+unrelated MINOR addition since #531 merged). So `--accept` ran clean on the first try: `✓ baseline
+accepted at 2.1.0 (no surface change)`. No CONTRACT_VERSION bump, no gate override, no workaround —
+this is exactly the "backfill an already-shipped version's metadata" case the informational-only path
+was built for. Left alone: this file's own **(2026-08-04) — Versioning: the token *names* are the
+contract, and a gate that cannot rewrite itself** entry, which also says `DEPRECATIONS` ships **empty**
+— it's a dated log entry accurate as of when it was written, not a live claim, so per this file's
+append-only convention it stays as history rather than being retroactively edited.
+
+**Gates run locally, all green:** `regen.ts` (no drift beyond the two source edits), `regen.ts --check`
+(88 artifacts, clean worktree), `test.ts` (1865 passed), `mcp-test.ts` (49 passed), `token-contract.ts
+--check` (passes post-accept), `lint-skills.ts`, `nb-regression.ts` (PASS, unchanged — this touches no
+generated value), `lint-us-english.ts` (94 files, clean — ran after `web` typecheck + build so the
+built-bundle surface was actually present to scan), `web` typecheck, `web` build.
+
+---
+
 ## (2026-08-06) — Post-merge review of #516/#518/#523/#531: three real defects, all in the gates
 
 **STATUS: docs only.** Findings are #543, #544, #545. Nothing fixed here — recorded so the fixes are

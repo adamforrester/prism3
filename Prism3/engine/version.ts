@@ -70,16 +70,22 @@ export type Deprecation = {
 };
 
 /**
- * Renames that have shipped. EMPTY today, and that is the honest state — nothing in the guaranteed
- * surface has ever been renamed. It exists anyway because without it "MAJOR" is a dead end: a
- * consumer learns their build broke but not what to write instead. With it, a removal ships its own
- * migration, mechanically appliable by a codemod or an agent.
+ * Renames that have shipped. NOT empty: the guaranteed surface has been renamed before. #531
+ * (CONTRACT_VERSION 2.0.0) renamed `motion.easing.{enter,exit,emphasized}` to
+ * `motion.easing.{decelerate,accelerate,expressive}` — the three entries below are that rename. It
+ * exists because without it "MAJOR" is a dead end: a consumer learns their build broke but not what
+ * to write instead. With it, a removal ships its own migration, mechanically appliable by a codemod
+ * or an agent.
  *
  * `classify` refuses a `replacedBy` that is not itself in the live guaranteed set, so an entry
  * cannot rot into a pointer at nothing — the failure mode that makes most deprecation tables
  * worse than none.
  */
-export const DEPRECATIONS: Deprecation[] = [];
+export const DEPRECATIONS: Deprecation[] = [
+  { path: 'motion.easing.enter', replacedBy: 'motion.easing.decelerate', since: '2.0.0' },
+  { path: 'motion.easing.exit', replacedBy: 'motion.easing.accelerate', since: '2.0.0' },
+  { path: 'motion.easing.emphasized', replacedBy: 'motion.easing.expressive', since: '2.0.0' },
+];
 
 /** Semver levels, ordered — `LEVELS.indexOf` is the comparison. */
 export const LEVELS = ['none', 'patch', 'minor', 'major'] as const;

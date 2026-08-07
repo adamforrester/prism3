@@ -732,5 +732,21 @@
     "type.display.3xl.strong",
     "type.title.2xs.strong"
   ],
-  "deprecations": []
+  "deprecations": [
+    {
+      "path": "motion.easing.enter",
+      "replacedBy": "motion.easing.decelerate",
+      "since": "2.0.0"
+    },
+    {
+      "path": "motion.easing.exit",
+      "replacedBy": "motion.easing.accelerate",
+      "since": "2.0.0"
+    },
+    {
+      "path": "motion.easing.emphasized",
+      "replacedBy": "motion.easing.expressive",
+      "since": "2.0.0"
+    }
+  ]
 }

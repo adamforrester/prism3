@@ -76,10 +76,12 @@ informational: they exist for some inputs only, and they **never** force a versi
 ## Deprecations
 
 `DEPRECATIONS` in `version.ts` maps a retired path to its replacement and the `CONTRACT_VERSION`
-that retired it. **It is empty today**, and that is the honest state — nothing in the guaranteed
-surface has ever been renamed.
+that retired it. **It is not empty** — the guaranteed surface has been renamed before: #531
+(`CONTRACT_VERSION` 2.0.0) renamed `motion.easing.{enter,exit,emphasized}` to
+`motion.easing.{decelerate,accelerate,expressive}`, and those three renames are the table's three
+entries.
 
-It exists anyway because without it MAJOR is a dead end: a consumer learns their build broke but not
+It exists because without it MAJOR is a dead end: a consumer learns their build broke but not
 what to write instead. With it, a removal ships its own migration, mechanically appliable by a
 codemod or an agent. A deprecated removal still classifies MAJOR — it *is* a break for anyone who
 has not migrated — it is merely a break that carries its own fix.
