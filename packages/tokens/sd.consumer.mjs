@@ -30,7 +30,9 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const OUT_DIR = resolve(here, 'build/consumer');
-export const SOURCE = (brand) => resolve(here, `../../Prism3/engine/out/${brand}.tokens.json`);
+/** Where the engine's emitted trees live — the gate discovers brands from this directory (#635). */
+export const OUT_ROOT = resolve(here, '../../Prism3/engine/out');
+export const SOURCE = (brand) => resolve(OUT_ROOT, `${brand}.tokens.json`);
 
 /** Build one brand through a stock Style Dictionary. Returns the emitted CSS as a string. */
 /** The PROJECTED build (#609): base + one mode overlay, composed by Style Dictionary's own
@@ -41,8 +43,8 @@ export const SOURCE = (brand) => resolve(here, `../../Prism3/engine/out/${brand}
 export const buildProjected = async (brand, mode) => {
   const sd = new StyleDictionary({
     source: [
-      resolve(here, `../../Prism3/engine/out/${brand}.base.tokens.json`),
-      ...(mode === 'base' ? [] : [resolve(here, `../../Prism3/engine/out/${brand}.${mode}.overlay.tokens.json`)]),
+      resolve(OUT_ROOT, `${brand}.base.tokens.json`),
+      ...(mode === 'base' ? [] : [resolve(OUT_ROOT, `${brand}.${mode}.overlay.tokens.json`)]),
     ],
     usesDtcg: true,
     log: { warnings: 'disabled' },

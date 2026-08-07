@@ -70,9 +70,10 @@ npm run lint:classes  -w @prism3/web     # no unreviewed class-name collision �
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins
-npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over the emitted DTCG —
-                                          # characterization gate: pins the canonical tree's mode
-                                          # collapse (permanent, #609), asserts the base+overlay
+npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
+                                          # characterization gate: pins each brand's mode collapse
+                                          # (permanent, #609) and its count of composite values SD
+                                          # cannot serialize (#635), asserts the base+overlay
                                           # projection reads back, and refuses custom preprocessors
 npx tsx Prism3/engine/lint-us-english.ts # run AFTER the web build — its scope includes web/dist/*.js
 npx tsx Prism3/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here

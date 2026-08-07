@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-07) — The consumability gate covers the whole corpus, and found `[object Object]` (#635)
+
+**STATUS: gate only.** No engine change, no emitted artifact moved, no version bump. Two files in
+`packages/tokens` plus the four documents that describe the gate. 104 artifacts unchanged.
+
+**The gap.** #631 landed the gate hard-coded to `const BRAND = 'nb'`. It answered *"can a stranger
+consume `nb`?"* and was silent on the other three — which exist precisely because they exercise
+different shapes (`aurora` gradients, `wendys` the standard-dialect front door, `harbor` a third input
+profile). Same **"a corpus proves what the corpus contains"** finding recorded here for the
+`figmaArtifacts` extraction.
+
+**Discovered, then asserted by name.** Brands come from reading `out/`, so a fifth is covered the day
+it lands. But discovery alone would be the file-counting trap: if `aurora` stopped being emitted, a
+count-based check reports *"3 brands, all green"* and the only brand with gradients has left the
+corpus unnoticed. So the four known profiles are each asserted by name, with a one-line note on what
+they cover. Mutation M3 confirms it — hiding `aurora.tokens.json` fails `[SCOPE] aurora is measured`.
+
+**Every expectation derived per brand.** Leaf counts differ (556 / 602 / 575 / 616), and so does the
+token root: `nb` sits at `nbds`, the other three at `prism`. The old gate asserted
+`--nbds-color-background-primary` by hand, which would have silently passed as `MISSING` on three
+brands the moment the loop widened. Now the root is read off each tree and the check compares the
+canonical build against *that brand's own* dark projection rather than a hard-coded color. Mutation M6
+pins it: hard-coding the prefix back fails on all three `prism`-rooted brands.
+
+**THE FINDING — and it is not the one the issue predicted, quite.** #635 flagged gradients as the case
+to watch, and that was right: `aurora`'s two gradient tokens reach the CSS as the literal string
+`[object Object]`. Style Dictionary's `css` transformGroup ships no gradient handler, and **`gradient`
+is a standard DTCG composite type** — so this is a conforming consumer reading a conforming type and
+getting garbage, which is a worse category than the `$extensions` blindness of #609.
+
+But widening the loop also surfaced something the issue did not anticipate: **`spring` (3 tokens per
+brand, 12 across the corpus) does the same thing — including in `nb`.** The gate that merged
+yesterday measured `nb`, reported **556 leaves → 556 variables, a perfect 1:1**, and three of those
+556 were unusable. *The count was right and the output was broken.* That is the exact shape of defect
+a count is structurally unable to see, and it had been sitting inside the gate's existing scope the
+whole time — not a gap in which brands were measured, but in what was measured about them.
+
+So the new assertion is a **value-integrity pin**, per brand: `nb` 3, `aurora` 5, `harbor` 3,
+`wendys` 3. Pinned, **not fixed** — #635 scopes fixing out, and each defect it surfaces gets its own
+decision the way #609 came out of measuring one. Filed as #642. Widening this pin to make a future
+failure go away is the same move as adding a preprocessor: it ends the measurement.
+
+**One assertion added that no count could replace.** The canonical build and the base projection are
+two independently produced artifacts that must agree value-for-value on every default. If they
+diverge, the projection has silently changed the default system rather than re-expressing it — and
+per-file counts stay identical through that.
+
+**Mutation sweep M1–M6, all caught by name:** `outputReferences` off (21 failures) · a preprocessor
+added (`[RULE]`) · `aurora` removed (`[SCOPE]`) · an overlay emptied (`actually differs from base`,
+plus the page-background check) · corrupt-detection disabled (all four `[CORRUPT]` pins) · the root
+hard-coded (three brands' page background).
+
+**Gates:** engine ×7 (104 artifacts, tests 2024/0, MCP 49/0), web ×5, plugin ×3, consumability across
+4 brands, both prose gates last. All pass.
+
+---
+
 ## (2026-08-07) — A pending button no longer changes width: the spinner overlays the label when there is no leading visual to replace (#612)
 
 **STATUS: schema + projection + payload + gates.** All 88 emitted artifacts byte-identical, no version

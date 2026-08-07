@@ -39,7 +39,7 @@
 - [ ] `npm run -w @prism3/plugin typecheck` → clean
 - [ ] `npm run -w @prism3/plugin test` → _N/N passed_
 - [ ] `npm run -w @prism3/plugin build` → succeeds, 0 `node:` builtins in `dist/main.js`
-- [ ] `npm run -w @prism3/tokens check:consumability` → clean — a stock Style Dictionary over the emitted DTCG; a *characterization* gate, so green means "the canonical tree's mode collapse still matches the pinned baseline (permanent by DTCG design, #609) **and** the emitted base+overlay projection still reads back"
+- [ ] `npm run -w @prism3/tokens check:consumability` → clean — a stock Style Dictionary over the emitted DTCG; runs over EVERY emitted brand (#635); a *characterization* gate, so green means "every brand's mode collapse and `[object Object]` count still match their pinned baselines (permanent by DTCG design, #609) **and** each base+overlay projection still reads back"
 - [ ] `npx tsx Prism3/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `web/dist/*.js` bundle
 - [ ] `npx tsx Prism3/engine/lint-voice.ts` → clean — voice-standard.md §2 banned-phrase list (#617); sibling to lint-us-english.ts, same reason it runs here
 
