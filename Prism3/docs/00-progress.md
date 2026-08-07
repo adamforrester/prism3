@@ -140,6 +140,29 @@ per-palette border Source select in the web UI, via the existing `slotRow` / `ro
 
 ---
 
+## (2026-08-07) — Lockfile hygiene: the `code-library` workspace outlived its directory
+
+**STATUS: `package-lock.json` only, 8 lines deleted.** No source change, no artifact moves, no version
+bump.
+
+#623 renamed the Style Dictionary workspace `code-library` → `packages/tokens`. The directory moved
+and `node_modules/@prism3/*` relinked correctly, but the lockfile kept a `"code-library"` record
+pointing at a path that no longer exists — npm had already marked it `"extraneous": true`, which is
+npm noticing without acting.
+
+**The trap, and the reason this is written down: `npm install --package-lock-only` does NOT prune an
+extraneous workspace entry.** It reported "up to date" and changed nothing, twice. The obvious
+remedy is the one that looks like it should work and silently doesn't — so the record was removed by
+hand. That it is the *correct* removal rather than a guess was then confirmed the only way available:
+re-running `--package-lock-only` afterwards produced no further diff, so the hand-edited file is
+byte-for-byte what npm itself would write.
+
+Left alone deliberately: `lane:code-library` and the `[code-library]` title prefix. Those name doc
+19's subject area (still titled "The code library, delivery & DX"), not the renamed package — a
+taxonomy question with 7 open issues attached, not lockfile hygiene.
+
+---
+
 ## (2026-08-07) — A pending button no longer changes width: the spinner overlays the label when there is no leading visual to replace (#612)
 
 **STATUS: schema + projection + payload + gates.** All 88 emitted artifacts byte-identical, no version
