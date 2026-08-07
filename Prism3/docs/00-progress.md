@@ -269,6 +269,64 @@ role — it's reporting the consequence of the pin the user just applied, not na
 
 ---
 
+## (2026-08-07) — A gate that keeps the docs' gate checklists in sync with `ci.yml` (#613)
+
+**STATUS: shipped.** #610 fixed a concrete instance of this — `CLAUDE.md` principle 4,
+`CONTRIBUTING.md` §3, and `.github/pull_request_template.md` each documented a "gates to run before
+pushing" checklist shorter than what `ci.yml` actually ran; the PR template listed 4 checks against
+CI's 17, and #601/#602 each shipped `lint:classes` silently broken by following that shorter
+checklist faithfully. #610 fixed the snapshot; nothing stopped it drifting again the next time a CI
+step landed without a matching doc edit. This is that stop: `Prism3/engine/lint-doc-gates.ts`, wired
+into `ci.yml` as the final gate.
+
+**What it compares, and why that's the whole design.** `.github/workflows/ci.yml` parsed *live* —
+hand-rolled, dependency-free parser for its flat `- name: ... run: ...` step shape, same convention
+as `lint-us-english.ts`/`lint-skills.ts` — against the three documents' own text. A hand-written "the
+gates CI runs" constant would have made this gate agree with itself forever regardless of what
+`ci.yml` actually contains (`docs/34`, shape 2 — subject and oracle sharing a derivation); parsing the
+real file is what lets a *new* CI step landing without a doc edit actually fail this gate.
+
+**Scope, per the issue's design notes.** Only `run:` steps invoking `npm run`/`npx tsx` — `uses:`
+steps and `npm ci` are excluded automatically (they match neither pattern). One step needs an
+*explicit* exclusion: "Drift gate still covers the full artifact set" embeds `npx tsx
+Prism3/engine/regen.ts --check` as input to its own `count == 88` assertion, so a naive substance-scan
+would wrongly demand its own doc representation on top of the "Committed artifacts have not drifted"
+step it's a meta-check on. Kept as a named, auditable list (`NOT_A_DISTINCT_GATE`) with a comment
+honest about the recursion: if a future CI step joins this shape and isn't added there, the gate
+false-positives on it — the same caveat `ci.yml`'s own "88 committed artifacts" check states about
+itself.
+
+**Substance match, not verbatim** — `CONTRIBUTING.md` writes `npm run typecheck -w @prism3/web`;
+`ci.yml` writes `npm run -w @prism3/web typecheck`. Same command, different arg order, so exact-string
+matching would false-positive on harmless rephrasing. `gateTokensOf` extracts the identifying pieces
+(script + workspace, or the bare `.ts` filename), `docHas` checks each appears anywhere in a doc.
+
+**Proved it can fail, per `docs/34`** — not just synthetic self-check samples (though those exist too,
+covering the quoted-colon parsing trap #298 originally hit, block-scalar `run: |` parsing, and
+exclusion-list survival through the full `findGaps` path): a real mutation against `CONTRIBUTING.md`
+(deleting its `lint:classes` line) was run through the live gate before this shipped, confirmed it
+failed naming that exact step and that exact doc, then reverted.
+
+**One real gap found immediately, and fixed as part of turning the gate on** (in scope — a sync fix,
+not the "further restructuring" the issue excludes): `CLAUDE.md` principle 4 named "the NB regression"
+in prose without its filename, unlike every sibling gate in that sentence. Fixed to `` `npx tsx
+Prism3/engine/nb-regression.ts` (the NB regression) `` so the gate is green against real `main` before
+being made a required check — otherwise wiring it into CI would have broken every future PR
+immediately. The gate then correctly flagged *itself* once wired in (`lint-doc-gates.ts` wasn't yet
+named in any of the three docs) — added to all three, same convention `lint-skills.ts` follows.
+
+**Note on `lint:classes`:** while running the full local gate sequence for this PR, `lint:classes`
+failed — verified via `git stash` against a byte-identical `origin/main` that this was pre-existing
+and unrelated to this diff (the `adv-x hit-min` pairing below). Filed as #615, which turned out to be
+a duplicate of the fix landing concurrently as #614 (see the entry immediately below) — closed
+accordingly once #614 merged.
+
+**Gates: `test.ts` 1205/1205 (unchanged) · `nb-regression.ts` exit 0 · `regen.ts --check` 88/88 ·
+`lint-doc-gates.ts` clean (new) · web/plugin typecheck+build clean · `lint-us-english.ts` clean.**
+`out/*`: byte-identical — nothing here touches the engine's generation path.
+
+---
+
 ## (2026-08-07) — Fix: `lint:classes` was red on `main` — #602's own allowlist fix never landed
 
 **STATUS: shipped.** `web/lint-classes.mjs` only — one `ALLOWED` entry added.

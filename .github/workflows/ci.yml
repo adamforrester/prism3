@@ -149,3 +149,11 @@ jobs:
             "88 committed artifacts") echo "✓ full set covered" ;;
             *) echo "✗ artifact coverage changed — expected 88. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
+
+      # #610 fixed CLAUDE.md/CONTRIBUTING.md/the PR template being out of sync with the gates above —
+      # the PR template listed 4 checks against this workflow's 17, and #601/#602 each shipped
+      # `lint:classes` silently broken by following that shorter, stale checklist faithfully. This is
+      # what stops it drifting again: every `npm run`/`npx tsx` gate above must stay represented in
+      # all three documents, checked against the real file rather than a restated list.
+      - name: Docs stay in sync with this workflow's gates
+        run: npx --yes tsx@4 Prism3/engine/lint-doc-gates.ts

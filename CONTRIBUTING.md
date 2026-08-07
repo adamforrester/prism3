@@ -51,6 +51,7 @@ npx tsx Prism3/engine/emit-figma.ts               # the Figma import artifact
 npx tsx Prism3/engine/regen.ts --check            # no committed artifact has drifted (#281) — the only gate reading the committed tree
 npx tsx Prism3/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
 npx tsx Prism3/engine/lint-skills.ts              # shipped skills still make true claims
+npx tsx Prism3/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
