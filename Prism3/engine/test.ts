@@ -35,7 +35,7 @@ import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump } from './ver
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, floatCollections, fontCollections, passJs, passOrder } from './materialise-to-figma';
+import { aliasRows, floatCollections, fontCollections, passJs, passOrder, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
@@ -682,6 +682,39 @@ for (const b of brands) {
   ok(rows.some(([, t]) => new Set(t).size > 1), 'materialise: alias rows carry distinct per-mode targets (collapse-proof — not one target repeated)');
   const bg = rows.find(([n]) => n === 'color/background/primary');
   ok(!!bg && new Set(bg![1]).size > 1, 'materialise: background/primary binds a different palette step per mode (the collapse-guard probe)');
+}
+
+// #479 — pruneReport: the paste path's plan-vs-file diff. REPORT ONLY (the function has no
+// deletion path to test the absence of, unlike the plugin's `orphansOf` — this is pure name-set
+// arithmetic, so the whole contract is: which names come back, and with which reason). Synthetic
+// existing/planned sets throughout — no live Figma file is needed for the algorithm itself; see the
+// `verify` pass wiring test below for what still needs a real file to close the loop end to end.
+{
+  // The set-difference direction, first — must not flag a planned-but-not-yet-created name (that's
+  // a create, not an orphan), mirroring the same direction check the plugin's `orphansOf` carries.
+  const basic = pruneReport(['a', 'b', 'c'], ['a', 'c']);
+  ok(basic.length === 1 && basic[0].name === 'b', 'pruneReport: a name in the file but not the plan is the one orphan reported');
+  ok(pruneReport(['a'], ['a', 'b']).length === 0, 'pruneReport: a name in the PLAN but not the file is NOT an orphan (that is a create)');
+  ok(pruneReport(['z', 'a'], []).map((o) => o.name).join() === 'a,z', 'pruneReport: sorted, so two runs diff cleanly');
+  ok(pruneReport([], ['a', 'b']).length === 0, 'pruneReport: nothing in the file — nothing to report, regardless of plan size');
+
+  // The two live-drive ghost shapes from #479's own report, reason-classified.
+  const ghosts = pruneReport(
+    ['palette/accent/550', 'color/interactive/primary/text', 'color/interactive/primary/text/rest', 'color/background/primary'],
+    ['color/interactive/primary/text/rest', 'color/background/primary'],
+  );
+  const byName = new Map(ghosts.map((o) => [o.name, o.reason]));
+  ok(ghosts.length === 2, `pruneReport: reports exactly the two names absent from the plan (got ${ghosts.map((o) => o.name).join(', ')})`);
+  ok(byName.get('color/interactive/primary/text') === 'path now used as a group prefix, not a leaf',
+    'pruneReport: a flat leaf stranded when its path became a stateful group is classified as a group-prefix orphan (class 1)');
+  ok(byName.get('palette/accent/550') === 'no longer referenced by any current plan',
+    'pruneReport: a name with no structural relation to the plan at all is classified as simply gone (class 2 — the pre-rename palette generation)');
+
+  // A prefix relationship must be a REAL path segment boundary, not a string-prefix coincidence —
+  // 'color/text' is not a stray leaf of 'color/texture/pattern' just because the characters line up.
+  const noFalsePrefix = pruneReport(['color/text'], ['color/texture/pattern']);
+  ok(noFalsePrefix.length === 1 && noFalsePrefix[0].reason === 'no longer referenced by any current plan',
+    'pruneReport: a bare string-prefix match with no path separator is NOT a group-prefix classification (color/text vs color/texture)');
 }
 
 // WRITE-PLAN — the host-neutral plan the live plugin executor consumes (#108). Built IN-MEMORY
@@ -7530,6 +7563,46 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(/^\s*return\s*[{[]/m.test(js) || /^\s*return\s+\w+;\s*$/m.test(js),
       `materialise: pass '${name}' returns a structured result the pasting agent can verify`);
   }
+}
+
+// #479 — the `verify` pass wiring: the paste path's half of the prune report. `pruneReport` above
+// covers the algorithm; this covers that the `verify` payload actually EMBEDS it against the real
+// plan for a brand, rather than the two silently drifting apart. What this can't do without a live
+// Figma file is prove the pasted JS finds the RIGHT orphans in a REAL file — that needs the same
+// live materialisation drive #479 itself was found on (Prism Test File v2), which is out of reach
+// here; the plugin path's end-to-end shim coverage (`plugin/test-write.ts`) is the nearest thing to
+// that this repo has, and it exercises the algorithm this pass mirrors, not this pass's own string.
+{
+  const verify = passJs('nb', 'verify');
+  ok(verify.includes('pruneReport') && verify.includes('orphanReason') && verify.includes('const orphans='),
+    'materialise: verify pass embeds the #479 prune-report + reason classifier');
+  ok(verify.includes("findCol('core-palette')"),
+    'materialise: verify pass reads back core-palette too, not just color — #479 measured its drift as 222 vs a 122-row plan');
+
+  // The embedded PLANNED_PALETTE / PLANNED_COLOR arrays must be the REAL plan for this brand, not a
+  // stale or partial one — parse them out of the payload and compare to `planFor`'s own output via
+  // the public plan-building path (buildWritePlan over the emitted files), the same equality style
+  // the typography block below uses for font/style/text-style plans.
+  const plan = buildWritePlan({
+    palette: JSON.parse(readFileSync(resolve(HERE, 'out/figma/nb/core-palette.json'), 'utf8')),
+    color: ['light', 'dark', 'hc-light', 'hc-dark'].map((m) => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/color.${m}.json`), 'utf8'))),
+  });
+  const paletteMatch = verify.match(/const PLANNED_PALETTE=(\[.*?\]);/);
+  const colorMatch = verify.match(/const PLANNED_COLOR=(\[.*?\]);/);
+  ok(!!paletteMatch && !!colorMatch, 'materialise: verify pass carries PLANNED_PALETTE + PLANNED_COLOR name arrays');
+  if (paletteMatch && colorMatch) {
+    const embeddedPalette: string[] = JSON.parse(paletteMatch[1]);
+    const embeddedColor: string[] = JSON.parse(colorMatch[1]);
+    ok(JSON.stringify(embeddedPalette) === JSON.stringify(plan.palette.map((r) => r.name)),
+      'materialise: verify pass\'s embedded planned-palette names are IDENTICAL to the real nb plan (no drift between the diff and what actually gets written)');
+    ok(JSON.stringify(embeddedColor) === JSON.stringify(plan.color.create.map((r) => r.name)),
+      'materialise: verify pass\'s embedded planned-color names are IDENTICAL to the real nb plan');
+  }
+
+  // Never a deletion — the payload must contain no Figma removal call. Same restraint the plugin
+  // path is mutation-tested for (#479's "simulating a prune lane" mutant); here it's a static check
+  // that this generated string never even calls the API that would do it.
+  ok(!/\.remove\(\)/.test(verify), 'materialise: verify pass contains no `.remove()` call — report only, nothing here can delete a variable');
 }
 
 // ------------------------------- materialise-to-figma: the TYPOGRAPHY + STYLE paste paths (#464)
