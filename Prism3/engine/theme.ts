@@ -1694,6 +1694,10 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // overrides/modeAnchors: the mode must be generated AND customizable (light/dark/custom); the
   // generate-only built-ins (hc-light/hc-dark/wireframe) and absent modes throw. A `radius` lever
   // must be a finite number in the lever's [0, 2] range.
+  // Shared with the GLOBAL lever check below (#332) — the per-mode value deviates from the global
+  // one, so both must accept exactly the same set; one array, not two copies that can drift apart.
+  const MOTION_TEMPO_VALUES = ['snappy', 'standard', 'relaxed'] as const;
+  const DENSITY_VALUES = ['comfortable', 'compact', 'spacious'] as const;
   for (const m of Object.keys(input.modeLevers ?? {}) as ModeName[]) {
     if (!modesAll.includes(m))
       throw new Error(`modeLevers: mode '${m}' is not in this brand's modes (${modesAll.join(', ')})`);
@@ -1731,8 +1735,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     rungCheck(lev.lineHeights as Record<string, unknown> | undefined, LINE_HEIGHT_KEYS, 'lineHeight', 'lineHeights');
     rungCheck(lev.letterSpacings as Record<string, unknown> | undefined, LETTER_SPACING_KEYS, 'letterSpacing', 'letterSpacings');
     // Per-mode tempo must be one of the three tempo enums (the same set as the global lever).
-    if (lev.tempo !== undefined && !['snappy', 'standard', 'relaxed'].includes(lev.tempo))
-      throw new Error(`modeLevers: mode '${m}' tempo '${lev.tempo}' is invalid — must be one of snappy/standard/relaxed`);
+    if (lev.tempo !== undefined && !(MOTION_TEMPO_VALUES as readonly string[]).includes(lev.tempo))
+      throw new Error(`modeLevers: mode '${m}' tempo '${lev.tempo}' is invalid — must be one of ${MOTION_TEMPO_VALUES.join('/')}`);
     // Per-mode shadow must stay in the global lever's ranges — softness [0, 2], tint hue [0, 360],
     // tint amount [0, 1] (same bounds as the shadow lever + the shadow-tint object lever).
     if (lev.shadow?.softness !== undefined && (!Number.isFinite(lev.shadow.softness) || lev.shadow.softness < 0 || lev.shadow.softness > 2))
@@ -1742,11 +1746,92 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     if (lev.shadow?.tint?.amount !== undefined && (!Number.isFinite(lev.shadow.tint.amount) || lev.shadow.tint.amount < 0 || lev.shadow.tint.amount > 1))
       throw new Error(`modeLevers: mode '${m}' shadow tint amount ${lev.shadow.tint.amount} is out of range — must be a finite number in [0, 1]`);
     // Per-mode density must be one of the three density tiers (the same set as the global lever).
-    if (lev.density !== undefined && !['comfortable', 'compact', 'spacious'].includes(lev.density))
-      throw new Error(`modeLevers: mode '${m}' density '${lev.density}' is invalid — must be one of comfortable/compact/spacious`);
+    if (lev.density !== undefined && !(DENSITY_VALUES as readonly string[]).includes(lev.density))
+      throw new Error(`modeLevers: mode '${m}' density '${lev.density}' is invalid — must be one of ${DENSITY_VALUES.join('/')}`);
   }
   const leverModes = Object.entries(input.modeLevers ?? {}).filter(([, l]) => l && (l.radius !== undefined || l.families || l.weights || l.lineHeights || l.letterSpacings || l.tempo || l.shadow || l.density)).map(([m]) => m);
   if (leverModes.length) notes.push(`modeLevers: per-mode lever overrides for ${leverModes.join(', ')} (radius / font family / font weight / line-height / letter-spacing / motion tempo / shadow / density re-derived per mode via the same helpers as the baseline; a mode deviates the global lever, the composite/token set is untouched)`);
+
+  // #332 — GLOBAL lever validation (enum + declared numeric range), covering every lever the modeLevers
+  // checks above did NOT already cover for its own per-mode counterpart (tempo/density/shadow.softness
+  // were already gated per-mode but never on the GLOBAL lever the per-mode value deviates from).
+  //
+  // WHY HERE, not at each caller: brandTheme() is the one choke point every entry path already goes
+  // through — the CLI (`cli.ts`, which ALSO runs the file-based `validateOrExit` schema check first),
+  // the MCP tool surface, the web playground, and `standardToBrandInput`'s `x-prism3` ingest (which
+  // hands its result straight to this function, never validates it itself). Only `emit-dtcg.ts`'s
+  // `validateBrandInput` ran the full `theme-schema.json` contract, and only file-driven CLI input ever
+  // reached it — an in-memory BrandInput built by the web UI or an MCP call skipped it entirely. That
+  // is how `typeScale: 'gigantic'` reached `TYPE_SCALE_SHIFT['gigantic']` (`undefined`, silently
+  // propagated into every display/title/eyebrow composite's size) and `radiusScale: 47` reached
+  // `radiusScale(47, 4, 128)` (`radius.md` = 188px against a manifest-declared max of 2) without
+  // either ever throwing — the theme "built successfully" with corrupted output. `density: 'roomy'`
+  // is the third shape: `DENSITY_START['roomy']` is `undefined`, so `componentSizes` throws a few
+  // frames downstream reading `.x` off `undefined` — an *accepted* value that still breaks, just
+  // later and with a worse error than a lever-name-and-valid-set message would give.
+  //
+  // NOT re-run against `theme-schema.json` itself (`validateBrandInput` in `emit-dtcg.ts`): that
+  // module does Node file I/O (`readFileSync` of the schema) and imports `brandTheme` FROM this
+  // module already, so importing it back here would be a real import cycle, not just an unwanted
+  // dependency — and `theme.ts` is deliberately I/O-free (docs/07 §3's pure-core / I/O-shell split;
+  // the plugin/web hosts bundle this file into a browser/Figma sandbox with no filesystem). Hand-rolled
+  // checks, hardcoded here, are the same choice this function already made for `root`/`modes`/
+  // `customModes`/`overrides`/`modeAnchors`/`modeLevers` above — this is that same pattern extended to
+  // the levers it had not yet reached.
+  //
+  // SCOPE, and the two deliberate exclusions: this covers every lever `levers.ts` marks `control:
+  // 'enum'` (nine total) and every `control: 'slider'` lever with a declared `[min, max]` EXCEPT —
+  //   · `disabledMin` — already has its own, different, pre-existing policy (CLAMP, not reject) via
+  //     `normalizeDisabledMin`, documented in the schema itself ("Clamped to 3–4.5"). Changing an
+  //     already-shipped, already-documented clamp to a throw is a behavior change this issue did not
+  //     ask for; left untouched.
+  //   · `neutral.hue` — the schema's own `neutral.hue` number branch declares no `minimum`/`maximum`
+  //     (unlike `neutral.chroma`, which declares `"minimum": 0`), and every hue consumer downstream
+  //     (`oklchToRgb` et al.) resolves it through `cos`/`sin`, which is exact for any real degree value
+  //     — 380° and 20° render identically. The manifest's [0, 360] is a color-picker UI convenience,
+  //     not a domain boundary, so rejecting a technically-redundant-but-harmless hue would be a false
+  //     positive, not a bug fix. `shadow.tint.hue`/`layout.breakpoints`/`weightRoles` etc. are likewise
+  //     left alone: none has a `control: 'slider'` + declared range in `levers.ts` (they're `object`/
+  //     `list`), so they're outside this fix's stated scope (full manifest of ENUM + declared-range
+  //     SLIDER levers), not an oversight.
+  //
+  // Numeric levers here are REJECTED, not clamped, on an out-of-range value — the opposite choice from
+  // `disabledMin` above, and deliberately so: the issue's own framing is that the manifest's min/max
+  // "were never the gate," i.e. never enforced at all, so making them real means making them binding.
+  // A silent clamp would still ship *a* value for `radiusScale: 47` — just a quieter wrong one — and
+  // the corruption this issue reports is exactly a value nobody chose reaching the token tree unnoticed.
+  // Rejecting also matches the enum levers' behavior for consistency: one policy ("bad input stops the
+  // build with a clear diagnosis"), not two.
+  const enumLevers: { path: string; value: unknown; options: readonly (string | number)[] }[] = [
+    { path: 'density', value: input.density, options: DENSITY_VALUES },
+    { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
+    { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
+    { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
+    { path: 'motionPersonality.tempo', value: input.motionPersonality?.tempo, options: MOTION_TEMPO_VALUES },
+    { path: 'iconContrast', value: input.iconContrast, options: ['text', '3:1'] },
+    { path: 'disabledStrategy', value: input.disabledStrategy, options: ['full', 'reduced', 'accessible', 'conventional'] },
+    { path: 'outlineInteraction', value: input.outlineInteraction, options: ['overlay-neutral', 'solid-tint', 'none'] },
+    { path: 'neutralEmphasis', value: input.neutralEmphasis, options: ['subtle', 'strong'] },
+  ];
+  for (const { path, value, options } of enumLevers) {
+    if (value !== undefined && !(options as readonly unknown[]).includes(value))
+      throw new Error(`${path}: ${JSON.stringify(value)} is invalid — must be one of ${options.join('/')}`);
+  }
+  const rangeLevers: { path: string; value: unknown; min: number; max: number }[] = [
+    { path: 'radiusScale', value: input.radiusScale, min: 0, max: 2 },
+    { path: 'baseMd', value: input.baseMd, min: 2, max: 12 },
+    { path: 'shadow.softness', value: input.shadow?.softness, min: 0, max: 2 },
+    { path: 'layout.columns', value: input.layout?.columns, min: 4, max: 24 },
+    { path: 'layout.containerMax', value: input.layout?.containerMax, min: 960, max: 1920 },
+    { path: 'layout.containerNarrow', value: input.layout?.containerNarrow, min: 480, max: 960 },
+    { path: 'neutral.chroma', value: input.neutral.chroma, min: 0, max: 0.03 },
+  ];
+  for (const { path, value, min, max } of rangeLevers) {
+    if (value === undefined) continue;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max)
+      throw new Error(`${path}: ${JSON.stringify(value)} is out of range — must be a finite number in [${min}, ${max}]`);
+  }
+
   if (root !== 'prism') notes.push(`namespace: tokens emit under '${root}.*' (custom, not the 'prism' default)`);
   const anchorStep = autoPlaceStep(input.primary.l);
   notes.push(`primary anchor (h${input.primary.h}) pinned exactly at step ${anchorStep}`);
