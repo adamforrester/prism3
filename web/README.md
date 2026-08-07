@@ -128,8 +128,8 @@ What can change the site is measured, not assumed: Vercel runs `build:site`, who
 `Prism3/engine/**` and `Prism3/schema/**` from outside `web/`. The Figma plugin is **not** part of
 this build, so `plugin/**` deliberately does not trigger a deploy.
 
-Only 13 of the engine's 43 `.ts` files are actually imported by that bundle, so the script names the
-other 30 as exclusions rather than naming the 13 as inclusions. That direction is the point: a new
+Only 13 of the engine's 44 `.ts` files are actually imported by that bundle, so the script names the
+other 31 as exclusions rather than naming the 13 as inclusions. That direction is the point: a new
 engine file is unlisted, so it triggers a build it may not need — wasteful but safe. Naming the 13
 would fail the other way, with a newly imported file missing from the list and its changes quietly
 shipping nothing. `npm run -w @prism3/web check:ignore` gates the list against esbuild's real

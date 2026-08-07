@@ -49,7 +49,7 @@ preview in one client, no backend.
 
 ## The differentiator: a live contract overlay
 
-The engine already validates contrast contracts (currently 268/268). The
+The engine already validates contrast contracts (currently 488/488). The
 playground can surface **pass/fail badges live as you theme** —
 `text.secondary 4.6:1 ✓`, `action.default` AA on the floor,
 `scrim 40%`, disabled-floor status. The reference reskins but can't tell you if a

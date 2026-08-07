@@ -43,7 +43,7 @@ export styles). Two fixture classes:
 | File | `$collection` | `$mode` | vars | aliased | type |
 |---|---|---|---|---|---|
 | `palette.json` | `palette` | `Default` | 122 | 0 | COLOR primitives |
-| `color.{light,dark,hc-light,hc-dark}.json` | `color` | 4 modes | 95 ea | 95 | COLOR, aliased to palette |
+| `color.{light,dark,hc-light,hc-dark}.json` | `color` | 4 modes | 151 ea | 151 | COLOR, aliased to palette |
 | `font.json` | `font` | `Default` | 39 | 5 | family STRING + size/weight FLOAT; weight-roles aliased to numeric |
 | `font-fluid.{desktop,mobile}.json` | `font-fluid` | 2 modes | 10 ea | 0 | FLOAT `FONT_SIZE`, per-mode values |
 
@@ -126,7 +126,7 @@ the #84 round-trip caught for `disabled/*` — see task #85).
 Components bind `interactive.*` / `disabled.*` instead. The bare `foreground.danger`
 replaced the stateful `foreground.danger.*` fills at the same time.
 
-**Values are per-mode.** Each mode file carries the same 95 names with that mode's resolved
+**Values are per-mode.** Each mode file carries the same 151 names with that mode's resolved
 `{r,g,b,a}` **and** the same alias — the alias is what actually drives it; the literal value is
 belt-and-suspenders. Alpha roles (`scrim` → `black-alpha/60`) alias the alpha palette.
 
