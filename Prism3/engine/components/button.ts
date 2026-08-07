@@ -7,8 +7,13 @@
  *  - TWO-AXIS variant model: intent {primary, neutral, destructive} × appearance
  *    {filled, outline, text} × size — NOT a single overloaded `variant` enum (brief §3;
  *    reconciled to the interactive vocabulary per docs/20 / KB button.md §3).
- *  - Default intent = neutral (one primary per view; the loud button is the deliberate
- *    choice, not the default) (§4, §15).
+ *  - Default intent = primary — REVERSED 2026-08-07, see the `intent` prop for the reasoning.
+ *    The brief's §4/§15 default was `neutral`, on the rule "one primary per view, so the loud
+ *    button is the deliberate choice". The rule survives; the inference from it did not. It
+ *    counts primaries per view as if emphasis lived on `intent` alone, but this def made
+ *    intent and appearance ORTHOGONAL (the line above), so hierarchy is expressed by
+ *    APPEARANCE within one intent — filled / outline / text — and a three-button form is
+ *    typically three primaries, one of each appearance, all correctly the brand colour.
  *  - The state TRIO: isPending (focusable aria-disabled, delayed spinner, width-preserved,
  *    busy-announced), isInactive (focusable disabled — relevant-but-unsatisfied), isDisabled
  *    (native, RESERVED for controls irrelevant to the view) (§4, §13).
@@ -40,7 +45,7 @@ export const button: ComponentDef = {
   props: [
     { name: 'children', type: 'node (label)', required: true, description: 'Visible label; verb-first, sentence case, ≤3 words. (Not required for the icon-only case — that is a distinct icon-button.)' },
     { name: 'onClick', type: 'function', required: false, description: 'Action handler. Suppressed while isPending or isInactive.' },
-    { name: 'intent', type: "enum: 'primary' | 'neutral' | 'destructive'", values: ['primary', 'neutral', 'destructive'], default: 'neutral', required: false, description: 'Semantic colour, drawn from interactive.<intent>.* (docs/20). One primary per view; neutral is the workhorse default; destructive for delete/remove. accent is available when the brand declares one. (Reconciled from the old primary/secondary/danger/ghost — secondary→neutral, danger→destructive, ghost retired to intent=neutral appearance=text.)' },
+    { name: 'intent', type: "enum: 'primary' | 'neutral' | 'destructive'", values: ['primary', 'neutral', 'destructive'], default: 'primary', required: false, description: 'Semantic colour, drawn from interactive.<intent>.* (docs/20). Defaults to primary — the brand colour is the expected look of a button, so an unqualified <Button> should be on-brand rather than gray. EMPHASIS IS THE APPEARANCE AXIS, NOT THIS ONE: a form with three actions is typically three primaries at filled / outline / text, not one primary and two grays. Use neutral when the control genuinely carries no brand weight (a toolbar, a dense table row); destructive for delete/remove. accent is available when the brand declares one. (Reconciled from the old primary/secondary/danger/ghost — secondary→neutral, danger→destructive, ghost retired to intent=neutral appearance=text.)' },
     { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the colour, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Control size — drives height, padding, and label type.' },
     { name: 'fullWidth', type: 'boolean', default: false, required: false, description: 'Stretch to container. Aliases: block / isFullWidth.' },
@@ -129,7 +134,10 @@ export const button: ComponentDef = {
     'primary.text.overlay.pressed': 'color.interactive.primary.overlay.pressed',
     'primary.on-inverse.label': 'color.interactive.primary.on-inverse.text.rest',
 
-    // neutral — the workhorse default; now carries hover/pressed like every colour (v1 gap CLOSED)
+    // neutral — no longer the default (2026-08-07), but still the full column. It carries
+    // hover/pressed like every colour (the v1 gap, CLOSED), and that stays true independently of
+    // which intent is the default: `neutral` is now the *chosen* look for a weightless control
+    // rather than what you get by omission, and a chosen look needs states just as much.
     'neutral.filled.fill': 'color.interactive.neutral.fill.rest',
     'neutral.filled.fill.hover': 'color.interactive.neutral.fill.hover',
     'neutral.filled.fill.pressed': 'color.interactive.neutral.fill.pressed',
@@ -308,16 +316,17 @@ export const button: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Assign intent=primary by the action\'s importance TO THIS VIEW; exactly one per view/region.',
+    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Rank the actions in a view by APPEARANCE (filled > outline > text) and keep them on intent=primary; exactly one FILLED per view/region is the constraint, not one primary.',
     do: [
       'Lead with a verb, name the object ("Publish post", not "Submit")',
-      'Keep exactly one primary per view; use neutral (with outline/text appearances) for the rest',
+      'Keep exactly one FILLED button per view; demote the rest to outline / text on the same intent, so a form of three actions is three primaries at three appearances',
+      'Reach for neutral when the control carries no brand weight at all — a toolbar, a dense table row — not merely because it is secondary in rank',
       'Pair a destructive button with an adjacent neutral escape ("Cancel"/"Keep")',
       'Use isInactive (focusable) for a control blocked by satisfiable state; reserve isDisabled for the irrelevant',
     ],
     dont: [
       'Use a button for navigation to a URL — use a link / link-button',
-      'Stack multiple primaries competing for attention',
+      'Stack multiple FILLED buttons competing for attention (multiple primaries are fine — differentiate them by appearance)',
       'Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)',
       'Replace the label with a centred spinner (collapses width) — swap the leading visual instead',
     ],
