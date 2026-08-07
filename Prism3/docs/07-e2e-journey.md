@@ -282,7 +282,7 @@ seat — it extracts, it does not build). This section stays as the layer's plac
    surface — the §15 MCP-first payoff. ✅ done — `engine/mcp.ts`, 6 tools, CI-gated by
    `mcp-test.ts`.
 4. **Fold the core into the Prism3 Figma plugin** as the Figma materialization adapter
-   (§5); retire the plugin's separate brain. ✅ done — `plugin/` bundles the core;
+   (§5); retire the plugin's separate brain. ✅ done — `apps/plugin/` bundles the core;
    `apps/plugin/src/write-figma.ts` is the materialization adapter.
 5. **(Later) Component library** as components-as-data → WC + React + Storybook + `.ai.json`
    + Code Connect (layers 2–3), reusing the UIC research in the KB. 🔶 started —

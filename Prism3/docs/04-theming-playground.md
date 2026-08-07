@@ -4,7 +4,7 @@
 > intended consumer-facing surface for the engine: a simple theming dashboard that
 > reskins real components and composed pages live as token values change. Prompted
 > by a r/DesignSystems playground (below) that mirrors where we want to go. **Built**:
-> the playground is live as `web/` (the dashboard/theme studio). This file stays as
+> the playground is live as `apps/studio/` (the dashboard/theme studio). This file stays as
 > the reference/why the direction was chosen.
 >
 > **Update (2026-07-01):** the playground now has a committed shape in

@@ -264,7 +264,7 @@ typography pass lands.
 
 Coordination: both branch off `main`, one PR per increment, independent reviewer, merge in
 sequence. **The Figma-emitter agent owns `emit-figma.ts` and all its `test.ts` gates**; the
-generator thread stays out of those files (its web work is in `web/`; a later MCP adapter is its
+generator thread stays out of those files (its web work is in `apps/studio/`; a later MCP adapter is its
 own package). Pull `main` before starting each increment. No live back-and-forth — coordinate
 through committed artifacts + PRs (same pattern as the reviewer thread).
 

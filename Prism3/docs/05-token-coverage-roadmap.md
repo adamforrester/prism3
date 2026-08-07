@@ -292,5 +292,5 @@ now that this has graduated from analysis to build.
 The engine now covers **every token category** NB and Prism2 ship, and the
 cross-cutting plumbing has shipped too: the Figma round-trip writer
 (`emit-figma.ts` + `apps/plugin/src/write-figma.ts`) and the theming playground
-(`web/`) are both built. What remains is deepening those surfaces, not new
+(`apps/studio/`) are both built. What remains is deepening those surfaces, not new
 token categories.

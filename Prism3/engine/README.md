@@ -381,4 +381,4 @@ brands schema-conform.
   plus the CLI paste-path builder produce the write payload, and `apps/plugin/src/write-figma.ts`
   drives the Figma plugin to apply it idempotently (find-by-name-and-update). Remaining:
   downstream pipeline (Style Dictionary / Figma MCP). The theming playground
-  (`web/`, see `docs/04`) is also built. All token categories are now generated.
+  (`apps/studio/`, see `docs/04`) is also built. All token categories are now generated.

@@ -125,7 +125,7 @@ to diagnose. Every branch in it normalizes to one of those two codes, and any un
 clone with no `HEAD^`, a bad ref) resolves toward *building*.
 
 What can change the site is measured, not assumed: Vercel runs `build:site`, whose bundle takes only
-`Prism3/engine/**` and `Prism3/schema/**` from outside `web/`. The Figma plugin is **not** part of
+`Prism3/engine/**` and `Prism3/schema/**` from outside `apps/studio/`. The Figma plugin is **not** part of
 this build, so `plugin/**` deliberately does not trigger a deploy.
 
 Only 13 of the engine's 44 `.ts` files are actually imported by that bundle, so the script names the
@@ -146,11 +146,11 @@ non-zero if the output is anything else**, so an emitted-but-unreferenced asset 
 broken site on a green build. `dev` and `build` are unchanged and remain the local workflow;
 `apps/studio/public/` is gitignored.
 
-**Vercel's Root Directory must stay the repo root — not `web/`.** `src/main.ts` imports
-`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `web/`-scoped
+**Vercel's Root Directory must stay the repo root — not `apps/studio/`.** `src/main.ts` imports
+`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `apps/studio/`-scoped
 build cannot resolve.
 
-Only `apps/studio/src` and `Prism3/{engine,schema}` are **read by the build**; `plugin/`, `Tokens/`,
+Only `apps/studio/src` and `Prism3/{engine,schema}` are **read by the build**; `apps/plugin/`, `Tokens/`,
 and `Prism3/engine/out/` are neither read nor served. Install is a different matter — it runs
 at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
 `@figma/plugin-typings`. Two consequences: the build needs devDependencies, so

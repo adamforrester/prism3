@@ -7,6 +7,34 @@
 
 ---
 
+## (2026-08-07) — #648 follow-up: the bare `web/` and `plugin/` references it left behind
+
+**STATUS: prose only, 13 files.** No code, no artifact, no gate logic. Follow-up to #648, not a new
+concern.
+
+**The miss, and it is a specific shape worth naming.** #648's reference sweep matched
+`(web|plugin)/(src|dist|public|README\.md|…)` — a directory name **plus a path suffix**. Every
+reference of that shape was rewritten correctly. What it could not see is a reference to the
+directory *as a directory*: `` `web/` `` and `` `plugin/` `` with nothing after them. There were 25 of
+them, including four in `CLAUDE.md` — the layer table, both surface bullets, and the worktree note —
+so the agent-facing doc spent a few hours describing two directories that no longer existed.
+
+**A rename sweep anchored on `<name>/<suffix>` is blind to `<name>/` alone**, and the bare form is
+exactly how prose refers to a directory. Neither typecheck nor any gate could catch it: no code path
+reads a markdown backtick.
+
+**Left alone deliberately:** the root `README.md`. #646 was rewriting that file in parallel, and its
+new Layout table had added `` [`web/`](web/) `` and `` [`plugin/`](plugin/) `` — markdown links that
+resolved to nothing, on the repo's front door, in the PR whose purpose was making the front door
+accurate. Editing it from here would have collided, so it was flagged on #646 with the specific lines
+instead and fixed there; #646 has since landed carrying `apps/studio/` and `apps/plugin/`, verified
+against the merged file. Also untouched: `docs/35-naming-and-packaging.md` (argues *from* the old
+names), `00-progress` history, and the dated `docs/superpowers/` plans.
+
+**Gates:** the full list, all pass. `regen --check` 104 byte-identical.
+
+---
+
 ## (2026-08-07) — The plugin gets a component lane, and the two writers are gated against each other (#487 step 5)
 
 **STATUS: new lane + a parity gate.** `apps/plugin/src/write-components.ts` (`applyComponentPlan`, 637

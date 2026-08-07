@@ -74,7 +74,7 @@ knowledge-base/    own repo — the practice POV / reference    [reference]
 ```
 
 **Build boundary.** The "no build, run via `tsx`" invariant applies to the **core's dev
-loop** and stays intact. The **adapters** (`web/`, `plugin/`) get a bundler for the
+loop** and stays intact. The **adapters** (`apps/studio/`, `apps/plugin/`) get a bundler for the
 first time — a browser/Figma bundle is a packaging step, not a port (`08 §2`). Keep the
 bundler at the adapter layer; the core is imported as source, never pre-built.
 
@@ -104,9 +104,9 @@ Two principles behind the split:
 ## 5. Sequencing & triggers
 
 1. **Record this** (done — this doc + `00-progress`).
-2. **Scaffold the monorepo workspace + `web/` package** — **✅ DONE (2026-07-02).** Root
+2. **Scaffold the monorepo workspace + `apps/studio/` package** — **✅ DONE (2026-07-02).** Root
    `package.json` (workspaces `["web"]`, `type: module` — safe, the engine is already fully
-   ESM); `web/` is an esbuild + vanilla-DOM adapter (one dev-dependency; no framework) that
+   ESM); `apps/studio/` is an esbuild + vanilla-DOM adapter (one dev-dependency; no framework) that
    imports the pure engine modules by relative path and renders **15 knobs from the lever
    manifest + 22 preview chips + a 4-mode contrast overlay from `resolvePreview`**. Verified
    by headless Chromium: boots all-green. The engine stays buildless; only the adapter bundles.

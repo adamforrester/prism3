@@ -151,7 +151,7 @@ and cleanly disproven. The serious problems cluster in four cross-cutting themes
 - **L-14** `emit-figma.ts:329-343,363-365,190-193` — text-style derivation regexes fail to plausible defaults ('text', 'default', `font/size/` dangling bind, weight 400/'Regular' for e.g. 450) instead of erroring.
 - **L-15** `standard-design-md.ts:81-82` via `design-md.ts:54` — scalar written-form loss (`1.0`→'1', `0700`→'700'); unquoted `#hex` becomes a comment → `'null'` value with a confusing error (YAML-consistent but sharp).
 - **L-16** `resolve-preview.ts` typing nit — `byMode` typed `Record<ModeName,…>` but sparsely populated for narrowed-modes themes; compiler promises `byMode.dark` exists when it's undefined (consumer foot-gun).
-- **L-17** `web` perf note — every input event runs `brandTheme` + full `buildTree` + DOM rebuild synchronously (no debounce). No re-entry bug (all synchronous — verified clean).
+- **L-17** `apps/studio` perf note — every input event runs `brandTheme` + full `buildTree` + DOM rebuild synchronously (no debounce). No re-entry bug (all synchronous — verified clean).
 
 ---
 
