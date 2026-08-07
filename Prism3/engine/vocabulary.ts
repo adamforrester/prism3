@@ -5,7 +5,7 @@
  * Pure (no `node:*`, no I/O) so it stays on the portable-core side of the fence (docs/07 §3) and
  * runs identically in the browser hosts.
  *
- * THE PROBLEM. `brandTheme({ id, primary, neutral })` produces a complete 567-token system from the
+ * THE PROBLEM. `brandTheme({ id, primary, neutral })` produces a complete 575-token system from the
  * three required fields, and logs the 15 decisions it made on your behalf. But a brand brief does
  * not speak in numbers. It says *"corners are generous and the UI is dense"* (aurora), *"restrained
  * on purpose — low chroma"* (harbor), *"bold, not loud"* (wendys). Nothing carried that intent to a

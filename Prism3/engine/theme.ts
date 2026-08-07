@@ -20,7 +20,9 @@ import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
 
 /** The appearance modes the engine can generate. `light` is the required base; the rest
- *  are opt-in (docs/11 Pillar 1). Wireframe (docs/11 §Pillar 1b) is not yet a mode. */
+ *  are opt-in (docs/11 Pillar 1). Wireframe (docs/11 §Pillar 1b) IS a shipped mode — a
+ *  generated greyscale mode (every non-neutral role maps to its equivalent neutral; radius
+ *  zeroes to 0, `tree.ts`) — but it is opt-in only, never a default (see `ALL_MODES` below). */
 // The DEFAULT mode set — generated when `input.modes` is omitted (back-compat; the
 // four-mode golden is byte-identical). Wireframe is NOT here: it's opt-in only, never
 // a default (docs/11 Pillar 1 — "most brands ship light only; dark/HC/wireframe opt-in").
@@ -53,8 +55,9 @@ export type OKLCH = { l: number; c: number; h: number };
 export type PaletteBuild = { palette: string; role: Role; steps: Step[]; description: string };
 
 /** Per-mode LEVER overrides for the non-colour axes (Phase D). A customizable mode may override
- *  an input lever the engine RE-DERIVES for that mode — today `radius` (the radius scale), with
- *  `tempo`/`density` slotting in the same way later. NOT `typeScale`: it shifts heading rungs,
+ *  an input lever the engine RE-DERIVES for that mode — the radius scale, motion tempo, component
+ *  density, font families/weights, leading/tracking re-points, easing re-points, shadow personality
+ *  and per-mode type sizes (nine axes below). NOT `typeScale`: it shifts heading rungs,
  *  and per-mode rung shifts give modes different type SETS (#328) — per-mode type sizing is a
  *  per-rung size override over a mode-invariant set, never a per-mode scale lever. Distinct from the global
  *  `radiusScale` (the baseline every mode inherits); a `modeLevers` entry deviates a single mode. */
@@ -113,7 +116,8 @@ export type ModeLevers = {
   // weights, #337). Heading groups only, and it changes SIZES within a mode-invariant SET: the rung set
   // is fixed once at brand level by displayCeiling/titleFloor and is never re-derived per mode.
   typeSizes?: Partial<Record<PerModeSizeGroup, Record<string, number>>>;
-};  // per-mode lever overrides; extensible (tempo/density later — NOT typeScale, see ModeLevers)
+};  // per-mode lever overrides — radius/tempo/density/families/weights/lineHeights/letterSpacings/
+    // easings/shadow/typeSizes (NOT typeScale, see ModeLevers)
 
 /** The non-color (dimension) axis: a primitive grid + space/radius/size scales. */
 export type Dims = {
@@ -177,9 +181,10 @@ export type Theme = {
   // 'primary' / 'destructive' / an accent (interactivePalettes) name. Customizable modes only.
   modeAnchors?: Partial<Record<ModeName, Record<string, number>>>;
   // Per-mode LEVER overrides for the non-colour axes (Phase D) — a customizable mode re-derives an
-  // axis from an overridden input lever (radius now; tempo/density later — NOT typeScale, see ModeLevers). Distinct from
-  // the global `radiusScale` baseline every mode inherits — modeLevers deviate a single mode. The
-  // re-derived radius ramps land on `dims.radiusByMode`; this carries the raw levers for round-trip.
+  // axis from an overridden input lever (radius, tempo, density, and six more — NOT typeScale, see
+  // ModeLevers). Distinct from the global `radiusScale` baseline every mode inherits — modeLevers
+  // deviate a single mode. The re-derived radius ramps land on `dims.radiusByMode`; this carries the
+  // raw levers for round-trip.
   modeLevers?: Partial<Record<ModeName, ModeLevers>>;
   // Disabled-state contrast. BOTH branches are gated — this system never ships disabled
   // ink below 3:1, so neither leans on the WCAG 1.4.3/1.4.11 inactive-component exemption
@@ -360,8 +365,8 @@ export type BrandInput = {
    *  every mode inherits — modeAnchors deviate a single mode's column. */
   modeAnchors?: Partial<Record<ModeName, Record<string, number>>>;
   /** Per-mode NON-COLOUR lever overrides (Phase D): a customizable mode overrides an input lever the
-   *  engine RE-DERIVES for that mode — today `radius` (the radius scale, 0=sharp…1=default…2=soft),
-   *  with `tempo`/`density` slotting in the same map later (NOT `typeScale` — see ModeLevers). Customizable modes only
+   *  engine RE-DERIVES for that mode — `radius` (the radius scale, 0=sharp…1=default…2=soft), `tempo`,
+   *  `density`, and the other `ModeLevers` axes (NOT `typeScale` — see ModeLevers). Customizable modes only
    *  (light/dark or a `customModes` name); a generate-only mode (hc/wireframe) or a mode this brand
    *  doesn't generate throws, and a radius outside [0,2] throws. Distinct from the GLOBAL `radiusScale`
    *  (the baseline every mode inherits) — modeLevers deviate a single mode. Omit for none (byte-identical). */
@@ -1289,7 +1294,7 @@ const buildTypography = (t: TypographyInput = {}): Typography => {
   };
   ordered('lineHeights', LINE_HEIGHT_KEYS, LINE_HEIGHTS.map((l) => t.lineHeights?.[l.key] ?? l.value));
   ordered('letterSpacings', LETTER_SPACING_KEYS, LETTER_SPACINGS.map((l) => t.letterSpacings?.[l.key] ?? l.em));
-  // A nudge beyond ±5 rungs is meaningless (both ramps are 6 long) — almost certainly a typo.
+  // A nudge beyond ±5 rungs is meaningless (the leading ramp is 7 long, tracking is 6) — almost certainly a typo.
   for (const [field, map] of [['leadingShift', t.leadingShift], ['trackingShift', t.trackingShift]] as const)
     for (const [g, n] of Object.entries(map ?? {}))
       if (n !== undefined && (!Number.isInteger(n) || n < -5 || n > 5))
@@ -1685,7 +1690,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   }
   if (Object.keys(input.modeAnchors ?? {}).length) notes.push(`modeAnchors: per-mode interactive anchors for ${Object.keys(input.modeAnchors!).join(', ')} (a column's fill re-anchored per mode; still floor-gated)`);
   // Per-mode LEVER overrides (Phase D) — a customizable mode may override a non-colour axis lever
-  // (radius now; tempo/density later slot in here — NOT typeScale, see ModeLevers). SAME customizable-mode rule as
+  // (radius, tempo, density, and the other ModeLevers axes — NOT typeScale, see ModeLevers). SAME customizable-mode rule as
   // overrides/modeAnchors: the mode must be generated AND customizable (light/dark/custom); the
   // generate-only built-ins (hc-light/hc-dark/wireframe) and absent modes throw. A `radius` lever
   // must be a finite number in the lever's [0, 2] range.

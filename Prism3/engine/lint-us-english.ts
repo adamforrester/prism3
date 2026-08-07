@@ -6,7 +6,7 @@
  * something each pass has to remember — four PRs in a row re-derived it and three of them missed
  * something.
  *
- * Two traps, both of which caught a previous pass, are handled here rather than left to the reader:
+ * Four traps, each of which caught a previous pass, are handled here rather than left to the reader:
  *
  *  1. A FIXED WORD LIST UNDER-COUNTS. `colour|grey|behaviour` misses `generalised`, `tokenisation`,
  *     `synthesising`. So this scans the `-is(e|ed|es|ing|ation)` and `-our` PATTERNS and subtracts a

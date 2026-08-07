@@ -8,8 +8,8 @@
  * `from './emit-figma'` importer + the `npx tsx Prism3/engine/emit-figma.ts` CLI are unchanged.
  *
  * This module holds:
- *   • `buildFigmaDims(theme)` — the seven FLOAT primitive/semantic collections
- *     (`core-dimension`/`space`/`radius`/`size`/`border-width`/`focus`/`opacity`),
+ *   • `buildFigmaDims(theme)` — the eight FLOAT primitive/semantic collections
+ *     (`core-dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`),
  *   • `buildFigmaLayout(theme)` — the `layout` collection with one mode per breakpoint,
  *   • their local helpers (`pxFromValue`/`aliasFigName`), scope maps, and `LAYOUT_MODES`.
  *
@@ -64,7 +64,7 @@ export type FigmaDimsCollections = {
 };
 
 // ---------------------------------------------------------------------------
-// DIMS (docs/10 §7 items 1-2). Seven FLOAT collections; every semantic aliases
+// DIMS (docs/10 §7 items 1-2). Eight FLOAT collections; every semantic aliases
 // into a `dimension/…` (or `space/…`) primitive so the geometric scale is shared.
 //   dimension    → fine-grid primitives (REF TIER, hidden from publishing).
 //   space        → spacing rhythm, aliased. Scope: GAP.
@@ -73,6 +73,8 @@ export type FigmaDimsCollections = {
 //                  aliases dimension (WIDTH_HEIGHT scope); `<t>/padding-x` and
 //                  `<t>/padding-y` alias space (GAP scope). Names use `/` between
 //                  t-shirt and prop (`md/height`), matching the colour/font convention.
+//   icon         → artboard ladder (#324), its own collection (not a `size/` sub-branch)
+//                  since an icon size is chosen independently of its control. Scope: WIDTH_HEIGHT.
 //   border-width → hairline/thick/heavy + none, aliased. Scope: STROKE_FLOAT.
 //   focus        → ring.width / ring.offset / ring.offset-field (STROKE_FLOAT). The
 //                  fourth `focus.ring.style` DTCG token (a `strokeStyle: 'solid'`

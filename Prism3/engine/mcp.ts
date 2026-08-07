@@ -101,8 +101,8 @@ type ToolResult = { content: { type: 'text'; text: string }[]; structuredContent
  *
  *  The lever manifest is a UI PRESENTATION catalogue — labels, groups, knob types, ranges — and it is
  *  right to omit things that are not knobs. The MCP adapter reused it as if it were the API contract,
- *  which is a different job: measured, `list_levers` advertised 21 of the schema's 32 top-level fields.
- *  The 11 it never mentioned included REQUIRED `id` and the whole per-mode override layer (`overrides`,
+ *  which is a different job: measured, `list_levers` advertised 21 of the schema's 33 top-level fields.
+ *  The 12 it never mentioned included REQUIRED `id` and the whole per-mode override layer (`overrides`,
  *  `modeAnchors`, `modeLevers`). An agent following this tool's own instruction — "call this first to
  *  learn what theme_brand accepts" — produced an input that failed validation on the missing `id`.
  *

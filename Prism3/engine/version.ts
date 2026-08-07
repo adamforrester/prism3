@@ -45,17 +45,28 @@ export const ENGINE_VERSION = '0.3.3';
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
  * inversion is intentional rather than a typo: the code is young, the names are settled. The
- * surface is 480 paths that every brand in the corpus emits — spanning both input dialects, a
+ * surface is 485 paths that every brand in the corpus emits — spanning both input dialects, a
  * hand-built legacy system (NB) and the sparsest input the engine accepts — with zero `$type`
- * disagreements between them. That is a thing worth promising, so it is promised at 1.x.
+ * disagreements between them. That is a thing worth promising, so it is promised at 1.x. (The
+ * count moves with every bump below — 477 at 1.0.0 — so read it as "as of the latest entry".)
  *
  * 1.1.0: `on-inverse.border` (primary/neutral/destructive) landed in a PR that merged while this
- * one was in flight, adding 3 guaranteed paths — a MINOR bump, no removal or retype.
+ * one was in flight, adding 3 guaranteed paths — a MINOR bump, no removal or retype. (477 → 480)
+ *
+ * 1.2.0: the easing-role tier (`motion.easing-role.{default,enter,exit,emphasized}`) — a mode can
+ * now re-point a ROLE to another curve instead of tuning a bezier per mode (#522/#527). 4 additive
+ * paths, no removal or retype, so MINOR. (480 → 484)
+ *
+ * 2.0.0: the easing CURVE tier renamed to match what it names — a curve is a SHAPE, not a USE, and
+ * the new role tier above left `motion.easing.{enter,exit,emphasized}` wearing names that belonged
+ * to roles, not curves. Renamed to `motion.easing.{decelerate,accelerate,expressive}` (#531). 3
+ * paths removed, 3 added — MAJOR, since a consumer resolving the old names gets nothing. The
+ * removals are recorded in `DEPRECATIONS` below, each pointing at its replacement. (484 → 484)
  *
  * 2.1.0: `color.border.focus-inverse` — 1 added guaranteed path, no removal or retype, so MINOR.
  * Named as a flat suffix rather than nested under either existing leaf on purpose: both
  * `border.focus.inverse` and `border.inverse.focus` would turn a path consumers already reference
- * into a GROUP, which is a MAJOR break to add a token nobody asked to pay for. (#573)
+ * into a GROUP, which is a MAJOR break to add a token nobody asked to pay for. (#573) (484 → 485)
  */
 export const CONTRACT_VERSION = '2.1.0';
 

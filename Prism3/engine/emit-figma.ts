@@ -9,7 +9,7 @@
  * variable name still mirrors its DTCG path (`palette/red/550`, `font/family/display`,
  * `font-fluid/…`), so the `variableId` round-trip and every cross-collection alias resolve
  * exactly as before. Semantic collections keep their bare names (`color`, `space`, `radius`,
- * `size`, `border-width`, `focus`, `opacity`, `layout`). See docs/00 + issue #66/#67 (Token Press).
+ * `size`, `icon`, `border-width`, `focus`, `opacity`, `layout`). See docs/00 + issue #66/#67 (Token Press).
  *
  * Axes shipped:
  *   • COLOUR — `core-palette` primitives (Default mode) + `color` semantics (4 modes),
@@ -24,8 +24,8 @@
  *     lands bindable tracking FLOATs); (4) primary family bound + full stack in
  *     description; (5) fontStyle derived from the weight-role via a named-instance
  *     table (mono falls back for weights it lacks).
- *   • DIMS — the whole geometric layer emitted as SEVEN FLOAT collections:
- *     `core-dimension` (fine-grid primitives), `space`/`radius`/`size`/`border-width`/
+ *   • DIMS — the whole geometric layer emitted as EIGHT FLOAT collections:
+ *     `core-dimension` (fine-grid primitives), `space`/`radius`/`size`/`icon`/`border-width`/
  *     `focus` (all aliased into a `dimension/…` variable — the primitives are shared) + `opacity`
  *     (0–100 percent for Figma OPACITY scope, converted from the DTCG 0–1). No
  *     fixtures for this axis (§2 covers colour + typography only), so the gate is
@@ -109,8 +109,8 @@ export { buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, fontStyleNam
 // are extracted to the node-free `emit-figma-dims.ts` (#146 — so they bundle into the
 // Figma plugin main thread, exactly as the colour core did in `emit-figma-color.ts`).
 // This shell re-exports them (below the shadow/gradient axes), so the CLI + every
-// `from './emit-figma'` importer are unchanged. The seven dims collections
-// (`core-dimension`/`space`/`radius`/`size`/`border-width`/`focus`/`opacity`) + the
+// `from './emit-figma'` importer are unchanged. The eight dims collections
+// (`core-dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`) + the
 // per-breakpoint `layout` collection now live there.
 // ---------------------------------------------------------------------------
 
