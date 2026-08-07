@@ -43,20 +43,33 @@ No build, no `npm install` for the engine — it's self-contained TypeScript run
 (Node ≥ 20). Run these from the repo root:
 
 ```bash
-npx tsx Prism3/engine/test.ts            # unit tests — report the N/N
-npx tsx Prism3/engine/nb-regression.ts   # must exit 0 (the New Balance reproduction)
-npx tsx Prism3/engine/emit-dtcg.ts       # every alias resolves + every mode contrast contract passes
-npx tsx Prism3/engine/emit-figma.ts      # the Figma import artifact
+npx tsx Prism3/engine/test.ts                     # unit tests — report the N/N
+npx tsx Prism3/engine/mcp-test.ts                 # the MCP surface over real stdio — report the N/N
+npx tsx Prism3/engine/nb-regression.ts            # must exit 0 (the New Balance reproduction)
+npx tsx Prism3/engine/emit-dtcg.ts                # every alias resolves + every mode contrast contract passes
+npx tsx Prism3/engine/emit-figma.ts               # the Figma import artifact
+npx tsx Prism3/engine/regen.ts --check            # no committed artifact has drifted (#281) — the only gate reading the committed tree
+npx tsx Prism3/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
+npx tsx Prism3/engine/lint-skills.ts              # shipped skills still make true claims
 ```
 
-If you touched a surface, add its checks:
+CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
+unconditionally** — there is no "I only touched the engine" exemption, so don't skip them
+locally just because your diff looks engine-only. (Two PRs shipped with `lint:classes`
+silently broken because their Gates table stopped before reaching it — see `00-progress.md`.)
 
 ```bash
-npm run typecheck -w @prism3/web         # tsc --noEmit
-npm run build     -w @prism3/web
+npm run typecheck    -w @prism3/web      # tsc --noEmit — esbuild does NOT typecheck
+npm run build        -w @prism3/web
+npm run check:ignore -w @prism3/web      # Vercel ignore list still matches the real bundle
+npm run lint:contrast -w @prism3/web     # studio chrome clears its own contrast floors
+npm run lint:classes  -w @prism3/web     # no unreviewed class-name collision — a NEW
+                                          # combination fails here until you add it to
+                                          # ALLOWED in web/lint-classes.mjs
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins
+npx tsx Prism3/engine/lint-us-english.ts # run AFTER the web build — its scope includes web/dist/*.js
 ```
 
 **Green tests are not the finish line.** The standard here is that the change is
