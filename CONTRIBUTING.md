@@ -69,10 +69,12 @@ type filter and the FLOAT read-back would have come back empty in production).
 
 **A gate is only as strong as the independence of the two things it compares.** If you write a
 new check, mutate the thing it checks and confirm **your** gate is in the failure list — not
-merely that the suite went red. That distinction has mattered twelve times in this repo: once,
-a mutation produced 7 failures and the new gate was not among them, because it was asserting
-`helper === helper`. Read [`Prism3/docs/34-gate-independence.md`](Prism3/docs/34-gate-independence.md)
-before writing the gate rather than after.
+merely that the suite went red. That distinction has mattered more than a dozen times in this repo
+(the register is in the doc below): once a mutation produced 7 failures and the new gate was not among
+them, because it was asserting `helper === helper`; and a lint self-check passed every sample while a
+real en-GB spelling shipped, because it re-implemented the scan instead of calling it. Read
+[`Prism3/docs/34-gate-independence.md`](Prism3/docs/34-gate-independence.md) before writing the gate
+rather than after.
 
 The reviewer-facing half: **duplication between a gate and its subject is usually load-bearing.**
 Routing both through one helper is the obvious cleanup and it silently deletes the gate, leaving

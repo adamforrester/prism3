@@ -7,6 +7,68 @@
 
 ---
 
+## (2026-08-06) — The US-English gate can now tell "clean" from "nothing to scan" (#387 closed)
+
+**STATUS: shipped.** `Prism3/engine/lint-us-english.ts`, plus two rows and a direction in
+`Prism3/docs/34-gate-independence.md`.
+
+#387 asked for the coverage check to be un-silenceable. Two mutations showed most of that was already
+done — renaming a `regen` artifact (`preview-spec.json` → `…-RENAMED.json`) and deleting `web/dist`
+both already fail, via `walkRequired` + `blind[]`. The genuine holes were narrower and both were in
+the *checking* machinery rather than the scan:
+
+**1. The promise list was checked in one direction only.** `REQUIRED_SURFACES` asserts each promised
+surface is represented, but nothing asserted the converse — that every *scanned* file is claimed by
+some promise. So a surface could sit in `gated` with no line in the list: scanned today, droppable in
+silence tomorrow, because the forward check has nothing to miss. It had happened twice already
+(`ENGINE_ARTIFACTS` reports and the engine README), which is the part worth recording: **the comment
+warning about exactly this failure was sitting directly above the list while both instances were
+committed.** That is the argument against a fifth reminder and for the converse check, which found both
+the moment it existed. Same lesson as #574 — the obvious fix (add two lines) inherits the hole.
+
+**2. The detection self-check validated a reimplementation, not the shipping path.** It evaluated its
+own inline `[PATTERN, STEMS].some(...)` rather than driving `scan()`. Measured, not reasoned: with
+`STEMS` removed from `scan()`'s loop and a real `A greyscale mode.` added to the gated engine README,
+all seven samples passed and the gate printed **`✓ clean` at exit 0 with an en-GB spelling shipping**.
+This is #511's shape — *in the file whose own header documents #511*. Fixed by extracting one
+`enGb(text)` that `scan()` and `SELF_CHECK` both drive. Note the direction, because it inverts the DRY
+warning: here the *duplication* was the defect and the *sharing* is the fix, since the two callers are
+the gate's subject and its fixture, not a gate and the thing it checks. Doc 34 now says so — ask which
+two things are compared, not whether code is shared.
+
+**3. The headline is derived, not written beside the list.** It hardcoded "out/, emitted schema,
+reports, shipped skills, built bundle", so dropping the reports from scope still printed the word
+`reports`. Now it prints a count per `REQUIRED_SURFACES` entry, and the six groups sum to exactly the
+94 gated files — an unexpectedly small group is visible instead of hiding inside a total.
+
+**Mutation harness, and a trap in it.** 6/6 caught (M1/M2 the two unclaimed surfaces, M3 scope-drop,
+M4 `STEMS` removed + a real `greyscale`, M5 `PATTERN` removed, M6 `NOT_EN_GB` neutered) — all at exit 1
+naming this gate. The first harness was itself vacuous: it restored the file from backup **before**
+reading the exit code, so three mutations "passed" while measuring the clean tree. Caught by #557's
+tell — the runs reported 94 files, the unmutated count. The rewritten harness reads the exit code
+before restoring and asserts `mutated !== source`. Both corollaries are already in doc 34; this is the
+second time in a week the harness, not the gate, was the unfalsifiable part. **Worth generalizing: a
+mutation harness is itself a gate, and needs the same proof.**
+
+**One behavior deliberately left alone.** Dropping a surface from *both* scope and `REQUIRED_SURFACES`
+still passes. That is the sanctioned escape — a deliberate drop should be visible in the diff — and the
+derived headline now makes it visible in the *output* too: the line disappears rather than the word
+"reports" printing over 92 files. #387's open sub-question about pre-build local runs needs no new
+answer: `walkRequired` already fails on an absent `web/dist`, so "always fail on an empty required
+group" is the behavior the whole file already has.
+
+**Doc 34's count is now the table, not the prose.** It shipped yesterday saying "twelve" in four
+places, and #387 added two rows the next day. The prose now points at the register and the register is
+the count — doc 34's own #568 rule (a count in prose is a landmark that goes stale) applied to doc 34,
+one day late.
+
+**Gates:** `regen --check` 88 byte-match · `test.ts` 1920/0 · `mcp-test.ts` 49/0 ·
+`token-contract --check` unchanged (2.1.0, 485) · `lint-skills` clean · `lint-us-english` clean, 94
+files in 6 groups · NB regression exit 0 · DTCG aliases + contrast contracts pass · web `tsc` clean.
+`out/*` **byte-identical** — gate and docs only. No version bump.
+
+---
+
 ## (2026-08-07) — Prose audit: the numeric drift sweep (#554)
 
 **STATUS: docs-only, shipped.** No engine, schema, or emitted-artifact code changed except

@@ -91,6 +91,27 @@ type Hit = { file: string; line: number; word: string; context: string };
 // thrown so one run reports all of them; a non-empty list is fatal below.
 const blind: string[] = [];
 
+// The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
+// this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
+// callers are the gate's *subject* and its *fixture*, not a gate and the thing it checks.
+//
+// It used to be duplicated: SELF_CHECK evaluated its own inline `[PATTERN, STEMS].some(...)`, so it
+// validated a reimplementation rather than the shipping code path (#387; the #511 shape, found by
+// mutation in the same file that already documents #511's lesson). Measured: with `STEMS` removed
+// from the loop below and a real `A greyscale mode.` added to the gated engine README, every
+// detection sample still passed and the gate printed `✓ clean` at exit 0. A self-check gates whatever
+// it calls — so it has to call the thing that runs.
+const enGb = (txt: string): { word: string; index: number }[] => {
+  const found: { word: string; index: number }[] = [];
+  for (const re of [PATTERN, STEMS]) {
+    for (const m of txt.matchAll(re)) {
+      if (NOT_EN_GB.has(m[0].toLowerCase())) continue;
+      found.push({ word: m[0], index: m.index ?? 0 });
+    }
+  }
+  return found;
+};
+
 const scan = (abs: string): Hit[] => {
   let txt: string;
   // Fails CLOSED. This used to `return []`, so an unreadable file was indistinguishable from a clean
@@ -100,17 +121,12 @@ const scan = (abs: string): Hit[] => {
     blind.push(`${relative(repo, abs)} — could not be read (${(e as Error).message})`);
     return [];
   }
-  const hits: Hit[] = [];
-  for (const re of [PATTERN, STEMS]) {
-    for (const m of txt.matchAll(re)) {
-      const w = m[0];
-      if (NOT_EN_GB.has(w.toLowerCase())) continue;
-      const line = txt.slice(0, m.index).split('\n').length;
-      const from = Math.max(0, (m.index ?? 0) - 55);
-      hits.push({ file: relative(repo, abs), line, word: w, context: txt.slice(from, (m.index ?? 0) + 45).replace(/\s+/g, ' ') });
-    }
-  }
-  return hits;
+  return enGb(txt).map(({ word, index }) => ({
+    file: relative(repo, abs),
+    line: txt.slice(0, index).split('\n').length,
+    word,
+    context: txt.slice(Math.max(0, index - 55), index + 45).replace(/\s+/g, ' '),
+  }));
 };
 
 const walk = (dir: string): string[] => {
@@ -180,10 +196,10 @@ const SELF_CHECK: { sample: string; expect: boolean }[] = [
   { sample: 'otherwise the source', expect: false },     // NOT_EN_GB must still subtract
   { sample: 'four hours of tours', expect: false },      // the plurals `s?` newly exposes must not trip
 ];
-const selfFails = SELF_CHECK.filter(({ sample, expect }) => {
-  const found = [PATTERN, STEMS].some((re) => [...sample.matchAll(re)].some((m) => !NOT_EN_GB.has(m[0].toLowerCase())));
-  return found !== expect;
-}).map((c) => `"${c.sample}" should${c.expect ? '' : ' NOT'} be flagged`);
+// Drives `enGb` — the same function `scan()` calls — so neutering either regex fails HERE. See the
+// comment on `enGb`; reimplementing the match inline is what let a real `greyscale` ship clean.
+const selfFails = SELF_CHECK.filter(({ sample, expect }) => enGb(sample).length > 0 !== expect)
+  .map((c) => `"${c.sample}" should${c.expect ? '' : ' NOT'} be flagged`);
 // ...and a second self-check, on SCOPE rather than detection. The one above proves the scanner can
 // still recognize `colours`; it says nothing about whether the file containing it was ever opened.
 // That is the gap trap 3 came through — every pattern sample passed while `web/dist` was absent.
@@ -193,6 +209,13 @@ const selfFails = SELF_CHECK.filter(({ sample, expect }) => {
 // (92 → 91), so any floor loose enough to allow normal growth is also loose enough to let the bundle
 // vanish. Proven by deleting the guard and watching a 91-file run report `✓ clean`. The question is
 // never "how many files" but "is each surface I promise to cover actually represented".
+//
+// Checked in BOTH directions (#387), because the forward direction alone is the "two edits, and the
+// second is the one that rots" trap this list was already twice caught by. Forward: every promised
+// surface has at least one file. Converse: every gated file is claimed by some promised surface — so
+// adding a surface to `gated` without a line here FAILS, rather than widening the scanned set while
+// the promise list quietly stops describing it. Only the converse makes the list self-maintaining;
+// the forward check can only police surfaces someone remembered to promise.
 const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the built web bundle (web/dist/*.js) — trap 2', test: (f) => f.includes('/web/dist/') && f.endsWith('.js') },
   { label: 'emitted artifacts (Prism3/engine/out)', test: (f) => f.includes('/Prism3/engine/out/') },
@@ -203,6 +226,13 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // named by hand, and each of those needs its own line here. Skills are the second such surface,
   // and the comment adding them said so without adding the line.
   { label: 'shipped skills (Prism3/skills/**/SKILL.md)', test: (f) => f.includes('/Prism3/skills/') },
+  // …and these two were the THIRD and FOURTH, found by the converse check the moment it existed.
+  // Both sat in `gated` and in the headline's own sentence ("reports") with no line here, so
+  // dropping either scanned two fewer files and still printed `✓ clean`. Precisely the failure the
+  // comment above describes, committed twice more while that comment sat directly above it — which
+  // is the argument for the converse direction rather than a fifth reminder.
+  { label: 'the emitted reports (ENGINE_ARTIFACTS)', test: (f) => ENGINE_ARTIFACTS.some((a) => f.endsWith(`/${a}`)) },
+  { label: 'the engine README', test: (f) => f.endsWith('/Prism3/engine/README.md') },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {
@@ -211,6 +241,18 @@ if (missingSurfaces.length) {
   console.error(`\n    Each is a surface this gate claims to cover. Unrepresented, a clean result is silence,`);
   console.error(`    not evidence. If one is deliberately dropped, remove it from REQUIRED_SURFACES in the`);
   console.error(`    same PR so the decision is visible.\n`);
+  process.exit(1);
+}
+// The converse. An unclaimed file is not a scanning failure — it IS scanned — but it is outside every
+// promise, so nothing above notices when it later leaves. Fail now, while the scope change is in
+// somebody's diff, instead of on the pass that silently drops it.
+const unclaimed = gated.filter((f) => !REQUIRED_SURFACES.some((s) => s.test(f))).map((f) => relative(repo, f));
+if (unclaimed.length) {
+  console.error(`\n❌ ${unclaimed.length} gated file(s) are claimed by NO promised surface, so nothing would notice them leaving:\n`);
+  for (const f of unclaimed.slice(0, 12)) console.error(`    ${f}`);
+  if (unclaimed.length > 12) console.error(`    … and ${unclaimed.length - 12} more`);
+  console.error(`\n    Add each to REQUIRED_SURFACES so its absence becomes fatal. A file in scope but`);
+  console.error(`    outside every promise is scanned today and droppable in silence tomorrow.\n`);
   process.exit(1);
 }
 
@@ -234,7 +276,14 @@ if (blind.length) {
   process.exit(1);
 }
 
-console.log(`US-English gate — ${gated.length} shipped files scanned (out/, emitted schema, reports, shipped skills, built bundle).`);
+// The headline is DERIVED from the promise list, not written beside it (#387's proposed shape). The
+// old sentence hardcoded "out/, emitted schema, reports, shipped skills, built bundle" — so removing
+// the reports from scope still printed the word `reports`, and a reader had no way to tell the claim
+// from the coverage. A count plus a hand-written list of surfaces is exactly the pair that drifts:
+// the number moves on its own and the prose does not. Now every named group is one the run measured,
+// and the per-group counts make an unexpectedly small group visible instead of hiding inside a total.
+console.log(`US-English gate — ${gated.length} shipped files scanned:`);
+for (const s of REQUIRED_SURFACES) console.log(`    ${String(gated.filter(s.test).length).padStart(3)}  ${s.label}`);
 if (gatedHits.length) {
   console.error(`\n❌ ${gatedHits.length} en-GB spelling(s) in SHIPPED text:\n`);
   for (const [f, hs] of byFile) {
