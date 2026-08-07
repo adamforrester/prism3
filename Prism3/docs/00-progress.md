@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-07) — Fix: the "gates" checklists in CLAUDE.md, CONTRIBUTING.md and the PR template didn't equal what CI runs
+
+**STATUS: shipped.** Docs only — `CLAUDE.md`, `CONTRIBUTING.md`, `.github/pull_request_template.md`.
+No code, no engine, no gate logic touched.
+
+**Found while diagnosing why #601 and #602 both shipped `lint:classes` broken.** Both PRs' own "Gates:
+all pass" tables were built honestly — neither omitted a gate they'd run and failed to mention, they
+simply never ran `lint:classes` at all, because none of the three documents a contributor (human or
+agent) is pointed at to learn what "the gates" are actually named it. `.github/pull_request_template.md`
+— the literal text every PR body starts from — listed four checks total: `test.ts`, `nb-regression.ts`,
+`emit-dtcg.ts`, and "Web (if touched): `tsc --noEmit`". CI (`.github/workflows/ci.yml`) runs seventeen
+steps, unconditionally, on every PR regardless of what changed. `CONTRIBUTING.md` §3 and `CLAUDE.md`
+principle 4 were each missing a different, overlapping subset of the same set — `check:ignore`,
+`lint:contrast`, `lint:classes`, and `lint-us-english.ts` were absent from all three; `CLAUDE.md` also
+never mentioned the web or plugin gates in principle 4 at all (it separately documents
+`lint-us-english.ts` in the US-English section three principles up, disconnected from the "before
+pushing" list). This is not a story about two careless PRs — it's a document that stopped tracking the
+gate it was supposed to summarize as the gate list grew (#281, #333, #355, #464, #492 all added a CI
+step over time; none updated these three files), and two independently-authored sessions both followed
+it faithfully into the same hole.
+
+**Fix.** All three documents now list the full CI-matching gate set, grouped engine/web/plugin, in CI's
+own run order, with the same explanatory parentheticals CI's own step comments carry. The PR template
+and `CONTRIBUTING.md` both gained an explicit line stating CI runs the web/plugin gates unconditionally
+— removing the old "(if touched)" / "if you touched a surface" framing, which was itself part of the
+same failure: it invited a contributor with an engine-only-looking diff to skip gates CI runs regardless.
+`CLAUDE.md`'s principle 4 now closes with a paragraph naming #601/#602 as the concrete evidence for why
+the list has to equal CI's, not a remembered subset of it.
+
+**What this does not fix.** There is still no automated gate keeping these three documents in sync with
+`.github/workflows/ci.yml` as it grows further — the same drift that caused this could recur the next
+time a step is added to CI without a matching doc edit. That would need its own gate (extract the step
+names from the workflow YAML, diff against what the docs claim) and is a real option for a future PR,
+not attempted here — this fix closes the gap that's open today, not the class of gap.
+
+**Verification.** Docs-only change; no code gate applies. Cross-checked all three new lists against
+`.github/workflows/ci.yml`'s actual `steps:` by name and by the `npm run`/`npx tsx` command each step
+invokes — every command in the new checklists matches a real CI step verbatim, and every CI step
+(except the internal artifact-count self-check, which isn't a contributor-facing gate) now appears in
+at least the `CLAUDE.md` and PR-template lists.
+
+---
+
 ## (2026-08-07) — Neutral row: Source no longer sits lower than Hue/Chroma/Anchor (#394)
 
 **STATUS: shipped.** `web/src/main.ts`, `.porigin` only — CSS, no runtime behavior change.

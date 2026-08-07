@@ -15,12 +15,30 @@
 
 ## Gates
 
-<!-- Run these and report the results. Not a formality — a PR isn't done until they're green. -->
+<!-- Run these and report the results. Not a formality — a PR isn't done until they're
+     green. CI (.github/workflows/ci.yml) runs every one of these on every PR regardless
+     of which files changed — there is no "skip web/plugin, I only touched the engine"
+     exemption, so don't skip any locally either. A checklist shorter than CI's is a
+     checklist a diligent contributor can follow exactly and still ship broken — see the
+     lint:classes line below, which is the specific gate two PRs (#601, #602) missed by
+     stopping their Gates table at an older, shorter version of this template. -->
 
 - [ ] `npx tsx Prism3/engine/test.ts` → _N/N passed_
+- [ ] `npx tsx Prism3/engine/mcp-test.ts` → _N/N passed_
 - [ ] `npx tsx Prism3/engine/nb-regression.ts` → exits 0 (ΔE00 _…_)
 - [ ] `npx tsx Prism3/engine/emit-dtcg.ts` → every alias resolves + every mode contrast contract passes (_…/…_)
-- [ ] Web (if touched): `tsc --noEmit` clean
+- [ ] `npx tsx Prism3/engine/regen.ts --check` → _NN_ committed artifacts byte-match
+- [ ] `npx tsx Prism3/engine/token-contract.ts --check` → unchanged / bumped to _…_
+- [ ] `npx tsx Prism3/engine/lint-skills.ts` → clean
+- [ ] `npm run -w @prism3/web typecheck` → clean
+- [ ] `npm run -w @prism3/web build` → succeeds
+- [ ] `npm run -w @prism3/web check:ignore` → clean
+- [ ] `npm run -w @prism3/web lint:contrast` → clean
+- [ ] `npm run -w @prism3/web lint:classes` → clean — a NEW class-name combination fails here until it's added to `ALLOWED` in `web/lint-classes.mjs`
+- [ ] `npm run -w @prism3/plugin typecheck` → clean
+- [ ] `npm run -w @prism3/plugin test` → _N/N passed_
+- [ ] `npm run -w @prism3/plugin build` → succeeds, 0 `node:` builtins in `dist/main.js`
+- [ ] `npx tsx Prism3/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `web/dist/*.js` bundle
 
 ## out/* + fixtures
 
