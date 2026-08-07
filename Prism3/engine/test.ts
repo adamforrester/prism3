@@ -42,6 +42,11 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
+// The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
+// is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
+// they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
+// global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
+import { applyComponentPlan } from '../../apps/plugin/src/write-components';
 import type { AnatomyPlan } from './anatomy-figma';
 import { button } from './components/button';
 import { iconButton } from './components/icon-button';
@@ -6465,7 +6470,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // exercise it at all. Handing the same object to several `runPayload` calls models the one thing
     // separate `figma_execute` calls actually share: the document.
     type StubPage = { children: Record<string, unknown>[] };
-    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown } = {}): Promise<PayloadResult> => {
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown };
+    // The stub is built by its OWN function rather than inline in `runPayload` for one reason: the
+    // parity gate at the end of this block drives the PLUGIN executor (`applyComponentPlan`) against
+    // the same host model the paste payload runs on. Two executors compared against two different
+    // stubs would be comparing the stubs (docs/34); one stub, two drivers is the comparison worth
+    // making. Nothing else about it moved.
+    const makeFigmaStub = (opts: StubOpts = {}) => {
       const names = new Set(opts.vars ?? []);
       const page = opts.page;
       // Members LEAVE the page when they join a set, as they do live. Without this the page keeps every
@@ -6732,6 +6743,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           });
         }
       };
+      return figmaStub;
+    };
+    const runPayload = async (payloadJs: string, opts: StubOpts = {}): Promise<PayloadResult> => {
+      const figmaStub = makeFigmaStub(opts);
       // `AsyncFunction` because the payload is top-level `await` by design (#478 — an async IIFE
       // returns a Promise that figma_execute drops). Constructed rather than eval'd so the payload
       // sees exactly one binding, `figma`, and nothing from this module's scope.
@@ -7301,6 +7316,86 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         await mutateChunks('footprint drift is caught even when the cohort is split across chunks',
           "if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;", '',
           /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
+      }
+
+      // ---- AXIS PARITY between the two write paths (#487 step 5) --------------------------------
+      // #487 §7 step 5's requirement, and the reason it is worth a gate at all: there are now TWO
+      // executors for one `AnatomyPlan` — the plugin-JS payload above (pasted through `figma_execute`)
+      // and `apps/plugin/src/write-components.ts`'s `applyComponentPlan` (the plugin's own main thread). One
+      // plan, two hosts. If they derive different axes, declare different properties or lay members out
+      // differently, a designer's set depends on which button they pressed, and the token tier below it
+      // no longer means one thing.
+      //
+      // WHAT THIS COMPARES, AND WHY NOT THE OBVIOUS THING. Both paths call the same `planSetLayout` for
+      // the offline half. So a gate written as "the two paths agree about `planSetLayout`" would be
+      // comparing one expression to itself and could not fail — docs/34's core shape. What is compared
+      // here is therefore strictly what is NOT shared: the axes FIGMA derived from the member names each
+      // path wrote, the properties each path managed to declare on the set, the box each path resized to,
+      // and — on a starved file — the misses each path reports, as SETS. That last one is why the
+      // executor's miss strings were written byte-identical to the payload's: comparing sets makes a path
+      // that reports the wrong CAUSE fail, where comparing counts would not.
+      //
+      // ONE STUB, TWO DRIVERS. Both run against `makeFigmaStub`, which is why it was lifted out of
+      // `runPayload`. Two executors judged by two different host models would be comparing the models.
+      {
+        const plugRun = async (plans: AnatomyPlan[], opts: StubOpts) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the stub satisfies ComponentsApi
+          applyComponentPlan(plans, makeFigmaStub(opts) as any);
+        // Fresh pages on both sides, HELD rather than discarded — the positions each path wrote are read
+        // back off them below. The payload has no find-or-create (that is the plugin's own addition,
+        // since a designer can press a button twice), so a shared page would have the two paths
+        // reporting about different documents.
+        const pastePage: StubPage = { children: [] };
+        const plugPage: StubPage = { children: [] };
+        const pasted = await runPayload(planSetToPluginJs(grid), { ...fullSet, page: pastePage });
+        const plugged = await plugRun(grid, { ...fullSet, page: plugPage });
+
+        const sorted = (xs: readonly string[]) => JSON.stringify([...xs].sort());
+        ok(plugged.misses.length === 0, `parity: the plugin executor runs CLEAN on the same grid${plugged.misses.length ? ` — ${JSON.stringify(plugged.misses.slice(0, 4))}` : ''}`);
+        // THE AXES, which is the parity #487 asked for by name: what Figma derived, on each path, from
+        // the names that path wrote.
+        ok(sorted(plugged.axes) === sorted(pasted.axes ?? []) && plugged.axes.length === 6,
+          `parity: both paths derive the SAME axes from the members they wrote — plugin ${sorted(plugged.axes)} vs paste ${sorted(pasted.axes ?? [])}`);
+        ok(sorted(plugged.properties) === sorted(pasted.properties ?? []),
+          `parity: both paths leave the SAME component properties on the set — plugin ${sorted(plugged.properties)} vs paste ${sorted(pasted.properties ?? [])}`);
+        ok(plugged.variants === pasted.variants && plugged.refs === pasted.refs && plugged.wiredMembers === pasted.wiredMembers,
+          `parity: same member count and the same references spread across the same members — plugin ${plugged.variants}/${plugged.refs}/${plugged.wiredMembers} vs paste ${pasted.variants}/${pasted.refs}/${pasted.wiredMembers}`);
+        // THE GEOMETRY, read off the two pages rather than off `size`. `size` is deliberately NOT the
+        // comparison: the single-shot payload never calls `resize` (live, `combineAsVariants` sizes the
+        // box itself, and the stub models that by reporting 0 until something resizes it) where the
+        // plugin path appends and must resize explicitly. That difference is a real and correct one
+        // between the two hosts, so asserting on the box would gate a divergence we WANT. Every member's
+        // NAME→POSITION map is the claim that actually matters, and it is strictly stronger: the column
+        // pitch is measured from the members, so identical positions mean both paths measured every
+        // member the same and placed them in the same cells.
+        const posMap = (page: StubPage) => {
+          const set = page.children.find((c) => c.type === 'COMPONENT_SET')!;
+          return JSON.stringify(([...(set.children as Record<string, unknown>[])])
+            .map((c) => `${c.name}@${c.x},${c.y} ${Math.round(c.width as number)}x${Math.round(c.height as number)}`).sort());
+        };
+        ok(posMap(plugPage) === posMap(pastePage),
+          'parity: every member lands at the same coordinate and measures the same box on both paths — the pitch is measured, so this is the layout claim `size` cannot make');
+
+        // THE MISSES, AS SETS, on a file with no variables — the degraded case where `misses[]` is the
+        // only channel either path has. Equality here is the claim the byte-identical strings buy:
+        // a path reporting the right NUMBER of wrong causes fails this.
+        const starvedOpts = { styles: fullSet.styles, comps: fullSet.comps };
+        const pastedBare = await runPayload(planSetToPluginJs(grid), { ...starvedOpts, page: { children: [] } });
+        const pluggedBare = await plugRun(grid, { ...starvedOpts, page: { children: [] } });
+        ok(pastedBare.misses.length > 0, `parity: the starved run has misses to compare (${pastedBare.misses.length})`);
+        ok(sorted(pluggedBare.misses) === sorted(pastedBare.misses),
+          `parity: on a file with no variables both paths report the IDENTICAL causes, not merely the same count — plugin ${pluggedBare.misses.length}, paste ${pastedBare.misses.length}`
+          + (sorted(pluggedBare.misses) === sorted(pastedBare.misses) ? '' : ` — only-plugin: ${JSON.stringify(pluggedBare.misses.filter((m) => !pastedBare.misses.includes(m)).slice(0, 3))}; only-paste: ${JSON.stringify(pastedBare.misses.filter((m) => !pluggedBare.misses.includes(m)).slice(0, 3))}`));
+
+        // PROOF OF LIFE, because every assertion above passes if the comparison is between two things
+        // that cannot differ — which is exactly what the shared `planSetLayout` makes plausible here.
+        // So DIVERGE the two paths on purpose, in the one place the comparison is supposed to be
+        // sensitive to (what each host lets the executor write), and confirm each assertion above would
+        // have failed. The paste path keeps its full file; the plugin path is handed a file with no
+        // swap target, which is a real degrade rather than a synthetic one.
+        const skewed = await plugRun(grid, { ...fullSet, comps: [], page: { children: [] } });
+        ok(sorted(skewed.properties) !== sorted(pasted.properties ?? []) && sorted(skewed.misses) !== sorted(pasted.misses),
+          `parity gate: two paths that genuinely diverge are REPORTED as different — the comparison above is live, not two readings of one shared expression (plugin ${sorted(skewed.properties)} vs paste ${sorted(pasted.properties ?? [])})`);
       }
     }
 

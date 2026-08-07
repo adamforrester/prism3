@@ -7,6 +7,94 @@
 
 ---
 
+## (2026-08-07) — The plugin gets a component lane, and the two writers are gated against each other (#487 step 5)
+
+**STATUS: new lane + a parity gate.** `apps/plugin/src/write-components.ts` (`applyComponentPlan`, 637
+lines) turns an `AnatomyPlan[]` into a live `COMPONENT_SET`; `apps/plugin/test-write-components.ts` (36
+assertions) drives it against an in-memory shim; `test.ts` gains 8 assertions comparing it to the paste
+path. No emitted artifact moves — `regen --check` still 104, no version bump.
+
+**This was a NEW lane, verified as one before starting.** Zero occurrences of `createComponent`,
+`createComponentFromNode`, `combineAsVariants`, `addComponentProperty` or `anatomy` across the plugin's
+source. Everything the executor does was already *measured* — the paste payload's `PAYLOAD_*` constants
+in `anatomy-figma.ts` carry the live findings — so this is a second implementation of known behavior,
+not a second round of discovery. What that buys, and what it costs, is the whole entry.
+
+**MODELLED ON THE CHUNKED PASTE, NOT THE SINGLE-SHOT ONE**, and the reason is about the host rather than
+the code. A plugin has no 45KB transport ceiling, so it never needs to chunk — but it does need to
+survive a designer pressing the button twice, and the single-shot payload does not (a second run
+combines a second set beside the first). So the shape is the *chunked* one with one chunk of unbounded
+size: find-or-create the set by name, skip members already present, append, re-lay-out the **union**,
+resize. Re-running is idempotent and reports what it skipped. Choosing the other payload as the model
+would have been the obvious call and shipped a duplicate set on the second press.
+
+**THE PARITY GATE, AND THE VERSION OF IT THAT WOULD HAVE BEEN WORTHLESS.** #487 asked for axis parity
+between the two paths. Both call the same `planSetLayout` for the offline half — the set-level guards,
+the grid, the derived properties, the part→property refs — because the alternative is a second copy of
+sixty lines of guarded arithmetic. That sharing is what makes the *obvious* gate empty: "the two paths
+agree about `planSetLayout`" compares one expression to itself and cannot fail (doc 34's core shape).
+So the gate compares strictly what is **not** shared — the axes *Figma derived* from the names each path
+wrote, the properties each path got onto the set, every member's name→coordinate→box map, and, on a
+file with no variables, the two `misses` arrays **as sets**. The last one is why the executor's miss
+strings were written byte-identical to the payload's: comparing sets makes a path that reports the
+*wrong cause* fail, where comparing counts would not. That reasoning is now written into
+`planSetLayout`'s own doc comment, because the shared-helper comparison is exactly what a future
+"simplification" would reach for.
+
+Proven live by five mutations, each confirmed to fail the gate **by name** while the plugin's own suite
+stayed green — so the parity gate is the sole witness for all five: `GAP` 24→20 (positions diverge);
+one miss string reworded (315 misses on both sides, different causes); the ref loop wired to
+`members.slice(0,1)` (21/2/1 vs 21/42/21); the TEXT property skipped; the axis filter inverted.
+
+**Two things the gate deliberately does NOT compare.**
+- **The box.** The single-shot payload never calls `resize` — live, `combineAsVariants` sizes the set
+  itself — where the plugin path appends and must resize explicitly. That divergence is correct, so
+  asserting on `size` would gate a difference we want. Member positions are the stronger claim anyway:
+  the column pitch is *measured* from the members, so identical coordinates mean both paths measured
+  every member the same and placed them in the same cells.
+- **Chunk metadata.** A plugin has no chunk index, and the set-level messages say so.
+
+**THE PORT COST FOUR VARIANCE FAILURES, all one mistake in four costumes.** For the real `figma` to
+satisfy `ComponentsApi` structurally, Figma's method must be *assignable to* the port's — parameters are
+**contravariant** (the port's must be narrower-or-equal, i.e. assignable *to* Figma's) and returns are
+**covariant** (the port's must be wider-or-equal). Each of these compiled fine in isolation and failed
+the `PortHolds` assertion: `resolveForConsumer(consumer: CompNode)` where Figma takes the whole
+`SceneNode` union → `unknown`; `setBoundVariable(field, variable: CompVariable)` against two overloads
+that both carry `| null` → add the `| null`; `setBoundVariableForPaint`'s `variable` → `unknown`; and
+`findAllWithCriteria`, which needed **both** fixes at once — `readonly unknown[]` for the return (its
+union includes `PageNode`, which has no `createInstance`, and covariance forbids narrowing on the port
+side) and the literal `'COMPONENT'[]` for the parameter (`string[]` is not assignable to Figma's
+`NodeType` union). The rule the file now states: **write-only and parameter positions get `unknown`;
+read positions get `unknown` and are narrowed at the call site, beside the criteria that make the cast
+true.**
+
+`PortHolds` is an explicit compile-time assertion, and this is the only one of the four write lanes that
+needs one written out. The others are proven at their `main.ts` call site on every typecheck. This lane
+has no call site yet — materialising a set is a designer **action** with its own trigger, not part of
+`apply-theme` (#483) — so without that line the port could drift out of satisfaction with the whole
+suite green, and the failure would surface the day the lane is wired, inside Figma.
+
+**THE SHIM'S OWN LESSON, arrived at from a fourth direction.** It is modelled on the engine's
+`figmaStub` deliberately — two executors judged by two *different* host models would be comparing the
+models. Which meant lifting `figmaStub` out of `runPayload` into `makeFigmaStub` so both drivers share
+it; nothing else about it moved. The behaviors that are load-bearing rather than decorative: non-constant
+`width`/`height` (a stub that measures a constant cannot catch an arithmetic error — every wrong answer
+equals every right one), TEXT measuring its characters, `layoutPositioning` silently rejected outside
+auto-layout, a set box that does not follow its members, `addComponentProperty` renaming duplicates
+while `componentPropertyDefinitions` throws on them.
+
+**A FAILURE THAT WAS THE CODE BEING RIGHT.** Three spinner assertions found no absolute part on the
+`pending` variant of the 21-member grid, and the diagnosis was that the executor was correct: with a
+leading visual present the spinner **takes that cell** and is properly not lifted (`button.ts:229`).
+The centered-overlay branch is only reachable on a **label-only** button, which cannot be a member of
+the same set — slot fill is not a variant axis in this def, so a set mixing filled and empty slots would
+be one footprint cohort measuring two different boxes. So the grid now gates the in-flow branch and a
+separate 7-member label-only set gates the centered one. Both branches, or the second is untested.
+
+**Next.** #483 — wire this to a designer trigger — is unblocked by it and deliberately not in it.
+
+---
+
 ## (2026-08-07) — `apps/` + `packages/`: the studio and plugin move, `@prism3/web` → `@prism3/studio` (#624)
 
 **STATUS: layout + rename.** 41 files move under `apps/`, 37 modified, no emitted artifact changes —
