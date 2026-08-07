@@ -324,6 +324,12 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
 const commit = hostCommit();
 let seedInfo: { ok: boolean; summary: string } | null = null;   // set by the host's boot read-back (#109)
+/** Set when the host REFUSED to rehydrate the knobs (#480): a `BrandInput` blob is stored in this
+ *  file, but it's an old/foreign shape or a schema version this build doesn't recognize (the
+ *  pre-#341/#415 shape is exactly this case). A separate slot from `seedInfo` for the same reason
+ *  the other boot facts are separate — this answers "could your saved knobs be restored", which
+ *  `seedInfo` (the file's Figma-variable contract) does not. */
+let restoreError: string | null = null;
 /** The state of the Apply-to-Figma write. `null` = never run this session; `pending` = posted and the
  *  host has not answered yet; otherwise the host's verdict.
  *
@@ -359,6 +365,14 @@ commit.onHostMessage((m) => {
     // boot render (renderBar reads `brandState.primary`); on reject we silently keep defaults.
     try { brandTheme(m.input as BrandInput); } catch { return; }
     loadBrand(m.input as BrandInput);
+    return;
+  }
+  if (m.kind === 'restore-input-error') {
+    // #480: the host found a stored blob but refused it (old shape / unrecognized schema version).
+    // Surface it loudly rather than silently staying on defaults — a designer opening a file they
+    // themed before needs to know the knobs didn't come back, not just see a default-looking brand.
+    restoreError = m.message;
+    if (barHost) renderBar();
     return;
   }
   if (m.kind === 'font-list') {
@@ -6712,6 +6726,16 @@ function renderBar(): void {
   // pill, shown only until the first apply, after which the write's own result is the newer fact and
   // "what was in the file when I opened it" is no longer what the designer is asking about.
   if (commit.isFigma) {
+    // #480: independent of the applyState/seedInfo slot below — a restore refusal is a fact about
+    // BOOT, not about the write button, and must stay visible even once an apply (or the read-back)
+    // has something else to say in that slot.
+    if (restoreError) {
+      // `title` carries the full message — the pill itself truncates (`.bar-seed` is a fixed-width,
+      // single-line, ellipsized slot), and this is the one boot fact worth reading in full.
+      const pill = el('span', 'bar-seed bad', `Saved brand not restored — ${restoreError}`);
+      pill.title = restoreError;
+      actions.append(pill);
+    }
     if (applyState) actions.append(renderApplyStatus(applyState));
     else if (seedInfo) actions.append(el('span', 'bar-seed' + (seedInfo.ok ? '' : ' bad'), seedInfo.summary));
     const pending = applyState === 'pending';

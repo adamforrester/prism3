@@ -168,13 +168,22 @@ const seedFromFile = async (): Promise<void> => {
 
 /**
  * Boot knob-rehydration (#131): read the `BrandInput` the last apply persisted in shared-data and,
- * if a trusted blob exists, hand it to the UI so it opens on the persisted brand. Absence / drift /
- * corruption → `null` → nothing posted → the UI keeps its defaults (same as an unthemed file).
- * Independent of `seedFromFile` — the read-back verdict and the knob restore don't gate each other.
+ * if a trusted blob exists, hand it to the UI so it opens on the persisted brand. Genuine absence →
+ * `null` → nothing posted → the UI keeps its defaults (same as an unthemed file). Independent of
+ * `seedFromFile` — the read-back verdict and the knob restore don't gate each other.
+ *
+ * #480: a stored-but-untrusted blob (old/foreign shape, unrecognized schema version) makes
+ * `restoreInput` THROW rather than return `null` — caught here and reported as `restore-input-error`
+ * so the designer sees a clear refusal instead of the UI silently opening on defaults as if the file
+ * had never been themed.
  */
 const restoreToUi = (): void => {
-  const input = restoreInput(figma.root);
-  if (input) postToUi({ type: 'restore-input', input });
+  try {
+    const input = restoreInput(figma.root);
+    if (input) postToUi({ type: 'restore-input', input });
+  } catch (e) {
+    postToUi({ type: 'restore-input-error', message: (e as Error).message });
+  }
 };
 
 /**

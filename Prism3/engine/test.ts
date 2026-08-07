@@ -38,7 +38,7 @@ import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from '.
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
-import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION } from './persist-input';
+import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
@@ -774,26 +774,40 @@ for (const b of brands) {
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
 }
 
-// BrandInput PERSISTENCE (#131): the shared-data round-trip + version guard. A persisted brand
-// must deserialise back to the EXACT input (so re-opening a themed file rehydrates the knobs), and
-// any untrusted blob (garbage / drift / non-object) must collapse to null (= start from defaults).
+// BrandInput PERSISTENCE (#131, #480): the shared-data round-trip + version guard. A persisted
+// brand must deserialise back to the EXACT input (so re-opening a themed file rehydrates the
+// knobs); genuine absence (nothing ever stored) collapses to `null`; anything NON-EMPTY that can't
+// be trusted (garbage / drift / non-object) must REFUSE LOUDLY (throw `UnrecognizedPersistedInputError`)
+// rather than collapsing to `null` — #480 found that a silent `null` here is indistinguishable from
+// "no theme yet", which is exactly how a pre-#341/#415 blob's numeric `displayCeiling` risked being
+// silently accepted rather than refused.
 {
   const brand = exampleBrands()['aurora'] as BrandInput;
   const back = deserializeBrandInput(serializeBrandInput(brand));
   ok(JSON.stringify(back) === JSON.stringify(brand), 'persist: serialize→deserialize round-trips a BrandInput exactly (knob rehydration)');
 
-  ok(deserializeBrandInput('not json {') === null, 'persist: corrupt/non-JSON blob → null (fall back to defaults)');
-  ok(deserializeBrandInput('') === null, 'persist: empty blob → null (unset shared-data key)');
-  ok(deserializeBrandInput(JSON.stringify({ v: PERSIST_VERSION + 1, input: brand })) === null, 'persist: version mismatch → null (schema drift ignored, not mis-read)');
-  ok(deserializeBrandInput(JSON.stringify({ v: PERSIST_VERSION })) === null, 'persist: missing input → null');
-  ok(deserializeBrandInput(JSON.stringify({ input: brand })) === null, 'persist: missing version → null');
-  ok(deserializeBrandInput('42') === null && deserializeBrandInput('null') === null, 'persist: non-object JSON → null');
+  const throwsUnrecognized = (fn: () => unknown): boolean => {
+    try { fn(); return false; } catch (e) { return e instanceof UnrecognizedPersistedInputError; }
+  };
+
+  ok(deserializeBrandInput('') === null, 'persist: empty blob → null (unset shared-data key — genuinely never stored)');
+  ok(throwsUnrecognized(() => deserializeBrandInput('not json {')), 'persist: corrupt/non-JSON blob → throws (#480, not null)');
+  ok(throwsUnrecognized(() => deserializeBrandInput(JSON.stringify({ v: PERSIST_VERSION + 1, input: brand }))), 'persist: version newer than this build → throws (#480, not null)');
+  // The reported #480 case: a pre-#341/#415 blob is stamped `v: 1` (the version in force before
+  // those PRs, and before this fix bumped PERSIST_VERSION to 2) — it must be refused, not silently
+  // decoded as the current shape.
+  ok(throwsUnrecognized(() => deserializeBrandInput(JSON.stringify({ v: 1, input: brand }))), 'persist: pre-#341/#415 version stamp (v:1) → throws (#480), not silently mis-read as current shape');
+  ok(throwsUnrecognized(() => deserializeBrandInput(JSON.stringify({ v: PERSIST_VERSION }))), 'persist: missing input → throws (#480, not null)');
+  ok(throwsUnrecognized(() => deserializeBrandInput(JSON.stringify({ input: brand }))), 'persist: missing version stamp ("no stamp") → throws (#480, not null)');
+  ok(throwsUnrecognized(() => deserializeBrandInput('42')) && throwsUnrecognized(() => deserializeBrandInput('null')), 'persist: non-object JSON → throws (#480, not null)');
 
   // The envelope guard (version + input-is-object) is deliberately shallow — the persisted blob is
-  // PUBLIC shared-data, so a versioned-but-shape-invalid payload (`{v:1, input:{}}`) clears it and
-  // deserialises to a non-null object. The SHAPE gate is downstream: the restore handler runs
-  // `brandTheme` (exactly as Import does) before loading, and rejects it — so the boot render never
-  // sees a brand with no `primary`. Assert both halves of that contract here.
+  // PUBLIC shared-data, so a versioned-but-shape-invalid payload (`{v:2, input:{}}`) clears the
+  // envelope and deserialises to a non-null object. The SHAPE gate is downstream: the restore
+  // handler runs `brandTheme` (exactly as Import does) before loading, and rejects it — so the boot
+  // render never sees a brand with no `primary`. Assert both halves of that contract here. This is
+  // deliberately NOT part of the version guard's job (#480 is the version stamp only, option 1; a
+  // migration for the specific pre-#341/#415 shape is option 2, deferred — see docs/00-progress.md).
   const malformed = deserializeBrandInput(JSON.stringify({ v: PERSIST_VERSION, input: {} }));
   ok(malformed !== null, 'persist: versioned-but-empty input clears the envelope (shape gate is downstream, not here)');
   let rejected = false;

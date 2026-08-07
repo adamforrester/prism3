@@ -51,8 +51,18 @@ export type MainToUi =
   | { type: 'seed-info'; ok: boolean; summary: string }
   /** Boot knob-rehydration (#131): the `BrandInput` persisted by the last apply, read back from the
    *  file's shared-data. The UI loads it wholesale so it opens on the persisted brand, not defaults.
-   *  Sent only when a trusted blob exists (absence / drift → not sent → UI keeps defaults). */
+   *  Sent only when a trusted blob exists (genuine absence → not sent → UI keeps defaults; a
+   *  stored-but-untrusted blob sends `restore-input-error` below instead, never this). */
   | { type: 'restore-input'; input: BrandInput }
+  /** Boot knob-rehydration REFUSED (#480): a `BrandInput` blob IS stored in this file's shared-data
+   *  but can't be trusted — an old/foreign shape, or a schema version this build doesn't recognize
+   *  (e.g. a pre-#341/#415 blob: the old `families.display/text/mono` role names, and a numeric
+   *  `displayCeiling` where the current schema expects a rung name — the dangerous case, since a bare
+   *  number can silently parse as SOMETHING in the new shape rather than failing to parse at all).
+   *  Sent instead of `restore-input` so the UI can surface a clear, user-visible message rather than
+   *  either silently keeping defaults (reads as "no theme yet", hiding that a restore failed) or
+   *  guessing at the old shape. */
+  | { type: 'restore-input-error'; message: string }
   /** The font families this Figma can load (the #113 Figma arm). Pushed once on `ui-ready` — the
    *  list is static for the session, so there is no request/response pair. The shared UI uses it to
    *  drive type-ahead on the typeface input; it is a HINT, not a constraint (a free-typed name
