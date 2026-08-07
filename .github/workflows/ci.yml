@@ -145,6 +145,15 @@ jobs:
       - name: US-English gate (shipped text)
         run: npx --yes tsx@4 Prism3/engine/lint-us-english.ts
 
+      # Voice-standard §2 banned-phrase list ("simply", "just" outside its exactly/barely sense,
+      # "easy", "obviously", "please note"/"note that", "Oops"/"Sorry", exclamation marks in prose)
+      # in shipped text (#617). Sibling to the US-English gate above, not merged into it — different
+      # exemption sets (an allow-set for "just", a context rule for "!"), different failure messages
+      # — but wired in the SAME position for the SAME reason: its scope includes the built
+      # `web/dist/*.js` bundle, so it has to run after the web build too.
+      - name: Voice lint gate (shipped text)
+        run: npx --yes tsx@4 Prism3/engine/lint-voice.ts
+
       # A gate that silently stops running is worse than no gate, because green starts meaning
       # "nothing ran". If any emitter, report or schema artifact ever leaves the compared set, this
       # fails loudly rather than quietly shrinking. Update the number deliberately when the set

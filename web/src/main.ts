@@ -2434,7 +2434,7 @@ const renderAddAccentRow = (): HTMLElement => {
 const renderInteractiveMatrix = (host: HTMLElement): void => {
   renderGlobalBehavior(host);
   const perMode = currentMode !== 'light';
-  if (perMode) host.append(el('p', 'ic-modenote', `Editing ${MODE_LABEL[currentMode] ?? currentMode}’s interactive colors — “Auto” follows the generated baseline; pick a step to override just this mode.`));
+  if (perMode) host.append(el('p', 'ic-modenote', `Editing ${MODE_LABEL[currentMode] ?? currentMode}’s interactive colors — “Auto” follows the generated baseline; pick a step to override this mode.`));
   const anchor = (name: string, get: () => number | undefined, set: (v: number | undefined) => void): Pick<ICol, 'stepValue' | 'setStep'> => {
     if (!perMode) return { stepValue: get(), setStep: (v) => { set(v); applyFull(); } };
     return {
@@ -4929,7 +4929,7 @@ const renderCategorySetup = (): HTMLElement => {
   // #411 — the sign convention has to be stated somewhere, since the labels are now bare deltas.
   // `innerHTML`, not `el`'s text argument: `el` escapes, so the markup would render literally.
   const nudgeNote = el('p', 'sl-note');
-  nudgeNote.innerHTML = 'The leading and tracking nudges shift that category’s whole curve: <b>+1 opens it by one rung, −1 tightens it</b>. Bigger headings keep tightening — they just start from a different place. The line under each control names the rung the category lands on, or both rungs where it spans two size bands.';
+  nudgeNote.innerHTML = 'The leading and tracking nudges shift that category’s whole curve: <b>+1 opens it by one rung, −1 tightens it</b>. Bigger headings keep tightening — they start from a different place. The line under each control names the rung the category lands on, or both rungs where it spans two size bands.';
   sec.append(nudgeNote);
   return sec;
 };
@@ -5212,7 +5212,7 @@ const setLinkOverride = (palette: string, steps: string[], step: string | undefi
 };
 
 const renderForegroundEditor = (): HTMLElement => {
-  const sec = palSection('Text', `Every text color for ${MODE_LABEL[currentMode] ?? currentMode} — the neutral ladder, the semantic and link inks, and the derived inks that follow other decisions. “Auto” follows the generated, contrast-placed default; pick a step to override just this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the surface it is rated against.`);
+  const sec = palSection('Text', `Every text color for ${MODE_LABEL[currentMode] ?? currentMode} — the neutral ladder, the semantic and link inks, and the derived inks that follow other decisions. “Auto” follows the generated, contrast-placed default; pick a step to override this mode (a pick below the text floor is warned, not blocked). Each row previews the ink on the surface it is rated against.`);
   const nPal = theme.roleToPalette.neutral;
   const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
   const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
@@ -5328,7 +5328,7 @@ const setFillOverride = (role: string, palette: string, step: string | undefined
   applyFull();
 };
 const renderForegroundsEditor = (): HTMLElement => {
-  const sec = palSection('Foreground fills', `Bold semantic fills + neutral surface tiers for ${MODE_LABEL[currentMode] ?? currentMode} — “Auto” follows the generated, contrast-gated default; pick a step to override just this mode (a pick below the fill's floor is warned, not blocked).`);
+  const sec = palSection('Foreground fills', `Bold semantic fills + neutral surface tiers for ${MODE_LABEL[currentMode] ?? currentMode} — “Auto” follows the generated, contrast-gated default; pick a step to override this mode (a pick below the fill's floor is warned, not blocked).`);
   const roles = (resolveAllModes(theme).find((x) => x.mode === currentMode)?.roles ?? {}) as Record<string, { hex: string; path?: string; ratio?: number; min?: number } | undefined>;
   for (const { role, label, paletteKey, desc } of FILL_ROLES) {
     const r = roles[role]; if (!r) continue;
@@ -5369,7 +5369,7 @@ const renderShadowEditor = (softness?: Lever): HTMLElement => {
   const perMode = currentMode !== 'light';
   const modeLabel = MODE_LABEL[currentMode] ?? currentMode;
   const wrap = palSection('Shadow', perMode
-    ? `Blur softness + tint for ${modeLabel} — “Auto” follows the global shadow; a value overrides just this mode (crisper/softer, warmer/cooler). The light↔dark reduction still applies on top.`
+    ? `Blur softness + tint for ${modeLabel} — “Auto” follows the global shadow; a value overrides this mode (crisper/softer, warmer/cooler). The light↔dark reduction still applies on top.`
     : 'Blur softness (crisp/product → soft/marketing) and a hue-shift of the shadow base off pure black. Tint amount 0 = pure black; higher = a richer, brand-hued near-black.');
   const gTint = theme.shadow.tint;         // resolved global tint (what a mode inherits under Auto)
   const gSoft = theme.shadow.softness;     // resolved global softness

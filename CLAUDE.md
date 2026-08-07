@@ -90,7 +90,7 @@ Adapted from the Karpathy coding guidelines (github.com/multica-ai/andrej-karpat
    - **Web** — `npm run -w @prism3/web` → `typecheck` (esbuild does not typecheck, so this and `build` are not redundant) · `build` · `check:ignore` · `lint:contrast` · `lint:classes` (a NEW class-name pairing fails until it is added to `ALLOWED` in `web/lint-classes.mjs`).
    - **Plugin** — `npm run -w @prism3/plugin` → `typecheck` (both contexts) · `test` · `build` (`dist/main.js` must carry 0 `node:` builtins).
    - **Tokens** — `npm run -w @prism3/tokens check:consumability`: a stock Style Dictionary over the emitted DTCG — a *characterization* gate that pins the known #609 mode gap so it cannot drift, and asserts the consumer config ships no custom preprocessors/transforms (see `packages/tokens/README.md`).
-   - **Last, after the web build** — `npx tsx Prism3/engine/lint-us-english.ts`; its scope includes the built `web/dist/*.js` bundle, so running it earlier scans a stale one.
+   - **Last, after the web build** — `npx tsx Prism3/engine/lint-us-english.ts` and its sibling `npx tsx Prism3/engine/lint-voice.ts` (voice-standard.md §2's banned-phrase list — #617); their scope includes the built `web/dist/*.js` bundle, so running them earlier scans a stale one.
 
    `CONTRIBUTING.md` §3 is the canonical list with per-gate rationale, and `lint-doc-gates.ts` fails CI if it, this list, or the PR template drifts from `ci.yml`. **`regen.ts --check` is the only gate that reads the *committed* artifacts** — every other one runs the engine live and compares it against itself, so a stale committed artifact passes all of them.
 

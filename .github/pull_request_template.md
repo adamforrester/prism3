@@ -41,6 +41,7 @@
 - [ ] `npm run -w @prism3/plugin build` → succeeds, 0 `node:` builtins in `dist/main.js`
 - [ ] `npm run -w @prism3/tokens check:consumability` → clean — a stock Style Dictionary over the emitted DTCG; a *characterization* gate, so green means "matches the pinned #609 baseline", not "the output is conforming"
 - [ ] `npx tsx Prism3/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `web/dist/*.js` bundle
+- [ ] `npx tsx Prism3/engine/lint-voice.ts` → clean — voice-standard.md §2 banned-phrase list (#617); sibling to lint-us-english.ts, same reason it runs here
 
 ## out/* + fixtures
 

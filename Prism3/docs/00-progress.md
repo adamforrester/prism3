@@ -7,6 +7,87 @@
 
 ---
 
+## (2026-08-07) — Voice lint gate: a sibling to lint-us-english.ts for voice-standard.md §2 (#617)
+
+**STATUS: shipped, clean, wired into CI.** New `Prism3/engine/lint-voice.ts`, gated the same surfaces
+as `lint-us-english.ts` (imported from `regen.ts`), wired into `ci.yml` in the same position (after
+the web build), documented in CLAUDE.md/CONTRIBUTING.md/the PR template so `lint-doc-gates.ts` stays
+green.
+
+**What it enforces.** `voice-standard.md` §2's banned-phrase table: `simply`/`easy`/`obviously`
+(literal words), `just` (banned unless it means exactly/barely — "just below the floor"), `please
+note`/`note that`, apology copy (`Oops`/`Sorry`), and exclamation marks in prose (not `!==`/`!=`/
+`!important`/`!default`/`<!doctype`, and not a bare `"!"` icon-glyph string — `web/dist/main.js` uses
+one as a fail-marker).
+
+**Sibling, not merged — and why duplicating a little was the right call, not a shortcut.** The two
+gates check unrelated rule sets with different exemption shapes (en-GB spelling patterns vs. a
+banned-phrase list), so combining them would make one rule's diff noisy for the other's changes — the
+issue's own framing. The shared machinery (`walk`/`walkRequired`, the fail-closed `blind[]` list, the
+`gated[]` surface construction, the REQUIRED_SURFACES forward+converse self-check) is **duplicated**
+rather than extracted into a common module. `lint-us-english.ts` is a delicate file with five numbered
+traps behind it and no test harness of its own beyond its inline self-check; extracting ~60 shared
+lines would mean touching every line of that logic to parameterize it, for a gate that is currently
+correct. The risk/reward didn't clear the bar — surgical duplication over a refactor of working code.
+
+**The one substantive design decision, and where it diverges from precedent on purpose: code comments
+are exempt for this gate, unlike `lint-us-english.ts`.** `lint-us-english.ts`'s header records that it
+*retired* the equivalent `web/src` comment exemption in #464, reasoning that which comments a bundler
+keeps is an implementation detail the gate can't see and so can't rely on. That reasoning does not
+transfer here: the two rule sets have opposite false-positive profiles inside comments. An en-GB
+spelling landing in a comment is rare and trivial to avoid; this repo's own documentary comment
+style — visible throughout `lint-us-english.ts`, `lint-doc-gates.ts`, and this very log — uses
+"just"/"simply" constantly as ordinary connective prose. Scanning comments naively found 23 hits on
+the first run, 22 of them inside the CSS-in-template-literal stylesheet (`web/src/main.ts`'s `STYLE`
+constant) that ships into `web/dist/main.js` unchanged because esbuild never parses the *inside* of a
+string. Confirmed structurally first: grepped the built bundle for known real TypeScript source-comment
+text and found none — esbuild strips genuine `//`/`/* */` source comments before they ever reach the
+bundle, so the ONE place a comment survives into shipped text is a C-style comment written as literal
+string content. `stripBlockComments()` blanks `/\* ... \*/` spans (preserving length + newlines, so
+line numbers on a real hit downstream stay accurate) in `.js` bundle files only — JSON/Markdown
+surfaces get no stripping, since they carry no code-comment convention to exempt and blanking an
+arbitrary substring there is pure risk for no benefit. A dedicated self-check (`COMMENT_SAMPLE`) proves
+the stripper neither leaves a banned word reachable inside a comment nor over-strips a real violation
+sitting immediately outside one, and that it doesn't change the file's line count.
+
+**One real, pre-existing violation surfaced and was fixed, not exempted.** After the comment exemption,
+6 genuine hits remained — 5 UI-copy strings in `web/src/main.ts` using "just" in its plain "only/merely"
+sense ("pick a step to override just this mode", "they just start from a different place") and one
+line in `Prism3/skills/prism3-consume/SKILL.md` ("the discipline is identical — you just read the tree
+from the file"). None of these matched the stated "exactly/barely" exception, so the allow-set was
+correctly *not* widened for them — instead the word was dropped from each string (meaning fully
+preserved in all six cases; "just" was adding nothing, which is exactly §2's stated complaint about the
+word). This is the gate doing its job on day one, not a false positive requiring a design change.
+
+**Tamper test (load-bearing, per the issue).** Injected `"...its lightness. Simply pick a color!"` into
+`levers.ts`'s `primary` lever description, rebuilt `web/dist/main.js`, ran `lint-voice.ts`: it failed
+with two separate itemized findings at the same line — `[banned-word] "Simply"` and `[exclamation]
+"!"` — confirming both violation types are independently detected, not accidentally covering for each
+other. Reverted, rebuilt, reran: clean. Ran a second tamper (`"Oops, sorry!"` injected into a different
+lever's description) through the *exact* CI invocation string (`npx --yes tsx@4
+Prism3/engine/lint-voice.ts`) and got exit 1 with three itemized findings (`apology` ×2, `exclamation`
+×1); reverted and confirmed exit 0 clean again. `lint-doc-gates.ts` confirms the new CI step
+("Voice lint gate (shipped text)") is represented in all three docs (17 candidate gate steps found,
+was 16 before this step — `Drift gate still covers the full artifact set` is separately excluded as a
+meta-check, matching the existing pattern).
+
+**Tests.** Checked first whether `lint-us-english.ts`/`lint-skills.ts`/`lint-doc-gates.ts` have any
+presence in `test.ts` — zero references. Each of those gates is tested by its own inline SELF_CHECK
+instead (driving the same functions the real run calls, per that file's own documented lesson about a
+self-check validating a reimplementation rather than the shipping path). `lint-voice.ts` mirrors that
+established pattern rather than introducing a new one: its SELF_CHECK covers one true positive per
+rule, the "just below/above the floor" exception in both directions, three code-context exclusions for
+the exclamation rule (`!==`, `!important`, `<!doctype`) plus the icon-glyph case, and a dedicated
+comment-stripping self-check. `test.ts` itself is unchanged.
+
+**Full CLAUDE.md §4 sequence run before push:** `regen.ts` (88 artifacts, unchanged) → `regen.ts
+--check` → `test.ts` (1931/1931) → `mcp-test.ts` (49/49) → `token-contract.ts --check` (unchanged) →
+`lint-skills.ts` → `nb-regression.ts` (11/11 contrast contracts, PASS) → `lint-doc-gates.ts` → web
+typecheck/build/check:ignore/lint:contrast/lint:classes → plugin typecheck/test/build (0 `node:`
+builtins) → `lint-us-english.ts` (clean, unaffected) → `lint-voice.ts` (clean). All green.
+
+---
+
 ## (2026-08-07) — The paste path's half of the #479 prune report (verify pass)
 
 **STATUS: `Prism3/engine/materialise-to-figma.ts` + `test.ts`.** No engine value change — `out/*`
