@@ -3136,6 +3136,26 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     for (const ref of (r.paired_with ?? []))
       if (!roleKeys.has(ref)) dangling.push(`${k} → ${ref}`);
   ok(dangling.length === 0, 'sidecar: every .ai.json paired_with resolves to a real role in the sidecar' + (dangling.length ? ` — ${dangling.slice(0, 5).join(', ')}` : ''));
+
+  // #621 — avoid_when_level (RFC 2119 MUST/SHOULD), DERIVED from whether a real contrast contract
+  // backs the token, never hand-typed. "Every emitted MUST maps to a named gate" (#621's own Verify
+  // section) is exactly this structural check: MUST iff contrast_with is present, over every real
+  // role this brand emits — not a synthetic sample.
+  const colorEntries = Object.entries(ai.color as Record<string, any>);
+  const mustNoGate = colorEntries.filter(([, r]) => r.avoid_when_level === 'MUST' && !(r.contrast_with?.length));
+  const gatedButShould = colorEntries.filter(([, r]) => r.avoid_when_level === 'SHOULD' && r.contrast_with?.length);
+  ok(mustNoGate.length === 0, 'sidecar: every avoid_when_level MUST carries a computed contrast_with contract' + (mustNoGate.length ? ` — ${mustNoGate.map(([k]) => k).slice(0, 5).join(', ')}` : ''));
+  ok(gatedButShould.length === 0, 'sidecar: every role with a computed contrast_with is labelled MUST, not SHOULD' + (gatedButShould.length ? ` — ${gatedButShould.map(([k]) => k).slice(0, 5).join(', ')}` : ''));
+  // Concrete values, not just the structural pairing — docs/34 shape 5 ("it resolves" is not "it is
+  // right"). Two real, independently-meaningful tokens picked because their status is verifiable by
+  // inspection, not because they happen to pass: text.primary MUST hold a real AAA text contract
+  // against its surface; border.primary is explicitly a "decorative" border whose own avoid_when
+  // says a contract-bound border is a DIFFERENT token (border.secondary/border.focus) — SHOULD is
+  // the semantically correct answer here, not a gap.
+  ok(ai.color['text.primary']?.avoid_when_level === 'MUST' && ai.color['text.primary']?.contrast_with?.[0]?.min === '7:1',
+    'sidecar: text.primary is MUST with its real 7:1 AAA contract, not asserted in the abstract');
+  ok(ai.color['border.primary']?.avoid_when_level === 'SHOULD' && !ai.color['border.primary']?.contrast_with,
+    'sidecar: border.primary (decorative, no contract of its own) is SHOULD, not a false MUST');
 }
 // (5) STANDARD dialect — the brand-skills / google-labs design.md path (docs/07 §11):
 // the reader + colour-role classifier + x-prism3 levers, on the real Wendy's file.

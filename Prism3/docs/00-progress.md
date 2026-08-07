@@ -313,6 +313,55 @@ role — it's reporting the consequence of the pin the user just applied, not na
 
 ---
 
+## (2026-08-07) — `avoid_when_level`: RFC 2119 MUST/SHOULD on `.ai.json` guidance, derived not authored (#621)
+
+**STATUS: shipped, narrow scope by owner decision.** #621 was filed as a `[decision]`, not a
+`[task]` — the owner-raised question (source: a Nathan Curtis piece on Cloudflare's Codex) was
+whether `.ai.json` guidance should carry an explicit normative level, given that doing so creates a
+standing obligation: *"a `MUST` with no gate behind it is worse than no label."* Four options were on
+the table (levels+lifecycle / levels-only / defer to the component layer / full Codex adoption);
+asked rather than assumed, and the owner picked **option 1, narrowly scoped** — label the one thing
+that's already live (`avoid_when`), skip naming the approved→enforced lifecycle and the docs `status`
+frontmatter question for now (both left as open follow-ons, not decided against).
+
+**What shipped.** `avoid_when_level: 'MUST' | 'SHOULD'` on every semantic-tier `.ai.json` color role
+(`Prism3/engine/ai-metadata.ts`), sitting beside the pre-existing `avoid_when` string (additive, not a
+restructure — `avoid_when` itself is unchanged, so this isn't the breaking `avoid_when.level` /
+`statements[]` shape the issue floated as an alternative). `$schema` bumped `0.1` → `0.2` on the
+sidecar's own version string.
+
+**Derived, not authored — the load-bearing design constraint.** `avoid_when_level` is computed as
+`light.min > 0 ? 'MUST' : 'SHOULD'` — the exact same condition that already gates whether
+`contrast_with` gets attached. Not a coincidence: a token is `MUST` *because a real computed contrast
+contract exists for it*, never because someone typed `MUST` on a per-statement basis. That's what
+keeps the label non-driftable — it can only ever be as strong as the contract computation it reads.
+
+**Verified against real data, not just structurally.** Two checks in `test.ts`, over the real aurora
+brand (151 emitted color roles, not a synthetic sample): (1) the structural invariant the issue's own
+Verify section asked for — every `MUST` carries a `contrast_with` entry and vice versa, i.e. *"every
+emitted MUST maps to a named gate"* is checked mechanically; (2) two concrete, independently-verifiable
+anchors, per `docs/34` shape 5 ("it resolves" is not "it is right") — `text.primary` is `MUST` with its
+real 7:1 AAA contract, and `border.primary` (explicitly "decorative," its own `avoid_when` says a
+contract-bound border is a *different* token) is `SHOULD`, not a false MUST.
+
+**Mutation-tested, per `docs/34`'s actual rule** (not "does the suite go red," but "is *this* check in
+the failure list"): temporarily hard-coded `avoid_when_level` to always `'SHOULD'`, reran `test.ts`,
+confirmed exactly the two data-dependent assertions failed by name (`text.primary`'s concrete check and
+the "every gated role is MUST" structural check — the other two, having nothing left to find, correctly
+stayed green), then reverted.
+
+**Gates: `test.ts` 1924/1924 (+4 new) · `mcp-test.ts` 49/49 · `nb-regression.ts` exit 0 ·
+`regen.ts --check` 88/88 · `token-contract.ts --check` unchanged (this is `.ai.json` shape, which the
+token-name contract deliberately does not cover — confirmed, not assumed) · web/plugin typecheck+build
+clean · `lint-us-english.ts` clean.** `out/*`: the four committed `.ai.json` fixtures regenerated
+(new field on every color role); DTCG `tokens.json` untouched.
+
+**Left for later, explicitly not decided against:** naming the approved→enforced lifecycle, whether
+`typography`/`gradient` tier entries get a level too, and the docs `status` frontmatter question. First
+real application is still the component layer (`14` §3) once it exists, per the issue.
+
+---
+
 ## (2026-08-07) — A gate that keeps the docs' gate checklists in sync with `ci.yml` (#613)
 
 **STATUS: shipped.** #610 fixed a concrete instance of this — `CLAUDE.md` principle 4,
