@@ -17,7 +17,7 @@ import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPA
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes } from './modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole } from './modes';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
@@ -3930,6 +3930,124 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const differs = modes.filter((m) => m.roles['border.focus']?.hex !== m.roles['border.focus-inverse']?.hex);
     ok(differs.length > 0, `the inverse focus ring is its own value — ${id}`
       + (differs.length ? ` (${differs.length}/${modes.length} modes)` : ' — FAIL: identical to border.focus in every mode'));
+  }
+}
+
+// (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
+// `outlineFillFamily` names is the role the engine actually emits, and the family it does NOT name
+// is absent.
+//
+// The bug this closes was not in the tokens — they were always correct — but in a consumer's read of
+// them, and that is precisely why nothing caught it. `emit-dtcg`'s contrast contracts pass either
+// way; the style guide asked for `overlay.hover` under `solid-tint`, got `undefined`, and painted
+// `transparent`. **An absent role and a deliberately-empty one are indistinguishable at the point of
+// use**, so the failure renders as a plausible design decision rather than as an error. No amount of
+// gating the artifact would have found it.
+//
+// So this gate is on the MAPPING, which is the thing both sides now share: if the helper the
+// dashboard reads ever disagrees with the branch the emitter takes, one of these two assertions
+// fails for every brand at once. The exhaustiveness of the switch is enforced separately and for
+// free — `outlineFillFamily` has no `default`, so a fourth lever value is a compile error at the
+// helper rather than a silently transparent swatch (verified by adding one).
+//
+// Note `none` is asserted just as hard as the other two. It is the value the bug MASQUERADED as, so
+// "both families absent" is a real claim worth pinning: if `none` ever started emitting a family,
+// the two working methods would keep working and only the bug's disguise would get better.
+{
+  const METHODS = ['overlay-neutral', 'solid-tint', 'none'] as const;
+  const FAMILIES = ['overlay', 'subtle-fill'] as const;
+  for (const { id, theme } of corpus()) {
+    for (const method of METHODS) {
+      const { family, opaque } = outlineFillFamily(method);
+      const missing: string[] = [], spurious: string[] = [];
+      for (const m of resolveAllModes({ ...theme, outlineInteraction: method })) {
+        for (const color of ['primary', 'neutral', 'destructive']) {
+          for (const st of ['hover', 'pressed', 'selected']) {
+            for (const fam of FAMILIES) {
+              const present = m.roles[`interactive.${color}.${fam}.${st}`] !== undefined;
+              if (fam === family && !present) missing.push(`${m.mode} ${color}.${fam}.${st}`);
+              if (fam !== family && present) spurious.push(`${m.mode} ${color}.${fam}.${st}`);
+            }
+            // The role key the helper hands a consumer must be the one that resolves — the read the
+            // dashboard performs, asserted directly rather than inferred from the two sets above.
+            const key = outlineFillRole(method, color, st);
+            if (key !== null && m.roles[key] === undefined) missing.push(`${m.mode} via helper: ${key}`);
+            if (key === null && family !== null) missing.push(`${m.mode} helper returned null for an emitting method`);
+            // ...and it must resolve to the STATE THAT WAS ASKED FOR, which "it resolves" does not
+            // imply: `subtle-fill.hover` resolves perfectly well when the caller asked for `pressed`.
+            // Found by review mutation, not by writing this gate: a one-token slip inside the helper
+            // (`state === 'pressed' ? 'hover' : state`) passed all 1852 tests. The result is visible
+            // and wrong — on harbor/light the two fills are distinct (hover #d3dedd, pressed #c2d1d1),
+            // so pressed would paint as hover. That is the SAME SHAPE as the bug this gate closes:
+            // a plausible-looking render rather than an error, which is exactly why #575 went unseen.
+            // Asserted against the family the helper itself returned, so it constrains the state axis
+            // without re-deriving the family and re-introducing the tautology the comment in modes.ts
+            // warns about.
+            if (key !== null && key !== `interactive.${color}.${family}.${st}`)
+              missing.push(`${m.mode} helper key ${key} ≠ requested ${color}.${st}`);
+          }
+        }
+      }
+      ok(missing.length === 0, `outline method '${method}' emits the family the helper names — ${id}`
+        + (missing.length ? ` — MISSING: ${missing.slice(0, 4).join('; ')}${missing.length > 4 ? ` (+${missing.length - 4})` : ''}` : ''));
+      ok(spurious.length === 0, `outline method '${method}' emits ONLY that family — ${id}`
+        + (spurious.length ? ` — SPURIOUS: ${spurious.slice(0, 4).join('; ')}${spurious.length > 4 ? ` (+${spurious.length - 4})` : ''}` : ''));
+      // `opaque` drives a per-state ink switch in the style guide (see 10h-ii), so it is part of the
+      // contract, not a rendering hint: only the tint covers its ground.
+      ok(opaque === (method === 'solid-tint'), `outline method '${method}' reports opacity correctly — ${id}`);
+    }
+  }
+}
+
+// (10h-ii) #575 — the OPAQUE tint covers its ground, so ink chosen for the ground beneath it is
+// measured against something that is no longer there.
+//
+// This is the trap that fixing (10h)'s bug walks into. The style guide switches the Outline row's ink
+// to `on-inverse.text.*` on an inverse preview ground, which is right for the translucent wash — it
+// composites, so the band is still the ground. The `solid-tint` fill is a real palette step: from
+// `hover` onward the ground is a page-tuned tint, and the band's ink fails on it in **79 of 80**
+// corpus combinations, worst measured 1.32:1. The engine gates the tint against the control's own
+// PAGE ink for that state, so the page ink is the measured-correct answer there, not a fallback.
+//
+// Asserted here rather than in the web because the web has no test suite (#333) — but the fact being
+// asserted is an ENGINE fact (which ink the tint was gated against), and it is what makes the
+// dashboard's per-state switch correct. Same family as #63/#570/#573: a value measured against one
+// ground and painted on another. Third gate in this repo written to catch that shape.
+{
+  for (const { id, theme } of corpus()) {
+    const t = { ...theme, outlineInteraction: 'solid-tint' as const };
+    const pageBad: string[] = [], bandOk: string[] = [], bandBad: string[] = [];
+    for (const m of resolveAllModes(t)) {
+      for (const color of ['primary', 'neutral', 'destructive']) {
+        for (const st of ['hover', 'pressed']) {
+          const tint = m.roles[`interactive.${color}.subtle-fill.${st}`];
+          if (!tint) continue;
+          const pageInk = m.roles[`interactive.${color}.text.${st}`];
+          const bandInk = m.roles[`interactive.${color}.on-inverse.text.${st}`];
+          // The page ink is what the engine gated this tint against — it must hold.
+          if (pageInk) {
+            const r = contrast(hexToRgb(pageInk.hex), hexToRgb(tint.hex));
+            if (r < tint.min) pageBad.push(`${m.mode} ${color}.${st} ${r.toFixed(2)}<${tint.min}`);
+          }
+          // And the band ink must not be ASSUMED usable on it. Counted, not asserted per row: one
+          // combination in the corpus (minimal / dark / primary.hover) does clear 3:1, by coincidence
+          // rather than by contract — the engine never gated it there. A "every row fails" assertion
+          // would have been the more satisfying claim and it is simply false; writing it that way
+          // first is how this got measured properly. What the switch needs is that the band ink
+          // cannot be RELIED on, i.e. that it fails somewhere — asserted after the loop.
+          if (bandInk && contrast(hexToRgb(bandInk.hex), hexToRgb(tint.hex)) >= 3) bandOk.push(`${m.mode} ${color}.${st}`);
+          else if (bandInk) bandBad.push(`${m.mode} ${color}.${st}`);
+        }
+      }
+    }
+    ok(pageBad.length === 0, `solid-tint keeps its own state ink legible — ${id}`
+      + (pageBad.length ? ` — FAIL: ${pageBad.join('; ')}` : ''));
+    // The switch is load-bearing iff the band ink fails on the tint somewhere in this brand. If a
+    // brand ever reaches ZERO failures, the coincidence has become universal for it and this gate
+    // says so — that is a prompt to check whether the engine now gates the tint for both grounds, in
+    // which case the style guide's per-state switch is dead code, not a silent pass.
+    ok(bandBad.length > 0, `inverse ink cannot be relied on over the page-tuned tint (the per-state switch is load-bearing) — ${id}`
+      + (bandBad.length ? ` — ${bandBad.length} of ${bandBad.length + bandOk.length} rows fail 3:1` : ' — NO row fails: revisit the switch'));
   }
 }
 

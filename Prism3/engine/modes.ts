@@ -118,6 +118,42 @@ export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primi
 export type OverrideWarning = { role: string; ratio: number; min: number };
 export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; warnings?: OverrideWarning[] };
 
+/**
+ * Which role family carries an outline/text control's hover fill, for the selected method — and
+ * whether that fill is OPAQUE.
+ *
+ * `outlineInteraction` decides which of two mutually exclusive families gets emitted (see the
+ * `overlay-neutral` and `solid-tint` branches in `resolveMode`, which are the authority this
+ * mirrors): the wash, the opaque tint, or neither. A consumer that reads the wrong one asks for a
+ * role that does not exist, and `undefined` is indistinguishable from "no fill by design" — so it
+ * renders the `none` treatment and looks like a *working* system with a boring answer. That is
+ * #288, and it shipped twice: once in `renderGlobalBehavior` (fixed) and once in the style guide
+ * (#575). A helper exists so that a FOURTH method cannot be added and miss a site — the exhaustive
+ * switch below makes an unhandled value a compile error rather than a silently transparent swatch.
+ *
+ * `opaque` is the second half, and it is not decoration. The wash is translucent (it composites
+ * over whatever ground it is on, which is the point of `overlay-neutral`), but the tint is a real
+ * palette step that COVERS its ground. So under `solid-tint` a hovered control on an inverse band
+ * is no longer on the band — it is on a page-tuned tint, and ink chosen for the band is measured
+ * against the wrong thing. Consumers need to know which case they are in; `family` alone cannot
+ * tell them.
+ */
+export const outlineFillFamily = (
+  method: Theme['outlineInteraction'],
+): { family: 'overlay' | 'subtle-fill' | null; opaque: boolean } => {
+  switch (method) {
+    case 'overlay-neutral': return { family: 'overlay', opaque: false };
+    case 'solid-tint':      return { family: 'subtle-fill', opaque: true };
+    case 'none':            return { family: null, opaque: false };
+  }
+};
+
+/** The role key holding `color`'s outline hover fill for `state`, or null when the method emits none. */
+export const outlineFillRole = (method: Theme['outlineInteraction'], color: string, state: string): string | null => {
+  const { family } = outlineFillFamily(method);
+  return family ? `interactive.${color}.${family}.${state}` : null;
+};
+
 const cand = (path: string, rgb: RGB): Cand => ({ path, rgb });
 
 // B — the appearance modes as DATA. A mode's identity (name + kind + family + contrast mins) lives in
@@ -618,6 +654,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // (§13): text.primary must stay ≥ AA on the page once the overlay sits on it — a real
   // contract that fails on too-heavy a wash (notably a lightening overlay in dark mode).
   // `solid-tint` (opaque foreground.<color>-subtle) and `none` opt out — no overlay tokens.
+  // This branch deliberately tests the LEVER, not `outlineFillFamily`. Routing it through the helper
+  // was tried and reverted: it makes the emitter and the helper agree by construction, and (10h) —
+  // the gate that exists to catch them disagreeing — becomes unfalsifiable. Measured: with the
+  // emitter keyed off the helper, corrupting the helper's mapping fired 7 test failures and **not one
+  // of them was (10h)**. The gate passed while asserting a tautology.
+  //
+  // So the duplication here is load-bearing, which is the opposite of the lesson #575 taught about
+  // duplication in CONSUMERS. A consumer that re-derives the mapping renders `transparent` and no one
+  // hears about it; two independent derivations with a gate between them is how the mapping gets
+  // checked at all. Keep them separate, and let (10h) be the thing that binds them.
   if (theme.outlineInteraction === 'overlay-neutral') {
     const overlayPal = cfg.family === 'light' ? 'black-alpha' : 'white-alpha';
     const overlayBase = cfg.family === 'light' ? BLACK : WHITE;
@@ -665,6 +711,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the tint than the examples do. So the pick WALKS TOWARD THE PAGE (a lighter tint in a light mode)
   // until the state's ink clears the text minimum, the same "pick a value that satisfies the contract"
   // shape the rest of this file uses, rather than trusting two example brands to generalise.
+  // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch above.
   if (theme.outlineInteraction === 'solid-tint') {
     // Nominal: one subtle step for hover, one further for pressed/selected — the same "comes forward"
     // progression the fill and ink states use.

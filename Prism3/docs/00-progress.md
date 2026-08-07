@@ -7,6 +7,104 @@
 
 ---
 
+## (2026-08-06) — The style guide read the fill from the wrong method, and fixing it exposed a second bug (#575 closed)
+
+**STATUS: shipped.** `Prism3/engine/modes.ts`, `test.ts`, `web/src/main.ts`. No token moves and no
+artifact changes, so **neither version bumps** — the tokens were always correct; a *consumer's read*
+of them was not, which is exactly why nothing caught it.
+
+**The bug.** The style guide's Interactive → Outline row read `interactive.<c>.overlay.*`
+unconditionally. The engine emits exactly one of two families per `outlineInteraction` value, so under
+`solid-tint` the overlay role does not exist, `paint()` returns `'transparent'` for a missing role, and
+the row rendered the `none` treatment. Two of three methods looked identical, and `none` was only right
+by accident. **An absent role and a deliberately-empty one are indistinguishable at the point of use**,
+so the failure rendered as a plausible design decision rather than an error — no amount of gating the
+artifact would have found it. Browser-confirmed before and after on harbor: pre-fix `solid-tint` shows
+**1** distinct background across rest/hover/pressed (identical to `none`), post-fix **3**, with hover
+painting the opaque `#d3dedd` the issue predicted.
+
+**#288's bug, at a second site.** The identical read was fixed in `renderGlobalBehavior` (closed
+2026-07-30) and the style guide's copy was missed — so for the week since, the surface a designer
+*hands a developer as the reference* was the one still wrong. **A fix applied at one call site is not a
+fix**, and nothing in the repo could tell us there was a second: the mapping was re-derived inline in
+both places, so there was no shared name to grep for. That is the whole reason this PR exports helpers
+rather than just correcting the second copy — the third site should be a call, or a compile error, not a
+rediscovery. Both now call `outlineFillFamily`/`outlineFillRole`, exported from `modes.ts` beside
+the branches they describe. The switch has no `default`, so a fourth lever value is a **compile error at
+the helper** rather than a silently transparent swatch; verified by adding a `'ghost'` method and
+watching `tsc` fail at `modes.ts:143`.
+
+**Fixing the read exposed an invisible bug underneath it.** The row switches its ink to
+`on-inverse.text.*` on an inverse preview ground. That is right for the translucent wash — it
+composites, so the band is still the ground. The `solid-tint` fill is an **opaque** palette step: from
+`hover` onward the ground is a page-tuned tint, and the band's ink fails 3:1 on it in **79 of 80** corpus
+combinations (5 brands × 4 modes × {primary, destructive} × {hover, pressed}), worst **1.32:1**. The
+engine gates that tint against the control's own **page** ink for that state (worst 4.51 across 120
+rows), so the page ink is the measured-correct answer there, not a fallback. The switch is now per-state
+rather than per-row. Measured on the case rendered in the browser (harbor/light): hover **2.38 → 6.02**,
+pressed **1.79 → 6.33**.
+
+**Reading the right role while keeping the row-wide switch would have traded a visible bug for an
+invisible one** — the same gated-ground/painted-ground family as #63, #570 and #573, all three closed
+today. Fourth instance inside one day, which says the family is being *found* faster now rather than
+that it is appearing faster. Worth treating "what ground is this *painted* on, per state?"
+as a standing question on every ink/ground pair, because three of the four surfaced only by probing —
+reading the code did not reveal any of them, since every one of them reads as correct locally.
+
+**The emitter deliberately still tests the lever, not the helper.** Routing it through `outlineFillFamily`
+was the obvious cleanup, was tried, and was **reverted after measurement**: it makes the emitter and the
+helper agree by construction, which makes (10h) — the gate whose entire purpose is catching them
+disagree — unfalsifiable. Corrupting the helper's mapping with the emitter keyed off it fired 7 test
+failures and **not one of them was (10h)**; the gate passed while asserting a tautology. With the
+derivations independent, the same mutation fires 10 failures, all from (10h), naming both the missing and
+the spurious family.
+
+So the duplication in the *emitter* is load-bearing, which is the opposite of the lesson this same PR
+teaches about duplication in *consumers*. The distinction is whether anything checks the copies: a
+consumer that re-derives the mapping renders `transparent` and no one hears about it; two independent
+derivations with a gate between them is how the mapping gets verified at all. This is #573's M4 lesson
+recurring in my own new gate — **a gate built from the same expression as its subject cannot see the
+subject's errors** — and it was caught only because the mutation set was run rather than assumed.
+
+**Gates.** (10h) for every method, the family the helper names is emitted and the other is absent,
+asserted through the helper's own key rather than inferred — `none` included, since that is the value
+the bug masqueraded as, and if `none` ever started emitting a family the two working methods would keep
+working while the bug's disguise got better. (10h-ii) the opaque tint keeps its own state ink legible,
+and the band ink cannot be *relied on* over it. Note (10h-ii) was first written as "every row fails" —
+which is simply false (minimal/dark/primary.hover clears 3:1 by coincidence, and the gate said so on the
+first run). Rewritten as a per-brand count with the assertion that at least one row fails; a brand
+reaching zero is then a prompt to check whether the engine has started gating the tint for both grounds,
+in which case the per-state switch is dead code.
+
+**Review found the one escape route left, and it is worth recording how.** Independent review replicated
+every number here, then ran a mutation I had not: the helper returning the *right family* but the
+**wrong state key** (`state === 'pressed' ? 'hover' : state`). It passed all **1852** tests. (10h)
+asserted the helper's key *resolves* — and `subtle-fill.hover` resolves perfectly well when the caller
+asked for `pressed`. Reproduced here before accepting it, then closed with one assertion inside the same
+loop, checked against the family the helper itself returned so the state axis is constrained without
+re-deriving the family (which would rebuild the tautology the emitter comment warns about). N4 now fires
+10 failures naming `helper key … ≠ requested …`.
+
+The lesson is narrower and sharper than "add more assertions": **"the key resolves" is a weaker claim
+than "the key is right", and on a namespace where every sibling key also resolves, the weaker claim is
+nearly vacuous.** The wrong state would have painted pressed as hover — on harbor/light two genuinely
+distinct fills (`#d3dedd` vs `#c2d1d1`) — which is the *same shape* as the bug this entry is about: a
+plausible render rather than an error. A gate written to catch "reads a role that does not exist" was
+blind to "reads the wrong role that does exist", and those are one character apart in the helper.
+
+**Mutations:** wrong family in the helper → 10 failures; lying `opaque` flag → 5; `none` emitting a
+family → 5; wrong state key → **0 before review, 10 after**. **The honest gap:** reverting the *web* fix alone leaves every engine gate green, because
+the web has no test suite (#333). The compile-error property covers *adding a method*; it cannot cover a
+new consumer that hardcodes a family. That is #333's cost, stated plainly rather than papered over.
+
+regen **88 in sync** (no artifact changed — the check that confirms this is a read-only fix), test.ts
+**+55** (1797 → 1852 — measured against this branch's merge-base, not a stale local run: (10h) is
+5 brands × 3 methods × 3 assertions = 45, (10h-ii) is 5 × 2 = 10), contract unchanged at 2.0.0 /
+guaranteed 484, MCP 49/49, NB regression 11/11,
+US-English 94 files, lint-classes clean, lint-skills clean, `audit:modes --check-badges` 28/28.
+
+---
+
 ## (2026-08-06) — The most-repeated defect in the repo, counted (#582 closed)
 
 **STATUS: shipped.** New `Prism3/docs/34-gate-independence.md`, plus a paragraph in `CLAUDE.md`
@@ -344,7 +442,6 @@ step numbers, which then catches C directly. Related: a first pass at mutation C
 `=> { surf, min };` parses as a block body returning `undefined`, so it silently reproduced mutation A's
 output instead of testing anything. **A mutation that produces another mutation's exact output has probably
 not been applied** — check the diff, not just the failure list.
-
 
 ---
 
