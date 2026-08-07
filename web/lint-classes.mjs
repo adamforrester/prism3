@@ -52,6 +52,10 @@ const UTILITIES = new Set(['mono', 'faint']);
  *  would document a check the code never performs. Keep this list to pairings that genuinely reach
  *  and pass the membership test below; #544 pruned ~40 entries that had drifted into that state. */
 const ALLOWED = new Set([
+  'adv-x hit-min',               // #559 — hit-min only adds position:relative plus an out-of-flow
+                                 // ::before hit box; adv-x's own border/background/color/cursor/
+                                 // font-size/line-height/padding are untouched, so the pairing widens
+                                 // the click target without changing adv-x's painted box.
   'barbtn navbtn',              // hamburger nav toggle — barbtn's visual style, navbtn's display:none
                                  // gate flipped to flex only inside the narrow-width media query
   'brandmenu exportmenu',       // menu variants — exportmenu/navmenu re-skin the shared popover
