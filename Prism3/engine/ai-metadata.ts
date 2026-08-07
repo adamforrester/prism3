@@ -19,6 +19,11 @@ type AiToken = {
   meaning: string;
   when_to_use: string;
   avoid_when: string;
+  // #621 — RFC 2119, DERIVED not authored: MUST iff a real computed contrast contract backs this
+  // token (`contrast_with` below, from the same `light.min > 0` check). A `MUST` with no gate behind
+  // it is worse than no label (manufactures rigor it can't back up) — so the level can only ever be
+  // as strong as the contract computation it reads, never hand-typed on a per-statement basis.
+  avoid_when_level: 'MUST' | 'SHOULD';
   paired_with?: string[];
   contrast_with?: { token: string; min: string; ratio: number }[];
   mode_overrides: Record<string, string>;
@@ -233,6 +238,10 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
       meaning: group === 'interactive' ? 'Interactivity / actions' : genMeaning(group, variant), // what it SIGNIFIES / is for
       when_to_use: d.when_to_use,
       avoid_when: d.avoid_when,
+      // Same condition as `contrast_with` below, on purpose — the level IS the presence of a real
+      // contract, not a second opinion about it. See the AiToken comment for why that coupling is
+      // the point, not duplication to clean up.
+      avoid_when_level: light.min > 0 ? 'MUST' : 'SHOULD',
       mode_overrides,
     };
     if (d.paired_with) ai.paired_with = d.paired_with;
@@ -367,7 +376,7 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
   }
 
   return {
-    $schema: 'prism3-ai-metadata/0.1',
+    $schema: 'prism3-ai-metadata/0.2',
     brand: theme.id,
     generated: true,
     note: 'Agent-readable metadata, companion to ' + `${theme.id}.tokens.json` + '. The color (semantic role) tier and the ' +
@@ -375,7 +384,7 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
       'color-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the ' +
       'two-hop weight chain composite→role→numeric is visible). `aliased_by` is recomputed from the token tree on every ' +
       'build (authoritative at build time, never hand-maintained — it cannot drift). All fields generated and contract-true.',
-    color_fields: ['$description', 'meaning', 'when_to_use', 'avoid_when', 'paired_with', 'contrast_with', 'mode_overrides'],
+    color_fields: ['$description', 'meaning', 'when_to_use', 'avoid_when', 'avoid_when_level', 'paired_with', 'contrast_with', 'mode_overrides'],
     typography_fields: ['$description', 'meaning', 'when_to_use', 'avoid_when', 'resolves_to', 'used_by'],
     primitive_fields: ['$description', 'meaning', 'intent', 'tier', 'consume', 'aliased_by'],
     color: colorRoles,

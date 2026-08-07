@@ -1,5 +1,5 @@
 {
-  "$schema": "prism3-ai-metadata/0.1",
+  "$schema": "prism3-ai-metadata/0.2",
   "brand": "wendys",
   "generated": true,
   "note": "Agent-readable metadata, companion to wendys.tokens.json. The color (semantic role) tier and the typography tier (type composites + weight roles) carry the rich schema; the primitive tier a simplified set + color-scale `intent` and `aliased_by` (the reverse index — which tokens resolve to it, TRANSITIVELY, so the two-hop weight chain composite→role→numeric is visible). `aliased_by` is recomputed from the token tree on every build (authoritative at build time, never hand-maintained — it cannot drift). All fields generated and contract-true.",
@@ -8,6 +8,7 @@
     "meaning",
     "when_to_use",
     "avoid_when",
+    "avoid_when_level",
     "paired_with",
     "contrast_with",
     "mode_overrides"
@@ -34,6 +35,7 @@
       "meaning": "Page / canvas surface",
       "when_to_use": "The page / base canvas.",
       "avoid_when": "Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.neutral.950}",
@@ -51,6 +53,7 @@
       "meaning": "Page / canvas surface",
       "when_to_use": "A slightly tinted page or page band.",
       "avoid_when": "Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.050}",
         "dark": "{prism.palette.neutral.900}",
@@ -68,6 +71,7 @@
       "meaning": "Page / canvas surface",
       "when_to_use": "A third page-level surface step.",
       "avoid_when": "Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.100}",
         "dark": "{prism.palette.neutral.850}",
@@ -85,6 +89,7 @@
       "meaning": "Inverted page surface",
       "when_to_use": "Inverted page sections — a dark band on a light page (or vice-versa).",
       "avoid_when": "Do not place mode-default ink on it — use text.on-inverse.",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -101,6 +106,7 @@
       "meaning": "Inverted page surface",
       "when_to_use": "Inverted page sections — a dark band on a light page (or vice-versa).",
       "avoid_when": "Do not place mode-default ink on it — use text.on-inverse.",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.900}",
         "dark": "{prism.palette.neutral.050}",
@@ -117,6 +123,7 @@
       "meaning": "Inverted page surface",
       "when_to_use": "Inverted page sections — a dark band on a light page (or vice-versa).",
       "avoid_when": "Do not place mode-default ink on it — use text.on-inverse.",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.850}",
         "dark": "{prism.palette.neutral.100}",
@@ -133,6 +140,7 @@
       "meaning": "Background dimming / modal focus",
       "when_to_use": "The dimming layer behind a modal, dialog, or drawer.",
       "avoid_when": "Do not use as a solid surface or for any opaque element.",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.40}",
         "dark": "{prism.palette.black-alpha.60}",
@@ -148,6 +156,7 @@
       "meaning": "Surface / fill on the canvas",
       "when_to_use": "Cards — the default surface placed on the page.",
       "avoid_when": "Do not use for the page itself (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.050}",
         "dark": "{prism.palette.neutral.900}",
@@ -164,6 +173,7 @@
       "meaning": "Surface / fill on the canvas",
       "when_to_use": "Panels / nested containers.",
       "avoid_when": "Do not use for the page itself (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.100}",
         "dark": "{prism.palette.neutral.850}",
@@ -180,6 +190,7 @@
       "meaning": "Surface / fill on the canvas",
       "when_to_use": "A third surface step.",
       "avoid_when": "Do not use for the page itself (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.150}",
         "dark": "{prism.palette.neutral.800}",
@@ -196,6 +207,7 @@
       "meaning": "Inverted / bold surface",
       "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
       "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.900}",
         "dark": "{prism.palette.neutral.050}",
@@ -211,6 +223,7 @@
       "meaning": "Inverted / bold surface",
       "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
       "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.850}",
         "dark": "{prism.palette.neutral.100}",
@@ -226,6 +239,7 @@
       "meaning": "Inverted / bold surface",
       "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
       "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.800}",
         "dark": "{prism.palette.neutral.150}",
@@ -241,6 +255,7 @@
       "meaning": "Brand identity",
       "when_to_use": "Filled brand elements — badges, banners, status chips.",
       "avoid_when": "Do not use for brand ink (use text.brand) or as a subtle tint (use foreground.brand-subtle).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.500}",
@@ -264,6 +279,7 @@
       "meaning": "Success / positive signalling",
       "when_to_use": "Filled success elements — badges, banners, status chips.",
       "avoid_when": "Do not use for success ink (use text.success) or as a subtle tint (use foreground.success-subtle).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.success.500}",
         "dark": "{prism.palette.success.500}",
@@ -287,6 +303,7 @@
       "meaning": "Warning / caution signalling",
       "when_to_use": "Filled warning elements — badges, banners, status chips.",
       "avoid_when": "Do not use for warning ink (use text.warning) or as a subtle tint (use foreground.warning-subtle).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.warning.500}",
         "dark": "{prism.palette.warning.500}",
@@ -310,6 +327,7 @@
       "meaning": "Informational signalling",
       "when_to_use": "Filled info elements — badges, banners, status chips.",
       "avoid_when": "Do not use for info ink (use text.info) or as a subtle tint (use foreground.info-subtle).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.info.500}",
         "dark": "{prism.palette.info.500}",
@@ -333,6 +351,7 @@
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid brand fill (use foreground.brand) or for brand ink (use text.brand).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.primary.100}",
         "dark": "{prism.palette.primary.900}",
@@ -349,6 +368,7 @@
       "meaning": "Success / positive signalling (low-emphasis)",
       "when_to_use": "Low-emphasis success surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid success fill (use foreground.success) or for success ink (use text.success).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.success.100}",
         "dark": "{prism.palette.success.900}",
@@ -365,6 +385,7 @@
       "meaning": "Warning / caution signalling (low-emphasis)",
       "when_to_use": "Low-emphasis warning surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid warning fill (use foreground.warning) or for warning ink (use text.warning).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.warning.100}",
         "dark": "{prism.palette.warning.900}",
@@ -381,6 +402,7 @@
       "meaning": "Destructive / error signalling (low-emphasis)",
       "when_to_use": "Low-emphasis danger surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid danger fill (use foreground.danger) or for danger ink (use text.danger).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.danger.100}",
         "dark": "{prism.palette.danger.900}",
@@ -397,6 +419,7 @@
       "meaning": "Informational signalling (low-emphasis)",
       "when_to_use": "Low-emphasis info surfaces — banners, badges, selected rows.",
       "avoid_when": "Do not use as a solid info fill (use foreground.info) or for info ink (use text.info).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.info.100}",
         "dark": "{prism.palette.info.900}",
@@ -413,6 +436,7 @@
       "meaning": "Destructive / error signalling",
       "when_to_use": "Filled danger elements — badges, banners, status chips.",
       "avoid_when": "Do not use for danger ink (use text.danger) or as a subtle tint (use foreground.danger-subtle).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.500}",
@@ -436,6 +460,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.500}",
@@ -458,6 +483,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows on pointer hover.",
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
         "dark": "{prism.palette.primary.450}",
@@ -480,6 +506,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows while pressed.",
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.400}",
@@ -502,6 +529,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when keyboard-focused.",
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
         "dark": "{prism.palette.primary.450}",
@@ -524,6 +552,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when selected / active.",
       "avoid_when": "Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.400}",
@@ -546,6 +575,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The label / icon placed on a filled primary interactive element.",
       "avoid_when": "Do not use on the page or on outline controls — use interactive.primary.text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.neutral.025}",
@@ -568,6 +598,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled primary control (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.400}",
@@ -590,6 +621,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled primary control (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
         "dark": "{prism.palette.primary.350}",
@@ -612,6 +644,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled primary control (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.300}",
@@ -634,6 +667,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The border of an OUTLINE primary interactive element.",
       "avoid_when": "Do not use as ink (use interactive.primary.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.500}",
@@ -656,6 +690,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.500}",
@@ -678,6 +713,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows on pointer hover.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.550}",
         "dark": "{prism.palette.danger.450}",
@@ -700,6 +736,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows while pressed.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.400}",
@@ -722,6 +759,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when keyboard-focused.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.550}",
         "dark": "{prism.palette.danger.450}",
@@ -744,6 +782,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when selected / active.",
       "avoid_when": "Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.400}",
@@ -766,6 +805,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The label / icon placed on a filled destructive interactive element.",
       "avoid_when": "Do not use on the page or on outline controls — use interactive.destructive.text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.white}",
@@ -788,6 +828,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.450}",
@@ -810,6 +851,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.550}",
         "dark": "{prism.palette.danger.400}",
@@ -832,6 +874,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled destructive control (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.350}",
@@ -854,6 +897,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The border of an OUTLINE destructive interactive element.",
       "avoid_when": "Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.500}",
@@ -876,6 +920,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows.",
       "avoid_when": "Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.150}",
         "dark": "{prism.palette.neutral.850}",
@@ -891,6 +936,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows on pointer hover.",
       "avoid_when": "Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.200}",
         "dark": "{prism.palette.neutral.800}",
@@ -906,6 +952,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows while pressed.",
       "avoid_when": "Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.250}",
         "dark": "{prism.palette.neutral.750}",
@@ -921,6 +968,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when keyboard-focused.",
       "avoid_when": "Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.200}",
         "dark": "{prism.palette.neutral.800}",
@@ -936,6 +984,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when selected / active.",
       "avoid_when": "Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.250}",
         "dark": "{prism.palette.neutral.750}",
@@ -951,6 +1000,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The label / icon placed on a filled neutral interactive element.",
       "avoid_when": "Do not use on the page or on outline controls — use interactive.neutral.text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -973,6 +1023,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled neutral control (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -995,6 +1046,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled neutral control (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -1017,6 +1069,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it).",
       "avoid_when": "Do not use on a filled neutral control (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -1039,6 +1092,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The border of an OUTLINE neutral interactive element.",
       "avoid_when": "Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.400}",
         "dark": "{prism.palette.neutral.550}",
@@ -1061,6 +1115,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.400}",
         "dark": "{prism.palette.primary.500}",
@@ -1083,6 +1138,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.350}",
         "dark": "{prism.palette.primary.550}",
@@ -1105,6 +1161,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.300}",
         "dark": "{prism.palette.primary.600}",
@@ -1127,6 +1184,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.100}",
         "dark": "{prism.palette.primary.900}",
@@ -1149,6 +1207,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.050}",
         "dark": "{prism.palette.primary.950}",
@@ -1171,6 +1230,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.200}",
         "dark": "{prism.palette.primary.800}",
@@ -1193,6 +1253,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -1215,6 +1276,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text primary control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.primary.text) or on a primary fill (use interactive.primary.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.500}",
@@ -1237,6 +1299,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.450}",
         "dark": "{prism.palette.danger.550}",
@@ -1259,6 +1322,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.400}",
         "dark": "{prism.palette.danger.600}",
@@ -1281,6 +1345,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.350}",
         "dark": "{prism.palette.danger.650}",
@@ -1303,6 +1368,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.100}",
         "dark": "{prism.palette.danger.900}",
@@ -1325,6 +1391,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.050}",
         "dark": "{prism.palette.danger.950}",
@@ -1347,6 +1414,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.200}",
         "dark": "{prism.palette.danger.800}",
@@ -1369,6 +1437,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -1391,6 +1460,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text destructive control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.destructive.text) or on a destructive fill (use interactive.destructive.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.500}",
@@ -1413,6 +1483,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.025}",
         "dark": "{prism.palette.neutral.950}",
@@ -1435,6 +1506,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.025}",
         "dark": "{prism.palette.neutral.950}",
@@ -1457,6 +1529,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.025}",
         "dark": "{prism.palette.neutral.950}",
@@ -1479,6 +1552,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.050}",
         "dark": "{prism.palette.neutral.850}",
@@ -1501,6 +1575,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.100}",
         "dark": "{prism.palette.neutral.900}",
@@ -1523,6 +1598,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.150}",
         "dark": "{prism.palette.neutral.950}",
@@ -1545,6 +1621,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -1567,6 +1644,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "The ink for an outline/text neutral control placed on a dark hero / inverse section — a light CTA on dark.",
       "avoid_when": "Do not use on the standard page (use interactive.neutral.text) or on a neutral fill (use interactive.neutral.on-fill).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.550}",
         "dark": "{prism.palette.neutral.400}",
@@ -1589,6 +1667,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.10}",
         "dark": "{prism.palette.white-alpha.10}",
@@ -1611,6 +1690,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.20}",
         "dark": "{prism.palette.white-alpha.20}",
@@ -1633,6 +1713,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.20}",
         "dark": "{prism.palette.white-alpha.20}",
@@ -1655,6 +1736,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.10}",
         "dark": "{prism.palette.white-alpha.10}",
@@ -1677,6 +1759,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.20}",
         "dark": "{prism.palette.white-alpha.20}",
@@ -1699,6 +1782,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.20}",
         "dark": "{prism.palette.white-alpha.20}",
@@ -1721,6 +1805,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.10}",
         "dark": "{prism.palette.white-alpha.10}",
@@ -1743,6 +1828,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.20}",
         "dark": "{prism.palette.white-alpha.20}",
@@ -1765,6 +1851,7 @@
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).",
       "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle) or as a modal backdrop (use scrim.*).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.black-alpha.20}",
         "dark": "{prism.palette.white-alpha.20}",
@@ -1787,6 +1874,7 @@
       "meaning": "Unavailable / inactive state",
       "when_to_use": "The fill of ANY disabled control (button, chip, field), regardless of intent — a disabled control looks disabled.",
       "avoid_when": "Do not use for enabled controls (use interactive.*.fill / foreground.*).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.200}",
         "dark": "{prism.palette.neutral.750}",
@@ -1802,6 +1890,7 @@
       "meaning": "Unavailable / inactive state",
       "when_to_use": "The label or icon on a disabled control's fill — muted but legible on it.",
       "avoid_when": "Do not use on an enabled fill (use interactive.*.on-fill) or on the page (use disabled.text).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.550}",
         "dark": "{prism.palette.neutral.450}",
@@ -1824,6 +1913,7 @@
       "meaning": "Unavailable / inactive state",
       "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy).",
       "avoid_when": "Do not use for active content (use text.primary/secondary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.450}",
         "dark": "{prism.palette.neutral.550}",
@@ -1843,6 +1933,7 @@
       "meaning": "Unavailable / inactive state",
       "when_to_use": "Icon of a disabled or inactive element.",
       "avoid_when": "Do not use for active icons (use icon.primary/secondary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.450}",
         "dark": "{prism.palette.neutral.550}",
@@ -1862,6 +1953,7 @@
       "meaning": "Unavailable / inactive state",
       "when_to_use": "The border of a disabled outline control.",
       "avoid_when": "Do not use as a page divider (use border.primary) or on an enabled control (use interactive.*.border).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.200}",
         "dark": "{prism.palette.neutral.750}",
@@ -1877,6 +1969,7 @@
       "meaning": "Form input / field chrome",
       "when_to_use": "The background of a text input / form field — a subtly inset surface.",
       "avoid_when": "Do not use for the page (use background.*) or a card (use foreground.*).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.050}",
         "dark": "{prism.palette.neutral.900}",
@@ -1894,6 +1987,7 @@
       "meaning": "Form input / field chrome",
       "when_to_use": "The RESTING boundary of a form field — perceivable (3:1) before focus.",
       "avoid_when": "Do not use for the focus ring (use border.focus) or a validation state (use border.<semantic>).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.400}",
         "dark": "{prism.palette.neutral.550}",
@@ -1916,6 +2010,7 @@
       "meaning": "Form input / field chrome",
       "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (4.5) on pointer hover.",
       "avoid_when": "Do not use as the resting border (use field.border.rest), the focus ring (use border.focus), or a validation state (use border.<semantic>).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.500}",
         "dark": "{prism.palette.neutral.450}",
@@ -1939,6 +2034,7 @@
       "meaning": "Form input / field chrome",
       "when_to_use": "Placeholder / hint text inside a field — readable (4.5) on the field fill.",
       "avoid_when": "Do not use as a label (a11y anti-pattern) or for the entered value (use text.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.550}",
         "dark": "{prism.palette.neutral.450}",
@@ -1961,6 +2057,7 @@
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Primary text on any surface (holds across the tonal ladder).",
       "avoid_when": "Do not use on solid/vivid fills — use text.on-*.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -1984,6 +2081,7 @@
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary text on any surface (holds across the tonal ladder).",
       "avoid_when": "Do not use on solid/vivid fills — use text.on-*.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.550}",
         "dark": "{prism.palette.neutral.450}",
@@ -2007,6 +2105,7 @@
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary text on any surface (holds across the tonal ladder).",
       "avoid_when": "Do not use on solid/vivid fills — use text.on-*.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.450}",
         "dark": "{prism.palette.neutral.550}",
@@ -2030,6 +2129,7 @@
       "meaning": "Brand identity",
       "when_to_use": "Brand text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid brand fill — use text.on-brand.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
         "dark": "{prism.palette.primary.400}",
@@ -2052,6 +2152,7 @@
       "meaning": "Success / positive signalling",
       "when_to_use": "Success text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid success fill — use text.on-success.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.success.600}",
         "dark": "{prism.palette.success.450}",
@@ -2074,6 +2175,7 @@
       "meaning": "Warning / caution signalling",
       "when_to_use": "Warning text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid warning fill — use text.on-warning.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.warning.600}",
         "dark": "{prism.palette.warning.450}",
@@ -2096,6 +2198,7 @@
       "meaning": "Destructive / error signalling",
       "when_to_use": "Danger text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid danger fill — use text.on-danger.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.450}",
@@ -2118,6 +2221,7 @@
       "meaning": "Informational signalling",
       "when_to_use": "Info text on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid info fill — use text.on-info.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.info.600}",
         "dark": "{prism.palette.info.450}",
@@ -2140,6 +2244,7 @@
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical brand messaging use the bold text.brand; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.450}",
         "dark": "{prism.palette.primary.350}",
@@ -2162,6 +2267,7 @@
       "meaning": "Success / positive signalling (low-emphasis)",
       "when_to_use": "Low-emphasis success text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical success messaging use the bold text.success; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.success.450}",
         "dark": "{prism.palette.success.350}",
@@ -2184,6 +2290,7 @@
       "meaning": "Warning / caution signalling (low-emphasis)",
       "when_to_use": "Low-emphasis warning text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical warning messaging use the bold text.warning; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.warning.450}",
         "dark": "{prism.palette.warning.350}",
@@ -2206,6 +2313,7 @@
       "meaning": "Destructive / error signalling (low-emphasis)",
       "when_to_use": "Low-emphasis danger text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical danger messaging use the bold text.danger; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.450}",
         "dark": "{prism.palette.danger.350}",
@@ -2228,6 +2336,7 @@
       "meaning": "Informational signalling (low-emphasis)",
       "when_to_use": "Low-emphasis info text — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical info messaging use the bold text.info; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.info.450}",
         "dark": "{prism.palette.info.350}",
@@ -2250,6 +2359,7 @@
       "meaning": "Legible content on brand identity fills",
       "when_to_use": "Text placed on the brand fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.neutral.025}",
@@ -2272,6 +2382,7 @@
       "meaning": "Legible content on success / positive fills",
       "when_to_use": "Text placed on the success fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.black}",
@@ -2294,6 +2405,7 @@
       "meaning": "Legible content on warning / caution fills",
       "when_to_use": "Text placed on the warning fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.white}",
@@ -2316,6 +2428,7 @@
       "meaning": "Legible content on destructive / error fills",
       "when_to_use": "Text placed on the danger fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.white}",
@@ -2338,6 +2451,7 @@
       "meaning": "Legible content on informational fills",
       "when_to_use": "Text placed on the info fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.black}",
@@ -2360,6 +2474,7 @@
       "meaning": "Legible content on an inverse surface",
       "when_to_use": "Text placed on the inverse surface it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.025}",
         "dark": "{prism.palette.neutral.950}",
@@ -2382,6 +2497,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text.",
       "avoid_when": "Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.400}",
@@ -2401,6 +2517,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text on pointer hover.",
       "avoid_when": "Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
         "dark": "{prism.palette.primary.350}",
@@ -2420,6 +2537,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text after it has been visited.",
       "avoid_when": "Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.300}",
@@ -2439,6 +2557,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive text when keyboard-focused.",
       "avoid_when": "Do not use for non-interactive text (use text.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.400}",
@@ -2458,6 +2577,7 @@
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Primary icon on any surface (holds across the tonal ladder).",
       "avoid_when": "Do not use on solid/vivid fills — use icon.on-*.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
         "dark": "{prism.palette.neutral.025}",
@@ -2481,6 +2601,7 @@
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Secondary icon on any surface (holds across the tonal ladder).",
       "avoid_when": "Do not use on solid/vivid fills — use icon.on-*.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.550}",
         "dark": "{prism.palette.neutral.450}",
@@ -2504,6 +2625,7 @@
       "meaning": "Content hierarchy / reading emphasis",
       "when_to_use": "Tertiary icon on any surface (holds across the tonal ladder).",
       "avoid_when": "Do not use on solid/vivid fills — use icon.on-*.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.450}",
         "dark": "{prism.palette.neutral.550}",
@@ -2527,6 +2649,7 @@
       "meaning": "Brand identity",
       "when_to_use": "Brand icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid brand fill — use icon.on-brand.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
         "dark": "{prism.palette.primary.400}",
@@ -2549,6 +2672,7 @@
       "meaning": "Success / positive signalling",
       "when_to_use": "Success icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid success fill — use icon.on-success.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.success.600}",
         "dark": "{prism.palette.success.450}",
@@ -2571,6 +2695,7 @@
       "meaning": "Warning / caution signalling",
       "when_to_use": "Warning icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid warning fill — use icon.on-warning.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.warning.600}",
         "dark": "{prism.palette.warning.450}",
@@ -2593,6 +2718,7 @@
       "meaning": "Destructive / error signalling",
       "when_to_use": "Danger icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid danger fill — use icon.on-danger.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.600}",
         "dark": "{prism.palette.danger.450}",
@@ -2615,6 +2741,7 @@
       "meaning": "Informational signalling",
       "when_to_use": "Info icon on standard surfaces (e.g. inline error/success text).",
       "avoid_when": "Do not use on a solid info fill — use icon.on-info.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.info.600}",
         "dark": "{prism.palette.info.450}",
@@ -2637,6 +2764,7 @@
       "meaning": "Brand identity (low-emphasis)",
       "when_to_use": "Low-emphasis brand icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical brand messaging use the bold icon.brand; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.450}",
         "dark": "{prism.palette.primary.350}",
@@ -2659,6 +2787,7 @@
       "meaning": "Success / positive signalling (low-emphasis)",
       "when_to_use": "Low-emphasis success icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical success messaging use the bold icon.success; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.success.450}",
         "dark": "{prism.palette.success.350}",
@@ -2681,6 +2810,7 @@
       "meaning": "Warning / caution signalling (low-emphasis)",
       "when_to_use": "Low-emphasis warning icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical warning messaging use the bold icon.warning; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.warning.450}",
         "dark": "{prism.palette.warning.350}",
@@ -2703,6 +2833,7 @@
       "meaning": "Destructive / error signalling (low-emphasis)",
       "when_to_use": "Low-emphasis danger icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical danger messaging use the bold icon.danger; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.450}",
         "dark": "{prism.palette.danger.350}",
@@ -2725,6 +2856,7 @@
       "meaning": "Informational signalling (low-emphasis)",
       "when_to_use": "Low-emphasis info icon — secondary status text / quiet accents.",
       "avoid_when": "For safety-critical info messaging use the bold icon.info; verify contrast for body text.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.info.450}",
         "dark": "{prism.palette.info.350}",
@@ -2747,6 +2879,7 @@
       "meaning": "Legible content on brand identity fills",
       "when_to_use": "Icon placed on the brand fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.neutral.025}",
@@ -2769,6 +2902,7 @@
       "meaning": "Legible content on success / positive fills",
       "when_to_use": "Icon placed on the success fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.black}",
@@ -2791,6 +2925,7 @@
       "meaning": "Legible content on warning / caution fills",
       "when_to_use": "Icon placed on the warning fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.white}",
@@ -2813,6 +2948,7 @@
       "meaning": "Legible content on destructive / error fills",
       "when_to_use": "Icon placed on the danger fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.white}",
@@ -2835,6 +2971,7 @@
       "meaning": "Legible content on informational fills",
       "when_to_use": "Icon placed on the info fill it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.white}",
         "dark": "{prism.palette.black}",
@@ -2857,6 +2994,7 @@
       "meaning": "Legible content on an inverse surface",
       "when_to_use": "Icon placed on the inverse surface it is paired with.",
       "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.neutral.025}",
         "dark": "{prism.palette.neutral.950}",
@@ -2879,6 +3017,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon.",
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.400}",
@@ -2898,6 +3037,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon on pointer hover.",
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.550}",
         "dark": "{prism.palette.primary.350}",
@@ -2917,6 +3057,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon after it has been visited.",
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.600}",
         "dark": "{prism.palette.primary.300}",
@@ -2936,6 +3077,7 @@
       "meaning": "Interactivity / navigation",
       "when_to_use": "Hyperlinks and interactive icon when keyboard-focused.",
       "avoid_when": "Do not use for non-interactive icon (use icon.primary).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.400}",
@@ -2955,6 +3097,7 @@
       "meaning": "Separation / structure",
       "when_to_use": "Dividers, card outlines, low-emphasis separation.",
       "avoid_when": "Do not use where a 3:1 non-text contrast is required (use border.secondary / border.focus).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.100}",
         "dark": "{prism.palette.neutral.750}",
@@ -2967,6 +3110,7 @@
       "meaning": "Separation / structure",
       "when_to_use": "Higher-emphasis dividers and separators; control borders.",
       "avoid_when": "Do not use as a faint hairline (use border.primary).",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.400}",
         "dark": "{prism.palette.neutral.500}",
@@ -2979,6 +3123,7 @@
       "meaning": "Inverted-surface separation",
       "when_to_use": "Borders on background.inverse / foreground.inverse.",
       "avoid_when": "Do not use on default surfaces.",
+      "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.800}",
         "dark": "{prism.palette.neutral.200}",
@@ -2994,6 +3139,7 @@
       "meaning": "Brand identity",
       "when_to_use": "Validation/state borders for brand (e.g. invalid fields).",
       "avoid_when": "Do not use as brand ink or fill — use text.brand / foreground.brand.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.500}",
@@ -3013,6 +3159,7 @@
       "meaning": "Success / positive signalling",
       "when_to_use": "Validation/state borders for success (e.g. invalid fields).",
       "avoid_when": "Do not use as success ink or fill — use text.success / foreground.success.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.success.500}",
         "dark": "{prism.palette.success.500}",
@@ -3032,6 +3179,7 @@
       "meaning": "Warning / caution signalling",
       "when_to_use": "Validation/state borders for warning (e.g. invalid fields).",
       "avoid_when": "Do not use as warning ink or fill — use text.warning / foreground.warning.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.warning.500}",
         "dark": "{prism.palette.warning.500}",
@@ -3051,6 +3199,7 @@
       "meaning": "Destructive / error signalling",
       "when_to_use": "Validation/state borders for danger (e.g. invalid fields).",
       "avoid_when": "Do not use as danger ink or fill — use text.danger / foreground.danger.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.danger.500}",
         "dark": "{prism.palette.danger.500}",
@@ -3070,6 +3219,7 @@
       "meaning": "Informational signalling",
       "when_to_use": "Validation/state borders for info (e.g. invalid fields).",
       "avoid_when": "Do not use as info ink or fill — use text.info / foreground.info.",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.info.500}",
         "dark": "{prism.palette.info.500}",
@@ -3089,6 +3239,7 @@
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements.",
       "avoid_when": "Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.focus-inverse).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.500}",
@@ -3111,6 +3262,7 @@
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on elements sitting on background.inverse / foreground.inverse.",
       "avoid_when": "Do not use on default surfaces (use border.focus), or as a decorative border on an inverse surface (use border.inverse).",
+      "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.palette.primary.500}",
         "dark": "{prism.palette.primary.500}",
