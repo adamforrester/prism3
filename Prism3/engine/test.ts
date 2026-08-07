@@ -5857,9 +5857,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(unlockAt >= 0, 'anatomy: the payload unlocks constrainProportions — a locked node silently keeps only one of a slot\'s two dimension bindings');
     ok(unlockAt < js.indexOf('setBoundVariable'), 'anatomy: the unlock precedes the first setBoundVariable (after it, the first binding is already gone)');
     // #500 also prescribed `resize()` + `layoutSizing*` as the fix. `resize()` CLEARS every dimension
-    // binding, so that fix would have destroyed the binding it was meant to preserve. Gated as an
-    // absence, because a plausible wrong fix is more dangerous than no fix.
-    ok(!/\.resize\(/.test(js), 'anatomy: the payload never calls resize() — it clears every dimension binding (the fix #500 prescribed would have destroyed them)');
+    // binding, so that fix would have destroyed the binding it was meant to preserve.
+    //
+    // This was `!/\.resize\(/` — a blanket absence — until the absolute part kind arrived needing exactly
+    // one resize, on the one node type that binds no dimensions at all. The blanket form would have
+    // forced a choice between the ring and the gate, and the honest resolution is that the claim was
+    // never really "no resize anywhere": it is **no resize on a node carrying dimension bindings**. So
+    // the gate now says that, which is both weaker as text and stronger as a check — it survives the new
+    // kind AND still fails the #500 fix, since that one resized the bound slots.
+    //
+    // Anchored on `kid.resize(` rather than counting occurrences: a count is a landmark that goes stale
+    // (#568), and the subject of the claim is WHICH node is resized, not how many times.
+    const resizes = [...js.matchAll(/(\w+)\.resize\(/g)].map((m) => m[1]);
+    ok(resizes.length === 1 && resizes[0] === 'kid',
+      `anatomy: the payload resizes exactly one thing — the absolute child, the one node type with no dimension bindings to clear (resized: ${resizes.join(', ') || 'nothing'})`);
+    // The load-bearing half, and the reason the above is not a weakening: `node` is what every bound
+    // slot is built as, so a resize reaching it is the #500 fix reintroduced. `absolute` parts are gated
+    // to an empty `bound` in the plan, which is what makes the one permitted resize provably safe.
+    ok(!/\bnode\.resize\(/.test(js),
+      'anatomy: nothing resizes the node carrying the bindings — resize() clears them, which is how #500\'s prescribed fix would have destroyed the bindings it was meant to save');
+    const ringPlan = figmaAnatomyPlan(button, 'medium', { leading: true, state: 'focus-visible' })
+      .root.children.find((c) => c.name === 'focusRing');
+    ok(!!ringPlan && Object.keys(ringPlan.bound).length === 0,
+      `anatomy: an absolute part binds NO dimensions — which is what makes the single resize above safe rather than merely tolerated (bound: ${JSON.stringify(ringPlan?.bound)})`);
     // And the generic backstop: `misses[]` only ever filled when a NAME failed to resolve, so a write
     // that resolved and was then discarded was invisible. Reading the binding back closes that,
     // which matters more than either specific fix above — it reports the NEXT silent setter.
@@ -6145,6 +6165,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     broke('two interaction targets fail', /exactly one part must have role/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, role: 'target' } } }));
     broke('a text part carrying layout fails', /only a 'box' lays out/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, gap: 'size.{size}.gap' } } }));
 
+    // The ABSOLUTE kind's six rules (#536 item 3). Each one is a field that would otherwise validate
+    // clean and project to NOTHING, which is the class of defect the spinner's missing `when` was — a
+    // def author reads the def, believes the ring is 16px or focus-only or the hit target, and the
+    // projection has silently dropped the claim. Caught on the day the kind ships rather than months
+    // later, which is the whole argument for putting them in the validator instead of a doc comment.
+    const ring = (patch: Record<string, unknown>) => (x: AnatomyDef): AnatomyDef =>
+      ({ ...x, parts: { ...x.parts, focusRing: { ...x.parts.focusRing, ...patch } as AnatomyDef['parts'][string] } });
+    broke('an absolute part with no `when` fails — nothing could project it', /must declare the state it appears in/, ring({ when: undefined }));
+    broke('an absolute part whose `when` is not a state fails', /is not one of states/, ring({ when: 'nope' }));
+    broke('an absolute part nominating no component to nest fails — the alternative is N-way duplication', /nominates no component to nest/, ring({ nests: undefined }));
+    broke('an absolute part with no `inset` fails — a ring flush against the border is WCAG 1.4.11', /binds no 'inset'/, ring({ inset: undefined }));
+    // Not caught by the single-target check above, which counts targets: one absolute target is still
+    // exactly one, and it owns no hit area at all.
+    broke('an absolute part claiming role `target` fails — a part outside the flow owns no hit area', /owns no hit area/, ring({ role: 'target' }));
+    broke('an absolute part binding `size` fails — it is sized by its parent, so a size would be dropped silently', /is sized by its parent/, ring({ size: 'icon.size.{size}' }));
+    broke('an absolute part declaring children fails — Figma does not accept appends into an instance', /does not accept appends into an instance/, ring({ children: ['label'] }));
+    // And the two placement rules, which are about the FIELDS rather than the kind: `inset` and `nests`
+    // on anything else are as meaningless as `gap` on a text part, and for the same reason — the
+    // projection reads them only under the absolute branch.
+    broke('`inset` on a non-absolute part fails', /inset/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, inset: 'ring-offset' } } }));
+    broke('`nests` on a non-absolute part fails', /nests/, (x) => ({ ...x, parts: { ...x.parts, label: { ...x.parts.label, nests: 'focus-ring' } } }));
+
     // ---- the payload EXECUTED, not grepped ------------------------------------------------------
     // Every other assertion in this block reads the payload as text, and that is the weakness three
     // gates have now been caught by: the string documents itself, so grepping it for the words that
@@ -6158,7 +6200,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // exercise it at all. Handing the same object to several `runPayload` calls models the one thing
     // separate `figma_execute` calls actually share: the document.
     type StubPage = { children: Record<string, unknown>[] };
-    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage } = {}): Promise<PayloadResult> => {
+    const runPayload = async (payloadJs: string, opts: { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown } = {}): Promise<PayloadResult> => {
       const names = new Set(opts.vars ?? []);
       const page = opts.page;
       // Members LEAVE the page when they join a set, as they do live. Without this the page keeps every
@@ -6168,13 +6210,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         if (!page) return;
         for (const k of kids) { const i = page.children.indexOf(k); if (i >= 0) page.children.splice(i, 1); }
       };
-      const mkVar = (name: string) => ({ id: `V:${name}`, name });
+      // `resolveForConsumer` because `x`/`y` take no binding, so the absolute inset is read as a VALUE and
+      // written as a number. Modeled to return one, and deliberately NOT the raw `valuesByMode` entry:
+      // `focus/ring/offset` is itself an alias to a dimension primitive, so the raw map hands back a
+      // VARIABLE_ALIAS object and the payload would write `NaN` positions. 2 is the real NB value.
+      // A NUMERIC VALUE per variable, deterministic from the name, and non-zero — which is the half that
+      // matters. `width` above is fixed at its bound variable's value, so a stub handing back nothing
+      // leaves every node measuring 0 and the ring's `parent + 2 × inset` arithmetic unfalsifiable (see
+      // the `width` note). The particular numbers are arbitrary; that they DIFFER between names is not,
+      // since equal values would let a payload bind the wrong variable and still measure right.
+      const varValue = (name: string) => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
+      const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: opts.insetValue ?? 2 }) });
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
       // what it would see live. A node that is NOT bound stays absent from it, which is the state the
       // read-back is meant to report.
       const mkNode = (type: string): Record<string, unknown> => {
         const node: Record<string, unknown> = {
-          type, name: '', height: 0, boundVariables: {} as Record<string, unknown>,
+          type, name: '', boundVariables: {} as Record<string, unknown>,
           constrainProportions: false, fills: [], strokes: [], children: [] as unknown[],
           // BORDER-BOX modeled, because the FOOTPRINT read-back has nothing to measure otherwise.
           // Figma's `strokesIncludedInLayout` defaults to ADDING the stroke to an auto-layout frame's
@@ -6184,17 +6236,83 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // no matter what the payload does. `strokeWeight` starts at 0 so the payload's
           // `if(!node.strokeWeight)` default fires, as it does live.
           ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+          // FIXED-OR-HUG, plus the border-box term — Figma's actual two sizing modes rather than a
+          // constant. This was `return stroked ? 2 * strokeWeight : 0` until the absolute part arrived
+          // (#536 item 3), and the constant is what made the ring ungatable: a ring is sized as
+          // `parent + 2 × inset`, and against a parent that measures 0 that is arithmetically
+          // indistinguishable from `2 × inset` alone. `kid.resize(off*2,off*2)` — a 4x4 ring on a real
+          // button, as broken as this gets — passed the ENTIRE suite green, including the geometry
+          // assertion written to catch exactly it. Same lesson as the border-box note below, one level up:
+          // A STUB THAT MEASURES A CONSTANT CANNOT CATCH AN ARITHMETIC ERROR, because every wrong answer
+          // equals every right one. It is also why the footprint messages below read `8x0`/`6x0` rather
+          // than the `2x0`/`0x0` they read before — the delta they assert is unchanged.
+          //
+          // A node with a BOUND width is FIXED at that variable's value; everything else HUGS its flow
+          // children plus its own horizontal padding. ABSOLUTE children are excluded from the hug, as
+          // they are live — a ring that grew its own target would be circular, and the payload's second
+          // pass reads the total the first one produced.
+          //
+          // The border term lands on the HUG branch only, which is the #503 finding restated as a model:
+          // a FIXED axis absorbs the stroke silently (the value is the value), and only a hugging axis
+          // grows by it. That is why the defect was width-only on a button whose height is bound, and a
+          // stub that grew both axes would misreport it as symmetric.
           get width() {
+            const bv = node.boundVariables as Record<string, { value?: number }>;
             const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
-            return stroked ? 2 * (node.strokeWeight as number) : 0;
+            if (bv.width) return bv.width.value ?? 0;
+            const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
+            const hug = ((node.children as Record<string, unknown>[]) ?? [])
+              .filter((c) => c.layoutPositioning !== 'ABSOLUTE')
+              .reduce((a, c) => a + ((c.width as number) || 0), 0);
+            return pad + hug + (stroked ? 2 * (node.strokeWeight as number) : 0);
+          },
+          // BOTH AXES, for one reason: a claim about only one of them is half-unfalsifiable. `height` was
+          // a plain `0` field, so `kid.resize(node.width+off*2, off*2)` — the ring's height ignoring its
+          // target entirely — passed the geometry assertion written to catch it, because `0 + 4` and `4`
+          // are the same number. The width fix alone would have shipped that. A stub models an axis or it
+          // cannot gate it, and there is no such thing as gating "the ring is 2px larger on every side"
+          // while measuring one side.
+          get height() {
+            const bv = node.boundVariables as Record<string, { value?: number }>;
+            const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
+            if (bv.height) return bv.height.value ?? 0;
+            const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
+            const flow = ((node.children as Record<string, unknown>[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
+            // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child.
+            return pad + flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0) + (stroked ? 2 * (node.strokeWeight as number) : 0);
           },
           // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
           // the empty-label set #510 shipped, and the state the read-back has to be able to report.
           characters: '',
           componentPropertyReferences: null as Record<string, string> | null,
-          setBoundVariable(prop: string, v: { id: string }) { (node.boundVariables as Record<string, unknown>)[prop] = { id: v.id }; },
+          // The VALUE is recorded alongside the id, because a bound dimension is what SIZES the node live
+          // — `width` above reads it. Without this the binding is a bookkeeping entry and every node
+          // measures the same, which is the constant-stub trap the `width` note records.
+          setBoundVariable(prop: string, v: { id: string; value?: number }) { (node.boundVariables as Record<string, unknown>)[prop] = { id: v.id, value: v.value }; },
           setTextStyleIdAsync: async () => {}, setEffectStyleIdAsync: async () => {},
-          appendChild(c: unknown) { (node.children as unknown[]).push(c); },
+          // ABSOLUTE POSITIONING, modeled with its REJECTION CASE, which is the only part worth modeling.
+          // Figma ignores `layoutPositioning` on a child whose parent is not an auto-layout frame, and it
+          // ignores it SILENTLY — so a stub that simply stored the value would let the payload's read-back
+          // be deleted with a green suite, which is the mistake this file has now made twice (#500's
+          // `misses[]` blind spot, and #503's constant-width set). `parent` is set by `appendChild` below,
+          // so the check reads the same fact the live API does.
+          x: 0, y: 0,
+          constraints: null as unknown,
+          parent: null as Record<string, unknown> | null,
+          _absolute: false,
+          get layoutPositioning() {
+            const p = node.parent as Record<string, unknown> | null;
+            return node._absolute && p && p.layoutMode ? 'ABSOLUTE' : 'AUTO';
+          },
+          set layoutPositioning(v: string) { node._absolute = v === 'ABSOLUTE'; },
+          // Settable dimensions, because an absolute child is sized rather than bound. Replaces BOTH
+          // derived getters above for any node actually resized — which is only the ring, and only after
+          // its parent's own hug is final.
+          resize(w: number, h: number) {
+            Object.defineProperty(node, 'width', { configurable: true, value: w, writable: true });
+            Object.defineProperty(node, 'height', { configurable: true, value: h, writable: true });
+          },
+          appendChild(c: Record<string, unknown>) { c.parent = node; (node.children as unknown[]).push(c); },
           // Walks descendants for real, rather than returning `[]`. The set payload finds each part by
           // NAME inside every member to wire its property reference, so a stub that finds nothing would
           // let the whole wiring loop no-op and every assertion below pass on an empty set of writes.
@@ -6396,6 +6514,100 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(clean.misses.length === 0,
       `anatomy: a fully-resolved paste reports NOTHING — misses[] stays empty when every write landed (${JSON.stringify(clean.misses)})`);
 
+    // ---- the ABSOLUTE part, EXECUTED (#536 item 3) -----------------------------------------------
+    // The focus ring is the first part kind whose materialization can fail because of what is missing
+    // from the FILE rather than from the plan, and the first that writes a resolved NUMBER instead of a
+    // binding. Neither is reachable by any assertion above — `runnable` is `state=hover`, which has no
+    // ring — so this block runs a focus-visible paste and then breaks it four ways. Each mutation
+    // passes if the corresponding check is dead.
+    {
+      const ring = skin('outline', 'focus-visible');
+      const ringOpts = {
+        vars: [...planBoundVars(ring.root), ...planPaintVars(ring.root)],
+        styles: planTextStyles(ring.root),
+        comps: ['FPO-default-icon', 'focus-ring'],
+      };
+      const ringJs = planToPluginJs(ring);
+      const ringRun = await runPayload(ringJs, ringOpts);
+      ok(ringRun.misses.length === 0,
+        `anatomy/ring: a focus-visible paste with the shared component present runs CLEAN${ringRun.misses.length ? ` — ${JSON.stringify(ringRun.misses)}` : ''}`);
+      // `appearance=outline` is the coordinate chosen deliberately: it is the one that made #536 item 3
+      // visible, because its own border is the paint a ring drawn on the target would have collided with.
+      // A clean run here is the claim that the ring is a SEPARATE node, not a contended stroke.
+      ok(planPartNames(ring.root).includes('focusRing') && !planPartNames(skin('outline', 'hover').root).includes('focusRing'),
+        `anatomy/ring: the ring is a part of the focus-visible plan and of NO other state's — 'when' is what gates it, so a ring on every row would be as wrong as a ring on none (${planPartNames(ring.root).join(', ')})`);
+
+      const mutateRing = async (label: string, from: string, to: string, want: RegExp) => {
+        const mutated = ringJs.replace(from, to);
+        ok(mutated !== ringJs, `anatomy/ring: the mutation for '${label}' actually applied to the payload`);
+        const r = await runPayload(mutated, ringOpts);
+        ok(r.misses.some((m) => want.test(m)), `anatomy/ring: ${label}${r.misses.some((m) => want.test(m)) ? '' : ` — got ${JSON.stringify(r.misses)}`}`);
+      };
+      // THE MISSING SHARED COMPONENT — the failure mode the nest-rather-than-author decision bought, and
+      // the one that must NOT degrade quietly. Produced by starving the file rather than by editing the
+      // payload, because that is how a designer produces it: paste the button into a file where
+      // `focus-ring` was never published.
+      const noRing = await runPayload(ringJs, { ...ringOpts, comps: ['FPO-default-icon'] });
+      ok(noRing.misses.some((m) => /focusRing\.nestTarget -> focus-ring \(not in this file/.test(m)),
+        `anatomy/ring: an unpublished shared component is REPORTED (${JSON.stringify(noRing.misses)})`);
+      // And NOTHING is built in its place — read off the BUILT TREE, not off `parts`, which is a constant
+      // `JSON.stringify`d into the payload from the plan and is therefore identical whether the node built
+      // or not. This is the half that distinguishes it from INSTANCE_SWAP, whose miss degrades to a
+      // placeholder frame on purpose: an unstroked frame where a ring belongs is invisible, so it would
+      // read as a ring that pasted fine.
+      const starvedPage: StubPage = { children: [] };
+      await runPayload(ringJs, { ...ringOpts, comps: ['FPO-default-icon'], page: starvedPage });
+      const starvedKids = ((starvedPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).map((c) => c.name);
+      ok(!starvedKids.includes('focusRing') && starvedKids.includes('label'),
+        `anatomy/ring: no node is built in the missing ring's place, and the rest of the tree still builds — a missing ring is a precise failure, not a failed paste and not an invisible box (${JSON.stringify(starvedKids)})`);
+      ok(noRing.misses.length === 1,
+        `anatomy/ring: exactly ONE miss — the ring's absence must not cascade into resolve failures for the siblings that built fine (${JSON.stringify(noRing.misses)})`);
+      // THE INSET NEVER RESOLVED as a number. `resolveForConsumer` on an aliased variable hands back a
+      // VARIABLE_ALIAS object, which is what reading `valuesByMode` would have produced — and writing it
+      // to `x`/`y` yields NaN positions with no throw anywhere.
+      const aliasInset = await runPayload(ringJs, { ...ringOpts, insetValue: { type: 'VARIABLE_ALIAS', id: 'V:dimension/2' } });
+      ok(aliasInset.misses.some((m) => /focusRing\.absoluteInset -> .* not a number/.test(m)),
+        `anatomy/ring: an inset that resolves to something other than a number is REPORTED rather than written as NaN (${JSON.stringify(aliasInset.misses)})`);
+      // `layoutPositioning` DISCARDED — the silent rejection Figma performs when the parent is not an
+      // auto-layout frame. The stub models the rejection, so gutting the write reproduces it.
+      await mutateRing('an absolute child that Figma refuses to lift out of the flow IS reported',
+        "kid.layoutPositioning='ABSOLUTE';", 'void 0;', /focusRing\.layoutPositioning -> DISCARDED/);
+      // THE GEOMETRY, read off the built node rather than inferred from a silent run. `misses[]` cannot
+      // see this: the offset math is four arithmetic writes that throw nothing and report nothing, so a
+      // ring built flush against its target's bounds — the WCAG 1.4.11 failure the `inset` requirement
+      // exists to prevent — pastes perfectly cleanly. Only measuring catches it.
+      //
+      // `page` is passed so the built tree survives the run and can be inspected; every other caller in
+      // this block gets a fresh page and is unaffected.
+      const ringPage: StubPage = { children: [] };
+      await runPayload(ringJs, { ...ringOpts, page: ringPage });
+      const built = ringPage.children[0] as Record<string, unknown>;
+      const kid = ((built?.children as Record<string, unknown>[]) ?? []).find((c) => c.name === 'focusRing');
+      // The size is asserted RELATIVE to the target, and the target is a non-trivial width — the stub
+      // sizes each node from its bindings, so `built.width` is a real hug measurement rather than 0. That
+      // is what makes `+ 4` a claim: against a 0-wide parent it would also be satisfied by a ring sized
+      // from the inset alone, which is a 4x4 ring on a real button.
+      ok((built.width as number) > 4,
+        `anatomy/ring: the target measures something before the ring is sized against it — a 0-wide parent makes the assertion below unfalsifiable (${built?.width})`);
+      ok(!!kid && kid.x === -2 && kid.y === -2 && kid.width === (built.width as number) + 4 && kid.height === (built.height as number) + 4,
+        `anatomy/ring: the ring sits 2px OUTSIDE its target on every side — offset ${JSON.stringify([kid?.x, kid?.y])}, size ${JSON.stringify([kid?.width, kid?.height])} against a target of ${JSON.stringify([built?.width, built?.height])}`);
+      // Lifted OUT of the flow, read back through the stub's rejection model rather than trusted.
+      // A ring that takes a cell in the row pushes the label sideways at every focus.
+      ok(kid?.layoutPositioning === 'ABSOLUTE' && JSON.stringify(kid?.constraints) === JSON.stringify({ horizontal: 'STRETCH', vertical: 'STRETCH' }),
+        `anatomy/ring: the ring is absolutely positioned and STRETCHes with its target — a fixed-size ring detaches the moment the label changes (${JSON.stringify([kid?.layoutPositioning, kid?.constraints])})`);
+      // And it is an INSTANCE of the shared component, not a frame. The distinction is invisible in the
+      // geometry above — a placeholder frame would measure identically — so it gets its own read.
+      ok(kid?.type === 'INSTANCE', `anatomy/ring: the ring is an INSTANCE of the shared component (${kid?.type})`);
+      // The offset is not a constant in the payload. Re-run with a different brand value and the geometry
+      // must follow, which is what makes `absoluteInset` a variable name rather than a frozen number in
+      // the plan — the whole reason the plan stays brand-invariant and the freeze happens at paste.
+      const widePage: StubPage = { children: [] };
+      await runPayload(ringJs, { ...ringOpts, page: widePage, insetValue: 6 });
+      const wide = ((widePage.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).find((c) => c.name === 'focusRing');
+      ok(wide?.x === -6 && wide?.y === -6,
+        `anatomy/ring: a brand whose ring offset is 6 gets a ring at -6 — the value is READ from the variable at paste, not baked into the plan (${JSON.stringify([wide?.x, wide?.y])})`);
+    }
+
     // ---- COMPONENT PROPERTIES on the assembled set (#487 step 6) --------------------------------
     // #510's set passed every check above and shipped 21 BLANK buttons: nothing wrote `characters` and
     // nothing declared a TEXT property. So these gates are all about the two channels that failure had
@@ -6446,7 +6658,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const fullSet = {
         vars: grid.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
         styles: grid.flatMap((p) => planTextStyles(p.root)),
-        comps: ['FPO-default-icon'],
+        comps: ['FPO-default-icon', 'focus-ring'],
       };
       const setRun = await runPayload(planSetToPluginJs(grid), fullSet);
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
@@ -6470,12 +6682,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `set properties: the axis read-back is unaffected — it filters type === 'VARIANT', because non-variant keys come back suffixed (${JSON.stringify(setRun.axes)})`);
 
       // MUTATION-TESTED, one per new read-back. Each of these passes if the check is dead.
+      // Returns the matching misses, so a caller that needs to assert something ABOUT the report — the
+      // footprint delta below — can, rather than only that a report exists.
       const mutate = async (label: string, from: string | RegExp, to: string, want: RegExp) => {
         const js = planSetToPluginJs(grid);
         const mutated = js.replace(from as string, to);
         ok(mutated !== js, `set properties: the mutation for '${label}' actually applied to the payload`);
         const r = await runPayload(mutated, fullSet);
-        ok(r.misses.some((m) => want.test(m)), `set properties: ${label}${r.misses.some((m) => want.test(m)) ? '' : ` — got ${JSON.stringify(r.misses)}`}`);
+        const hit = r.misses.filter((m) => want.test(m));
+        ok(hit.length > 0, `set properties: ${label}${hit.length ? '' : ` — got ${JSON.stringify(r.misses)}`}`);
+        return hit;
       };
       // The placeholder never written — #510's exact failure, now a reported miss rather than a set a
       // designer opens and finds blank.
@@ -6504,9 +6720,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `strokesIncludedInLayout` at Figma's default adds the stroke to the hug axis, so every `outline`
       // member measures 2px wider than the `filled` members it shares a group with. That is #503's defect
       // restored, and it is invisible on the bound axis — the height absorbs the identical 2px in silence.
-      await mutate('FOOTPRINT drift is reported — an outlined member outgrows its group when the stroke joins the layout',
+      // Matched on the DELTA (`(n+2) vs n`) rather than on `2x0 but 0x0`. The absolute widths were
+      // literals only because the stub measured every node as a constant; it sizes from bindings now
+      // (#536 item 3 — see the `width` note), so a pinned pair would be a landmark that goes stale on the
+      // next size-token change while the claim it stands for — the stroke adds exactly 2px to the hug
+      // axis — is unchanged. Backreference, so it is still the SAME group being compared.
+      const drift = await mutate('FOOTPRINT drift is reported — an outlined member outgrows its group when the stroke joins the layout',
         "if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;", '',
-        /footprint -> .* measures 2x0 but .* measures 0x0/);
+        /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
+      const deltas = drift.map((m) => {
+        const [, w1, h1, w2, h2] = /measures (\d+)x(\d+) but .* measures (\d+)x(\d+)/.exec(m)!;
+        return [+w1 - +w2, +h1 - +h2];
+      });
+      // 2 on the HUG axis, 0 on the FIXED one — which is the #503 finding itself, not just its magnitude.
+      // The button's height is bound, so it absorbs the same 2px in silence; had both axes hugged, the
+      // defect would have been symmetric and far easier to spot. Asserting the asymmetry is what keeps
+      // this from passing on a stub that grew everything uniformly.
+      ok(deltas.length > 0 && deltas.every(([dw, dh]) => dw === 2 && dh === 0),
+        `set properties: the drift is exactly 2px on the HUGGING axis and ZERO on the bound one — the fixed height absorbs the stroke silently, which is why #503's defect was width-only (${JSON.stringify(deltas)})`);
 
       // A swap target that does not resolve. `''` and a component key are both REFUSED by Figma, so this
       // is not a property with a blank default — it is a property that cannot be created.
@@ -6532,7 +6763,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const boolOpts = {
         vars: boolGrid.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
         styles: boolGrid.flatMap((p) => planTextStyles(p.root)),
-        comps: ['FPO-default-icon'],
+        comps: ['FPO-default-icon', 'focus-ring'],
       };
       const boolRun = await runPayload(planSetToPluginJs(boolGrid), boolOpts);
       ok(boolRun.misses.length === 0, `set properties: a set carrying a BOOLEAN runs CLEAN end to end${boolRun.misses.length ? ` — ${JSON.stringify(boolRun.misses)}` : ''}`);
@@ -6610,7 +6841,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const bigOpts = {
           vars: big.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
           styles: big.flatMap((p) => planTextStyles(p.root)),
-          comps: ['FPO-default-icon'],
+          comps: ['FPO-default-icon', 'focus-ring'],
         };
         const page: { children: Record<string, unknown>[] } = { children: [] };
         const runs: PayloadResult[] = [];
@@ -6739,9 +6970,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // The FOOTPRINT cohort SPLIT ACROSS CHUNKS. `state` and `appearance` must not move the box, and
         // those are exactly the siblings a chunk boundary separates — so the footprint read-back has to
         // compare the whole set rather than one chunk, and this proves it does.
+        // Same delta-not-literal form as the single-shot footprint mutation above — see the note there.
+        // What this one adds is the SPLIT: `state` and `appearance` are exactly the siblings a chunk
+        // boundary separates, so the report has to come from comparing the whole set.
         await mutateChunks('footprint drift is caught even when the cohort is split across chunks',
           "if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;", '',
-          /footprint -> .* measures 2x0 but .* measures 0x0/);
+          /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       }
     }
 
@@ -6789,15 +7023,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // because it is the number a designer opening the set actually experiences, and #563's write-up got
     // it wrong by keying on the wrong thing. TWO figures, both true, and the difference is the lesson:
     //
-    //   paint + node names → 144   (focus-visible 108, pressed 36)
-    //   paint only         → 198   (focus-visible 108, pressed 36, pending 54)
+    //   paint + node names → 36   (pressed 36)
+    //   paint only         → 90   (pressed 36, pending 54)
+    //
+    // Both were 108 higher until the focus ring became a part (#536 item 3): `focus-visible` contributed
+    // every one of those 108 rows, in BOTH counts, because the ring was not a node and nothing else
+    // distinguishes focus — `appearance=outline, state=focus-visible` emitted its rest border and no ring
+    // at all. The ring is an absolute sibling now, so all 108 differ structurally AND visually. That is
+    // the single largest duplicate class in the set, and it is worth noting it moved both counts by the
+    // same number: the ring is a real node carrying real geometry, not a rename.
     //
     // The 54 are exactly the `leading=true` half of `pending`: the spinner REPLACES the leading visual,
     // so it inherits the same square size binding, the same icon paint and the same position, and the
     // only difference left is that the node is called `spinner` instead of `leadingVisual`. With
     // `leading=false` there is nothing to replace, so the spinner ADDS a node and the row genuinely
     // differs. A layer rename is invisible on the canvas — both are FPO icons of identical size and
-    // color — so the honest count for "looks the same" is 198, not 144. The
+    // color — so the honest count for "looks the same" is 90, not 36. The
     // structural count is what a diff sees; the paint count is what a human sees. Assert BOTH, because
     // asserting only the structural one is what let "144" into the PR table in the first place.
     {
@@ -6818,10 +7059,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       };
       const struct = count(withNames), painted = count(sig);
       const total = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
-      ok(total(struct) === 144 && struct.get('focus-visible') === 108 && struct.get('pressed') === 36 && !struct.has('pending'),
-        `figmaProperties: 144 of 648 rows are STRUCTURALLY identical to their rest sibling — focus-visible 108, pressed 36 (${JSON.stringify([...struct])})`);
-      ok(total(painted) === 198 && painted.get('pending') === 54,
-        `figmaProperties: 198 rows are VISUALLY identical to their rest sibling — the extra 54 are pending with leading=TRUE, where the spinner replaces the leading visual and inherits its size, paint and position (${JSON.stringify([...painted])})`);
+      ok(total(struct) === 36 && struct.get('pressed') === 36 && !struct.has('pending'),
+        `figmaProperties: 36 of 648 rows are STRUCTURALLY identical to their rest sibling — pressed only (${JSON.stringify([...struct])})`);
+      ok(total(painted) === 90 && painted.get('pending') === 54,
+        `figmaProperties: 90 rows are VISUALLY identical to their rest sibling — the extra 54 are pending with leading=TRUE, where the spinner replaces the leading visual and inherits its size, paint and position (${JSON.stringify([...painted])})`);
+      // `focus-visible` in EITHER map is the #536-item-3 regression returning, and it is worth its own
+      // assertion rather than being implied by the totals: the totals move for any reason at all (a new
+      // size, a new intent, a paint change), and a total that happens to still read 36 while 108 focus
+      // rows have gone back to duplicating rest is exactly the failure this pins. It is also the only
+      // duplicate class that was a DEFECT rather than an accepted consequence — pressed's 36 and
+      // pending's 54 are both admitted in `codeOnly`; the focus ring's absence never was.
+      ok(!struct.has('focus-visible') && !painted.has('focus-visible'),
+        `figmaProperties: NO focus-visible row reads as its rest sibling — all 108 did before the ring became an absolute part (#536 item 3), which is the largest duplicate class the set has had (${JSON.stringify([...painted])})`);
       // The direction matters and is easy to get backwards (I did): assert it rather than restate it.
       const pendingEq = (ld: boolean) => {
         const mk = (st: string) => figmaAnatomyPlan(button, 'medium', { leading: ld, trailing: false, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st });

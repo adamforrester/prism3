@@ -7,6 +7,114 @@
 
 ---
 
+## (2026-08-06) — The focus ring becomes a part: `absolute`, the fifth `PartKind` (#536 item 3)
+
+**STATUS: shipped.** `Prism3/engine/component-schema.ts`, `anatomy-figma.ts`, `components/button.ts`,
+`test.ts`. **No version bump** — no emitted token artifact moves (all 88 byte-match), the guaranteed
+name surface is untouched at 485, and this is component-tier projection work exactly as #488 and #493
+were. **+26 assertions** (1812 → 1838 measured on `8a54d4e`).
+
+**The measurement that opened it.** `appearance=outline, state=focus-visible` emitted
+`{"strokes":"color/interactive/primary/border"}` — its own *rest* border, no ring at all — and **all 108
+focus-visible rows were byte-identical to their rest sibling**, the largest duplicate class the variant
+set has ever had. Both duplicate counts drop by exactly that: structural **144 → 36** (pressed only),
+visual **198 → 90** (pressed 36 + pending 54). Same number in both, which is itself the check that the
+ring is a real node carrying real geometry rather than a rename.
+
+**The kind was already adjudicated; only one decision was left.** `docs/32` and the 2026-08-05 entry had
+settled the structure — an absolutely-positioned sibling, `layoutPositioning: ABSOLUTE`, zero children,
+`clipsContent: false`. What that buys is worth restating because it is the reason nothing was traded:
+**an absolute sibling has its own stroke**, so the three-way contention over one node's single stroke
+(550 ring / 500 border / 550 rest fill) never arises, and it takes no space so no geometry shifts. #493's
+two lossy options both existed only because the ring was assumed to live on the target.
+
+Not `overlay`: overlay validation demands `replaces:`, because its semantic is *takes another part's
+position*. The ring takes nobody's.
+
+**The one open call — nest or author — went to nest** (owner confirmed). The cost is real and admitted in
+`codeOnly` rather than discovered later: the nested component owns its own strokes, weight and radius, so
+`planBindingErrors` cannot gate them. `focus-ring` and `ring-width` stay bound-but-unprojected; only
+`ring-offset` reaches a node. In exchange the ring is one shared component instead of N authored copies,
+and it is nobody's component to own — `focus.ring.*` and `color.border.focus` are top-level families and
+`focus.ring.offset-field` already emits separately.
+
+**Publish-then-nest** — the first part kind whose materialization can fail because of what is missing
+from the **file** rather than from the plan. It is the component-tier echo of
+`materialise-to-figma.ts`'s create-before-alias ordering.
+
+**Opposite failure policy from `INSTANCE_SWAP`, deliberately.** A missing swap target degrades to a
+placeholder frame — a slot a designer can still fill. A missing `nestTarget` builds **nothing** and
+records a miss, because an unstroked frame in a ring's place is *invisible* and reads as a ring that
+pasted fine. `NESTED_INSTANCE` is likewise a peer of `INSTANCE_SWAP` and not a flag on it: a swap is a
+slot the *consumer* repoints and carries a component PROPERTY; a nested instance is structure the *host*
+fixes and carries none. Collapsing them would hand the designer a swappable focus ring.
+
+**Brand invariance forced the inset to be a variable NAME, not a number.** My first `FigmaNodePlan` field
+was `{ inset: number; insetVar: string }` — resolved at plan time, which produces a plan that only works
+for the brand that built it, breaking the one property every other field in that type preserves. The plan
+carries the name; the payload resolves it at paste. The consequence is admitted in `codeOnly`: **the
+offset is frozen at paste**, so a brand changing `focus.ring.offset` re-themes every bound paint and does
+*not* move an already-pasted ring. Figma's `x`/`y` accept no variable binding — that is the ceiling, not
+an oversight. And `resolveForConsumer`, not `valuesByMode`: `focus/ring/offset` is itself an alias to
+`dimension/2`, so the raw map hands back a `VARIABLE_ALIAS` object and the payload would write `NaN`
+positions.
+
+**Two bugs I wrote and then found, both worth more than the feature.**
+
+*One-pass positioning.* My first child loop read `node.width` mid-append, which made correctness depend
+on `focusRing` being declared **last** in `children` — correct today, silently wrong the day someone
+reorders the list. Split into two passes: flow children appended, then absolutes positioned against the
+parent's final size.
+
+*A blanket-absence gate that the new kind would have forced me to weaken.* `test.ts` asserted
+`!/\.resize\(/` — no resize anywhere — because #500's prescribed fix resized nodes carrying dimension
+bindings and `resize()` clears them. The ring needs exactly one resize. The honest resolution was that
+the claim was never "no resize anywhere" but **"no resize on a node carrying dimension bindings"**, which
+is weaker as text and *stronger* as a check: it survives the new kind, still fails #500's fix, and is now
+paired with an assertion that an absolute part's `bound` is empty — which is what makes the one permitted
+resize provably safe rather than merely tolerated. Anchored on *which* node is resized rather than on an
+occurrence count (#568's landmark-goes-stale lesson, applied).
+
+**A STUB THAT MEASURES A CONSTANT CANNOT CATCH AN ARITHMETIC ERROR.** This is the finding of the PR, and
+it cost three rounds. The test stub's `width` was `stroked ? 2 * strokeWeight : 0` and its `height` a
+plain `0` field — every node measured the same no matter what the payload did. So
+`kid.resize(off*2, off*2)` — a **4×4 ring on a real button**, as broken as this gets — passed the entire
+suite green, *including the geometry assertion written to catch exactly it*, because `0 + 4` and `4` are
+the same number. Fixing width alone was not enough: `resize(node.width+off*2, off*2)` then passed too,
+since the height half of "2px larger on every side" was still unfalsifiable. **A stub models an axis or it
+cannot gate it, and there is no such thing as gating a claim about every side while measuring one.**
+
+Both axes now model Figma's real two sizing modes — a bound dimension is FIXED at its variable's value,
+anything else HUGS its flow children plus padding, absolutes excluded from the hug — and the border term
+lands on the **hug branch only**, which is the 2026-08-05 `[KB]` note ("a bound dimension conceals
+disagreement about that dimension") turned into a model rather than a comment. Five geometry mutations
+now fail; before, four of them passed.
+
+The knock-on is worth noting because it is the same lesson from the other end: the footprint gates matched
+`measures 2x0 but … 0x0`, literals that were only stable *because* the stub measured a constant. They now
+parse both dimensions and assert the **delta** — 2px on the hugging axis and **zero** on the bound one.
+That asserts #503's finding itself rather than its magnitude, and it cannot pass on a stub that grew
+everything uniformly.
+
+**The validator rejects nine things the projection would silently drop** — `size`, `children`,
+`role: 'target'`, an unreachable part, a missing or non-state `when`, a missing `nests`, a missing
+`inset`, and `inset`/`nests` on a non-absolute part. Same class as the spinner's missing `when`: a field
+that validates clean and projects to nothing, so a def author reads the def and believes the ring is 16px
+or focus-only or the hit target. Caught on the day the kind ships rather than months later. Each rule has
+a test, and the five that are new claims rather than reused ones are mutation-verified — neutering any
+of them fails.
+
+**Verification.** 1838 passed / 0 failed; tsc clean; 88 artifacts byte-match; MCP 49/49; token contract,
+skills and US-English gates clean. Fifteen mutations run across the payload geometry, the missing shared
+component, the `when` gate, the inset projection and all six validator rules.
+
+**Left open, deliberately.** No live Figma paste — `focus-ring` must be published in a file first, which
+is #536 item 6's territory (the 12-variant live probe) and needs a live file rather than a gate. The
+`codeOnly` admissions name what that probe should confirm: that the nested component's own stroke, weight
+and radius are what a designer sees, since no offline gate can reach them.
+
+---
+
 ## (2026-08-06) — The focus ring was gated on the page and painted on inverse (#573 closed)
 
 **STATUS: shipped.** `Prism3/engine/modes.ts`, `test.ts`, `ai-metadata.ts`, `version.ts`,
