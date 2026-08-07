@@ -33,6 +33,31 @@ export const OUT_DIR = resolve(here, 'build/consumer');
 export const SOURCE = (brand) => resolve(here, `../../Prism3/engine/out/${brand}.tokens.json`);
 
 /** Build one brand through a stock Style Dictionary. Returns the emitted CSS as a string. */
+/** The PROJECTED build (#609): base + one mode overlay, composed by Style Dictionary's own
+ *  multi-source merge. Still stock — two `source` entries and `log.warnings` are config, not code.
+ *  `warnings: 'disabled'` silences SD's per-token collision notice, which is SD correctly reporting
+ *  that the overlay overrode the base; it is the mechanism working, and 133 lines of it per mode is
+ *  noise that would get someone to "fix" the wrong thing. */
+export const buildProjected = async (brand, mode) => {
+  const sd = new StyleDictionary({
+    source: [
+      resolve(here, `../../Prism3/engine/out/${brand}.base.tokens.json`),
+      ...(mode === 'base' ? [] : [resolve(here, `../../Prism3/engine/out/${brand}.${mode}.overlay.tokens.json`)]),
+    ],
+    usesDtcg: true,
+    log: { warnings: 'disabled' },
+    platforms: {
+      css: {
+        transformGroup: 'css',
+        buildPath: `${OUT_DIR}/${brand}-projected/`,
+        files: [{ destination: `${mode}.css`, format: 'css/variables', options: { outputReferences: true, selector: mode === 'base' ? ':root' : `[data-theme="${mode}"]` } }],
+      },
+    },
+  });
+  await sd.buildAllPlatforms();
+  return resolve(OUT_DIR, `${brand}-projected`, `${mode}.css`);
+};
+
 export const buildConsumer = async (brand) => {
   const sd = new StyleDictionary({
     source: [SOURCE(brand)],

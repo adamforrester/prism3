@@ -49,8 +49,15 @@
  * exercises a mono face at weight 600 (`code` only ever takes the `default` role), so this bumps the
  * version for the behavior change without moving any committed corpus artifact. Values only — no
  * token name moved, so `CONTRACT_VERSION` stands. (#538)
+ *
+ * 0.4.0: the engine emits a second, CONFORMING projection of every tree — `<brand>.base.tokens.json`
+ * plus one `<brand>.<mode>.overlay.tokens.json` per theme mode. The canonical tree is unchanged and
+ * remains the source of truth; per-mode values still live under `$extensions.prism3.modes`, which
+ * DTCG defines as ignorable, so the projection is what a stock consumer can actually read. A minor
+ * rather than a patch because the artifact SET grew, not because anything existing moved — no token
+ * name and no canonical value changed, so `CONTRACT_VERSION` stands. (#609)
  */
-export const ENGINE_VERSION = '0.3.4';
+export const ENGINE_VERSION = '0.4.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
