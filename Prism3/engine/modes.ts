@@ -838,10 +838,21 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // 3:1 rather than the 4.5 bold ink clears, and the measurement is the reason. Every light muted
     // in the corpus ALREADY clears 3 (min: harbor 3.16), so this moves no value today — it converts a
     // coincidence into a contract. At 4.5 it moves 24 of 25 light combos and halves muted↔bold
-    // separation from ~1.73 to 1.21–1.48, which erases the visual distinction the role exists to
-    // provide: a "quiet danger" that reads as loud as the loud one is not worth emitting. So the bar
+    // separation from **1.45–1.78** to 1.21–1.48, which erases the visual distinction the role exists
+    // to provide: a "quiet danger" that reads as loud as the loud one is not worth emitting. So the bar
     // is the one that matches how the role is actually used (large text and non-text accents), and
     // the studio LABELS it as such rather than leaving the promise implicit.
+    //
+    // That range said "~1.73" until #578 re-measured it. The floor is **wendys/brand at 1.45**, not
+    // 1.73, so the headroom over the 4.5 option's 1.48 ceiling is a hair rather than the comfortable
+    // gap the old number implied — the ordering that decided the bar survives, the margin does not.
+    // Two traps for whoever re-checks this, both of which caught a previous pass:
+    //   1. Measure bold-against-muted DIRECTLY. The tempting probe — subtracting the two page-contrast
+    //      ratios — is a different quantity and reads 2.15–3.05 on the same corpus. Easy to conflate.
+    //   2. These are the 25 LIGHT `text` combos, the set the option table compares. Widen to `icon` or
+    //      to every mode and the floor drops to 1.16 (aurora/light/icon.danger; hc-dark worst overall),
+    //      which is why test.ts (10d) quotes 1.16 — a different scope, not a contradiction. Neither
+    //      figure is wrong; a separation number without its scope is unusable.
     //
     // Gating also fixes a second bug the fixed rung hid: muted ignored HC entirely — identical in
     // light and hc-light (nb: 3.85 in both) — because a fixed step cannot respond to a raised bar.

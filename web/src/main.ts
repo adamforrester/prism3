@@ -5033,10 +5033,17 @@ const TEXT_PALETTE_ROLES: Array<{ role: string; label: string; paletteKey: strin
   { role: 'text.danger', label: 'Danger ink', paletteKey: 'danger', desc: 'Error message text.', sample: 'Something went wrong' },
   { role: 'text.info', label: 'Info ink', paletteKey: 'info', desc: 'Informational message text.', sample: 'For your reference' },
   { role: 'text.brand-subtle', label: 'Brand ink, muted', paletteKey: 'brand', desc: 'The quiet variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Brand, quietly' },
-  { role: 'text.success-subtle', label: 'Success ink, muted', paletteKey: 'success', desc: 'The quiet success variant.', sample: 'Success, quietly' },
-  { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning', desc: 'The quiet warning variant.', sample: 'Warning, quietly' },
-  { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger', desc: 'The quiet danger variant.', sample: 'Danger, quietly' },
-  { role: 'text.info-subtle', label: 'Info ink, muted', paletteKey: 'info', desc: 'The quiet info variant.', sample: 'Info, quietly' },
+  // All five muted rows state the SAME contract, because the engine gives them the same one: they come
+  // off one `T(\`${r}-subtle\`, …, p.tertiaryMin)` loop in `modes.ts`, so the bar is identical per role.
+  // Four of them used to read "The quiet success variant." and so on (#578 nit 1) — never false, since
+  // they claimed nothing about gating, but the brand row explained the large-text bar and its four
+  // siblings didn't, so reading down the list you got the rule once and then four rows that looked like
+  // a different kind of token. Stated per row rather than hoisted into the section blurb: the badge is
+  // per row, and a reader checking one role should not have to scroll to learn what its bar is.
+  { role: 'text.success-subtle', label: 'Success ink, muted', paletteKey: 'success', desc: 'The quiet success variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Success, quietly' },
+  { role: 'text.warning-subtle', label: 'Warning ink, muted', paletteKey: 'warning', desc: 'The quiet warning variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Warning, quietly' },
+  { role: 'text.danger-subtle', label: 'Danger ink, muted', paletteKey: 'danger', desc: 'The quiet danger variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Danger, quietly' },
+  { role: 'text.info-subtle', label: 'Info ink, muted', paletteKey: 'info', desc: 'The quiet info variant — lower emphasis, held to the large-text / non-text bar (3:1, or 4.5:1 in high contrast) rather than the 4.5:1 the bold ink clears. Use it for large text and non-text accents, not body copy.', sample: 'Info, quietly' },
   { role: 'text.link.default', label: 'Link', paletteKey: 'action', desc: 'Link ink at rest. Hover and visited walk one and two steps from here, so this row moves all four.', sample: 'A link in running text' },
 ];
 
