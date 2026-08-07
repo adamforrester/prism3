@@ -36,7 +36,7 @@ export type ReadbackSnapshot = {
   /** semantic colour roles — per-mode alias target name (or literal). */
   color: { name: string; scopes: string[]; valuesByMode: Record<string, ReadValue> }[];
   /** FLOAT axes (#146) — the geometric/dimensional vars, keyed by collection name
-   *  (`core-dimension`/`space`/`radius`/`size`/`border-width`/`focus`/`opacity`/`layout`). Optional
+   *  (`core-dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`/`layout`). Optional
    *  so a colour-only read (pre-#146, or a partial file) still validates on the colour contract. */
   float?: Record<string, { name: string; scopes: string[]; hidden: boolean; valuesByMode: Record<string, ReadValue> }[]>;
   /** STYLE axes (shadow/gradient lane) — local Effect + Paint style NAMES. Effect styles hold fully
@@ -110,7 +110,7 @@ export type FloatReadbackVerdict = {
 
 // The FLOAT axes this lane materialises (#146). `layout` is present iff the brand ships a grid;
 // the others are always emitted, so their absence is a real miss.
-const EXPECTED_FLOAT_COLLECTIONS = ['core-dimension', 'space', 'radius', 'size', 'border-width', 'focus', 'opacity'];
+const EXPECTED_FLOAT_COLLECTIONS = ['core-dimension', 'space', 'radius', 'size', 'icon', 'border-width', 'focus', 'opacity'];
 
 /** The verify verdict: an overall pass + the individual checks + supporting detail for the UI/log. */
 export type ReadbackVerdict = {

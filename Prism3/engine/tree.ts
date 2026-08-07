@@ -704,8 +704,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // identically on every axis.
   //
   // MINTED FROM NEED, not the whole ladder (#328's rule for weights): emit only the steps some role
-  // actually binds, including per-mode role overrides. The ladder is 15 steps; a default brand binds 6,
-  // and the other 9 would be dead leaves nothing references.
+  // actually binds, including per-mode role overrides. The ladder is 15 steps; a default brand binds 7
+  // (#388 added `cozy`), and the other 8 would be dead leaves nothing references.
   const lhStepsUsed = new Map<string, number>();
   const lsStepsUsed = new Map<string, number>();
   for (const lh of ty.lineHeights) lhStepsUsed.set(lineHeightStepKey(lh.value), lh.value);

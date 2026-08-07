@@ -3701,7 +3701,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   }
 }
 // (10) EXAMPLE-BRANDS ARTIFACT (docs/09) — the browser hosts boot from
-// schema/example-brands.json (the design.md parser is node-only). Gate that the
+// schema/example-brands.json (the design.md parser is pure/portable, but reading the raw
+// examples/*.design.md text off disk needs node:fs, which the sandbox doesn't have). Gate that the
 // committed JSON is current AND that EVERY emitted brand resolves all-green on the
 // preview contracts — so a host can trust whatever it boots from (extends the B1b
 // check beyond harbor to every host-facing example, incl. the web's aurora default).
@@ -5345,8 +5346,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(listChars < 60_000, `MCP: tools/list stays under 60,000 chars — the schema is inlined once (${listChars.toLocaleString()})`);
 
   // list_levers now covers the WHOLE input surface, not just the UI knobs. This is the gate on the
-  // defect it was written for: the manifest advertised 21 of the schema's 32 top-level fields, and the
-  // 11 it omitted included REQUIRED `id` and the entire per-mode override layer.
+  // defect it was written for: the manifest advertised 21 of the schema's 33 top-level fields, and the
+  // 12 it omitted included REQUIRED `id` and the entire per-mode override layer.
   const leversPayload = JSON.parse(callTool('list_levers', {}, brandSchema).content[0].text);
   ok(leversPayload.levers.levers.length === leverManifest.length, 'MCP: list_levers still returns the lever manifest verbatim');
   const advertised = new Set<string>([

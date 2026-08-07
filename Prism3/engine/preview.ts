@@ -17,7 +17,7 @@
  * emitted token tree (the binding-validity gate — the same "can't drift" discipline
  * as the lever manifest), and every contract pair's fg/bg is itself a bound token.
  * The actual contrast *values* are already gated by the engine's mode contracts
- * (248/248); the overlay just surfaces them per pair.
+ * (488/488 — 122 checked roles × 4 modes); the overlay just surfaces them per pair.
  */
 
 /** A component element's token bindings: UI prop → root-relative token path. */

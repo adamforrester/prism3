@@ -1,13 +1,16 @@
 /**
  * I/O shell — emit the parsed example `BrandInput`s as a committed JSON artifact.
  *
- * The browser hosts (web dashboard, Figma plugin) boot from a VALIDATED brand, but
- * the `design.md` parser (`design-md.ts`) is node-only, so it can't run in the
- * sandbox. This writes the *pre-resolution* BrandInput as plain data the hosts
- * import directly. The engine already gates each `design.md` → `out/<id>.tokens.json`
- * byte-identically; a `test.ts` drift gate additionally keeps this JSON current and
- * asserts every emitted brand resolves all-green on the preview contracts — so a
- * host can trust whatever it boots from here.
+ * The browser hosts (web dashboard, Figma plugin) boot from a VALIDATED brand. The
+ * `design.md` parser (`design-md.ts`) is itself pure and portable — no `node:*`, no
+ * I/O — so that is not what stops it running in-browser; what does is that the raw
+ * `examples/*.design.md` text lives on disk, and reading it needs `node:fs`
+ * (`readFileSync`, below), which the sandbox doesn't have. This writes the
+ * *pre-resolution* BrandInput as plain data the hosts import directly, so no host
+ * needs to fetch or parse the raw markdown at all. The engine already gates each
+ * `design.md` → `out/<id>.tokens.json` byte-identically; a `test.ts` drift gate
+ * additionally keeps this JSON current and asserts every emitted brand resolves
+ * all-green on the preview contracts — so a host can trust whatever it boots from here.
  *
  * PURE consumers only downstream: this shell reads files; the JSON it writes is inert.
  */

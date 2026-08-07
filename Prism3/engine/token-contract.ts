@@ -26,7 +26,7 @@
  *
  * `minimal` is the load-bearing corpus member: without it the intersection would be "what four
  * richly-specified brands happen to share", which over-claims. It is worth recording that adding it
- * removed ZERO paths — every one of the 477 survives the sparsest possible input. `wendys` earns
+ * removed ZERO paths — every one of the 485 survives the sparsest possible input. `wendys` earns
  * its place by removing exactly one (`font.typeface.inter`, a slug derived from a VALUE), which is
  * precisely the class of path that should not be promised.
  *

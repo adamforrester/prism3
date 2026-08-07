@@ -47,7 +47,7 @@
     },
     "modeLevers": {
       "type": "object",
-      "description": "OPTIONAL (Phase D). Per-mode NON-COLOR lever overrides, keyed by mode name (a customizable mode — light/dark or a `customModes` name). Each mode may override an input lever the engine RE-DERIVES for that mode; today `radius` (the radius scale, 0=sharp…1=default…2=soft), with typeScale/tempo/density to follow the same shape. Distinct from the GLOBAL `radiusScale` (the baseline every mode inherits) — modeLevers deviate a single mode. Deep-validated by brandTheme() at resolve time (mode is customizable + generated; radius in [0,2]). Omit for none (byte-identical).",
+      "description": "OPTIONAL (Phase D). Per-mode NON-COLOR lever overrides, keyed by mode name (a customizable mode — light/dark or a `customModes` name). Each mode may override an input lever the engine RE-DERIVES for that mode: `radius` (the radius scale, 0=sharp…1=default…2=soft), `tempo`, `density`, `families`, `weights`, `lineHeights`, `letterSpacings`, `easings`, `shadow`, and `typeSizes`. NOT `typeScale` — it shifts heading rungs and stays brand-wide, never a per-mode lever. Distinct from the GLOBAL `radiusScale` (the baseline every mode inherits) — modeLevers deviate a single mode. Deep-validated by brandTheme() at resolve time (mode is customizable + generated; radius in [0,2]). Omit for none (byte-identical).",
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,

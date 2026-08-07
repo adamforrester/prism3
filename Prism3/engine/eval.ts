@@ -4,7 +4,7 @@
  * Measures whether an agent handed the MCP surface (`theme_brand` / `list_levers`, `mcp.ts`)
  * produced COMPLIANT output — turning "MCP-first > screenshot-first" (docs/07 §15) from an
  * assertion into a number. This is the **pure, deterministic** scoring half: given the token
- * refs an agent's output uses + the generated token tree, compute two mechanical metrics that
+ * refs an agent's output uses + the generated token tree, compute three mechanical metrics that
  * need no LLM judge (cheap because the name contract is locked — docs/11 names-are-the-API):
  *
  *   • invented-token rate — refs to token paths that DON'T exist in the tree (the hallucination
@@ -19,8 +19,9 @@
  *
  * PURE — no `node:*`, no I/O. The agent-in-the-loop harness (run a model on sample tasks against
  * the MCP server, extract its token refs, score them here) is a separate edge shell (docs/17 §3);
- * this module is the gate it scores against. Contract-compliance scoring (did the fg/bg pairs the
- * agent used clear the mode contracts?) is the next metric — deferred to the harness phase (§4).
+ * this module is the gate it scores against. All three metrics — including contract-compliance,
+ * scored by `scoreContractCompliance` below — are implemented here, wired into `runEval`
+ * (`eval-run.ts`) and shipped over MCP (`mcp.ts`), not deferred.
  */
 
 import { resolveAllModes } from './modes';

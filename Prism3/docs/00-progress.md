@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-07) — Prose audit: engine comments asserting retired mechanisms (#553)
+
+**STATUS: shipped.** Sixteen `engine/*.ts` comment/docstring sites plus `Prism3/schema/theme-schema.json`'s
+`modeLevers` description. Pure prose except one real behaviour change, called out below.
+
+**Five mechanism claims, all stale.** `theme.ts`'s file-opening comment still said "Wireframe … is not
+yet a mode" — it's been a full built-in mode (grayscale, `modes.ts` `BUILTIN_MODES`, radius zeroed in
+`tree.ts`) since #48; reworded to state what it does. Five `ModeLevers` sites (four in `theme.ts`,
+one in `theme-schema.json`) said "today `radius`, with `tempo`/`density` slotting in later" — the type
+has carried nine axes (`radius`/`tempo`/`density`/`families`/`weights`/`lineHeights`/`letterSpacings`/
+`easings`/`shadow`/`typeSizes`) for a while, all fixed to describe the current axis set rather than a
+single-axis future. `eval.ts`'s header called contract-compliance "the next metric — deferred to the
+harness phase" and said "compute two mechanical metrics" — `scoreContractCompliance` is implemented in
+the same file, wired into `runEval` (`eval-run.ts`) and shipped over MCP (`mcp.ts`); now says three,
+framed as shipped not deferred. `emit-brandinput.ts` (and a duplicate in `test.ts`) justified reading
+`schema/example-brands.json` by claiming `design-md.ts` "is node-only" — its own header says pure, no
+`node:*`, no I/O, confirmed by its one import (a type-only import of `BrandInput`). The real reason:
+the raw `examples/*.design.md` text lives on disk, and *reading* it needs `node:fs`, which the browser
+sandbox lacks — the parser itself would run fine in-browser if handed the text. Reworded to state that.
+
+**The "seven FLOAT collections" claim (four sites: `emit-figma-dims.ts` ×2, `emit-figma.ts` ×2) was
+undercounting by one.** `FigmaDimsCollections` has eight members — `icon` joined after #324 and
+`icon.json` is a committed artifact — so all four now say eight and name `icon` in the enumerations.
+
+**Real behaviour fix, not just prose: `read-back.ts`'s `EXPECTED_FLOAT_COLLECTIONS` was missing `icon`.**
+Same undercount as the comments above, but this one is live data gating `collectionsPresent` in
+`FloatReadbackVerdict` — a dropped `icon` collection in a Figma readback would have passed silently.
+Added `'icon'` to the array (confirmed the collection name is genuinely `'icon'` via `emit-figma-dims.ts`
+and `materialise-to-figma.ts`'s own collection list). Verified safe: `regen.ts --check` and
+`token-contract.ts --check` both still green after the change, and the two doc-comment sites naming the
+same array (`ReadbackSnapshot.float`'s JSDoc) got the same fix for consistency.
+
+**Nine drifted numbers, re-measured against current committed artifacts rather than trusted from the
+issue** (several had drifted further since filing, as the issue predicted): `version.ts`'s "480 paths…
+promised at 1.x" → 485 (live `token-contract.ts` guaranteed count); the changelog jumped straight from
+1.1.0 to 2.1.0 with no 1.2.0/2.0.0 entries, so both were backfilled from git history (`#522`/`#527` for
+1.2.0's easing-role tier, `#531` for 2.0.0's easing-curve rename) with a running path-count per bump so
+the arithmetic (477→480→484→484→485) is self-checking. `token-contract.ts`'s "477" → 485 (same live
+count). `preview.ts`'s "248/248" → 488/488 (122 checked roles × 4 modes, measured live off `harbor`,
+`aurora`, and `nbTheme()` — all three agree). `vocabulary.ts`'s "567-token system" → 575 (measured via
+`pathsOf(brandTheme(MINIMAL_BRAND))`, the same corpus member `token-contract.ts` uses for "sparsest
+input"). `tree.ts`'s "binds 6 … other 9" → 7 bound / 8 dead (`LINE_HEIGHT_KEYS` has 7 entries since
+#388 added `cozy`; `LINE_HEIGHT_LADDER` has 15). `theme.ts`'s "both ramps are 6 long" → leading is 7
+(`LINE_HEIGHT_KEYS`), tracking is 6 (`LETTER_SPACING_KEYS`) — never was true that both were 6.
+`lint-us-english.ts`'s "Two traps" → Four (the list below it enumerates 1, 1b, 2, 3). `regen.ts`'s
+"seven emitters" → eight (`STEPS` array literally has 8 entries — undercounted even before drift).
+`mcp.ts`'s "the schema's 32 top-level fields" (and a duplicate in `test.ts`) → 33, with the "11 it never
+mentioned" → 12, both measured live via `nonLeverFields`/`manifestRootKeys` against the current schema
+and lever manifest (21 lever keys unchanged; the 33rd field is `personality`, non-lever).
+
+**Trap for whoever re-verifies this later.** Several of these numbers (guaranteed-path count, schema
+field count, contract count) are load-bearing elsewhere too — `token-contract.ts`'s own header, docs/30
+— and were *not* touched here because the issue scoped this to `engine/*.ts` comments specifically.
+`docs/30-versioning-and-compatibility.md` still says "477 paths" as of this PR; that's real drift, just
+out of scope for #553.
+
+**Gate confirmation, in order:** `regen.ts` (regenerated clean) → `regen.ts --check` (88/88 in sync,
+consistent with CLAUDE.md's noted worktree-vs-main artifact-count difference) → `test.ts` (1920/1920,
+including the `icon` collection addition) → `mcp-test.ts` (49/49) → `token-contract.ts --check` (485
+guaranteed, baseline unchanged) → `lint-skills.ts` (clean) → `nb-regression.ts` (PASS, ΔE00 1.95,
+11/11 contracts, 23/23 dimensions) → `web` build + `tsc --noEmit` (clean) → `lint-us-english.ts` (94
+files, clean). All green on a fresh worktree (`/tmp/p3-enginecomments553`, `node_modules` symlinked
+from the shared checkout).
+
+---
+
 ## (2026-08-06) — The US-English gate can now tell "clean" from "nothing to scan" (#387 closed)
 
 **STATUS: shipped.** `Prism3/engine/lint-us-english.ts`, plus two rows and a direction in

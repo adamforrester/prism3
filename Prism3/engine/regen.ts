@@ -27,7 +27,7 @@ const outDir = resolve(here, 'out');
 const schemaDir = resolve(here, '..', 'schema');
 const repoRoot = resolve(here, '..', '..');
 
-// The seven emitters, in dependency order: `visualize` reads the `*.tokens.json` that `emit-dtcg`
+// The eight emitters, in dependency order: `visualize` reads the `*.tokens.json` that `emit-dtcg`
 // (nb/aurora/harbor) and `cli` (wendys) write, so it has to run last among those. wendys goes
 // through `cli.ts` rather than `emit-dtcg.ts` because it is a STANDARD-dialect brief, not an
 // engine-native one — that split is precisely why it kept getting missed.
