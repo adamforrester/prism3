@@ -212,9 +212,10 @@ export type Theme = {
   // How an OUTLINE / TEXT interactive control expresses hover/pressed/selected
   // (docs/20 §10). 'overlay-neutral' (default): a translucent neutral wash that
   // composites over any surface — the `interactive.<color>.overlay.*` tokens are
-  // generated. 'solid-tint': an opaque subtle surface instead (`foreground.<color>-
-  // subtle`), no overlays. 'none': no hover expression, no overlays. (`overlay-tint`
-  // — the colour's own hue at low alpha — is scheduled; needs per-colour alpha ramps.)
+  // generated. 'solid-tint': an opaque tint of the control's own palette instead
+  // (`interactive.<color>.subtle-fill.{hover,pressed,selected}`), no overlays.
+  // 'none': no hover expression, no overlays. (`overlay-tint` — the colour's own
+  // hue at low alpha — is scheduled; needs per-colour alpha ramps.)
   outlineInteraction: 'overlay-neutral' | 'solid-tint' | 'none';
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
@@ -382,7 +383,8 @@ export type BrandInput = {
   iconContrast?: 'text' | '3:1';
   /** How an outline/text interactive control expresses hover (docs/20 §10). Default
    *  'overlay-neutral' (generate translucent `interactive.<color>.overlay.*` washes);
-   *  'solid-tint' uses opaque `foreground.<color>-subtle` instead; 'none' omits both. */
+   *  'solid-tint' uses an opaque tint of the control's own palette instead
+   *  (`interactive.<color>.subtle-fill.{hover,pressed,selected}`); 'none' omits both. */
   outlineInteraction?: 'overlay-neutral' | 'solid-tint' | 'none';
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
@@ -2215,8 +2217,8 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     : `disabled: 'reduced' (default) — disabled text/icon clears ${dMin}:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.`);
   const oInt = input.outlineInteraction ?? 'overlay-neutral';
   notes.push(oInt === 'overlay-neutral'
-    ? `interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque foreground.<color>-subtle) or 'none' to opt out.`
-    : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline/text hover uses ${oInt === 'solid-tint' ? 'opaque foreground.<color>-subtle surfaces' : 'no hover expression'}`);
+    ? `interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.`
+    : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline/text hover uses ${oInt === 'solid-tint' ? 'opaque interactive.<color>.subtle-fill.* surfaces' : 'no hover expression'}`);
 
   // ---- surface confirmation ----
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
@@ -2316,7 +2318,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     notes: [
       'NB regression: measured anchors; brand red also serves as danger (NB brand hue is its danger hue).',
       `dimension axis: ${baseUnit}px grid, 8px space rhythm (Prism2 numbered scale), comfortable density, radius scale 1 (baseMd ${baseMd}px).`,
-      'typography: curated rem size ladder (22 steps, 10–160px) reproducing the Prism2 reference scale; weight roles subtle/default/emphasis/strong → 300/400/600/700.',
+      'typography: curated rem size ladder (22 steps, 10–160px) reproducing the Prism2 reference scale; weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.',
       'shadow: 6-step ramp + inset, 2-layer, pure-black (NB dialect); mode-aware lift-primary (reduced in dark, NOT NB\'s heavier inverse — the field-correct choice).',
       'layout: 5 breakpoints (engine default) + 12-col grid (4/8/12 ladder) + container max 1920 / narrow 720 (NB caps); gutter/margin alias the spacing scale.',
     ],

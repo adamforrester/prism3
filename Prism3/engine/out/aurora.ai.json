@@ -5758,7 +5758,7 @@
       "$description": "typeface — Clash Display [variable font]",
       "meaning": "Typography primitive",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.family.display",
         "font.family.eyebrow",
@@ -5783,7 +5783,7 @@
       "$description": "typeface — Inter [variable font]",
       "meaning": "Typography primitive",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.family.body",
         "font.family.caption",
@@ -5816,7 +5816,7 @@
       "$description": "typeface — JetBrains Mono",
       "meaning": "Typography primitive",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.family.code",
         "type.code.inline.default"
@@ -5826,13 +5826,13 @@
       "$description": "font size 10px (0.625rem) — curated ladder primitive",
       "meaning": "Font size primitive — 10px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight."
     },
     "font.size.11": {
       "$description": "font size 11px (0.6875rem) — curated ladder primitive",
       "meaning": "Font size primitive — 11px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.caption.md.default",
         "type.caption.md.default-link",
@@ -5844,7 +5844,7 @@
       "$description": "font size 12px (0.75rem) — curated ladder primitive",
       "meaning": "Font size primitive — 12px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.caption.lg.default",
         "type.caption.lg.default-link",
@@ -5857,7 +5857,7 @@
       "$description": "font size 14px (0.875rem) — curated ladder primitive",
       "meaning": "Font size primitive — 14px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.body.sm.default",
         "type.body.sm.default-link",
@@ -5873,7 +5873,7 @@
       "$description": "font size 16px (1rem) — curated ladder primitive",
       "meaning": "Font size primitive — 16px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.body.md.default",
         "type.body.md.default-link",
@@ -5887,7 +5887,7 @@
       "$description": "font size 18px (1.125rem) — curated ladder primitive",
       "meaning": "Font size primitive — 18px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.body.lg.default",
         "type.body.lg.default-link",
@@ -5899,7 +5899,7 @@
       "$description": "font size 20px (1.25rem) — curated ladder primitive",
       "meaning": "Font size primitive — 20px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.eyebrow.lg.emphasis",
         "type.title.sm.strong",
@@ -5910,7 +5910,7 @@
       "$description": "font size 24px (1.5rem) — curated ladder primitive",
       "meaning": "Font size primitive — 24px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.eyebrow.lg.emphasis",
         "type.title.md.strong",
@@ -5921,7 +5921,7 @@
       "$description": "font size 28px (1.75rem) — curated ladder primitive",
       "meaning": "Font size primitive — 28px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.title.lg.strong",
         "type.title.md.strong"
@@ -5931,7 +5931,7 @@
       "$description": "font size 32px (2rem) — curated ladder primitive",
       "meaning": "Font size primitive — 32px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.title.lg.strong",
         "type.title.xl.strong"
@@ -5941,7 +5941,7 @@
       "$description": "font size 36px (2.25rem) — curated ladder primitive",
       "meaning": "Font size primitive — 36px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.title.xl.strong"
       ]
@@ -5950,7 +5950,7 @@
       "$description": "font size 40px (2.5rem) — curated ladder primitive",
       "meaning": "Font size primitive — 40px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.display.md.strong",
         "type.display.sm.strong",
@@ -5961,7 +5961,7 @@
       "$description": "font size 48px (3rem) — curated ladder primitive",
       "meaning": "Font size primitive — 48px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.display.lg.strong",
         "type.display.xl.strong",
@@ -5972,7 +5972,7 @@
       "$description": "font size 56px (3.5rem) — curated ladder primitive",
       "meaning": "Font size primitive — 56px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.display.sm.strong"
       ]
@@ -5981,13 +5981,13 @@
       "$description": "font size 64px (4rem) — curated ladder primitive",
       "meaning": "Font size primitive — 64px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight."
     },
     "font.size.72": {
       "$description": "font size 72px (4.5rem) — curated ladder primitive",
       "meaning": "Font size primitive — 72px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.display.md.strong"
       ]
@@ -5996,13 +5996,13 @@
       "$description": "font size 80px (5rem) — curated ladder primitive",
       "meaning": "Font size primitive — 80px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight."
     },
     "font.size.96": {
       "$description": "font size 96px (6rem) — curated ladder primitive",
       "meaning": "Font size primitive — 96px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.display.lg.strong"
       ]
@@ -6011,7 +6011,7 @@
       "$description": "font size 112px (7rem) — curated ladder primitive",
       "meaning": "Font size primitive — 112px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "type.display.xl.strong"
       ]
@@ -6020,25 +6020,25 @@
       "$description": "font size 128px (8rem) — curated ladder primitive",
       "meaning": "Font size primitive — 128px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight."
     },
     "font.size.144": {
       "$description": "font size 144px (9rem) — curated ladder primitive",
       "meaning": "Font size primitive — 144px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight."
     },
     "font.size.160": {
       "$description": "font size 160px (10rem) — curated ladder primitive",
       "meaning": "Font size primitive — 160px (rem)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight."
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight."
     },
     "font.weight.300": {
       "$description": "font weight 300 — numeric reference (the brand's literal axis value)",
       "meaning": "Font weight primitive — numeric 300 (reference tier)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.weight-role.subtle"
       ]
@@ -6047,7 +6047,7 @@
       "$description": "font weight 400 — numeric reference (the brand's literal axis value)",
       "meaning": "Font weight primitive — numeric 400 (reference tier)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.weight-role.default",
         "type.body.lg.default",
@@ -6067,7 +6067,7 @@
       "$description": "font weight 500 — numeric reference (the brand's literal axis value)",
       "meaning": "Font weight primitive — numeric 500 (reference tier)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.weight-role.emphasis",
         "type.eyebrow.lg.emphasis",
@@ -6081,7 +6081,7 @@
       "$description": "font weight 700 — numeric reference (the brand's literal axis value)",
       "meaning": "Font weight primitive — numeric 700 (reference tier)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.weight-role.strong",
         "type.body.lg.strong",
@@ -6111,7 +6111,7 @@
       "$description": "font weight 900 — numeric reference (the brand's literal axis value)",
       "meaning": "Font weight primitive — numeric 900 (reference tier)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.weight-role.max"
       ]
@@ -6120,7 +6120,7 @@
       "$description": "line height 1.05× — unitless multiplier (ladder step 105)",
       "meaning": "Line-height multiplier — 105 (unitless)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.line-height-role.tight",
         "type.display.lg.strong",
@@ -6132,7 +6132,7 @@
       "$description": "line height 1.15× — unitless multiplier (ladder step 115)",
       "meaning": "Line-height multiplier — 115 (unitless)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.line-height-role.snug",
         "type.display.sm.strong",
@@ -6151,7 +6151,7 @@
       "$description": "line height 1.25× — unitless multiplier (ladder step 125)",
       "meaning": "Line-height multiplier — 125 (unitless)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.line-height-role.compact",
         "type.title.2xs.strong",
@@ -6163,7 +6163,7 @@
       "$description": "line height 1.4× — unitless multiplier (ladder step 140)",
       "meaning": "Line-height multiplier — 140 (unitless)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.line-height-role.cozy",
         "type.caption.lg.default",
@@ -6180,7 +6180,7 @@
       "$description": "line height 1.5× — unitless multiplier (ladder step 150)",
       "meaning": "Line-height multiplier — 150 (unitless)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.line-height-role.normal",
         "type.body.lg.default",
@@ -6202,7 +6202,7 @@
       "$description": "line height 1.65× — unitless multiplier (ladder step 165)",
       "meaning": "Line-height multiplier — 165 (unitless)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.line-height-role.relaxed"
       ]
@@ -6211,7 +6211,7 @@
       "$description": "line height 1.75× — unitless multiplier (ladder step 175)",
       "meaning": "Line-height multiplier — 175 (unitless)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.line-height-role.loose"
       ]
@@ -6220,7 +6220,7 @@
       "$description": "letter spacing 0em (ladder step 0)",
       "meaning": "Letter-spacing primitive — 0 (em)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.letter-spacing-role.normal",
         "type.body.lg.default",
@@ -6252,7 +6252,7 @@
       "$description": "letter spacing 0.02em (ladder step 20)",
       "meaning": "Letter-spacing primitive — 20 (em)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.letter-spacing-role.wide"
       ]
@@ -6261,7 +6261,7 @@
       "$description": "letter spacing 0.05em (ladder step 50)",
       "meaning": "Letter-spacing primitive — 50 (em)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.letter-spacing-role.wider",
         "type.eyebrow.lg.emphasis",
@@ -6273,7 +6273,7 @@
       "$description": "letter spacing -0.03em (ladder step neg-30)",
       "meaning": "Letter-spacing primitive — neg-30 (em)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.letter-spacing-role.tighter",
         "type.display.lg.strong",
@@ -6284,7 +6284,7 @@
       "$description": "letter spacing -0.02em (ladder step neg-20)",
       "meaning": "Letter-spacing primitive — neg-20 (em)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.letter-spacing-role.tight",
         "type.display.md.strong",
@@ -6295,7 +6295,7 @@
       "$description": "letter spacing -0.01em (ladder step neg-10)",
       "meaning": "Letter-spacing primitive — neg-10 (em)",
       "tier": "primitive",
-      "consume": "Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.",
+      "consume": "Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.",
       "aliased_by": [
         "font.letter-spacing-role.snug",
         "type.title.2xl.strong",

@@ -14,13 +14,19 @@
  * The request handler `handleRpc` + `callTool` are PURE and unit-tested directly; only
  * the stdio read/write loop behind `isMain` touches the process. Tools:
  *
- *   • list_levers    — the lever manifest: what an agent can turn (labels, groups, knob
- *                      types, enums, defaults, ranges). The presentation catalogue, the
- *                      same one the plugin + playground render from (continuity by source).
- *   • theme_brand    — a `BrandInput` (shape = `schema/theme-schema.json`) → the DTCG token
- *                      tree + `.ai.json` agent metadata + per-mode contrast-contract results
- *                      + the decisions log. The generate-and-verify payoff over one call.
- *   • validate_brand — a `BrandInput` → schema errors (or ok), without generating.
+ *   • list_levers      — the lever manifest: what an agent can turn (labels, groups, knob
+ *                        types, enums, defaults, ranges). The presentation catalogue, the
+ *                        same one the plugin + playground render from (continuity by source).
+ *   • theme_brand      — a `BrandInput` (shape = `schema/theme-schema.json`) → the DTCG token
+ *                        tree + `.ai.json` agent metadata + per-mode contrast-contract results
+ *                        + the decisions log. The generate-and-verify payoff over one call.
+ *   • theme_from_brief — the same generate-and-verify payoff, from a design.md brief (YAML
+ *                        frontmatter + prose) instead of a hand-assembled BrandInput.
+ *   • score_consumption — scores an agent's generated output against a brand's token system:
+ *                         invented-token rate, primitive-leak rate, contrast-contract compliance.
+ *   • export_theme     — generates a brand and WRITES its artifacts (tokens.json, ai-metadata.json,
+ *                        figma/) to a directory, returning a manifest rather than the content.
+ *   • validate_brand   — a `BrandInput` → schema errors (or ok), without generating.
  *
  * The knob CATALOGUE derives from the lever manifest (list_levers); the input SHAPE is
  * `theme-schema.json` (the manifest is presentation, the schema is the precise OKLCH-aware
@@ -174,7 +180,7 @@ export const toolDefs = (brandSchema: unknown) => [
   {
     name: 'theme_brand',
     title: 'Generate a design-token system',
-    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 270,000 and 220,000 characters respectively (~120,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
+    description: 'Generate a full design-token system from a brand input, and verify it. Returns the contrast-contract results (every declared a11y pair, computed on the resolved colors across all modes), alias integrity, and the decisions log by default. The DTCG token tree and the .ai.json agent metadata are OPT-IN via `include` because they are large — for a four-mode brand they measure roughly 537,000 and 287,000 characters respectively (~205,000 tokens combined). Arguments: { brand, include }. Call list_levers to see the controls, or validate_brand to check an input first.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -297,12 +303,12 @@ export const toolDefs = (brandSchema: unknown) => [
  *
  *  It was opt-in until now, grouped with `tokens` and `aiMetadata` under "withheld by default".
  *  That grouping was by CATEGORY when the only thing justifying it is COST, and the measured costs
- *  are three orders of magnitude apart for a four-mode brand:
+ *  are two-to-three orders of magnitude apart for a four-mode brand:
  *
- *      tokens      833,819 chars     aiMetadata  516,761 chars     notes  5,803 chars
+ *      tokens      536,770 chars     aiMetadata  287,283 chars     notes  3,653 chars
  *
  *  Withholding the two huge payloads is right — no client can spend half a megabyte on one result.
- *  Withholding 5.8KB cost an agent the single most decision-relevant thing the engine produces, and
+ *  Withholding 3.6KB cost an agent the single most decision-relevant thing the engine produces, and
  *  did it silently: an agent that never passes `include` gets a themed brand with no indication that
  *  fifteen choices were made for it. Defaults decide what most callers actually see. */
 export const DEFAULT_THEME_SECTIONS = ['notes'];
@@ -341,7 +347,7 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
     if (rr.min > 0) { checks++; if (rr.ratio >= rr.min) pass++; else failures.push(`${m.mode}.${k} ${rr.ratio}<${rr.min}`); }
   }
   // The VERIFICATION payload is the default, because that is what "generate and verify" is worth over
-  // one call — and because the two omitted sections measured ~490,000 characters for a four-mode
+  // one call — and because the two omitted sections measured ~824,000 characters for a four-mode
   // brand, which no client can spend on a single tool result.
   const out: Record<string, unknown> = {
     id: theme.id,
@@ -355,7 +361,7 @@ const themePayload = (brand: unknown, include: string[]): ToolResult => {
   if (include.includes('notes')) out.notes = theme.notes;
   // Say what was withheld and how to get it — a silently partial result is worse than a big one.
   if ((out.omitted as string[]).length) {
-    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~270KB, aiMetadata ~220KB for a four-mode brand).`;
+    out.hint = `Withheld by default: ${(out.omitted as string[]).join(', ')}. Re-call with include: [...] to add them (tokens ~537KB, aiMetadata ~287KB for a four-mode brand).`;
   }
   return structured(out);
 };

@@ -177,7 +177,7 @@ const CONSUME: Record<string, string> = {
   dimension: 'Private primitive — reference via space / radius / size / border-width / focus.',
   opacity: 'Consumable — reference directly for custom alpha (or use the scrim / disabled tokens).',
   motion: 'Consumable — motion durations/easings/springs are used directly; transitions compose them.',
-  font: 'Private primitive — reach for it through a typography composite (Phase 2), not the raw size/weight.',
+  font: 'Private primitive — reach for it through a typography composite (see the `type.*` entries below), not the raw size/weight.',
   shadow: 'Consumable — apply the elevation step directly (mode-aware: light shadow / reduced in dark, surface lift carries dark elevation).',
 };
 const primMeaning = (seg: string[]): string => {
