@@ -1,0 +1,13 @@
+{
+  "name": "@prism3/tokens",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:consumability": "node check-consumability.mjs",
+    "build:consumer": "node sd.consumer.mjs"
+  },
+  "devDependencies": {
+    "style-dictionary": "^5.5.0"
+  }
+}

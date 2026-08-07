@@ -734,6 +734,79 @@ accordingly once #614 merged.
 
 ---
 
+## (2026-08-06) — A gate whose value is conditional on staying naive (`packages/tokens`)
+
+**STATUS: new `packages/tokens` workspace (`@prism3/tokens`) + CI + CLAUDE.md.** No engine change —
+`out/*` byte-identical. Closes **#623**.
+
+**It never landed as `code-library`.** The workspace was built under that name, doc 35 (#622) settled
+the layout while the branch was open, and the rename happened **on the branch before the PR** rather
+than as a follow-up. That ordering was the whole point: the same ten files carry the name once instead
+of twice, `main` never holds a name a filed issue already calls wrong, and CI never runs a mis-named
+step. Renaming a private workspace pre-merge costs minutes; #622's own argument is that renaming a
+*published* package costs a deprecation cycle.
+
+**Deliberately not decided here:** #253 (per-brand token package vs. runtime loader). Style Dictionary
+is required under either answer, so siting it picks no side — flagged because `19 §7` item 1 records
+this exact failure mode, architecture settled as a side effect of needing somewhere to file work.
+
+**Why now, and it is not "the code library is ready."** It is not: the component leg is genuinely
+blocked on #252. This exists because **#609 cannot be decided without it** — that issue's own closing
+section proposes exactly this build, and until now it lived in a scratch directory that evaporates with
+the container.
+
+**The rule, which came from the owner rather than from analysis.** Token Press was built to a stated
+goal: *make the export clean enough that a user needs no pile of SD transforms.* Made executable, that
+draws a sharp and testable line:
+
+> **No custom code.** Standard Style Dictionary config options are permitted. Anything requiring us to
+> ship code a consumer must also run is a failure, not a fix.
+
+`outputReferences: true` passes — a config flag. The ~15-line mode preprocessor from the earlier spike
+**fails**, and that reframing matters: I had presented it as reassuringly small. Under this bar it is
+disqualifying, because it is code every consumer inherits forever. **Applied consistently, the
+principle the owner built Token Press on argues for #609 option C** — which is a stronger argument than
+anything in that issue, and it did not come from me.
+
+**A characterization gate, not pass/fail.** The emitter has a known defect, so a red gate would block
+unrelated PRs or get skipped, and a green one would lie. It pins the measured behavior instead —
+**556 leaves → 556 CSS variables, 1:1**, three of four modes invisible. Fix it and the pinned
+assertions fail; worsen it and they fail; change nothing and it is green with the gap printed every
+run. Same posture `regen --check` takes toward `out/`: **the job is to have a memory, not an opinion.**
+
+**Mutation found my first draft was the exact weak gate CLAUDE.md warns about.** It counted names, and
+all three mutations survived:
+
+| mutation | first draft | after |
+|---|---|---|
+| a mode preprocessor added | ❌ passed | ✓ caught |
+| `outputReferences` off | ❌ passed | ✓ caught |
+| selector changed (mode fix simulated) | ❌ passed | ✓ caught |
+
+**Counting cannot see values, references, or forbidden code** — a preprocessor rewrites every value and
+leaves every count identical. The fixes: assert `var(--` survives, pin a known light-mode value, assert
+the exact selector rather than a count, and — the important one — **read `sd.consumer.mjs` as source and
+assert it declares no `preprocessors`/`hooks`/`transforms`/`register*`.**
+
+> A rule enforced by discipline is enforced until the first inconvenient failure. The cheapest way to
+> make this gate go green will always be the one move that destroys its meaning, so the gate reads its
+> own config and refuses it.
+
+**Two traps worth recording.** The selector regex captured the generated file's `/** … */` banner as a
+selector — comments are stripped first now. And a mutation targeting `outputReferences: true` failed to
+apply because the string also appears in the file's doc comment; a mutation that does not apply looks
+exactly like one that was not caught (`docs/32` has the same lesson from #511).
+
+**Also wired, because CLAUDE.md principle 4 requires it:** the gate is in CI *and* in the canonical
+checklist. That principle's own record shows #601 and #602 each shipped a faithful "all pass" table off
+a list shorter than CI — a gate absent from the checklist is one that will not get run.
+
+**Dependency posture:** Style Dictionary is the repo's first real runtime dependency. It lives in the
+workspace and is never imported by `Prism3/engine/` — the buildless, no-`npm install` invariant is what
+lets the engine bundle into the Figma plugin sandbox.
+
+---
+
 ## (2026-08-07) — Fix: `lint:classes` was red on `main` — #602's own allowlist fix never landed
 
 **STATUS: shipped.** `web/lint-classes.mjs` only — one `ALLOWED` entry added.

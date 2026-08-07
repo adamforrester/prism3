@@ -122,6 +122,15 @@ jobs:
             exit 1
           fi
 
+      # Can a STRANGER consume what the engine emits? This runs Style Dictionary with a deliberately
+      # naive config — no preprocessors, no custom transforms — because that is the only configuration
+      # that answers the question. It is a CHARACTERIZATION gate: it pins the known #609 defect (three
+      # of four modes invisible to a conforming consumer) so the gap cannot silently drift, and it
+      # asserts the consumer config declares no custom code, since the cheapest way to make a future
+      # failure vanish is the exact move that would destroy the gate's meaning.
+      - name: Consumability gate (a stock Style Dictionary over the emitted DTCG)
+        run: npm run -w @prism3/tokens check:consumability
+
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
       # no gate (#492) — out/**, the emitted contracts and web/dist are all scanned, Prism3/skills/**
       # was not. Its first run found `prism3-consume` teaching the pre-rename `action.*` family,
