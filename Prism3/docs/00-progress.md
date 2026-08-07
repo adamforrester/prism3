@@ -7,6 +7,46 @@
 
 ---
 
+## (2026-08-07) — Neutral row: Source no longer sits lower than Hue/Chroma/Anchor (#394)
+
+**STATUS: shipped.** `web/src/main.ts`, `.porigin` only — CSS, no runtime behavior change.
+
+**The literal bug #394 reported was already gone by the time this was picked up.** #394 (filed
+2026-08-03) diagnosed the drift against `.porigin{align-items:flex-end}` and natural-sized `.pfield`
+label/control boxes — but #464 (merged 2026-08-04, the day after filing) replaced that whole mechanism
+with `.pfield{display:grid;grid-template-rows:auto minmax(33px,auto)}`: row 1 sizes to the label
+(matching `.psl-top`'s height by construction rather than by a pinned px value), row 2 is a shared
+`minmax(33px,auto)` band every control — `.select.sm`, `.psl-range`, `.panchor` — centers in. Measured
+live (Playwright, 1280–1920px): Source/Hue/Chroma/Anchor label tops agree to 0.18px under Custom tint and
+Auto — sub-pixel, not a fix to make. **Don't re-apply this issue's literal prescription** (an explicit
+`.pfield` label height + a sized `.select.sm` wrapper) on top of the grid mechanism; it would fight a
+mechanism that already generalizes better than the prescription would.
+
+**What was still broken, found only by checking the third source the issue's own "Done when" names:**
+Pinned color renders `show-hex`, which shows a hex readout `Custom tint`/`Auto` don't — widening `.pident`
+by ~61px. At that width `.pident + .porigin + .pfield.r`'s natural (unshrunk) sizes summed to 800.45px
+against the row's 800px budget: 0.45px over. `flex-wrap` is a binary per line, not a squeeze, so that
+sub-pixel overflow dropped Anchor onto its own line entirely — a *worse* version of the original
+complaint (a totally different top edge, not just a few px off), and it would have sailed through
+verification if "under Custom tint" were read as the whole job rather than a floor. Fix: `.porigin{gap:22px}`
+→ `20px`. `.porigin` has exactly one multi-field consumer (the neutral row's Source+Hue+Chroma); every
+`statusRow` origin holds a lone Source pfield, where an internal gap is inert, so this doesn't touch
+status-ramp spacing. −2px × 2 internal gaps reclaims 4px against a 0.45px deficit — margin for
+font-rendering variance across platforms, not just the exact number measured in one Chromium build.
+Reverified all three sources at 1024–1920px: single line, 0.18–0.19px drift throughout. (Below the 900px
+rail-collapse breakpoint the row already needed multi-line wrap before this change — genuinely
+insufficient width, not this bug — and still does; untouched, correctly.)
+
+**Why fix a bug the issue's stated root cause doesn't predict, in the same PR:** the issue's own "Done
+when" requires the shared top edge to hold across all three sources, "since the fix touches shared CSS,
+not a Custom-tint-specific path" — true, and it's exactly why checking only the state in the screenshot
+would have missed this. The two bugs are unrelated (one a height mismatch, since fixed by #464; one a
+sub-pixel width overflow, present both before and after #464 — confirmed via `git diff` on the `#464`
+commit range, gap:22px unchanged either side), but both block the same acceptance bar, so both got fixed
+here rather than filing a second issue for something already found and already small.
+
+---
+
 ## (2026-08-07) — Fix: `applyFull()` selects jump the page to top (#485)
 
 **STATUS: shipped, fixed at the general level.** Some selects on Surfaces (`surfaces.${mode}.base`,

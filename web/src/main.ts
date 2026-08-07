@@ -7063,7 +7063,16 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    lint:classes flagged it as dead code once it started checking for exactly this collision. .range
    is exempted from that same check (range/psl-range share a stem), so it was left in place, still
    doing real work. */
-.porigin{display:flex;align-items:flex-start;gap:22px;flex-wrap:wrap}
+/* gap:20 not 22 (#394 follow-up): under Pinned color the ident column grows about 61px wider (the hex
+   readout only Pinned shows, .show-hex), and at that width ident+origin+anchor's natural sizes summed
+   to 800.45px against an 800px row -- 0.45px over. flex-wrap is all-or-nothing, so that sub-pixel
+   overflow forced the WHOLE line to break, dropping Anchor onto its own row under a completely
+   different top edge than Source/Hue/Chroma, which is worse than the height mismatch this issue
+   started from. This only has one consumer with more than one field in .porigin (the neutral row's
+   Source+Hue+Chroma; every statusRow origin holds a lone Source pfield, where an internal gap is a
+   no-op), so tightening it here doesn't touch statusRow spacing. -2px per gap (2 internal gaps) reclaims
+   4px, comfortably clearing the 0.45px deficit with margin for font-rendering variance. */
+.porigin{display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap}
 .pfield{display:grid;grid-template-rows:auto minmax(33px,auto);gap:7px}
 .pfield > :nth-child(2){align-self:center}
 .pfield.r{margin-left:auto;justify-items:end}
