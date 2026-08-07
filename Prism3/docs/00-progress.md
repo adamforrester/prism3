@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-08-07) — The paste path's half of the #479 prune report (verify pass)
+
+**STATUS: `Prism3/engine/materialise-to-figma.ts` + `test.ts`.** No engine value change — `out/*`
+byte-identical, `regen --check` 88 in sync, no `CONTRACT_VERSION` movement.
+
+**What was actually missing.** #529 (2026-08-05) shipped the report half of #479 for the LIVE plugin
+executor (`plugin/src/write-figma.ts` `orphansOf`, wired into `applyWritePlan` / `applyFloatPlan` /
+`applyVarCollectionPlan`) — every apply from inside Figma has reported orphans since. But that PR's
+own title says "closes the report half," not the issue, because the CLI paste path
+(`materialise-to-figma.ts`) — **the only write path an MCP-driven session can use** (its own module
+doc says so) — still had no orphan visibility at all: its `verify` pass read back scopes, modes and
+role presence but never diffed against the plan. An agent theming a file entirely over MCP got zero
+signal that a rename it just applied left ghosts behind, while a human using the Figma plugin UI got
+the report for free. That asymmetry is what this entry closes.
+
+**The fix.** Extended the existing `verify` pass rather than adding a new `--prune-report` flag or
+parallel infrastructure — the issue named both shapes as acceptable, and `verify` already reads back
+the `color` collection via `getLocalVariablesAsync`; this pass now also reads `core-palette` and
+diffs both collections' existing names against the plan's. `pruneReport(existing, planned)` is the
+pure diff, exported and unit-tested against synthetic name sets (no live Figma needed for the
+algorithm). It also adds one thing #529's `orphansOf` didn't have: a cheap `reason` per orphan —
+a name that's now a PATH PREFIX of a planned name (`color/interactive/primary/text` beside
+`.../text/rest`) is classified "path now used as a group prefix, not a leaf" (class-1, the stranded
+flat leaf); anything else is "no longer referenced by any current plan" (class-2, the orphaned
+palette generation). Both are the shapes #479's own live drive found, so the classifier costs nothing
+beyond a `startsWith` check over data already in hand.
+
+**Why the algorithm is duplicated, not imported, into the generated JS.** `verifyPass` builds a JS
+*string* pasted into `figma_execute` — it runs inside Figma's sandbox, not Node, so it structurally
+cannot `import` `pruneReport` any more than `colorAliasesPass` can import `aliasRows`. Every pass in
+this file re-states its own logic as a template string for the same reason; `pruneReport` is kept
+directly above `verifyPass` with a comment pointing at its inline mirror so a change to one is a
+change you're looking at making to the other.
+
+**Deliberately still not done — same restraint #479 and #529 both named.** Neither this PR nor #529
+implements actual pruning (an opt-in flag, gated on "the plan fully owns this collection") or the
+rename-map migration that would MIGRATE a variable's id across a rename instead of orphan-and-recreate.
+Both are the issue's own tiers (b) and (c), and both stay open: deleting a variable a designer may have
+bound to a layer is destructive and unrecoverable from the engine's side, and that is an explicit
+owner decision, not something to default into from an unattended pass. This PR is report-only, same as
+#529 — it closes the paste path's gap in the report, nothing more. The two open decisions are #479's
+to make when someone is ready to make them.
+
+**Verification note.** `pruneReport`'s algorithm is fully unit-tested against synthetic existing/plan
+name sets (direction, sort order, both #479 ghost shapes, and a string-prefix-vs-path-boundary false
+positive). What is NOT covered here — because it needs a real Figma file, the same way #479 itself was
+only found by a live nine-pass materialisation drive — is proof that the pasted `verify` JS finds the
+right orphans against an ACTUAL drifted file. The wiring test instead asserts the payload embeds
+`pruneReport` + `orphanReason` and that the embedded `PLANNED_PALETTE`/`PLANNED_COLOR` name arrays are
+byte-identical to the real plan for `nb` (so the diff can't silently drift from what's actually
+written), plus a static "no `.remove()` call anywhere in the payload" check for the same restraint
+#529's mutation suite enforces on the plugin side. A future live-file pass would be the way to close
+that last gap for real.
+
+---
+
 ## (2026-08-07) — Button's default intent is `primary`, and hierarchy moves to the appearance axis
 
 **STATUS: def + gates only.** All 88 emitted artifacts byte-identical, no version bump. Two files

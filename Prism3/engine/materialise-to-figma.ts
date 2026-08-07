@@ -32,6 +32,15 @@
  *   - **API-probe verification** — the `verify` pass reads back via `getLocalVariablesAsync`
  *     (authoritative for scopes / aliases / modes / hidden), and asserts **modes are distinct**
  *     (the collapse guard) + reports the interactive/disabled slot scopes.
+ *   - **Prune REPORT, never prune (#479)** — `verify` also diffs each collection the plan owns
+ *     against what the live file actually contains and names the remainder as orphans, because
+ *     create-or-update-by-name is structurally blind to a rename (the new name is created, the old
+ *     one is simply never touched again). This is the paste path's half of #479 — the plugin
+ *     executor (`plugin/src/write-figma.ts` `orphansOf`) has reported orphans on every apply since
+ *     #529, but that path is only reachable from inside Figma; the paste path is the ONLY write path
+ *     an MCP-driven session can use, and it read back nothing about drift until now. Report only —
+ *     deleting a variable a designer may have bound to a layer is destructive and unrecoverable from
+ *     the engine's side, and that decision is explicitly NOT this pass's to make (see `pruneReport`).
  *
  * SHELL (not pure): reads `out/figma/<brand>/`, prints plugin JS to stdout. No Figma I/O
  * here — the emitter lane pastes the output into `figma_execute`.
@@ -532,9 +541,42 @@ return {total:T.length,created,bound,skipped,misses};
 `;
 };
 
-// ---- pass: verify (API-probe read-back; the collapse guard lives here) ------------------
+// ---- #479: prune REPORT (plan-vs-file diff, never a delete) -----------------------------
+// One orphan the diff can name: a variable present in a live collection but absent from the
+// current plan. `reason` is a cheap, deterministic classification from the two name sets alone —
+// no extra reads, since the live drive that opened #479 found both shapes fell out of the name
+// sets by construction:
+//   - a name that is now a PATH PREFIX of a planned name (`color/interactive/primary/text` beside
+//     `.../text/rest`) is a flat leaf stranded when that path became a stateful group.
+//   - anything else is simply gone from the plan with no structural relation left (an entire
+//     pre-rename palette generation — `palette/accent/*` after the rename to `red`).
+// PURE — exported so `test.ts` can assert the algorithm against synthetic file/plan name sets with
+// no live Figma. `verifyPass` below inlines the SAME two functions as generated JS rather than
+// importing this one: the pass runs inside Figma's execution sandbox pasted via `figma_execute`,
+// not Node, so it can no more `import` this than `colorAliasesPass` can import `aliasRows` — every
+// pass in this file re-states its own logic as a string for that reason. Kept side by side with the
+// inline copy below so a change to one is a change you're looking at making to the other.
+export type OrphanInfo = { name: string; reason: string };
+export const pruneReport = (existing: Iterable<string>, planned: Iterable<string>): OrphanInfo[] => {
+  const plannedArr = [...planned];
+  const keep = new Set(plannedArr);
+  return [...existing]
+    .filter((n) => !keep.has(n))
+    .sort()
+    .map((name) => ({
+      name,
+      reason: plannedArr.some((p) => p.startsWith(`${name}/`))
+        ? 'path now used as a group prefix, not a leaf'
+        : 'no longer referenced by any current plan',
+    }));
+};
+
+// ---- pass: verify (API-probe read-back; the collapse guard + the #479 prune report live here) --
 const verifyPass = (brand: string): string => {
   const modes = colourModes(brand);
+  const plan = planFor(brand);
+  const PLANNED_PALETTE = plan.palette.map((r) => r.name);
+  const PLANNED_COLOR = plan.color.create.map((r) => r.name);
   return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const vars=await figma.variables.getLocalVariablesAsync();
@@ -549,6 +591,20 @@ const perMode=Object.fromEntries(MODES.map(m=>[m,targetOf(probe&&probe.valuesByM
 const modesDistinct=new Set(Object.values(perMode)).size>1;
 const scope=(n)=>{const v=byName.get(n);return v?[...v.scopes].sort().join(','):'ABSENT';};
 const absent=(n)=>!byName.has(n);
+// #479 — plan-vs-file diff, REPORT ONLY: a name present in the file's collection but absent from
+// this plan is an orphan, most often a rename create-or-update-by-name can never detect on its own.
+// Nothing here deletes anything — see \`pruneReport\` in materialise-to-figma.ts for why that stays a
+// separate, ungranted decision.
+const PLANNED_PALETTE=${JSON.stringify(PLANNED_PALETTE)};
+const PLANNED_COLOR=${JSON.stringify(PLANNED_COLOR)};
+const palCol=await findCol('core-palette');
+const palVars=palCol?vars.filter(v=>v.variableCollectionId===palCol.id):[];
+const orphanReason=(name,planned)=>planned.some(p=>p.indexOf(name+'/')===0)?'path now used as a group prefix, not a leaf':'no longer referenced by any current plan';
+const pruneReport=(existingNames,planned)=>{const keep=new Set(planned);return existingNames.filter(n=>!keep.has(n)).sort().map(n=>({name:n,reason:orphanReason(n,planned)}));};
+const orphans={
+  'core-palette':pruneReport(palVars.map(v=>v.name),PLANNED_PALETTE),
+  'color':pruneReport(cvars.map(v=>v.name),PLANNED_COLOR),
+};
 return {
   colorVars:cvars.length,
   modes:col.modes.map(m=>m.name),
@@ -573,6 +629,7 @@ return {
   // field/border also went flat-leaf -> border/{rest,hover} (stateful slot), so the flat leaf must be gone too.
   renamedRolesAbsent:['color/disabled/surface','color/disabled/on-disabled','color/field/surface','color/field/border'].every(absent),
   bareDangerPresent:byName.has('color/foreground/danger'),
+  orphans,
 };
 `;
 };
@@ -624,7 +681,8 @@ const runCli = (): void => {
       console.log(`  ${name.padEnd(14)} ${String(size).padStart(7)} bytes${flag}`);
     }
     console.log(`\nEmit one pass:  npx tsx Prism3/engine/materialise-to-figma.ts ${brand} --pass <name>`);
-    console.log('The `verify` pass reads back via getLocalVariablesAsync and asserts modes are distinct.');
+    console.log('The `verify` pass reads back via getLocalVariablesAsync, asserts modes are distinct,');
+    console.log('and reports (never deletes) orphaned variables per collection — a plan-vs-file diff for renames (#479).');
   }
 };
 
