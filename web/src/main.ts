@@ -420,7 +420,8 @@ const rampBands = (steps: { num: number; key: string; hex: string }[], anchorSte
       sw.style.background = s.hex;
       strip.append(sw);
       const lab = el('div', 'lab');
-      lab.append(el('span', 'lab-step mono' + (isAnchor ? ' on' : ''), s.key), el('span', 'lab-hex mono', s.hex));
+      const hexEl = el('span', 'lab-hex mono', s.hex); hexEl.title = s.hex;   // #334 — full value on hover once it can ellipsis
+      lab.append(el('span', 'lab-step mono' + (isAnchor ? ' on' : ''), s.key), hexEl);
       labs.append(lab);
     }
     band.append(strip, labs);
@@ -7207,6 +7208,19 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .pfield.slider .psl-range{width:150px;accent-color:var(--ink);height:32px;margin:0}
 .pfield.slider.ro{opacity:.5}
 .pramp{display:flex;flex-direction:column}
+/* #334 — container, not viewport: .pramp-wrap is the ramp's true available width (viewport minus the
+   210px rail + 60px gap the >900px sidebar layout charges against it, minus #app's + .psec's own
+   padding) — the quantity the narrow-tier rules below actually care about. A plain @media(max-width)
+   query can only read viewport width, which is why the existing #315 tiers (640px / 480px, see below)
+   went numb the moment the sidebar appeared at 901px: 901px of viewport is LESS ramp room than 900px,
+   once the rail switches on, and no viewport-width query can express that inversion. Establishing a
+   containment context here — inline-size only, so it does not also make .pramp-wrap's own height
+   independent of content — lets the @container rules under .lab / .lab-hex below key off the same
+   512px / 352px thresholds the viewport queries use, but evaluated against the box the ramp actually
+   has, sidebar or not. Kept ADDITIVE to the #315 media queries rather than replacing them: below 900px
+   (no sidebar) the two mechanisms agree and either one alone would fire; removing the older one would
+   be an unrelated cleanup this fix doesn't need to make. */
+.pramp-wrap{container-type:inline-size}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
 .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
 .panel-head h2{margin:0;font-size:15px;font-weight:620;letter-spacing:-0.01em}
@@ -7245,11 +7259,25 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 .sw{flex:1;height:72px;position:relative}
 .sw.is-anchor::after{content:"";position:absolute;inset:0;border:2.5px solid var(--ink);border-radius:2px;pointer-events:none}
 .labs{display:flex;margin-top:9px}
-.lab{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 6px}
+/* min-width:0 overrides the flex-item default (min-width:auto, i.e. "never shrink below my content's
+   min-content size") — without it, ten unbreakable hex strings like "#e2e2e2" set a floor under .lab
+   that flex:1 cannot shrink past, and the row pushes .labs (then the page) wider rather than yielding.
+   That floor is what #334's overflow actually was: not specific to the 901-919px band, just most
+   visible there because the @container rule below still had headroom above it. .lab-hex pairs the
+   shrink with text-overflow:ellipsis so a genuinely too-narrow hex elides instead of vanishing or
+   smearing into its neighbor — the same elision pattern .tpill already uses (#289) — and keeps the
+   full value in "title" for hover, same reasoning as .tpill's. */
+.lab{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:0 6px}
 .lab-step{font-size:12px;font-weight:600;color:var(--ink2)}
 .lab-step.on{color:var(--ink);font-weight:700}
 .lab-step.on::before{content:"◆ ";font-size:8px;color:var(--ink2);vertical-align:1px}
-.lab-hex{font-size:11px;color:var(--faint)}
+.lab-hex{font-size:11px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Same two tiers as the #315 media queries below (padding at 512px, hex dropped at 480px viewport =
+   352px of content once #app's 40px sides + .psec's 24px sides are subtracted) — evaluated against the
+   .pramp-wrap container's own width instead of the viewport, so the 901px sidebar transition lands in
+   the tier its available space actually calls for. */
+@container(max-width:512px){.lab{padding:0 3px}}
+@container(max-width:352px){.lab-hex{display:none}}
 /* The dashboard <select> component (doc 24 C1) — one base class owns every dropdown's cosmetics + the
    consistent chevron; sm / fill / cap are additive size/context modifiers. */
 .select{appearance:none;-webkit-appearance:none;font:inherit;font-size:13.5px;padding:var(--ctl-py) 11px;padding-right:28px;border:1px solid var(--line2);border-radius:var(--r-xs);background:var(--paper);color:var(--ink);cursor:pointer;
@@ -7735,6 +7763,21 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* .aex-two had its own grid-column:1/-1 here; it is now nested inside .aex, which carries the span,
    so the nested copy applied to a non-grid child and did nothing. */
 @media(max-width:900px){.arow-main{grid-template-columns:56px 1fr}.arow-lead .arow-main{grid-template-columns:1fr}.aex{width:100%;grid-column:1/-1}.astates-g{grid-template-columns:1fr}.astates{margin-left:0}}
+/* #560 — between the 900px stack breakpoint and #app's 1200px cap, .arow-main's middle (mid) column is
+   exactly viewport minus 800px (the 56px swatch + two 20px gaps + 300px .aex are fixed; the mid column
+   absorbs 100% of any remaining slack via minmax(0,1fr), so the relationship is 1:1). The two longest
+   token paths in the system (…on-inverse.fill.rest / …on-inverse.text.rest, both 325px at the pill's
+   font) need the mid column at 327px (325 + the pill's 1px+1px border) to render unclipped — which needs
+   viewport 1127px or wider. Below that, from ~1114px up to ~1126px, those two are the ONLY pills that
+   still clip (every shorter path already fits); 1120px sits inside that narrow band. Trimming the .aex
+   example column by 12px in this same band moves the cure threshold down to viewport 1115px, which
+   covers the whole 1114-1126px band with margin — the pill needs 7 more px, this gives it 12. Scoped to
+   .arow:not(.arow-lead) because lead rows (Action palette, Button emphasis, ...) use a different grid
+   template with no swatch column and never carry a pill — touching .arow-lead's copy of .aex would only
+   leave dead space in its 300px track, so it stays out of the selector rather than being ignored by
+   coincidence. Below 900px this is moot (.aex already goes full-width); above 1200px #app's own
+   max-width caps further viewport growth from helping anyway, so the band stops there. */
+@media(min-width:901px) and (max-width:1199px){.arow:not(.arow-lead) .arow-main{grid-template-columns:56px minmax(0,1fr) 288px}.arow:not(.arow-lead) .aex{width:288px}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
 /* The identity track is 256px, not 168px, because the token PATH has to be readable. At 168px three of
    the page's thirteen paths elided — and #289's rtl elision keeps the tail, so

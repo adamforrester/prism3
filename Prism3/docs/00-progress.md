@@ -7,6 +7,68 @@
 
 ---
 
+## (2026-08-07) — Narrow-band layout fixes: Interactive pill clip + Palettes hex overflow (#560, #334)
+
+**STATUS: shipped, one PR for both.** Same defect shape one page apart, as #334 itself predicted: a
+fixed-width sibling column eating room a token/hex label needed, at a viewport band narrow enough that
+nobody had swept it before. `web/src/main.ts` only, both fixes CSS-only (plus two `title` attributes on
+#334) — no lever, engine, or DTCG changes.
+
+**#560 — the two longest token paths in the system clip on Interactive at ~1114-1126px.**
+`.arow-main`'s mid column is exactly `viewport − 800px` between the 900px stack breakpoint and #app's
+1200px cap (56px swatch + two 20px gaps + 300px `.aex` are fixed; `minmax(0,1fr)` absorbs 100% of the
+remaining slack, so the relationship is 1:1 — measured directly, not derived from the CSS by eye).
+`color.interactive.destructive.on-inverse.{fill,text}.rest`, both 325px at the pill's font, need the mid
+column at 327px (325 + the pill's 2px border) — viewport ≥ 1127px. Below that and down to ~1114px,
+those two are the ONLY pills still clipping (every shorter path already fit); 1120px, the issue's report
+width, sits inside that band. Fix: trim `.aex` by 12px (300→288) in a `@media(min-width:901px) and
+(max-width:1199px)` band, scoped `.arow:not(.arow-lead)` so lead rows (Action palette, Button emphasis,
+…) — different grid template, no swatch column, never carry a pill — are untouched rather than left with
+12px of dead space in their track. Moves the cure threshold to viewport ≥ 1115px, covering the reported
+band with 5px to spare (7px needed, 12px given). Verified with Playwright (`PLAYWRIGHT_MODULE` pointed
+at a global install, per `mode-audit.mjs`'s pattern): 0/21 pills clipped at 1120px, both brands, both
+Light and Dark (was 2/21 clipped before the fix); swept 1100-1200px in 1px steps around the old
+threshold to confirm the new one lands where the math says.
+
+**#334 — Palettes ramp hex labels overflow the page ~901-919px, and turned out not to be band-specific.**
+The issue's own diagnosis was right: `.strip`/`.labs`' flex items (`.sw`, `.lab`) never got `min-width:0`,
+so ten unbreakable hex strings (`#e2e2e2`, no break opportunity) set a content floor `flex:1` couldn't
+shrink past, and the row overflowed the page rather than yielding — worst right where the >900px sidebar
+layout charges 210px + 60px gap against the same content the ≤900px stacked layout doesn't, since no
+`@media(max-width)` query can express "901px of viewport is less ramp room than 900px." **Took the
+issue's preferred fix, not the padding fallback**: `.pramp-wrap{container-type:inline-size}` plus
+`@container` rules at the same 512px/352px thresholds the existing `#315` viewport queries already use
+(640px/480px viewport, minus #app's + `.psec`'s padding) — now evaluated against the ramp's own
+rendered width instead of the viewport, so the sidebar transition lands in the tier its actual space
+calls for, correctly on both sides of every future breakpoint, not just this one. Kept the #315 media
+queries as-is rather than replacing them (redundant below 900px, harmless, and removing them wasn't
+this fix's job). Layered a structural belt-and-braces on top since the container-query fix alone only
+matches design intent, not a font-metrics guarantee: `.lab{min-width:0}` + `.lab-hex{overflow:hidden;
+text-overflow:ellipsis;white-space:nowrap}` (same elision pattern `.tpill` already uses, #289) with
+`title` set to the full hex — this is what actually makes the "zero overflow, any width" guarantee
+verifiable rather than tuned-and-hoped-for; it also silently fixed a wider pre-existing overflow this
+sandbox's fallback monospace font was producing all the way down to 500px (no real monospace font
+installed here, so `var(--mono)`'s whole stack fell through to the browser generic, which runs
+noticeably wider per character than SF Mono/JetBrains Mono — the 901-919px band was just the first place
+the margin ran out). Verified with Playwright: `document.documentElement.scrollWidth −
+document.documentElement.clientWidth === 0` at 880/900/901/910/919/920/950/1280px, both brands; the
+existing ≤480px hex-drop and ≤640px padding tiers still fire unchanged at those exact viewport widths
+(confirmed via computed style, not just visually); 1280px screenshot shows full untruncated hex.
+
+**Trap for whoever re-verifies this:** don't trust this sandbox's absolute overflow-pixel numbers against
+the issue's reported ones (140px+ measured here vs. "~10px" in the issue) — the gap is the substituted
+fallback monospace font, not a wrong diagnosis. Confirm the FIX by sweeping for zero overflow and by
+checking the #315 tiers still fire at their original widths, not by chasing a specific px figure.
+
+Gates run: `regen.ts` / `regen.ts --check` (88 artifacts, worktree-clean count), `test.ts` (1920/1920),
+`mcp-test.ts` (49/49), `token-contract.ts --check` (unchanged, contract 2.1.0), `lint-skills.ts` (clean),
+`nb-regression.ts` (PASS, ΔE00 1.95, 11/11 contrast, 23/23 dimensions), `lint-us-english.ts` (clean, 94
+files), `web` `typecheck` + `build` clean. Also ran (not required by the task, but touched web CSS/DOM):
+`lint:classes` (clean, `.pramp-wrap` is a new mint with no existing sibling to collide with),
+`lint:contrast` (clean, unrelated to either fix), `check:ignore` (clean, unrelated).
+
+---
+
 ## (2026-08-07) — Rendered-contrast sweep: five confirmed defects fixed (#555)
 
 **STATUS: shipped.** Fixes the five confirmed-real clusters from the rendered-contrast sweep
