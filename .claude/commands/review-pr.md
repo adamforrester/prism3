@@ -199,7 +199,7 @@ Re-derive the load-bearing ones yourself:
   an intermittent Vercel failure is routine. Always read the `gates` check-run status
   separately; never conflate the two.
 - The Vercel-deployed bundle reads only `apps/studio/src` + `Prism3/{engine,schema}`.
-  `plugin/**`, `Tokens/**` and `Prism3/engine/out/**` are not build inputs, so a change
+  `plugin/**`, `reference/**` and `Prism3/engine/out/**` are not build inputs, so a change
   confined to those needs no Vercel-impact check.
 - **Force-push discipline**: always `--force-with-lease`. If rejected as stale, re-fetch
   and diff rather than clobbering; if the difference is cosmetic (someone else's merge

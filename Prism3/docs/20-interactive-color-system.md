@@ -184,7 +184,7 @@ Every `interactive.*` token is **generated** (walk the intent's palette for fill
 
 ## 17. The `field.*` category (form-element chrome)
 
-Field research (`Tokens/Prism2` `surface.input.*` / `border.input.*`) shows what a field genuinely
+Field research (`reference/Prism2` `surface.input.*` / `border.input.*`) shows what a field genuinely
 needs that generic roles don't supply — but most of Prism2's input tokens are **already covered
 better** by Prism3's generated families and must **not** be duplicated. So `field.*` is deliberately
 **minimal**: only the chrome that is genuinely field-specific. Everything stateful is composed from

@@ -198,7 +198,7 @@
 **The pipeline (as it actually is in the example packages).** Raw Figma variable
 export → **a custom plugin (Adam's)** that preps it into DTCG / SD-ready JSON →
 *(Style Dictionary downstream — has **not** run on these examples yet)*. So the DTCG
-files in `Tokens/*/tokens/` are the **plugin's** output, not SD output; the composites
+files in `reference/*/tokens/` are the **plugin's** output, not SD output; the composites
 are assembled by that plugin, not by SD.
 
 **Why composites don't map 1:1 (proven from the raw Figma JSON).** Figma variables

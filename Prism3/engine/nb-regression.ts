@@ -20,7 +20,7 @@ import { loadSpecs, nbTheme } from './nb-fixture';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
-const NB = resolve(repo, 'Tokens/New Balance/tokens/tokens/shared/core-color.json');
+const NB = resolve(repo, 'reference/New Balance/tokens/tokens/shared/core-color.json');
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
 const BLACK: RGB = { r: 0, g: 0, b: 0 };
@@ -154,8 +154,8 @@ p('');
 // followed Prism2 (numbered-multiplier space, KB POV 02/22), not NB's legacy
 // t-shirt ramp — so SPACE validates against Prism2; RADIUS (which both systems
 // name the same way) still validates against NB.
-const PRISM2SPACE = resolve(repo, 'Tokens/Prism2/tokens/tokens/shared/space-size.json');
-const NBRAD = resolve(repo, 'Tokens/New Balance/tokens/tokens/shared/radius.json');
+const PRISM2SPACE = resolve(repo, 'reference/Prism2/tokens/tokens/shared/space-size.json');
+const NBRAD = resolve(repo, 'reference/New Balance/tokens/tokens/shared/radius.json');
 const p2Space = JSON.parse(readFileSync(PRISM2SPACE, 'utf8')).nbds.pds.space as Record<string, any>;
 const nbRad = JSON.parse(readFileSync(NBRAD, 'utf8')).nbds.radius as Record<string, any>;
 const aliasPx = (v: string) => Number(v.match(/dimension\.(\d+)/)![1]);

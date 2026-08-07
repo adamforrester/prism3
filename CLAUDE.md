@@ -10,12 +10,12 @@ An npm-workspace monorepo for the **Prism3 design-token engine** and its surface
 |---|---|
 | `Prism3/` | The **engine** — dependency-free TypeScript, run via `tsx` (no build). Generates the token layer from a small brand input. Start here for engine work. |
 | `apps/studio/`, `apps/plugin/` | The two **surfaces** that bundle the engine (npm workspaces `@prism3/studio`, `@prism3/plugin`). These build. |
-| `Tokens/` | The **legacy hand-built token JSON** — Prism2 + New Balance. Read-only in practice: it is the engine's regression target, not a place to author. |
+| `reference/` | The **legacy hand-built token JSON** — Prism2 + New Balance. Read-only in practice: it is the engine's regression target, not a place to author. |
 
-Within `Tokens/` only, the old description still holds — every file is JSON, nothing to build:
+Within `reference/` only, the old description still holds — every file is JSON, nothing to build:
 
-- `Tokens/Prism2/` — the PRISM design system (`nbds.pds.*` namespace), modes: `light`, `dark`, `wireframe`, plus `shared`.
-- `Tokens/New Balance/` — New Balance brand tokens, modes: `desktop`, `mobile`, plus `shared`.
+- `reference/Prism2/` — the PRISM design system (`nbds.pds.*` namespace), modes: `light`, `dark`, `wireframe`, plus `shared`.
+- `reference/New Balance/` — New Balance brand tokens, modes: `desktop`, `mobile`, plus `shared`.
 
 Also read `README.md` (the signpost) and **`CONTRIBUTING.md`** — §3 is the canonical gate list, and `Prism3/engine/lint-doc-gates.ts` enforces that it matches CI. No Cursor/Copilot rules exist.
 
@@ -74,8 +74,8 @@ Don't force one brand's structure onto the other.
 
 ## Working with this repo
 
-- Path quoting: some paths contain spaces (`Tokens/New Balance/`) — quote them in Bash commands. Use repo-relative paths; the absolute root differs per checkout (worktree, container, CI).
-- **`Tokens/` has nothing to build, lint, or test** — validation there is JSON parse + reference resolution: every `{...}` alias in DTCG files resolves to a real path, and every raw-figma `alias` ID matches a `VariableID` defined in that brand's exports. Everywhere else, the gates in principle 4 apply.
+- Path quoting: some paths contain spaces (`reference/New Balance/`) — quote them in Bash commands. Use repo-relative paths; the absolute root differs per checkout (worktree, container, CI).
+- **`reference/` has nothing to build, lint, or test** — validation there is JSON parse + reference resolution: every `{...}` alias in DTCG files resolves to a real path, and every raw-figma `alias` ID matches a `VariableID` defined in that brand's exports. Everywhere else, the gates in principle 4 apply.
 
 ## Working principles (agent behavior)
 

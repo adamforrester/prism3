@@ -30,7 +30,7 @@
    kind build.
 
 *Reassess trigger for (2):* if the monorepo's build tooling collides with the legacy
-`Tokens/` corpus or the space-containing working paths, splitting the engine into a fresh
+`reference/` corpus or the space-containing working paths, splitting the engine into a fresh
 repo is cheaper later than merging repos would be now — so we start here and revisit only
 if it hurts.
 
@@ -61,7 +61,7 @@ Figma sandbox with no port.
 
 ```
 prism3/                            (this repo — grows into the monorepo)
-├── Tokens/                        legacy hand-built layer + regression target (unchanged)
+├── reference/                     legacy hand-built layer + regression target (unchanged)
 ├── Prism3/
 │   ├── engine/                    → the core, promoted to a workspace package
 │   ├── schema/                    lever-manifest.json · preview-spec.json · theme-schema.json
