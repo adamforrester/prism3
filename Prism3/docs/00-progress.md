@@ -7,6 +7,67 @@
 
 ---
 
+## (2026-08-07) — The mode badge's kept guard now covers both halves of its own case (#545)
+
+**STATUS: shipped.** `web/src/main.ts` (`modeScopeBadge`), `web/mode-audit.mjs`. Held back deliberately
+until #581 (`#574`'s "measure view controls out of `hasControls`" fix) merged, since both touched the
+same badge logic; re-verified against post-#581 `main` before fixing, and again after #543/#544 landed
+on top of that during this session.
+
+**The defect, confirmed unchanged by #581.** `modeScopeBadge` still branched `perMode → hasControls →
+'Non-editable'`. For a per-mode section rendered in a derived mode (`scope === 'per-mode'` and
+`DERIVED_MODES.has(currentMode)`), `perMode` is false by construction, so if that section's controls
+happen to render, `hasControls` wins first and the badge reads "Editing · All modes" over controls the
+engine refuses for that mode — exactly the case the issue named. #581 only changed *which* controls
+count toward `hasControls` (excluding `[data-view-only]`); it never touched this branch's precedence.
+
+**Why it stayed invisible, confirmed by reading rather than assumed.** No page renders a per-mode
+section's controls in a derived mode today: `renderScreen` and `controlSplitPage` both replace
+`sections(host)` wholesale with `renderGeneratedNote()` whenever `DERIVED_MODES.has(currentMode)`, so
+the buggy branch never fires by construction. `mode-audit.mjs --check-badges` inherited the blind spot
+for a second, independent reason: its measurement loop only ever clicks Light and Dark, so `currentMode`
+is never derived at the moment a badge is captured either — two unrelated reasons landing on the same
+"unreachable today" conclusion the previous session's kept-guard comment already stated.
+
+**The fix.** Added `derivedPerMode = scope === 'per-mode' && DERIVED_MODES.has(currentMode)` in
+`modeScopeBadge`, tested ahead of `hasControls` in both the label (`b.append`) and tooltip (`b.title`)
+branches: `editable = perMode || (hasControls && !derivedPerMode)`. The existing "UNREACHABLE TODAY"
+tooltip fallback already had the right text for the no-controls half of this case; the fix routes the
+controls-present half into that same fallback instead of duplicating the message.
+
+**The audit fix went further than the issue's literal ask, because the literal ask was a no-op here.**
+The issue asked for the same precedence check in `mode-audit.mjs`'s `expected` derivation, but that
+derivation has no "current mode is derived" signal to guard — the script never visits a derived mode, so
+a parallel-looking edit would have changed nothing that runs. Extended the audit instead to click every
+`.mctx-b.derived` button per stage and snapshot it, pushing new claims with `expected: 'none'` for any
+section that measured `EDITS` in the Light/Dark pass (this repo's existing proxy for `scope ===
+'per-mode'`, since `SECTION_MODE_SCOPE` is hand-maintained from that same measurement) — ahead of
+`hasControls`, mirroring the fixed precedence rather than restating it. This closes the *real* blind spot
+(the audit never checked a derived-mode badge at all) rather than the literal one named. A stage is
+clicked back to Light after its derived-mode pass: `probeSection` only re-clicks the `.stage` tab, never
+a mode button, so leaving a stage on a derived mode broke every later probe for unrelated Light/Dark
+claims with false `section-gone` errors — caught by running the extension before adding the reset, not
+predicted in advance.
+
+**Verified the fix has teeth, not just green output.** Temporarily patched `renderScreen` to always call
+`sections(host)` even in a derived mode (reverted before commit) so a per-mode section's controls
+actually render there — something no page does today. With the real fix in place, both the live badge
+and the audit's `expected` read `Non-editable` / `'none'`. Then temporarily reverted only the
+`derivedPerMode` guard (kept the audit extension and the render hack): the audit caught 16 mismatches,
+all reading "measured EDITS(derived) -> expected badge 'none', page renders 'all-modes'" — reproducing
+the exact pre-fix lie and proving the new audit coverage would have caught it. Restored the real fix and
+removed the render hack before committing; `git diff` against the fix commit carries neither.
+
+**Verification.** `--check-badges` passes **46/46** (up from 28 — the 18 new claims are the derived-mode
+pass, all `expected: 'none'`, confirming the architectural guard holds in practice, not just by comment).
+Full CLAUDE.md §4 sequence green against post-#543/#544 `main`: `regen.ts` / `--check` (88 artifacts, no
+drift), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (485 guaranteed,
+unchanged), `lint-skills.ts`, the NB regression (11/11 contrast, 23/23 dimensions, PASS),
+`lint-us-english.ts` (94 files, run after `web` build), `web` typecheck + build, `lint:classes` (801
+mints, 21 entries, clean — #544's rewrite), and `audit:modes --check-badges` itself.
+
+---
+
 ## (2026-08-07) — `lint-classes` closes three mechanically-demonstrated blind spots (#544)
 
 **STATUS: shipped.** `web/lint-classes.mjs` only — no `main.ts` changes. All three defects named in
