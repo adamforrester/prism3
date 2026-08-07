@@ -347,6 +347,8 @@ The generalization is the important part: **`$extensions` is defined by DTCG as 
 an SD omission that an adapter patches; every conforming consumer is blind to it, permanently. A
 Prism3-specific adapter would be load-bearing forever.
 
+**Filed as #609** with the unified-export target (§11) as its motivating use case.
+
 **Neither representation is right:**
 
 | | conforming consumers | multi-axis |
@@ -475,3 +477,79 @@ DTCG. **Parity is a much smaller question than it has appeared.**
 - Gradients are not handled at all (`DTCGTokenType` has no gradient member) — Prism3 emits them.
 - `compileTransitionComposites` detects transitions by **name-sniffing** emitted keys
   (`duration`/`delay`/`timing`/`easing`), which is fragile and would not belong in a shared core.
+
+
+---
+
+## 11. The target — one package, two sources (owner vision, 2026-08-06)
+
+Recorded here rather than in an issue because it is the *destination* everything in §10 is
+navigating toward, and it is what makes the mode decision (§10c, filed as **#609**) load-bearing
+rather than academic.
+
+### 11a. The shape
+
+- **In the web**, a user configures a theme and downloads a **token package** shaped by settings they
+  choose — a DTCG preset, a Style Dictionary preset, or custom (the same axis Token Press exposes).
+- **In the Figma plugin**, the same user opens the same UI and can instead export **from the Figma
+  file**, the way Token Press does today.
+- **Same options. Same package format.**
+
+The settings surface is authored **once**, because `plugin/dist/ui.html` inlines the shared `web/src`
+UI. That is a structural advantage over Token Press, whose own review flagged the opposite: its options
+live in three places that must stay manually in sync — the `ExportOptions` interface,
+`DEFAULT_OPTIONS`, and hand-written HTML matched by `getElementById` string literals.
+
+**Prism3 already has the better pattern for this**: the lever manifest. Options declared once, both
+surfaces rendered from the declaration, and an option that cannot be added to the type without
+appearing in the UI. Export settings should follow that shape rather than being hand-wired per host.
+
+### 11b. "Same package" means same FORMAT, not same SOURCE
+
+The two paths draw on genuinely different things, and conflating them is the real UX risk:
+
+| | source | properties |
+|---|---|---|
+| web | the configured theme (engine, in memory) | deterministic, contrast-verified, always current |
+| Figma | the live file | may carry designer edits; may be stale relative to the UI |
+
+Both are legitimate. In the web only the first exists; in the plugin both do. So the surface should
+present **two clearly labelled sources sharing one format and one option set** — *"Export this theme"*
+vs *"Export this Figma file"* — rather than one button whose meaning depends on host.
+
+That framing removes the failure mode by construction: a user cannot ask for one and silently receive
+the other.
+
+### 11c. Drift indicator, not a blocking error
+
+The owner's UX concern — the UI and the Figma file disagreeing — is real, but a hard error is the wrong
+mechanism, for two reasons:
+
+1. **The plugin already rehydrates from the file.** `persistInput` / `restoreInput` (#131) restores the
+   UI to *that file's* brand on open, so the two match by construction at the start of a session. A
+   mismatch arises only after a knob moves without re-materializing — a normal intermediate state.
+2. **Blocking punishes a legitimate workflow.** "Tweak, compare against the file, decide" is exactly
+   what the studio is for.
+
+Better: report the divergence and its SIZE, and offer the three real choices —
+*"This file was materialized from a different theme; N variables differ. [Export the file] [Export your
+theme] [Re-materialize]."*
+
+**And the mechanism already has an owner.** That N is the **value-equivalence check** `#584` identifies
+as a hard prerequisite for any round-trip diff, and which `read-back.ts` does *not* currently provide:
+its eight checks (`modesDistinct`, `aliasesResolve`, `slotScopes`, …) assert the file is **structurally
+sane**, never that it is **this brand**. One mechanism serves the UX guard and the correctness gate,
+which is a good sign the design is right.
+
+### 11d. The checks this enables, in order of value
+
+1. **Conformance** — `DTCGValidator` (§10f) over emitted output. Neither tool validates its own exports
+   today; lifting it covers both sources at once.
+2. **Contract** — the guaranteed token-name baseline still resolves inside the exported package.
+3. **Cross-source consistency** — export the same brand both ways and diff. The real "clean and
+   consistent" check.
+
+**(3) is blocked on #609**, and that dependency is the whole argument for deciding it first: if the web
+emits `$extensions.prism3.modes` and the Figma path emits per-mode directories, the two packages can
+never match however well the settings align — because the disagreement is not in the settings, it is in
+the shape.

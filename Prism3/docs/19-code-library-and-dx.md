@@ -206,6 +206,9 @@ required regardless of whether Style Dictionary is in the pipeline. Leaving it t
 writes it independently and unverified, which relocates the risk the token contract exists to prevent
 to somewhere we cannot gate.
 
+The mode decision this forces is filed as **#609**, with the unified-export target (`12 §11`) as its
+motivating use case — whatever this layer consumes is whatever that decision produces.
+
 **Style Dictionary would be this repo's first real runtime dependency.** It belongs in a workspace
 alongside `web`/`plugin`, never imported by the engine core — the buildless, no-`npm install` invariant
 is what lets the engine bundle into the Figma plugin sandbox.
