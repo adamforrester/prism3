@@ -7,6 +7,50 @@
 
 ---
 
+## (2026-08-06) — Two prior conclusions corrected, and the first evidence anyone gathered (docs 12/19)
+
+**STATUS: docs only** — `12 §10–§11`, `19 §9`. No code, no `out/*` impact.
+
+**Pointer, because this revises what this log itself says.** The July entry below (*"Export-contract
+sequencing + Token Press eval"*) recommends **Option B** on a **~1-day** separability estimate. Both are
+now wrong, and the entry is annotated in place rather than rewritten — it is a record of what was
+believed then.
+
+**Why the estimate moved.** `12 §7.1` concluded the shared-core boundary was cheap because the shaping
+layer has **zero `figma.*` runtime calls**. That observation still holds. The conclusion does not: the
+layer is saturated with Figma *types* (52/53/25/9 references across converters), there is **no
+intermediate representation**, `TokenExporter` constructs its own scanner rather than receiving one, and
+composites cannot be converted without Figma `Variable` objects.
+
+> **"No runtime calls" is not "decoupled."** The first review measured the dependency it could grep for
+> and inferred the one it could not. Same family as the `docs/34` register.
+
+**Why the module boundary was the wrong question anyway.** Owner reframing: the exporter's destination
+is **`plugin/`**, not `Prism3/engine/` — and against a Figma plugin, Figma types are native, so §10a's
+objection simply does not apply. Verified: the plugin already reads collections, palette, colour and the
+FLOAT axes **with per-mode values**, and the shared UI it embeds already surfaces export. The only
+missing piece is `snapshot → DTCG`. Recorded as **C′** (§10e-i).
+
+**The real gate is the mode shape, now #609.** Measured from both ends: Prism3 emits **three orthogonal
+axes**, and Token Press's per-mode-directory model cannot encode them (10 unresolved references when a
+consumer sources `shared/ + light/`); meanwhile a stock Style Dictionary over our own output emitted
+**551 leaves → 551 CSS variables, 1:1**, three of four modes silently invisible, because
+**`$extensions` is defined by DTCG as ignorable**. Neither representation is right, and **no name-based
+contract gate can see the difference** — which corrects a proposal I had made in #584.
+
+**First consumption evidence, and that phrase is checked.** Every prior mention of Style Dictionary in
+these docs is prospective. `19 §9` records the first actual run.
+
+**Also recorded (§11): the unified-export target** — one package, two sources (configured theme in the
+web, live file in the plugin), same options because the plugin embeds the same UI. Two design notes
+worth keeping: *same package* means same **format**, not same **source**, so the surface should present
+two labelled sources rather than one host-dependent button; and the UI-vs-file mismatch wants a **drift
+indicator, not a blocking error**, since `persistInput` already makes them agree at session start. That
+divergence count is the same value-equivalence check #584 needs and `read-back.ts` does not have — its
+eight checks assert the file is structurally *sane*, never that it is *this brand*.
+
+---
+
 ## (2026-08-07) — Duplicate variants: the pressed ghost button (#536 item 1)
 
 **STATUS: shipped.** Closes the last *defect* in #536's duplicate-variant finding. Three token keys and
@@ -14355,7 +14399,11 @@ here or a merged PR. Test count is **542/542** as of the sweep close.
   so the collection structure is stable (the shared `collections.ts` partition must mirror a settled
   reality), and (2) **decide whether the export *format core* moves into the monorepo** as a shared pure
   `@prism3/tokens-export` module both `emit-dtcg` and Token Press import — killing format drift by
-  construction (recommended: **Option B**). `docs/12` is the hypothesis (from the Token Press handoff
+  construction (recommended: **Option B**). ⚠️ **SUPERSEDED 2026-08-06 — see `docs/12 §10`:** the §7.1
+  separability finding this rests on measured *runtime* `figma.*` calls and missed *type* coupling, so
+  the ~1-day estimate is now a substantial rewrite; **Option C′** (the exporter lands in `plugin/`, not
+  the engine) is the live proposal, and the canonical *mode shape* — not the module boundary — is the
+  real gate (**#609**). `docs/12` is the hypothesis (from the Token Press handoff
   go/no-go. **Repo review complete (§9/§9c, 2026-07-03):** a Token-Press-side agent validated §7 against
   the real v2.3.1 source — Option B is *yellow* (separability/purity/presets ✅; composite *parity*
   ❌ refuted, the two outputs disagree today). Resolution: **pick the canonical shape first** — all five
