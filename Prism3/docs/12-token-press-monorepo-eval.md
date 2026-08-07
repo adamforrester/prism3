@@ -401,13 +401,13 @@ backlog and Figma API surface while `536`, the component tier and the code libra
 **Owner reframing (2026-08-06), and it is a materially better version of C.** §3 dismissed the plugin
 shell as having "no shared value with the engine." That is now demonstrably wrong — **the shell is
 exactly where the value is.** The destination for TP's exporter is not `Prism3/engine/`; it is
-`plugin/`, alongside the write path that already exists.
+`apps/plugin/`, alongside the write path that already exists.
 
 **This dissolves §10a's blocking objection rather than answering it.** The "substantial rewrite"
 estimate was costed against a destination — the engine — that never sees Figma, so every `Variable`,
 `VariableScope` and name heuristic has to be abstracted into an IR before anything can move. In a
 **Figma plugin**, those types are native. TP's exporter is Figma-shaped because it is a Figma exporter,
-and so is `plugin/`. **The coupling that blocks one destination is irrelevant to the other.**
+and so is `apps/plugin/`. **The coupling that blocks one destination is irrelevant to the other.**
 
 **And the plugin is most of the way there already.** `apps/plugin/src/read-figma.ts` produces a
 `ReadbackSnapshot` carrying collections + modes, palette, semantic colour with `valuesByMode`, the FLOAT
@@ -438,7 +438,7 @@ That is additive and bounded — considerably smaller than inventing an IR.
 reconcile `$extensions.prism3.modes` against per-mode directories; it only puts the code that would
 implement either one in the right place. Revised sequence:
 
-> **decide the mode shape → widen the read leg → port the exporter into `plugin/`**, with Token Press
+> **decide the mode shape → widen the read leg → port the exporter into `apps/plugin/`**, with Token Press
 > continuing standalone throughout.
 
 ### 10f. Low-risk moves available today, independent of A/B/C

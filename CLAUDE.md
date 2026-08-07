@@ -9,7 +9,7 @@ An npm-workspace monorepo for the **Prism3 design-token engine** and its surface
 | Layer | What it is |
 |---|---|
 | `Prism3/` | The **engine** — dependency-free TypeScript, run via `tsx` (no build). Generates the token layer from a small brand input. Start here for engine work. |
-| `web/`, `plugin/` | The two **surfaces** that bundle the engine (npm workspaces `@prism3/studio`, `@prism3/plugin`). These build. |
+| `apps/studio/`, `apps/plugin/` | The two **surfaces** that bundle the engine (npm workspaces `@prism3/studio`, `@prism3/plugin`). These build. |
 | `Tokens/` | The **legacy hand-built token JSON** — Prism2 + New Balance. Read-only in practice: it is the engine's regression target, not a place to author. |
 
 Within `Tokens/` only, the old description still holds — every file is JSON, nothing to build:
@@ -29,12 +29,12 @@ For any engine or token-generation task, read these first (they hold the durable
 - `Prism3/engine/README.md` — how the engine works and how to run it.
 
 The two surfaces that bundle the engine:
-- `web/` (`@prism3/studio`) — the web dashboard/theme studio (esbuild dev server); see `apps/studio/README.md`.
-- `plugin/` (`@prism3/plugin`) — the Figma plugin (two-context split + typed postMessage bridge); see `apps/plugin/README.md`. For plugin work read `Prism3/docs/18-plugin-and-host-architecture.md` (capability grounding) and `Prism3/docs/22-plugin-plan.md` (the phased build plan, #106–#110).
+- `apps/studio/` (`@prism3/studio`) — the web dashboard/theme studio (esbuild dev server); see `apps/studio/README.md`.
+- `apps/plugin/` (`@prism3/plugin`) — the Figma plugin (two-context split + typed postMessage bridge); see `apps/plugin/README.md`. For plugin work read `Prism3/docs/18-plugin-and-host-architecture.md` (capability grounding) and `Prism3/docs/22-plugin-plan.md` (the phased build plan, #106–#110).
 
 Workflow: one PR per feature branch off `main` → squash-merge → delete branch → sync `main`.
 
-**When more than one agent may be working, use a git worktree — not the shared checkout.** `git worktree add /tmp/p3-<lane> -b <branch> origin/main`, then symlink `node_modules` from the main checkout (the repo is buildless, but a fresh worktree has none, so `npx tsx` would re-download and the `web`/`plugin` builds would fail). Anything that checks out a branch in a tree someone else is editing destroys their uncommitted work: `/review-pr` did exactly that twice on 2026-08-05, once auto-stashing the other session's edits and once rebasing its branch onto an unrelated PR's commits. Recovery, if it happens to you: the checkout auto-stashes rather than deletes, so `git stash list` then `git show 'stash@{0}:<path>'` extracts single files **without popping** — popping merges two PRs' work, since the stash may hold both. `regen --check` should report **104** artifacts; `ci.yml` asserts that number. If you see a different count, check `git status` for an untracked file under `Prism3/engine/out/` before assuming drift.
+**When more than one agent may be working, use a git worktree — not the shared checkout.** `git worktree add /tmp/p3-<lane> -b <branch> origin/main`, then symlink `node_modules` from the main checkout (the repo is buildless, but a fresh worktree has none, so `npx tsx` would re-download and the `apps/studio`/`apps/plugin` builds would fail). Anything that checks out a branch in a tree someone else is editing destroys their uncommitted work: `/review-pr` did exactly that twice on 2026-08-05, once auto-stashing the other session's edits and once rebasing its branch onto an unrelated PR's commits. Recovery, if it happens to you: the checkout auto-stashes rather than deletes, so `git stash list` then `git show 'stash@{0}:<path>'` extracts single files **without popping** — popping merges two PRs' work, since the stash may hold both. `regen --check` should report **104** artifacts; `ci.yml` asserts that number. If you see a different count, check `git status` for an untracked file under `Prism3/engine/out/` before assuming drift.
 
 **Carry the `Prism3/docs/00-progress.md` entry in the feature PR itself**, not as a follow-up. Three PRs in a row (#306, #312, #315) merged without one and needed a separate docs PR to catch up, and the entry is worth most for exactly the things a diff cannot show: the diagnosis that made the fix small, the tradeoff that was deliberate, the approach tried and discarded, and any trap waiting for whoever re-verifies this later. Write it as part of the work, while that reasoning is still in hand.
 

@@ -40,7 +40,7 @@ git worktree remove /tmp/p3-review-<n> --force             # even if you bailed 
 
 The symlink is required: the repo is buildless (`tsx`, no install) but a fresh
 worktree has no `node_modules`, so `npx tsx` would re-download and the
-`web`/`plugin` workspace builds would fail outright. Expect `regen --check` to
+`apps/studio`/`apps/plugin` workspace builds would fail outright. Expect `regen --check` to
 report **88** artifacts in a clean worktree — the main checkout often shows 89
 because of an untracked stray in `Prism3/engine/out/`, which is not drift.
 
