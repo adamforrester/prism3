@@ -7,6 +7,78 @@
 
 ---
 
+## (2026-08-07) — `lint-classes` closes three mechanically-demonstrated blind spots (#544)
+
+**STATUS: shipped.** `web/lint-classes.mjs` only — no `main.ts` changes. All three defects named in
+#544 were confirmed by mutation before the fix and confirmed fixed after, then the mutation was
+reverted; the committed diff carries none of them.
+
+**1. The UTILITIES exemption was unchecked.** `.mono`/`.faint` skip the collision check on the claim
+they "carry no layout of their own that a host class could fight" — that was a comment, not a check.
+Adding `margin-top:16px` to `.mono`'s own rule left the old gate green (57 entries, clean); every one
+of the ~40 `X mono` mints would have silently inherited it. Fixed by asserting the invariant: each
+UTILITIES class's own top-level rule is parsed and every declared property must match `NON_BOX_PROP`
+(`font-*`, `color`, `letter-spacing`) — anything else fails closed, as does a listed utility whose rule
+can't be found at all (same #502 "prove you looked" posture as the existing owns-empty check).
+
+**2. The stem exemption assumed a dash-prefix never spans two surfaces — `tok-` already did.**
+`.tok-hexv`/`.tok-alias` (token-value display) and `.tok-seg` (the view segment's own L3 modifier, #466
+— an unrelated surface, already carrying its own explicit `pvseg tok-seg` ALLOWED entry) share only the
+first dash-segment. A synthetic `tok-hexv tok-seg` mint confirmed the old gate exempted it before ever
+reaching ALLOWED. **Chose to narrow the rule over building a stem→surface registry**: redefined
+"extends" as a literal dash-prefix relationship (`b === a || a.startsWith(b+'-') || b.startsWith(a+'-')`)
+rather than "shares a first dash-segment". This closes the `tok-` hole with zero fallout — every
+pairing the old loose rule was silently covering (`sg-card sg-mid` and eight siblings) was *already*
+hand-listed in ALLOWED for other reasons, so narrowing added no new required entries; a registry would
+have been pure bookkeeping for the same result.
+
+**3. Rule ownership inside a grouped selector was invisible.** The `owns` scan anchored on
+`^\.class\s*\{`, so `.zzz, .range{...}` matched nothing — and this wasn't hypothetical, the file
+already had three such rules (`.brandsel,.barbtn{...}` etc. at what was line 6829). Regrouping `.range`
+as `.zzz-544-mut, .range{...}` made a synthetic `range psl-val` mint (previously correctly flagged) pass
+clean on the old gate. Fixed by matching a top-level comma-separated run of simple class selectors and
+adding every member to `owns` — CSS grouping semantics mean each selector in the group owns the whole
+rule body, not just the first. This fix alone surfaced one **real**, previously-invisible pairing:
+`barbtn navbtn` (the responsive nav-toggle button, `.brandsel,.barbtn{...}` grouped rule + `.navbtn{
+display:none}` flipped to `flex` only inside the narrow-width media query) — confirmed intentional by
+reading the cascade, not just added to make the gate pass, and now has an ALLOWED entry with the
+reasoning inline.
+
+**Smaller, same theme.** The 8 `el()` mints using template-literal class arguments (`` `sg-tc ${cls}
+sg-tchd` `` and similar) were invisible to the mint scanner, which only matched quoted-string
+arguments — extended rather than documented-as-a-gap: a third regex captures backtick literals, and
+`${...}` segments are stripped before tokenizing so only the statically-known surrounding class names
+are checked (the same truncate-at-the-dynamic-part posture the existing single-quote regex already took
+via its `[^'$]+` exclusion). This surfaced two more real pairings needing review: `sg-tc sg-tchd` and
+`sg-tc sg-tcrow` (the palette table's header/row variants, same family as the already-allowed `sg-tc
+sg-t sg-tcrow`), plus `pswatch ro ao-chk` and `sw ao-chk` (swatches on the alpha-checker background)
+that were reachable via templates in two other spots.
+
+**ALLOWED went from 57 entries to 21.** Fixes 1–2 made the majority of the old list — every `X mono`
+entry (UTILITIES-prefiltered) and the `sf-ex-*` family (genuine same-surface prefix-extension) —
+mechanically unreachable *before* the fix and *unchanged after*: they never reach the ALLOWED membership
+check either way, so keeping them documented a check the code doesn't perform. Pruned them rather than
+commenting each as dead — the file's own header already states the point of the two mechanical
+exemptions is to keep this list small; 40 vestigial entries contradicted that. The 5 new pairings above
+were added; everything else that was already reaching the ALLOWED check (`sg-card` family,
+`start-card`/`start-alt` family, `brandmenu`/`ctable`/`mtbl-`/`tf-in` cross-surface pairs, `pvseg
+tok-seg`) stayed, unchanged.
+
+**Verification.** Full CLAUDE.md §4 sequence green: `regen.ts` / `--check` (88 artifacts, no drift),
+`test.ts` (1865), `mcp-test.ts` (49), `token-contract.ts --check` (485 guaranteed, unchanged),
+`lint-skills.ts`, the NB regression (11/11 contrast, 23/23 dimensions, ΔE00 mean 1.95), `lint-us-english.ts`
+(94 files, run after `npm run -w @prism3/web build` per its own trap-2 requirement), `web` typecheck +
+build, and `lint:classes` itself (801 mints, 21 entries, clean).
+
+**What's still out of scope.** Two rules concatenated on one physical line without a newline between
+them (`.sg-g3{...}.sg-g5{...}`) is a different blind spot from the grouped-selector one fixed here — the
+second rule on such a line is still invisible to `owns` since it isn't at `^`. Not one of #544's three
+named defects; noted for whoever next touches this file. Also left untouched, per explicit scope: any of
+`main.ts`'s mode-badge logic (`SECTION_MODE_SCOPE`, `modeScopeBadge`, `attachModeBadges`) — that's #545,
+currently live under PR #581.
+
+---
+
 ## (2026-08-07) — Backfill `DEPRECATIONS` for the 2.0.0 motion-easing rename (#543)
 
 **STATUS: shipped.** `Prism3/engine/version.ts`, `Prism3/docs/30-versioning-and-compatibility.md`,
