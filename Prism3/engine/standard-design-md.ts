@@ -81,7 +81,7 @@ export const parseStandardDesignMd = (text: string): StandardDesignMd => {
     // L-15: an unquoted `#hex` value is read as a YAML comment and stripped to null, which
     // would surface downstream as a baffling `invalid hex 'null'`. Point at the real cause.
     if (v == null || v === '')
-      throw new Error(`colour '${k}' has no value — a bare '#hex' is read as a comment; quote it, e.g. ${k}: "#3366ff"`);
+      throw new Error(`color '${k}' has no value — a bare '#hex' is read as a comment; quote it, e.g. ${k}: "#3366ff"`);
     colors[k] = String(v);
   }
   return {
@@ -96,6 +96,14 @@ export const parseStandardDesignMd = (text: string): StandardDesignMd => {
     prose,
   };
 };
+
+/** Dialect detection (#556): a top-level flat `colors:` map is the standard dialect
+ *  (engine-native briefs never have one). Both `cli.ts` and the web import path
+ *  (`web/src/main.ts`'s `validateDesignMd`) call this on the same parsed `std` to
+ *  decide which downstream parser owns the file — kept here as one predicate so the
+ *  rule lives in a single place instead of two copies drifting apart. */
+export const isStandardDesignMd = (std: StandardDesignMd): boolean =>
+  Object.keys(std.colors).length > 0;
 
 // --- standard design.md → BrandInput -----------------------------------------
 // The full conversion the CLI (and the fidelity report) run: classify the flat

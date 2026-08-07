@@ -124,7 +124,7 @@ export const classifyColors = (colors: Record<string, string>): ColorClassificat
   for (const [token, hex] of Object.entries(colors)) { const k = token.toLowerCase(); lc[k] = hex; origKey[k] = token; }
 
   // --- primary anchor (required) ---
-  if (!lc.primary) throw new Error("classify-colors: no 'primary' colour in the map — cannot anchor the brand palette");
+  if (!lc.primary) throw new Error("classify-colors: no 'primary' color in the map — cannot anchor the brand palette");
   const primary = oklchOf(lc.primary);
   mark(origKey.primary);
   log.push({ token: origKey.primary, decision: `→ brand anchor (pinned) oklch(${primary.l} ${primary.c} ${primary.h})` });

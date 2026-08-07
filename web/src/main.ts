@@ -30,6 +30,7 @@ import { resolvePreview } from '../../Prism3/engine/resolve-preview';
 import type { ResolvedPreview } from '../../Prism3/engine/resolve-preview';
 import { resolveAllModes, outlineFillFamily, outlineFillRole } from '../../Prism3/engine/modes';
 import { parseDesignMd, toDesignMd } from '../../Prism3/engine/design-md';
+import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '../../Prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../Prism3/engine/tree';
 import { ENGINE_VERSION } from '../../Prism3/engine/version';
 import { hostCommit } from './write-adapter';
@@ -6451,12 +6452,34 @@ const IMPORT_ACCEPT = '.md,.markdown,.txt,text/markdown,text/plain';
 
 /** Engine acceptance IS the validation: parse the design.md, then confirm the engine builds it.
  *  Returns the BrandInput or a friendly error — the working brand is never touched here. (The full
- *  schema validator is node-bound, so it can't run here; brandTheme's guards cover the rest.) */
+ *  schema validator is node-bound, so it can't run here; brandTheme's guards cover the rest.)
+ *
+ *  Mirrors cli.ts's dialect auto-detection (#556): a design.md may be ENGINE-NATIVE (frontmatter
+ *  compiles 1:1 to BrandInput, read by `parseDesignMd`) or STANDARD (brand-skills / google-labs —
+ *  a flat `colors:` hex map, read by `parseStandardDesignMd` + `standardToBrandInput`). Before this
+ *  fix the web import path only ever tried the native parser, so a standard-dialect file like
+ *  `examples/wendys.design.md` parsed into an empty/malformed BrandInput and crashed inside
+ *  `brandTheme` with an engine-internals error ("Cannot read properties of undefined (reading 'l')")
+ *  instead of importing. Detection is the same rule cli.ts uses: a top-level flat `colors:` map is
+ *  the standard dialect (engine-native briefs never have one). */
 const validateDesignMd = (text: string): { input: BrandInput } | { error: string } => {
   if (!text.trim()) return { error: 'Nothing to import — the file is empty.' };
-  let input: BrandInput;
-  try { input = parseDesignMd(text).input; }
+
+  // ---- detect dialect: a top-level flat `colors:` map is the standard dialect ----
+  let std;
+  try { std = parseStandardDesignMd(text); }
   catch (e) { return { error: `That doesn't read as a design.md: ${(e as Error).message}` }; }
+  const isStandard = isStandardDesignMd(std);
+
+  let input: BrandInput;
+  if (isStandard) {
+    try { input = standardToBrandInput(std).input; }
+    catch (e) { return { error: `Parsed as a standard-dialect design.md, but couldn't classify '${std.name}': ${(e as Error).message}` }; }
+  } else {
+    try { input = parseDesignMd(text).input; }
+    catch (e) { return { error: `That doesn't read as a design.md: ${(e as Error).message}` }; }
+  }
+
   try { brandTheme(input); }
   catch (e) { return { error: `Parsed, but the engine rejected it: ${(e as Error).message}` }; }
   return { input };

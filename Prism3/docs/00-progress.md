@@ -709,6 +709,64 @@ rejection (both throw).
 
 ---
 
+## (2026-08-07) — web import routed through the wrong design.md parser for the standard dialect (#556)
+
+**STATUS: fixed, gates green.** `validateDesignMd` in `web/src/main.ts` only ever called
+`parseDesignMd` — the engine-native dialect parser — so uploading a **standard**-dialect
+`design.md` (brand-skills / google-labs; a flat `colors:` hex map, e.g.
+`Prism3/examples/wendys.design.md`) parsed into an empty/malformed `BrandInput` and crashed inside
+`brandTheme` with a raw engine-internals error: *"Parsed, but the engine rejected it: Cannot read
+properties of undefined (reading 'l')"*. `Prism3/engine/cli.ts` already auto-detects both dialects
+(a top-level flat `colors:` map ⇒ standard; otherwise native) and routes standard files through
+`parseStandardDesignMd` + `standardToBrandInput` before `brandTheme` — the web path had no
+equivalent, so the CLI accepted a file the studio rejected.
+
+**The fix** ports `cli.ts`'s own detection rule into `validateDesignMd` rather than reimplementing
+it: parse with `parseStandardDesignMd` first, and if `Object.keys(std.colors).length > 0` route
+through `standardToBrandInput` before `brandTheme`; otherwise fall through to the existing
+`parseDesignMd` path unchanged. No new UI — the issue's `--fidelity` flag is CLI-only and has no
+web equivalent to reconcile.
+
+**The trap this tripped, and why it's worth naming.** Importing `parseStandardDesignMd` +
+`standardToBrandInput` into `web/src/main.ts` pulled `classify-colors.ts` and
+`standard-design-md.ts` into the esbuild bundle for the first time — code that previously only ran
+under Node via `cli.ts` and so had never been in `lint-us-english.ts`'s `web/dist/*.js` scan. Both
+files carry a genuine en-GB `"colour"` in **thrown Error message strings** (not comments, so
+esbuild keeps them): `classify-colors.ts`'s "no 'primary' colour in the map" and
+`standard-design-md.ts`'s "colour '…' has no value". The gate caught it immediately post-build —
+exactly the trap the gate's own docs describe (source greps miss what ships) but from the *opposite*
+direction: not a bundled string the source scan missed, but a string that was always fine to scan
+because it was never shipped, until this change made it ship. Fixed at the source (`colour` →
+`color` in both throw strings) rather than touching the gate — these are genuine en-GB spellings
+now in a shipped surface, not false positives. Comments in both files (also en-GB in places) were
+left alone: neither file is under `web/src`, so the CLAUDE.md comments-exemption still applies
+there — only the two literal strings that survive minification needed fixing. Worth watching for
+next time a web-side import reaches into previously-CLI-only engine code: the lint gate's `web/dist`
+scan is exactly as good as what's actually bundled, and a new import can silently widen that surface.
+
+**Verification:** live-browser check (Playwright via `PLAYWRIGHT_MODULE`, no repo dependency, per
+#333) driving the actual start-screen upload control — `wendys.design.md` (standard) now imports
+cleanly (workspace mounts, no error text, no console error); `aurora.design.md` and
+`harbor.design.md` (engine-native) continue to import cleanly through the same code path. A
+negative control (stashing the `main.ts` fix, rebuilding, re-running against `wendys.design.md`)
+reproduced the exact reported error text before the fix and passed after — confirms the fix, not
+just the absence of a crash.
+
+**Addendum (same day, follow-up commit):** independent review caught a second instance of the same
+shape of trap, one gate over from the one above — `web/vercel-ignore.sh`'s `EXCLUDED` list still
+named `classify-colors.ts` and `standard-design-md.ts` as *not* bundled, which was true before this
+PR and false after. Left as-is, a future edit to either file would have been skipped by Vercel's
+ignore-build-step and shipped nothing — the exact `#474`/`#475` stale-deploy failure mode, this time
+via the deploy gate instead of the lint gate. Fixed by removing both from `EXCLUDED` (`check:ignore`
+now passes: 15 bundled / 29 excluded, was 13/31) and refreshing the file's own prose comment that
+stated the 13/31 split. Also took the reviewer's optional, non-blocking suggestion: the
+`isStandard` detection predicate (`Object.keys(std.colors).length > 0`) was duplicated verbatim in
+`web/src/main.ts` and `cli.ts`; factored into one exported `isStandardDesignMd()` in
+`standard-design-md.ts` (both files already import from there), so the rule now lives in one place.
+Full gate sequence re-run clean after both changes, including `check:ignore`.
+
+---
+
 ## (2026-08-07) — Naming & packaging decided as one thing, around the eject boundary (docs/35, new)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New

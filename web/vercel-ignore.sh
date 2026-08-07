@@ -17,11 +17,11 @@
 # is NOT part of this build and cannot affect the deployed site, so `plugin/**` is deliberately
 # absent from the trigger list.
 #
-# WHY EXCLUSIONS RATHER THAN A LIST OF BUNDLED FILES. Only 13 of the engine's 44 `.ts` files are
-# actually imported by the bundle; the other 31 are CLI entry points, emitters, gates and the test
-# suite. Listing the 13 would be more precise and would fail in the DANGEROUS direction: a new
+# WHY EXCLUSIONS RATHER THAN A LIST OF BUNDLED FILES. Only 15 of the engine's 44 `.ts` files are
+# actually imported by the bundle; the other 29 are CLI entry points, emitters, gates and the test
+# suite. Listing the 15 would be more precise and would fail in the DANGEROUS direction: a new
 # engine file that the bundle does import would be missing from the list, so its changes would skip
-# the build and the site would go quietly stale. Listing the 31 fails the other way — a new file is
+# the build and the site would go quietly stale. Listing the 29 fails the other way — a new file is
 # unlisted, so it triggers a build it may not need. A wasted build is cheap; a stale deploy is the
 # bug we are fixing. `web/vercel-ignore-check.mjs` gates the list against the real metafile so an
 # excluded file that later gets imported is caught in CI rather than in production.
@@ -33,7 +33,6 @@ set -uo pipefail
 EXCLUDED=(
   ai-metadata.ts
   anatomy-figma.ts
-  classify-colors.ts
   cli.ts
   component-schema.ts
   emit-brandinput.ts
@@ -57,7 +56,6 @@ EXCLUDED=(
   nb-regression.ts
   read-back.ts
   regen.ts
-  standard-design-md.ts
   test.ts
   token-contract.ts
   visualize.ts
