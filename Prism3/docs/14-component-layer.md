@@ -56,7 +56,7 @@ reviewed external systems have (`13`): their specs capture *observed values*; ou
 bind to a *verified contract*.
 
 **The proto-layer already in the repo.** `preview.ts` is a miniature of exactly this
-— 8 components / 22 variants as pure data, props bound to semantic token paths,
+— 8 components / 25 variants as pure data, props bound to semantic token paths,
 declared contrast contracts, rendered identically by three surfaces from one
 definition. The component layer is the preview spec grown up; the format extends a
 proven in-repo contract, not a greenfield invention.

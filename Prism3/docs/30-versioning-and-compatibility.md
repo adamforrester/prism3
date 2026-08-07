@@ -45,7 +45,7 @@ vary:
 | `wendys` | **standard dialect** — a flat `colors:` map classified into anchors; a different typeface |
 | `minimal` | the three required fields and **nothing else** — the sparsest input the engine accepts |
 
-That intersection is **477 paths**, with zero `$type` disagreements between any two members.
+That intersection is **485 paths**, with zero `$type` disagreements between any two members.
 
 Two details are load-bearing:
 
@@ -55,7 +55,7 @@ defined into meaninglessness on the first pass. A gate that computes an empty se
 
 **`minimal` is what stops the number over-claiming.** Without it the intersection would be "whatever
 four richly-specified brands happen to share", which is a much weaker promise wearing the same
-label. It is worth recording that adding `minimal` removed **zero** paths: every one of the 477
+label. It is worth recording that adding `minimal` removed **zero** paths: every one of the 485
 survives the sparsest possible input. `wendys` earns its place by removing exactly one —
 `font.typeface.inter`, a slug derived from a *value* — which is precisely the class of path that
 should never have been promised.

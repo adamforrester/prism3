@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-07) — Prose audit: the numeric drift sweep (#554)
+
+**STATUS: docs-only, shipped.** No engine, schema, or emitted-artifact code changed except
+`web/vercel-ignore.sh` (one array entry) — see below.
+
+Filed as "248→444, 477→484, eight README spots" — every one of those specific numbers had
+already drifted further by the time this landed, which is the useful finding: main moved under
+the issue *while it was open* (today alone: #543/#544/#545), so the fix re-measured everything
+against the current committed artifacts rather than trusting the filed numbers. Nothing was
+copied from the issue text without an independent run.
+
+**What actually re-measured true, vs. the issue's guess:**
+
+| claim | issue said | actual (re-measured) |
+|---|---|---|
+| mode contrast contracts (per brand, 4 modes) | 444 (111×4) | **488** — `emit-dtcg`/`cli` stats, confirmed identically for nb/aurora/harbor |
+| guaranteed token-name paths | 484 (contract 2.0.0) | **485** (contract **2.1.0** — #573's `border.focus-inverse` landed after the issue's snapshot) |
+| levers / advanced | 35 / 20 | **38** / 20 |
+| preview-spec components / variants | 8 / 22 | 8 / **25** |
+| regen-gated artifacts | 85 | **88** (matches `CLAUDE.md`'s own worktree count) |
+| unit tests | 202 *and* 189 (two disagreeing spots in the same README) | **1920** both places |
+| per-brand aliases (nb/aurora/harbor) | 627/628/622 | **936/937/934** |
+| Figma `color.<mode>.json` variable count | 95 | **151** |
+| engine top-level `.ts` files (web bundle doc) | 43 | **44** |
+
+The multiplier in "111×4" was never right at any point — `modeChecks` in `tree.ts` already sums
+across all four built-in modes (light/dark/hc-light/hc-dark) in one number, so the doc phrasing
+("N/N contracts across four modes") was always describing the summed total, not a per-mode count
+to multiply. 488 is that total, re-derived live from `cli.ts`/`emit-dtcg.ts` output on the current
+tree, not backed into from a guess.
+
+**The one non-doc fix.** `web/README.md` and `web/vercel-ignore.sh`'s own comment both claimed
+"13 of 43 `.ts` files ... other 30 excluded", but the engine directory has 44 top-level `.ts`
+files today — `lint-skills.ts` was never added to either the bundled set or `EXCLUDED` when it
+landed. That is a real gap, not just stale prose: an unlisted file still resolves safely (the
+script's default is "trigger a build"), but the doc's arithmetic can't be made to close without
+either lying about the exclusion count or actually fixing the list. Added `lint-skills.ts` to
+`EXCLUDED` (alongside `lint-us-english.ts`, the same shape of file) — verified with
+`node web/vercel-ignore-check.mjs` (13 bundled / 31 excluded / 44 total) and
+`npm run -w @prism3/web typecheck` (clean).
+
+**One doc rewritten wholesale, not patched.** `Prism3/README.md`'s status paragraph and file tree
+predated typography/dimension/motion coverage entirely — it still said "NB only", "28/28
+cross-mode contracts", "44/44 aliases", and listed `schema/` as 3 files when it now has 7 and
+`out/` as nb-only when it now emits nb/aurora/harbor/wendys + `out/figma/**`. Patching individual
+numbers there would have left internally-contradictory prose, so the paragraph and tree were
+rewritten to the current shape instead.
+
+**Also fixed while in the neighborhood:** docs/20's state enumeration (§3, `<state>`) listed
+`rest`/`hover`/`pressed`/`selected` but omitted `focused` — which the engine emits for every
+interactive fill column (`modes.ts` `FILL_STATES`) and which the very same doc's §3a roles list
+already named. Added it to the enumeration rather than opening a separate issue for a one-line
+omission sitting three lines from the numbers already being touched.
+
+**Gates.** `regen.ts` (no artifact diff — docs-only), `regen.ts --check` 88/88, `test.ts`
+1920/1920, `mcp-test.ts` 49/49, `token-contract.ts --check` (unchanged, 2.1.0/485), `lint-skills.ts`
+clean, NB regression PASS (ΔE00 1.95, 11/11 contrast, 23/23 dimensions), `lint-us-english.ts`
+clean (94 files, built `web/dist/main.js` included in the scan). `web typecheck` clean (touched
+`web/vercel-ignore.sh` + `web/README.md`).
+
+**Sibling PRs.** #550 and #551 were filed concurrently against the same `Prism3/engine/README.md`
+(the `action.*` vocabulary and unbuilt-capability claims respectively, both untouched here) — a
+rebase on merge order is expected, not a conflict signal.
+
+---
+
 ## (2026-08-07) — Prose audit: eleven docs still called shipped capabilities unbuilt (#551)
 
 **STATUS: fixed.** Docs-only. Eleven status-prose corrections across `Prism3/docs/*`,

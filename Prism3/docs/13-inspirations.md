@@ -59,7 +59,7 @@ validation of the direction `07-e2e-journey` §7 maps for our component layer.
 - **Theming is hand-authored and unverified.** `defineTheme({ tokens:
   { '--color-accent': ['#0077B6', '#48CAE4'] } })` — the consumer supplies light/dark
   hexes themselves. No generation, no ramps, no contrast contracts, no HC modes.
-  Prism3's generate-and-verify engine (248/248 contrast contracts, four modes) is a
+  Prism3's generate-and-verify engine (488/488 contrast contracts, four modes) is a
   different class of thing; Astryx has nothing like it.
 - **Their metadata schema is intent-poor.** No `avoid_when`, no `business_context`,
   no relationships graph (`alternativeTo`, `composesWith`) — the fields KB 29/30
@@ -216,7 +216,7 @@ and the mechanism behind the demo:
 - **First reviewed system with a real contrast solver.** Every prior entry hand-authored
   theming; Southleft actually solves fg/bg to WCAG AA. But it solves for the *lead*
   pairs of a *single* accent, light/dark-lead, ~44 tokens, one brand, client-side around
-  a live model call. Prism3 verifies **248/248 contrast contracts across four modes**,
+  a live model call. Prism3 verifies **488/488 contrast contracts across four modes**,
   multi-brand, with status/interactive/gradient families, gamut-aware ramps, per-mode
   overrides, and a byte-regression target — and a **fully deterministic** engine (the AI
   is entirely upstream producing the `BrandInput`; a *cleaner* proposes/disposes split
@@ -316,5 +316,5 @@ organization has."* The concrete moves:
 | Consumption-side evals (rubric, invented-name rate, isolated trials) | ds-brain, Zinnia (MCP-lifts-output demo + package-adoption dashboard) | **Partially closed** — `prism3-consume` cold-agent differential (`#1–#6`) runs it; extend when the MCP adapter lands |
 | Deterministic zero-LLM tooling as the differentiator over agentic equivalents | Specs CLI ("0 AI tokens" extraction), Southleft (local seed engine under the AI), our engine + planned plugin write leg | Core posture — `14` extends it to the component tier (write leg ours, verify leg Specs-CLI-shaped) |
 | AI proposes params → system derives (NL vibe → schema → live re-theme) | Southleft (prompt console; JSON schema = the contract) | **Gap / candidate task** — we have the plumbing (`brandState`→`apply`, `standard-design-md`, `theme-schema.json`); missing the NL front door |
-| Verified *generation* (contrast contracts, regression, modes) | Southleft (WCAG-AA solver — but single accent / lead pairs / one mode-lead); the rest none | **Prism3's differentiator holds** — ours verifies 248/248 contracts across four modes, not one lead pair |
+| Verified *generation* (contrast contracts, regression, modes) | Southleft (WCAG-AA solver — but single accent / lead pairs / one mode-lead); the rest none | **Prism3's differentiator holds** — ours verifies 488/488 contracts across four modes, not one lead pair |
 | Figma as the underserved agent surface | ds-brain (open question), Astryx (absent) | Actively building — `emit-figma` (`10`), MCP materialization route |

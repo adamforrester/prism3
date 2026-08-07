@@ -39,7 +39,7 @@ interactive.<color>.<slot>.<state>
 
 - **`<color>`** — `primary` · `neutral` · `destructive` (always) + `accent` (optional, §3).
 - **`<slot>`** — `fill` · `on-fill` (ink on the fill) · `text` (ink for outline/text appearances) · `border` · `icon` · `overlay` (§6).
-- **`<state>`** — `rest` · `hover` · `pressed` (+ `selected` where a component needs it). `rest` is the base.
+- **`<state>`** — `rest` · `hover` · `pressed` · `focused` (+ `selected` where a component needs it). `rest` is the base.
 
 Rest colours + their states all live here. Nothing about how an interactive element behaves lives anywhere else. That single-home rule is the load-bearing decision (§8 is its mirror image).
 
@@ -65,7 +65,7 @@ actionAnchorStep?: number;       // optional fill-step override for the built-in
 destructiveAnchorStep?: number;  // optional fill-step override for the built-in destructive column
 ```
 
-**Roles emitted** per column (`<name>` = `entry.name ?? entry.palette`): `interactive.<name>.fill.{rest,hover,pressed,focused,selected}`, `interactive.<name>.on-fill`, `interactive.<name>.text`, `interactive.<name>.border`, `interactive.<name>.on-inverse` (when `inverse` is on), and the `interactive.<name>.overlay.{hover,pressed,selected}` washes (when `outlineInteraction: 'overlay-neutral'`). Every one is contrast-gated per mode by the same 248-contract machinery (§13).
+**Roles emitted** per column (`<name>` = `entry.name ?? entry.palette`): `interactive.<name>.fill.{rest,hover,pressed,focused,selected}`, `interactive.<name>.on-fill`, `interactive.<name>.text`, `interactive.<name>.border`, `interactive.<name>.on-inverse` (when `inverse` is on), and the `interactive.<name>.overlay.{hover,pressed,selected}` washes (when `outlineInteraction: 'overlay-neutral'`). Every one is contrast-gated per mode by the same 488-contract machinery (§13).
 
 **Naming.** `name` (or the palette name it defaults to) must be a single lowercase slug and must be **unique** and **must not collide** with a built-in column (`primary`/`neutral`/`destructive`) — the engine throws a clear error otherwise, mirroring the `actionPalette`/`brandColors` validation. The `palette` must be a **defined palette** (validated like `actionPalette`); an undefined palette throws.
 
@@ -141,11 +141,11 @@ The root cause is structural, not a values problem:
 3. **Cross-mode hand-authoring** — light + dark + wireframe each re-declared it by hand, all interdependent (fill can't be picked without its text).
 4. **No generation, no contract** — hand-picked pairs with nothing verifying them, so a neutral-hover-text that slipped under AA just shipped. "Never quite right" is where un-gated interdependent contrast always lands.
 
-**Prism3 removes each:** the neutral fill is *picked per mode* by the engine; its on-ink is *derived and verified* against it by the 248-contract gate; inverse and cross-mode become *generated resolutions*, not hand-work. The failure mode was "manual interdependent achromatic contrast at scale"; it is now a **generated, gated contract — a failing neutral pair cannot pass the build.** That gate is the durable safeguard against the miss recurring.
+**Prism3 removes each:** the neutral fill is *picked per mode* by the engine; its on-ink is *derived and verified* against it by the 488-contract gate; inverse and cross-mode become *generated resolutions*, not hand-work. The failure mode was "manual interdependent achromatic contrast at scale"; it is now a **generated, gated contract — a failing neutral pair cannot pass the build.** That gate is the durable safeguard against the miss recurring.
 
 ## 13. Generation + verification (the engine's job)
 
-Every `interactive.*` token is **generated** (walk the intent's palette for fill states; derive `on-fill`/`text` for legibility) and **contrast-verified** per mode — including the *composited* result where an overlay sits on a base. This is the same machinery already passing 248 mode contracts; the interactive family becomes more generated output under the same gate, not more hand-authoring.
+Every `interactive.*` token is **generated** (walk the intent's palette for fill states; derive `on-fill`/`text` for legibility) and **contrast-verified** per mode — including the *composited* result where an overlay sits on a base. This is the same machinery already passing 488 mode contracts; the interactive family becomes more generated output under the same gate, not more hand-authoring.
 
 ## 14. Alignment to Prism2 — borrow the shape, fix the rot
 

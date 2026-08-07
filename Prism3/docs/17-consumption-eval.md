@@ -1,7 +1,7 @@
 # 17 — Consumption eval: does an agent given the MCP surface produce compliant output?
 
 > The engine verifies *generation* exhaustively — contrast contracts, alias resolution,
-> byte-regression, 248/248 mode contracts. It has had **no way to measure consumption**:
+> byte-regression, 488/488 mode contracts. It has had **no way to measure consumption**:
 > given an agent the Prism3 MCP surface (`theme_brand` / `list_levers`, `engine/mcp.ts`),
 > does it actually produce *compliant* UI? This file specs the harness that turns
 > "MCP-first > screenshot-first" (docs/07 §15) and the four-layer-stack payoff from an
