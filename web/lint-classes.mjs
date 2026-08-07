@@ -26,9 +26,11 @@
  *
  * The allowlist is the design, not a workaround — the same shape as the US-English gate's
  * `NOT_EN_GB`. Two mechanical exemptions keep it from being unmaintainable, and both are narrow:
- * UTILITIES are classes meant to be composed onto anything, and a modifier sharing its base's prefix
- * (`sg-card sg-mid`) is the ordinary base+modifier convention, which cannot collide across surfaces
- * because the prefix scopes it. Everything else is listed by hand.
+ * UTILITIES are classes meant to be composed onto anything (an invariant this file checks — see
+ * NON_BOX_PROP below — rather than just trusts, after #544), and a modifier that literally extends its
+ * base's name with a further `-suffix` (`sg-card sg-mid` is NOT this — see extendsBase below) is the
+ * ordinary base+modifier convention, which cannot collide across surfaces because the prefix scopes it.
+ * Everything else is listed by hand.
  *
  * Run: `npm run -w @prism3/web lint:classes`
  */
@@ -43,35 +45,44 @@ const UTILITIES = new Set(['mono', 'faint']);
 
 /** Reviewed pairings. Each is a component class used alongside another that owns a rule, where the
  *  combination was checked and is intended. Add to this ONLY after confirming the second class's
- *  standalone rule is one you want applied here. */
+ *  standalone rule is one you want applied here.
+ *
+ *  Entries that are pre-filtered by UTILITIES or by extendsBase() before ever reaching the ALLOWED
+ *  check (e.g. every `X mono` pairing, `mono` being a UTILITIES member) are NOT listed here — that
+ *  would document a check the code never performs. Keep this list to pairings that genuinely reach
+ *  and pass the membership test below; #544 pruned ~40 entries that had drifted into that state. */
 const ALLOWED = new Set([
-  'brandmenu exportmenu',      // menu variants — exportmenu/navmenu re-skin the shared popover
+  'barbtn navbtn',              // hamburger nav toggle — barbtn's visual style, navbtn's display:none
+                                 // gate flipped to flex only inside the narrow-width media query
+  'brandmenu exportmenu',       // menu variants — exportmenu/navmenu re-skin the shared popover
   'brandmenu navmenu',
-  'ctable mo-ramp',            // the motion ramp IS a contract table; mo-ramp adds the ms column
-  'mtbl-scroll sl-tall',       // sl-tall raises the scroll cap for the taller mode table
-  'mtbl-spec-t tf-prev',       // typeface preview inside a mode-table specimen cell
-  'mtbl-spec-t tpw-samp',      // type-pairing sample, same cell
-  'pvseg tok-seg',             // #466 — tok-seg is the L3 (nested) modifier of the view segment
-  'sf-ex sf-ex-fill', 'sf-ex sf-ex-surface', 'sf-ex sf-ex-text',
+  'ctable mo-ramp',             // the motion ramp IS a contract table; mo-ramp adds the ms column
+  'mtbl-scroll sl-tall',        // sl-tall raises the scroll cap for the taller mode table
+  'mtbl-spec-t tf-prev',        // typeface preview inside a mode-table specimen cell
+  'mtbl-spec-t tpw-samp',       // type-pairing sample, same cell
+  'pswatch ro ao-chk',          // read-only palette swatch on the alpha-checker background
+  'pvseg tok-seg',              // #466 — tok-seg is the L3 (nested) modifier of the view segment
   'sg-card sg-bcard', 'sg-card sg-icard', 'sg-card sg-mid', 'sg-card sg-scrimcard',
-  'sg-tc sg-t sg-tcrow',
+  'sg-tc sg-t sg-tcrow', 'sg-tc sg-tchd', 'sg-tc sg-tcrow',   // tcHead/tcCell — template-literal
+                                                               // mints (#544), sg-l/sg-r/sg-t vary
   'start-alt start-upload', 'start-card start-hero', 'start-card start-row2',
+  'sw ao-chk',                  // shade swatch on the alpha-checker background
   'tf-in tf-addin',
-  'cs-ctl-val mono', 'cs-name mono', 'fr-v mono', 'fz-clamp mono',
-  'fz-name mono', 'fz-pair mono', 'lab-hex mono', 'lab-step mono', 'ly-cont-val mono',
-  'ly-tick-px mono', 'mo-ez-bez mono', 'mo-meta mono', 'mo-ms-val mono', 'mo-playnote mono',
-  'mo-ramp-ms mono', 'mo-spring-nums mono', 'mono tok-alias', 'mono tok-hexv', 'mtbl-name mono',
-  'mtbl-offval mono', 'mtbl-selfval mono', 'mtbl-worth mono', 'mval mono', 'pair mono',
-  'pair-path mono', 'panchor mono', 'phex mono', 'pname-input mono', 'psl-val mono',
-  'rad-lab mono', 'range-tglab mono', 'sh-lab mono', 'shape-nums mono', 'sp-px mono',
-  'sz-lab mono', 'tpill mono', 'tr-attr mono', 'tr-band-c mono',
 ]);
 
 const src = await readFile(resolve(root, 'src/main.ts'), 'utf8');
 
-// Classes with their own top-level single-class rule. Anchored at line start so a nested or
-// compound selector (`.pfield.slider`, `.sg-pills .tpill`) is not mistaken for one.
-const owns = new Set([...src.matchAll(/^\.([a-z][a-z0-9-]*)\s*\{/gm)].map((m) => m[1]));
+// Classes with their own top-level rule. Anchored at line start so a nested or compound selector
+// (`.pfield.slider`, `.sg-pills .tpill`) is not mistaken for one: the pattern only matches a run of
+// whole `.class` selectors separated by top-level commas, immediately followed by `{` (allowing
+// whitespace) — a `.` or other combinator right after a class name (no comma) breaks the match
+// entirely rather than partially matching a prefix of it. A comma-separated group (`.zzz, .range{`)
+// used to be invisible here — every selector in a CSS group owns the same rule body, so each one is
+// captured (#544; found because `.brandsel,.barbtn{...}` already existed in this exact shape).
+const owns = new Set();
+for (const m of src.matchAll(/^((?:\.[a-z][a-z0-9-]*\s*,\s*)*\.[a-z][a-z0-9-]*)\s*\{/gm)) {
+  for (const sel of m[1].split(',')) owns.add(sel.trim().slice(1));
+}
 if (owns.size === 0) {
   console.error('lint:classes FAILED — no top-level CSS rules found in src/main.ts.');
   console.error('  The stylesheet literal moved or changed shape; this must follow it rather than');
@@ -79,22 +90,66 @@ if (owns.size === 0) {
   process.exit(1);
 }
 
+// UTILITIES are exempted from the collision check on the claim that they "carry no layout of their
+// own that a host class could fight" — until #544 that was a comment, not a check. Verify it: a
+// UTILITIES class's own top-level rule may declare only non-box properties (font-*, color,
+// letter-spacing, font-variant-*, and similar — nothing that could size, position, or space an
+// element). A listed utility whose rule can't even be found fails closed rather than passing by
+// default (same #502 lesson as above).
+const NON_BOX_PROP = /^(font(-[a-z-]+)?|color|letter-spacing)$/;
+for (const cls of UTILITIES) {
+  const m = src.match(new RegExp(`^\\.${cls}\\{([^}]*)\\}`, 'm'));
+  if (!m) {
+    console.error(`lint:classes FAILED — UTILITIES class '.${cls}' has no top-level rule to verify.`);
+    console.error('  A utility exempted from the collision check must have a rule to check in the');
+    console.error('  first place; without one this exemption cannot be confirmed, so it is refused.');
+    process.exit(1);
+  }
+  const boxy = m[1].split(';').map((d) => d.split(':')[0].trim()).filter(Boolean)
+    .filter((p) => !NON_BOX_PROP.test(p));
+  if (boxy.length) {
+    console.error(`lint:classes FAILED — UTILITIES class '.${cls}' declares box propert${boxy.length > 1 ? 'ies' : 'y'}: ${boxy.join(', ')}`);
+    console.error('  UTILITIES skip the collision check on the claim they carry no layout of their own');
+    console.error('  a host class could fight. This one now does. Either remove the box propert' +
+      (boxy.length > 1 ? 'ies' : 'y') + ` from .${cls}, or drop it from UTILITIES and let every`);
+    console.error('  pairing it appears in go through the normal ALLOWED review.');
+    process.exit(1);
+  }
+}
+
 const mints = [];
-for (const re of [/el\(\s*'[a-z]+'\s*,\s*'([^'$]+)'/g, /className:\s*'([^'$]+)'/g])
-  for (const m of src.matchAll(re)) mints.push(m[1].trim().split(/\s+/).filter(Boolean));
+for (const re of [
+  /el\(\s*'[a-z]+'\s*,\s*'([^'$]+)'/g,
+  /el\(\s*'[a-z]+'\s*,\s*`([^`]+)`/g,   // template-literal class arg (#544) — `${expr}` segments are
+                                        // stripped below since only the static tokens around them can
+                                        // be checked; a class name never lives entirely inside one.
+  /className:\s*'([^'$]+)'/g,
+])
+  for (const m of src.matchAll(re)) {
+    const literal = m[1].replace(/\$\{[^}]*\}/g, ' ').trim();
+    if (literal) mints.push(literal.split(/\s+/).filter(Boolean));
+  }
 if (mints.length === 0) {
   console.error('lint:classes FAILED — no class mints matched. The el()/className shapes changed.');
   process.exit(1);
 }
 
-const stem = (c) => c.split('-')[0];
+// A modifier "extends" a base if one class name is literally the other's dash-prefix (or they're
+// equal) — the ordinary base+modifier convention, which cannot collide across surfaces because the
+// prefix scopes it (`sf-ex` + `sf-ex-fill`). This is narrower than "shares a first dash-segment": that
+// looser rule let `tok-hexv` (a token-value display class) and `tok-seg` (the view segment's own L3
+// modifier, #466 — an unrelated surface that happens to share the `tok-` segment) exempt each other
+// before ever reaching the ALLOWED check. Every pairing this repo actually relies on the loose rule
+// for (`sg-card sg-mid` and siblings) was already hand-listed in ALLOWED regardless, so narrowing this
+// costs nothing real — see #544.
+const extendsBase = (a, b) => a === b || a.startsWith(b + '-') || b.startsWith(a + '-');
+
 const flagged = new Map();
 for (const cls of mints) {
   if (cls.length < 2) continue;
   const rule = cls.filter((c) => owns.has(c) && !UTILITIES.has(c));
   if (rule.length < 2) continue;
-  // A modifier sharing its base's stem is the ordinary convention and cannot collide across surfaces.
-  if (rule.every((c) => stem(c) === stem(rule[0]))) continue;
+  if (rule.every((c) => extendsBase(c, rule[0]))) continue;
   const key = cls.join(' ');
   if (!ALLOWED.has(key)) flagged.set(key, rule);
 }
