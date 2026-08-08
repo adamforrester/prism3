@@ -66,28 +66,55 @@ const PROMISED = {
   wendys: 'the standard-dialect front door (parseStandard + classifier)',
 };
 
-/** Leaves in the DTCG source, the modes they declare, and the token root. Walks the JSON — NOT the CSS. */
-const readSource = (brand) => {
-  const tree = JSON.parse(readFileSync(SOURCE(brand), 'utf8'));
+/**
+ * The types the DTCG spec defines — this gate's OWN copy, deliberately not imported from the engine.
+ *
+ * The engine has an identical list in `emit-dtcg-overlay.ts`, which is what DECIDES what to project.
+ * Importing it here would make the rule below unfalsifiable: adding `spring` to the engine's set would
+ * put spring back in the projection AND simultaneously teach this gate that spring is conforming, and
+ * the assertion would pass while the promise broke. **Two independent transcriptions of a published
+ * spec is the point, not duplication to clean up** (docs/34). Both cite the spec; neither cites the
+ * other. If they ever disagree, the disagreement is the finding.
+ */
+const DTCG_TYPES = new Set([
+  'color', 'dimension', 'fontFamily', 'fontWeight', 'duration', 'cubicBezier', 'number',
+  'strokeStyle', 'border', 'transition', 'shadow', 'gradient', 'typography',
+]);
+
+/** Leaves in a DTCG tree, the modes they declare, the types they use, and the token root. Walks the
+ *  JSON — NOT the CSS. `file` defaults to the canonical tree; the projection is read with the same
+ *  walker so the two are measured by one implementation rather than two that could drift. */
+const readSource = (brand, file = SOURCE(brand)) => {
+  const tree = JSON.parse(readFileSync(file, 'utf8'));
   let leaves = 0;
   const modes = new Set();
   const types = new Set();
-  const walk = (node) => {
+  // Paths, not just a count: a non-conforming type has to be NAMED to be actionable, and a bare
+  // number would leave whoever hits this failure hunting for which token it means.
+  const byType = {};
+  const walk = (node, path = '') => {
     if (!node || typeof node !== 'object') return;
     if ('$value' in node) {
       leaves++;
-      if (node.$type) types.add(node.$type);
+      if (node.$type) {
+        types.add(node.$type);
+        (byType[node.$type] ??= []).push(path);
+      }
       const m = node.$extensions?.prism3?.modes;
       if (m) for (const k of Object.keys(m)) modes.add(k);
       return;
     }
-    for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v);
+    for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, path ? `${path}.${k}` : k);
   };
   walk(tree);
   // The token root is a lever (`nbds` for the legacy dialect, `prism` otherwise), so the CSS variable
   // prefix has to be read off the tree rather than assumed.
   const root = Object.keys(tree).find((k) => !k.startsWith('$'));
-  return { leaves, modes: [...modes].sort(), types: [...types].sort(), root };
+  const nonConforming = Object.entries(byType)
+    .filter(([t]) => !DTCG_TYPES.has(t))
+    .flatMap(([t, paths]) => paths.map((p) => `${p} (\`${t}\`)`))
+    .sort();
+  return { leaves, modes: [...modes].sort(), types: [...types].sort(), root, nonConforming };
 };
 
 /** Variables in the emitted CSS, their values, and its selectors. Parses the CSS — NOT the JSON. */
@@ -130,24 +157,34 @@ for (const [name, why] of Object.entries(PROMISED)) {
 }
 
 /**
- * Composite-type values a stock Style Dictionary cannot serialize, PINNED per brand.
+ * Values a stock Style Dictionary cannot serialize — SPLIT IN TWO by #642, and the split is the point.
  *
- * This is the assertion that could not exist while the gate counted only names — and the reason it
- * had to. `nb` reported 556 leaves → 556 variables, a perfect 1:1, while three of those 556 were the
- * literal string `[object Object]`. The count was right and the output was broken, which is exactly
- * the shape of defect a count is structurally unable to see.
+ * Until #642 this was one number per brand, all of it labelled `[CORRUPT]`: `{nb: 3, aurora: 5,
+ * harbor: 3, wendys: 3}` = 14. That conflated two things wanting OPPOSITE treatment — "we emitted
+ * something unreadable" and "a conforming consumer cannot read something correct." One is our defect
+ * and should be impossible; the other is not ours and should be remembered.
  *
- *   • `spring` (3 per brand) — a Prism3 type with no DTCG equivalent, so no consumer has a transform
- *     for it. Expected, and pinned so it stays visible rather than assumed.
- *   • `gradient` (2, `aurora` only) — a STANDARD DTCG composite type. This one is different in kind:
- *     a conforming consumer reading a conforming type gets garbage, and Style Dictionary's `css`
- *     transformGroup ships no gradient handler. Predicted by #635 before it was measured.
+ * EMITTER-SIDE — a RULE, asserted at 0, not pinned. Every `$type` in the conforming projection must be
+ * a DTCG type. This is the upgrade #642 was worth doing for, beyond the 12 tokens it removed: a pinned
+ * count can only remember what was true when someone wrote it down, whereas "zero non-DTCG types in the
+ * conforming projection" fails the DAY a new one ships. Note what it is derived from — each emitted
+ * `$type` checked against the spec list, NOT a count of `[object Object]`. A future non-standard type
+ * might stringify cleanly (a string `$value`, say) and walk straight through a corruption count while
+ * breaking the same promise. The rule is about conformance; corruption was only its symptom.
  *
- * NOT fixed here — #635 is explicitly about measuring all four brands, and each defect it surfaces
- * gets its own decision, the same way #609 came out of measuring one. Filed as #642. Widening this pin to make a
- * future failure go away would be the same move as adding a preprocessor: it ends the measurement.
+ * CONSUMER-SIDE — a MEMORY, pinned at 2. `gradient` is a STANDARD DTCG composite type and our token
+ * already conforms: an array of stops carrying `color` and `position`. Style Dictionary's `css`
+ * transformGroup simply ships no gradient handler and falls back to `String(value)`. Both candidate
+ * "fixes" are worse than the gap — pre-serializing a CSS string would make our output NON-conforming,
+ * and shipping a gradient transform is exactly what the NO CUSTOM CODE rule forbids. That rule governs
+ * what WE ship; a consumer writing their own transform is their configuration, not our adapter. So this
+ * stays measured and visible, in the same posture as #609's mode collapse: a documented consumer gap,
+ * not a defect awaiting a fix (#642).
+ *
+ * Widening either number to make a failure go away is the same move as adding a preprocessor: it ends
+ * the measurement.
  */
-const CORRUPT = { nb: 3, aurora: 5, harbor: 3, wendys: 3 };
+const CONSUMER_GAP = { nb: 0, aurora: 2, harbor: 0, wendys: 0 };
 
 for (const brand of brands) {
   const src = readSource(brand);
@@ -172,25 +209,68 @@ for (const brand of brands) {
   ok(src.modes.length > 0,
     `${brand}: the source DOES declare modes the consumer never sees (${src.modes.join(', ')}) — the gap is real, not vacuous`);
 
-  // ---- VALUE INTEGRITY: what counting cannot see ----
-  ok(css.corrupt.length === CORRUPT[brand],
-    `${brand}: [CORRUPT] ${css.corrupt.length} value(s) serialize to \`[object Object]\`, pinned at ${CORRUPT[brand]}${css.corrupt.length ? ` — ${css.corrupt.slice(0, 3).join(', ')}` : ''}`);
+  // ---- VALUE INTEGRITY on the CANONICAL build. NOT a conformance promise — this tree is ours and
+  // extension-based by #609's decision, and `spring` lives here on purpose. Kept measured so the
+  // corruption does not become invisible now that the RULE below covers the projection. The expected
+  // count is DERIVED from two independent readers: non-DTCG leaves counted by walking the JSON, plus
+  // the consumer gap counted by parsing the CSS. A literal here would be the pin this PR just split.
+  const canonicalExpected = src.nonConforming.length + CONSUMER_GAP[brand];
+  ok(css.corrupt.length === canonicalExpected,
+    `${brand}: the canonical build corrupts ${css.corrupt.length} value(s) = ${src.nonConforming.length} non-DTCG + ${CONSUMER_GAP[brand]} consumer-gap — expected, this tree is ours (#609)`);
 
   // ---- THE PROJECTION (#609): what a conforming consumer actually reads ----
   const base = readEmitted(await buildProjected(brand, 'base'));
-  ok(base.unique === src.leaves, `${brand}: [#609] the BASE carries every token (${base.unique}/${src.leaves})`);
+  const baseSrc = readSource(brand, resolve(OUT_ROOT, `${brand}.base.tokens.json`));
+
+  // ---- THE RULE (#642): every `$type` in the conforming projection is a DTCG type. 0, ASSERTED. ----
+  // Checked against the spec list, per emitted type, across the base AND every overlay — not by
+  // counting `[object Object]`, which a future non-standard type could stringify past. This is the
+  // assertion that fails the day another one ships, rather than the day someone remembers to re-measure.
+  ok(baseSrc.nonConforming.length === 0,
+    `${brand}: [RULE] every \`$type\` in the BASE projection is a DTCG type${baseSrc.nonConforming.length ? ` — ${baseSrc.nonConforming.join(', ')} cannot be resolved by a conforming consumer (#642)` : ''}`);
+  for (const mode of src.modes) {
+    const ov = readSource(brand, resolve(OUT_ROOT, `${brand}.${mode}.overlay.tokens.json`));
+    ok(ov.nonConforming.length === 0,
+      `${brand}/${mode}: [RULE] every \`$type\` in the OVERLAY is a DTCG type${ov.nonConforming.length ? ` — ${ov.nonConforming.join(', ')} (#642)` : ''}`);
+  }
+  // And the rule's consequence, read off the EMITTED CSS rather than the JSON: whatever the projection
+  // still cannot serialize is standard-typed, so it is the consumer's gap and not ours. PINNED.
+  ok(base.corrupt.length === CONSUMER_GAP[brand],
+    `${brand}: [CONSUMER-GAP] ${base.corrupt.length} standard-typed value(s) a stock SD cannot serialize, pinned at ${CONSUMER_GAP[brand]}${base.corrupt.length ? ` — ${base.corrupt.join(', ')} (correct DTCG, no SD handler — #642)` : ''}`);
+
+  // The base is the canonical tree MINUS non-DTCG leaves (#642) — derived from the source walk, so a
+  // token silently vanishing from the projection still fails even though the count is no longer 1:1.
+  ok(base.unique === src.leaves - src.nonConforming.length,
+    `${brand}: [#609] the BASE carries every DTCG token (${base.unique}/${src.leaves - src.nonConforming.length} = ${src.leaves} leaves − ${src.nonConforming.length} non-DTCG)`);
   ok(base.refs > src.leaves * 0.5, `${brand}: [#609] the base preserves alias references (${base.refs})`);
   // The canonical build and the base projection are two independently produced artifacts that should
   // agree on every default value. If they diverge, the projection has silently changed the default
   // system rather than merely re-expressing it — and no per-file count would show that.
-  const baseDrift = Object.keys(css.byName).filter((k) => css.byName[k] !== base.byName[k]);
+  //
+  // #642 made the projection a SUBSET, which splits this into two questions that must not be merged.
+  // Excusing every missing variable would turn a value check into "the projection contains nothing it
+  // shouldn't", and a token quietly disappearing would then read as a pass. So the absentees are
+  // asserted BY NAME against the non-conforming paths read from the source tree, and the values are
+  // compared across everything else.
+  // Style Dictionary's `name/kebab` keeps the token root as the variable prefix (`nbds.motion.spring
+  // .snappy` → `--nbds-motion-spring-snappy`), so the full path converts — dropping the root here was
+  // an early mistake that made the check report 3/3 correct names as UNEXPECTED.
+  const varOf = (path) => `--${path.replace(/\./g, '-')}`;
+  const expectedAbsent = new Set(src.nonConforming.map((p) => varOf(p.replace(/ \(`.*`\)$/, ''))));
+  const missing = Object.keys(css.byName).filter((k) => base.byName[k] === undefined);
+  ok(missing.length === expectedAbsent.size && missing.every((k) => expectedAbsent.has(k)),
+    `${brand}: [#642] exactly the non-DTCG tokens are absent from the base (${missing.length}/${expectedAbsent.size})${missing.some((k) => !expectedAbsent.has(k)) ? ` — UNEXPECTED: ${missing.filter((k) => !expectedAbsent.has(k)).slice(0, 3).join(', ')}` : ''}`);
+  const baseDrift = Object.keys(css.byName).filter((k) => base.byName[k] !== undefined && css.byName[k] !== base.byName[k]);
   ok(baseDrift.length === 0,
-    `${brand}: [#609] the base projection reproduces the canonical build value-for-value${baseDrift.length ? ` — ${baseDrift.length} differ, e.g. ${baseDrift.slice(0, 2).join(', ')}` : ''}`);
+    `${brand}: [#609] the base projection reproduces the canonical build value-for-value, for every token it carries${baseDrift.length ? ` — ${baseDrift.length} differ, e.g. ${baseDrift.slice(0, 2).join(', ')}` : ''}`);
 
   for (const mode of src.modes) {
     const m = readEmitted(await buildProjected(brand, mode));
     const differing = Object.keys(base.byName).filter((k) => base.byName[k] !== m.byName[k]).length;
-    ok(m.unique === src.leaves, `${brand}/${mode}: [#609] every token present (${m.unique}/${src.leaves}) — nothing dropped`);
+    // Same subtraction as the base: a mode's build sources base + overlay, so it carries the projected
+    // token set, not the canonical one (#642).
+    ok(m.unique === src.leaves - src.nonConforming.length,
+      `${brand}/${mode}: [#609] every DTCG token present (${m.unique}/${src.leaves - src.nonConforming.length}) — nothing dropped`);
     ok(m.refs > src.leaves * 0.5, `${brand}/${mode}: [#609] alias references survive (${m.refs})`);
     ok(differing > 0, `${brand}/${mode}: [#609] actually differs from base (${differing} vars) — the overlay is not inert`);
     ok(m.selectors.join('|') === `[data-theme="${mode}"]`, `${brand}/${mode}: [#609] emitted under its own selector (${m.selectors.join('|')})`);
@@ -216,4 +296,6 @@ if (fail.length) {
 }
 console.log(`\n✓ ${brands.length} brands measured: canonical trees collapse to one value per token BY DESIGN (#609);`);
 console.log(`  base + overlay projections read back through a stock Style Dictionary with no custom code.`);
-console.log(`✓ ${Object.values(CORRUPT).reduce((a, b) => a + b, 0)} composite values across the corpus serialize to \`[object Object]\` — pinned, not fixed (#635).\n`);
+console.log(`✓ [RULE] every \`$type\` in every conforming projection is a DTCG type — 0 non-standard, asserted not pinned (#642).`);
+console.log(`✓ [CONSUMER-GAP] ${Object.values(CONSUMER_GAP).reduce((a, b) => a + b, 0)} standard-typed values across the corpus a stock Style Dictionary`);
+console.log(`  cannot serialize — correct DTCG with no SD handler, so pinned as a documented consumer gap, not a defect (#642).\n`);

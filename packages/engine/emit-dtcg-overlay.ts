@@ -9,8 +9,12 @@
  *
  * So this emits a second, PROJECTED set that any conforming tool can read with no adapter:
  *
- *     <brand>.base.tokens.json          every token, default-mode values, NO modes extension
+ *     <brand>.base.tokens.json          every DTCG-typed token, default-mode values, NO modes extension
  *     <brand>.<mode>.overlay.tokens.json  ONLY the leaves whose value differs from base
+ *
+ * "Every DTCG-typed token" is exact, and the qualifier is the fix in #642: a leaf whose `$type` is not
+ * in the spec is omitted here, because a promise of conformance that carries an unresolvable type is
+ * false. See `DTCG_TYPES` below.
  *
  * A consumer sources `base + overlay` and its own merge does the rest — verified against Style
  * Dictionary's native multi-source support, which produced output identical to a full per-mode tree
@@ -41,6 +45,40 @@ type Node = Record<string, unknown>;
 
 const isLeaf = (n: unknown): n is Node => !!n && typeof n === 'object' && '$value' in (n as Node);
 
+/**
+ * The types the DTCG spec defines. A leaf typed outside this set is omitted from the projection (#642).
+ *
+ * WHY, since "emit less" always looks like a downgrade: these two files exist to make a CONFORMANCE
+ * promise, and a type no consumer can resolve makes that promise false while producing a garbage value
+ * in the same stroke. Before this, a stock Style Dictionary read the three `spring` tokens, found no
+ * transform for an unknown type, fell back to `String(value)` and emitted the literal text
+ * `[object Object]` — present, counted, unusable. Omitted, a consumer sees no spring tokens, which is
+ * honest and which they can act on.
+ *
+ * Omitted rather than moved to `$extensions` inside the projection. Both conform, but the canonical
+ * tree already holds the data and a second copy in the projection's ignorable corner buys a stock
+ * consumer nothing.
+ *
+ * `spring` REMAINS in the canonical `<brand>.tokens.json`, which is deliberately extension-based and
+ * ours (#609), and remains in the token-name contract. Only its presence *here* was wrong. Nothing
+ * about this decides springs' future: if the motion vocabulary ever becomes standard, `spring` joins
+ * the list below and the projection gains those tokens back with no other change.
+ *
+ * This list is spelled out from the spec rather than derived from what we emit — a list built by
+ * scanning our own output would call every type we ship conforming, including the next non-standard
+ * one. `packages/tokens/check-consumability.mjs` deliberately keeps its OWN copy for the same reason;
+ * see the note there before consolidating them.
+ */
+export const DTCG_TYPES: ReadonlySet<string> = new Set([
+  // primitives
+  'color', 'dimension', 'fontFamily', 'fontWeight', 'duration', 'cubicBezier', 'number',
+  // composites
+  'strokeStyle', 'border', 'transition', 'shadow', 'gradient', 'typography',
+]);
+
+/** Whether a leaf's `$type` is one a conforming consumer is defined to understand. */
+export const isConformingLeaf = (n: Node): boolean => typeof n.$type === 'string' && DTCG_TYPES.has(n.$type as string);
+
 /** Every mode named by any leaf's `modes` extension, sorted. Walks the tree rather than taking a
  *  caller's list — a mode present on one leaf and absent from the argument would vanish silently. */
 export const overlayModes = (tree: unknown): string[] => {
@@ -59,31 +97,44 @@ export const overlayModes = (tree: unknown): string[] => {
 };
 
 /**
- * The BASE tree: default-mode values, with the `modes` extension removed.
+ * One leaf as the projection carries it: the `modes` extension removed.
  *
  * Removing it is not tidying — it is the whole contract. A consumer that reads this file must not be
  * able to find a second value it is silently ignoring; if `modes` rode along, the base would be the
  * canonical tree again and the projection would buy nothing. Everything else under `$extensions`
  * stays: it is descriptive (contrast ratings, provenance, Figma binding), not a hidden value.
  */
+const projectLeaf = (n: Node): Node => {
+  const out = { ...n };
+  const ext = out.$extensions as Node | undefined;
+  const p3 = ext?.prism3 as Node | undefined;
+  if (p3 && 'modes' in p3) {
+    const { modes: _drop, ...rest } = p3;
+    out.$extensions = { ...ext, prism3: rest };
+  }
+  return out;
+};
+
+/**
+ * The BASE tree: default-mode values, `modes` removed, non-DTCG types omitted (#642).
+ *
+ * Groups left empty by the omission are pruned — `motion.spring` with all three leaves gone would
+ * otherwise ship as `"spring": {}`, which conforms but advertises a vocabulary the file does not carry.
+ */
 export const buildBase = (tree: unknown): unknown => {
   const strip = (n: unknown): unknown => {
     if (!n || typeof n !== 'object') return n;
-    if (isLeaf(n)) {
-      const out = { ...(n as Node) };
-      const ext = out.$extensions as Node | undefined;
-      const p3 = ext?.prism3 as Node | undefined;
-      if (p3 && 'modes' in p3) {
-        const { modes: _drop, ...rest } = p3;
-        out.$extensions = { ...ext, prism3: rest };
-      }
-      return out;
-    }
+    if (isLeaf(n)) return isConformingLeaf(n) ? projectLeaf(n) : undefined;
     const out: Node = {};
-    for (const [k, v] of Object.entries(n as Node)) out[k] = k.startsWith('$') ? v : strip(v);
-    return out;
+    let kept = 0;
+    for (const [k, v] of Object.entries(n as Node)) {
+      if (k.startsWith('$')) { out[k] = v; continue; }
+      const child = strip(v);
+      if (child !== undefined) { out[k] = child; kept++; }
+    }
+    return kept ? out : undefined;
   };
-  return strip(tree);
+  return strip(tree) ?? {};
 };
 
 /**
@@ -98,14 +149,18 @@ export const buildOverlay = (tree: unknown, mode: string): unknown => {
   const walk = (n: unknown): unknown => {
     if (!n || typeof n !== 'object') return undefined;
     if (isLeaf(n)) {
+      // Non-DTCG types are omitted here too (#642), not merely in the base. No `spring` leaf carries a
+      // mode entry today, so this changes no committed byte — it is stated so the rule lives with BOTH
+      // writers of the projection. A future non-standard type that did vary by mode would otherwise
+      // reach a conforming consumer through the overlay while being correctly absent from the base.
+      if (!isConformingLeaf(n)) return undefined;
       const p3 = ((n.$extensions as Node | undefined)?.prism3) as Node | undefined;
       const m = (p3?.modes as Node | undefined)?.[mode] as Node | undefined;
       if (!m || !('$value' in m)) return undefined;
       if (JSON.stringify(m.$value) === JSON.stringify((n as Node).$value)) return undefined;
       // The leaf as the mode sees it — the mode's `$value`, and the base leaf's descriptive fields
       // so the overlay is a valid standalone DTCG token rather than a bare value.
-      const base = buildBase(n) as Node;
-      return { ...base, ...m, $value: m.$value };
+      return { ...projectLeaf(n), ...m, $value: m.$value };
     }
     const out: Node = {};
     for (const [k, v] of Object.entries(n as Node)) {

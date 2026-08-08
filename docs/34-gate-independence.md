@@ -356,6 +356,40 @@ nothing). Only the silent set needs reading by hand, and it is the set a remembe
 #658's review found `vercel-ignore.sh` precisely because it swept instead of recalling. Then re-run each
 gate's self-check explicitly, because the suite going green is what this failure looks like.
 
+### 10. The oracle measures today's symptom instead of the rule
+
+A pin can be independent, live, and able to fail, and still be the wrong quantity — because it counts a
+**consequence** the current violation happens to produce rather than the **property** being promised.
+It then catches every future violation that produces the same consequence and none that do not, which
+is not a property anyone can predict in advance.
+
+`#642` is the instance, and unusually it is a shape found **before** anything escaped, so it has no
+register row. `check-consumability.mjs` promised the emitted projection was consumable and enforced it
+by pinning the number of CSS values that came out as the literal `[object Object]` — 14 across the
+corpus. The real rule is *every `$type` in the conforming projection is a DTCG type*, and the corruption
+was only how the one violation of it (`spring`) happened to present. Probed against stock Style
+Dictionary, two invented non-standard types with **scalar** values:
+
+```
+--prism-motion-elevation-step: 4;     /* $type: "elevation"  */
+--prism-motion-grid: 8;               /* $type: "gridUnit"   */
+```
+
+Both break the same conformance promise. Neither moves a corruption count by one. The pin would have
+reported clean and the promise would have been just as false.
+
+**Tell:** the gate's number is a count of *how the last bug looked*, and you can describe the rule it
+stands in for in a sentence that does not mention that number. **Fix:** assert the rule against its own
+external definition — here, each emitted `$type` against the spec's list of types, transcribed
+independently in the gate. That version fails on the next non-standard type whether or not it
+stringifies cleanly.
+
+The general form is worth holding separately from the fix: **a pinned count can only remember what was
+true when someone wrote it down; a rule fails on the next one.** Where both are available, prefer the
+rule and keep the pin only for what genuinely is not yours to fix — #642 kept exactly one, the two
+`aurora` gradients, which are *correct* DTCG that a stock Style Dictionary has no handler for. Splitting
+the two was the whole upgrade; widening either to clear a red is the move that ends the measurement.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken

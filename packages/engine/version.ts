@@ -67,8 +67,22 @@
  * Both versions move — this is the rare change that is simultaneously a behaviour change and a name
  * change, so it is worth stating that they moved for different reasons rather than as one event.
  * (#576)
+ *
+ * 0.6.0: the conforming projection now OMITS non-DTCG types, which today means `spring` — 3 leaves per
+ * brand, 12 across the corpus, gone from `<brand>.base.tokens.json`. The canonical
+ * `<brand>.tokens.json` is untouched and still carries them, so no token name and no canonical value
+ * moved: `CONTRACT_VERSION` stands, and `token-contract.ts --check` confirms it rather than this
+ * comment asserting it. A minor rather than a patch because the artifact CONTENT shrank — a consumer
+ * sourcing the projection sees three fewer tokens, which is a compatibility-relevant change even
+ * though what they lose is a value that read `[object Object]`.
+ *
+ * The reason it is a fix and not a removal: those files exist to make a conformance promise (#609), and
+ * a `$type` outside the spec makes the promise false while producing a garbage value in the same
+ * stroke. `spring` is a real part of the motion vocabulary and stays in the tree that is ours.
+ * Nothing here decides springs' future — if the motion vocabulary ever becomes standard, `spring`
+ * joins `DTCG_TYPES` and the projection gains those tokens back with no other change. (#642)
  */
-export const ENGINE_VERSION = '0.5.0';
+export const ENGINE_VERSION = '0.6.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

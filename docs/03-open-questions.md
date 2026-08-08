@@ -59,7 +59,16 @@ labels. Lean: (a).
 > one intentional custom type. *(Alternative not taken — re-typing springs to an
 > overshoot `cubicBezier` with params in `$extensions` for 100% standard types +
 > out-of-box SD rendering — remains available if zero-custom-types is ever required;
-> rejected for now as a lossy approximation of a distinct concept.)* Original below.
+> rejected for now as a lossy approximation of a distinct concept.)*
+>
+> **Amended 2026-08-08 (#642), and the decision above still stands:** `spring` stays, and stays a
+> `spring`. What changed is that #609 added a second, *conforming* projection beside the canonical
+> tree (`<brand>.base.tokens.json` + overlays) whose whole purpose is to be readable with no custom
+> code — and #635 measured what "ingests without error" actually costs a stock consumer there:
+> `[object Object]`. So the projection omits non-DTCG types while the canonical tree keeps them. The
+> reasoning above was about the tree that is ours; it does not extend to a file that promises
+> conformance. Nothing here re-opens option (b): if DTCG ever standardizes springs, they rejoin the
+> projection with no other change. Original below.
 
 The motion axis emits 3 `spring` tokens with `$type:"spring"`, which is *not* in
 the DTCG spec or Style Dictionary's type map (verified). SD won't error (unknown

@@ -72,9 +72,12 @@ npm run test      -w @prism3/plugin      # write / readback / persist / float / 
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
                                           # characterization gate: pins each brand's mode collapse
-                                          # (permanent, #609) and its count of composite values SD
-                                          # cannot serialize (#635), asserts the base+overlay
-                                          # projection reads back, and refuses custom preprocessors
+                                          # (permanent, #609); asserts as a RULE that the conforming
+                                          # projection carries ZERO non-DTCG $types, checked against
+                                          # the spec list not a corruption count, and pins at 2 the
+                                          # standard types SD cannot serialize (#635, split by #642);
+                                          # asserts the base+overlay projection reads back, and
+                                          # refuses custom preprocessors
 npx tsx packages/engine/lint-us-english.ts # run AFTER the web build — its scope includes apps/studio/dist/*.js
 npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here
 ```
