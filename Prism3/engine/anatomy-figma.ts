@@ -524,6 +524,80 @@ export const figmaAnatomyPlan = (
   };
 };
 
+/** The three `variants` axes `figmaAnatomyPlan` can be handed, and the two slot axes. Named here
+ *  because `figmaAnatomySet` REFUSES anything else rather than iterating around it — see below. */
+const PROJECTABLE_VARIANT_AXES = ['intent', 'appearance', 'size'];
+const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
+
+/**
+ * Every variant the def's Figma projection DECLARES, as plans — the whole set, ready for either executor.
+ *
+ * WHY THIS EXISTS AT ALL. `figmaAnatomyPlan` builds ONE plan and both executors take `AnatomyPlan[]`, so
+ * "which plans" was, until now, six nested loops written out at each call site. The test suite has three
+ * copies of them and the plugin's trigger (#483) would have been a fourth — in `main.ts`, which calls
+ * `figma.showUI` at module scope and is therefore unreachable from any test. So the enumeration lives
+ * here, where it is pure and gated, and the trigger is the thin thing it should be.
+ *
+ * IT REFUSES AN AXIS IT CANNOT PASS THROUGH, and that is the load-bearing half. `figmaAnatomyPlan`'s
+ * signature names `intent`, `appearance`, `size`, `state`, `leading` and `trailing` and nothing else, so a
+ * def declaring some fourth `variants` axis cannot be projected. Iterating around it — the obvious
+ * implementation — emits a set that is internally consistent, combines cleanly, and is silently missing a
+ * whole axis: exactly the failure `figmaAxisNames` was written for (#487 §5's 189-vs-756). A throw here
+ * is the def's author being told the projection does not reach their axis yet.
+ *
+ * SIZE AND SLOT FILL ARE ALWAYS ENUMERATED, whether or not they are declared axes, because
+ * `planComponentName` ALWAYS emits `size=`, `leading=` and `trailing=` coordinates. Pinning one value
+ * for an undeclared axis would give every member an identical coordinate on it, which is fine — but
+ * pinning `size` while the def declares three would give N members one name, and `planSetLayout` refuses
+ * a duplicate coordinate. The name is the wire format, so the enumeration has to cover what the name
+ * carries rather than what the declaration lists.
+ *
+ * `swapTarget` is an option and not a def field for the reason #513 recorded live: which component fills
+ * a slot is a fact about the FILE, not about the component. The same def builds in a file whose
+ * placeholder icon is called anything, so the caller that knows the file nominates it.
+ */
+export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string } = {}): AnatomyPlan[] => {
+  const fp = def.figmaProperties;
+  if (!fp) throw new Error(`${def.id}: no figmaProperties block — nothing declares which axes become a Figma set`);
+  const declared = fp.variantAxes ?? [];
+  const unprojectable = declared.filter((a) => !PROJECTABLE_VARIANT_AXES.includes(a));
+  if (unprojectable.length)
+    throw new Error(`${def.id}: figmaAnatomySet cannot project variant axes [${unprojectable.join(', ')}] — figmaAnatomyPlan takes ${PROJECTABLE_VARIANT_AXES.join('/')} and nothing else, and enumerating around an axis emits a set that is silently missing it`);
+  const slotAxes = (fp.slotAxes ?? []).map((s) => s.name);
+  const unprojectableSlots = slotAxes.filter((s) => !PROJECTABLE_SLOT_AXES.includes(s));
+  if (unprojectableSlots.length)
+    throw new Error(`${def.id}: figmaAnatomySet cannot project slot axes [${unprojectableSlots.join(', ')}] — figmaAnatomyPlan takes ${PROJECTABLE_SLOT_AXES.join('/')} and nothing else`);
+
+  // `[undefined]` rather than `[]` for an axis the def does not declare: one pass through the loop with
+  // no coordinate on it, which is what `figmaAnatomyPlan` reads as "structure only on that axis".
+  const one = <T>(xs: T[] | undefined, on: boolean): (T | undefined)[] => (on && xs?.length ? xs : [undefined]);
+  const intents = one(def.variants?.intent, declared.includes('intent'));
+  const appearances = one(def.variants?.appearance, declared.includes('appearance'));
+  const states = one(fp.stateAxis?.values, !!fp.stateAxis);
+  // Not gated on `declared.includes('size')` — see the header note on why the NAME decides this.
+  const sizes = def.variants?.size ?? [];
+  const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [true, false] : [false]);
+
+  // NESTED IN THE ORDER `planComponentName` WRITES, so the grid `planSetLayout` derives reads the way the
+  // coordinate does — intent down to trailing, with the last varying axis becoming the columns.
+  const plans: AnatomyPlan[] = [];
+  for (const intent of intents)
+    for (const appearance of appearances)
+      for (const size of sizes)
+        for (const state of states)
+          for (const leading of bools('leading'))
+            for (const trailing of bools('trailing'))
+              plans.push(figmaAnatomyPlan(def, size, {
+                leading,
+                trailing,
+                ...(opts.swapTarget ? { swapTarget: opts.swapTarget } : {}),
+                ...(intent ? { intent } : {}),
+                ...(appearance ? { appearance } : {}),
+                ...(state ? { state } : {}),
+              }));
+  return plans;
+};
+
 /** Every part name in a plan, depth-first. */
 export const planPartNames = (n: FigmaNodePlan): string[] => [n.name, ...n.children.flatMap(planPartNames)];
 
@@ -1137,9 +1211,22 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
 
   // GRID PLACEMENT. Only the axes that actually vary get a dimension — a `size` axis with one value is
   // not a row of one, it is not a row. The LAST varying axis becomes the columns and the rest combine
-  // into rows, which for a button lands on `state` across and `appearance` down: the same table shape
-  // as the grid dump the color layer was verified against, so a designer reads the set the way the
-  // implementer read the plan.
+  // into rows.
+  //
+  // WHICH AXIS THAT IS, IS AN ARTIFACT OF DECLARATION ORDER, NOT A LAYOUT CHOICE. `keys` comes from
+  // `planComponentName`, which emits in `figmaAxisNames` order: variantAxes, then stateAxis, then
+  // slotAxes. So for the full button set the last varying axis is `trailing` — two values — and the
+  // set lays out 324 rows x 2 columns, not the readable table you would draw by hand. An earlier
+  // version of this comment claimed `state` across and `appearance` down, describing the same table
+  // shape as the grid dump the color layer was verified against; that was true before the slot axes
+  // (#536 item 5) were appended AFTER `stateAxis`, and has been false since. Do not read a designer
+  // affordance into this line.
+  //
+  // Deliberately left as-is by #483, which only added the trigger: choosing the row/column keys is a
+  // design decision with its own tradeoffs, and the gate that looks like it covers member placement
+  // (`test.ts`'s coordinate/pitch parity) compares the two executors, both of which call THIS — so it
+  // stays green under any layout change and proves nothing about one. Fixing this needs an
+  // independently-derived expectation, which is its own piece of work. Tracked in #656.
   const keys = axes.split(',');
   const valuesOf = (p: AnatomyPlan) => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
   const vals = plans.map(valuesOf);

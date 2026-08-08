@@ -340,9 +340,20 @@ let restoreError: string | null = null;
  *  the file before it. And with no slot of its own there was nowhere for `pending` to live, so a write
  *  over a large file looked like a button that did nothing. Two facts, two slots. */
 let applyState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
-/** Whether the apply result's full detail is expanded. Collapsed by default: the headline answers the
- *  question ninety-nine times out of a hundred, and the detail is five axes of counts. */
-let applyDetailOpen = false;
+/** The state of the Build-Button-set write (#483) — same shape, its own slot, for the same reason
+ *  `applyState` is not `seedInfo`: two actions, two buttons, two verdicts. A component build cannot
+ *  report into the theme write's pill without claiming something about the variables it never touched,
+ *  and with no slot of its own it would have nowhere to be `pending` while it writes hundreds of nodes. */
+let componentState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** WHICH result's full detail is expanded, at most one. Collapsed by default: the headline answers the
+ *  question ninety-nine times out of a hundred, and the detail is counts across five or six axes.
+ *
+ *  One discriminant rather than a boolean per pill, because there is one detail ROW: the row lives in the
+ *  chrome (see `syncApplyDetail`) and everything sticky below is positioned from `--chrome-h`, so two
+ *  independently-openable rows would both be pushing that height around. One row also means the open
+ *  detail always belongs to a named pill — two rows could leave the theme write's counts sitting under a
+ *  component verdict with nothing saying which was which. */
+let openDetail: 'apply' | 'components' | null = null;
 // The font families the host can load (#113 Figma arm; empty on web and until the host answers).
 // Deliberately NOT part of `brandState`: it is an environment fact about one machine at one moment,
 // not brand data — persisting it or letting it reach `BrandInput` would make emitted artifacts
@@ -389,7 +400,18 @@ commit.onHostMessage((m) => {
     // Auto-expand a bad result. A miss means something the theme asked for is not in this file, and the
     // headline only says how many — the detail names which axis. Making the designer click for that on
     // the one occasion it matters is the wrong default; a clean result stays collapsed.
-    applyDetailOpen = !m.ok;
+    // A clean result also CLOSES whatever was open, rather than leaving it: the row would otherwise
+    // still be showing the previous action's counts next to a pill that has just been replaced.
+    openDetail = m.ok ? null : 'apply';
+    if (barHost) { renderBar(); syncApplyDetail(); }
+    return;
+  }
+  if (m.kind === 'component-result') {
+    // #483. Same handling as the theme write, against its own slot — including the auto-expand, which
+    // matters more here: a component build's misses name the binding and the member, and there can be
+    // hundreds, so a bad result the designer has to click to see is a bad result they will not read.
+    componentState = { ok: m.ok, headline: m.headline, summary: m.summary };
+    openDetail = m.ok ? null : 'components';
     if (barHost) { renderBar(); syncApplyDetail(); }
     return;
   }
@@ -6644,22 +6666,30 @@ const renderExportMenu = (): HTMLElement => {
  *  detail carries what a designer chasing a miss actually needs, wrapped rather than clipped.
  *
  *  Pending renders as text with no disclosure: there is nothing to expand yet, and a control that
- *  appears and then changes meaning when the result lands is worse than one that appears with it. */
-function renderApplyStatus(state: Exclude<typeof applyState, null>): HTMLElement {
-  if (state === 'pending') return el('span', 'bar-seed', 'Writing to Figma…');
-  const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (applyDetailOpen ? ' open' : '');
+ *  appears and then changes meaning when the result lands is worse than one that appears with it.
+ *
+ *  Shared by both write pills since #483 — `which` says whose verdict this is. Parameterised rather than
+ *  copied because everything here except the pending text and the accessible name is the same for both,
+ *  and the parts that are easiest to get wrong (the 24-char headline, `aria-expanded`/`aria-controls`
+ *  agreeing with the row that is actually open) are exactly the parts a copy would drift on. */
+function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components'): HTMLElement {
+  const noun = which === 'apply' ? 'apply' : 'component build';
+  if (state === 'pending') return el('span', 'bar-seed', which === 'apply' ? 'Writing to Figma…' : 'Building the Button set…');
+  const open = openDetail === which;
+  const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (open ? ' open' : '');
   const btn = el('button', cls) as HTMLButtonElement;
   // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
   // type and color), and an element with a class but no rule is a name reserved against nothing — the
   // shape `lint:classes` exists to discourage.
-  btn.append(document.createTextNode(state.headline), el('span', 'caret', applyDetailOpen ? '▴' : '▾'));
+  btn.append(document.createTextNode(state.headline), el('span', 'caret', open ? '▴' : '▾'));
   // The accessible name has to carry the headline, because the caret glyph is the only other content and
   // a screen reader would otherwise announce a bare triangle. `aria-expanded` states the disclosure, and
   // `aria-controls` names the row it opens — which lives in the chrome, not inside this button.
-  btn.setAttribute('aria-expanded', applyDetailOpen ? 'true' : 'false');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   btn.setAttribute('aria-controls', APPLY_DETAIL_ID);
-  btn.setAttribute('aria-label', `${state.headline} — apply details`);
-  btn.onclick = () => { applyDetailOpen = !applyDetailOpen; renderBar(); syncApplyDetail(); };
+  btn.setAttribute('aria-label', `${state.headline} — ${noun} details`);
+  // Opening one closes the other: one row, so this assignment IS the mutual exclusion.
+  btn.onclick = () => { openDetail = open ? null : which; renderBar(); syncApplyDetail(); };
   return btn;
 }
 
@@ -6679,9 +6709,13 @@ const APPLY_DETAIL_ID = 'apply-detail';
 let applyDetailHost: HTMLElement | null = null;
 const syncApplyDetail = (): void => {
   if (!applyDetailHost) return;
-  const show = applyDetailOpen && applyState !== null && applyState !== 'pending';
+  // ONE row, shared by both write pills (#483) — `openDetail` names whose summary is in it. Reading the
+  // state through the discriminant rather than tracking it here means the row cannot show a summary whose
+  // pill is not the open one: there is a single source for "which", and both the pill and this read it.
+  const state = openDetail === 'apply' ? applyState : openDetail === 'components' ? componentState : null;
+  const show = state !== null && state !== 'pending';
   applyDetailHost.style.display = show ? '' : 'none';
-  if (show) applyDetailHost.textContent = (applyState as { summary: string }).summary;
+  if (show) applyDetailHost.textContent = state.summary;
   syncChromeHeight();
 };
 
@@ -6762,7 +6796,7 @@ function renderBar(): void {
       pill.title = restoreError;
       actions.append(pill);
     }
-    if (applyState) actions.append(renderApplyStatus(applyState));
+    if (applyState) actions.append(renderApplyStatus(applyState, 'apply'));
     else if (seedInfo) actions.append(el('span', 'bar-seed' + (seedInfo.ok ? '' : ' bad'), seedInfo.summary));
     const pending = applyState === 'pending';
     // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
@@ -6772,8 +6806,27 @@ function renderBar(): void {
     const applyBtn = el('button', 'barbtn primary', pending ? '⋯ Applying…' : '↳ Apply to Figma') as HTMLButtonElement;
     applyBtn.disabled = pending;
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
-    applyBtn.onclick = () => { applyState = 'pending'; applyDetailOpen = false; renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
+    applyBtn.onclick = () => { applyState = 'pending'; openDetail = null; renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
     actions.append(applyBtn);
+
+    // Build Button set (#483) — the component tier's trigger, a SECOND action beside Apply rather than
+    // part of it: Apply writes variables and is run after every knob change, this writes hundreds of
+    // nodes onto the canvas (#652). Secondary weight for the same reason — Apply stays the terminal
+    // action of the theme flow, and the ordering says the set is built from a theme that already landed.
+    //
+    // NAMED FOR BUTTON, not "components". `anatomy` is what makes a def materialisable and Button is the
+    // only def in the catalogue that has one, so a control saying "Build components" would promise four
+    // components it cannot build. It gets renamed when a second def earns it, not before.
+    if (componentState) actions.append(renderApplyStatus(componentState, 'components'));
+    const cPending = componentState === 'pending';
+    const compBtn = el('button', 'barbtn', cPending ? '⋯ Building…' : '⊞ Build Button set') as HTMLButtonElement;
+    compBtn.disabled = cPending;
+    // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
+    // designer cannot recover from the result: the set binds variables by name, so a build into an
+    // unthemed file misses every binding.
+    compBtn.title = 'Builds the Button set on this page. Apply to Figma first — it binds those variables.';
+    compBtn.onclick = () => { componentState = 'pending'; openDetail = null; renderBar(); syncApplyDetail(); commit.postComponents(); };
+    actions.append(compBtn);
   }
 
   barHost.append(actions);

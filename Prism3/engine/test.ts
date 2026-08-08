@@ -41,7 +41,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -7638,6 +7638,53 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(emittedAxes.slice().sort().join(',') === figmaAxisNames(button).slice().sort().join(','),
       `figmaProperties: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(button).join(', ')}] vs emitted [${emittedAxes.join(', ')}])`);
     ok(emittedAxes.length === 6, `figmaProperties: six axes reach the Figma name (${emittedAxes.join(', ')})`);
+
+    // ---- figmaAnatomySet: the enumerator the plugin's trigger calls (#483) ----------------------
+    // It exists because the six nested loops above were hand-written at three call sites in THIS file and
+    // `apps/plugin/src/main.ts` would have been a fourth — one no test in this repo can reach, since
+    // `main.ts` calls `figma.showUI` at module scope. The loops are now in the engine, gated here.
+    //
+    // THE COUNT IS THE LITERAL 648, not `figmaVariantCount(button)`. Both derive from the same
+    // declaration, so comparing them is a gate agreeing with itself — exactly the shape the note above
+    // records as the #487 §5 failure. The literal is a number a reviewer has to change on purpose.
+    //
+    // It is not a number transcribed from a run, either — derive it by hand: 3 intent × 3 appearance ×
+    // 3 size × 6 state × 4 slot (2 leading × 2 trailing) = 648. THE 6 IS THE STEP TO CHECK: `states`
+    // declares SEVEN and `stateAxis` projects six, because `inactive` is deliberately code-only and
+    // never becomes a Figma variant (#487 §0.4). Re-deriving this from `states.length` gives 756 and
+    // makes the gate look wrong when it is the derivation that is.
+    const set648 = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
+    ok(set648.length === 648, `figmaAnatomySet: enumerates 648 plans for Button (${set648.length})`);
+    // Every coordinate distinct. A loop that pins an axis instead of iterating it produces N plans with
+    // ONE name, which `planSetLayout` later refuses as a duplicate — but by then it is a runtime failure
+    // inside Figma rather than a test failure here.
+    ok(new Set(set648.map(planComponentName)).size === 648,
+      `figmaAnatomySet: every plan carries a distinct variant name (${new Set(set648.map(planComponentName)).size}/648)`);
+    // And the plans are the SAME plans the hand-written loops produce — byte-identical, in order. This is
+    // what makes the extraction a refactor rather than a second implementation: if the two ever disagree,
+    // the three call sites below and the plugin's trigger are building different sets from one def.
+    const handRolled: AnatomyPlan[] = [];
+    for (const i of button.variants.intent!) for (const ap of button.variants.appearance!) for (const sz of button.variants.size)
+      for (const st of fp.stateAxis!.values) for (const ld of [true, false]) for (const tr of [true, false])
+        handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st }));
+    ok(JSON.stringify(handRolled) === JSON.stringify(set648),
+      `figmaAnatomySet: byte-identical to the hand-written six loops, in order (${handRolled.length} vs ${set648.length})`);
+
+    // It REFUSES an axis it cannot project rather than iterating around it. Silently omitting an axis is
+    // the 189-vs-756 defect in a new place: the set builds, every member is named, and one axis of the
+    // component is simply absent with nothing saying so. `figmaAnatomyPlan` takes intent/appearance/size
+    // and nothing else, so a fourth declared axis has to fail loudly here.
+    const setThrows = (label: string, f: () => unknown) => {
+      let threw = false;
+      try { f(); } catch { threw = true; }
+      ok(threw, label);
+    };
+    setThrows('figmaAnatomySet: a declared variant axis it cannot project THROWS rather than being skipped',
+      () => figmaAnatomySet({ ...button, variants: { ...button.variants, tone: ['a', 'b'] }, figmaProperties: { ...fp, variantAxes: [...fp.variantAxes, 'tone'] } } as ComponentDef));
+    setThrows('figmaAnatomySet: an unprojectable SLOT axis throws too (the same hole from the other side)',
+      () => figmaAnatomySet({ ...button, figmaProperties: { ...fp, slotAxes: [...fp.slotAxes!, { name: 'badge', part: 'leadingVisual' }] } } as ComponentDef));
+    setThrows('figmaAnatomySet: a def with no figmaProperties block throws — nothing declares what to project',
+      () => figmaAnatomySet({ ...button, figmaProperties: undefined } as ComponentDef));
 
     // Slot presence is only a question for a part that can be absent — an axis over a mandatory part
     // would emit a `false` coordinate no plan can build.
