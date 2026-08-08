@@ -52,6 +52,13 @@ npx tsx packages/engine/regen.ts --check            # no committed artifact has 
 npx tsx packages/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
 npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
 npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
+npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo that EXISTS (#670), both
+                                                    # directions: every claimed path resolves — from the
+                                                    # doc's own directory, against `git ls-files` — and
+                                                    # every tracked layer is named in the layout tables.
+                                                    # The second half is the point: two of the three
+                                                    # defects that filed this were ABSENCES, and no sweep
+                                                    # for wrong strings finds a row that is not there
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

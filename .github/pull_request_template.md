@@ -31,6 +31,7 @@
 - [ ] `npx tsx packages/engine/token-contract.ts --check` → unchanged / bumped to _…_
 - [ ] `npx tsx packages/engine/lint-skills.ts` → clean
 - [ ] `npx tsx packages/engine/lint-doc-gates.ts` → clean
+- [ ] `npx tsx packages/engine/lint-layout-claims.ts` → clean — every claimed path resolves, every tracked layer is named in the layout tables (#670)
 - [ ] `npm run -w @prism3/studio typecheck` → clean
 - [ ] `npm run -w @prism3/studio build` → succeeds
 - [ ] `npm run -w @prism3/studio check:ignore` → clean

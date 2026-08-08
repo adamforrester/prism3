@@ -412,6 +412,17 @@ some promised surface* — is what makes the list self-maintaining, and it found
 existed. Same argument as shape 3: when a list needs a second edit to stay true, derive it or check the
 other direction, because another reminder is the fix that already failed.
 
+**#670 is that same rule one scale up, and the reason it is worth re-reading rather than merely
+cross-referenced.** There the two directions were *within* one gate's promise list; here they are the
+two questions a whole gate can ask. `lint-layout-claims.ts` (#670) checks that every path a doc claims
+resolves **and** that every tracked layer is named in the tables promising to describe the repo — and
+only the second half can see #669, a root `README.md` with no `skills/` row at all. Forward alone would
+have caught the two defects that were *wrong strings* (#651, #663) and been structurally silent on the
+one that was an *absence*. Worth stating plainly because the forward half is the one that feels like the
+gate: it produces findings, it names files, it looks like it is working. **An absence produces no
+finding in a forward scan — not a quiet one, none — so a gate with only a forward arm reports the
+missing row as `✓ clean`.**
+
 **A declaration that also satisfies the check it exempts you from.** `omits: personality` was itself
 prose *about* `personality`, so the exemption was suppressed twice and only the second suppression
 was ever load-bearing — mutating the exemption dead exited 0 (#514). Keep the two inputs disjoint:
@@ -434,6 +445,9 @@ independence failures — counted because they are the same silence from a diffe
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-08 | `docs/**` layout descriptions (#670) | scope | **three PRs in a row** describing a repo that did not exist — and `docs/**` was in no gate's scope at all, so nothing reported anything |
+| 2026-08-08 | `docs/01` + `docs/02` companion-file refs (#670) | 9 | 15 refs to a sibling `schema/` and `engine/` — pre-#650 spellings, in the two oldest spec docs |
+| 2026-08-08 | `apps/plugin/README.md` engine refs (#670) | 9 | `../packages/engine/write-plan.ts` — #661 deleted the `Prism3/` segment without re-depthing the `../`, live on `main` for two PRs |
 | 2026-08-08 | `test.ts` + `mcp-test.ts` headline count (#659) | 9 | **`0 passed, 0 failed`** and `✓ … all hold`, exit 0 — the largest claim CI makes, compared to nothing |
 | 2026-08-08 | `nb-regression.ts` contract + dimension populations (#659) | 4 | **`0/0 contrast contracts`, `0/0 dimensions`** inside a PASS verdict — and `regen`'s own remedy commits it |
 | 2026-08-08 | `vercel-ignore-check.mjs:46` bundle filter (#658 review) | 9 | **`0 engine files in the bundle` … `✓ clean`** — no self-check, and its subject skips deploys on `exit 0` |
