@@ -21,7 +21,7 @@
  * `component-result` — because materialising a component set is a designer ACTION with its own trigger,
  * not part of applying a theme (#652).
  */
-import type { BrandInput } from '../../../Prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine/theme';
 
 /** Messages the UI iframe sends TO the main thread. Wrapped in `{ pluginMessage }` on the wire. */
 export type UiToMain =

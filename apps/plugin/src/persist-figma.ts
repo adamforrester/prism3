@@ -15,8 +15,8 @@
  * slice of the node API the adapter touches, so it's unit-testable against an in-memory shim
  * (`apps/plugin/test-persist.ts`) with no live Figma; `figma.root` structurally satisfies it.
  */
-import type { BrandInput } from '../../../Prism3/engine/theme';
-import { serializeBrandInput, deserializeBrandInput } from '../../../Prism3/engine/persist-input';
+import type { BrandInput } from '@prism3/engine/theme';
+import { serializeBrandInput, deserializeBrandInput } from '@prism3/engine/persist-input';
 
 /** The minimal shared-plugin-data surface the adapter needs — the slice of Figma's `PluginDataMixin`
  *  that `figma.root` exposes. Declaring it as a port is what lets the Node harness drive persist/

@@ -21,8 +21,8 @@
  * minimal slice of `figma.*` the executor touches, so it's unit-testable against an in-memory shim
  * (see `apps/plugin/test-write-styles.ts`); the real `figma` object structurally satisfies it.
  */
-import type { StylesPlan, GradientTransform } from '../../../Prism3/engine/write-plan';
-import type { FigmaEffect } from '../../../Prism3/engine/emit-figma-styles';
+import type { StylesPlan, GradientTransform } from '@prism3/engine/write-plan';
+import type { FigmaEffect } from '@prism3/engine/emit-figma-styles';
 
 /** A colour as Figma stores it on an effect/stop — RGBA floats 0–1 (matches the engine's `FigmaColor`). */
 type Rgba = { r: number; g: number; b: number; a: number };

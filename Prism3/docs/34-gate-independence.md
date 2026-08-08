@@ -183,7 +183,7 @@ The same family at the artifact layer, and already documented — see
 > **A gate allowed to rewrite what it reads has no memory, and a baseline without memory is just a
 > second copy of the output.**
 
-Which is why `Prism3/schema/token-contract.json` must never become a `regen.ts` artifact: `regen`
+Which is why `packages/engine/schema/token-contract.json` must never become a `regen.ts` artifact: `regen`
 would rewrite the baseline to agree with a deletion and **both** gates would go green. Its ancestor
 is #281 — *no gate read the committed artifact* — and `CLAUDE.md` principle 4 states the live-gate
 half of it.
@@ -295,6 +295,25 @@ command in `CLAUDE.md` §4 — is `npx tsx regen.ts`, which rewrites the report 
 gates green. **A drift gate defends the artifact, not the claim**: once the artifact stops making the
 claim, there is nothing left to drift from. Anything whose evidence is a regenerated file needs its floor
 in the *generator*.
+
+**Then the rename happened, and the floor paid out on its first real use.** #650 PR 1 moved the engine to
+`packages/engine/` and repointed `ENGINE_PREFIX` — the literal quoted above — for real. The gate reported
+**16** bundled files, not the 15 it had reported for months. Nothing was broken: `schema/example-brands.json`
+used to sit at `Prism3/schema/`, *outside* the old `Prism3/engine/` prefix, and now lives inside
+`packages/engine/`. Same 15 `.ts` files, one JSON input newly inside the prefix.
+
+Two things worth keeping from that. First, **the floor did the job an exact pin could not have done**: a
+count pinned to 15 would have gone red on a correct change and been re-pinned to 16 without anyone asking
+why it moved — and "raised without thought" is how a floor stops being read. Loose floor, deliberate
+reason, and the move produced exactly one question that had a real answer.
+
+Second, and less comfortable: **the count moving is the only reason anyone looked.** The bundle's true
+contents were unchanged; what changed was which files the *detector could see*. Had the move gone the other
+way — a file leaving the prefix — the gate would have printed a smaller number, still passed its
+non-empty floor, and audited less than it claimed. A floor bounds the blindness; it does not measure it.
+The stronger form, if this gate ever earns a third revision, is to assert the recognized set *matches the
+bundle's actual out-of-`apps/studio/` inputs* — a comparison against something the detector does not
+choose.
 
 **Why this is not shape 2.** Shape 2's tell is that *you can point at one function both sides call* — a
 shared derivation. Nothing is shared here; the detector and the subject are genuinely independent

@@ -99,7 +99,7 @@ Meeting 1–5 means the engine can reproduce a real brand before it is trusted t
 
 ## 6. Actual run (prototype engine)
 
-The paper prediction above has now been run for real. A dependency-free TypeScript prototype (`../engine/`, run with `npx tsx Prism3/engine/nb-regression.ts`) generates the brand/red, success/green, warning/amber and neutral ramps from the schema and diffs them against the real NB tokens with CIEDE2000. Full output is committed at `../engine/nb-regression-report.md`.
+The paper prediction above has now been run for real. A dependency-free TypeScript prototype (`../engine/`, run with `npx tsx packages/engine/nb-regression.ts`) generates the brand/red, success/green, warning/amber and neutral ramps from the schema and diffs them against the real NB tokens with CIEDE2000. Full output is committed at `../engine/nb-regression-report.md`.
 
 **Result (with contrast-role-targeted placement):**
 

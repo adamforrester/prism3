@@ -319,6 +319,29 @@ assumption baked into the layout — the layout above supports all three.
   sub-shape 9 in [`34-gate-independence.md`](34-gate-independence.md), because it is a general property
   of renames, not a fact about this one.
 
+  **What PR 1 actually hit (2026-08-08).** Both hazards were real and both landed; the plan above was
+  right about the shapes and wrong about one thing worth recording.
+
+  - **Form 2 was the one a reasonable sweep misses.** Five `resolve(here, '..', 'schema', …)` call sites
+    survived a substitution written against `'../schema'`, exactly as (a) predicted. Anchoring on the
+    sibling *name* found them.
+  - **A fifth form the table does not list: the package specifier a sweep itself creates.** Rewriting
+    `'../../Prism3/schema/nb-measured.json'` → `'@prism3/engine/schema/nb-measured.json'` is correct
+    inside an `import`, and **wrong inside `readFileSync(resolve(HERE, …))`** — an `exports` map is not
+    a filesystem path. Three call sites (two plugin tests, `sd.consumer.mjs`) took the substitution and
+    would have failed at runtime. The lesson generalizes past this move: **a mechanical sweep that
+    changes the *kind* of reference, not just its text, has to be triaged by what consumes it** — import
+    specifier or path — because both live inside the same quotes.
+  - **`lint-skills.ts`'s detector needed widening, not repointing**, and this is the non-obvious part.
+    `Prism3/` is still a real prefix (docs/ and skills/ stayed), so a detector narrowed to
+    `packages/engine` would stop matching stale `Prism3/engine/…` references *and report clean* — the
+    rename's own failure mode, inside the gate for it. It now matches both prefixes, with a self-check
+    fixture asserting a stale path still fails. It immediately caught a genuine stale reference in
+    `prism3-theme/SKILL.md`, which is the gate working rather than a nuisance.
+  - **The vercel floor paid out on its first real use**, and the outcome is written up in doc 34's shape
+    9: the count went 15 → 16 because `example-brands.json` moved *inside* the prefix, which a loose
+    floor surfaced as a question and an exact pin would have mis-read as a regression.
+
   Re-measured on `66c4990`: **467 references** across the repo — 289 markdown, **77 functional**, 11 in
   `ci.yml` — and **215 files** inside `Prism3/`. **The basis matters more than the figures**, because a
   bare count is re-derivable three ways that differ by 2×: *functional* here means **lines** (not

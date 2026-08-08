@@ -43,15 +43,15 @@ No build, no `npm install` for the engine — it's self-contained TypeScript run
 (Node ≥ 20). Run these from the repo root:
 
 ```bash
-npx tsx Prism3/engine/test.ts                     # unit tests — report the N/N
-npx tsx Prism3/engine/mcp-test.ts                 # the MCP surface over real stdio — report the N/N
-npx tsx Prism3/engine/nb-regression.ts            # must exit 0 (the New Balance reproduction)
-npx tsx Prism3/engine/emit-dtcg.ts                # every alias resolves + every mode contrast contract passes
-npx tsx Prism3/engine/emit-figma.ts               # the Figma import artifact
-npx tsx Prism3/engine/regen.ts --check            # no committed artifact has drifted (#281) — the only gate reading the committed tree
-npx tsx Prism3/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
-npx tsx Prism3/engine/lint-skills.ts              # shipped skills still make true claims
-npx tsx Prism3/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
+npx tsx packages/engine/test.ts                     # unit tests — report the N/N
+npx tsx packages/engine/mcp-test.ts                 # the MCP surface over real stdio — report the N/N
+npx tsx packages/engine/nb-regression.ts            # must exit 0 (the New Balance reproduction)
+npx tsx packages/engine/emit-dtcg.ts                # every alias resolves + every mode contrast contract passes
+npx tsx packages/engine/emit-figma.ts               # the Figma import artifact
+npx tsx packages/engine/regen.ts --check            # no committed artifact has drifted (#281) — the only gate reading the committed tree
+npx tsx packages/engine/token-contract.ts --check   # the token-NAME contract hasn't broken (#464)
+npx tsx packages/engine/lint-skills.ts              # shipped skills still make true claims
+npx tsx packages/engine/lint-doc-gates.ts           # this checklist stays in sync with ci.yml (#613)
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
@@ -75,8 +75,8 @@ npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over E
                                           # (permanent, #609) and its count of composite values SD
                                           # cannot serialize (#635), asserts the base+overlay
                                           # projection reads back, and refuses custom preprocessors
-npx tsx Prism3/engine/lint-us-english.ts # run AFTER the web build — its scope includes apps/studio/dist/*.js
-npx tsx Prism3/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here
+npx tsx packages/engine/lint-us-english.ts # run AFTER the web build — its scope includes apps/studio/dist/*.js
+npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here
 ```
 
 **Green tests are not the finish line.** The standard here is that the change is

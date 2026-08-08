@@ -4,7 +4,7 @@ The first **rendering host** over the Prism3 engine core (see `../Prism3/docs/09
 and `08-theming-interfaces.md`). It imports the same pure engine modules the Figma
 plugin will, and renders from the shared contracts:
 
-- **Knobs** from the lever manifest (`Prism3/engine/levers.ts`).
+- **Knobs** from the lever manifest (`packages/engine/levers.ts`).
 - **Live component preview + per-mode contrast overlay** from `previewSpec`
   (`preview.ts`) resolved through `resolvePreview(theme)` (`resolve-preview.ts`).
 - **Generated palette ramps** straight off `brandTheme(input).palettes`.
@@ -45,7 +45,7 @@ npm run typecheck    # tsc --noEmit
 ```
 
 The engine core stays **buildless** (run via `tsx`); only this adapter bundles it.
-Imports reach the engine by relative path (`../../Prism3/engine/…`) and pull in
+Imports reach the engine by relative path (`../../packages/engine/…`) and pull in
 **pure modules only** — never the I/O shells (`nb-fixture`, `emit-*`, `cli`), which
 touch `node:` and would not bundle for the browser.
 
@@ -125,7 +125,7 @@ to diagnose. Every branch in it normalizes to one of those two codes, and any un
 clone with no `HEAD^`, a bad ref) resolves toward *building*.
 
 What can change the site is measured, not assumed: Vercel runs `build:site`, whose bundle takes only
-`Prism3/engine/**` and `Prism3/schema/**` from outside `apps/studio/`. The Figma plugin is **not** part of
+`packages/engine/**` and `packages/engine/schema/**` from outside `apps/studio/`. The Figma plugin is **not** part of
 this build, so `plugin/**` deliberately does not trigger a deploy.
 
 Only 13 of the engine's 44 `.ts` files are actually imported by that bundle, so the script names the
@@ -147,11 +147,11 @@ broken site on a green build. `dev` and `build` are unchanged and remain the loc
 `apps/studio/public/` is gitignored.
 
 **Vercel's Root Directory must stay the repo root — not `apps/studio/`.** `src/main.ts` imports
-`../../Prism3/engine/*` and `../../Prism3/schema/example-brands.json`, which a `apps/studio/`-scoped
+`../../packages/engine/*` and `../../packages/engine/schema/example-brands.json`, which a `apps/studio/`-scoped
 build cannot resolve.
 
 Only `apps/studio/src` and `Prism3/{engine,schema}` are **read by the build**; `apps/plugin/`, `reference/`,
-and `Prism3/engine/out/` are neither read nor served. Install is a different matter — it runs
+and `packages/engine/out/` are neither read nor served. Install is a different matter — it runs
 at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
 `@figma/plugin-typings`. Two consequences: the build needs devDependencies, so
 `NODE_ENV=production` must not be set at install time; and a dependency bump in

@@ -81,7 +81,7 @@ Voice never changes. **Register** and **permission** do.
 
 **Declarative ≠ formal.** Describe the system declaratively; instruct the reader
 imperatively. "The engine places it on the ramp by its lightness" and "Run `npx tsx
-Prism3/engine/cli.ts <design.md>`" are both correct. Neither licenses stiffness — contractions
+packages/engine/cli.ts <design.md>`" are both correct. Neither licenses stiffness — contractions
 are fine, passive voice and ceremony are not.
 
 ---
@@ -109,7 +109,7 @@ are fine, passive voice and ceremony are not.
 
 ---
 
-*Applies to: `apps/studio/src` UI strings · `Prism3/engine/levers.ts` · `Prism3/engine/ai-metadata.ts`
+*Applies to: `apps/studio/src` UI strings · `packages/engine/levers.ts` · `packages/engine/ai-metadata.ts`
 (generated `meaning` / `when_to_use` / `avoid_when`) · emitted `$description` prose in `out/**`
-· `Prism3/engine/README.md` · reports. Most Prism3 prose is **generated, not typed** — so
+· `packages/engine/README.md` · reports. Most Prism3 prose is **generated, not typed** — so
 applying this standard usually means editing a generator, not a string.*

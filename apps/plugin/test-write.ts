@@ -14,16 +14,11 @@
  *
  * Mirrors the engine suite's dependency-free `ok(...)` style; exits non-zero on any failure.
  */
-import { buildFigmaColor } from '../../Prism3/engine/emit-figma-color';
-import { buildWritePlan } from '../../Prism3/engine/write-plan';
-import { nbThemeFrom } from '../../Prism3/engine/theme';
+import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { buildWritePlan } from '@prism3/engine/write-plan';
+import { nbThemeFrom } from '@prism3/engine/theme';
 import { applyWritePlan, orphansOf } from './src/write-figma';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const nbMeasured = JSON.parse(readFileSync(resolve(HERE, '../../Prism3/schema/nb-measured.json'), 'utf8'));
+import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

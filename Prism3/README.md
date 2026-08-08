@@ -36,8 +36,8 @@ decisions log, and what's next.
 Run:
 
 ```bash
-npx tsx Prism3/engine/nb-regression.ts   # regression vs real NB
-npx tsx Prism3/engine/emit-dtcg.ts       # emit DTCG + modes, validate
+npx tsx packages/engine/nb-regression.ts   # regression vs real NB
+npx tsx packages/engine/emit-dtcg.ts       # emit DTCG + modes, validate
 ```
 
 The prior iterations (`../reference/Prism2`, `../reference/New Balance`) are retained as reference inputs — Prism3 is clean-sheet and cherry-picks the best mechanics from both.

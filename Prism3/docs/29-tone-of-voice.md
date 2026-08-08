@@ -167,7 +167,7 @@ Google argues developer docs should read as *"a knowledgeable friend,"* conversa
 rather than formal. That is not in tension with §3.2, because the two apply to different
 sentences: **describe the system declaratively, instruct the reader imperatively.**
 "The engine places it on the ramp by its lightness" (describing) and "Run `npx tsx
-Prism3/engine/cli.ts <design.md>`" (instructing) are both correct. What neither licenses is
+packages/engine/cli.ts <design.md>`" (instructing) are both correct. What neither licenses is
 stiffness — passive voice, nominalisation, or ceremony. Contractions are fine.
 
 ### What we are not
@@ -300,8 +300,8 @@ list and the non-native-reader rationale. **Still unretrieved:** Carbon (MDX pat
 rendered page truncates) and Atlassian (JS-rendered) — so the read of the design-system
 field in §1 rests on Polaris alone, and a second DS-native opinion would strengthen it.
 In-repo
-evidence: `Prism3/engine/levers.ts`, `apps/studio/src/main.ts` role descriptions,
-`Prism3/engine/ai-metadata.ts` (the generated-prose surface), `26-cross-page-ui-conventions`
+evidence: `packages/engine/levers.ts`, `apps/studio/src/main.ts` role descriptions,
+`packages/engine/ai-metadata.ts` (the generated-prose surface), `26-cross-page-ui-conventions`
 §Controls & labels, `CLAUDE.md` US-English gate. KB: `04-documentation` §"The
 voice-and-tone matrix as a system artefact" (the shape this inherits), `00-principles`
 ("descriptions = highest-ROI; avoid_when > when_to_use").*

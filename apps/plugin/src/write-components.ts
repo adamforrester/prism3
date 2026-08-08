@@ -35,8 +35,8 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout } from '../../../Prism3/engine/anatomy-figma';
-import type { AnatomyPlan, FigmaNodePlan } from '../../../Prism3/engine/anatomy-figma';
+import { planSetLayout } from '@prism3/engine/anatomy-figma';
+import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
 
 /** A Figma variable as this lane needs it: a name to index by, an id nothing here reads, and the
  *  consumer-resolver the one unbindable geometry value goes through (`absoluteInset` — `x`/`y` accept

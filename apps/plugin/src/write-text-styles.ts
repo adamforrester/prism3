@@ -21,7 +21,7 @@
  * minimal slice of `figma` the executor touches, so it's unit-testable against an in-memory shim (see
  * `apps/plugin/test-write-typography.ts`); the real `figma` structurally satisfies it.
  */
-import type { TextStylePlan } from '../../../Prism3/engine/write-plan';
+import type { TextStylePlan } from '@prism3/engine/write-plan';
 import type { VariablesApi, Variable } from './write-figma';
 
 /** A Figma font descriptor. */

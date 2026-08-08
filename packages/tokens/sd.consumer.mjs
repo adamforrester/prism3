@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 export const OUT_DIR = resolve(here, 'build/consumer');
 /** Where the engine's emitted trees live — the gate discovers brands from this directory (#635). */
-export const OUT_ROOT = resolve(here, '../../Prism3/engine/out');
+export const OUT_ROOT = resolve(here, '../engine/out');
 export const SOURCE = (brand) => resolve(OUT_ROOT, `${brand}.tokens.json`);
 
 /** Build one brand through a stock Style Dictionary. Returns the emitted CSS as a string. */

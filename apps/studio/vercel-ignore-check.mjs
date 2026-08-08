@@ -43,7 +43,7 @@ const res = await build({
 
 // The engine's location, as a LITERAL — which is the one thing here that can go stale without
 // anything saying so, and the reason for the two floors below. See the `bundled.size` check.
-const ENGINE_PREFIX = 'Prism3/engine/';
+const ENGINE_PREFIX = 'packages/engine/';
 
 const bundled = new Set(
   Object.keys(res.metafile.inputs)
@@ -68,9 +68,13 @@ console.log(`Vercel ignore gate — ${bundled.size} engine files in the bundle, 
 // `vercel-ignore.sh` exits 0 to SKIP, so a stale path on that side does not fail a build, it silently
 // stops deploying. A blind gate over a fail-quiet subject is two silences in series.
 //
-// The floors are deliberately loose — they ask "did anything match at all", not "did 15 match". A
-// count pinned to 15 would fail on every legitimate import change and get raised without thought,
-// which is how a floor becomes a number nobody reads. What must never be allowed is zero.
+// The floors are deliberately loose — they ask "did anything match at all", not "did 16 match". A
+// count pinned to an exact number would fail on every legitimate import change and get raised
+// without thought, which is how a floor becomes a number nobody reads. What must never be allowed
+// is zero. #650 PR 1 is the case in point: the headline went 15 → 16 the moment the engine moved,
+// because `schema/example-brands.json` used to sit at `Prism3/schema/` — OUTSIDE the old
+// `Prism3/engine/` prefix — and now lives inside `packages/engine/`. Same 15 `.ts` files, one more
+// input newly inside the prefix. An exact pin would have read that as a regression.
 if (bundled.size === 0) {
   console.error(`\n✗ no bundle input matched '${ENGINE_PREFIX}' — this gate is looking somewhere the engine no longer is.`);
   console.error('  It would report ✓ over an empty set: "no bundled engine file is on the skip list" is');
@@ -84,7 +88,7 @@ if (excluded.size === 0) {
 }
 if (leaked.length) {
   console.error(`\n✗ ${leaked.length} file(s) are BOTH bundled and excluded — changes to them would skip the deploy and ship nothing:`);
-  for (const f of leaked) console.error(`    Prism3/engine/${f}`);
+  for (const f of leaked) console.error(`    packages/engine/${f}`);
   console.error('\n  Remove them from EXCLUDED in apps/studio/vercel-ignore.sh.');
   process.exit(1);
 }
