@@ -16,11 +16,11 @@
  * a file missing the palette variables reports misses and still writes correct baked colour; re-apply
  * is idempotent (+0 created, no duplicate styles). Mirrors the other shim tests.
  */
-import { buildStylesPlan } from '../../Prism3/engine/write-plan';
-import { brandTheme } from '../../Prism3/engine/theme';
+import { buildStylesPlan } from '@prism3/engine/write-plan';
+import { brandTheme } from '@prism3/engine/theme';
 import { applyStylesPlan } from './src/write-styles';
-import exampleBrands from '../../Prism3/schema/example-brands.json';
-import type { BrandInput } from '../../Prism3/engine/theme';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine/theme';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

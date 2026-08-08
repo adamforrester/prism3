@@ -27,14 +27,14 @@ import { applyTextStylePlan } from './write-text-styles';
 import { applyComponentPlan } from './write-components';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
-import { buildFigmaColor } from '../../../Prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '../../../Prism3/engine/write-plan';
-import { verifyReadback } from '../../../Prism3/engine/read-back';
+import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
+import { verifyReadback } from '@prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
-import { brandTheme } from '../../../Prism3/engine/theme';
-import type { BrandInput } from '../../../Prism3/engine/theme';
-import { figmaAnatomySet } from '../../../Prism3/engine/anatomy-figma';
-import { button } from '../../../Prism3/engine/components/button';
+import { brandTheme } from '@prism3/engine/theme';
+import type { BrandInput } from '@prism3/engine/theme';
+import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { button } from '@prism3/engine/components/button';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
 // (the inlined `apps/studio/src` app; declared for the sandbox global in `figma-env.d.ts`). The shared

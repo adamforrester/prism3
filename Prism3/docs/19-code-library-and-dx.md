@@ -142,7 +142,7 @@ re-author; (b) **commit to markdown/MDX as the source of truth** so we never get
    React-wrapper ordering already has a stated lean (just needs confirming); author-vs-wrap is the
    one genuinely open fork, no lean recorded anywhere.
 3. **Definition format** — ~~largely settled in `14`... confirm when the layer activates~~
-   **RESOLVED BY ACTIVATION (found 2026-07-28).** The layer is live: `Prism3/engine/component-schema.ts`
+   **RESOLVED BY ACTIVATION (found 2026-07-28).** The layer is live: `packages/engine/component-schema.ts`
    is the real, current contract (DRAFT v0 — TS objects, one file per component under `components/`,
    not the `component.yaml`/`@directededges/specs-schema`-mapped form this bullet described), and five
    `ComponentDef`s already exist against it (`button.ts`, the Text Field family, `icon-button.ts`). This

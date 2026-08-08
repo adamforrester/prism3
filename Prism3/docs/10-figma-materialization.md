@@ -34,7 +34,7 @@ artifact every consumer replays. This doc is its spec; the fixtures are its regr
 
 ## 2. Regression fixtures (the frozen target)
 
-`Prism3/fixtures/figma/nb/` — the real NB import. Colour + font/font-fluid are raw Figma
+`packages/engine/fixtures/figma/nb/` — the real NB import. Colour + font/font-fluid are raw Figma
 variable JSON from **Token Press**; `text-styles.json` is a Plugin-API dump (Token Press doesn't
 export styles). Two fixture classes:
 
@@ -275,8 +275,8 @@ gate it in `engine/test.ts`, and **materialise your output into Figma via the MC
 renders**. You have the Figma MCP; use it to close the loop on each axis.
 
 **Start here:** read this whole doc (the contract), then `engine/emit-figma.ts` (the colour axis
-— your template) and its gate in `engine/test.ts` (block 11). Run `npx tsx Prism3/engine/test.ts`
-(240/240 today) and `npx tsx Prism3/engine/emit-figma.ts` (writes `out/figma/nb/`). Engine runs on
+— your template) and its gate in `engine/test.ts` (block 11). Run `npx tsx packages/engine/test.ts`
+(240/240 today) and `npx tsx packages/engine/emit-figma.ts` (writes `out/figma/nb/`). Engine runs on
 `tsx`, **no build / no `npm install`**.
 
 **The pattern (from the colour axis):** an I/O shell over the **pure** `tree.ts` `buildTree`. Read
@@ -419,7 +419,7 @@ containers to real `color/foreground/*` surface variables, don't hardcode.
 
 `emit-figma.ts` produces the raw-figma export at `out/figma/<brand>/`; this section is how
 that JSON becomes real variables in a live file. The deterministic generator is
-**`Prism3/engine/materialise-to-figma.ts`** — a stateless shell that turns the export
+**`packages/engine/materialise-to-figma.ts`** — a stateless shell that turns the export
 into plugin-JS payloads you paste into `figma_execute`. Its header carries the full rule
 set; the summary below is a fresh-agent quick-start.
 
@@ -432,12 +432,12 @@ Plugin API directly — which the helper generates.
 **The four passes (paste each into `figma_execute` in order):**
 
 ```bash
-npx tsx Prism3/engine/emit-figma.ts                                       # regen out/figma/
-npx tsx Prism3/engine/materialise-to-figma.ts <brand>                     # manifest: byte sizes
-npx tsx Prism3/engine/materialise-to-figma.ts <brand> --pass palette      # 1
-npx tsx Prism3/engine/materialise-to-figma.ts <brand> --pass color-create # 2
-npx tsx Prism3/engine/materialise-to-figma.ts <brand> --pass color-aliases # 3
-npx tsx Prism3/engine/materialise-to-figma.ts <brand> --pass verify       # 4
+npx tsx packages/engine/emit-figma.ts                                       # regen out/figma/
+npx tsx packages/engine/materialise-to-figma.ts <brand>                     # manifest: byte sizes
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette      # 1
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create # 2
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases # 3
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 ```
 
 1. **`palette`** — creates `core-palette` (primitives, one mode, all

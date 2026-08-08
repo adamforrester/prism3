@@ -5,7 +5,7 @@
  *
  *   npx tsx apps/plugin/test-write-components.ts
  *
- * The shim is modelled on the engine's `figmaStub` (`Prism3/engine/test.ts`), which is what gates the
+ * The shim is modelled on the engine's `figmaStub` (`packages/engine/test.ts`), which is what gates the
  * PASTE path against the same plans — deliberately so, because the parity gate in `test.ts` compares
  * the two executors' results and a shim that modelled a different Figma would make that comparison
  * meaningless. Everything it models, it models because a permissive stub let a real defect pass:
@@ -31,10 +31,10 @@
  * and the degraded cases (missing variables, missing swap target, missing shared component, a stray
  * member, a duplicate member name) are reported as misses rather than thrown or silently dropped.
  */
-import { figmaAnatomyPlan, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planComponentName } from '../../Prism3/engine/anatomy-figma';
-import { button } from '../../Prism3/engine/components/button';
+import { figmaAnatomyPlan, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planComponentName } from '@prism3/engine/anatomy-figma';
+import { button } from '@prism3/engine/components/button';
 import { applyComponentPlan } from './src/write-components';
-import type { AnatomyPlan } from '../../Prism3/engine/anatomy-figma';
+import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

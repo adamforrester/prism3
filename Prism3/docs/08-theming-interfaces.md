@@ -175,7 +175,7 @@ honoured from the start rather than retrofitted:
    `validate_brand` (schema pre-flight). The knob *catalogue* derives from the manifest; the
    input *shape* is `theme-schema.json` (OKLCH-aware). Pure `handleRpc`/`callTool` behind an
    `isMain` stdio loop; gated in `test.ts` (handshake, catalogue, manifest-drift, a full
-   round-trip, error paths) + live stdio smoke-test. Run `npx tsx Prism3/engine/mcp.ts`.
+   round-trip, error paths) + live stdio smoke-test. Run `npx tsx packages/engine/mcp.ts`.
 
 **Packaging:** the engine, web dashboard, and Figma plugin are one monorepo grown from
 `prism3`; the core stays buildless (tsx), the adapters get a bundler. Full repo

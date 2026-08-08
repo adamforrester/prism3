@@ -10,22 +10,17 @@
  * Asserts the snapshot round-trips (colour var count + alias targets match the plan) and every
  * contract check passes. Mirrors `test-write.ts`'s shim + dependency-free `ok(...)` style.
  */
-import { buildFigmaColor } from '../../Prism3/engine/emit-figma-color';
-import { buildWritePlan } from '../../Prism3/engine/write-plan';
-import { verifyReadback, verifyFloatReadback, verifyStylesReadback } from '../../Prism3/engine/read-back';
-import { buildFloatWritePlan, buildStylesPlan } from '../../Prism3/engine/write-plan';
-import { brandTheme, nbThemeFrom } from '../../Prism3/engine/theme';
+import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
+import { buildWritePlan } from '@prism3/engine/write-plan';
+import { verifyReadback, verifyFloatReadback, verifyStylesReadback } from '@prism3/engine/read-back';
+import { buildFloatWritePlan, buildStylesPlan } from '@prism3/engine/write-plan';
+import { brandTheme, nbThemeFrom } from '@prism3/engine/theme';
 import { applyWritePlan, applyFloatPlan } from './src/write-figma';
 import { applyStylesPlan } from './src/write-styles';
 import { readFigmaVariables } from './src/read-figma';
-import exampleBrands from '../../Prism3/schema/example-brands.json';
-import type { BrandInput } from '../../Prism3/engine/theme';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const nbMeasured = JSON.parse(readFileSync(resolve(HERE, '../../Prism3/schema/nb-measured.json'), 'utf8'));
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine/theme';
+import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

@@ -13,12 +13,12 @@
 #
 # WHAT CAN CHANGE THE SITE. Vercel runs `build:site --workspace @prism3/studio`, which bundles
 # `apps/studio/src/main.ts` and copies `apps/studio/index.html`. Measured against esbuild's own metafile, that
-# bundle's only out-of-`apps/studio/` inputs are `Prism3/engine/**` and `Prism3/schema/**`. The Figma plugin
+# bundle's only out-of-`apps/studio/` inputs are `packages/engine/**` and `packages/engine/schema/**`. The Figma plugin
 # is NOT part of this build and cannot affect the deployed site, so `apps/plugin/**` is deliberately
 # absent from the trigger list.
 #
-# WHY EXCLUSIONS RATHER THAN A LIST OF BUNDLED FILES. Only 15 of the engine's 44 `.ts` files are
-# actually imported by the bundle; the other 29 are CLI entry points, emitters, gates and the test
+# WHY EXCLUSIONS RATHER THAN A LIST OF BUNDLED FILES. Only 15 of the engine's 47 `.ts` files are
+# actually imported by the bundle; the rest are CLI entry points, emitters, gates and the test
 # suite. Listing the 15 would be more precise and would fail in the DANGEROUS direction: a new
 # engine file that the bundle does import would be missing from the list, so its changes would skip
 # the build and the site would go quietly stale. Listing the 29 fails the other way — a new file is
@@ -63,8 +63,8 @@ EXCLUDED=(
 )
 # --- end excluded
 
-PATHS=(apps/studio Prism3/schema vercel.json package.json package-lock.json Prism3/engine)
-for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)Prism3/engine/$f"); done
+PATHS=(apps/studio packages/engine/schema vercel.json package.json package-lock.json packages/engine)
+for f in "${EXCLUDED[@]}"; do PATHS+=(":(exclude)packages/engine/$f"); done
 
 # `--quiet` exits 0 when the diff is empty and 1 when it is not. Anything else (a shallow clone with
 # no HEAD^, a bad ref) is an ERROR, not a "nothing changed" — so it must build. The `|| exit 1`

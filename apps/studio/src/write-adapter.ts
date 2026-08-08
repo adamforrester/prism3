@@ -16,7 +16,7 @@
  *
  * PURE-adjacent: imports only the engine's TYPES + DOM. No `node:*`.
  */
-import type { ResolvedPreview } from '../../../Prism3/engine/resolve-preview';
+import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
 
 type Mode = ResolvedPreview['modes'][number];
 

@@ -15,7 +15,7 @@
  * `VariablesApi` port with the write executor, so it's unit-testable against the same in-memory
  * shim (see `apps/plugin/test-readback.ts`).
  */
-import type { ReadbackSnapshot, ReadValue } from '../../../Prism3/engine/read-back';
+import type { ReadbackSnapshot, ReadValue } from '@prism3/engine/read-back';
 import type { VariablesApi, VariableAlias, ReadVarValue } from './write-figma';
 
 /** The minimal styles-read surface (shadow/gradient + typography lanes) — the style-name getters.

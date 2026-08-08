@@ -10,13 +10,13 @@
 
 ## Two versions, deliberately independent
 
-Both live in `Prism3/engine/version.ts`, which is a leaf module (it imports nothing from the engine)
+Both live in `packages/engine/version.ts`, which is a leaf module (it imports nothing from the engine)
 so that `tree.ts` can stamp a version into every emitted artifact without an import cycle.
 
 | | question it answers | bumps when | where you see it |
 |---|---|---|---|
 | `ENGINE_VERSION` | *what code produced this file?* | any behavior change, **including a pure value change** | `$extensions.generator.version` in every emitted tree; MCP `serverInfo.version` |
-| `CONTRACT_VERSION` | *can my app still resolve the names it references?* | **only** when the guaranteed token-name surface moves | `contractVersion` in `Prism3/schema/token-contract.json` |
+| `CONTRACT_VERSION` | *can my app still resolve the names it references?* | **only** when the guaranteed token-name surface moves | `contractVersion` in `packages/engine/schema/token-contract.json` |
 
 The split is the useful part. A consumer app writes `prism.color.text.primary` into a stylesheet. It
 does not care that the brand's primary hue moved four degrees — that is the engine doing its job. It
@@ -92,8 +92,8 @@ into a pointer at nothing. That failure mode is what makes most deprecation tabl
 ## The gate, and the one rule that makes it work
 
 ```
-npx tsx Prism3/engine/token-contract.ts --check     # fail (exit 1) if the surface moved
-npx tsx Prism3/engine/token-contract.ts --accept    # rewrite the baseline (requires the bump)
+npx tsx packages/engine/token-contract.ts --check     # fail (exit 1) if the surface moved
+npx tsx packages/engine/token-contract.ts --accept    # rewrite the baseline (requires the bump)
 ```
 
 `--check` runs in CI and in the pre-push sequence. `--accept` refuses unless `CONTRACT_VERSION` has

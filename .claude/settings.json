@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "nl=$(printf \"\\nx\"); nl=${nl%x}; cmd=$(jq -r \".tool_input.command // empty\"); case \"$cmd\" in *\"git push\"*) root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; out=$(cd \"$root\" && npx --yes tsx@4 Prism3/engine/regen.ts --check 2>&1); code=$?; if [ \"$code\" -ne 0 ]; then reason=\"regen.ts --check failed — committed artifacts have drifted from what the engine emits. Run: npx tsx Prism3/engine/regen.ts, review + commit the diff, then push again.${nl}${nl}${out}\"; jq -n --arg reason \"$reason\" \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\$reason}}\"; fi ;; *) exit 0 ;; esac",
+            "command": "nl=$(printf \"\\nx\"); nl=${nl%x}; cmd=$(jq -r \".tool_input.command // empty\"); case \"$cmd\" in *\"git push\"*) root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; out=$(cd \"$root\" && npx --yes tsx@4 packages/engine/regen.ts --check 2>&1); code=$?; if [ \"$code\" -ne 0 ]; then reason=\"regen.ts --check failed — committed artifacts have drifted from what the engine emits. Run: npx tsx packages/engine/regen.ts, review + commit the diff, then push again.${nl}${nl}${out}\"; jq -n --arg reason \"$reason\" \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\$reason}}\"; fi ;; *) exit 0 ;; esac",
             "timeout": 120,
             "statusMessage": "Checking committed artifacts haven't drifted before push…"
           }

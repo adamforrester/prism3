@@ -18,7 +18,7 @@ omits: customModes, overrides, modeAnchors, modeLevers, roleColors, disabledMin,
   outlineInteraction, neutralEmphasis, inverse
 when_to_use: >-
   When creating or refining a Prism3 brand from a brief, brand guidelines, or an
-  existing palette — producing the `design.md` that `Prism3/engine/cli.ts`
+  existing palette — producing the `design.md` that `packages/engine/cli.ts`
   compiles. Also when an extraction (brand-skills / a flat hex palette) needs
   turning into a compiling Prism3 input.
 ---
@@ -55,8 +55,8 @@ That alone compiles to a full system on sensible defaults. Everything below is o
 and **omitting a lever selects its default** — a plain brief is a valid brief (the
 "plain-spec guarantee"). Add a lever only when the brand actually calls for it.
 
-**The levers** (authoritative list + constraints: `Prism3/schema/theme-schema.json`;
-two worked briefs: `Prism3/examples/aurora.design.md` maximal, `harbor.design.md`
+**The levers** (authoritative list + constraints: `packages/engine/schema/theme-schema.json`;
+two worked briefs: `packages/engine/examples/aurora.design.md` maximal, `harbor.design.md`
 minimal — read both, they are the reference):
 
 | Lever | Shape / values | Use it when |
@@ -114,7 +114,7 @@ minimal — read both, they are the reference):
 ## The compile loop (verification — do this, don't guess)
 
 ```bash
-npx tsx Prism3/engine/cli.ts <your-design.md> --out <a-scratch-dir>
+npx tsx packages/engine/cli.ts <your-design.md> --out <a-scratch-dir>
 ```
 
 Read the output — it is the contract:

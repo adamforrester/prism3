@@ -33,16 +33,51 @@ you never touch the working tree someone else is editing:
 ```bash
 git fetch origin --quiet
 git worktree add /tmp/p3-review-<n> --detach origin/main   # or the PR's head ref
-ln -s "$(git rev-parse --show-toplevel)/node_modules" /tmp/p3-review-<n>/node_modules
+WT=/tmp/p3-review-<n>; NM="$(git rev-parse --show-toplevel)/node_modules"
+
+# Link the third-party deps PER ENTRY, then build @prism3 to point INSIDE the worktree.
+# Do NOT `ln -s "$NM" "$WT/node_modules"` — see below.
+mkdir -p "$WT/node_modules/@prism3"
+for e in "$NM"/* "$NM/.bin"; do
+  b=$(basename "$e"); [ "$b" = "@prism3" ] && continue
+  ln -sfn "$e" "$WT/node_modules/$b"
+done
+for p in "$WT"/apps/* "$WT"/packages/*; do
+  ln -sfn "$p" "$WT/node_modules/@prism3/$(basename "$p")"
+done
+
 # ... review entirely inside /tmp/p3-review-<n> ...
 git worktree remove /tmp/p3-review-<n> --force             # even if you bailed early
 ```
 
-The symlink is required: the repo is buildless (`tsx`, no install) but a fresh
-worktree has no `node_modules`, so `npx tsx` would re-download and the
-`apps/studio`/`apps/plugin` workspace builds would fail outright. Expect `regen --check` to
-report **88** artifacts in a clean worktree — the main checkout often shows 89
-because of an untracked stray in `Prism3/engine/out/`, which is not drift.
+Some `node_modules` is required: the repo is buildless (`tsx`, no install) but a fresh
+worktree has none, so `npx tsx` would re-download and the `apps/studio`/`apps/plugin`
+workspace builds would fail outright. Expect `regen --check` to
+report **104** artifacts in a clean worktree (measured 2026-08-08; `ci.yml` asserts
+that number) — the main checkout sometimes shows one more because of an untracked
+stray in `packages/engine/out/`, which is not drift.
+
+**Why per-entry and not one `ln -s` of the whole directory** — this is the review
+protocol's own false-pass hazard, and it appeared the moment the engine became a
+workspace package (#650 PR 1). Workspace links are *relative*: the main checkout's
+`node_modules/@prism3/engine` is `../../packages/engine`. Reached through a
+whole-directory symlink, that resolves relative to the **main checkout**, so every
+`@prism3/engine` import in your review worktree loads the engine from **the tree you
+are not reviewing**. Measured: two trees differing only in `ENGINE_VERSION`, and the
+worktree's `apps/studio` bundle carried the *other* tree's marker — `exit 0`, no
+warning. Gates go green having measured the wrong source. On pre-#650 `main` the same
+setup does not reproduce, because relative paths resolved inside the worktree.
+
+And do not "fix" it by symlinking the directory and then overwriting
+`node_modules/@prism3/*` — writing through the symlink **mutates the main checkout's**
+`node_modules`, repointing another session's `@prism3/engine` at your throwaway
+worktree, which then dangles when you remove it. Also measured. The loop above never
+writes outside `$WT`.
+
+The loud version of this is harmless and worth recognizing: running an engine gate in
+a worktree whose `node_modules` came from a checkout *without* the link fails with
+`ERR_MODULE_NOT_FOUND: Cannot find package '@prism3/engine'`. That one tells you. The
+quiet version above is the one that costs you a review.
 
 **Why this is mandatory, not tidiness.** Checking out a branch in the shared tree
 destroys a concurrent session's uncommitted work — this happened for real on
@@ -65,24 +100,24 @@ two PRs' changes. Do not drop it; tell them it is there.
 Inside the worktree, run and read the ACTUAL numbers. Baselines below are
 indicative and go stale — compare against what `main` reports today, never treat a
 mismatch with this file as the regression:
-- `npx tsx Prism3/engine/regen.ts --check` — no committed artifact has drifted
-  (~89 artifacts byte-match). **Run this first and never skip it: it is the ONLY
+- `npx tsx packages/engine/regen.ts --check` — no committed artifact has drifted
+  (~104 artifacts byte-match). **Run this first and never skip it: it is the ONLY
   gate that reads the committed artifacts.** Every other gate runs the engine live
   and compares it against itself, so a stale committed artifact passes them all
   (this bit #281 for real).
-- `npx tsx Prism3/engine/test.ts` — unit tests (~1516 passing).
-- `npx tsx Prism3/engine/nb-regression.ts` — NB fidelity (ΔE) + contracts
+- `npx tsx packages/engine/test.ts` — unit tests (~2040 passing).
+- `npx tsx packages/engine/nb-regression.ts` — NB fidelity (ΔE) + contracts
   (aggregate ΔE00 mean ~1.95, contrast 11/11, dimensions 23/23).
-- `npx tsx Prism3/engine/emit-dtcg.ts` — every DTCG alias resolves (~926–929 per
+- `npx tsx packages/engine/emit-dtcg.ts` — every DTCG alias resolves (~926–929 per
   brand); every mode contrast contract holds (~444/444 per brand); schema conformance.
-- `npx tsx Prism3/engine/mcp-test.ts` — the MCP surface over real stdio: transport
+- `npx tsx packages/engine/mcp-test.ts` — the MCP surface over real stdio: transport
   framing, 2026-07-28 conformance, agent journey (~49 passing).
-- `npx tsx Prism3/engine/token-contract.ts --check` — the token-NAME contract has
+- `npx tsx packages/engine/token-contract.ts --check` — the token-NAME contract has
   not broken. After a rebase this can fail legitimately (if `main` picked up a
-  token-adding PR): bump `CONTRACT_VERSION` in `Prism3/engine/version.ts` by the
+  token-adding PR): bump `CONTRACT_VERSION` in `packages/engine/version.ts` by the
   required increment, then `token-contract.ts --accept` — which refuses unless the
   version was already bumped correctly.
-- `npx tsx Prism3/engine/lint-us-english.ts` — US English across every shipped
+- `npx tsx packages/engine/lint-us-english.ts` — US English across every shipped
   surface (~93 files). **Build the web bundle FIRST** (`npm run build
   --workspace @prism3/studio`): this gate scans `apps/studio/dist/main.js` — `build:site`
   writes to `apps/studio/public/dist` instead and will not satisfy this gate. Running
@@ -90,14 +125,14 @@ mismatch with this file as the regression:
   Note CSS-in-JS is NOT covered by the
   "code comments are exempt" carve-out — text inside `/* */` in `apps/studio/src/main.ts`'s
   CSS template literal ships verbatim into the bundle as string content.
-- `npx tsx Prism3/engine/cli.ts <example> [--fidelity]` if the CLI/dialects changed.
+- `npx tsx packages/engine/cli.ts <example> [--fidelity]` if the CLI/dialects changed.
 
 All of these also run in CI (`.github/workflows/ci.yml`) — run them locally anyway.
 CI is the backstop, not the workflow, and a PR's claimed numbers are not evidence.
 A PR that regresses any of these is blocking until explained.
 
 Beware the cwd trap: the Bash tool's working directory persists between calls, so a
-`cd web` leaves later bare `npx tsx Prism3/engine/...` calls failing with
+`cd web` leaves later bare `npx tsx packages/engine/...` calls failing with
 `ERR_MODULE_NOT_FOUND`. Prefer `--workspace` / `-p` flags over `cd`.
 
 ## Prism3 engine invariants (the expert layer — check every one that the diff touches)
@@ -199,7 +234,7 @@ Re-derive the load-bearing ones yourself:
   an intermittent Vercel failure is routine. Always read the `gates` check-run status
   separately; never conflate the two.
 - The Vercel-deployed bundle reads only `apps/studio/src` + `Prism3/{engine,schema}`.
-  `plugin/**`, `reference/**` and `Prism3/engine/out/**` are not build inputs, so a change
+  `plugin/**`, `reference/**` and `packages/engine/out/**` are not build inputs, so a change
   confined to those needs no Vercel-impact check.
 - **Force-push discipline**: always `--force-with-lease`. If rejected as stale, re-fetch
   and diff rather than clobbering; if the difference is cosmetic (someone else's merge

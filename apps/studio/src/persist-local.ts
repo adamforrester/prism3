@@ -24,8 +24,8 @@
  * real `window.localStorage` structurally satisfies it. All calls are wrapped — a storage access can
  * throw (private-mode quota, disabled storage), and persistence must never break the editor.
  */
-import type { BrandInput } from '../../../Prism3/engine/theme';
-import { serializeBrandInput, deserializeBrandInput } from '../../../Prism3/engine/persist-input';
+import type { BrandInput } from '@prism3/engine/theme';
+import { serializeBrandInput, deserializeBrandInput } from '@prism3/engine/persist-input';
 
 /** The minimal Web-Storage surface the adapter needs — the slice of `localStorage` it touches.
  *  Declaring it as a port lets a test drive persist/restore with a `Map`-backed shim; the real

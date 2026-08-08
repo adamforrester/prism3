@@ -23,14 +23,14 @@
      lint:classes line below, which is the specific gate two PRs (#601, #602) missed by
      stopping their Gates table at an older, shorter version of this template. -->
 
-- [ ] `npx tsx Prism3/engine/test.ts` → _N/N passed_
-- [ ] `npx tsx Prism3/engine/mcp-test.ts` → _N/N passed_
-- [ ] `npx tsx Prism3/engine/nb-regression.ts` → exits 0 (ΔE00 _…_)
-- [ ] `npx tsx Prism3/engine/emit-dtcg.ts` → every alias resolves + every mode contrast contract passes (_…/…_)
-- [ ] `npx tsx Prism3/engine/regen.ts --check` → _NN_ committed artifacts byte-match
-- [ ] `npx tsx Prism3/engine/token-contract.ts --check` → unchanged / bumped to _…_
-- [ ] `npx tsx Prism3/engine/lint-skills.ts` → clean
-- [ ] `npx tsx Prism3/engine/lint-doc-gates.ts` → clean
+- [ ] `npx tsx packages/engine/test.ts` → _N/N passed_
+- [ ] `npx tsx packages/engine/mcp-test.ts` → _N/N passed_
+- [ ] `npx tsx packages/engine/nb-regression.ts` → exits 0 (ΔE00 _…_)
+- [ ] `npx tsx packages/engine/emit-dtcg.ts` → every alias resolves + every mode contrast contract passes (_…/…_)
+- [ ] `npx tsx packages/engine/regen.ts --check` → _NN_ committed artifacts byte-match
+- [ ] `npx tsx packages/engine/token-contract.ts --check` → unchanged / bumped to _…_
+- [ ] `npx tsx packages/engine/lint-skills.ts` → clean
+- [ ] `npx tsx packages/engine/lint-doc-gates.ts` → clean
 - [ ] `npm run -w @prism3/studio typecheck` → clean
 - [ ] `npm run -w @prism3/studio build` → succeeds
 - [ ] `npm run -w @prism3/studio check:ignore` → clean
@@ -40,8 +40,8 @@
 - [ ] `npm run -w @prism3/plugin test` → _N/N passed_
 - [ ] `npm run -w @prism3/plugin build` → succeeds, 0 `node:` builtins in `dist/main.js`
 - [ ] `npm run -w @prism3/tokens check:consumability` → clean — a stock Style Dictionary over the emitted DTCG; runs over EVERY emitted brand (#635); a *characterization* gate, so green means "every brand's mode collapse and `[object Object]` count still match their pinned baselines (permanent by DTCG design, #609) **and** each base+overlay projection still reads back"
-- [ ] `npx tsx Prism3/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `apps/studio/dist/*.js` bundle
-- [ ] `npx tsx Prism3/engine/lint-voice.ts` → clean — voice-standard.md §2 banned-phrase list (#617); sibling to lint-us-english.ts, same reason it runs here
+- [ ] `npx tsx packages/engine/lint-us-english.ts` → clean — run AFTER the web build; its scope includes the built `apps/studio/dist/*.js` bundle
+- [ ] `npx tsx packages/engine/lint-voice.ts` → clean — voice-standard.md §2 banned-phrase list (#617); sibling to lint-us-english.ts, same reason it runs here
 
 ## out/* + fixtures
 

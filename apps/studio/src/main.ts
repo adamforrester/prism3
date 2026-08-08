@@ -19,23 +19,23 @@
  * volatile region (ramps or preview), so knob focus is never lost; a failed brand
  * combination is caught and surfaced with the last-good render preserved.
  */
-import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '../../../Prism3/engine/theme';
-import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '../../../Prism3/engine/theme';
-import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '../../../Prism3/engine/color';
-import { autoPlaceStep } from '../../../Prism3/engine/ramp';
-import { leverManifest, leverGroups } from '../../../Prism3/engine/levers';
-import type { Lever } from '../../../Prism3/engine/levers';
-import { previewSpec } from '../../../Prism3/engine/preview';
-import { resolvePreview } from '../../../Prism3/engine/resolve-preview';
-import type { ResolvedPreview } from '../../../Prism3/engine/resolve-preview';
-import { resolveAllModes, outlineFillFamily, outlineFillRole } from '../../../Prism3/engine/modes';
-import { parseDesignMd, toDesignMd } from '../../../Prism3/engine/design-md';
-import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '../../../Prism3/engine/standard-design-md';
-import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '../../../Prism3/engine/tree';
-import { ENGINE_VERSION } from '../../../Prism3/engine/version';
+import { brandTheme, ALL_MODES, normalizeDisabledStrategy, HEADING_SIZE_FLOOR, PER_MODE_SIZE_GROUPS, typefaceSlug, derivedRungFor, shiftRung, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER } from '@prism3/engine/theme';
+import type { BrandInput, Theme, GradientInput, TypeComposite, PerModeSizeGroup, TypographyInput } from '@prism3/engine/theme';
+import { hex, oklchToRgb, hexToRgb, rgbToOklch, contrast } from '@prism3/engine/color';
+import { autoPlaceStep } from '@prism3/engine/ramp';
+import { leverManifest, leverGroups } from '@prism3/engine/levers';
+import type { Lever } from '@prism3/engine/levers';
+import { previewSpec } from '@prism3/engine/preview';
+import { resolvePreview } from '@prism3/engine/resolve-preview';
+import type { ResolvedPreview } from '@prism3/engine/resolve-preview';
+import { resolveAllModes, outlineFillFamily, outlineFillRole } from '@prism3/engine/modes';
+import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
+import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
+import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
+import { ENGINE_VERSION } from '@prism3/engine/version';
 import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
-import exampleBrands from '../../../Prism3/schema/example-brands.json';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
 
 type Mode = ResolvedPreview['modes'][number];
 

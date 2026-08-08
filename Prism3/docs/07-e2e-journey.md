@@ -399,7 +399,7 @@ Built **here** (prism3-tokens), additive to the shipped step-A pipeline:
   → `BrandInput`) closes the round-trip: brand-skills emits the block, the engine CLI consumes it (Wendy's
   carries none → engine defaults, the §11.4 plain-spec guarantee). The bespoke `spike-wendys.ts` runner
   was retired; its self-verify folded into `test.ts` (189 → 202).
-  Run: `npx tsx Prism3/engine/cli.ts Prism3/examples/wendys.design.md --fidelity`.
+  Run: `npx tsx packages/engine/cli.ts packages/engine/examples/wendys.design.md --fidelity`.
 
 Input: a **real** `brand-skills` Wendy's `design.md` (`examples/wendys.design.md`). **Result:** anchor
 reproduced at **ΔE00 0.00**, 627/627 aliases, 248/248 contrasts, `error`→`danger` carved distinct; aggregate

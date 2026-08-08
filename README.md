@@ -28,14 +28,14 @@ The engine core is **buildless** — self-contained TypeScript run via `tsx`, wi
 no dependencies of its own (CI runs it on Node 22):
 
 ```bash
-npx tsx Prism3/engine/test.ts            # unit tests — color math + extreme-brand contracts + design.md/CLI
-npx tsx Prism3/engine/nb-regression.ts   # regression: generated tokens vs the real New Balance set
-npx tsx Prism3/engine/emit-dtcg.ts       # emit the DTCG token tree; validate every alias + mode contrast contract
-npx tsx Prism3/engine/emit-figma.ts      # emit the Figma import artifact (out/figma/<brand>/)
+npx tsx packages/engine/test.ts            # unit tests — color math + extreme-brand contracts + design.md/CLI
+npx tsx packages/engine/nb-regression.ts   # regression: generated tokens vs the real New Balance set
+npx tsx packages/engine/emit-dtcg.ts       # emit the DTCG token tree; validate every alias + mode contrast contract
+npx tsx packages/engine/emit-figma.ts      # emit the Figma import artifact (out/figma/<brand>/)
 ```
 
 The full command list (CLI, visualize, the `emit-*` contract writers) is in
-[`Prism3/engine/README.md`](Prism3/engine/README.md).
+[`packages/engine/README.md`](packages/engine/README.md).
 
 ## Running the studio
 

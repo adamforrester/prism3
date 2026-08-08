@@ -14,12 +14,12 @@
  *
  * Mirrors the other shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
  */
-import { buildFontVarPlan, buildTextStylePlan } from '../../Prism3/engine/write-plan';
-import { brandTheme } from '../../Prism3/engine/theme';
+import { buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
+import { brandTheme } from '@prism3/engine/theme';
 import { applyVarCollectionPlan } from './src/write-figma';
 import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
-import { nbTheme } from '../../Prism3/engine/nb-fixture';
+import { nbTheme } from '@prism3/engine/nb-fixture';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {

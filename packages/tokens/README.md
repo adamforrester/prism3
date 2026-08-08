@@ -60,7 +60,7 @@ Same posture `regen --check` takes toward `out/`: the job is to have a **memory*
 The gate originally measured **one** brand (`nb`), which answered "can a stranger consume `nb`?" and
 was silent on the other three. #635 widened it to the whole corpus.
 
-Brands are **discovered** from `Prism3/engine/out/`, so a fifth is covered the day it lands. The four
+Brands are **discovered** from `packages/engine/out/`, so a fifth is covered the day it lands. The four
 known profiles are then asserted **by name**, because a gate with a scope must prove each promised
 surface is represented rather than count files — if `aurora` stopped being emitted, a count-based
 check would report "3 brands, all green" and the only brand with gradients would have left the corpus
@@ -118,13 +118,13 @@ Mutation-verified. Three mutations, three caught:
 The first two survived the gate's first draft, which counted only names. Counting cannot see values,
 references, or forbidden code. The fourth is the one this gate caught that the engine's own unit tests
 could not — *which* leaves an overlay selects is independent of *what value* they carry, so every count
-stayed correct. An assertion was added upstream in `Prism3/engine/test.ts` too; a contract of a
+stayed correct. An assertion was added upstream in `packages/engine/test.ts` too; a contract of a
 function belongs in a test of that function, not only in a gate three artifacts downstream.
 
 ## Dependency posture
 
 Style Dictionary is **this repo's first real runtime dependency**, and it lives here — never imported
-by `Prism3/engine/`. The engine's buildless, no-`npm install` invariant is what lets it bundle into the
+by `packages/engine/`. The engine's buildless, no-`npm install` invariant is what lets it bundle into the
 Figma plugin sandbox; a dependency reaching into it would end that.
 
 ## Files

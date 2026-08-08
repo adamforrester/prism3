@@ -7,6 +7,118 @@
 
 ---
 
+## (2026-08-08) — `Prism3/engine` → `packages/engine`, and a dependency stops being a path (#650 PR 1)
+
+**STATUS: PR open, all 18 gates green.** The engine is a package. `apps/studio` and `apps/plugin` now
+`import { brandTheme } from '@prism3/engine/theme'` instead of `'../../../Prism3/engine/theme'`, and that
+substitution *is* the PR — everything else is what it takes to make it true. PR 1 of the three in
+`docs/35` §8; docs and skills are still to come.
+
+**What moved, and why three of the four moves were mandatory rather than tidy.** `Prism3/engine/` →
+`packages/engine/`, with `schema/`, `examples/` and `fixtures/` moving *inside* it. Left as siblings every
+`../schema` breaks; moved inside they become `./schema` and the package is self-contained, which is the
+difference between a package and a directory with a name in its `package.json`. `packages/engine/package.json`
+carries a name, `type: module` and an `exports` map over 20 subpaths — **no build script, no dependencies.**
+`exports` is configuration, not compilation: the surfaces still bundle `.ts` source, which is the property
+the plugin's `0 node:` builtins depend on. `npm install --package-lock-only` added 8 lines and downloaded
+nothing.
+
+**`Prism3/` still exists, holding `docs/` and `skills/`.** Deliberate and temporary — splitting the
+functional move from the editorial one is the whole point of three PRs. It looks odd on purpose.
+
+**The sweep, and the form that got past a reasonable substitution.** Both of §8's hazards were real.
+Anchoring on the sibling *name* rather than the surrounding syntax found all four documented forms,
+including the five `resolve(here, '..', 'schema', …)` segment call sites that a sweep written against
+`'../schema'` cannot see.
+
+**A fifth form the plan does not list, and the one genuine near-miss: the sweep created it.** Rewriting
+`'../../Prism3/schema/nb-measured.json'` → `'@prism3/engine/schema/nb-measured.json'` is right inside an
+`import` and **wrong inside `readFileSync(resolve(HERE, …))`** — an `exports` map is not a filesystem path.
+Three call sites took it (`test-readback.ts`, `test-write.ts`, `sd.consumer.mjs`) and would have failed at
+runtime; two are now plain JSON imports, one a relative path. The general lesson: **a sweep that changes the
+*kind* of reference rather than just its text must be triaged by what consumes it**, because an import
+specifier and a path live inside the same quotes and look identical to a regex.
+
+**The gate detector that needed *widening*, not repointing.** `lint-skills.ts:163` matched engine
+references with a hardcoded `/Prism3\/…\.ts/g` — the spike rewrote its fixtures and left this, which is
+hazard (b) exactly. The non-obvious part is that repointing it to `packages/engine` would have been *worse
+than doing nothing*: `Prism3/` is still a real prefix, so a narrowed detector silently stops matching stale
+`Prism3/engine/…` references and reports clean — the rename's own failure mode, living inside the gate that
+exists to catch it. It now matches both prefixes, with a self-check fixture asserting a stale path still
+fails, so the two-prefix choice is a checked claim rather than a comment. It immediately caught a real
+stale reference in `prism3-theme/SKILL.md`.
+
+**#659's floor paid out on its first real use, and the payout is the interesting part.** `check:ignore`
+reported **16** bundled engine files where it had reported 15 for months. Not drift:
+`schema/example-brands.json` used to sit at `Prism3/schema/`, *outside* the old `Prism3/engine/` prefix, and
+now lives inside `packages/engine/`. Same 15 `.ts` files, one JSON input newly inside the prefix. A count
+pinned to 15 would have gone red on a correct change and been re-raised to 16 without anyone asking why —
+which is how a floor becomes a number nobody reads. The loose floor turned it into one question with a real
+answer.
+
+The uncomfortable half, written up in `docs/34` shape 9: **the count moving is the only reason anyone
+looked.** Had a file *left* the prefix, the gate would have printed a smaller number, still cleared its
+non-empty floor, and audited less than it claimed. A floor bounds blindness; it does not measure it. If that
+gate earns a third revision, the stronger form is to assert the recognized set matches the bundle's actual
+out-of-`apps/studio/` inputs — a comparison against something the detector does not choose.
+
+**Byte-identity, checked against a recorded baseline rather than against regen.** Checksums of all 106
+tracked artifacts were taken *before* the move; `regen --check` reports **104** and the pre/post sets match
+file-for-file, with exactly **two** content changes, each a single self-referential path string: `tokens.html`'s
+"Regenerate with" command and `token-contract.json`'s `note`. No token name, value or count moved —
+`guaranteed 497`, corpus 5, `2040` assertions, `49` MCP, `11/11` contrast, `23/23` dimensions, all unchanged.
+Worth stating why that comparison had to be against a saved baseline: `regen --check` runs the engine and
+compares it to what the engine just wrote, so on its own it cannot distinguish "nothing changed" from
+"everything changed consistently."
+
+**The `note` edit deliberately did *not* bump `CONTRACT_VERSION`,** and this was verified rather than
+assumed: reverting only that field leaves `--check` reporting `✓ unchanged`, so the field is outside the
+compared surface. Principle 5 holds — the baseline is still not a `regen` artifact.
+
+**The invariant the decomposition was conditional on survived:** `apps/plugin/dist/main.js` carries **0**
+`node:` builtins, both plugin contexts typecheck, and `@prism3/engine/ramp-NOPE` fails with
+`ERR_PACKAGE_PATH_NOT_EXPORTED` — so "the subpaths resolve" is a non-vacuous claim.
+
+**Markdown was swept by category, not mechanically.** Contributor-facing files (`CLAUDE.md`,
+`CONTRIBUTING.md`, the PR template, `review-pr.md`, every README) and live reference docs are updated
+because someone runs those commands. Dated records are not: `00-progress.md`'s history, `docs/12`'s
+evaluation, `docs/16`'s findings, and `docs/34`'s measurement of the *pre*-rename literal were all accurate
+when written, and rewriting them would forge the record. `lint-doc-gates` cannot see this distinction — it
+matches gate basenames, deliberately path-insensitive — so the stale paths it would have missed were found
+by reading.
+
+**The one should-fix from review, and the reason it was mine to have caught.** The whole-directory
+`node_modules` symlink that `CLAUDE.md` and `review-pr.md` both mandate becomes a **false-pass** generator the
+moment the engine is a workspace package. Workspace links are *relative* — the main checkout's
+`node_modules/@prism3/engine` is `../../packages/engine` — so reached through a whole-directory symlink they
+resolve against the **main checkout**, and every `@prism3/*` import in a worktree loads code from the tree you
+are not working in. Measured twice over: two trees differing only in `ENGINE_VERSION`, and the worktree's
+`apps/studio` bundle carried the *other* tree's marker, `exit 0`, no warning. The backward counterfactual on
+pre-#650 `main` does **not** reproduce, so this PR introduced it.
+
+I hit this while building the PR and fixed my *environment* instead of the *instruction* — which left the
+recipe that produces the broken environment in place for everyone else, in the file this PR was already
+editing. That is the actual defect: a local workaround for a documented-procedure bug is not a fix, and the
+one place it matters most is `/review-pr`, whose failure mode is green gates measuring the wrong source.
+
+Both files now build `node_modules` **per entry** and construct `@prism3/*` pointing inside the worktree. The
+shorter fix — symlink the directory, then overwrite `@prism3/*` — is worse, and also measured: writing
+*through* the symlink mutated the shared checkout, repointing its `@prism3/engine` at a throwaway worktree
+that then dangles. Only the per-entry loop never writes outside `$WT`. Note the loud variant is harmless and
+worth recognizing: `ERR_MODULE_NOT_FOUND: Cannot find package '@prism3/engine'` means the source
+`node_modules` predates the link. That one tells you; the quiet one costs you a review.
+
+Also corrected, since the review found them a line from paths this PR rewrote: `review-pr.md`'s stale
+baselines, **88/89 → 104** artifacts (measured in a clean worktree) and **1516 → 2040** tests.
+
+**Next, in order:** `docs/35` §8 PR 2 is `Prism3/docs` → `docs/`, and #658's amendment says decide the
+39-numbered-docs-beside-`superpowers/` question *before* it starts, since this PR just rewrote the same
+cross-references. PR 3 is `Prism3/skills` → `skills/`, which moves a shipped surface and `lint-skills`'
+scope together. #660 files the separate vercel concern: an engine README edit still triggers a full site
+build, and the account has been hitting a 100-deploys/day cap.
+
+---
+
 ## (2026-08-08) — Make count-printing gates able to fail, before the rename tests them (#659)
 
 **STATUS: merged-ready.** Four gates could print a count of zero and pass. Fixed, each mutation-tested both

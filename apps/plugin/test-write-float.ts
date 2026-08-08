@@ -13,11 +13,11 @@
  *
  * Mirrors the engine suite's dependency-free `ok(...)` style; exits non-zero on any failure.
  */
-import { buildFloatWritePlan } from '../../Prism3/engine/write-plan';
-import { brandTheme } from '../../Prism3/engine/theme';
+import { buildFloatWritePlan } from '@prism3/engine/write-plan';
+import { brandTheme } from '@prism3/engine/theme';
 import { applyFloatPlan } from './src/write-figma';
-import exampleBrands from '../../Prism3/schema/example-brands.json';
-import type { BrandInput } from '../../Prism3/engine/theme';
+import exampleBrands from '@prism3/engine/schema/example-brands.json';
+import type { BrandInput } from '@prism3/engine/theme';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
