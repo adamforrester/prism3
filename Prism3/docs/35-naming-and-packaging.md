@@ -341,6 +341,15 @@ assumption baked into the layout — the layout above supports all three.
   - **The vercel floor paid out on its first real use**, and the outcome is written up in doc 34's shape
     9: the count went 15 → 16 because `example-brands.json` moved *inside* the prefix, which a loose
     floor surfaced as a question and an exact pin would have mis-read as a regression.
+  - **A hazard the plan does not have a slot for: the *procedure* files.** `CLAUDE.md` and
+    `review-pr.md` both told every agent to symlink the whole `node_modules` directory into a worktree.
+    That is correct advice about a repo of paths and a **false-pass generator** in a repo of workspaces —
+    workspace links are relative, so through a directory symlink `@prism3/engine` resolves against the
+    *main checkout*, and a worktree silently builds and tests the tree you are not working in. Reviewing
+    caught it; the sweep could not, because nothing about the string `Prism3/engine` appears in the
+    broken instruction. **PRs 2 and 3 should re-read the setup instructions as part of the move, not
+    just the references** — the question is not "which paths changed" but "which procedures assumed the
+    old shape." The same applies to any future PR that adds a workspace package.
 
   Re-measured on `66c4990`: **467 references** across the repo — 289 markdown, **77 functional**, 11 in
   `ci.yml` — and **215 files** inside `Prism3/`. **The basis matters more than the figures**, because a

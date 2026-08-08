@@ -87,12 +87,29 @@ when written, and rewriting them would forge the record. `lint-doc-gates` cannot
 matches gate basenames, deliberately path-insensitive — so the stale paths it would have missed were found
 by reading.
 
-**Trap for whoever re-verifies this.** A worktree that symlinks `node_modules` to the shared checkout
-**cannot** carry `@prism3/engine`: the link would resolve into a tree where `packages/engine` does not exist,
-and writing it there mutates a directory another session may be using. This worktree has its own
-`node_modules` of per-entry symlinks instead, with a real `@prism3/` directory. `CLAUDE.md`'s
-symlink-`node_modules` advice is still right for every other lane; it stops being right the moment a PR adds
-a workspace.
+**The one should-fix from review, and the reason it was mine to have caught.** The whole-directory
+`node_modules` symlink that `CLAUDE.md` and `review-pr.md` both mandate becomes a **false-pass** generator the
+moment the engine is a workspace package. Workspace links are *relative* — the main checkout's
+`node_modules/@prism3/engine` is `../../packages/engine` — so reached through a whole-directory symlink they
+resolve against the **main checkout**, and every `@prism3/*` import in a worktree loads code from the tree you
+are not working in. Measured twice over: two trees differing only in `ENGINE_VERSION`, and the worktree's
+`apps/studio` bundle carried the *other* tree's marker, `exit 0`, no warning. The backward counterfactual on
+pre-#650 `main` does **not** reproduce, so this PR introduced it.
+
+I hit this while building the PR and fixed my *environment* instead of the *instruction* — which left the
+recipe that produces the broken environment in place for everyone else, in the file this PR was already
+editing. That is the actual defect: a local workaround for a documented-procedure bug is not a fix, and the
+one place it matters most is `/review-pr`, whose failure mode is green gates measuring the wrong source.
+
+Both files now build `node_modules` **per entry** and construct `@prism3/*` pointing inside the worktree. The
+shorter fix — symlink the directory, then overwrite `@prism3/*` — is worse, and also measured: writing
+*through* the symlink mutated the shared checkout, repointing its `@prism3/engine` at a throwaway worktree
+that then dangles. Only the per-entry loop never writes outside `$WT`. Note the loud variant is harmless and
+worth recognizing: `ERR_MODULE_NOT_FOUND: Cannot find package '@prism3/engine'` means the source
+`node_modules` predates the link. That one tells you; the quiet one costs you a review.
+
+Also corrected, since the review found them a line from paths this PR rewrote: `review-pr.md`'s stale
+baselines, **88/89 → 104** artifacts (measured in a clean worktree) and **1516 → 2040** tests.
 
 **Next, in order:** `docs/35` §8 PR 2 is `Prism3/docs` → `docs/`, and #658's amendment says decide the
 39-numbered-docs-beside-`superpowers/` question *before* it starts, since this PR just rewrote the same
