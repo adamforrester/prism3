@@ -286,10 +286,15 @@ assumption baked into the layout — the layout above supports all three.
   > **loud** (an import or `resolve()` that stops resolving — the compiler or the run reports it) or
   > **silent** (a detector, a glob, a trigger list — it keeps running and matches nothing).
 
-  Sweeping tracked non-`.md` files, **48 carry the literal**; the silent set is ~18 and is the one that
-  needs reading by hand. That rule finds `vercel-ignore.sh` *by construction*, along with
-  `.claude/settings.json` and `.github/ISSUE_TEMPLATE/config.yml`, none of which a remembered list
-  contained. A count invites transcription; a rule invites a sweep.
+  Sweeping tracked non-`.md` files, `git grep -l 'Prism3/' -- ':!*.md'` returns **49**. That rule finds
+  `vercel-ignore.sh` *by construction*, along with `.claude/settings.json` and
+  `.github/ISSUE_TEMPLATE/config.yml`, none of which a remembered list contained. A count invites
+  transcription; a rule invites a sweep — so the command is written here and the size of the silent
+  subset is not. **An earlier draft said "48 carry the literal; the silent set is ~18"; both numbers were
+  wrong** (49, and no basis reproduced ~18 — hand classification lands anywhere from 15 to 28 depending
+  on whether a doc URL, a comment quoting a command, and an emitted artifact's own prose count as
+  detectors). Which is the bullet's own argument turned on it: the fix for a number nobody can reproduce
+  is a command anybody can run, not a better number.
 
   **`apps/studio/vercel-ignore.sh` is the priority, because its failure ships nothing.** Its trigger list
   hardcodes the name — `PATHS=(apps/studio Prism3/schema … Prism3/engine)` — and per the script's own

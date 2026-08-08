@@ -8671,5 +8671,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
 // ------------------------------------------------------------------- report
 console.log(`\nPrism3 engine tests: ${pass} passed, ${fails.length} failed`);
+
+// A FLOOR on the population, not on the outcome (#659). `fails.length === 0` is the outcome, and it is
+// vacuously true over zero assertions: neutering `ok()` printed **`0 passed, 0 failed`** followed by
+// `✓ colour math + extreme-brand contracts all hold`, at exit 0. Nothing else in the suite noticed,
+// because everything else in the suite IS this suite. The number is the largest single claim CI makes
+// about this repo, and it was the one number nothing compared to anything (docs/34 shape 9's cheap
+// tell: the gate prints a count nothing asserts).
+//
+// Deliberately a LOOSE floor, unlike nb-regression.ts's exact populations. The assertion count here
+// grows most weeks, so an exact pin would fail on every honest PR and be re-pinned without thought —
+// a floor nobody reads is worse than none, because it looks like protection. What this catches is the
+// collapse: a broken harness, a dropped import, an `ok()` that stopped counting. Raise it when it
+// genuinely blocks; do not track the real count with it.
+const MIN_ASSERTIONS = 1800;
+if (pass + fails.length < MIN_ASSERTIONS) {
+  console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness collapsed, so "0 failed" means nothing.`);
+  process.exitCode = 1;
+}
 if (fails.length) { fails.forEach((f) => console.log(`  ❌ ${f}`)); process.exitCode = 1; }
-else console.log('  ✓ colour math + extreme-brand contracts all hold');
+else if (pass + fails.length >= MIN_ASSERTIONS) console.log('  ✓ colour math + extreme-brand contracts all hold');

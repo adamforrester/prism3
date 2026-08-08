@@ -7,6 +7,61 @@
 
 ---
 
+## (2026-08-08) — Make count-printing gates able to fail, before the rename tests them (#659)
+
+**STATUS: merged-ready.** Four gates could print a count of zero and pass. Fixed, each mutation-tested both
+directions. This exists to precede the `packages/engine` move (#650 PR 1): every one of these fails *toward
+green* when a path goes stale, so fixing them after the sweep means trusting the sweep to have been checked
+by gates the sweep had already blinded.
+
+**The rule, and why the obvious audit misses.** A gate that prints a count needs one comparison that fails
+when that count is wrong. The tempting audit is to look for a floor — and it produces a wrong answer, which
+a prior review's "5 of 9 guard nothing" tally demonstrates. Three gates *have* floors
+(`lint-doc-gates.ts`'s `candidates.length < 10`; `walkRequired` in both prose gates) and those floors guard
+that the gate **opened files**. **A dead detector over a full directory satisfies all of them.** The
+property to audit is whether the *detector* still fires, and it is independent of whether a floor exists:
+`lint-us-english.ts` has real liveness — `SELF_CHECK` drives the shipping `enGb`, so emptying its pattern
+list fails with five samples named — and that has nothing to do with `walkRequired`. Recorded in doc 34
+shape 9, since the mistake is more reusable than the tally.
+
+**What was actually unguarded, all four found by mutation rather than by reading:**
+
+- **`test.ts` and `mcp-test.ts`.** Neutering `ok()` printed **`0 passed, 0 failed`** followed by
+  `✓ colour math + extreme-brand contracts all hold`, exit 0. Nothing else in the suite noticed, because
+  everything else in the suite *is* the suite. 2040 assertions is the largest claim CI makes about this
+  repo and it was the one number nothing compared to anything. Now a **loose** floor (1800 / 40) with the
+  reasoning written beside it: the count grows most weeks, so an exact pin would fail on honest PRs and get
+  re-pinned unread — and a floor nobody reads is worse than none, because it looks like protection.
+- **`nb-regression.ts`, twice.** With `add()` a no-op the verdict read **`0/0 contrast contracts`** and
+  PASSED; with the dimension loops emptied, **`0/0 dimensions`**, also PASSED. `checks.length -
+  failed.length === checks.length` is trivially true at zero. Two of the four claims in the PASS line were
+  unfalsifiable. Pinned **exactly** here (11 and 23) rather than loosely — opposite choice to the suites
+  above, and deliberately: both populations are fixed by construction, and a `> 0` floor would permit
+  losing 10 of 11 contracts, which is the exact failure being fixed.
+- **`vercel-ignore-check.mjs`** — the instance #658's review named. Repointing its one literal gives
+  `0 engine files in the bundle … ✓ clean`. Two non-empty floors now, one per operand, because the gate
+  reports an intersection and *both* sides going empty makes that report vacuous.
+
+**The trap, and the reason "the suite went red" was not the answer here.** `nb-regression.ts` writes a
+committed report, so the emptied run *does* turn `regen --check` red — which looks like coverage. But
+`regen`'s remedy, printed in its own failure output and the **first** command in `CLAUDE.md` §4, is
+`npx tsx regen.ts`. Running it commits `0/0` as the new truth and all 18 gates go green. **A drift gate
+defends the artifact, not the claim**: once the artifact stops making the claim there is nothing to drift
+from. Anything whose evidence is a regenerated file needs its floor in the generator. Verified by doing
+exactly that and watching it pass.
+
+**Already able to fail, left alone** (audited, not assumed): both prose gates, `lint-doc-gates.ts`,
+`lint-classes.mjs`, `lint-contrast.mjs`, `token-contract.ts`, `check-consumability.mjs`. Several only
+because an earlier register row had already taught them — `check-consumability.mjs`'s `[SCOPE]`
+assertions fire by brand name when the corpus shrinks, which is #635 paying out.
+
+**Opportunistic, per the brief:** doc 35 §8's `~18 silent` reproduced at no basis (hand classification
+lands 15–28 depending on whether a doc URL, a comment quoting a command, and an emitted artifact's own
+prose count as detectors), and its `48` is **49**. Both replaced with the command that measures it, since
+this is the second time a transcribed count in that bullet has needed correcting.
+
+---
+
 ## (2026-08-08) — Decision: `Prism3/` decomposes, because a dependency should not be a path (#650)
 
 **STATUS: decision recorded, no files moved.** This PR is two document amendments and nothing else — zero
@@ -69,9 +124,10 @@ most dangerous in the repo: its header says `exit 0` → SKIP, so a stale path t
 stops deploying engine changes. The rule that replaces the list — *every non-`.md` file carrying the literal is
 a candidate; triage by whether failure is **loud** (imports, `resolve()`) or **silent** (detectors, globs,
 trigger lists)* — finds that file **by construction**, along with `.claude/settings.json` and the issue
-template, which the list also missed. 48 non-`.md` files carry it; ~18 are silent. **A count invites
-transcription; a rule invites a sweep.** The review found it by sweeping instead of recalling, which is the
-whole argument.
+template, which the list also missed. **A count invites transcription; a rule invites a sweep.** The review
+found it by sweeping instead of recalling, which is the whole argument. (This paragraph originally ended
+"48 non-`.md` files carry it; ~18 are silent" — corrected in #659: the first is 49 and the second reproduces
+at no basis. Both are now a command in doc 35 §8 instead of a number here.)
 
 **And its checker has no self-check, which produced the sharpest instance of shape 9 yet.**
 `vercel-ignore-check.mjs:46` locates what it audits with `.filter((p) => p.includes('Prism3/engine/'))`.

@@ -260,5 +260,17 @@ await new Promise((r) => setTimeout(r, 3000));
 server.stop();
 
 console.log(`\nPrism3 MCP suite: ${pass} passed, ${fails.length} failed`);
+
+// Population floor — same reasoning as `test.ts`'s, and the same measurement: neutering `ok()` printed
+// `0 passed, 0 failed` and the confident line below it, at exit 0 (#659). More exposed than `test.ts`
+// here, because this suite drives a real subprocess over stdio: a transport that fails to hand back
+// any response leaves every assertion unreached rather than failing, which is precisely the shape a
+// count floor catches and an outcome check cannot. Loose for the same reason — see `MIN_ASSERTIONS`
+// in `test.ts` for why a tracking pin would be worse than this.
+const MIN_ASSERTIONS = 40;
+if (pass + fails.length < MIN_ASSERTIONS) {
+  console.log(`  ❌ only ${pass + fails.length} assertions ran, expected at least ${MIN_ASSERTIONS} — the harness or the transport collapsed, so "0 failed" means nothing.`);
+  process.exitCode = 1;
+}
 if (fails.length) { fails.forEach((f) => console.log(`  ❌ ${f}`)); process.exitCode = 1; }
-else console.log('  ✓ transport, 2026-07-28 conformance, and the agent journey all hold over real stdio');
+else if (pass + fails.length >= MIN_ASSERTIONS) console.log('  ✓ transport, 2026-07-28 conformance, and the agent journey all hold over real stdio');

@@ -38,6 +38,27 @@ const KNOWN_OUTLIERS: Record<string, number> = { // NB hand-nudges: `${palette}.
   'red.050': 4.7, 'red.100': 5.5, 'red.300': 7.7, 'red.900': 4.3, 'red.950': 5.1, 'amber.600': 9.8,
 };
 const EXPECTED_STEPS_PER_SPEC = 20;              // NB ships 20 steps/palette — fewer = truncated/renamed
+// FLOORS on the two check populations this report counts (#659). `EXPECTED_STEPS_PER_SPEC` above
+// already protects the ΔE denominator — a truncated fixture is caught because a shrunk denominator
+// silently passes a mean-of-means. The other two counts had no equivalent, and the report prints them
+// as if they were evidence: measured, with `add()` made a no-op, the verdict read
+// **`0/0 contrast contracts`** and PASSED; with both dimension loops emptied, **`0/0 dimensions`**,
+// also PASSED. `checks.length - failed.length === checks.length` is trivially true at zero, and
+// `dimPass !== dimChecks` is false when both are zero. Two of the four claims in the PASS line were
+// unfalsifiable (docs/34 shape 4 — the oracle measures a constant — reached via an empty population).
+//
+// Worth knowing WHY the suite did not save this, because it is the trap: the emptied run does change
+// the committed report, so `regen --check` goes red — but its remedy is `npx tsx regen.ts`, which
+// CLAUDE.md §4 tells you to run FIRST. Regenerating commits `0/0` as the new truth and all 18 gates
+// go green. A drift gate cannot defend a claim the artifact itself no longer makes.
+//
+// Exact, not floors: both populations are fixed by construction (the contracts are hand-enumerated
+// below, the dimensions come from Prism2's space scale + NB's radius ramp). A `> 0` floor would
+// permit losing 10 of 11 contracts, and this file's whole argument is that a shrunk denominator is
+// the failure mode. Growing either set is a deliberate edit that updates the number here in the same
+// PR — the same contract `EXPECTED_STEPS_PER_SPEC` already runs under.
+const EXPECTED_CONTRACTS = 11;                   // enumerated below: 500×2 + 550×3 + ¼-tone×3 + ¾-tone×3
+const EXPECTED_DIM_CHECKS = 23;                  // Prism2 space scale + NB radius ramp
 const failures: string[] = [];                  // any entry → non-zero exit at the end
 
 // ---- load real NB palettes ----
@@ -198,6 +219,13 @@ const meanOfMeans = summary.reduce((a, s) => a + s.mean, 0) / summary.length;
 // Fold the functional checks into the gate accumulator (they were report-only before CR-06).
 for (const f of failed) failures.push(`contrast contract failed: ${f.label} = ${f.got.toFixed(2)} (rule ${f.rule})`);
 if (dimPass !== dimChecks) failures.push(`dimension axis: ${dimPass}/${dimChecks} exact — a px lever drifted from Prism2 space / NB radius`);
+// …and that the two populations exist AT ALL. See EXPECTED_CONTRACTS above for the measurement: both
+// of the lines below printed `0/0` and passed. Stated as populations rather than folded into the
+// comparisons above on purpose — `11/11` and `0/0` are both "all pass", and only one is a result.
+if (checks.length !== EXPECTED_CONTRACTS)
+  failures.push(`contrast contracts: ran ${checks.length}, expected ${EXPECTED_CONTRACTS} — the contract set shrank, so "${checks.length}/${checks.length} pass" is not the claim it reads as (a 0/0 verdict passes).`);
+if (dimChecks !== EXPECTED_DIM_CHECKS)
+  failures.push(`dimension axis: ran ${dimChecks} comparisons, expected ${EXPECTED_DIM_CHECKS} — a shrunk population, not a pass.`);
 for (const s of summary) p(`- **${s.name}** — ΔE00 mean ${s.mean.toFixed(2)}, max ${s.max.toFixed(2)} (${s.maxKey}), within-tolerance ${s.within}/${s.covered}.`);
 p('');
 p(`- Aggregate ΔE00 mean across ramps: **${meanOfMeans.toFixed(2)}**.`);
