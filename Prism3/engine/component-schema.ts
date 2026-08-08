@@ -337,7 +337,15 @@ export type ComponentDef = {
 
   // ---- motion / notes (§15, SCALES) ----
   motion?: { enter?: string; exit?: string; reduceMotion?: string };
-  notes?: { contested?: string[]; unverified?: string[] };
+  /** Field-research residue, kept beside the def rather than in a doc so it travels with the thing it
+   *  is about: `contested` (the practice disagrees), `unverified` (asserted here, not yet gated),
+   *  `evolution` (a finding a later revision RESOLVED — kept because "why is it like this now" is the
+   *  question a def cannot answer about itself). Prose only; no emitter reads these.
+   *
+   *  `evolution` was authored in `button.ts` and missing here until #483 — invisible because nothing
+   *  under a tsconfig imported a component def, and `test.ts` runs through `tsx`, which does not
+   *  typecheck. #483's plugin call site pulled `button.ts` into `tsconfig.main.json` and it surfaced. */
+  notes?: { contested?: string[]; unverified?: string[]; evolution?: string[] };
 };
 
 /**

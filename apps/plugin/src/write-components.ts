@@ -29,9 +29,11 @@
  *
  * Compiled under `tsconfig.main.json` — has `figma.*`, NO `document`. The `ComponentsApi` port is the
  * minimal slice of `figma` the executor touches, so it is unit-testable against an in-memory shim (see
- * `plugin/test-write-components.ts`); the real `figma` structurally satisfies it, asserted by
- * `PortHolds` below because — unlike every sibling executor — nothing in `main.ts` calls this lane yet
- * and so no call site would catch the port drifting out of satisfaction.
+ * `plugin/test-write-components.ts`); the real `figma` structurally satisfies it, which `main.ts`'s
+ * `buildComponents` proves on every typecheck by passing the global straight in — the same way the three
+ * sibling lanes are proven. Until #483 wired that call site this file carried an explicit `PortHolds`
+ * assertion instead, because with no caller the port could have drifted out of satisfaction with the
+ * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
 import { planSetLayout } from '../../../Prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from '../../../Prism3/engine/anatomy-figma';
@@ -118,7 +120,8 @@ export interface CompSet extends CompNode {
 }
 
 /** The minimal `figma` surface the component executor needs — declared as a port so the Node harness
- *  can drive it with a shim. The real `figma` satisfies it structurally (asserted by `PortHolds`). */
+ *  can drive it with a shim. The real `figma` satisfies it structurally, checked on every typecheck by
+ *  `main.ts`'s `buildComponents` passing the global in (see the header). */
 export interface ComponentsApi {
   variables: {
     getLocalVariablesAsync(type?: string): Promise<CompVariable[]>;
@@ -162,23 +165,9 @@ export interface ComponentsApi {
   };
 }
 
-/**
- * The real `figma` satisfies the port — a COMPILE-TIME assertion, and the only one of the four write
- * lanes that needs one written out.
- *
- * The others are proven at their call site: `main.ts` passes `figma` / `figma.variables` straight into
- * `applyStylesPlan` and friends, so tsc checks satisfaction on every typecheck. This lane has no such
- * call site yet — materialising a component set is a designer ACTION with its own trigger, not part of
- * `apply-theme`, so wiring it is a separate concern (#483). Without this line the port could drift out
- * of structural satisfaction and the whole suite would stay green, with the failure surfacing the day
- * the lane is wired, inside Figma. `typeof figma` is a type position, so nothing here runs in Node.
- */
-type Assert<T extends true> = T;
-export type PortHolds = Assert<typeof figma extends ComponentsApi ? true : false>;
-
 /** What the component executor did — surfaced to the UI + asserted by the harness. Deliberately the
  *  same field set the paste payload returns, so the parity gate compares like with like rather than
- *  translating between two report shapes. */
+ *  translating between two report shapes — with ONE addition, `skipped`, documented on the field. */
 export type ComponentApplyResult = {
   /** The set's name, or `null` when nothing could be assembled (the one hard failure here). */
   set: string | null;
@@ -188,6 +177,19 @@ export type ComponentApplyResult = {
    *  and the first is the one worth noticing, since it means the set was already there. */
   variants: number;
   added: number;
+  /** Members that were ALREADY in the set and were skipped by name — the idempotent re-run's whole
+   *  story, as a COUNT.
+   *
+   *  It is already in `misses` as one `ALREADY PRESENT` line per member, and that is exactly why this
+   *  field exists rather than a caller counting those lines: a re-run of the full Button set puts 648
+   *  strings in `misses`, and the UI's verdict pill must not read "⚠ 648 misses" for a run that did
+   *  precisely what it was asked to. Deriving the count by matching the miss PROSE would make that
+   *  wording load-bearing — the same trap `apply-summary.ts` records for the theme write's summary. The
+   *  lines stay in `misses` for the parity gate, which compares the two executors' causes as sets.
+   *
+   *  The one field the paste payload does not return: a CHUNK cannot report this meaningfully, since it
+   *  sees only its own slice of the set. */
+  skipped: number;
   size: [number, number];
   /** rows × cols of the computed grid. */
   grid: [number, number];
@@ -444,8 +446,9 @@ export const applyComponentPlan = async (plans: AnatomyPlan[], api: ComponentsAp
   const byCell = new Map(cells.map((c) => [c.name, c] as const));
 
   const fresh: CompNode[] = [];
+  let skipped = 0;
   for (const spec of cells) {
-    if (have.has(spec.name)) { misses.push(`member ${spec.name} -> ALREADY PRESENT (skipped; this set has been written before)`); continue; }
+    if (have.has(spec.name)) { skipped++; misses.push(`member ${spec.name} -> ALREADY PRESENT (skipped; this set has been written before)`); continue; }
     const root = await build(spec.root);
     if (!root) continue;   // its own miss is already recorded, precisely
     api.currentPage.appendChild(root);
@@ -456,7 +459,7 @@ export const applyComponentPlan = async (plans: AnatomyPlan[], api: ComponentsAp
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');
-      return { set: null, id: '', variants: 0, added: 0, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, misses };
+      return { set: null, id: '', variants: 0, added: 0, skipped, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, misses };
     }
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
@@ -626,6 +629,7 @@ export const applyComponentPlan = async (plans: AnatomyPlan[], api: ComponentsAp
     id: String(set.id ?? ''),
     variants: members.length,
     added: fresh.length,
+    skipped,
     size: [set.width ?? 0, set.height ?? 0],
     grid: [rows, cols],
     axes: derived.map((k) => `${k}:${(defs[k]?.variantOptions ?? []).length}`),

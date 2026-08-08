@@ -100,6 +100,16 @@ export interface HostCommit {
    *  reusing #108 verbatim. Typed loosely (`unknown`) here to avoid a web→engine type import in
    *  the DOM layer; the plugin bridge + main thread carry the real `BrandInput` type. */
   postTheme(input: unknown): void;
+  /** Ask the host to materialise the Button component set onto the canvas (#483; Figma only, no-op on
+   *  web, which has no canvas to build onto).
+   *
+   *  NO ARGUMENT, unlike `postTheme`. The theme is what the UI's knobs describe, so it has to travel;
+   *  the component set is described by the DEF, which is compiled into the plugin's own bundle — the
+   *  main thread reads it directly and there is nothing for this layer to send. Scope (which variants
+   *  get built) is likewise the main thread's: `applyComponentPlan` takes a plan list, so scoping is
+   *  entirely which plans it passes, and an argument here would put a curation taxonomy on the wire
+   *  before anyone has chosen one. */
+  postComponents(): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -111,11 +121,16 @@ export interface HostCommit {
    *  different questions: `seed-info` is a boot fact ("what was already in this file"), `apply-result`
    *  is the outcome of an action the designer just took. Merged, an apply overwrote the boot summary
    *  with no way to tell which one the UI was showing, and the write's own result had no state of its
-   *  own to be pending in. One kind per fact; the UI keeps a slot per kind. */
+   *  own to be pending in. One kind per fact; the UI keeps a slot per kind.
+   *
+   *  `component-result` (#483) is a third kind of the same shape for the same reason: the theme write and
+   *  the component build are separate actions with separate buttons, so each needs a verdict slot of its
+   *  own — one cannot overwrite the other's. */
   onHostMessage(
     cb: (
       msg:
         | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
+        | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'seed-info'; ok: boolean; summary: string }
         | { kind: 'restore-input'; input: unknown }
         | { kind: 'restore-input-error'; message: string }
@@ -132,6 +147,9 @@ export interface HostCommit {
 /** The wire shape the iframe posts to the main thread. Kept in sync with the plugin's
  *  `messages.ts` `UiToMain` (`apply-theme`) — the bridge unwraps `{ pluginMessage }`. */
 type UiApplyMsg = { type: 'apply-theme'; input: unknown };
+/** Kept in sync with `messages.ts` `UiToMain` (`build-components`) — payloadless by design, see
+ *  `postComponents` above. */
+type UiComponentsMsg = { type: 'build-components' };
 /** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
 type UiResizeMsg = { type: 'resize-ui'; width: number; height: number; commit: boolean };
 
@@ -141,6 +159,9 @@ const figmaCommit = (): HostCommit => ({
   isFigma: true,
   postTheme(input) {
     parent.postMessage({ pluginMessage: { type: 'apply-theme', input } as UiApplyMsg }, '*');
+  },
+  postComponents() {
+    parent.postMessage({ pluginMessage: { type: 'build-components' } as UiComponentsMsg }, '*');
   },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
@@ -154,6 +175,11 @@ const figmaCommit = (): HostCommit => ({
         // the truncation this field exists to remove.
         const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ applied' : '✗ apply failed';
         cb({ kind: 'apply-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
+      } else if (m.type === 'component-result') {
+        // Same headline fallback, same reason (see above). The default says "built" without a count,
+        // because an older host that sends no headline sends no counts to put in one either.
+        const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ built' : '✗ build failed';
+        cb({ kind: 'component-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
       } else if (m.type === 'seed-info') {
         cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? '') });
       } else if (m.type === 'restore-input' && m.input) {
@@ -194,6 +220,7 @@ const figmaCommit = (): HostCommit => ({
 const webCommit = (): HostCommit => ({
   isFigma: false,
   postTheme() {/* web commits via the export bar (download design.md / tokens.json) */},
+  postComponents() {/* no canvas on web — the component tier is a Figma-only write */},
   onHostMessage() {/* no host messages on web */},
   requestResize() {/* the browser window is the user's to size on web */},
 });

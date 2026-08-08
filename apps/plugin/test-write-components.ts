@@ -413,6 +413,14 @@ ok(page.children.length === 1, `a second run appends into the SAME set rather th
 ok(r2.variants === 21 && r2.added === 0, `second run adds 0 and leaves 21 (added=${r2.added}, variants=${r2.variants})`);
 ok(r2.misses.length === 21 && r2.misses.every((m) => m.includes('ALREADY PRESENT')),
   `every skip is REPORTED rather than silent — 21 'ALREADY PRESENT' misses and nothing else (${r2.misses.length})`);
+// #483: the skips are also COUNTED, and that count is what stops the UI reading an idempotent re-run as
+// 21 failures. The count and the prose must agree — a `skipped` derived from anything but the skip branch
+// itself, or a branch that reports one and not the other, is the whole defect. Asserted on BOTH runs,
+// because a `skipped` that is simply `variants - added` would satisfy the re-run and be wrong on the first.
+ok(r2.skipped === 21, `every skip is counted, not just described (skipped=${r2.skipped})`);
+ok(r1.skipped === 0, `the first run skips nothing, so the count is not just a restatement of the member total (skipped=${r1.skipped})`);
+ok(r2.skipped === r2.misses.filter((m) => m.includes('ALREADY PRESENT')).length,
+  'the skip COUNT and the skip PROSE agree — the UI subtracts one from the other to get real misses');
 ok(r2.properties.length === r1.properties.length && r2.wiredMembers === 21,
   `re-running neither duplicates a property nor loses a reference (${r2.properties.length} props, ${r2.wiredMembers} wired members)`);
 ok(JSON.stringify(r2.size) === JSON.stringify(r1.size), `the box is unchanged by a no-op re-run (${r2.size.join('x')})`);

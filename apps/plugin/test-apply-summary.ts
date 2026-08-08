@@ -12,8 +12,13 @@
  * actionable fact leads); the plural is correct at 1 and at n; and every headline stays inside the
  * pill's budget — the length bound is the whole reason this field exists, so it is asserted rather
  * than assumed.
+ *
+ * Since #483 it covers `componentHeadline` too — the component build's verdict, same pill, four states.
+ * The one worth gating hardest is "ran and built nothing": `applyComponentPlan` is idempotent, so a
+ * re-run skips all 648 members by name, and a verdict that treated those skips as misses would report a
+ * working idempotent build as 648 failures.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline } from './src/apply-summary';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -58,6 +63,42 @@ ok(APPLY_FAILED_HEADLINE.length <= 24, `the throw headline fits too (${APPLY_FAI
 // No headline may be empty: the UI falls back to its own text on an absent/blank headline (for older
 // hosts), and a blank one from THIS host would take that path and silently claim a generic verdict.
 ok(worst.every((h) => h.trim().length > 0), 'no headline is blank (which the UI would replace with a generic verdict)');
+
+console.log('\ncomponent-result headline — the component build verdict (#483)\n');
+
+// The four states, distinct. `added`/`skipped`/`misses` — the caller passes three COUNTS, never prose.
+const cBuilt = componentHeadline(648, 0, 0);
+const cAgain = componentHeadline(0, 648, 0);
+const cMiss = componentHeadline(600, 0, 48);
+const cNone = componentHeadline(0, 0, 0);
+ok(new Set([cBuilt, cAgain, cMiss, cNone]).size === 4,
+  `all four component states render distinctly (${[cBuilt, cAgain, cMiss, cNone].join(' | ')})`);
+
+// THE ONE THAT MATTERS. A re-run adds nothing and skips every member; the executor reports each skip in
+// `misses` (they are one of its causes), which is why `main.ts` subtracts `skipped` before calling this
+// and why `skipped` is a separate count at all. If this ever reads as a warning, the supported action of
+// running the build twice reports as hundreds of failures.
+ok(cAgain === '✓ already built', `an all-skipped re-run is a verdict, not a warning (${cAgain})`);
+ok(!/miss/.test(cAgain) && !cAgain.includes('648'), 'the re-run verdict never renders the skip count as misses');
+
+ok(cBuilt.includes('648') && /built/.test(cBuilt), `a first build counts what it added (${cBuilt})`);
+ok(/miss/.test(cMiss) && cMiss.includes('48'), `misses lead over the added count (${cMiss})`);
+// Nothing assembled is distinct from a throw: this one HAS counts (all zero) and says the file is empty
+// of the set, where `APPLY_FAILED_HEADLINE` says the write did not complete and has nothing to report.
+ok(cNone !== APPLY_FAILED_HEADLINE && /nothing/.test(cNone), `nothing-assembled is its own verdict, not the throw (${cNone})`);
+
+// Same plural trap as the theme write's, in a second place — which is why it is asserted in both.
+ok(componentHeadline(1, 0, 0) === '✓ built 1 variant', `singular at one variant (${componentHeadline(1, 0, 0)})`);
+ok(componentHeadline(2, 0, 0) === '✓ built 2 variants', `plural at two (${componentHeadline(2, 0, 0)})`);
+ok(componentHeadline(0, 1, 1) === '⚠ 1 miss', `singular miss (${componentHeadline(0, 1, 1)})`);
+
+// The same 24-char pill, so the same range probe — and a wider one, because a component build's counts
+// are an order of magnitude larger than the theme write's (648 members × several bindings each).
+const cWorst = [0, 1, 2, 9, 99, 648, 999, 9999].flatMap((a) =>
+  [0, 1, 648, 9999].flatMap((s) => [0, 1, 48, 9999].map((m) => componentHeadline(a, s, m))));
+const cOver = cWorst.filter((h) => h.length > 24);
+ok(cOver.length === 0, `every component headline fits the 24-char pill budget (longest ${Math.max(...cWorst.map((h) => h.length))}: "${cWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
+ok(cWorst.every((h) => h.trim().length > 0), 'no component headline is blank (the UI would replace it with a generic verdict)');
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

@@ -7,19 +7,24 @@
  *   • `apply-theme` (carries the live `BrandInput` from the UI's knobs) → build the colour write
  *     plan + run #108's `applyWritePlan` against `figma.variables`, then report `apply-result` (a
  *     short headline for the UI's status pill + the full per-axis summary behind it).
+ *   • `build-components` (no payload — the def is compiled in) → project the Button def into the full
+ *     variant set and run #487's `applyComponentPlan` against the canvas, then report `component-result`.
+ *     Its own action rather than part of `apply-theme` (#483/#652): a theme apply is cheap and run after
+ *     every knob change, where this writes hundreds of nodes.
  *   • on `ui-ready` → run #109's read-back + verify and post `seed-info` (informational: does an
  *     existing Prism3 theme in this file pass the contract).
  *
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline } from './apply-summary';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { UiToMain } from './messages';
 import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-figma';
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
+import { applyComponentPlan } from './write-components';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '../../../Prism3/engine/emit-figma-color';
@@ -28,6 +33,8 @@ import { verifyReadback } from '../../../Prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
 import { brandTheme } from '../../../Prism3/engine/theme';
 import type { BrandInput } from '../../../Prism3/engine/theme';
+import { figmaAnatomySet } from '../../../Prism3/engine/anatomy-figma';
+import { button } from '../../../Prism3/engine/components/button';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
 // (the inlined `apps/studio/src` app; declared for the sandbox global in `figma-env.d.ts`). The shared
@@ -144,6 +151,70 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
 };
 
 /**
+ * The component set's placeholder swap target — a component NAME resolved in the FILE, not a def field.
+ *
+ * Which component fills a slot is a fact about the file rather than about the button (#513, measured
+ * live): the same def builds into a file whose placeholder icon is called anything, so the caller that
+ * knows the file nominates it. Absent from the file, every slot degrades to a placeholder frame and says
+ * so in the misses — a build that reports what it could not find, not one that refuses to run.
+ */
+const SWAP_TARGET = 'FPO-default-icon';
+
+/**
+ * Materialise the Button COMPONENT SET into this file (#483) — the component tier's write action.
+ *
+ * ITS OWN ACTION, NOT PART OF `applyTheme` (#652): a theme apply writes variables and is something a
+ * designer runs after every knob change, where this writes hundreds of nodes onto the canvas. The set
+ * also binds the variables by NAME, so `applyTheme` has to have run against this file first — a build
+ * into an unthemed file resolves nothing and reports every binding as a miss, which is the honest
+ * outcome rather than a guard.
+ *
+ * SCOPE IS THE FULL SET THE DEF MODELS — every variant `figmaProperties` declares (648 for Button:
+ * 3 intent × 3 appearance × 3 size × 6 state × 2 leading × 2 trailing). Deliberately not filtered
+ * here: `applyComponentPlan` takes `AnatomyPlan[]`, so scope is entirely which plans reach it, and an
+ * axis filter would be a curation taxonomy nobody has chosen. If a smaller default is wanted, this line
+ * is where it goes — nothing downstream needs to change.
+ *
+ * BUTTON BY NAME, not a catalogue loop, because `anatomy` is what makes a def materialisable and Button
+ * is the only def in the catalogue that has one. A loop over five defs would throw on four of them.
+ *
+ * The global `figma` satisfies `ComponentsApi` wholesale, so this call site is what proves that port on
+ * every typecheck — the same way the three sibling lanes are proven, and what retired
+ * `write-components.ts`'s hand-written `PortHolds` assertion.
+ */
+const buildComponents = async (): Promise<void> => {
+  try {
+    const plans = figmaAnatomySet(button, { swapTarget: SWAP_TARGET });
+    const r = await applyComponentPlan(plans, figma);
+    // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
+    // starved file can produce one miss per binding per member and the whole list is not a summary.
+    const missNote = r.misses.length
+      ? `, ⚠️ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
+      : '';
+    const summary = r.set === null
+      ? `nothing assembled — no set on this page and no member built${missNote}`
+      : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present), ` +
+        `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
+        `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
+        `${r.refs} refs across ${r.wiredMembers} members${missNote}`;
+    // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
+    // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
+    // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason
+    // the theme write's is — never by re-reading the prose above.
+    postToUi({
+      type: 'component-result',
+      ok: r.set !== null && r.misses.length === r.skipped,
+      headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped),
+      summary,
+    });
+  } catch (e) {
+    // `planSetLayout` throws on a set that could not be assembled coherently — before anything reaches
+    // the file. That is a def-tier or scope-tier error, and its message names the cause.
+    postToUi({ type: 'component-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `component build failed: ${(e as Error).message}` });
+  }
+};
+
+/**
  * Boot read-back (#109): read the current file's colour variables + verify the materialisation
  * contract, and hand the UI a summary. Informational — reports that an existing themed file's
  * contract holds; the actual knob-rehydration is `restoreToUi` (#131), which is independent.
@@ -219,6 +290,9 @@ onUiMessage((msg: UiToMain) => {
       return;
     case 'apply-theme':
       void applyTheme(msg.input);
+      return;
+    case 'build-components':
+      void buildComponents();
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

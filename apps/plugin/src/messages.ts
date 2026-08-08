@@ -13,9 +13,13 @@
  * #108's `applyWritePlan`, then reports `apply-result`. On boot the main thread runs #109's
  * read-back and posts `seed-info` (informational — an existing themed file's contract summary).
  *
- * `apply-result` and `seed-info` carry the same field shape and are deliberately DISTINCT variants.
- * The UI's adapter used to fold them into one, which made an apply indistinguishable from the boot
- * read-back at the receiving end — see the note on `apply-result` below.
+ * `apply-result`, `seed-info` and `component-result` carry the same field shape and are deliberately
+ * DISTINCT variants. The UI's adapter used to fold the first two into one, which made an apply
+ * indistinguishable from the boot read-back at the receiving end — see the note on `apply-result` below.
+ *
+ * The component tier (#483) rides the same bridge as its own action pair — `build-components` /
+ * `component-result` — because materialising a component set is a designer ACTION with its own trigger,
+ * not part of applying a theme (#652).
  */
 import type { BrandInput } from '../../../Prism3/engine/theme';
 
@@ -27,6 +31,23 @@ export type UiToMain =
   /** Materialise this brand into `figma.variables` (#108). Carries the live `BrandInput` from the
    *  shared UI's knobs; the main thread rebuilds the plan + runs the executor. */
   | { type: 'apply-theme'; input: BrandInput }
+  /** Materialise the Button COMPONENT SET into this file (#483) — the component tier's own action.
+   *
+   *  A SEPARATE ACTION FROM `apply-theme`, NOT a flag on it, and that is the decision rather than a
+   *  detail (#652). `apply-theme` writes variables and styles: it is idempotent, cheap, and something a
+   *  designer runs after every knob change. Building a component set writes hundreds of nodes onto the
+   *  canvas, and doing that on every theme apply would make the cheap action expensive and the canvas
+   *  unpredictable. The set also depends on the variables existing first, so the two are ordered rather
+   *  than merged.
+   *
+   *  NO PAYLOAD, deliberately. `apply-theme` carries the live `BrandInput` because the theme is what the
+   *  UI's knobs describe; the component set is described by the DEF, which is compiled into this bundle —
+   *  so the main thread reads it directly and there is nothing for the UI to send. Scope (which variants
+   *  get built) is likewise not here: `applyComponentPlan` takes `AnatomyPlan[]`, so scoping is entirely
+   *  a question of which plans the main thread passes, and an axis filter on the wire would be inventing
+   *  a curation taxonomy the owner has not chosen. If scoping is wanted later it is a field on this
+   *  message, against the same entry point. */
+  | { type: 'build-components' }
   /** Designer is dragging the UI's resize grip (#144). Sent continuously during the drag so the
    *  window tracks the pointer; `commit` is true only on pointer-up, which is when the main thread
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
@@ -46,6 +67,18 @@ export type MainToUi =
    *  would make the summary's wording load-bearing, and the next edit to it would silently change what
    *  the pill claims. */
   | { type: 'apply-result'; ok: boolean; headline: string; summary: string }
+  /** Result of a `build-components` write (#483) — the same `{ok, headline, summary}` shape as
+   *  `apply-result`, and a DISTINCT variant for the same reason `seed-info` is: one kind per fact.
+   *
+   *  Two writes, two questions. "Did my theme land in this file's variables" and "is the Button set on
+   *  this page" are separately true, separately actionable, and separately stale — and the two actions
+   *  have their own buttons, so each needs a state of its own to be pending in. Folded into
+   *  `apply-result`, a component build would overwrite the theme write's verdict with a verdict about
+   *  something else, which is exactly the defect that split `seed-info` off in the first place.
+   *
+   *  `headline` obeys the same ≤24-char pill budget (`componentHeadline`, gated in
+   *  `test-apply-summary.ts`); `summary` carries the counts and the misses behind it. */
+  | { type: 'component-result'; ok: boolean; headline: string; summary: string }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below. */
   | { type: 'seed-info'; ok: boolean; summary: string }

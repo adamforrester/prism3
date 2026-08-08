@@ -7,6 +7,94 @@
 
 ---
 
+## (2026-08-07) — The component lane gets a trigger: `applyComponentPlan` had no caller (#483)
+
+**STATUS: shipped.** #483's five build steps were all done and **nothing called any of them** — the plugin's
+bridge had `apply-theme` and no component message at all. This is the call site: a `build-components` /
+`component-result` message pair, a `buildComponents` handler in `main.ts`, and a **Build Button set** control
+beside Apply to Figma. Tests 2040/0 (engine) with 3 new gates; plugin 9 suites; `regen --check` **104,
+byte-identical** — this adds no tokens and no artifacts.
+
+**The gap was a dated liability, not just an omission.** #652 had to hand-write a `PortHolds` compile-time
+assertion *because* the lane had no call site: without it the `ComponentsApi` port could drift out of
+satisfaction with the whole suite green, surfacing inside Figma the day someone wired it. Wiring the trigger
+retires that — `buildComponents` passes the global `figma` straight into `applyComponentPlan`, so the port is
+now proven on every typecheck exactly the way the three sibling write lanes are. `PortHolds` is **deleted**
+rather than left beside it: two mechanisms for one guarantee is one mechanism that stops being maintained.
+
+**`figmaAnatomySet` is new engine code, and the reason is that `main.ts` would have been a FOURTH copy.**
+Three `test.ts` call sites already hand-wrote the same six nested loops (intent × appearance × size × state ×
+leading × trailing). A fourth inside `main.ts` would have been the one copy **no test in this repo can
+reach** — `main.ts` calls `figma.showUI` at module scope, so it is unimportable, which is the same reason
+`apply-summary.ts` exists as its own module. So the loops moved into the engine where a gate can see them.
+It **throws** on an axis it cannot project rather than iterating around it: silently omitting an axis is the
+189-vs-756 defect from #487 §5 in a new place — the set builds, every member is named, and one axis of the
+component is simply absent with nothing saying so.
+
+**The gate compares against the hand-written loops, not against `figmaVariantCount`.** Both of those derive
+from the same `figmaProperties` declaration, so comparing them is a gate agreeing with itself (doc 34's core
+shape — and the *exact* shape recorded three entries above this one, where `projected === 189` was computed
+from the declaration it was checking). The count is asserted as the **literal 648**, a number a reviewer has
+to change on purpose, and the plans are asserted **byte-identical to the six loops, in order**. Mutation-
+tested both ways: pinning the `trailing` axis to `[false]` fails 3 assertions **by name** (648→324), and
+`if (false && unprojectable.length)` fails the refusal assertion by name. Green means something here.
+
+**`skipped` is a COUNT on the result, and that is a correctness fix, not a convenience.** `applyComponentPlan`
+is find-or-create + skip-by-name, so a re-run skips all 648 members and reports each in `misses` — which is
+right, since the parity gate compares miss causes *as sets*. But routed to the pill through `applyHeadline`,
+a working idempotent build reads **"⚠ 648 misses"**. The fix is a count the UI subtracts, plus a separate
+`componentHeadline` with a fourth state the theme write cannot reach: *ran and deliberately built nothing*.
+The alternative — regex-matching `ALREADY PRESENT` out of the miss prose — is the trap `apply-summary.ts`
+already documents for the theme summary, where re-parsing prose makes its wording load-bearing.
+
+**ONE detail row, not two.** Both write pills now open a disclosure, and the row lives in the chrome where
+everything sticky below is positioned from `--chrome-h`. Two independently-openable rows would both be
+pushing that height around, and worse, could leave the theme write's counts sitting under a component verdict
+with nothing saying which was which. So `applyDetailOpen: boolean` became `openDetail: 'apply' | 'components'
+| null` — one discriminant, read by both the pill and the row, so the row cannot show a summary whose pill is
+not the open one.
+
+**THE HONEST RISK, and what I actually measured.** The #652 parity gate is **offline**: it proves the two
+writers agree with each other, not that Figma accepts a set this size. So I probed live, at the scale, in
+`Prism Test File v2` on a scratch page removed afterwards (0 leftover):
+- **Figma accepts 648 members and 6 variant axes.** 648 minimal components → `combineAsVariants` → one set,
+  648 members, all six axes derived with the right value counts (`intent:3, appearance:3, size:3, state:6,
+  leading:2, trailing:2`), 2.4s. The scale *mechanism* is real, not assumed.
+- **What is still NOT verified, plainly: `applyComponentPlan` has never run against real Figma at any
+  size.** The probe above used bare frames — it answers "does a set this big combine", not "does the real
+  anatomy bind". I stopped there deliberately: the full run is **2,106 nodes** with per-member font loads,
+  and `figma_execute` caps at 30s. A timeout mid-run strands hundreds of components in a real file, which is
+  a worse outcome than an unproven claim. **Do not read this entry as live coverage of the write path.**
+- **The number that argues for this lane existing:** the paste path needs **50 chunks** at 648 (850KB of
+  payload against a 42KB wire budget). The plugin path has no wire limit at all.
+
+**Two facts about the executor worth knowing before pressing the button.** Find-or-create is
+`api.currentPage.findOne(…)` — **page-scoped**, so running it on a second page creates a second set. And the
+set binds variables **by name**, so Apply to Figma has to have run against this file first; a build into an
+unthemed file reports every binding as a miss. Both are existing behavior, surfaced rather than changed —
+the honest outcome, not a guard.
+
+**Scope is the full 648 the def models, deliberately unfiltered.** `applyComponentPlan` takes
+`AnatomyPlan[]`, so scope is entirely *which plans reach it* — one line in `buildComponents`, and the wire
+message carries no payload at all. No axis-filter UI, no per-intent curation taxonomy: those are decisions
+nobody has made, and putting one on the wire would settle it by accident. **The datum the decision needs:**
+the full set lays out **324 rows × 2 columns** (`planSetLayout` makes the last varying axis the columns —
+`trailing`, with 2 values). Figma's own guidance is ~30 per set; the largest live paste to date is 21.
+
+**Named for Button, honestly.** `anatomy` is what makes a def materialisable and Button is the only def in
+the catalogue that has one — text-field, icon-button, field-label and field-message do not. A control saying
+"Build components" would promise four it cannot build, and a catalogue loop would throw on four of five.
+
+**A latent type defect this surfaced, fixed rather than folded in silently.** `button.ts` has authored
+`notes.evolution` prose that `component-schema.ts` never declared. It was invisible because **nothing under
+a tsconfig imported a component def** — `test.ts` runs through `tsx`, which does not typecheck, and CI
+typechecks only `@prism3/studio` and `@prism3/plugin`. The new `main.ts` import pulled `button.ts` into
+`tsconfig.main.json` for the first time and it failed immediately. Fixed by declaring the field (deleting
+authored content to satisfy a type would be the wrong repair). Worth noting the general hole: the engine's
+component defs are **typechecked by nothing** unless a surface happens to import them.
+
+---
+
 ## (2026-08-07) — `Tokens/` → `reference/`: the capital T had already spent a decision (#649)
 
 **STATUS: shipped.** 48 files moved (git recorded all 48 as pure renames — **0 insertions, 0
@@ -160,11 +248,14 @@ side) and the literal `'COMPONENT'[]` for the parameter (`string[]` is not assig
 read positions get `unknown` and are narrowed at the call site, beside the criteria that make the cast
 true.**
 
-`PortHolds` is an explicit compile-time assertion, and this is the only one of the four write lanes that
-needs one written out. The others are proven at their `main.ts` call site on every typecheck. This lane
-has no call site yet — materialising a set is a designer **action** with its own trigger, not part of
-`apply-theme` (#483) — so without that line the port could drift out of satisfaction with the whole
-suite green, and the failure would surface the day the lane is wired, inside Figma.
+`PortHolds` was an explicit compile-time assertion, and at the time this was the only one of the four
+write lanes that needed one written out. The others are proven at their `main.ts` call site on every
+typecheck. This lane had no call site — materialising a set is a designer **action** with its own trigger,
+not part of `apply-theme` (#483) — so without that line the port could drift out of satisfaction with the
+whole suite green, and the failure would surface the day the lane was wired, inside Figma.
+**Retired by #483**, which wired the trigger: `buildComponents` passes the global `figma` straight into
+`applyComponentPlan`, so the port is now proven exactly the way the three siblings are. Two mechanisms for
+one guarantee is one mechanism that stops being maintained.
 
 **THE SHIM'S OWN LESSON, arrived at from a fourth direction.** It is modelled on the engine's
 `figmaStub` deliberately — two executors judged by two *different* host models would be comparing the
