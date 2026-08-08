@@ -39,7 +39,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 ## Scope (#108 — the write adapter)
 
 - ✅ **`src/write-figma.ts` — `applyWritePlan(plan, figma.variables)`**: the live executor for the
-  engine's host-neutral `WritePlan` (`../packages/engine/write-plan.ts`). Same pure colour-materialisation
+  engine's host-neutral `WritePlan` (`../../packages/engine/write-plan.ts`). Same pure colour-materialisation
   core the CLI paste-path (`materialise-to-figma.ts`) uses; a real executor instead of a JS-string emitter.
 - ✅ **Idempotent** find-by-name → update in place (via the async `getLocalVariables*Async` getters
   required under `dynamic-page`). Three passes: `core-palette` (hidden primitives) → `color` create
@@ -54,7 +54,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 
 - ✅ **`src/read-figma.ts` — `readFigmaVariables(figma.variables)`**: the inverse of `applyWritePlan`.
   Reads `core-palette` + `color` back into the engine's host-neutral `ReadbackSnapshot`
-  (`../packages/engine/read-back.ts`), resolving each alias to its target variable NAME. Uses the same
+  (`../../packages/engine/read-back.ts`), resolving each alias to its target variable NAME. Uses the same
   async getters, and shares the `VariablesApi` port with the write executor.
 - ✅ **`verifyReadback(snapshot)`** (pure, engine) — ports the `materialise-to-figma` verify contract:
   modes distinct (collapse-guard), aliases resolve, slot scopes, field family present, retired/renamed
@@ -65,7 +65,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
 
 ## Scope (#110 — one build, two outputs: the no-fork capstone)
 
-- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../apps/studio/src/main.ts` into
+- ✅ **The iframe IS the shared `apps/studio/src` UI** — `apps/plugin/build.mjs` bundles `../../apps/studio/src/main.ts` into
   `dist/ui.html` (host=figma), retiring the placeholder. The same source the standalone web app builds;
   not a second UI. `tsconfig.ui.json` repoints at the shared UI so the DOM-clean/no-plugin-typings check
   runs on what's bundled.

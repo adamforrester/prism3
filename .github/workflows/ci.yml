@@ -175,3 +175,12 @@ jobs:
       # all three documents, checked against the real file rather than a restated list.
       - name: Docs stay in sync with this workflow's gates
         run: npx --yes tsx@4 packages/engine/lint-doc-gates.ts
+
+      # The sibling problem, one level out: the gate above keeps the CHECKLISTS honest, this one keeps
+      # the LAYOUT DESCRIPTIONS honest. #651, #663 and #669 each shipped a doc describing a repo that
+      # did not exist, and two of the three were ABSENCES — a missing `skills/` row, which no sweep for
+      # wrong strings can find. So it runs both directions: every path a doc claims must resolve
+      # (against `git ls-files`, from the doc's own directory), and every tracked layer must be named
+      # in the tables that promise to describe the repo.
+      - name: Docs describe the repo that exists
+        run: npx --yes tsx@4 packages/engine/lint-layout-claims.ts

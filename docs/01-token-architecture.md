@@ -1,7 +1,7 @@
 # Prism3 — Token Architecture
 
 > **Status:** v0.1 draft for review · **Date:** 2026-06-19
-> Prism3 is a white-label design system delivered as a **brand-generation engine**: a brand is a small, validated input set that the engine expands into a complete, contract-compliant token layer for design, code, docs, and AI agents. This document is the architecture spec. The companion contract lives in `../schema/theme-schema.json`.
+> Prism3 is a white-label design system delivered as a **brand-generation engine**: a brand is a small, validated input set that the engine expands into a complete, contract-compliant token layer for design, code, docs, and AI agents. This document is the architecture spec. The companion contract lives in `../packages/engine/schema/theme-schema.json`.
 
 ---
 
@@ -282,7 +282,7 @@ Rules:
 
 ## 7. The Theme Schema contract
 
-A brand is defined by a **small validated input set**. Below five inputs, brands suffer *visual collapse* (become indistinguishable). The discipline: **start at five, expand to six on a strong need, resist the seventh.** Full JSON Schema in `../schema/theme-schema.json`; worked example in `../schema/theme-schema.example.json`.
+A brand is defined by a **small validated input set**. Below five inputs, brands suffer *visual collapse* (become indistinguishable). The discipline: **start at five, expand to six on a strong need, resist the seventh.** Full JSON Schema in `../packages/engine/schema/theme-schema.json`; worked example in `../packages/engine/schema/theme-schema.example.json`.
 
 **Required (the five):**
 1. **`primaryColor`** — OKLCH seed. Engine generates the full ramp, contrast-pinned text-on-primary pairs, and accent semantics by formula.
@@ -400,4 +400,4 @@ The export bridges Figma slash-paths (`prism/color/action/primary/hover`) ↔ DT
 
 ---
 
-*Companion files: `../schema/theme-schema.json` (the contract), `../schema/theme-schema.example.json` (a worked brand input). Knowledge-base sources: 02, 12, 15, 22, 23, 24, 31, 33, 34.*
+*Companion files: `../packages/engine/schema/theme-schema.json` (the contract), `../packages/engine/schema/theme-schema.example.json` (a worked brand input). Knowledge-base sources: 02, 12, 15, 22, 23, 24, 31, 33, 34.*

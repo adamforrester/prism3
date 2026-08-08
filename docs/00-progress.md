@@ -7,6 +7,146 @@
 
 ---
 
+## (2026-08-08) — A gate for the stale-description class: the docs must describe the repo that exists (#670)
+
+**STATUS: PR open, all 19 gates green** (18 + the one this adds). New gate
+`packages/engine/lint-layout-claims.ts`, wired into `ci.yml` + `CLAUDE.md` §4 + `CONTRIBUTING.md` §3 + the
+PR template together. `regen --check` unchanged at **104** — this adds no emitted artifact.
+
+**The hole, stated as the three PRs that fell through it.** #651 shipped a `CLAUDE.md` layer table with
+bare `web/` and `plugin/` rows after those directories moved under `apps/`. #663 shipped
+`../Prism3/docs/NN` in each app's README — correct from two levels down, and deleting the `Prism3/`
+segment made it `apps/docs/NN`; its own verifier missed it by resolving from the repo root. #669 shipped a
+root `README.md` with **no `skills/` row at all**. `docs/**` was in no gate's scope, so all three reported
+nothing.
+
+**Two of those three are ABSENCES, and that is the entire design constraint.** No sweep for wrong strings
+finds a row that is not there. So the gate runs both directions:
+
+| | direction | catches | arm |
+|---|---|---|---|
+| **1** | every path a doc CLAIMS must exist | #663 (relative, wrong depth) · #651 (bare, stale) | A · B |
+| **2** | every tracked layer must be NAMED in the tables promising to describe the repo | #669 (a row that isn't there) | C |
+
+Direction 1 alone would have caught two of the three and been structurally silent on the third. Recorded
+in `docs/34` beside the existing both-directions rule (#387), because this is that rule one scale up —
+there the two directions were within a gate's promise list, here they are the two questions a whole gate
+can ask.
+
+**Resolved against `git ls-files`, never `existsSync`, and that is not a style preference.** Untracked
+rename residue makes the filesystem lie: after #669 a stale `Prism3/` survives in local checkouts as
+`.DS_Store` leftovers, so `existsSync('Prism3')` returns true for a directory no GitHub reader can see.
+#653 measured it — `dead=[]` in the shared checkout, `dead=["web/"]` in a pristine worktree, same commit.
+The tracked list is also the independent half of every comparison: **exists** comes from git, **claimed**
+comes from parsing the document. Two sources, two readers, neither derived from the other.
+
+**THE SCOPE RULE, DECLARED — and it was chosen from a measurement, not from taste.** The obvious
+detector, "resolve every path-shaped token from the doc's own directory," reported **109 unresolved refs
+across 7 documents**, essentially all false. The reason is worth keeping: docs mix conventions freely —
+`apps/plugin/README.md:5` writes `apps/studio/src`, a *root*-relative path in prose, which read
+doc-relative becomes `apps/plugin/apps/studio/src`. Narrowing that scan to make the noise go away is how a
+gate dies, so the shape of the claim was made the detector instead:
+
+- **Arm A — explicitly relative refs (`../`, `./`) only, outside fenced blocks, every tracked `.md`.** An
+  explicitly relative ref is the *one* form that can only mean "from HERE", so it is the one form whose
+  depth is checkable — exactly the property #663 broke. 109 → **25 refs** on the final tree, of which 18 were real defects when the gate first ran.
+- **Arm B/C — three declared layout regions**, resolved from the repo root: `README.md` §Layout,
+  `CLAUDE.md` §What this repo is, `docs/09` §3. **The membership rule: a region is a layout PROMISE when
+  it is a table or tree whose subject is the repo's own top-level structure** — a reader goes to it to
+  learn what the directories are. A region with no stated membership rule is the thing that drifts next.
+
+**The deliberate exclusions, each with its reason, because those are the half that rots.** `docs/35` §2 is
+a **proposal** tree naming `Prism3/`, `Tokens/` and three unbuilt packages with "(was: web)" rename
+annotations — gating it would demand a dated decision record be true today, which destroys the record.
+`docs/09` §1 is a decision tree in prose, not an enumeration. A per-workspace README describes one
+workspace's internals and makes no top-level claim, so Direction 2 asks nothing of it — but it is fully in
+arm A's scope, which is where its real defects were. Exempt by genre: `docs/00-progress.md`,
+`docs/superpowers/`, `docs/35`. **The two known-legitimate survivors fall out by design rather than by
+regex luck**: `docs/11:201` (`Prism3/reference/`) and `docs/12:96` (`Prism3/export/`) are **bare** paths in
+forward-looking body prose, so no arm looks at them at all.
+
+**Three extractors, because a claim has three shapes — and two of them were forced by measurement.** A
+table claim is the **first cell only**: the first column *is* the promise, while the description beside it
+legitimately names `superpowers/` and `lint-skills.ts` without full paths (checking whole rows produced
+four false positives). A tree claim tracks the **glyph-gutter depth**, so `├── engine/` under `packages/`
+resolves to `packages/engine` — without that, every member of `docs/09` §3 reads as absent; its root line
+(`prism3/`) names the containing repo and is consumed as the origin, and entries below the tree's blank
+line (`brand-skills/`, `knowledge-base/`) are separate upstream repos, not claims about this one.
+
+**WHAT IT FOUND ON `main` — 18 live defects, all fixed here because CI cannot go green otherwise.** This
+is the gate's first real catch, not incidental cleanup:
+
+| where | count | what |
+|---|---|---|
+| `apps/plugin/README.md` | 3 | `../packages/engine/write-plan.ts`, `../read-back.ts`, `../apps/studio/src/main.ts` → `apps/packages/…`, `apps/apps/…`. **The #663 class still live**: traced through `dd19994` → `b1c978a`, #661 deleted the `Prism3/` segment and left the single `../`. `apps/studio/README.md` used `../../` correctly, which is why one file was fixed and the other was not. |
+| `docs/01-token-architecture.md` | 5 | `../schema/theme-schema.json` + `.example.json` — correct when `docs/` and `schema/` were siblings; #650 moved `schema/` under `packages/engine/`. |
+| `docs/02-nb-regression-pass.md` | 10 | `../schema/nb-measured.json` and `../engine/{emit-dtcg.ts,modes.ts,out/*.tokens.json,…}`, same mechanism. |
+
+Every target exists at its new location, so all 18 were depth/segment fixes, not missing files. No further
+pile surfaced — the corpus is clean at 0 after these, which is why this is fixed inline rather than filed.
+
+**VALIDATION — the three historical replays, each failing by name, on an otherwise-green tree.** A new
+gate passing on a clean tree proves nothing:
+
+| replay | mutation | result |
+|---|---|---|
+| **#651** | restore `CLAUDE.md`'s bare `web/` + `plugin/` rows | **ARM B** names `web/`→`web`, `plugin/`→`plugin` **and ARM C** reports `apps/studio/`, `apps/plugin/` unrepresented |
+| **#663** | restore `../Prism3/docs/09-…md` in `apps/studio/README.md` | **ARM A**: `→ apps/Prism3/docs/09-…md` |
+| **#669** | delete the `skills/` row from `README.md` §Layout | **ARM C only**: "`README.md` §Layout never names: `skills/`" — **zero dead claims**, because every remaining row is valid |
+
+The third is the load-bearing one. Failing on **arm C alone with no arm-B finding** is the proof this is a
+real Direction-2 gate and not a Direction-1 gate wearing a Direction-2 name.
+
+**The converse, equally required.** A correct doc passes (the whole corpus, exit 0). A dated record naming
+a dead path does **not** fail — and that exemption is not vacuous: commenting it out (mutation verified
+applied by re-grepping the file) produces **12** real-run arm-A findings, all of them history entries
+describing the layout as it was. The self-check caught the mutation *before* the real run, because it
+asserts the exemption predicate directly rather than only its downstream effect — so I neutralized that
+assertion too in order to reach and measure the real run.
+
+**Self-check asserts the CLASS, in both directions, driving the shipped functions.** 7 groups: subject
+derivation (containers expand to members, dot-dirs excluded); `resolveWithin` on the #663 trap *and* on
+the corrected ref; arm A flags the wrong depth / passes the right one / ignores fenced code; arm B flags a
+bare stale first cell / passes a correct row / ignores the description column; the tree extractor keeps
+nesting, skips the root line, stops at the blank line; **arm C flags a deleted row and a new undocumented
+workspace, and passes a complete table**; `trackedHas` answers from the tracked list. Floors: ≥5 subjects,
+≥20 markdown files, ≥10 relative refs, and **≥3 claims per region** — a region that extracts nothing
+passes every assertion below it, which is the shape this floor exists to prevent.
+
+**Membership, not totals, per the repo's most-repeated defect class.** Arm C compares resolved path *sets*,
+so the tree's nested `engine/` and the table's `packages/engine/` answer the same question. A count could
+not: "9 paths verified" is true of a table that lost `skills/` and gained a duplicate — #669 exactly.
+`layoutSubjects` derives the workspace containers from `package.json`'s `workspaces` globs, so a new
+workspace becomes a required subject the day it lands rather than the day someone remembers.
+
+**One consequence to know before it surprises someone: adding a workspace under `apps/` or `packages/` now
+requires editing three tables in the same PR** (`README.md`, `CLAUDE.md`, `docs/09` §3). That is the gate
+working, not friction to route around — but it is a new obligation, so it is stated in `CLAUDE.md` §4
+rather than left to be discovered as a red build.
+
+**Known limit, recorded rather than papered over.** A bare stale path in ordinary prose — `web/src/main.ts`
+in a sentence — is caught only inside a layout region. Catching it everywhere means treating every
+path-shaped token as a claim, which is the 109-false-positive measurement above, and the fix for that noise
+would be narrowing the scan. A gate nobody can keep green is worse than a stated gap.
+
+**It then caught two things in this PR's own additions, which is the best evidence in the entry.** My
+`docs/34` register row quoted `../schema/theme-schema.json` as *evidence* of the defect, and arm A rightly
+read it as a claim — reworded, because a register row does not need to reproduce a dead path to describe
+one. The second was a **real gate bug**: `docs/34` discusses relative depth by quoting a bare `../`, which
+resolves from `docs/` to the repo root, and `trackedHas` was rejecting the empty path — reporting the repo
+root as untracked, a false positive with no fix available in the doc. Fixed in `trackedHas` rather than
+exempted, and the fix carries its own fixture: inverting it makes the self-check fail by name. The
+temptation here was the one the issue warns about — the cheap move is an exemption, and the exemption would
+have hidden a genuine bug in the resolver.
+
+**Basis of every count here.** 104 artifacts: `regen.ts --check` output. 7 subjects / 25 refs / 57 files in
+scope / 6 exempt: the gate's own summary line. 109 and 18: probe scripts run against `git ls-files` before
+and after the fixes. 12: the exemption-removed run. 19 gates: `lint-doc-gates.ts` reports 19
+contributor-facing steps in `ci.yml` after this PR, up from 18 — and removing this gate's line from
+`CONTRIBUTING.md` §3 makes `lint-doc-gates` fail by name, which is how the wiring was verified rather than
+assumed. `check:consumability` reports 14 `[object Object]` values here because this branch is off
+`origin/main`. #671 (#642) merged mid-work and takes it to 2; this branch is rebased onto it, so on the
+final tree the figure is **2**.
 ## (2026-08-08) — Scored against the field's AI-readiness audit (docs/36, new)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New
