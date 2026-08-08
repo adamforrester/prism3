@@ -27,7 +27,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
-import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount } from './emit-dtcg-overlay';
+import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
@@ -8582,7 +8582,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(modes.length >= 3, `overlay: every declared mode is found by walking the tree (${modes.join(', ')})`);
 
   const base = buildBase(t);
-  ok(leafCount(base) === leafCount(t), `overlay: the base carries every leaf (${leafCount(base)}/${leafCount(t)})`);
+  // #642: the base carries every DTCG-typed leaf — not every leaf. The subtrahend is derived by walking
+  // the canonical tree for leaves the SPEC does not define, so this still fails if a conforming token
+  // goes missing; it is not the count relaxed into "whatever the base happens to hold".
+  const nonConformingIn = (n: unknown): string[] => {
+    if (!n || typeof n !== 'object') return [];
+    const o = n as Record<string, any>;
+    if ('$value' in o) return DTCG_TYPES.has(o.$type) ? [] : [String(o.$type)];
+    return Object.entries(o).filter(([k]) => !k.startsWith('$')).flatMap(([, v]) => nonConformingIn(v));
+  };
+  const nonConf = nonConformingIn(t);
+  ok(nonConf.length > 0, `overlay: the canonical tree DOES carry non-DTCG types (${[...new Set(nonConf)].join(', ')}) — the omission below is not vacuous`);
+  ok(leafCount(base) === leafCount(t) - nonConf.length,
+    `overlay: the base carries every DTCG-typed leaf (${leafCount(base)}/${leafCount(t) - nonConf.length} = ${leafCount(t)} − ${nonConf.length} non-DTCG) (#642)`);
+
+  // THE #642 CONTRACT, asserted on the function rather than only through a Style Dictionary build: no
+  // leaf in the projection carries a type the spec does not define. Checked against DTCG_TYPES, not by
+  // looking for `spring` — the rule is about conformance, and a future non-standard type must fail it
+  // without anyone editing this test.
+  ok(nonConformingIn(base).length === 0,
+    `overlay: the base projection carries ZERO non-DTCG types${nonConformingIn(base).length ? ` — ${[...new Set(nonConformingIn(base))].join(', ')}` : ''} (#642)`);
+  // ...and the omission prunes the group rather than leaving `"spring": {}` behind, which would conform
+  // while advertising a vocabulary the file does not carry.
+  const groupAt = (tree: unknown, path: string[]): any => path.reduce<any>((acc, k) => acc?.[k], tree);
+  ok(groupAt(t, ['prism', 'motion', 'spring']) !== undefined,
+    'overlay: the canonical tree has a motion.spring group (the pruning check below is not vacuous)');
+  ok(groupAt(base, ['prism', 'motion', 'spring']) === undefined,
+    'overlay: the emptied group is PRUNED from the base, not left as `{}` (#642)');
+  ok(groupAt(base, ['prism', 'motion', 'easing']) !== undefined,
+    'overlay: ...and its conforming siblings survive — the pruning is not eating the parent');
   // THE CONTRACT of the base: no `modes` survives. If it did, a consumer reading the base could still
   // find a second value it is silently ignoring — which is the exact defect the projection exists to
   // remove, and the base would be the canonical tree wearing a different filename.

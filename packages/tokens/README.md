@@ -78,24 +78,55 @@ unnoticed.
 for four. The page-background check reads the root off each brand's own tree and compares the
 canonical build against that brand's dark projection, rather than asserting a hard-coded color.
 
-## What widening it found: `[object Object]`
+## What widening it found: `[object Object]`, and the split that fixed half of it
 
-Fourteen values across the corpus reach the CSS as the literal string `[object Object]` — Style
-Dictionary's output for a composite type it has no transform for.
+Widening the gate to all four brands (#635) found **fourteen** values reaching the CSS as the literal
+string `[object Object]` — Style Dictionary's output for a composite type it has no transform for.
 
 | type | brands | count | note |
 |---|---|---|---|
 | `spring` | all four | 3 each | a Prism3 type with no DTCG equivalent, so no consumer has a transform for it |
 | `gradient` | `aurora` | 2 | a **standard DTCG composite type** — a conforming consumer reading a conforming type gets garbage |
 
-**Three of them are in `nb`, the brand the gate already measured.** It reported 556 leaves → 556
+**Three of them were in `nb`, the brand the gate already measured.** It reported 556 leaves → 556
 variables, a perfect 1:1, while three of those 556 were unusable. The count was right and the output
 was broken — which is the precise shape of defect a count is structurally unable to see, and the
-reason the value-integrity assertion now exists.
+reason the value-integrity assertion exists at all.
 
-These are **pinned, not fixed** (#642): #635 is about measuring all four brands, and each defect it
-surfaces gets its own decision, the same way #609 came out of measuring one. Widening the pin to make a future
-failure go away would be the same move as adding a preprocessor — it ends the measurement.
+**#642 split those fourteen in two, because only one half was ours,** and the split matters more than
+the twelve tokens it moved:
+
+| | value | kind |
+|---|---|---|
+| **emitter-side** — non-DTCG `$type`s in the conforming projection | **0**, asserted | a **RULE** — fails the day another non-standard type ships |
+| **consumer-side** — standard types a stock SD cannot serialize | **2** (`aurora` gradients), pinned | a **MEMORY** — genuinely not ours |
+
+`spring` left the projection. Those files exist to make a conformance promise (#609), and a type no
+consumer can resolve makes the promise false while producing a garbage value in the same stroke. It
+stays in the canonical `<brand>.tokens.json`, which is deliberately extension-based and ours — so the
+corpus total is now **2**, not 14.
+
+`gradient` did not move, and **our token was never wrong**: it is an array of stops carrying `color`
+and `position`, exactly the DTCG shape. Style Dictionary's `css` transformGroup simply ships no
+gradient handler. Both candidate "fixes" are worse than the gap — pre-serializing a CSS string would
+make our output **non-conforming**, and shipping a gradient transform is what the NO CUSTOM CODE rule
+forbids. That rule governs what **we** ship; a consumer writing their own transform is their
+configuration, not our adapter. So it stays measured as a documented consumer gap.
+
+Note what the emitter-side check is derived from: **each emitted `$type` compared against the DTCG
+spec list, not a count of `[object Object]`.** That is not a stylistic preference — a corruption count
+is *structurally* blind to a non-standard type whose value is scalar. Measured, through this same stock
+config:
+
+```
+--prism-motion-elevation-step: 4;     /* $type: "elevation" — invented, non-standard */
+--prism-motion-grid: 8;               /* $type: "gridUnit"  — invented, non-standard */
+```
+
+Clean CSS, zero corruption, promise just as broken. A pinned count can only remember what was true when
+someone wrote it down; a rule fails on the next one. Widening either number to make a failure go away is
+the same move as adding a preprocessor — it ends the measurement. `docs/34` §10 carries the general
+shape.
 
 ## Independence
 
@@ -103,7 +134,13 @@ Per CLAUDE.md principle 4 and `docs/34`: `leaves` is counted by walking the **so
 parsing the **emitted CSS**. Two different artifacts, read two different ways. Deriving one from the
 other would make the 1:1 collapse undetectable — which is the single thing this gate exists to see.
 
-Mutation-verified. Three mutations, three caught:
+The two `DTCG_TYPES` lists are the same rule stated twice, and that is deliberate. The engine's copy
+(`emit-dtcg-overlay.ts`) DECIDES what to project; this gate keeps its own. Importing the engine's would
+make the emitter-side rule unfalsifiable — adding a type there would put it back in the projection
+**and** simultaneously teach the gate that it conforms, so the assertion would pass while the promise
+broke. Two independent transcriptions of a published spec is the point, not duplication to clean up.
+
+Mutation-verified. Nine mutations, nine caught:
 
 | mutation | caught by |
 |---|---|
@@ -112,7 +149,9 @@ Mutation-verified. Three mutations, three caught:
 | the selector changed (simulating a mode fix) | the exact-selector assertion |
 | an overlay carries base values, not the mode's | the per-mode `actually differs from base` assertion |
 | a brand leaves the corpus | the `[SCOPE]` by-name assertions |
-| the corrupt-value scan is disabled | the per-brand `[CORRUPT]` pins |
+| a non-DTCG `$type` reaches the projection | the `[RULE]` per-`$type` assertion, naming the paths (#642) |
+| the consumer-side gradient count moves | the `[CONSUMER-GAP]` pin (#642) |
+| a conforming token vanishes from the base | the by-name absentee check — *exactly* the non-DTCG tokens are absent, so a missing `color.*` fails rather than being excused as "a subset" (#642) |
 | the token root is hard-coded to one dialect | the page-background check, on the three `prism`-rooted brands |
 
 The first two survived the gate's first draft, which counted only names. Counting cannot see values,

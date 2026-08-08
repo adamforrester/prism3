@@ -5,9 +5,12 @@
  *  - NB regression  -> nbds.* / rgb()  (byte-comparable to the real NB tokens)
  *  - Prism product  -> prism.* / hex    (DTCG-aligned, Style-Dictionary-ingestible)
  *
- * Every emitted $type is a standard DTCG type EXCEPT `spring` (3 tokens) — an
- * intentional custom type, since DTCG has no spring type yet. SD ingests it
- * (unknown types pass through) but it needs a downstream platform transform.
+ * Every $type in the CANONICAL tree is a standard DTCG type EXCEPT `spring` (3
+ * tokens) — an intentional custom type, since DTCG has no spring type yet. That
+ * tree is extension-based and ours, so a type of ours belongs in it. The
+ * conforming projection beside it (`buildOverlaySet`) omits `spring` instead: it
+ * exists to make a conformance promise, and a type no consumer can resolve makes
+ * the promise false while producing `[object Object]` in the same stroke (#642).
  *
  * Two axes: colour (primitive ramps + per-mode semantic aliases) and dimension
  * (a primitive grid + space/radius semantics that alias into it). Each primitive

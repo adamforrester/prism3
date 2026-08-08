@@ -7954,53 +7954,6 @@
           }
         }
       },
-      "spring": {
-        "snappy": {
-          "$type": "spring",
-          "$value": {
-            "damping": 0.9,
-            "stiffness": 700
-          },
-          "$description": "spring snappy — damping 0.9, stiffness 700",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "customType": "spring",
-              "note": "no DTCG type for springs yet; provide a platform transform downstream"
-            }
-          }
-        },
-        "gentle": {
-          "$type": "spring",
-          "$value": {
-            "damping": 0.8,
-            "stiffness": 380
-          },
-          "$description": "spring gentle — damping 0.8, stiffness 380",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "customType": "spring",
-              "note": "no DTCG type for springs yet; provide a platform transform downstream"
-            }
-          }
-        },
-        "bouncy": {
-          "$type": "spring",
-          "$value": {
-            "damping": 0.6,
-            "stiffness": 800
-          },
-          "$description": "spring bouncy — damping 0.6, stiffness 800",
-          "$extensions": {
-            "prism3": {
-              "generated": true,
-              "customType": "spring",
-              "note": "no DTCG type for springs yet; provide a platform transform downstream"
-            }
-          }
-        }
-      },
       "transition": {
         "default": {
           "$type": "transition",
@@ -12782,7 +12735,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

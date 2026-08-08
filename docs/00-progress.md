@@ -7,6 +7,143 @@
 
 ---
 
+## (2026-08-08) — The conforming projection actually conforms, and one pin became a rule (#642)
+
+**STATUS: PR open, all 18 gates green.** The projection (`<brand>.base.tokens.json` + overlays, #609)
+now omits non-DTCG `$type`s, which today means `spring` — **12 leaves across the corpus, 3 per brand**
+(basis: a `$type === 'spring'` leaf walk over each canonical tree; the same walk over each base file
+now returns 0, and over each canonical file still returns 3). `ENGINE_VERSION` 0.5.0 → 0.6.0.
+`CONTRACT_VERSION` stands at 3.0.0 — confirmed by `token-contract.ts --check`, not asserted.
+
+**One step the brief did not anticipate, recorded because the reflex it tests is the wrong one.** The
+`ENGINE_VERSION` bump makes `token-contract.ts --check` go red, since the committed baseline stamps the
+engine version alongside the name surface. It fails *informatively*: `informational fields only (no
+guaranteed path moved — no version bump required)`. The right response is an explicit
+`--accept`, which the gate permits precisely because no guaranteed path moved — and it would have
+*refused* had one moved without `CONTRACT_VERSION` rising first. Resulting diff: one line, `0.5.0` →
+`0.6.0`, with `contractVersion` 3.0.0 and 497 guaranteed paths identical on both sides. Re-checked
+green afterward. The reflex to resist is adding this baseline to `regen.ts` to stop the red recurring —
+that is the one thing CLAUDE.md principle 5 forbids, because a baseline that regenerates itself would
+agree with a deletion and take both gates green with it.
+
+**The 14 `[object Object]` values #635 found split cleanly in two, and only one half was ours.** That
+split, not the twelve tokens, is the change worth reading:
+
+| | value | kind |
+|---|---|---|
+| **emitter side** — non-DTCG `$type`s in the projection | **0**, asserted | a **RULE** |
+| **consumer side** — standard types stock SD cannot serialize | **2** (`aurora` gradients), pinned | a **MEMORY** |
+
+`spring` was the real defect and it is a *conformance* defect, not a value one. Those two files exist
+to make a promise — readable with no custom code — and a `$type` outside the spec makes the promise
+false while producing a garbage value in the same stroke. It stays in the canonical
+`<brand>.tokens.json`, which is deliberately extension-based and ours, and stays in the name contract.
+
+`gradient` needed nothing. **Our gradient already conforms** — an array of stops carrying `color` and
+`position`, exactly the DTCG shape. Style Dictionary's `css` transformGroup simply ships no gradient
+handler and falls back to `String(value)`. Both candidate fixes are worse than the gap: pre-serializing
+a CSS string would make our output *non-conforming*, and shipping a gradient transform is precisely
+what the NO CUSTOM CODE rule forbids — that rule governs what **we** ship; a consumer writing their own
+transform is their configuration, not our adapter. So it was reclassified from an emitter defect to a
+documented consumer gap, which is a change of *label*, and the label is what makes the other half
+assertable at zero.
+
+### The part worth getting right: what the gate measures
+
+The old gate pinned one number per brand and called all of it `[CORRUPT]`. Splitting it was
+straightforward; **deriving the emitter half correctly was not, and the obvious version is wrong.**
+
+Checking "zero `[object Object]` in the projection" would pass today and would keep passing through the
+next violation, because corruption is *how `spring` happened to present*, not the property being
+promised. Probed against the same stock config, two invented non-standard types with scalar values:
+
+```
+--prism-motion-elevation-step: 4;     /* $type: "elevation" */
+--prism-motion-grid: 8;               /* $type: "gridUnit"  */
+```
+
+Clean CSS. Zero corruption. Promise just as broken. So the assertion reads **each emitted `$type`
+against the DTCG spec's list of types** — a rule fails on the next one, where a pinned count can only
+remember what was true when someone wrote it down. Filed as `docs/34` **§10, "the oracle measures
+today's symptom instead of the rule."** It gets a sub-shape but **no register row**: nothing escaped, and
+the register is the auditable count of things that did.
+
+**The two `DTCG_TYPES` lists are duplicated on purpose, and this needs to survive a tidy-up.** The
+engine's copy (`emit-dtcg-overlay.ts`) *decides* what to project; `check-consumability.mjs` keeps its
+own. Importing the engine's into the gate would make the rule unfalsifiable in the exact way `docs/34`
+§2 describes — adding a type there would put it back in the projection **and** simultaneously teach the
+gate that it conforms, so the assertion would stay green while the promise broke. Both cite the spec;
+neither cites the other. If they disagree, the disagreement is the finding. Said in a comment in both
+files, because the second derivation *is* the gate.
+
+### Mutations — four, each failing by name
+
+Per `docs/34`: not "does the suite go red" but "is *my* gate among the failures."
+
+| mutation | result |
+|---|---|
+| engine `DTCG_TYPES` gains `'spring'` | `[RULE]` fails per brand, **naming the 3 paths** |
+| `CONSUMER_GAP.aurora` 2 → 1 | the pin fails **and** so does the derived canonical-corruption assertion |
+| `buildBase` keeps non-conforming leaves | 3 engine assertions fail by name |
+| empty-group pruning disabled | the group-pruning assertion fails by name (`"spring": {}`) |
+
+Clean restore confirmed after each. The engine-side assertions matter independently of the gate: a
+contract of a function belongs in a test of that function, not only in a gate three artifacts
+downstream. `test.ts` 2040 → 2045, including a **non-vacuity** check — the canonical tree really does
+carry non-DTCG types, so `leafCount(base) === leafCount(t) - nonConf.length` is not comparing a number
+to itself.
+
+**One assertion needed fixing properly rather than excusing.** After the change, the base-vs-canonical
+value-drift check failed on all four brands (`3 differ, e.g. --prism-motion-spring-snappy`). The cheap
+fix — skip keys missing from the base — would have turned a value check into "the projection contains
+nothing it shouldn't," and a conforming token quietly vanishing would then read as a pass. Instead
+absence is asserted **by name** against the expected non-conforming set, and values are compared over
+what remains: `exactly the non-DTCG tokens are absent`. A missing `color.*` fails. (Cost of getting
+there: `varOf` first stripped the token root, so 3 correctly-absent names reported as `UNEXPECTED` —
+SD's `name/kebab` keeps the root, `--nbds-motion-spring-snappy`. Verified against the real emitted CSS
+rather than reasoned about; the mistake is recorded beside the regex.)
+
+### Artifacts — 104, and which ones moved
+
+Basis: a SHA-256 baseline recorded **before** the change over regen's full universe, built from
+`regen.ts`'s own three lists (99 under `out/` + 3 `SCHEMA_ARTIFACTS` + 2 `ENGINE_ARTIFACTS` = 104) —
+*not* by walking `out/`, which yields 99 and would have excluded the 5 artifacts most likely to move.
+
+- **104 total, 0 added, 0 removed, 8 moved.** Plus `schema/token-contract.json`, which is deliberately
+  *not* a regen artifact (principle 5) and so is outside that 104 — it moved by one line, the engine
+  stamp, via an explicit `--accept`. Counted separately because conflating them is how a baseline ends
+  up regenerating itself.
+- 4 × `*.base.tokens.json` — **+1 / −48** each. The 48 are the three `spring` leaves and their now-empty
+  group; the 1 is the version stamp. Every removed line is spring-shaped — checked by filtering the diff
+  for spring keys and confirming nothing else survives the filter.
+- 4 × canonical `*.tokens.json` — **+1 / −1**, the version stamp and nothing else. Diffed to confirm.
+- Canonical trees still carry 3 `spring` leaves each. If they had lost them, the removal was in the
+  wrong place.
+
+Consumability corpus total **14 → 2**, the 2 being `--prism-gradient-brand` and `--prism-gradient-glow`.
+
+### Prose sweep — the defect class that bit the last three PRs
+
+The gate change makes a previously-*true* sentence false in several shipped surfaces, none of which
+contain the word `spring`, and one of which is a resolved decision record. A literal search does not
+find those; a description going stale without containing the swept literal is the recurring shape.
+Updated: `CLAUDE.md` §4 · `CONTRIBUTING.md` §3 · `.github/pull_request_template.md` ·
+`packages/tokens/README.md` (kept the 14-value table as history, added the RULE/MEMORY table) ·
+`emit-dtcg.ts`'s header, whose "SD ingests it (unknown types pass through)" was still true of the
+canonical tree and no longer true of the projection · **`docs/03-open-questions.md` Item 7**, which
+resolved in June to *keep* `spring` and is not reversed here — amended in place, because the reasoning
+there was about the tree that is ours and does not extend to a file that promises conformance.
+
+Also corrected while there: `packages/tokens/README.md`'s mutation table said "Three mutations, three
+caught" over six rows. Now nine over nine.
+
+**Nothing here decides springs' future**, and the write-up says so deliberately so a later reader does
+not think a decision about spring physics was smuggled into a conformance fix. `spring` is a real part
+of the motion vocabulary. If DTCG ever standardizes it, `spring` joins `DTCG_TYPES` and the projection
+gains those twelve tokens back with **no other change** — the fix is correct either way.
+
+---
+
 ## (2026-08-08) — `Prism3/skills` → `skills/`, and `Prism3/` is gone (#650 PR 3)
 
 **STATUS: PR open, all 18 gates green. The #650 decomposition is COMPLETE** — #661 moved the engine to
