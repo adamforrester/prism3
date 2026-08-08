@@ -7,6 +7,96 @@
 
 ---
 
+## (2026-08-08) — Decision: `Prism3/` decomposes, because a dependency should not be a path (#650)
+
+**STATUS: decision recorded, no files moved.** This PR is two document amendments and nothing else — zero
+code, zero renames. The decision is the owner's; this records it so PRs 1–3 have a brief. Full gate list run
+anyway (the point of the list): `regen --check` **104 byte-identical**, `lint-doc-gates` clean.
+
+**The argument that carries it is not aesthetic.** Every surface reaches the engine by counting directories —
+`import { brandTheme } from '../../../Prism3/engine/theme'` — which expresses a dependency as **filesystem
+depth**. Measured: **59 relative chains** across tracked files at **two different depths** — 34 × `../../../`
+from `apps/*/src/`, 25 × `../../` from the plugin's tests one level up — the spelling decided by where the
+importing file happens to sit. One of them is `packages/tokens/sd.consumer.mjs`: a **third** surface, in a third
+workspace, already counting directories to find the engine. **A compiler cannot see a wrong count of `../`**;
+it sees only whether the path resolves. #648 broke on
+exactly that twice in one PR — `typeRoots` depth, and `readFileSync` paths that were not imports — and *both
+passed typecheck*. As `@prism3/engine` the count disappears and is identical from every surface. Doc 19 plans
+`@prism3/web-components` and `@prism3/react`; doc 35 §5 anticipates AEM and Drupal. Each new surface otherwise
+adds its own relative chain to the same engine: **the fragility scales with adoption**, which is the wrong
+property for a project about to go from zero users to many.
+
+**This supersedes §8's "the benefit is cosmetic" verdict, and the reason it was wrong is worth keeping.** That
+verdict measured the churn correctly and it has only grown (467 references now, re-measured on `66c4990`: 289
+markdown, 77 functional, 11 in `ci.yml`, 215 files inside — the amendment states what "functional" counts,
+because #658's review re-derived it two other defensible ways that differ by 2×, and an unlabeled number is
+the defect there, not the arithmetic). What it got wrong is one clause — *"revisit only if
+it ever publishes"* — which hangs the decision on outside consumers, when the cost is paid by every surface we
+build ourselves. It was also written before the engine had a component-write lane, a Style Dictionary consumer,
+and two framework packages on the roadmap.
+
+**And §8's subject did not exist.** `Prism3/` is not the engine; it is six unrelated things held together by
+having been the first directory: `engine/` 154 files, `docs/` 39, `fixtures/` 9, `schema/` 7, `examples/` 3,
+`skills/` 2. Only `engine/` is package-shaped, so the move was never available as stated. A repo named `prism3`
+containing a directory named `Prism3` is a tautology — the name carries no information, so the capitalization
+question dissolves instead of being answered. `schema/`, `examples/` and `fixtures/` go **inside**
+`packages/engine/`: the spike proved that is required, not tidiness — as siblings every `../schema` breaks;
+inside, they are `./schema` and the package is self-contained.
+
+**The spike settled the one thing that could have redirected this: the buildless invariant survives.**
+`exports` is *configuration, not a build*, and npm's workspace symlink satisfies `tsc`, esbuild and `tsx`
+alike. Measured rather than reasoned about — named subpaths resolve with no `paths` mapping and non-vacuously
+(a deliberate `ramp-NOPE` errors), the studio bundles, the plugin typechecks in both contexts with **0 `node:`
+builtins**, `regen --check` **104 byte-identical**.
+
+**Three PRs, because they have different risk profiles and bundling them hides which one broke something:**
+engine (**functional** — all payoff, all risk), docs (**editorial** — no functional risk, but 39 numbered docs
+joining a `docs/` that already holds `superpowers/` is a real call), skills (**a shipped surface** — moves both
+the thing checked and `lint-skills`' scope).
+
+**Two hazards recorded as the brief, both found by the spike rather than predicted.** (a) Sibling references
+exist in **four syntactic forms** — string literal, path segments, template literal, repo-root-anchored — and
+the spike found them *one at a time, each after fixing the last*, because each sweep was written for the form
+in front of it. Anchor on the **sibling name**, not the syntax; sweep once; assert zero survivors across all
+four. Same shape as #648's bare-directory blindness (#651), and `Prism3/` is more exposed because 289 of 467
+references are prose, where the slashless form is how the name gets written. (b) **A rename can silently
+disable a gate whose detector is anchored on the old name** — `lint-skills.ts:163`'s hardcoded
+`/Prism3\/…\.ts/g` stopped matching when the sweep rewrote its fixtures but not its detector.
+
+**Hazard (b) is stated as a rule rather than a file list, and #658's review is why.** My first draft named 9
+gate files and a count — and **omitted `apps/studio/vercel-ignore.sh`**, whose 5 hardcoded occurrences are the
+most dangerous in the repo: its header says `exit 0` → SKIP, so a stale path there does not fail, it silently
+stops deploying engine changes. The rule that replaces the list — *every non-`.md` file carrying the literal is
+a candidate; triage by whether failure is **loud** (imports, `resolve()`) or **silent** (detectors, globs,
+trigger lists)* — finds that file **by construction**, along with `.claude/settings.json` and the issue
+template, which the list also missed. 48 non-`.md` files carry it; ~18 are silent. **A count invites
+transcription; a rule invites a sweep.** The review found it by sweeping instead of recalling, which is the
+whole argument.
+
+**And its checker has no self-check, which produced the sharpest instance of shape 9 yet.**
+`vercel-ignore-check.mjs:46` locates what it audits with `.filter((p) => p.includes('Prism3/engine/'))`.
+Repointing that one literal, nothing else moved, prints `0 engine files in the bundle … ✓ clean` — **zero found,
+reported as a pass**, with the count in its own output and nothing comparing it to anything. Not a wrong answer
+but a *true statement about an empty set*: "no bundled engine file is on the skip list" is unfalsifiable once no
+file is recognized as bundled. PR 1 owes it the one-line fix (**assert the recognized set is non-empty**) *before*
+the sweep, so the gate can defend itself during it. Generalized in doc 34: any detector that reports a count is
+one comparison away from being able to fail.
+
+**That hazard is now shape 9 in `34-gate-independence.md`, with four register rows.** It is deliberately not
+shape 2 — shape 2's tell is *one function both sides call*, and here nothing is shared; the detector and
+subject are independent and the gate can fail. What couples them is a **string**: the oracle is not derived
+from the subject, it is *addressed* to it, and the address went stale. Nor is it scope silence, which is a gate
+that never looked — this one looked everywhere it promised and found nothing to see, so a representation check
+would have passed. The fixes differ, which is why the distinction earns a section. Both instances survived
+**only because someone had already built the self-check this doc argues for**, which is the file's own thesis
+arriving as evidence. #657 is filed in the same family as the wider version, where the stale address is not
+even in the gate: component defs typechecked by whichever tsconfig a surface happens to import them through —
+**a check whose reach is an accident of another thing's structure rather than a declared scope.** Also fixed a
+`#568` instance inside the file that documents it: the sub-shapes header read "Six shapes" over eight sections,
+so the prose count is gone rather than corrected, matching the register's own stated policy.
+
+---
+
 ## (2026-08-07) — The component lane gets a trigger: `applyComponentPlan` had no caller (#483)
 
 **STATUS: shipped.** #483's five build steps were all done and **nothing called any of them** — the plugin's
