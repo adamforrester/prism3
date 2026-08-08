@@ -270,6 +270,32 @@ The fix is one assertion — **the recognized set is non-empty** — and it gene
 detector that reports a count is one comparison away from being able to fail. If a gate can say *"I
 examined N things,"* something should care what N is.
 
+**#659 audited every count-printing gate against that rule, and the result corrects a claim worth
+correcting.** A prior review reported "5 of 9 guard nothing." The number was wrong and the *way* it was
+wrong is the durable part: it counted a gate as guarded if it had **a floor at all**. Three do —
+`lint-doc-gates.ts`'s `candidates.length < 10`, and `walkRequired` in both prose gates, which pushes to
+`blind` on an empty directory. But those guard that the gate **opened files**, which is
+*representation* — and representation is the fix for scope silence, not for this shape. **A dead detector
+over a full directory satisfies every one of them.** Read the distinction off the two prose gates, because
+they are the pair that makes it concrete: `lint-us-english.ts` drives the real `enGb` from `SELF_CHECK`, so
+emptying its pattern list fails with five samples named — that is detector liveness, and it is why the
+gate survived the spike's rename. `walkRequired` had nothing to do with it. **Audit for liveness, not for
+the presence of a floor**; they are separate properties and a gate can have either without the other.
+
+What the audit actually found, by measurement rather than by reading: four gates whose printed count
+nothing compared — `vercel-ignore-check.mjs` (the instance above), both `nb-regression.ts` populations,
+and the two suites' `N passed` headline. Both prose gates, `lint-doc-gates.ts`, `lint-classes.mjs`,
+`lint-contrast.mjs`, `token-contract.ts` and `check-consumability.mjs` were already able to fail — several
+because an earlier instance in this register had already taught them to.
+
+**The trap that made two of these survive so long is worth its own sentence, because a drift gate looks
+like it covers them.** `nb-regression.ts` writes a committed report, so emptying its check population
+*does* turn `regen --check` red. But `regen`'s remedy — printed in its own failure output, and the first
+command in `CLAUDE.md` §4 — is `npx tsx regen.ts`, which rewrites the report to say `0/0` and takes all 18
+gates green. **A drift gate defends the artifact, not the claim**: once the artifact stops making the
+claim, there is nothing left to drift from. Anything whose evidence is a regenerated file needs its floor
+in the *generator*.
+
 **Why this is not shape 2.** Shape 2's tell is that *you can point at one function both sides call* — a
 shared derivation. Nothing is shared here; the detector and the subject are genuinely independent
 expressions, and the gate is perfectly capable of failing. What couples them is a **string**. The
@@ -345,6 +371,8 @@ independence failures — counted because they are the same silence from a diffe
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-08 | `test.ts` + `mcp-test.ts` headline count (#659) | 9 | **`0 passed, 0 failed`** and `✓ … all hold`, exit 0 — the largest claim CI makes, compared to nothing |
+| 2026-08-08 | `nb-regression.ts` contract + dimension populations (#659) | 4 | **`0/0 contrast contracts`, `0/0 dimensions`** inside a PASS verdict — and `regen`'s own remedy commits it |
 | 2026-08-08 | `vercel-ignore-check.mjs:46` bundle filter (#658 review) | 9 | **`0 engine files in the bundle` … `✓ clean`** — no self-check, and its subject skips deploys on `exit 0` |
 | 2026-08-08 | `lint-skills.ts:163` engine-ref regex (#650 spike) | 9 | the detector matching nothing after its fixtures were renamed |
 | 2026-08-08 | `lint-us-english.ts` surface map (#650 spike) | 9 | same rename, same silence, minutes later |
