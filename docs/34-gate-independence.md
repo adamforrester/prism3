@@ -18,7 +18,7 @@ instance was found by a person or an agent mutating code by hand. The live count
 added two rows the day after the audit closed.
 
 Each is already written down — in a comment beside the gate, in a
-`Prism3/docs/00-progress.md` entry, sometimes both. That is right for the specific trap and wrong for
+`docs/00-progress.md` entry, sometimes both. That is right for the specific trap and wrong for
 the pattern: **the next person to collapse a gate into its subject will be reading a different
 file**, and the comment that would have warned them sits in the one they are not reading. A dozen
 instances across a dozen files is the signal that this needs a home someone can find *before* writing

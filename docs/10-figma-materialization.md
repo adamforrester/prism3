@@ -321,7 +321,7 @@ border-width). The **4** uncovered — `motion`, `breakpoint`, `grid`, `containe
    `color/action/default` flips `palette/accent/600` (azure) →
    `palette/neutral/600`; every non-zero radius (`sm`/`md`/`lg`/`round`) flips
    its bound `dimension/N` alias → `dimension/0` so corners square off.
-   Screenshot at `Prism3/docs/assets/wireframe-specimen.png`. The parked
+   Screenshot at `docs/assets/wireframe-specimen.png`. The parked
    **aurora + wendys full-materialise** follow-up from #50 remains open (its
    own PR — end-to-end variable-artefact import for both brands, not just the
    wireframe subset). Once that lands, the [Figma-emitter] queue's only

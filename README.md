@@ -16,7 +16,8 @@ re-resolve.
 
 | Path | What it is |
 |---|---|
-| [`Prism3/`](Prism3/) | The **generation engine** — a brand is a small validated input that expands into a full token tree, AI metadata, and platform outputs (DTCG + Figma). Start here for engine work. See [`Prism3/README.md`](Prism3/README.md). |
+| [`packages/engine/`](packages/engine/) | The **generation engine** — a brand is a small validated input that expands into a full token tree, AI metadata, and platform outputs (DTCG + Figma). Buildless and dependency-free; consumed by name as `@prism3/engine`. Start here for engine work. See [`packages/engine/README.md`](packages/engine/README.md). |
+| [`docs/`](docs/) | The **design record** — the numbered design docs (the architecture spec, the decisions log, the open questions) plus `superpowers/` working notes. |
 | [`reference/`](reference/) | The **legacy hand-built tokens** — Prism2 (`nbds.pds.*`) and New Balance, in two parallel formats (Figma variable export + DTCG). The engine's regression target, not a build output. |
 | [`apps/studio/`](apps/studio/) | The **theme studio** — a browser host over the engine's shared lever/preview contracts, deployed at the link above. See [`apps/studio/README.md`](apps/studio/README.md). |
 | [`apps/plugin/`](apps/plugin/) | The **Figma plugin** — the write host over the same engine core, split across Figma's two isolated contexts (main thread + UI iframe) with a typed message bridge between them. See [`apps/plugin/README.md`](apps/plugin/README.md). |
@@ -69,7 +70,7 @@ checklist lives in [`CONTRIBUTING.md`](CONTRIBUTING.md) §3.
 ## Where to go next
 
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — the workflow, the gates in full, how to brief an agent on this repo, and where each kind of durable state lives.
-- [`Prism3/docs/00-progress.md`](Prism3/docs/00-progress.md) — status, the decisions log, and prioritized next steps (read this for handoff).
-- [`Prism3/docs/07-e2e-journey.md`](Prism3/docs/07-e2e-journey.md) — the designer ↔ developer ↔ agent pipeline and the portable-core architecture.
-- [`Prism3/docs/10-figma-materialization.md`](Prism3/docs/10-figma-materialization.md) — the `emit-figma` contract (the Figma-target shape).
-- [`Prism3/README.md`](Prism3/README.md) — the engine architecture spec + Theme Schema contract.
+- [`docs/00-progress.md`](docs/00-progress.md) — status, the decisions log, and prioritized next steps (read this for handoff).
+- [`docs/07-e2e-journey.md`](docs/07-e2e-journey.md) — the designer ↔ developer ↔ agent pipeline and the portable-core architecture.
+- [`docs/10-figma-materialization.md`](docs/10-figma-materialization.md) — the `emit-figma` contract (the Figma-target shape).
+- [`docs/01-token-architecture.md`](docs/01-token-architecture.md) — the architecture spec + Theme Schema contract.

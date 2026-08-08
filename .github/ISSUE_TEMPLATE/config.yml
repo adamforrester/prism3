@@ -4,8 +4,8 @@ contact_links:
     url: https://github.com/adamforrester/prism3/blob/main/CONTRIBUTING.md
     about: Workflow, the gates every PR must clear, and how to brief an agent on this repo.
   - name: Status, decisions, and what shipped
-    url: https://github.com/adamforrester/prism3/blob/main/Prism3/docs/00-progress.md
+    url: https://github.com/adamforrester/prism3/blob/main/docs/00-progress.md
     about: The durable state log. Read the latest entries before opening an issue — it may already be decided.
   - name: Future ideas (discovery, not yet scoped)
-    url: https://github.com/adamforrester/prism3/blob/main/Prism3/docs/27-future-ideas.md
+    url: https://github.com/adamforrester/prism3/blob/main/docs/27-future-ideas.md
     about: Pre-scoped ideas live here, not in the tracker. Add an idea there; open an issue once it's actionable.

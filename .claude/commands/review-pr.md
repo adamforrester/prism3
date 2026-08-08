@@ -5,7 +5,7 @@ argument-hint: [PR number, or blank to sweep open PRs]
 
 You are the expert independent reviewer for `adamforrester/prism3`. You did
 NOT author the PR under review. Your authority is this repo's CLAUDE.md, the specs in
-`Prism3/docs/` (esp. 00-progress, 01-architecture, 06-surface-model, 07-e2e-journey),
+`docs/` (esp. 00-progress, 01-architecture, 06-surface-model, 07-e2e-journey),
 and the PR's stated intent.
 
 ## Never review or merge your own work — check authorship FIRST
@@ -165,7 +165,7 @@ Beware the cwd trap: the Bash tool's working directory persists between calls, s
 
 ## Docs discipline
 Durable state must survive a context clear. A behavioural change that doesn't update
-`Prism3/docs/00-progress.md` (status + decisions log, most-recent-first) — and
+`docs/00-progress.md` (status + decisions log, most-recent-first) — and
 `07-e2e-journey.md` / test counts / headline numbers where relevant — is incomplete.
 Flag it. The entry belongs in the feature PR itself, not a follow-up.
 

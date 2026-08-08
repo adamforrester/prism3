@@ -1,6 +1,6 @@
 # @prism3/studio — the web dashboard
 
-The first **rendering host** over the Prism3 engine core (see `../Prism3/docs/09-architecture-and-repos.md`
+The first **rendering host** over the Prism3 engine core (see `../../docs/09-architecture-and-repos.md`
 and `08-theming-interfaces.md`). It imports the same pure engine modules the Figma
 plugin will, and renders from the shared contracts:
 

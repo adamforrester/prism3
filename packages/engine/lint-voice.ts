@@ -1,7 +1,7 @@
 /**
  * Voice-standard gate for SHIPPED text (#617).
  *
- * `Prism3/docs/voice-standard.md` §2 bans a short list of phrases on every surface it names —
+ * `docs/voice-standard.md` §2 bans a short list of phrases on every surface it names —
  * "shipped prose: UI strings, emitted artifacts, docs, marketing" — and states the scope
  * explicitly: "Code comments are exempt, matching the existing US-English carve-out in
  * CLAUDE.md." This gate is the mechanical enforcement of that table; before it, §2 was a rule a
@@ -22,7 +22,7 @@
  * DUPLICATED here rather than extracted into a shared module. `lint-us-english.ts` is a delicate,
  * heavily self-documented file with five numbered traps behind it; lifting shared logic out from
  * under it risks destabilizing a gate that is currently correct, to save roughly 60 lines. See
- * `Prism3/docs/00-progress.md` for the fuller tradeoff note.
+ * `docs/00-progress.md` for the fuller tradeoff note.
  *
  * WHAT IS DIFFERENT FROM lint-us-english.ts's DETECTION:
  *
@@ -300,7 +300,7 @@ if (gatedHits.length) {
     for (const h of hs.slice(0, 8)) console.error(`    ${h.line}: [${h.rule}] "${h.match}"  …${h.context}…`);
     if (hs.length > 8) console.error(`    … and ${hs.length - 8} more`);
   }
-  console.error(`\n    See Prism3/docs/voice-standard.md §2. A false positive is fixed by widening an`);
+  console.error(`\n    See docs/voice-standard.md §2. A false positive is fixed by widening an`);
   console.error(`    allow-set (e.g. JUST_ALLOWED), never by narrowing the scan.\n`);
 } else {
   console.log('  ✓ clean — no banned voice-standard §2 phrases in any shipped surface.');

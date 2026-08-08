@@ -23,7 +23,7 @@ labels: type:task
 
 <!-- The gap, in a paragraph. Name the files and functions that already exist and
      what they do, so whoever picks this up doesn't re-derive it. Link the doc
-     section (Prism3/docs/NN) that grounds it. -->
+     section (docs/NN) that grounds it. -->
 
 ## Why now / blocked by
 

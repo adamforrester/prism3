@@ -351,6 +351,47 @@ assumption baked into the layout — the layout above supports all three.
     just the references** — the question is not "which paths changed" but "which procedures assumed the
     old shape." The same applies to any future PR that adds a workspace package.
 
+  **What PR 2 actually hit (2026-08-08).** `Prism3/docs` → `docs/`, and it confirmed the sequencing
+  argument above paid for itself: because the destination was settled *before* PR 1, this PR did not
+  re-sweep a single cross-reference PR 1 had already touched.
+
+  - **The dominant risk was the edit this PR must NOT make.** The prose already wrote `docs/NN` about
+    ten to one, so the move repaired **592** references and broke **61**. A sweep that normalized the
+    bare form into `Prism3/docs/NN` on its way past would have broken 592 while looking like tidying,
+    and **nothing in CI reads a markdown cross-reference.** The load-bearing check was therefore a
+    before/after count in both directions (bare **592 → 600** naive / **550 → 583** anchored, prefixed
+    **61 → 36**, of which 8 are this write-up naming the move) — not a gate, because no gate exists for
+    this. Any future prose move should assert the
+    same way, and should carry *two* bases: the naive and anchored bare-form counts differ by exactly
+    the prefixed-numbered count (592 − 550 = 42) because the naive pattern also matches the tail of
+    `Prism3/docs/NN`. One number would have hidden that; the reconciliation is what makes either
+    trustworthy.
+  - **The one defect the sweep introduced was relative depth, and PR 3 will face it identically.**
+    `apps/{studio,plugin}/README.md` held `../Prism3/docs/NN` — correct from two levels down. Deleting
+    the `Prism3/` segment, right everywhere else, yielded `../docs/NN` = `apps/docs/NN`. **A path-segment
+    deletion is not depth-preserving, so sweeping one is not a string operation.** Worse, the first
+    verification pass missed it because it resolved every reference *from the repo root*, which is true
+    of `../docs/NN` as a string and false of it as a path. **Validate a relative reference against its
+    containing directory or the check is vacuous** — a Shape-9 gate (a true statement about the wrong
+    set). The corrected resolver: 89 references checked, 12 unresolvable, all 12 dated records, 0 live.
+  - **Forms 2, 3 and 5 had zero instances, and the reason is worth recording rather than the count.**
+    This move relocates *prose*; PR 1 moved *code*. A path only appears as segments, as a template, or
+    as a specifier-in-a-path-slot when something consumes it at runtime, and only three references lived
+    in a `.ts` file at all — all three in comments and error text inside `lint-voice.ts`. Neither prose
+    gate *scans* the design docs; they cite them.
+  - **Two stale layout descriptions were invisible to the sweep**, which is the §8 hazard about
+    procedures generalized one step further. `Prism3/README.md` drew a tree claiming the directory held
+    `docs/`, `schema/` and `engine/`; the root `README.md` listed `Prism3/` as "the generation engine."
+    **Neither contains the string `Prism3/docs`**, so neither was in the 61. A reference sweep finds
+    references; it cannot find a *description* that has quietly become false. Ask both questions.
+  - **`CLAUDE.md`'s layer table was left for this PR on purpose and was worth deferring.** Rewritten once
+    against the settled layout, it now carries a deliberately-kept `Prism3/` row marked *transitional*,
+    because PR 3 still needs somewhere to point at.
+  - **The two-prefix detector cannot be narrowed yet, and PR 3 is where that changes.** `Prism3/` is
+    still real after this PR (it holds `skills/`), so #661's self-check still fires when the detector is
+    narrowed to `packages/engine` alone — verified on this tree. PR 3 removes the ambiguity and is the
+    PR that must prove narrowing is safe rather than merely convenient.
+
   Re-measured on `66c4990`: **467 references** across the repo — 289 markdown, **77 functional**, 11 in
   `ci.yml` — and **215 files** inside `Prism3/`. **The basis matters more than the figures**, because a
   bare count is re-derivable three ways that differ by 2×: *functional* here means **lines** (not

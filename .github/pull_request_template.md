@@ -11,7 +11,7 @@
 ## The change
 
 <!-- What was wrong / missing, and the approach. Note any decision worth recording
-     (it likely also belongs in Prism3/docs/00-progress.md's decisions log). -->
+     (it likely also belongs in docs/00-progress.md's decisions log). -->
 
 ## Gates
 
