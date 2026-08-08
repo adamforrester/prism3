@@ -249,6 +249,27 @@ survived only because someone had already built the mechanism this doc asks for.
 self-check would have gone quietly green while checking nothing, and the rename that disabled it would
 have looked like a clean sweep.
 
+**And here is that gate.** #658's review found the third instance on a gate with **no** self-check —
+`apps/studio/vercel-ignore-check.mjs:46`, which locates the files it audits with
+`.filter((p) => p.includes('Prism3/engine/'))`. Repointing that one literal to the post-rename path,
+with nothing else moved, was measured:
+
+```
+Vercel ignore gate — 0 engine files in the bundle, 29 on the skip list.
+  ✓ no bundled engine file is on the skip list.
+```
+
+**It found zero files and called it a pass.** The count was right there in its own output and nothing
+compared it to anything. This is the sharpest form of the shape: not a wrong answer, but a **true
+statement about an empty set** — *no bundled engine file is on the skip list* is unfalsifiable once no
+file is recognized as bundled. Worse than the `lint-skills` instance, because the subject it guards is
+`vercel-ignore.sh`, where `exit 0` means SKIP: a stale detector there does not break the build, it
+**silently stops deploying**.
+
+The fix is one assertion — **the recognized set is non-empty** — and it generalizes past this gate: any
+detector that reports a count is one comparison away from being able to fail. If a gate can say *"I
+examined N things,"* something should care what N is.
+
 **Why this is not shape 2.** Shape 2's tell is that *you can point at one function both sides call* — a
 shared derivation. Nothing is shared here; the detector and the subject are genuinely independent
 expressions, and the gate is perfectly capable of failing. What couples them is a **string**. The
@@ -269,11 +290,16 @@ declared scope.** No literal was wrong; nothing pointed at the defs at all. A ga
 something it states, not something it inherits.
 
 **Tell:** the gate names the world in a string — a path prefix, a directory name, a regex over one. Ask
-what happens to that string when the thing it names is renamed, and whether anything would say so.
-**Fix:** a self-check that feeds the detector a known-bad input and fails if it comes back clean. Then,
-before any rename, grep every gate for the literal old name and treat each hit as **a detector to
-repoint, not prose to rewrite** — and re-run each gate's self-check explicitly, because the suite going
-green is what this failure looks like.
+what happens to that string when the thing it names is renamed, and whether anything would say so. A
+second tell, cheaper to spot: **the gate prints a count nothing asserts.**
+**Fix:** a self-check that feeds the detector a known-bad input and fails if it comes back clean, and —
+where the gate has a scope — an assertion that the recognized set is **non-empty**. Then, before any
+rename, sweep for the literal old name and treat each hit as **a detector to repoint, not prose to
+rewrite**. Triage by how failure presents: **loud** (imports, `resolve()` — they stop resolving and
+something reports it) or **silent** (detectors, globs, trigger lists — they keep running and match
+nothing). Only the silent set needs reading by hand, and it is the set a remembered file list omits:
+#658's review found `vercel-ignore.sh` precisely because it swept instead of recalling. Then re-run each
+gate's self-check explicitly, because the suite going green is what this failure looks like.
 
 ## Two adjacent failure modes, for completeness
 
@@ -319,6 +345,7 @@ independence failures — counted because they are the same silence from a diffe
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-08 | `vercel-ignore-check.mjs:46` bundle filter (#658 review) | 9 | **`0 engine files in the bundle` … `✓ clean`** — no self-check, and its subject skips deploys on `exit 0` |
 | 2026-08-08 | `lint-skills.ts:163` engine-ref regex (#650 spike) | 9 | the detector matching nothing after its fixtures were renamed |
 | 2026-08-08 | `lint-us-english.ts` surface map (#650 spike) | 9 | same rename, same silence, minutes later |
 | 2026-08-08 | engine component defs (#657) | 9 | `notes.evolution` undeclared for five PRs, typechecked by nothing |

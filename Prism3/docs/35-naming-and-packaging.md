@@ -182,12 +182,15 @@ assumption baked into the layout — the layout above supports all three.
   import { brandTheme } from '../../../Prism3/engine/theme';
   ```
 
-  — which expresses a dependency as **filesystem depth**. The same engine is imported at two different
-  depths depending on where the importing file happens to sit (`../../../` from `apps/*/src/`, `../../`
-  from the plugin's test files one level up): 58 imports of one dependency, two spellings, neither
-  meaning anything. **A compiler cannot see a wrong count of `../`** — it only sees whether the
-  resulting path exists. #648 broke on exactly this twice in a single PR, on `typeRoots` depth and on
-  `readFileSync` paths that were not imports, and **both passed typecheck**.
+  — which expresses a dependency as **filesystem depth**. The same engine is reached at two different
+  depths depending on where the importing file happens to sit: **59 relative chains across tracked
+  files** — 34 × `../../../` from `apps/*/src/`, 25 × `../../` from the plugin's test files one level up
+  — one dependency, two spellings, neither meaning anything. One of those 25 is
+  `packages/tokens/sd.consumer.mjs`, which matters more than its count: it is a **third** surface, in a
+  third workspace, already reaching the engine by counting directories. **A compiler cannot see a wrong
+  count of `../`** — it only sees whether the resulting path exists. #648 broke on exactly this twice in
+  a single PR, on `typeRoots` depth and on `readFileSync` paths that were not imports, and **both passed
+  typecheck**.
 
   As a named workspace the count disappears:
 
@@ -241,8 +244,11 @@ assumption baked into the layout — the layout above supports all three.
   1. **`Prism3/engine` → `packages/engine`** (plus schema/examples/fixtures inside) — **functional.**
      All of the payoff and all of the risk: every import, every `resolve()`, every CI command.
   2. **`Prism3/docs` → `docs/`** — **editorial.** No functional risk; the open question is how 39
-     numbered docs join a directory that already holds `superpowers/`, and every cross-reference in
-     them is written as `docs/NN`.
+     numbered docs join a directory that already holds `superpowers/`, and every cross-reference in them
+     is written as `docs/NN`. **Decide this before PR 1 even though it lands after** (#658's review): PR
+     1's sweep rewrites those same cross-references, so settling the target afterwards means touching
+     them twice. Deciding early costs nothing; deciding late costs a second sweep over the corpus PR 1
+     just swept. Worth its own decision issue rather than being settled inside a mechanical PR.
   3. **`Prism3/skills` → `skills/`** — changes a **shipped surface** and `lint-skills`' scope. The two
      `SKILL.md` files quote engine paths about themselves, so this one moves the thing being checked
      *and* what checks it.
@@ -270,18 +276,52 @@ assumption baked into the layout — the layout above supports all three.
   **(b) A rename can silently disable a gate whose detector is anchored on the old name.**
   `lint-skills.ts:163` detects engine references with a hardcoded `/Prism3\/[A-Za-z0-9\/_.-]+\.ts/g`.
   The spike's sweep rewrote its **fixtures** but not its **detector**, so the fixtures stopped matching
-  and the gate stopped detecting anything. **Before sweeping, grep every gate for the literal old name
-  and treat each hit as a detector to repoint, not prose to rewrite** — there are **9 such files
-  carrying 76 occurrences** (`lint-doc-gates`, `lint-skills`, `lint-us-english`, `lint-voice`, `regen`,
-  `token-contract`, `vercel-ignore-check.mjs`, `check-consumability.mjs`, `sd.consumer.mjs`). Then
-  **re-run each gate's self-check explicitly rather than trusting a green suite.** Recorded as an
-  instance in [`34-gate-independence.md`](34-gate-independence.md), because it is a general property of
-  renames, not a fact about this one.
+  and the gate stopped detecting anything.
 
-  Re-measured on `66c4990`: **467 references** across the repo — 289 markdown, 77 functional
-  (imports/`resolve()`/`readFileSync`), 11 in `ci.yml` — and **215 files** inside `Prism3/`. These move
-  with any PR that adds an engine file or names a path in prose; **re-measure before starting** rather
-  than trusting this line.
+  **State this as a rule, not a file list.** An earlier draft of this bullet named 9 gate files and a
+  count, and #658's review demonstrated why that is the wrong shape: the list **omitted
+  `apps/studio/vercel-ignore.sh`**, whose 5 hardcoded occurrences are the most dangerous in the repo. So:
+
+  > **Every non-`.md` file carrying the literal is a candidate. Triage by how its failure presents:**
+  > **loud** (an import or `resolve()` that stops resolving — the compiler or the run reports it) or
+  > **silent** (a detector, a glob, a trigger list — it keeps running and matches nothing).
+
+  Sweeping tracked non-`.md` files, **48 carry the literal**; the silent set is ~18 and is the one that
+  needs reading by hand. That rule finds `vercel-ignore.sh` *by construction*, along with
+  `.claude/settings.json` and `.github/ISSUE_TEMPLATE/config.yml`, none of which a remembered list
+  contained. A count invites transcription; a rule invites a sweep.
+
+  **`apps/studio/vercel-ignore.sh` is the priority, because its failure ships nothing.** Its trigger list
+  hardcodes the name — `PATHS=(apps/studio Prism3/schema … Prism3/engine)` — and per the script's own
+  header **`exit 0` → SKIP the build**. A stale path there does not fail loudly; it **silently stops
+  deploying engine changes**, which is the failure mode `00-progress` already flags as the reason this
+  script needs care.
+
+  **And its checker cannot cover the repoint, because it has no self-check.**
+  `vercel-ignore-check.mjs:46` filters bundle inputs with `.filter((p) => p.includes('Prism3/engine/'))`
+  — a detector holding the same literal. Repointing it alone, with nothing else moved, was measured:
+
+  ```
+  Vercel ignore gate — 0 engine files in the bundle, 29 on the skip list.
+    ✓ no bundled engine file is on the skip list.
+  ```
+
+  **Zero files found, reported as a pass.** So PR 1 owes that gate the fix shape 9 prescribes: **assert
+  the bundled-engine-file count is non-zero**, which is exactly the assertion that turns the run above
+  into a named failure. Do this *before* the sweep, so the gate can defend itself during it.
+
+  Then **re-run each gate's self-check explicitly rather than trusting a green suite.** Recorded as
+  sub-shape 9 in [`34-gate-independence.md`](34-gate-independence.md), because it is a general property
+  of renames, not a fact about this one.
+
+  Re-measured on `66c4990`: **467 references** across the repo — 289 markdown, **77 functional**, 11 in
+  `ci.yml` — and **215 files** inside `Prism3/`. **The basis matters more than the figures**, because a
+  bare count is re-derivable three ways that differ by 2×: *functional* here means **lines** (not
+  occurrences) in `.ts`/`.mjs`/`.json` that carry the literal **and** a path-consuming construct
+  (`from '`, `require(`, `resolve(`, `readFileSync`, `existsSync`, `writeFileSync`, `import(`),
+  repo-wide **including engine-internal** references. Counting occurrences instead gives ~137; excluding
+  engine-internal gives ~70. All three are the same repo. **Re-measure before starting, and state which
+  you counted** — PR 1 will size its sweep against this number.
 - **#252** (WC-first ordering, author-vs-wrap headless). §4 names the packages; it does not
   decide what goes inside them.
 - **#253** (brand-token flow) — see §6.
