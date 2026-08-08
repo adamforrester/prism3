@@ -5,7 +5,7 @@
  *
  * A `SKILL.md` is a **shipped artifact that makes factual claims about the engine**, and until now it
  * was the only shipped surface with no gate — `out/**`, the emitted schema contracts and `apps/studio/dist`
- * are all scanned, `Prism3/skills/**` was not. That is #281's shape on a surface we had not covered:
+ * are all scanned, `skills/**` was not. That is #281's shape on a surface we had not covered:
  * committed, consumed, and unread by any check.
  *
  * The live proof this exists for: `prism3-theme` still teaches "map adjectives → levers, this is the
@@ -42,7 +42,7 @@ import { leverManifest } from './levers';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
-const skillsDir = resolve(repo, 'Prism3/skills');
+const skillsDir = resolve(repo, 'skills');
 
 // ---- the reference sets, derived from the ENGINE rather than restated ---------------------------
 const probe = brandTheme({ id: 'lint', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as never);
@@ -161,12 +161,19 @@ export const scanText = (text: string, rel: string, findings: Finding[]): void =
 
   // 3. every engine file a skill points at must exist — catches a renamed entry point
   //
-  // Both prefixes on purpose (#650 PR 1). `packages/engine/**` is where the engine lives now;
-  // `Prism3/**` is still a real path (docs/ and skills/ stayed), so a skill citing an OLD engine
-  // path must keep resolving to "does not exist" rather than falling outside the pattern and
-  // going unchecked. A detector narrowed to the new location would silently stop reading the
-  // stale references it exists to catch — the rename's own failure mode, in the gate for it.
-  for (const m of text.matchAll(/(?:packages\/engine|Prism3)\/[A-Za-z0-9/_.-]+\.ts/g)) {
+  // ANY `*.ts` path, not an allow-list of prefixes (#650 PR 3). PR 1 widened this to
+  // `packages/engine|Prism3` because `Prism3/` was still real; PR 3 deleted that directory, so the
+  // obvious move was to narrow back to `packages/engine` alone. **Measured instead of assumed, and
+  // the measurement said no:** `prism3-theme` cited `engine/lint-skills.ts` — a pre-#650 path,
+  // resolving to nothing — and BOTH the two-prefix pattern and the narrowed one miss it, because it
+  // carries neither prefix. A prefix allow-list can only catch a stale path that happens to be
+  // stale in a way the list anticipated, which is the one property a stale path never has.
+  //
+  // So the pattern is now the shape of the *claim* ("this file exists") rather than a list of places
+  // the engine has lived. That is strictly wider than either predecessor, needs no edit the next time
+  // the engine moves, and is why the self-check below asserts the CLASS (an unprefixed stale path is
+  // read) instead of naming a retired directory.
+  for (const m of text.matchAll(/\b[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*\.ts\b/g)) {
     if (!existsSync(resolve(repo, m[0]))) findings.push({ file: rel, kind: 'missing file', detail: `${m[0]} does not exist` });
   }
 
@@ -262,12 +269,18 @@ const selfCheck = (): string[] => {
   // is not silent either.
   if (!sampleScan('run packages/engine/does-not-exist.ts now').length) bad.push('a missing engine-file reference is no longer detected');
   if (sampleScan('run packages/engine/cli.ts now').length) bad.push('a REAL engine file is now falsely flagged');
-  // A skill still citing the PRE-#650 location has to fail. This is the assertion that makes the
-  // two-prefix pattern above a checked claim rather than a comment: narrowing the detector to
-  // `packages/engine` alone leaves every stale `Prism3/engine/…` reference unmatched, which reads as
-  // clean. `cli.ts` deliberately: it is a file that DOES exist, at the new path — so what this
-  // asserts is that the old prefix is still read and still resolves to nothing.
-  if (!sampleScan('run Prism3/engine/cli.ts now').length) bad.push('a stale pre-#650 Prism3/engine path is no longer detected — the detector narrowed to the new location and stopped reading the references it exists to catch');
+  // A stale path has to fail NO MATTER WHICH directory it names, which is what replaced #650 PR 1's
+  // two-prefix fixture when PR 3 deleted `Prism3/`. Both spellings are asserted on purpose:
+  //   - `Prism3/engine/cli.ts` — the retired location. Still read, still resolves to nothing. Kept
+  //     because a skill written before #650 is exactly the input this check exists for; the directory
+  //     being gone is the reason the reference is stale, not a reason to stop looking for it.
+  //   - `engine/cli.ts` — UNPREFIXED, and the one that matters: it is the form a real skill actually
+  //     had (`engine/lint-skills.ts`, found by PR 3), and the form BOTH prefix allow-lists missed.
+  // Together they assert the pattern tracks the claim rather than a list of past homes. `cli.ts` in
+  // both, deliberately: the file DOES exist at `packages/engine/cli.ts`, so a pass here can only mean
+  // the wrong-directory prefix was read and rejected — not that the filename was unrecognized.
+  if (!sampleScan('run Prism3/engine/cli.ts now').length) bad.push('a stale reference to the retired Prism3/engine location is no longer detected');
+  if (!sampleScan('run engine/cli.ts now').length) bad.push('a stale UNPREFIXED engine path is no longer detected — the detector is matching a list of directories instead of the claim that a file exists, which is the blind spot #650 PR 3 found in a shipped skill');
 
   // Scan 4, driven through the shipping `scanCoverage`. Left out of the first fix, which is exactly
   // why it is here: the scan the self-check does not reach is the one that goes quiet.
@@ -368,7 +381,7 @@ console.log(`Skills gate — ${dirs.length} skill(s) scanned (${dirs.join(', ')}
 // A scan that goes dark reports success forever. Zero skills means the layout moved, not that the
 // skills are clean.
 if (dirs.length === 0) {
-  console.error('\n❌ no skills found under Prism3/skills — the layout moved, or the scan is pointed at nothing.');
+  console.error('\n❌ no skills found under skills/ — the layout moved, or the scan is pointed at nothing.');
   process.exit(1);
 }
 

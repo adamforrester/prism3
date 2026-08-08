@@ -249,6 +249,16 @@ survived only because someone had already built the mechanism this doc asks for.
 self-check would have gone quietly green while checking nothing, and the rename that disabled it would
 have looked like a clean sweep.
 
+**How that detector ended up (#650 PR 3, 2026-08-08), because it is a shape worth naming.** The regex
+above was first *widened* to two prefixes (`packages/engine|Prism3`) while both directories were real,
+with a self-check fixture asserting a stale path still fails. When PR 3 deleted `Prism3/`, the obvious
+next step was to narrow it back — the tree justified it, and the self-check duly rejected the narrowing
+by name. But the shipped skill turned out to cite `engine/lint-skills.ts`, an unprefixed pre-rename path
+that **both** the wide and the narrow pattern miss. So the fix was neither: the detector now matches the
+*claim* (`*.ts` must exist) rather than any list of directories. **An allow-list detector can only catch
+the staleness it anticipated, which is the one property staleness never has** — a fourth sub-shape of
+this file's thesis, and the reason its fixture now asserts a class instead of naming a directory.
+
 **And here is that gate.** #658's review found the third instance on a gate with **no** self-check —
 `apps/studio/vercel-ignore-check.mjs:46`, which locates the files it audits with
 `.filter((p) => p.includes('Prism3/engine/'))`. Repointing that one literal to the post-rename path,

@@ -7,6 +7,142 @@
 
 ---
 
+## (2026-08-08) — `Prism3/skills` → `skills/`, and `Prism3/` is gone (#650 PR 3)
+
+**STATUS: PR open, all 18 gates green. The #650 decomposition is COMPLETE** — #661 moved the engine to
+`packages/engine`, #663 moved the design record to `docs/`, and this PR moves the two shipped skills to a
+top-level `skills/` and **deletes the `Prism3/` directory**, its signpost README, and the transitional
+`CLAUDE.md` row that PR 2 deliberately kept alive for it. The layout at the top of `docs/35` §1 is reached.
+
+**The move itself is three files** (2 renames + 1 deletion) and neither `SKILL.md` needed a content edit:
+both mention "Prism3" only as the *product*, never as a path to themselves. The work was everywhere else.
+
+**The narrowing this PR was briefed to do was the wrong move, and the only reason I know that is that I
+measured it instead of doing it.** #661 widened `lint-skills`' engine-path detector to match both
+`packages/engine/…` and `Prism3/…`, with a self-check fixture asserting a stale path still fails — correct
+while `Prism3/` was real. The brief for this PR was to narrow it back, and the justification was sound:
+`Prism3/` is genuinely gone, verified three independent ways (no directory on disk; **0** tracked files
+under `Prism3/` per `git ls-files`; no path-consuming construct naming it anywhere outside `.md`). The
+self-check duly rejected the narrowing **by name**, exactly as designed.
+
+But narrowing is a *smaller* allow-list, and the shipped skill turned out to cite
+**`engine/lint-skills.ts`** — a pre-#650 path resolving to nothing, in the frontmatter comment of
+`prism3-theme`. **Both** the two-prefix pattern and the narrowed one miss it, because it carries neither
+prefix. It had been passing silently since #650 began. So the detector is now the shape of the *claim* —
+any `*.ts` path a skill names must exist — rather than a list of places the engine has lived:
+
+> **A prefix allow-list can only catch a stale path that is stale in a way the list anticipated, which
+> is the one property a stale path never has.**
+
+That is strictly wider than either predecessor, needs no edit the next time the engine moves, and caught a
+real defect in a shipped surface on its first run — the same way #492's first run did. **Retiring
+scaffolding and deleting an assertion are different actions:** #661's fixture named a directory, so its
+successor asserts the *class* — both a retired-location path (`Prism3/engine/cli.ts`) and an **unprefixed**
+one (`engine/cli.ts`) must be read and rejected. The retired case is kept, not deleted: a skill written
+before #650 is precisely the input the check exists for, and the directory being gone is *why* such a
+reference is stale, not a reason to stop looking for it. Both use `cli.ts`, which **does** exist at
+`packages/engine/cli.ts` — so a pass can only mean the wrong-directory prefix was read and rejected,
+rather than the filename going unrecognized.
+
+**Mutation-tested in four directions, because a green suite is not evidence a detector survived.**
+(1) A stale path in a real skill fails by name (`[missing file] packages/engine/lint-MUTATED.ts does not
+exist`, exit 1). (2) Deleting the check-3 loop fails **three** fixtures by name, including the new
+unprefixed one. (3) Re-narrowing to a `packages/engine` allow-list is rejected by name. (4) The
+false-positive direction: both real `.ts` citations in the shipped skills resolve, so the widened pattern
+buys coverage without noise.
+
+**The zero-skills floor fired on the move itself, before a single reference was swept:** `❌ no skills
+found under Prism3/skills — the layout moved, or the scan is pointed at nothing.` The cheapest possible
+demonstration that the floor is load-bearing rather than decorative.
+
+**A scope move is two edits in each prose gate, and the second is the one that rots.**
+`lint-us-english` and `lint-voice` each carry the `walk()` *and* a `REQUIRED_SURFACES` predicate; moving
+only the walk leaves the promise describing a path that no longer exists. #492 shipped exactly that
+pair-splitting once already (written up in `docs/32` §"Adding a surface to a gate's scope is two edits").
+Both moved together here, and **both predicates were anchored to the repo root** (`f.startsWith(
+`${repo}/skills/`)`) rather than left as `includes('/skills/')`: the old test could afford a substring
+because `Prism3/skills` was unique by construction, and a top-level `skills/` is not — a bare substring
+would also accept some future `apps/x/skills/…` and report this surface covered by a file that is not it.
+Both gates now report **2 skills** under the new label, and the half-move (walk repointed, predicate left
+stale) was mutation-tested and **fails**: `❌ the gate's SCOPE shrank — 1 promised surface(s) are absent`.
+
+**The depth trap #663 warned this PR about did not fire, and I checked rather than assumed.** #663 broke
+`../Prism3/docs/NN` in two depth-2 READMEs by deleting a segment that is not depth-preserving. Here there
+were **no relative references to `Prism3/skills` at all** — every `../Prism3/…` match in the corpus is a
+dated record about the *engine* move. The resolver was still written the corrected way, against
+`dirname(file)` rather than the repo root, because the repo-root version is a true statement about the
+wrong set (`docs/34` shape 9): **12 skills-path references checked, 5 unresolvable, all 5 confirmed dated
+records** (four `00-progress.md` "STATUS: shipped" entries, one `docs/32` retrospective quoting prose the
+skill no longer has). Worth recording: the resolver's *first* version over-reported 10, because
+`brand-skills/rules/…` — a different repo entirely — truncates to `skills/rules/…` without a left
+word-boundary. **A verification script is a gate, and it needs the same false-positive discipline**; I
+confirmed each of the 5 by opening it rather than trusting the count.
+
+**Three more descriptions were stale without containing the swept literal — the #663 class, third time.**
+`docs/09`'s repo-layout tree still drew `Prism3/{engine,schema,docs}` with top-level `web/` and `plugin/`
+(a doc whose header says it "records the locked repo/packaging decision", so a stale tree there is a
+locked decision misstated); the root `README.md`'s layout table had **no `skills/` row at all**, which no
+sweep can find because the defect is an *absent line*; and `apps/studio/README.md` plus
+`.claude/commands/review-pr.md` both told readers the deployed bundle reads `Prism3/{engine,schema}`,
+false since #661. **Ask what the move made false, not only what it made unresolvable.**
+
+**Also in this PR, finishing the layout docs.** `CLAUDE.md`'s transitional `Prism3/` row is deleted and
+replaced by a real `skills/` row — the table never had one, since it reached skills only through the
+transitional entry — and all six layers are asserted present. `docs/35` §1's definition of `packages/`
+("a client installs or inherits it") is amended: **`packages/` means package-shaped and consumed by
+name**, and ejection is a property of the *package*, not the directory. That sentence stopped being true
+when the engine moved there — no client inherits the engine, and `@prism3/tokens` is a gate we run. Read
+as a directory-level promise it makes `packages/engine` look like an eject target and `packages/tokens`
+like a deliverable, which is the imprecision **#625** would have inherited. `docs/35` §8 now records the
+decomposition as complete with the three PRs named, and `docs/34` gains the detector's ending as a fourth
+sub-shape of its thesis.
+
+**Survivors, enumerated, with the basis stated — and the count goes UP.** Basis:
+`git grep -o 'Prism3/'`, **occurrences** not lines, across all tracked files, baseline `0a98968`:
+**267 → 273**. That is not a failed sweep. **25 occurrences were removed** — the deleted
+`Prism3/README.md` (4), `lint-voice.ts` (3), `docs/33` (3), `docs/{17,27}` and `CONTRIBUTING.md` (2
+each), and one apiece in `docs/09`, `CLAUDE.md`, `apps/studio/README.md`, `ci.yml`, `review-pr.md`,
+plus 2 each retired from `lint-skills.ts` and `lint-us-english.ts` — and **31 were added, every one of
+them by this write-up**: 19 in the entry you are reading, 11 in `docs/35` §8, 1 in `docs/34`. Netting
+those out gives **242** pre-existing survivors, and the arithmetic closes exactly
+(267 − 25 + 31 = 273), which is the check that the "after" is understood rather than merely reported.
+PR 2 hit the same self-reference and it is worth stating as a rule: **an audit of a literal is written
+in that literal, so a sweep's own report inflates its own metric.** Report the delta by cause, not the
+total.
+
+Every one of the 242 is a dated record or a deliberate subject: `00-progress.md` history (145 —
+verified untouched, since 145 + my 19 is exactly the 164 now present), `docs/35`'s quoted history (30),
+`docs/superpowers/` dated plans and specs (47), `docs/{11,12,16,32,34}` retrospective narrative (12),
+`vercel-ignore-check.mjs`'s comment on why the headline went 15→16 (2), and `lint-skills.ts` (5) +
+`lint-us-english.ts` (1), where the literal **is** the subject — a fixture asserting the retired
+location still fails, and the comment explaining why the predicate had to be anchored. **Zero** in
+`CLAUDE.md`, the root `README.md`, `CONTRIBUTING.md`, `ci.yml`, `review-pr.md`, or any pointer a reader
+would follow to a path.
+
+**Byte-identity: 104 artifacts, 0 differing, 0 added, 0 removed**, against a checksum baseline recorded
+**before** the move. The baseline had to be built by hand from `regen.ts`'s own three lists — `out/**`
+(99) + `SCHEMA_ARTIFACTS` (3) + `ENGINE_ARTIFACTS` (2) = 104 — because walking `out/` alone gives 99 and
+would have quietly excluded the five artifacts most likely to move. `regen --check` cannot substitute:
+it compares the engine to what the engine just wrote, so it cannot tell "nothing changed" from
+"everything changed consistently."
+
+**Trap for whoever re-verifies this.** The shared checkout's `node_modules/@prism3/` still has no
+`engine` link — it predates #661 — so an engine gate run there fails with `Cannot find package
+'@prism3/engine'` until someone runs `npm install` at the root. That is the *loud* variant of the
+false-pass bug #661 fixed; it stops rather than lying. This lane built its own `node_modules` per the
+corrected recipe (third-party entries linked one at a time, `@prism3/*` pointed at absolute paths inside
+the worktree), verified two ways before starting: `ENGINE_VERSION 0.5.0` resolved from inside the tree,
+and the shared checkout's links were confirmed **still relative** afterwards, proving the loop did not
+write through a symlink into another session's tree. A probe script placed in `/tmp` rather than inside
+the worktree will fail to resolve `@prism3/engine` no matter how the links are built — that is the
+probe's bug, not the tree's.
+
+**Next:** `Prism3/` is gone, so the remaining #650-adjacent work is **#668** (per-brand *payload* skills,
+emitted by the engine for a client's ejected repo — deliberately not part of this move, which handled only
+the two *product* skills) and **#625**, which the `docs/35` §1 amendment above was written to unblock.
+
+---
+
 ## (2026-08-08) — `Prism3/docs` → `docs/`, a move that repairs more than it breaks (#650 PR 2)
 
 **STATUS: PR open, all 18 gates green.** The 36 numbered design docs plus `voice-standard.md` and

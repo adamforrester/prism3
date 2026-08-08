@@ -92,15 +92,15 @@ gated column outright.
 
 ## 4. Our own skills: the gate comes first
 
-Two skills ship today (`Prism3/skills/prism3-theme`, `prism3-consume`). `prism3-theme` **was**
+Two skills ship today (`skills/prism3-theme`, `prism3-consume`). `prism3-theme` **was**
 stale — it used to teach an agent to "map adjectives → levers — the judgment the brief pays
 for", which #471 replaced with a controlled vocabulary the engine resolves *and logs*, and it
 used to document `radiusScale` as number-only. Both are fixed: the skill now teaches the
 `personality` vocabulary and named `radiusScale` stops (`sharp`/`modest`/`standard`/`soft`/`round`).
 
-That fix now has a gate behind it: `engine/lint-skills.ts` runs in CI, checking that every
+That fix now has a gate behind it: `packages/engine/lint-skills.ts` runs in CI, checking that every
 lever, token or prop name a skill quotes resolves against the live manifest / schema / emitted
-names, that every CLI invocation it prints actually runs, and that `Prism3/skills/**` is covered
+names, that every CLI invocation it prints actually runs, and that `skills/**` is covered
 by the US-English scan — the same class of drift the `personality` staleness above was.
 
 So the order was:
@@ -136,7 +136,7 @@ The layout already exists and splits by audience. Keep it; do not invent a third
 
 | location | audience |
 |---|---|
-| `Prism3/skills/` | **shipped** — agents building *with* Prism3 (`prism3-theme`, `prism3-consume`) |
+| `skills/` | **shipped** — agents building *with* Prism3 (`prism3-theme`, `prism3-consume`) |
 | `.claude/commands/` | **internal** — our own workflow on this repo (`review-pr`) |
 
 The internal `build-component` lane is the one open placement question: `review-pr` is a *command*

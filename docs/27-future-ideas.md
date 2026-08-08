@@ -99,10 +99,10 @@ not "should Prism3 have skills" — that was decided (backlog #6, 2026-07-04: sk
 are the *instructions + discovery* layer, complementary to the MCP surface's callable
 *tools*) and the first two are built and verified:
 
-- **`prism3-consume`** (`Prism3/skills/prism3-consume/SKILL.md`, 2026-07-05) — the
+- **`prism3-consume`** (`skills/prism3-consume/SKILL.md`, 2026-07-05) — the
   downstream-consumer skill; eval-measured at 100%/100% compliance, 0% invented, 0%
   leak (docs/17 §5).
-- **`prism3-theme`** (`Prism3/skills/prism3-theme/SKILL.md`, 2026-07-05) — the
+- **`prism3-theme`** (`skills/prism3-theme/SKILL.md`, 2026-07-05) — the
   authoring skill; cold-agent verified (two fresh briefs compiled first-try, all
   contracts holding).
 - Plus one internal: **`review-pr`** (`.claude/commands/`) — the independent PR

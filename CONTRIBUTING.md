@@ -139,8 +139,8 @@ Figma or Style Dictionary APIs. This repo's precedent is to re-verify API surfac
 against current docs before building on them (Context7 or the live docs), because they
 drift.
 
-If you're using the packaged skills, `Prism3/skills/prism3-theme` (authoring a brand)
-and `Prism3/skills/prism3-consume` (building UI from generated tokens) are the two that
+If you're using the packaged skills, `skills/prism3-theme` (authoring a brand)
+and `skills/prism3-consume` (building UI from generated tokens) are the two that
 exist; `.claude/commands/review-pr.md` runs an independent PR review.
 
 ---

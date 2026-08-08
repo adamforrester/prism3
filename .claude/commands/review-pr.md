@@ -233,7 +233,7 @@ Re-derive the load-bearing ones yourself:
   is a rolling window (not a calendar-day reset) and rejected deploys are not queued, so
   an intermittent Vercel failure is routine. Always read the `gates` check-run status
   separately; never conflate the two.
-- The Vercel-deployed bundle reads only `apps/studio/src` + `Prism3/{engine,schema}`.
+- The Vercel-deployed bundle reads only `apps/studio/src` + `packages/engine/{*,schema}`.
   `plugin/**`, `reference/**` and `packages/engine/out/**` are not build inputs, so a change
   confined to those needs no Vercel-impact check.
 - **Force-push discipline**: always `--force-with-lease`. If rejected as stale, re-fetch

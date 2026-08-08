@@ -198,7 +198,7 @@ const gated: string[] = [
   // named by hand here exactly as lint-us-english.ts names it.
   join(repo, 'packages/engine/schema/token-contract.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
-  ...walk(join(repo, 'Prism3/skills')).filter((f) => f.endsWith('.md')),
+  ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
@@ -249,7 +249,8 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   { label: 'the built web bundle (apps/studio/dist/*.js)', test: (f) => f.includes('/apps/studio/dist/') && f.endsWith('.js') },
   { label: 'emitted artifacts (packages/engine/out)', test: (f) => f.includes('/packages/engine/out/') },
   { label: 'the schema contract (packages/engine/schema)', test: (f) => f.includes('/packages/engine/schema/') },
-  { label: 'shipped skills (Prism3/skills/**/SKILL.md)', test: (f) => f.includes('/Prism3/skills/') },
+  // Anchored at the repo root, not a bare `/skills/` substring — see the note in lint-us-english.ts.
+  { label: 'shipped skills (skills/**/SKILL.md)', test: (f) => f.startsWith(`${repo}/skills/`) },
   { label: 'the emitted reports (ENGINE_ARTIFACTS)', test: (f) => ENGINE_ARTIFACTS.some((a) => f.endsWith(`/${a}`)) },
   { label: 'the engine README', test: (f) => f.endsWith('/packages/engine/README.md') },
 ];

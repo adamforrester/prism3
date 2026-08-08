@@ -22,6 +22,7 @@ re-resolve.
 | [`apps/studio/`](apps/studio/) | The **theme studio** — a browser host over the engine's shared lever/preview contracts, deployed at the link above. See [`apps/studio/README.md`](apps/studio/README.md). |
 | [`apps/plugin/`](apps/plugin/) | The **Figma plugin** — the write host over the same engine core, split across Figma's two isolated contexts (main thread + UI iframe) with a typed message bridge between them. See [`apps/plugin/README.md`](apps/plugin/README.md). |
 | [`packages/tokens/`](packages/tokens/) | The **consumability gate** — a stock Style Dictionary build over the emitted DTCG, kept deliberately naive so it answers whether a stranger could consume the output without code from us. See [`packages/tokens/README.md`](packages/tokens/README.md). |
+| [`skills/`](skills/) | The **shipped product skills** — `prism3-theme` (authoring a brand) and `prism3-consume` (building UI from generated tokens), for an agent working with Prism3. Gated by `lint-skills.ts`, because a skill describing a stale API is worse than no skill. |
 
 ## Running the engine
 

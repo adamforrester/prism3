@@ -186,7 +186,7 @@ const gated: string[] = [
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.
-  ...walk(join(repo, 'Prism3/skills')).filter((f) => f.endsWith('.md')),
+  ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];
 
 // ---- SELF-CHECK: does the scanner still detect what it claims to? ----
@@ -232,7 +232,11 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // CLAUDE.md already writes the rule — coverage follows `regen.ts` for everything EXCEPT surfaces
   // named by hand, and each of those needs its own line here. Skills are the second such surface,
   // and the comment adding them said so without adding the line.
-  { label: 'shipped skills (Prism3/skills/**/SKILL.md)', test: (f) => f.includes('/Prism3/skills/') },
+  // Anchored at the repo root (#650 PR 3), not a bare `/skills/` substring. The old test could afford
+  // `includes('/Prism3/skills/')` because that prefix was unique by construction; `skills/` is a
+  // top-level name, so a substring test would also accept some future `apps/x/skills/…` and report
+  // this surface covered by a file that is not it.
+  { label: 'shipped skills (skills/**/SKILL.md)', test: (f) => f.startsWith(`${repo}/skills/`) },
   // …and these two were the THIRD and FOURTH, found by the converse check the moment it existed.
   // Both sat in `gated` and in the headline's own sentence ("reports") with no line here, so
   // dropping either scanned two fewer files and still printed `✓ clean`. Precisely the failure the

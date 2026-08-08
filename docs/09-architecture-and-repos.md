@@ -62,12 +62,15 @@ Figma sandbox with no port.
 ```
 prism3/                            (this repo — grows into the monorepo)
 ├── reference/                     legacy hand-built layer + regression target (unchanged)
-├── Prism3/
-│   ├── engine/                    → the core, promoted to a workspace package
-│   ├── schema/                    lever-manifest.json · preview-spec.json · theme-schema.json
-│   └── docs/
-├── web/                           NEW — the dashboard adapter (DOM/CSS host)
-└── plugin/                        NEW — the plugin adapter (Figma sandbox host)
+├── packages/
+│   ├── engine/                    the core, a workspace package (@prism3/engine)
+│   │   └── schema/                lever-manifest.json · preview-spec.json · theme-schema.json
+│   └── tokens/                    the consumability gate (@prism3/tokens)
+├── apps/
+│   ├── studio/                    the dashboard adapter (DOM/CSS host)
+│   └── plugin/                    the plugin adapter (Figma sandbox host)
+├── docs/                          the numbered design record + superpowers/
+└── skills/                        shipped product skills (prism3-theme, prism3-consume)
 
 brand-skills/      own repo — EXTRACT (assets → design.md)   [upstream, public]
 knowledge-base/    own repo — the practice POV / reference    [reference]
