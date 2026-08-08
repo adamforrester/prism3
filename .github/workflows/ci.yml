@@ -132,7 +132,7 @@ jobs:
         run: npm run -w @prism3/tokens check:consumability
 
       # Shipped SKILLS make factual claims about the engine, and were the last shipped surface with
-      # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, Prism3/skills/**
+      # no gate (#492) — out/**, the emitted contracts and apps/studio/dist are all scanned, skills/**
       # was not. Its first run found `prism3-consume` teaching the pre-rename `action.*` family,
       # which an agent would emit as references resolving to nothing.
       - name: Skills gate (shipped skills make true claims)

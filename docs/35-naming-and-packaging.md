@@ -49,8 +49,17 @@ prism3/
 └── Tokens/                  # legacy hand-built layer + regression target
 ```
 
-`apps/` = we run it. `packages/` = a client installs or inherits it. A reader can tell which
-side of the boundary anything is on from its path.
+`apps/` = we run it. `packages/` = **package-shaped and consumed by name** — it has a
+`package.json`, and everything that uses it imports `@prism3/<name>` rather than a relative path.
+A reader can tell which side of the boundary anything is on from its path.
+
+**Amended (#650 PR 3), because the original sentence read "a client installs or inherits it" and
+that stopped being true the moment the engine moved into `packages/`:** no client inherits the
+engine, and `@prism3/tokens` is a gate we run rather than something we ship. Ejection is a
+property of the **package** — declared by the package, and true of `web-components`/`react`/`core`
+when they exist — not a property of the directory. Reading it as a directory-level promise makes
+`packages/engine` look like an eject target and `packages/tokens` like a deliverable, and #625 is
+the issue that inherits that imprecision if this is left as it was.
 
 **Nesting also fixes a real defect:** a top-level `tokens/` directory is *impossible* today —
 `Tokens/` already exists, and the owner's filesystem is case-insensitive (macOS). Under
@@ -391,6 +400,44 @@ assumption baked into the layout — the layout above supports all three.
     still real after this PR (it holds `skills/`), so #661's self-check still fires when the detector is
     narrowed to `packages/engine` alone — verified on this tree. PR 3 removes the ambiguity and is the
     PR that must prove narrowing is safe rather than merely convenient.
+
+  **THE DECOMPOSITION IS COMPLETE (2026-08-08).** Three PRs, in the order this section planned:
+  **#661** (`Prism3/engine` → `packages/engine`, functional), **#663** (`Prism3/docs` → `docs/`,
+  editorial), **PR 3** (`Prism3/skills` → `skills/`, a shipped surface plus its gate). `Prism3/` no
+  longer exists — the directory, its signpost README, and the transitional `CLAUDE.md` row are all
+  gone, and the layout at the top of §1 is reached. What PR 3 found:
+
+  - **The narrowing PR 2 handed forward was the wrong move, and measuring it is what showed that.**
+    The brief was to narrow `lint-skills`' two-prefix detector back to `packages/engine` now that
+    `Prism3/` cannot occur. Justified by the tree — verified three ways: no directory, **0** tracked
+    files under `Prism3/`, no path-consuming construct naming it. But narrowing is a *smaller* allow-list,
+    and the shipped skills held `engine/lint-skills.ts` — a stale pre-#650 path that **both** the
+    two-prefix pattern and the narrowed one miss, because it carries neither prefix. So the detector is
+    now the shape of the **claim** (`*.ts` must exist) rather than a list of places the engine has lived:
+    strictly wider than either predecessor, and needing no edit the next time the engine moves. **A
+    prefix allow-list can only catch a stale path that is stale in a way the list anticipated, which is
+    the one property a stale path never has.** It caught a real defect in a shipped skill on its first
+    run — the same way #492's first run did.
+  - **"Retire the scaffolding" and "delete the assertion" are different actions.** #661's fixture named
+    a directory (`Prism3/engine`); its successor asserts the *class* — both a retired-location path and
+    an **unprefixed** one must be read and rejected. The retired-location case is kept, not deleted:
+    a skill written before #650 is exactly the input the check exists for, and the directory being gone
+    is why the reference is stale rather than a reason to stop looking for it.
+  - **A scope move is two edits in the prose gates, and the second is the one that rots.**
+    `lint-us-english` and `lint-voice` each carry the `walk()` **and** a `REQUIRED_SURFACES` predicate;
+    moving only the walk leaves the promise describing a path that no longer exists. #492 committed that
+    exact pair-splitting once already (see doc 32). Both moved together, and both predicates were
+    **anchored to the repo root** rather than left as `includes('/skills/')` — the old test could afford a
+    substring because `Prism3/skills` was unique by construction, and a top-level `skills/` is not.
+  - **The zero-skills floor fired on the move itself**, before any reference was swept: `❌ no skills
+    found under Prism3/skills — the layout moved, or the scan is pointed at nothing.` Exactly the design
+    intent, and the cheapest possible demonstration that the floor is load-bearing.
+  - **Two more descriptions were stale without containing the swept literal**, the #663 class a third
+    time: `docs/09`'s repo-layout tree still drew `Prism3/{engine,schema,docs}` with top-level `web/`
+    and `plugin/`, and the root `README.md`'s layout table had **no `skills/` row at all** — an omission
+    no sweep can find, since the defect is an absent line. Also `apps/studio/README.md` and
+    `review-pr.md` both claimed the deployed bundle reads `Prism3/{engine,schema}`, false since #661.
+    **Ask what the move made false, not just what it made unresolvable.**
 
   Re-measured on `66c4990`: **467 references** across the repo — 289 markdown, **77 functional**, 11 in
   `ci.yml` — and **215 files** inside `Prism3/`. **The basis matters more than the figures**, because a

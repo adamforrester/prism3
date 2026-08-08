@@ -12,7 +12,7 @@ An npm-workspace monorepo for the **Prism3 design-token engine** and its surface
 | `packages/tokens/` | The **consumability gate** (`@prism3/tokens`) — a stock Style Dictionary over the emitted DTCG, proving the output is consumable without custom code. |
 | `apps/studio/`, `apps/plugin/` | The two **surfaces** that bundle the engine (`@prism3/studio`, `@prism3/plugin`). These build. |
 | `docs/` | The **design record** — the numbered design docs plus `superpowers/` working notes. |
-| `Prism3/` | **Transitional, and nearly gone.** Holds only `skills/` (plus a signpost README); #650 PR 3 moves it to a top-level `skills/` and empties this directory. Nothing else belongs here — if you are about to add something, it goes in one of the rows above. |
+| `skills/` | The **product skills** — `prism3-theme` (authoring a brand) and `prism3-consume` (building UI from generated tokens), addressed to an agent working *with* Prism3. Shipped prose that makes factual claims about the engine, so `lint-skills.ts` gates them. Per-brand *payload* skills, addressed to an agent in a client's ejected repo, are emitted by the engine (#668) and do not live here. |
 | `reference/` | The **legacy hand-built token JSON** — Prism2 + New Balance. Read-only in practice: it is the engine's regression target, not a place to author. |
 
 Within `reference/` only, the old description still holds — every file is JSON, nothing to build:

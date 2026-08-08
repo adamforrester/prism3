@@ -7,7 +7,7 @@ description: >-
   ramps / modes / contrast), the adjective → lever mapping, and the compile
   loop (run the CLI, read the contract results, fix the input, re-run). The
   authoring counterpart to prism3-consume.
-# Opts this skill into the COVERAGE check (engine/lint-skills.ts): every top-level BrandInput
+# Opts this skill into the COVERAGE check (packages/engine/lint-skills.ts): every top-level BrandInput
 # property must appear somewhere below, or be named in `omits:`. Declared rather than inferred, so
 # a skill states what it claims to document instead of the gate guessing from prose.
 documents: brandInput

@@ -150,7 +150,7 @@ broken site on a green build. `dev` and `build` are unchanged and remain the loc
 `../../packages/engine/*` and `../../packages/engine/schema/example-brands.json`, which a `apps/studio/`-scoped
 build cannot resolve.
 
-Only `apps/studio/src` and `Prism3/{engine,schema}` are **read by the build**; `apps/plugin/`, `reference/`,
+Only `apps/studio/src` and `packages/engine/{*,schema}` are **read by the build**; `apps/plugin/`, `reference/`,
 and `packages/engine/out/` are neither read nor served. Install is a different matter — it runs
 at the repo root and resolves **both** workspaces, so `node_modules` also holds the plugin's
 `@figma/plugin-typings`. Two consequences: the build needs devDependencies, so

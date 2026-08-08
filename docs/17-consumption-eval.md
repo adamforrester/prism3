@@ -69,7 +69,7 @@ Because step 2 needs a model, the harness is opt-in (an API key), not part of th
 - **Consumption-skill arm — ✅ BUILT (`skill` param, `eval-run.ts`; the `prism3-consume` SKILL).**
   The portable-instructions layer, alongside the per-brand `guidance` (`.ai.json`) arm. `buildPrompt(…,
   guidance, skill)` and `runEval({ skill })` inject a brand-agnostic instruction bundle — the
-  `Prism3/skills/prism3-consume/SKILL.md` discipline: semantic-role-not-primitive, respect modes, the
+  `skills/prism3-consume/SKILL.md` discipline: semantic-role-not-primitive, respect modes, the
   decorative-border / disabled-exempt edges, the pairs self-check. Unlike `guidance` (95 roles of
   per-brand data) the skill carries **no brand-specific role names**, so the differential measures
   whether *portable* discipline reaches the compliance the per-brand sidecar did. Composes with
@@ -157,7 +157,7 @@ identical way.
 
 ### Skill run (2026-07-05) — the portable skill hits the ceiling: 100%, no per-brand sidecar
 
-The differential the last line called for. The `prism3-consume` skill (`Prism3/skills/prism3-consume/`)
+The differential the last line called for. The `prism3-consume` skill (`skills/prism3-consume/`)
 packages the discipline as **brand-agnostic** instructions; the `skill` arm hands an agent the catalogue
 + the skill (but **not** the per-brand `.ai.json`). To keep the comparison internally consistent, all
 three arms were re-run this session on **one committed brand (`aurora`)**, four `SAMPLE_TASKS`, pairs
