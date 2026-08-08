@@ -7,6 +7,126 @@
 
 ---
 
+## (2026-08-08) — `Prism3/docs` → `docs/`, a move that repairs more than it breaks (#650 PR 2)
+
+**STATUS: PR open, all 18 gates green.** The 36 numbered design docs plus `voice-standard.md` and
+`assets/` now live in the top-level `docs/`, flat, beside `superpowers/` — the destination the owner
+settled in #650 before PR 1 started, precisely so this PR would not have to re-sweep the
+cross-references PR 1 had just rewritten. `Prism3/` is down to `skills/` and a signpost README; PR 3
+empties it.
+
+**The calculus was inverted, and so was the risk.** Every rename in this arc has broken references and
+fixed nothing. This one is the opposite: the prose already said `docs/NN`, roughly ten to one, so the
+move makes **592 existing references start resolving** and breaks **61**. Which means the dangerous
+edit was not the one this PR had to make but the one it had to *avoid*: a sweep that "helpfully"
+normalized `docs/NN` → `Prism3/docs/NN` on its way past would have broken 592 references while reading
+as tidying, and **no gate in CI reads a markdown cross-reference.** So the load-bearing check here is a
+count, asserted in both directions:
+
+| form | command | base `b1c978a` | after |
+|---|---|---|---|
+| `docs/NN`, naive | `git grep -o -E 'docs/[0-9]{2}'` | 592 | **601** |
+| `docs/NN`, anchored (genuinely bare) | `git grep -o -E '(^\|[^/A-Za-z0-9_-])docs/[0-9]{2}'` | 550 | **584** |
+| `Prism3/docs`, any | `git grep -o -E 'Prism3/docs'` | 61 | **36** |
+| `Prism3/docs/NN` | `git grep -o -E 'Prism3/docs/[0-9]{2}'` | 42 | **11** |
+
+The prefixed "after" is **self-referential and will not reproduce if you re-run it against a later
+tree**: 28 of the 36 are dated records, and the other **8 are in this entry and in `docs/35` §8**, where
+the literal is the *subject* — a heading naming the move, the grep patterns in the row above, the sweep
+that must not happen, the depth defect below. Writing the audit changes the number the audit reports.
+That is not a flaw to remove; it is why the *category* (record, or subject, or live reference) is the
+thing to check, and the count is only the way to find candidates.
+
+**State the basis, because five counts in this workstream have failed to reproduce for want of one** —
+and note that the first two rows above are *the same check with two bases*, differing by exactly 42 at
+`b1c978a`, because the naive pattern also matches the tail of `Prism3/docs/NN`. That reconciliation
+(592 − 550 = 42 = the prefixed-numbered count) is the only reason both rows can be trusted; a single
+number would have hidden it. Every figure is `git grep -o` **occurrences** across **all tracked files**.
+My own first measurement disagreed with the brief's — 57 where it said 61 — and the brief was right: I
+had counted with a Python regex that required a full filename and then read a working tree mid-sweep,
+while `git grep -c` counts *matching lines*, not occurrences. Three plausible methods, three different
+numbers, one repo. The lesson is not "be careful" but **quote the command**, which is what §8 of
+`docs/35` already says about its own 467.
+
+**The one defect this sweep actually introduced, and the check that was too weak to see it: relative
+depth.** `apps/studio/README.md` and `apps/plugin/README.md` referenced `../Prism3/docs/NN` — correct
+from `apps/<x>/`, two levels down. Deleting the `Prism3/` segment, which is right everywhere else,
+turned them into `../docs/NN` = **`apps/docs/NN`**, a path that does not exist. Base correct, broken by
+me. The reason my first verification pass missed it is worth more than the fix: I checked that every
+reference *resolved from the repo root*, which is true of `../docs/NN` read as a string and false of it
+read as a path from its own file. **A relative reference can only be validated against its containing
+directory** — resolving it from anywhere else tests a path no reader will ever follow. The corrected
+check resolves each match with `os.path.dirname(file)` as the base and reports 89 references checked,
+12 unresolvable, all 12 the deliberately-left dated records above and 0 live. It also produced a
+depth audit worth keeping: four relative refs total, `Prism3/README.md` ×2 at `../docs/` (depth 1,
+correct) and the two app READMEs now at `../../docs/` (depth 2). The general form, for PR 3: **a
+path-segment deletion is not depth-preserving, so sweeping one is not a string operation.**
+
+**Of the 61: the live ones rewritten, the dated records deliberately left, and the difference is a
+category judgment no gate can make.** The rewritten ones are live — `CLAUDE.md`, `CONTRIBUTING.md`, the
+READMEs, the issue templates, the PR template, `review-pr.md`, and three prose citations inside
+`lint-voice.ts`. The ones left are dated records: `00-progress.md`'s own history, `docs/35`'s plan text,
+and `superpowers/`' dated plans and specs. Rewriting those would forge the record — they were accurate when written. Two of the survivors
+are load-bearing in a subtler way: the sentences *naming the move* ("`Prism3/docs` → `docs/`") need the
+old literal or they stop meaning anything.
+
+**The functional surface was one file.** `lint-voice.ts` carries three `Prism3/docs/voice-standard.md`
+references — all in comments and one `console.error` string, none in a `resolve()` or `readFileSync()`.
+Neither prose gate *scans* the design docs; they cite them. So forms 2, 3 and 5 had zero instances here
+(`git grep` for `'docs'` as a path segment, for `` docs/${ `` templates, and for a specifier landing
+inside a path-consuming call: all empty), and the fifth form — the one PR 1 discovered by *creating* it
+— could not arise, because nothing in this move changes a reference's *kind*. Worth recording as the
+reason rather than as luck: this PR moves prose, and PR 1 moved code.
+
+**CLAUDE.md's layer table was the second deliverable, and it was self-contradictory.** One row said
+`Prism3/` is "The engine" while seven references in the same file pointed at `packages/engine/`. PR 1
+left it deliberately so it would be rewritten once against a settled layout instead of churned at each
+step. It now has six rows that match reality — `packages/engine`, `packages/tokens`, the two `apps/`
+surfaces, `docs/`, `reference/` — plus a `Prism3/` row kept on purpose and marked **transitional**,
+because PR 3 still needs somewhere to point. That is the #651 defect class (an agent-facing doc
+describing directories as something they are not) and its third recurrence in this arc; a contradiction
+in the first file every agent reads is worse than a stale line, because a reader cannot tell which half
+is current.
+
+**And the same defect, unswept, two files over.** `Prism3/README.md` drew a tree diagram claiming the
+directory holds `docs/`, `schema/` and `engine/` — none of which has been true since PR 1 — and the root
+`README.md` still listed `Prism3/` as "the generation engine." **Neither contains the string
+`Prism3/docs`**, so neither is in the 61 and no sweep of any breadth would have found them. They were
+found by opening the files the table pointed at. This is exactly the hazard PR 1 recorded from the
+`node_modules` procedure bug and `docs/35` §8 now generalizes: **ask which *descriptions* assumed the old
+shape, not just which paths changed.** `Prism3/README.md` is now a four-row "was → now" table that says
+outright that nothing new belongs there.
+
+**Byte-identity is stronger here than in PR 1: zero content changes.** 106 tracked artifacts checksummed
+before the move, 106 after, no additions, no removals, **0 differing** — where PR 1 legitimately moved two
+self-referential path strings. `regen --check` reports **104** in sync. The baseline was recorded before
+the move on purpose: `regen --check` runs the engine and compares it against what the engine just wrote,
+so on its own it cannot distinguish "nothing changed" from "everything changed consistently."
+
+**Gate liveness re-confirmed rather than assumed, since a green suite is not evidence a detector
+survived.** `lint-skills` was mutation-tested both directions on this tree: a quoted engine path changed
+to a nonexistent one fails **by name** (`[missing file] packages/engine/cli-MUTATED.ts does not exist`),
+and restoring leaves no diff. Its #661 two-prefix self-check also still fires — narrowing the detector
+back to `packages/engine` alone produces the named failure about stale `Prism3/engine` references going
+unread. That check keeps earning its place precisely because `Prism3/` is *still* a real prefix after
+this PR; **PR 3 is when it can finally be narrowed**, and that will be the PR that has to prove the
+narrowing is safe rather than convenient.
+
+**Trap for whoever re-verifies this.** The shared checkout's `node_modules/@prism3/` has no `engine`
+link — it predates #661 — so an engine gate run there fails with `ERR_MODULE_NOT_FOUND: Cannot find
+package '@prism3/engine'` until someone runs `npm install` at the root. That is the *loud* variant of the
+false-pass bug #661 fixed, and it is safe: it stops rather than lying. This lane's worktree built its own
+`node_modules` per the corrected recipe in `review-pr.md` — third-party entries linked one at a time and
+`@prism3/*` pointed at absolute paths **inside** the worktree — so every number above describes this
+tree. Confirmed before starting: `@prism3/engine/version` resolved to the worktree and reported
+`ENGINE_VERSION 0.5.0`.
+
+**Next:** PR 3 is `Prism3/skills` → `skills/`, which moves a shipped surface *and* the gate that checks
+it, and is the first PR that can retire the two-prefix detector. After it, `Prism3/` is gone and the
+layout in `docs/35` §8 is reached.
+
+---
+
 ## (2026-08-08) — `Prism3/engine` → `packages/engine`, and a dependency stops being a path (#650 PR 1)
 
 **STATUS: PR open, all 18 gates green.** The engine is a package. `apps/studio` and `apps/plugin` now

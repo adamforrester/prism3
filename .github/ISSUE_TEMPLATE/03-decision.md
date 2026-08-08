@@ -8,7 +8,7 @@ labels: type:decision
 <!--
   This repo runs as a design dialogue: decisions get confirmed before they're built.
   A decision issue is where a fork gets stated, evidenced, and resolved — not where
-  it gets implemented. When it's called, record it in Prism3/docs/00-progress.md and
+  it gets implemented. When it's called, record it in docs/00-progress.md and
   close this with the decision written in a comment.
 
   Optional, same line: **Extends:** #NNN / **Related:** #NNN — e.g. a decision that

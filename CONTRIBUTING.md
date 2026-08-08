@@ -14,8 +14,8 @@ working principles apply to humans as much as to agents.
 | Read | For |
 |---|---|
 | [`CLAUDE.md`](CLAUDE.md) | Repo conventions + the four working principles. Non-optional — agents load this automatically, so you should know what it told them. |
-| [`Prism3/docs/00-progress.md`](Prism3/docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. |
-| The lane doc for your work | `07-e2e-journey` (the pipeline + portable-core architecture), `18`/`22` (plugin), `11` (multi-brand north star), `23`–`26` (dashboard IA + UI conventions). Index in [`Prism3/docs/`](Prism3/docs/). |
+| [`docs/00-progress.md`](docs/00-progress.md) | The durable state log — status, decisions and why, most recent first. **Read the latest entries before starting anything**; the arc moves fast and your question may already be answered. |
+| The lane doc for your work | `07-e2e-journey` (the pipeline + portable-core architecture), `18`/`22` (plugin), `11` (multi-brand north star), `23`–`26` (dashboard IA + UI conventions). Index in [`docs/`](docs/). |
 
 The one architectural idea to hold: **the engine core is pure and dependency-free, and
 every surface — web, plugin, CLI, MCP — is a thin adapter over it.** No `node:*`, no file
@@ -93,7 +93,7 @@ merely that the suite went red. That distinction has mattered more than a dozen 
 (the register is in the doc below): once a mutation produced 7 failures and the new gate was not among
 them, because it was asserting `helper === helper`; and a lint self-check passed every sample while a
 real en-GB spelling shipped, because it re-implemented the scan instead of calling it. Read
-[`Prism3/docs/34-gate-independence.md`](Prism3/docs/34-gate-independence.md) before writing the gate
+[`docs/34-gate-independence.md`](docs/34-gate-independence.md) before writing the gate
 rather than after.
 
 The reviewer-facing half: **duplication between a gate and its subject is usually load-bearing.**
@@ -119,7 +119,7 @@ regression. If a committed fixture's byte-repro target moved, say so and justify
 The repo is built to be agent-operable — use that, but hold the line in three places.
 
 **Point it at the durable state, not at your memory of it.** Start with "read
-`CLAUDE.md` and the latest entries in `Prism3/docs/00-progress.md`, then the doc for
+`CLAUDE.md` and the latest entries in `docs/00-progress.md`, then the doc for
 this lane." An agent that skips the progress log will happily re-derive a decision you
 already made and settled months ago.
 
@@ -151,10 +151,10 @@ Keeping these separate is what stops the backlog from drifting out of sync with 
 
 | Kind of thing | Home |
 |---|---|
-| **What shipped, what was decided and why** | `Prism3/docs/00-progress.md` — narrative history, most recent first, append-only. It records *what happened*; it is not a to-do list. |
+| **What shipped, what was decided and why** | `docs/00-progress.md` — narrative history, most recent first, append-only. It records *what happened*; it is not a to-do list. |
 | **Actionable backlog** | **GitHub issues.** Anything someone could pick up belongs here, not in doc prose. |
-| **Ideas not yet scoped** | `Prism3/docs/27-future-ideas.md` — discovery-level, deliberately not issues yet. An idea graduates to an issue when it's actionable. |
-| **Architecture, models, specs** | The numbered docs in `Prism3/docs/`. Add a new numbered file only for a genuinely new topic area; append, don't renumber. |
+| **Ideas not yet scoped** | `docs/27-future-ideas.md` — discovery-level, deliberately not issues yet. An idea graduates to an issue when it's actionable. |
+| **Architecture, models, specs** | The numbered docs in `docs/`. Add a new numbered file only for a genuinely new topic area; append, don't renumber. |
 | **Agent-generated design specs + implementation plans** | `docs/superpowers/specs/` and `docs/superpowers/plans/`, one dated file per piece of work (`YYYY-MM-DD-<topic>.md`). These are the *working record of a single change* — the design dialogue that preceded it and the task-by-task plan it was built from — so they ride in the feature PR and are not edited afterwards. Durable conclusions still land in `00-progress.md` and the numbered docs; this directory is not a second home for them. |
 
 ---

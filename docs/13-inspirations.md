@@ -274,7 +274,7 @@ organization has."* The concrete moves:
 2. **Author-machine-first, export-human-second.** This is already our output posture
    (`25` / `style-guide-generator` generate the human artifact from the single source).
    The sharper move Zinnia adds: apply it to the *docs* too — worth an audit of whether
-   `Prism3/docs` + the KB are authored agents-first or humans-first.
+   `docs` + the KB are authored agents-first or humans-first.
 3. **The MCP-proves-the-stack demo is ROI evidence.** Second witness (after ds-brain)
    that a docs/context MCP measurably lifts agent output *and that you should measure it*.
    Our `prism3-consume` skill + cold-agent differential (`#1–#6`, **done**) already run
@@ -309,7 +309,7 @@ organization has."* The concrete moves:
 |---|---|---|
 | Component metadata as structured data, one source → many projections | Astryx (`.doc.mjs` → registry/CLI/docsite), ds-brain (brain → skills/rules/fragments), Zinnia (Zinnia Docs repo → MCP + generated human site), KB 30 | Planned — component layer (`07` §7); engine already does this at the token tier |
 | Generated per-harness discovery artifacts (agent-file index, Cursor rules, skills) | Astryx `agent-docs`, ds-brain generated outputs, Zinnia (Polish + migration skills) | **Gap** — `.ai.json` has no discovery layer; steal when agent surfaces land |
-| Context authored machine-first, human artifact generated from it | Zinnia (docs repo → AI-exported website), our `25` / style-guide-generator | Output side done; **open audit** — are `Prism3/docs` + KB agents-first? |
+| Context authored machine-first, human artifact generated from it | Zinnia (docs repo → AI-exported website), our `25` / style-guide-generator | Output side done; **open audit** — are `docs` + KB agents-first? |
 | Context has explicit tiers (universal / org / surface); intent/principles weigh most | Zinnia ("context needs layers", "principles carried the most weight"), KB 29/30, Astryx (intent-poor, a gap) | Adopt the vocabulary for `ai-metadata` + `brand-skills` tiers |
 | Retrieval-first agent access (search → fetch-on-demand, compact tiers) | Astryx CLI; ds-brain "AI index" | **Gap** — candidate `cli.ts query` subcommand; MCP adapter tool schema later |
 | Metadata that cannot drift (type-checked / CI-enforced) | Astryx typed `ComponentDoc`; KB 30 freshness hash; Southleft (`tokens.json` generated from CSS at build, drift-asserted) | Engine gates prove the philosophy at the token tier; carry into the component layer. **Open task:** the legacy dual-format `reference/` layer is the one hand-synced snapshot left |

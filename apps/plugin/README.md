@@ -1,6 +1,6 @@
 # @prism3/plugin — the Figma plugin
 
-The Figma **write host** over the Prism3 engine (see `../Prism3/docs/18-plugin-and-host-architecture.md`
+The Figma **write host** over the Prism3 engine (see `../../docs/18-plugin-and-host-architecture.md`
 and `22-plugin-plan.md`). The organizing goal is **one UI, many front doors**: the same vanilla
 `apps/studio/src` control UI that drives the web dashboard runs verbatim inside this plugin's iframe; only
 the write step below it is plugin-specific.
@@ -98,7 +98,7 @@ each handler's `switch` exhaustive, so a new message type can't be silently drop
   the restore handler runs `brandTheme` (as Import does) and keeps defaults on reject, so a
   versioned-but-malformed payload can't crash the boot render. Bump the version on an incompatible
   `BrandInput` change (#480 is the stamp/refusal floor only — no migration for old shapes is built;
-  that's a deliberately separate decision, see `Prism3/docs/00-progress.md`).
+  that's a deliberately separate decision, see `docs/00-progress.md`).
 - ✅ **Knobs only** — restore does NOT re-write `figma.variables` (they're already in the file). The port
   (`apps/plugin/src/persist-figma.ts`) is a minimal `SharedDataPort`, shim-tested in `test-persist.ts`.
 
