@@ -81,7 +81,7 @@ nobody has made, and putting one on the wire would settle it by accident. **The 
 the full set lays out **324 rows × 2 columns** (`planSetLayout` makes the last varying axis the columns —
 `trailing`, with 2 values). Figma's own guidance is ~30 per set; the largest live paste to date is 21.
 
-**Named for Button, honestly.** `anatomy` is what makes a def materialisable and Button is the only def in
+**Named for Button, honestly.** `anatomy` is what makes a def materializable and Button is the only def in
 the catalogue that has one — text-field, icon-button, field-label and field-message do not. A control saying
 "Build components" would promise four it cannot build, and a catalogue loop would throw on four of five.
 
@@ -90,8 +90,35 @@ the catalogue that has one — text-field, icon-button, field-label and field-me
 a tsconfig imported a component def** — `test.ts` runs through `tsx`, which does not typecheck, and CI
 typechecks only `@prism3/studio` and `@prism3/plugin`. The new `main.ts` import pulled `button.ts` into
 `tsconfig.main.json` for the first time and it failed immediately. Fixed by declaring the field (deleting
-authored content to satisfy a type would be the wrong repair). Worth noting the general hole: the engine's
-component defs are **typechecked by nothing** unless a surface happens to import them.
+authored content to satisfy a type would be the wrong repair). The general hole this exposes — the engine's
+component defs are **typechecked by nothing** unless a surface happens to import them — is **#657**, with the
+shape of a fix and what it would have caught. Not repeated here.
+
+**A stale comment corrected, and the layout behind it deferred to #656.** `planSetLayout`'s grid rule claimed
+the columns land on `state` and the rows on `appearance` — "the same table shape as the grid dump the color
+layer was verified against." True when written; false since #536 item 5 appended `slotAxes` **after**
+`stateAxis`. The column key is `varying[varying.length - 1]` over `figmaAxisNames` order, so it is now
+`trailing`, and the full set lays out **324 rows x 2 columns**. Measured, not inferred: `colKey: "trailing"`,
+`rows x cols: 324 x 2`. A comment asserting a property the adjacent code no longer delivers is the defect
+class this repo keeps re-hitting — the #646 review caught the same shape twice inside the PR that existed to
+close it — so the comment was corrected here regardless of the behavior.
+
+The behavior was **not** changed, and the reason is the gate, not the effort. `test.ts`'s member-placement
+parity ("every member lands at the same coordinate and measures the same box on both paths — the pitch is
+measured") compares the two executors, and **both call `planSetLayout`**. It therefore stays green under any
+layout change and proves nothing about one. Re-deriving the position expectations from a new `planSetLayout`
+would be a gate agreeing with itself (docs/34). Choosing the row/column keys needs an independently-derived
+expectation — a hand table, or an assertion about the *property* (columns are the highest-cardinality axis, or
+`state` when declared) rather than the resulting numbers. That is its own piece of work, not a rider on
+wiring. A variant of the docs/34 family worth naming: the expectation here is not derived from the subject,
+**both sides of the comparison share the subject**.
+
+**Where 648 comes from, written down.** The gate asserts the literal rather than `figmaVariantCount(button)`
+(same declaration, so the comparison could not fail). Added the hand derivation so the literal does not read
+as a number transcribed from a run: 3 intent x 3 appearance x 3 size x **6** state x 4 slot = 648. The 6 is
+the step that misleads — `states` declares **seven**; `stateAxis` projects six because `inactive` is
+deliberately code-only (#487 §0.4). Anyone re-deriving from `states.length` gets 756 and concludes the gate is
+wrong. That is exactly the number in the original #483 brief.
 
 ---
 

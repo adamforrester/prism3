@@ -7647,6 +7647,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // THE COUNT IS THE LITERAL 648, not `figmaVariantCount(button)`. Both derive from the same
     // declaration, so comparing them is a gate agreeing with itself — exactly the shape the note above
     // records as the #487 §5 failure. The literal is a number a reviewer has to change on purpose.
+    //
+    // It is not a number transcribed from a run, either — derive it by hand: 3 intent × 3 appearance ×
+    // 3 size × 6 state × 4 slot (2 leading × 2 trailing) = 648. THE 6 IS THE STEP TO CHECK: `states`
+    // declares SEVEN and `stateAxis` projects six, because `inactive` is deliberately code-only and
+    // never becomes a Figma variant (#487 §0.4). Re-deriving this from `states.length` gives 756 and
+    // makes the gate look wrong when it is the derivation that is.
     const set648 = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
     ok(set648.length === 648, `figmaAnatomySet: enumerates 648 plans for Button (${set648.length})`);
     // Every coordinate distinct. A loop that pins an axis instead of iterating it produces N plans with

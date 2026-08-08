@@ -1211,9 +1211,22 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
 
   // GRID PLACEMENT. Only the axes that actually vary get a dimension — a `size` axis with one value is
   // not a row of one, it is not a row. The LAST varying axis becomes the columns and the rest combine
-  // into rows, which for a button lands on `state` across and `appearance` down: the same table shape
-  // as the grid dump the color layer was verified against, so a designer reads the set the way the
-  // implementer read the plan.
+  // into rows.
+  //
+  // WHICH AXIS THAT IS, IS AN ARTIFACT OF DECLARATION ORDER, NOT A LAYOUT CHOICE. `keys` comes from
+  // `planComponentName`, which emits in `figmaAxisNames` order: variantAxes, then stateAxis, then
+  // slotAxes. So for the full button set the last varying axis is `trailing` — two values — and the
+  // set lays out 324 rows x 2 columns, not the readable table you would draw by hand. An earlier
+  // version of this comment claimed `state` across and `appearance` down, describing the same table
+  // shape as the grid dump the color layer was verified against; that was true before the slot axes
+  // (#536 item 5) were appended AFTER `stateAxis`, and has been false since. Do not read a designer
+  // affordance into this line.
+  //
+  // Deliberately left as-is by #483, which only added the trigger: choosing the row/column keys is a
+  // design decision with its own tradeoffs, and the gate that looks like it covers member placement
+  // (`test.ts`'s coordinate/pitch parity) compares the two executors, both of which call THIS — so it
+  // stays green under any layout change and proves nothing about one. Fixing this needs an
+  // independently-derived expectation, which is its own piece of work. Tracked in #656.
   const keys = axes.split(',');
   const valuesOf = (p: AnatomyPlan) => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
   const vals = plans.map(valuesOf);
