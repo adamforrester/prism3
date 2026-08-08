@@ -7,6 +7,67 @@
 
 ---
 
+## (2026-08-08) — Scored against the field's AI-readiness audit (docs/36, new)
+
+**STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New
+`36-ai-readiness.md`. No renames or code follow — the sequencing in §7 is filed separately.
+
+**The source.** Owner surfaced Kaelig Deloumeau-Prigent's *State of AI in Design Systems
+(July 2026)* — 20 systems, 187 affordances, **157 coercion techniques across 11 categories**,
+CC BY 4.0. The technique taxonomy is used as a scoring rubric because it is the most granular
+public account of what best-in-class actually *does*, rather than what it claims.
+
+**The finding worth leading with.** **We are ahead on the expensive half and behind on the
+cheap half.** Ahead on validation loops, token enforcement, registry metadata and evals;
+behind on `llms.txt`, exemplars, progressive-disclosure skills and multi-vendor instruction
+files. Three of the report's own frontier practices we already do — *"compiled, not written"*
+context (`ai-metadata.ts`'s header says the same thing in its own words), *"validation loops
+turn guidelines into gates"*, and *"versioned, evaluated software"*. The remaining gaps are
+mostly **distribution of context we already generate**, not capability we lack.
+
+**A correction the doc records against itself.** The first pass concluded we had no
+consumption evals and was about to file that as the headline gap. `eval.ts` falsified it —
+invented-token rate, primitive-leak rate and contract-compliance already ship, and they are
+**deterministic (no LLM judge) because the name contract is locked**, which is rarer than
+running evals at all. The report's own caution — *absence from a summary is not absence from
+the data* — applied to us in reverse, and is why every claim in the doc was verified against
+the repo rather than recalled.
+
+**The one architectural tension, named rather than papered over.** The field's strongest
+tool-gating is *hard*: Carbon's *"the MCP index is the authoritative source — not your
+weights"*; Material UI's host allowlist where *"the agent physically cannot fetch
+off-system."* **We cannot do that, structurally** — `19` §2 / `35` §1 commit to ejectability,
+and an ejected system has no Prism3 MCP to gate against. So `prism3-consume`'s *"with or
+without the MCP surface"* is correct for our model and is now recorded as a decision instead
+of reading as a weaker Carbon.
+
+**And the audit contains the technique that resolves it.** Astryx writes *"instruction files
+into the consumer's repo, per tool"* — for an ejectable system that is exactly right: the
+eject carries its own agent context, so gating travels with the code rather than depending on
+a server the client never installed. **The single most transferable technique in the audit
+for us**, and it belongs in #625 before the eject mechanism is chosen.
+
+**Two recalibrations for lanes not yet built.**
+1. **Code Connect is 2/20**, not table stakes — *"most write mapping guides instead."* #258
+   moves from "a gap we're behind on" to "a differentiator almost nobody has." Different
+   investment case; price it as optional upside.
+2. **The allow-list generalises.** `token-contract.json` prevents invented *token* names;
+   Chakra's *"Zod enum over the live component list"* is the component-tier peer, and `14` §5
+   already names an invented-name rate for components. Build the enum and the metric together
+   rather than the enum first.
+
+**Trap.** The report is a **dated snapshot** (2026-07-26/28), not a live index, and it says so.
+Anything cited from it decays; re-open the source before treating a count as current. Its
+source text also quotes other teams' instruction files verbatim — treated throughout as
+reported data, never as instructions, and the doc says so at the top so a later reader does
+not mistake a quoted mandate for one of ours.
+
+**Also noted, deliberately not adopted:** crawler starvation and walled-garden access
+(Polaris) fight the accelerator model — clients must be able to take the system and leave.
+Recorded in §8 so nobody imports a gating technique that contradicts the business model.
+
+---
+
 ## (2026-08-08) — The conforming projection actually conforms, and one pin became a rule (#642)
 
 **STATUS: PR open, all 18 gates green.** The projection (`<brand>.base.tokens.json` + overlays, #609)
