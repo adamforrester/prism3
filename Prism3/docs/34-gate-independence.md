@@ -74,8 +74,11 @@ Three corollaries, each learned the hard way:
 
 ## The sub-shapes
 
-Six shapes, each with its own tell. They are all the same rule; the reason to enumerate them is that
-the *tell* differs, and recognizing the tell is what happens in practice.
+Each has its own tell. They are all the same rule; the reason to enumerate them is that the *tell*
+differs, and recognizing the tell is what happens in practice. **No count is written here on purpose** —
+the sections below are the list. This line read "Six shapes" while eight were documented, which is #568's
+landmark-goes-stale defect occurring inside the file that records it; the register below already applies
+this policy and the prose now matches it.
 
 ### 1. The gate reads the declaration it is checking
 
@@ -223,6 +226,55 @@ pin implementations; consequence assertions pin contracts. **Fix:** ask what a *
 the bug, and assert that quantity — then check the coordinates you sampled are the ones where it can
 break, which here meant all four slot combinations rather than the one the old pair happened to hit.
 
+### 9. The detector is anchored on a name its subject can move
+
+A gate whose detection is a **literal** — a hardcoded path, prefix or regex naming the world as it was
+— stops detecting when that name changes. It still runs. It still opens every file. Its pattern simply
+matches nothing, and a detector that matches nothing reports **clean**.
+
+`#650`'s decomposition spike is the instance, and it happened twice in two hours. `lint-skills.ts:163`
+finds engine references a skill quotes with a hardcoded `/Prism3\/[A-Za-z0-9\/_.-]+\.ts/g`. The sweep
+rewrote the gate's **fixtures** (`Prism3/does-not-exist.ts` → `packages/engine/does-not-exist.ts`) but
+not its **detector**, so the fixtures stopped matching the regex and the gate stopped checking anything
+at all. `lint-us-english.ts` did the same a few minutes later. **Both were caught only by their own
+self-checks** — the skills gate said so in as many words:
+
+```
+❌ the skills gate's own detection is broken — it cannot see what it claims to:
+    a missing engine-file reference is no longer detected
+```
+
+Which is the whole argument of this file arriving as evidence rather than as advice: **both gates
+survived only because someone had already built the mechanism this doc asks for.** A gate without a
+self-check would have gone quietly green while checking nothing, and the rename that disabled it would
+have looked like a clean sweep.
+
+**Why this is not shape 2.** Shape 2's tell is that *you can point at one function both sides call* — a
+shared derivation. Nothing is shared here; the detector and the subject are genuinely independent
+expressions, and the gate is perfectly capable of failing. What couples them is a **string**. The
+oracle is not derived from the subject, it is *addressed* to it, and the address went stale.
+
+**Why this is not scope silence.** Scope silence is a gate that never looked — a deleted call site, a
+dropped directory. This gate looked at everything it promised to and found nothing there to see. The
+distinction matters because the fixes differ: scope silence is fixed by asserting **representation**
+(`REQUIRED_SURFACES`), and this is fixed by asserting the detector still **fires** on a known-bad input.
+A representation check would have passed here — the files were all present and all opened.
+
+**The wider version, which is where the real exposure is.** The literal need not be in the gate at all.
+`#657`: the engine's component defs are typechecked only by whichever `tsconfig` a surface *happens* to
+import them through, so `button.ts` carried a `notes.evolution` field its schema never declared for five
+PRs, invisible, until unrelated plugin wiring pulled it into `tsconfig.main.json` and it failed
+instantly. Same family — **a check whose reach is an accident of another thing's structure rather than a
+declared scope.** No literal was wrong; nothing pointed at the defs at all. A gate's reach should be
+something it states, not something it inherits.
+
+**Tell:** the gate names the world in a string — a path prefix, a directory name, a regex over one. Ask
+what happens to that string when the thing it names is renamed, and whether anything would say so.
+**Fix:** a self-check that feeds the detector a known-bad input and fails if it comes back clean. Then,
+before any rename, grep every gate for the literal old name and treat each hit as **a detector to
+repoint, not prose to rewrite** — and re-run each gate's self-check explicitly, because the suite going
+green is what this failure looks like.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -267,6 +319,10 @@ independence failures — counted because they are the same silence from a diffe
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-08 | `lint-skills.ts:163` engine-ref regex (#650 spike) | 9 | the detector matching nothing after its fixtures were renamed |
+| 2026-08-08 | `lint-us-english.ts` surface map (#650 spike) | 9 | same rename, same silence, minutes later |
+| 2026-08-08 | engine component defs (#657) | 9 | `notes.evolution` undeclared for five PRs, typechecked by nothing |
+| 2026-08-08 | `planSetLayout` member placement (#656) | 2 | both executors' coordinates, from the one layout function they share |
 | 2026-08-07 `[in review]` | `test.ts` pending-width assertions (#612) | 8 | a button growing 28px mid-submit, asserted as *correct* |
 | 2026-08-07 `[in review]` | `mutateRing` anchor (#612) | 7 | the ring's own gate, mutating a different function |
 | 2026-08-07 `[in review]` | payload stub, TEXT width (#612) | 4 | a corner-pinned spinner indistinguishable from a centered one |
@@ -291,13 +347,16 @@ vacuous assertion was caught *before* it shipped: `#464`'s plural hole in the US
 
 ## In practice
 
-When you write or review a gate, three questions:
+When you write or review a gate, four questions:
 
 1. **What two things does this compare, and where does each come from?** If the answer names one
    source, there is no gate.
 2. **Can it fail?** Break the subject and confirm *this* gate is in the failure list, by name.
 3. **Did it look?** If the gate has a scope, is every surface it claims to cover represented in what
    it actually opened?
+4. **Does it name the world in a string?** If the detector holds a path, prefix or regex over one, ask
+   what happens when that name moves — and whether anything would say so. Question 2 does not cover
+   this: the rename *is* the break, and the gate answers by going green (shape 9).
 
 And when a gate's duplication looks like something to tidy up, the comment beside it should already
 say why it isn't. If it doesn't, add that before the cleanup finds it.
