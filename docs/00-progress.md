@@ -988,6 +988,39 @@ not mistake a quoted mandate for one of ours.
 (Polaris) fight the accelerator model — clients must be able to take the system and leave.
 Recorded in §8 so nobody imports a gating technique that contradicts the business model.
 
+**Review round 2 — four of our own numbers in §2 were wrong, and the fourth one is the
+lesson.** Corrected: `test.ts` `1922` → **2040**, `token-contract.json` `485` → **497** pinned
+paths, `preview.ts` `22` → **25** variants. Two of the three *understated* the case the doc
+argues — the strongest evidence in the audit was sold short by citing it small. The fourth,
+"`34` — a register of **12** instances", is not fixed by writing 24: `docs/34` L395 says in as
+many words that **the table is the count**, and that the prose above it deliberately stopped
+naming a number because *"a count written in prose is a landmark that goes stale, and this one
+went stale within a day of being written"* (#568). Citing that file with a hardcoded count
+reproduces, inside a citation of it, the exact defect it was amended to stop. So the number is
+gone rather than updated, which is what `34` asks callers to do and needs no maintenance.
+
+**`1922` is the one worth keeping in mind, because it was never true** — `git log -S` finds it
+nowhere in history, so it is not a figure that decayed between drafting and merge. Verified
+here from three independent progress entries rather than by re-running the suite (this
+checkout has no `node_modules`). A number in a scorecard position reads as *measured*; this
+one could not have been. **A doc whose entire value is the accuracy of its claims, in a
+directory no gate reads, is a scorecard with nothing behind it** — so the preamble now carries
+a dateline and says so. #670 is the filed class, but note its scope: it resolves *path* claims,
+not counts, so nothing proposed today would have caught these four.
+
+**Two quotations were compressions typeset as quotes, and are now un-typeset.** *"most write
+mapping guides instead"* and the elided half of Finding 5 are faithful summaries, but not the
+report's words — in a doc scored on quotation fidelity, a paraphrase inside quote marks is the
+same defect class as a number that reads as measured. Both now sit outside the quotes, attributed
+as ours. The one claim the review raised that I checked and did **not** change: skill lengths
+`115 / 154` are correct on this tree (`wc -l`).
+
+**Trap for whoever re-verifies this:** `docs/**` is in no gate's scope — mutation-tested during
+review with five en-GB spellings and a banned voice phrase planted in this file, and all four
+prose gates exited 0, silent. Do not read a green suite as having checked anything in this
+directory. `prioritise`/`generalises` in the doc are house style there (514 en-GB occurrences
+across 29 of 38 files), not defects.
+
 ---
 
 ## (2026-08-08) — The conforming projection actually conforms, and one pin became a rule (#642)
