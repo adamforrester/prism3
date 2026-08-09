@@ -99,7 +99,7 @@ export const parseStandardDesignMd = (text: string): StandardDesignMd => {
 
 /** Dialect detection (#556): a top-level flat `colors:` map is the standard dialect
  *  (engine-native briefs never have one). Both `cli.ts` and the web import path
- *  (`web/src/main.ts`'s `validateDesignMd`) call this on the same parsed `std` to
+ *  (`apps/studio/src/main.ts`'s `validateDesignMd`) call this on the same parsed `std` to
  *  decide which downstream parser owns the file — kept here as one predicate so the
  *  rule lives in a single place instead of two copies drifting apart. */
 export const isStandardDesignMd = (std: StandardDesignMd): boolean =>
