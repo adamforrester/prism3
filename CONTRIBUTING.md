@@ -59,6 +59,15 @@ npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo
                                                     # The second half is the point: two of the three
                                                     # defects that filed this were ABSENCES, and no sweep
                                                     # for wrong strings finds a row that is not there
+npx tsx packages/engine/typecheck-components.ts     # the component defs typecheck against their schema
+                                                    # (#657). `tsc --noEmit` over the DECLARED scope in
+                                                    # packages/engine/tsconfig.json — a check, not a
+                                                    # build; the engine stays buildless and the gate
+                                                    # asserts it. The half that is the point: every
+                                                    # tracked def must be REPRESENTED in what tsc
+                                                    # actually read, because a passing typecheck says
+                                                    # nothing about which files it opened — before this,
+                                                    # 1 of 5 defs was checked, via a plugin import
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

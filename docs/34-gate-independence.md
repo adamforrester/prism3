@@ -337,12 +337,36 @@ distinction matters because the fixes differ: scope silence is fixed by assertin
 A representation check would have passed here — the files were all present and all opened.
 
 **The wider version, which is where the real exposure is.** The literal need not be in the gate at all.
-`#657`: the engine's component defs are typechecked only by whichever `tsconfig` a surface *happens* to
+`#657`: the engine's component defs were typechecked only by whichever `tsconfig` a surface *happened* to
 import them through, so `button.ts` carried a `notes.evolution` field its schema never declared for five
 PRs, invisible, until unrelated plugin wiring pulled it into `tsconfig.main.json` and it failed
 instantly. Same family — **a check whose reach is an accident of another thing's structure rather than a
 declared scope.** No literal was wrong; nothing pointed at the defs at all. A gate's reach should be
 something it states, not something it inherits.
+
+**And the fix taught a corollary sharp enough to state on its own** (`typecheck-components.ts`, #657).
+Declaring the scope — an engine `tsconfig.json` with the defs in its `include` — closes the reach
+problem and *does not* close the invisibility problem, because **a passing `tsc --noEmit` proves nothing
+about which files it read.** Run the same command against an `include` missing one def and it exits 0
+with no output; measured, on the tree where the gate was built. That is the old defect exactly: real
+coverage, invisible, and its disappearance invisible too. So the gate compares two independent sources —
+`git ls-files` for what the repo contains, `tsc --listFiles` for what tsc actually opened — and asserts
+each def is **represented** in the second. Reading the tsconfig's own `include` globs instead would be
+shape 1: the gate confirming a declaration is self-consistent, which it always is. **Where the reach was
+inherited, declaring it is half the fix; the other half is proving the declaration was honored.**
+
+Two smaller things fell out of building that gate, both worth carrying because both were *found by
+mutation and would not have been found by reading*. First, a self-check assertion is only load-bearing
+if its fixture can reach the code path it names: two guards in the output parser were deleted in turn
+and the suite stayed green, because the sample's other guards already excluded those lines — one guard
+turned out to be genuinely unreachable and was **removed** rather than kept as decoration, and the other
+needed an adversarial sample line before its assertion could fail. **An assertion that cannot fail is
+worse than no assertion, because it reports the guard as tested.** Second, the self-check originally
+threaded the real run's `DEFS_DIR` literal into its fixtures, and that coupling swallowed a distinct
+failure: repointing the literal at a directory holding no defs failed on a *fixture path mismatch*
+rather than at the non-empty floor that exists to catch exactly it. Same lesson as shape 2, one level
+in — **the fixture tests the function, the floor tests the literal, and sharing a constant between them
+merges two failures into whichever fires first.**
 
 **Tell:** the gate names the world in a string — a path prefix, a directory name, a regex over one. Ask
 what happens to that string when the thing it names is renamed, and whether anything would say so. A
@@ -445,6 +469,8 @@ independence failures — counted because they are the same silence from a diffe
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-09 | `typecheck-components.ts` own self-check (#657) | 4 | two output-parser guards deleted in turn, suite green both times — one unreachable, one with a sample that could not reach it |
+| 2026-08-09 | `typecheck-components.ts` fixture/floor coupling (#657) | 2 | a `DEFS_DIR` repointed at an empty directory failing on a fixture mismatch instead of at the floor built for it |
 | 2026-08-08 | `docs/**` layout descriptions (#670) | scope | **three PRs in a row** describing a repo that did not exist — and `docs/**` was in no gate's scope at all, so nothing reported anything |
 | 2026-08-08 | `docs/01` + `docs/02` companion-file refs (#670) | 9 | 15 refs to a sibling `schema/` and `engine/` — pre-#650 spellings, in the two oldest spec docs |
 | 2026-08-08 | `apps/plugin/README.md` engine refs (#670) | 9 | `../packages/engine/write-plan.ts` — #661 deleted the `Prism3/` segment without re-depthing the `../`, live on `main` for two PRs |
@@ -453,7 +479,7 @@ independence failures — counted because they are the same silence from a diffe
 | 2026-08-08 | `vercel-ignore-check.mjs:46` bundle filter (#658 review) | 9 | **`0 engine files in the bundle` … `✓ clean`** — no self-check, and its subject skips deploys on `exit 0` |
 | 2026-08-08 | `lint-skills.ts:163` engine-ref regex (#650 spike) | 9 | the detector matching nothing after its fixtures were renamed |
 | 2026-08-08 | `lint-us-english.ts` surface map (#650 spike) | 9 | same rename, same silence, minutes later |
-| 2026-08-08 | engine component defs (#657) | 9 | `notes.evolution` undeclared for five PRs, typechecked by nothing |
+| 2026-08-08 | engine component defs (#657) | 9 | `notes.evolution` undeclared for five PRs, typechecked by nothing — and 4 of 5 defs still silent on `f02d30f`, measured |
 | 2026-08-08 | `planSetLayout` member placement (#656) | 2 | both executors' coordinates, from the one layout function they share |
 | 2026-08-07 `[in review]` | `test.ts` pending-width assertions (#612) | 8 | a button growing 28px mid-submit, asserted as *correct* |
 | 2026-08-07 `[in review]` | `mutateRing` anchor (#612) | 7 | the ring's own gate, mutating a different function |
