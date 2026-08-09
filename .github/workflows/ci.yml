@@ -176,6 +176,18 @@ jobs:
       - name: Docs stay in sync with this workflow's gates
         run: npx --yes tsx@4 packages/engine/lint-doc-gates.ts
 
+      # The component defs under packages/engine/components/ were typechecked by NOTHING: no root or
+      # engine tsconfig existed, and test.ts runs under tsx, which transpiles without typechecking.
+      # `button.ts` carried a `notes.evolution` field its schema never declared for five PRs (#657).
+      # Measured on f02d30f: typo a `notes` key in button.ts and the plugin typecheck fails; do it in
+      # text-field.ts and everything passes. Coverage was an accident of the plugin importing ONE def,
+      # so it would have gone 1 → 0 the day that import moved, silently. This runs `tsc --noEmit`
+      # (a check — the engine stays buildless, asserted by the gate) over a DECLARED scope, and — the
+      # part that matters — asserts every tracked def is REPRESENTED in what tsc actually read. A
+      # passing typecheck proves nothing about which files it opened.
+      - name: Component defs typecheck against their schema
+        run: npx --yes tsx@4 packages/engine/typecheck-components.ts
+
       # The sibling problem, one level out: the gate above keeps the CHECKLISTS honest, this one keeps
       # the LAYOUT DESCRIPTIONS honest. #651, #663 and #669 each shipped a doc describing a repo that
       # did not exist, and two of the three were ABSENCES — a missing `skills/` row, which no sweep for

@@ -1,0 +1,20 @@
+{
+  "// #657": "The DECLARED typecheck scope for the component defs. NOT a build: `noEmit` is set below and asserted by the gate (`typecheck-components.ts`), so nothing here emits and the engine stays buildless. Before this file the defs were typechecked by whichever tsconfig a SURFACE happened to import one through — `apps/plugin/tsconfig.main.json` reached `components/button.ts` only via `src/main.ts`'s import, and only since #483 — so one def of five was covered, and coverage would have gone to zero the day that import moved, with every gate green. A reach a gate can STATE is the whole point; read the gate's header before changing anything here.",
+
+  "// scope, and why it is not all of packages/engine": "Measured on f02d30f before choosing. `include: **/*.ts` over the whole engine reports 398 errors — or 23 with an @types/node this repo does not depend on — because 375 of them are `console`, `process` and `node:fs` with no ambient Node types. That is a separate decision (does the engine take a devDependency?) and #657 says not to ride it here. `components/**` + `component-schema.ts` reports 0. Note this narrows which UNRELATED engine files are checked, not how deeply the defs are: tsc pulls the defs' full transitive import graph either way — 13 files, including theme.ts, modes.ts and eval.ts.",
+
+  "// types: []": "No ambient type packages, deliberately (and stated up here because tsc rejects an unknown key INSIDE compilerOptions — TS5023 — while tolerating one at the top level, same as the plugin's two configs). The defs and their import graph are pure computation: no console, no process, no node: import anywhere. So an empty `types` keeps this config from depending on a package the engine does not have, and makes a def that starts reaching for the host environment fail here rather than silently widening the scope.",
+
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": [],
+    "lib": ["ES2022"]
+  },
+
+  "include": ["components/**/*.ts", "component-schema.ts"]
+}

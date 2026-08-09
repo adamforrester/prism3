@@ -7,6 +7,129 @@
 
 ---
 
+## (2026-08-09) — The component defs are typechecked, and the typecheck proves which files it read (#657)
+
+**STATUS: PR open, all 20 gates green** (19 + the one this adds). New `packages/engine/tsconfig.json`
+(the declared scope) and `packages/engine/typecheck-components.ts` (the gate), wired into `ci.yml` +
+`CLAUDE.md` §4 + `CONTRIBUTING.md` §3 + the PR template together. `regen --check` unchanged at **104** —
+this adds no emitted artifact. **`--noEmit` is a check, not a build: the engine stays buildless.**
+
+**The hole.** No tsconfig included the defs. `test.ts` runs under `tsx`, which **transpiles without
+typechecking** — 2045 assertions and not one of them a type. The three real tsconfigs are the studio's and
+the plugin's two, and they reach the defs at all only because `apps/plugin/src/main.ts:37` imports
+`button.ts`, which has been true only since #483.
+
+**Measured, not argued.** On `66c4990`, one typo per def, each run in isolation:
+
+| mutation | result |
+|---|---|
+| `button.ts`: `evolution:` → `evolutoin:` | plugin `typecheck` **FAILS** (TS2561) — caught |
+| `text-field.ts`: `contested:` → `contestd:` | **every gate green**. `test.ts` 2045/0, `regen --check` 104 |
+
+All five defs carry a `notes` key, so all five were exposed and **four were silent**. And the asymmetry is
+worse than a uniform hole would be, because it makes the coverage look deliberate when it is incidental:
+button's typecheck is an accident of the import graph, so it goes 1 → 0 the moment a future PR stops
+importing button from the plugin — with every gate green and no diff that looks like it removed a check.
+`docs/34` shape 9 already named this its widest instance; the corollary added there is the part worth
+carrying: **where the reach was inherited, declaring it is half the fix; the other half is proving the
+declaration was honored.**
+
+**THE REQUIREMENT THAT IS EASY TO MISS, AND IS THE POINT.** A passing `tsc --noEmit` proves *nothing about
+which files it read*. That is precisely the defect being closed — the old coverage was real and invisible,
+and its disappearance would have been invisible too. A gate that reports "clean" over four of five defs is
+the same defect in a new costume. So this is a script, not a bare `tsc --noEmit` line in `ci.yml`, for one
+reason: **`--listFiles` reports the file list even when diagnostics fire**, so a single invocation yields
+both the errors and the representation evidence.
+
+**What it compares, and why the two halves are independent.** `git ls-files` (what the repo contains) vs
+`tsc --listFiles` (what tsc actually opened). Neither is derived from the other — and crucially **neither is
+derived from the tsconfig's own `include` globs**, which is the `docs/34` shape-1 version of this gate that
+would report the config agreeing with itself. Both directions:
+
+- **forward** — every tracked `components/*.ts` def must appear in the checked set;
+- **converse** — every `components/*.ts` tsc read must be tracked, which catches untracked rename residue
+  inflating the coverage figure (the #653 shape, measured there: `existsSync` and git disagree on the same
+  commit in a shared checkout).
+
+Set membership per def, never a total: "13 files checked" is equally true of a run that dropped a def and
+picked up a stray.
+
+**Scope chosen from a measurement, as the issue required, and the deferred size is stated rather than
+guessed.** Wide (`packages/engine/**`) = **398 errors across 20 files**, of which **375** are
+`console`/`process`/`node:*` with no ambient types — the repo has no `@types/` at all. With `@types/node@22`
+installed in a scratch dir *outside* the repo: **23 errors** (20 in `test.ts`, 2 in `emit-dtcg.ts`, 1 in
+`cli.ts`). Narrow (`components/**` + `component-schema.ts`) = **0**. Narrow shipped. The 23 are a finding to
+file, not a rider on this PR, and widening is really a devDependency decision (`@types/node`) wearing a
+scope decision's clothes. Note `tsc` pulls the transitive graph regardless of `include`, so the checked set
+is 13 engine files, not 6: the defs plus `component-schema.ts` plus `color/eval/modes/ramp/scale/theme/
+vocabulary`.
+
+**A correction to #657's own body, which the issue asked be carried here.** It calls the runtime
+`validateComponentDef` alternative *"weaker."* That is wrong. Runtime validation would have caught **both**
+mutations above — a misspelling is an extra key, and `test.ts` already validates all five defs. Its real
+limit is narrower and different: **it cannot see a type mismatch on a correctly-named key.** Substantiated
+by probe rather than asserted — `unverified: 'not an array…'` on a correctly-spelled key produces TS2322
+here while `test.ts` still reports 2045/0. The two are complementary, not ranked, and the header says so.
+
+**VALIDATION — four replays, each on an otherwise-green tree.**
+
+| replay | mutation | result |
+|---|---|---|
+| **R1** | typo a `notes` key in `text-field.ts` (the def that was silent) | fails **by name** in this gate |
+| **R2** | typo one in `button.ts` | fails via **this** gate, no longer only via the plugin's import |
+| **R3** | remove a def from the typechecked set | **representation assertion fails with zero type errors** |
+| **R4** | restore each | clean |
+
+**R3 is the load-bearing one**: on that tree a bare `tsc -p packages/engine/tsconfig.json` **exits 0**. A
+gate that only ran `tsc` would have called that state green, which is the entire argument for the second
+half of this gate existing.
+
+**Three things the self-check got wrong first, each found by mutation and each worth the entry more than the
+gate itself.**
+
+1. **Two of my own assertions were vacuous** — M4 and M5 passed with the guard deleted. Diagnosed by
+   classifying every line of `tsc --listFiles --explainFiles`, not by inspection: with `cwd: repo`, tsc
+   emits **repo-relative** diagnostics, so the guard matching `(line,col): error TSnnnn` was *unreachable*.
+   Fixed by rewriting `parseListedFiles` as three documented conjuncts (unindented / in-root /
+   source-extension) and **deleting** the dead guard rather than keeping it as decoration. Each remaining
+   conjunct now fails by name when removed, verified individually, against adversarial sample lines.
+   *An assertion that cannot fail is worse than no assertion, because it reports the guard as tested.*
+2. **The floor did not catch a repointed `DEFS_DIR` — the self-check did**, because the fixtures were
+   threaded the live `DEFS_DIR` (shape-2 coupling: two failures merged into one). Fixed with a
+   fixture-local `SAMPLE_DEFS_DIR`; repointing now fails at the floor with *"only 0 component def(s)
+   tracked under packages/engine/schema/ — expected at least 3."* **The fixture tests the function; the
+   floor tests the literal.** They are not redundant.
+3. **The emit assertion was scoped to the wrong directory.** Mutating `noEmit` away for real wrote **8
+   `.js` files at `packages/engine/`** and **zero** in `components/` — tsc mirrors each input's own
+   directory. The narrow check would have reported clean over exactly the outcome it exists to prevent.
+   Widened to scan both, with that measurement recorded in the comment so nobody re-narrows it.
+
+**The buildless invariant is asserted twice, deliberately.** `noEmit: true` read from **tsc's own resolved
+view** (`--showConfig`, not this file's parse of the JSON) *and* no `.js`/`.d.ts` present afterward — the
+declaration and its consequence, `docs/34` shape 8. Verified inert for both bundles before shipping, since
+esbuild auto-discovers a tsconfig per file: with the file moved away, both surfaces rebuilt, and the file
+restored, studio `main.js` stays `523fc6d6…` and plugin `main.js` stays `d55cd072…` across all three states.
+
+**One tsc rule that cost a run and is now recorded where it bites.** An unknown key **inside**
+`compilerOptions` is TS5023; at the **top level** it is tolerated. That is why the tsconfig's comment keys
+sit at the top level — including the `"// types: []"` note explaining the option below it — and it is why
+the plugin's two configs put theirs there too.
+
+**Basis of every count here.** 104 artifacts, `regen.ts --check`. 2045, `test.ts` on this tree. 5 defs and
+13 checked files, the gate's own summary line, cross-read against `tsc --listFiles` by hand (70 lines total,
+57 of them `lib.*.d.ts`). 398 / 375 / 23 / 0, four probe runs with the tsconfig `include` widened, the last
+two with `@types/node@22` in a scratch dir outside the repo. 8 emitted files, `git status` after the real
+`noEmit` mutation. 20 gates: `lint-doc-gates.ts` reports 20 contributor-facing steps in `ci.yml` after this
+PR, up from 19 — and renaming this gate's line in `CONTRIBUTING.md` §3 makes it fail by name
+(*"is missing from CONTRIBUTING.md (no mention of: typecheck-components.ts)"*), which is how the wiring was
+verified rather than assumed. Bundle hashes, `shasum -a 256` across the move/rebuild/restore cycle above.
+
+**What this deliberately does not cover.** The other ~20 engine files reached transitively are typechecked
+as a side effect of being in the defs' graph, not as a promise — the declared scope is the defs and their
+schema, and the wider run's 23 errors are filed, not fixed here. No authored field research was deleted to
+satisfy a type: #483's precedent is that `notes.evolution` was fixed by **declaring** the field, and that
+remains the rule.
+
 ## (2026-08-08) — A gate for the stale-description class: the docs must describe the repo that exists (#670)
 
 **STATUS: PR open, all 19 gates green** (18 + the one this adds). New gate
