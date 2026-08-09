@@ -7,6 +7,113 @@
 
 ---
 
+## (2026-08-09) — The eject payload, checked against what the field's examples actually fail at (#668, #674, #675)
+
+**STATUS: issues only — no code change beyond this entry, the gate header and the tokens README.**
+`regen --check` unchanged at **104**; nothing emitted moved.
+
+**Why a second research pass, when #668 already had one.** The first pass asked *what did these systems
+build*, and shaped #668 around Primer's rules/inventory split. That question has a blind spot: adoption is
+not satisfaction. A pattern can ship, spread, and still be the thing its users complain about for years —
+and we are architecting now, with the freedom to improve on the example rather than inherit its defects.
+So the second pass asked the opposite question: **what do people file against these systems.** It changed
+one requirement and hardened two.
+
+**The finding that changed a requirement: provenance is necessary and not sufficient.** shadcn-ui/ui
+discussion #790, *"Need easy way to update components"*, opened **30 June 2023**, 31 participants, still
+unresolved. Four pain points:
+
+| pain point | fixed by a version stamp? |
+|---|---|
+| no record of which versions are installed | yes |
+| manual re-add per component | n/a here |
+| **custom modifications lost on update** | **no** |
+| **cannot distinguish upstream changes from own edits** | **no** |
+
+The last two are the real failure, and #668 did not carry them. **A client edits the payload after
+ejecting — that is what ejecting is for.** With no known-original to diff against, every later update is a
+manual merge, and one round of local edits turns the payload into a fork. That is `19` §4's fork-per-brand
+pattern arriving one layer up: not a forked repo, a forked payload. The community's own workaround is a
+shell loop re-adding every component with `-o`, which is to say the field's answer to "how do I update" is
+*discard the client's work*.
+
+So the payload needs enough to **three-way merge**. The engine is deterministic, so the baseline is
+reproducible rather than stored — given `ENGINE_VERSION` and the brand input, the original regenerates and
+diffs against the client's copy. #668 now requires that property be demonstrated, not assumed.
+
+**Correction worth recording, because the earlier framing was repeated several times.** Provenance was
+described as the field's unanimous gap and our clean advantage. The first half holds — shadcn's
+`components.json` has no field recording what was installed, which is structurally why it has no update
+path. The second half was overstated: `ENGINE_VERSION` + `CONTRACT_VERSION` answer *what produced this* and
+*can I still resolve these names*, and neither answers *which of these lines are mine*. The advantage is
+real and it is narrower than claimed.
+
+**The collapse pin, hardened — and a citation error caught in review, recorded because the error is the
+lesson.** The first version of this entry claimed SD issue **#1171** had been *"open since April 2024 with
+no maintainer response."* **That is false, and it was never verified before being written into three
+files and a PR body.** #1171 was opened 2024-04-25 and **closed as completed within days**. The PR review
+on #676 pulled the raw API fields and caught it.
+
+The corrected reading is both true and stronger. #1171 asked for exactly what the canonical tree cannot do
+— one file whose tokens each carry several mode-conditional values — and the resolution was to build
+**separate outputs per theme** instead. `base` + `<mode>.overlay` is that shape, so the projection follows
+the tool's own recommended approach rather than routing around a gap in it. The framing that had to go was
+"unsolved and unattended"; what replaced it is "solved, and this is the solution."
+
+A second, better citation came out of the re-verification: SD issue **#1590**, *Support for DTCG v2025.10*
+(open, filed 2025-11-04), lists color/border/shadow/dimension as done and **resolvers as still in
+progress**. That is the concrete reason the engine emits plain per-mode files rather than a resolver
+document — a resolver document is not readable by a stock Style Dictionary today. #1590 also lists
+**gradient** support as in progress, which gives the `[CONSUMER-GAP]` pin of 2 a **named upstream cause**
+rather than a permanent-sounding "no SD handler." The pin is now annotated as something to watch: if
+#1590 closes that item, the number moves, and since the assertion is `===` an improvement fails the gate
+and whoever improved it updates the pin.
+
+**The generalizable failure, stated plainly because it is the same class this repo gates against.** Three
+citations went into that first draft; one was fabricated and two more were unverified (the SD-v5 claim,
+and the DTCG announcement wording — the latter two checked out on re-verification, which is luck, not
+method). A PR whose entire deliverable is *"check the examples rather than assume they work"* shipped
+claims that had not been checked. **The rule that follows: a cited external fact is a claim like any
+other, and the standard is the one docs/34 already sets for gates — the source must be independently
+read, not recalled.** Recalling a plausible issue state is the citation equivalent of deriving a gate's
+expected value from its subject: it produces something that looks like evidence and cannot fail.
+
+**Independent convergence on a spec that did not exist when we built it.** The **DTCG Resolver Module**
+(preview draft, 30 July 2026) models **sets** merged in array order, **modifiers** carrying a `contexts`
+map, and a **resolution order**. `base` is a set; each `<mode>.overlay` is a context under a modifier.
+#609's design and the standard's data model agree, arrived at separately.
+
+Two cautions attached in both places, because this is exactly the claim that gets over-read later: the
+draft says *"do not attempt to implement this version"*, and the 2025.10 stable announcement advertises
+theming "without file duplication" while the mechanism sits in that separate draft. Anyone acting on "DTCG
+has theming now" is acting on an announcement, not a spec.
+
+**Where the field gives us nothing, stated so it is not mistaken for validation.** Primer's two-file split
+is months old with no adoption or complaint record. We are modeling on something reasonable and
+**untested**. Not a reason to abandon it; a reason not to cite it as proven, and to keep the rules/inventory
+boundary cheap to move. Recorded as a caveat inside #668 rather than as a footnote here, where it would be
+read once and forgotten.
+
+**Issue changes, all filed this session:**
+
+| issue | change |
+|---|---|
+| **#674** (new) | Payload membership manifest. `out/` mixes payload artifacts, regression reports and preview surfaces with no boundary mechanism. Every payload-assembling tool surveyed declares membership explicitly (npm `files[]`, shadcn typed `files[]`, SD per-platform `files[]`, CRA `folders`); none uses "everything in the output directory". The Resolver Module states it does **not** define a distribution manifest, so this fills a gap the spec scopes itself out of rather than pre-empting one. |
+| **#675** (new) | Register decision. #668 proposes RFC 2119 keywords in emitted rules prose; `lint-voice.ts` gates emitted prose against a standard whose load-bearing attribute is **recessive**. The prior question is whether `voice-standard.md` reaches prose whose reader is a model — that surface did not exist when the standard was written. Blocks the rules artifact. |
+| **#668** | Sequencing block added (#674 first or same PR; #675 blocks the rules artifact); pristine-baseline requirement added with the #790 evidence; Primer caveat added; verify step added that exercises the baseline end-to-end. The `out/` layout question **removed from scope** — it belongs to #674, which dissolves it. |
+| **#664** | The open sub-decision is settled: two `llms.txt` files, one per audience. The reason is mechanical rather than stylistic — a product file routes to our docs and MCP, neither of which exists past the eject boundary. |
+
+**The trap for whoever picks this up.** #674 must land before or with #668. If the emitter ships first it
+decides payload membership by whatever it happens to write, and #674 becomes retroactive documentation of
+an accident — the same shape as the `Prism3/` debt #650 spent three PRs unwinding. **A decision nothing
+forces is a decision made by accident.**
+
+Sources, each independently fetched and confirmed rather than recalled: shadcn-ui/ui discussion #790 ·
+style-dictionary issues #1171 (closed) and #1590 (open) ·
+`https://www.designtokens.org/tr/drafts/resolver/` · the DTCG 2025.10 stable announcement.
+
+---
+
 ## (2026-08-09) — The component defs are typechecked, and the typecheck proves which files it read (#657)
 
 **STATUS: PR open, all 20 gates green** (19 + the one this adds). New `packages/engine/tsconfig.json`
@@ -129,6 +236,8 @@ as a side effect of being in the defs' graph, not as a promise — the declared 
 schema, and the wider run's 23 errors are filed, not fixed here. No authored field research was deleted to
 satisfy a type: #483's precedent is that `notes.evolution` was fixed by **declaring** the field, and that
 remains the rule.
+
+---
 
 ## (2026-08-08) — A gate for the stale-description class: the docs must describe the repo that exists (#670)
 

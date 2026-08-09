@@ -21,6 +21,33 @@
  *   2. the PROJECTED set (`<brand>.base` + `<brand>.<mode>.overlay`) is #609's acceptance test: every
  *      token present in every mode, aliases intact, each mode under its own selector, no custom code.
  *
+ * WHY THE PROJECTION IS THE STANDARD ANSWER, NOT A WORKAROUND — worth knowing before someone reads
+ * (1) as an apology for a limitation we invented.
+ *
+ * Style Dictionary issue #1171, "Multiple conditional / mode values for a single design token"
+ * (opened 2024-04-25), asked for exactly what (1) says is impossible: one file whose tokens each
+ * carry several mode-conditional values. It was CLOSED as completed within days. The resolution is
+ * the point — the answer was to build separate outputs per theme rather than teach one file to hold
+ * multi-valued tokens. `base` + `<mode>.overlay` is that shape. We are following the tool's own
+ * recommended approach, not routing around a gap in it.
+ *
+ * And the shape is not idiosyncratic. The DTCG Resolver Module (preview draft, 30 July 2026,
+ * https://www.designtokens.org/tr/drafts/resolver/) models exactly this: SETS of token sources merged
+ * in array order, MODIFIERS carrying a `contexts` map, and a RESOLUTION ORDER deciding priority.
+ * `base` is a set; each `<mode>.overlay` is a context under a modifier. We converged on the standard's
+ * data model independently, before it existed in draft.
+ *
+ * WHY WE STILL EMIT PLAIN PER-MODE FILES RATHER THAN A RESOLVER DOCUMENT. Style Dictionary issue
+ * #1590, "Support for DTCG v2025.10" (OPEN, filed 2025-11-04), tracks what SD does and does not yet
+ * handle, and lists `Resolvers: support for the new resolver module` as still in progress. A resolver
+ * document is not readable by a stock Style Dictionary today, so emitting one would break the single
+ * promise this gate exists to keep. Re-check #1590 before proposing that change.
+ *
+ * Two cautions, so the convergence is not over-read. The draft says "do not attempt to implement this
+ * version" — this is convergence worth knowing about, not a spec to conform to yet. And the 2025.10
+ * stable announcement advertises theming "without file duplication" while the mechanism lives in this
+ * separate draft: anyone acting on "DTCG has theming now" is acting on an announcement, not a spec.
+ *
  * SCOPE — every brand the engine emits, not one (#635). The first version hard-coded `nb`, which
  * answered "can a stranger consume `nb`?" and was silent on the other three. Brands are DISCOVERED
  * from `out/`, so a fifth is covered the day it lands; the four known profiles are then asserted BY
@@ -180,6 +207,15 @@ for (const [name, why] of Object.entries(PROMISED)) {
  * what WE ship; a consumer writing their own transform is their configuration, not our adapter. So this
  * stays measured and visible, in the same posture as #609's mode collapse: a documented consumer gap,
  * not a defect awaiting a fix (#642).
+ *
+ * THE GAP NOW HAS A NAMED UPSTREAM CAUSE, and it is worth watching rather than assuming permanent.
+ * Style Dictionary issue #1590, "Support for DTCG v2025.10" (OPEN, filed 2025-11-04), lists what v5
+ * does and does not yet handle: color, border, shadow and dimension are done; `Gradient: support for
+ * the new color module still in progress`. So this pin is tracking an open upstream item, not an
+ * architectural impossibility. **If it closes, this number should MOVE — and because the assertion is
+ * `===`, an improvement fails the gate and whoever improved it updates the pin.** That is the
+ * characterization posture working as designed; do not read a failure here as a regression without
+ * checking #1590 first.
  *
  * Widening either number to make a failure go away is the same move as adding a preprocessor: it ends
  * the measurement.
