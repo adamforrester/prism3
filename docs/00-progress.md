@@ -48,12 +48,35 @@ path. The second half was overstated: `ENGINE_VERSION` + `CONTRACT_VERSION` answ
 *can I still resolve these names*, and neither answers *which of these lines are mine*. The advantage is
 real and it is narrower than claimed.
 
-**The collapse pin, hardened.** `packages/tokens/check-consumability.mjs` recorded the canonical tree's
-mode collapse as permanent by DTCG design. Accurate, and it undersold the position: Style Dictionary issue
-**#1171** (multiple conditional values for one token) has been open since **April 2024 with no maintainer
-response**, and SD v5 does not yet fully support DTCG 2025.10. The collapse is an unsolved problem in the
-ecosystem's dominant tool, so the projection is an answer to it rather than a workaround for something we
-broke. Written into the gate header and the tokens README.
+**The collapse pin, hardened — and a citation error caught in review, recorded because the error is the
+lesson.** The first version of this entry claimed SD issue **#1171** had been *"open since April 2024 with
+no maintainer response."* **That is false, and it was never verified before being written into three
+files and a PR body.** #1171 was opened 2024-04-25 and **closed as completed within days**. The PR review
+on #676 pulled the raw API fields and caught it.
+
+The corrected reading is both true and stronger. #1171 asked for exactly what the canonical tree cannot do
+— one file whose tokens each carry several mode-conditional values — and the resolution was to build
+**separate outputs per theme** instead. `base` + `<mode>.overlay` is that shape, so the projection follows
+the tool's own recommended approach rather than routing around a gap in it. The framing that had to go was
+"unsolved and unattended"; what replaced it is "solved, and this is the solution."
+
+A second, better citation came out of the re-verification: SD issue **#1590**, *Support for DTCG v2025.10*
+(open, filed 2025-11-04), lists color/border/shadow/dimension as done and **resolvers as still in
+progress**. That is the concrete reason the engine emits plain per-mode files rather than a resolver
+document — a resolver document is not readable by a stock Style Dictionary today. #1590 also lists
+**gradient** support as in progress, which gives the `[CONSUMER-GAP]` pin of 2 a **named upstream cause**
+rather than a permanent-sounding "no SD handler." The pin is now annotated as something to watch: if
+#1590 closes that item, the number moves, and since the assertion is `===` an improvement fails the gate
+and whoever improved it updates the pin.
+
+**The generalizable failure, stated plainly because it is the same class this repo gates against.** Three
+citations went into that first draft; one was fabricated and two more were unverified (the SD-v5 claim,
+and the DTCG announcement wording — the latter two checked out on re-verification, which is luck, not
+method). A PR whose entire deliverable is *"check the examples rather than assume they work"* shipped
+claims that had not been checked. **The rule that follows: a cited external fact is a claim like any
+other, and the standard is the one docs/34 already sets for gates — the source must be independently
+read, not recalled.** Recalling a plausible issue state is the citation equivalent of deriving a gate's
+expected value from its subject: it produces something that looks like evidence and cannot fail.
 
 **Independent convergence on a spec that did not exist when we built it.** The **DTCG Resolver Module**
 (preview draft, 30 July 2026) models **sets** merged in array order, **modifiers** carrying a `contexts`
@@ -85,9 +108,9 @@ decides payload membership by whatever it happens to write, and #674 becomes ret
 an accident — the same shape as the `Prism3/` debt #650 spent three PRs unwinding. **A decision nothing
 forces is a decision made by accident.**
 
-Sources: shadcn-ui/ui discussion #790 · style-dictionary issue #1171 ·
-`https://www.designtokens.org/tr/drafts/resolver/` · the DTCG 2025.10 stable announcement ·
-Style Dictionary v5 migration notes.
+Sources, each independently fetched and confirmed rather than recalled: shadcn-ui/ui discussion #790 ·
+style-dictionary issues #1171 (closed) and #1590 (open) ·
+`https://www.designtokens.org/tr/drafts/resolver/` · the DTCG 2025.10 stable announcement.
 
 ---
 

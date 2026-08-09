@@ -55,22 +55,29 @@ Both are measured here, and they answer different questions:
 
 Same posture `regen --check` takes toward `out/`: the job is to have a **memory**, not an opinion.
 
-## The collapse is the ecosystem's unsolved problem, not a limitation we invented
+## The projection is the standard answer, not a workaround
 
 The section above is easy to read as an apology. It is not one, and the field evidence is worth
 carrying because it changes what the projection *is*.
 
-Style Dictionary issue #1171 — *multiple conditional values for a single token* — has been open since
-**April 2024 with no maintainer response**, and Style Dictionary v5 does not yet fully support DTCG
-2025.10. One token holding several mode-conditional values is unsolved in the ecosystem's dominant
-tool. So the projection is this repo's answer to an open problem, not a workaround for a defect of
-its own making.
+Style Dictionary issue **#1171** — *Multiple conditional / mode values for a single design token*,
+opened 25 April 2024 — asked for exactly what the section above says is impossible: one file whose
+tokens each carry several mode-conditional values. It was **closed as completed within days**, and the
+resolution is the part that matters: the answer was to build **separate outputs per theme** rather
+than teach one file to hold multi-valued tokens. `base` + `<mode>.overlay` is that shape. We are
+following the tool's own recommended approach rather than routing around a gap in it.
 
-The shape of that answer is also not idiosyncratic. The **DTCG Resolver Module** (preview draft, 30
-July 2026) defines: **sets** of token sources merged in array order, **modifiers** carrying a
-`contexts` map, and a **resolution order** deciding priority in conflicts. Our `base` is a set; each
-`<mode>.overlay` is a context under a modifier. The engine converged on the standard's data model
-independently, before that draft existed.
+The shape is also not idiosyncratic. The **DTCG Resolver Module** (preview draft, 30 July 2026)
+defines **sets** of token sources merged in array order, **modifiers** carrying a `contexts` map, and
+a **resolution order** deciding priority in conflicts. Our `base` is a set; each `<mode>.overlay` is a
+context under a modifier. The engine converged on the standard's data model independently, before that
+draft existed.
+
+**Why we still emit plain per-mode files rather than a resolver document.** Style Dictionary issue
+**#1590**, *Support for DTCG v2025.10* (open, filed 4 November 2025), tracks what v5 does and does not
+yet handle. Color, border, shadow and dimension are done; **resolvers are listed as still in
+progress**. A resolver document is not readable by a stock Style Dictionary today, so emitting one
+would break the single promise this gate exists to keep. Re-check #1590 before proposing that change.
 
 Two cautions, so the convergence is not over-read:
 
