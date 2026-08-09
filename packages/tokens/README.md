@@ -55,6 +55,35 @@ Both are measured here, and they answer different questions:
 
 Same posture `regen --check` takes toward `out/`: the job is to have a **memory**, not an opinion.
 
+## The collapse is the ecosystem's unsolved problem, not a limitation we invented
+
+The section above is easy to read as an apology. It is not one, and the field evidence is worth
+carrying because it changes what the projection *is*.
+
+Style Dictionary issue #1171 — *multiple conditional values for a single token* — has been open since
+**April 2024 with no maintainer response**, and Style Dictionary v5 does not yet fully support DTCG
+2025.10. One token holding several mode-conditional values is unsolved in the ecosystem's dominant
+tool. So the projection is this repo's answer to an open problem, not a workaround for a defect of
+its own making.
+
+The shape of that answer is also not idiosyncratic. The **DTCG Resolver Module** (preview draft, 30
+July 2026) defines: **sets** of token sources merged in array order, **modifiers** carrying a
+`contexts` map, and a **resolution order** deciding priority in conflicts. Our `base` is a set; each
+`<mode>.overlay` is a context under a modifier. The engine converged on the standard's data model
+independently, before that draft existed.
+
+Two cautions, so the convergence is not over-read:
+
+- The draft states *"do not attempt to implement this version."* This is worth knowing about, not a
+  spec to conform to yet.
+- The DTCG 2025.10 stable announcement advertises theming "without file duplication" while the
+  mechanism lives in this separate draft. Anyone acting on "DTCG has theming now" is acting on an
+  announcement rather than a spec.
+
+The Resolver Module also scopes itself to how token files **compose**, and states it does not define
+a manifest of which files belong to a distribution. Membership is a separate concern, tracked as
+#674.
+
 ## Scope — every brand, and why that mattered
 
 The gate originally measured **one** brand (`nb`), which answered "can a stranger consume `nb`?" and

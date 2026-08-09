@@ -21,6 +21,24 @@
  *   2. the PROJECTED set (`<brand>.base` + `<brand>.<mode>.overlay`) is #609's acceptance test: every
  *      token present in every mode, aliases intact, each mode under its own selector, no custom code.
  *
+ * WHY THE COLLAPSE IS THE ECOSYSTEM'S PROBLEM AND NOT OURS — worth knowing before someone reads (1)
+ * as an apology for a limitation we invented. Style Dictionary issue #1171, "multiple conditional
+ * values for a single token", has been open since April 2024 with no maintainer response, and SD v5
+ * does not yet fully support DTCG 2025.10. One token carrying several mode-conditional values is an
+ * unsolved problem in the ecosystem's dominant tool. The projection is a solution to it, not a
+ * workaround for a defect of ours.
+ *
+ * And the projection's shape is not idiosyncratic. The DTCG Resolver Module (preview draft, 30 July
+ * 2026, https://www.designtokens.org/tr/drafts/resolver/) models exactly this: SETS of token sources
+ * merged in array order, MODIFIERS carrying a `contexts` map, and a RESOLUTION ORDER deciding
+ * priority. `base` is a set; each `<mode>.overlay` is a context under a modifier. We converged on the
+ * standard's data model independently, before it existed in draft.
+ *
+ * Two cautions attached, so nobody over-reads that. The draft says "do not attempt to implement this
+ * version" — this is convergence worth knowing about, not a spec to conform to yet. And the 2025.10
+ * stable announcement advertises theming "without file duplication" while the mechanism lives in this
+ * separate draft: anyone acting on "DTCG has theming now" is acting on an announcement, not a spec.
+ *
  * SCOPE — every brand the engine emits, not one (#635). The first version hard-coded `nb`, which
  * answered "can a stranger consume `nb`?" and was silent on the other three. Brands are DISCOVERED
  * from `out/`, so a fifth is covered the day it lands; the four known profiles are then asserted BY
