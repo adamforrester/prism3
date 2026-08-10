@@ -1,0 +1,21 @@
+{
+  "font": {
+    "family": {
+      "body": {
+        "$type": "fontFamily",
+        "$value": "Inter",
+        "$description": "Body / UI text family. Token Press emits a single brand family (see README)."
+      },
+      "display": {
+        "$type": "fontFamily",
+        "$value": "Playfair Display",
+        "$description": "Display / headline family."
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": "JetBrains Mono",
+        "$description": "Monospace / code family."
+      }
+    }
+  }
+}

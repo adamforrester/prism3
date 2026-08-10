@@ -1,0 +1,23 @@
+{
+  "source": [
+    "tokens/shared/**/*.json",
+    "tokens/light/**/*.json",
+    "tokens/desktop/**/*.json"
+  ],
+  "usesDtcg": true,
+  "platforms": {
+    "css": {
+      "transformGroup": "css",
+      "buildPath": "build/light-desktop/",
+      "files": [
+        {
+          "destination": "variables.css",
+          "format": "css/variables",
+          "options": {
+            "outputReferences": true
+          }
+        }
+      ]
+    }
+  }
+}

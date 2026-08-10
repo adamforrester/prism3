@@ -1,0 +1,10 @@
+{
+  "source": ["tokens/shared/**/*.json", "tokens/dark/**/*.json"],
+  "platforms": {
+    "css": {
+      "transformGroup": "css",
+      "buildPath": "build/dark/",
+      "files": [{ "destination": "variables.css", "format": "css/variables" }]
+    }
+  }
+}

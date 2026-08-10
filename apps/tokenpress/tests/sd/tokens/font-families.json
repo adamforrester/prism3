@@ -1,0 +1,16 @@
+{
+  "font": {
+    "family": {
+      "primary": {
+        "$type": "fontFamily",
+        "$value": "Inter, -apple-system, sans-serif"
+      }
+    }
+  },
+  "$extensions": {
+    "generator": {
+      "name": "Token Forge",
+      "version": "1.0.0"
+    }
+  }
+}

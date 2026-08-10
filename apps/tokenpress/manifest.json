@@ -1,0 +1,16 @@
+{
+  "name": "Token Press - DTCG Exporter",
+  "id": "1560757977662930693",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "src/ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "reasoning": "This plugin operates entirely client-side with no external network calls"
+  },
+  "permissions": ["currentuser"]
+}

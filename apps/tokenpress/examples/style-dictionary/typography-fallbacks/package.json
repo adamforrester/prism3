@@ -1,0 +1,13 @@
+{
+  "name": "token-press-sd-typography-fallbacks-example",
+  "version": "1.0.0",
+  "description": "Style Dictionary 4.x/5.x example: add CSS font-family fallback stacks to Token Press fontFamily tokens at build time.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "style-dictionary": "^5.0.0"
+  }
+}

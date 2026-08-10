@@ -1,0 +1,19 @@
+{
+  "source": ["tokens/shared/**/*.json", "tokens/light/**/*.json"],
+  "usesDtcg": true,
+  "platforms": {
+    "css": {
+      "transformGroup": "css",
+      "buildPath": "build/light/",
+      "files": [
+        {
+          "destination": "variables.css",
+          "format": "css/variables",
+          "options": {
+            "outputReferences": true
+          }
+        }
+      ]
+    }
+  }
+}

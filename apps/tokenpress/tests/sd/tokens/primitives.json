@@ -1,0 +1,49 @@
+{
+  "color": {
+    "red": {
+      "50": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.996, 0.949, 0.949]
+        },
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:1",
+            "collection": "primitives",
+            "scopes": ["ALL_SCOPES"]
+          }
+        }
+      },
+      "500": {
+        "$type": "color",
+        "$value": {
+          "colorSpace": "srgb",
+          "components": [0.937, 0.325, 0.314]
+        }
+      }
+    }
+  },
+  "spacing": {
+    "xs": {
+      "$type": "dimension",
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "sm": {
+      "$type": "dimension",
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    }
+  },
+  "$extensions": {
+    "generator": {
+      "name": "Token Forge",
+      "version": "1.0.0"
+    }
+  }
+}

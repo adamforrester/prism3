@@ -1,0 +1,19 @@
+{
+  "source": ["tokens/shared/**/*.json", "tokens/dark/**/*.json"],
+  "usesDtcg": true,
+  "platforms": {
+    "css": {
+      "transformGroup": "css",
+      "buildPath": "build/dark/",
+      "files": [
+        {
+          "destination": "variables.css",
+          "format": "css/variables",
+          "options": {
+            "outputReferences": true
+          }
+        }
+      ]
+    }
+  }
+}

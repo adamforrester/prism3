@@ -1,0 +1,16 @@
+{
+  "name": "token-press-sd-per-mode-test",
+  "version": "1.0.0",
+  "description": "Style Dictionary verification harness for the directory-per-mode export layout (v2.2.0).",
+  "private": true,
+  "scripts": {
+    "build:dark": "style-dictionary build --config sd.dark.json",
+    "build:light": "style-dictionary build --config sd.light.json",
+    "build:wireframe": "style-dictionary build --config sd.wireframe.json",
+    "build:all": "npm run build:dark && npm run build:light && npm run build:wireframe",
+    "build:naive": "style-dictionary build --config sd.naive-glob.json"
+  },
+  "devDependencies": {
+    "style-dictionary": "^3.9.0"
+  }
+}
