@@ -32,6 +32,7 @@
 - [ ] `npx tsx packages/engine/lint-skills.ts` → clean
 - [ ] `npx tsx packages/engine/lint-doc-gates.ts` → clean
 - [ ] `npx tsx packages/engine/lint-layout-claims.ts` → clean — every claimed path resolves, every tracked layer is named in the layout tables (#670)
+- [ ] `npx tsx packages/engine/lint-payload-manifest.ts` → clean — every emitted artifact classified payload or ours (#674); the manifest is AUTHORED, so a new emitted artifact fails here until a human classifies it
 - [ ] `npx tsx packages/engine/typecheck-components.ts` → clean — `tsc --noEmit` over `packages/engine/tsconfig.json` (a check, not a build) AND every tracked component def represented in what tsc actually read (#657); a green typecheck over a subset of the defs is the defect itself
 - [ ] `npm run -w @prism3/studio typecheck` → clean
 - [ ] `npm run -w @prism3/studio build` → succeeds

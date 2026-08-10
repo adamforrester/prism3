@@ -1,0 +1,86 @@
+{
+  "$comment": [
+    "AUTHORED, NOT GENERATED — and deliberately NOT a `regen.ts` artifact (#674).",
+    "A manifest regenerated from a scan of `out/` would classify every new artifact automatically",
+    "and report that as a pass. That is membership-by-location wearing a manifest's clothes, which",
+    "is the exact defect this file exists to remove. Same reasoning keeps `token-contract.json` out",
+    "of regen: a gate allowed to rewrite what it reads has no memory.",
+    "Gated by `packages/engine/lint-payload-manifest.ts`. Adding an emitted artifact FAILS that gate",
+    "until a human classifies it here. That friction is the feature."
+  ],
+  "version": 1,
+
+  "brands": ["aurora", "harbor", "nb", "wendys"],
+  "brandsWhy": [
+    "Asserted BY NAME, in both directions: a brand in `out/` and not here fails, and a brand here",
+    "with no emitted artifacts fails. Brands are DATA — the per-kind rules below cover a new one's",
+    "files automatically — but membership is a DECISION, so it is stated rather than discovered.",
+    "Same posture as the consumability gate's #635 scope assertion."
+  ],
+
+  "payload": [
+    {
+      "kind": "canonical-tree",
+      "pattern": "out/{brand}.tokens.json",
+      "why": "The brand's token system. Per-mode values live under `$extensions.prism3.modes`, which DTCG defines as ignorable (#609)."
+    },
+    {
+      "kind": "conforming-base",
+      "pattern": "out/{brand}.base.tokens.json",
+      "why": "The conforming projection's base set — readable by a stock Style Dictionary with no custom code (#609, #642)."
+    },
+    {
+      "kind": "conforming-overlay",
+      "pattern": "out/{brand}.{mode}.overlay.tokens.json",
+      "why": "One overlay per theme mode. Base + overlay is the projection a conforming consumer resolves."
+    },
+    {
+      "kind": "agent-metadata",
+      "pattern": "out/{brand}.ai.json",
+      "why": "Per-brand agent metadata. Travels because an ejected repo has no Prism3 MCP to query (#668)."
+    }
+  ],
+
+  "ours": [
+    {
+      "kind": "figma-variables",
+      "pattern": "out/figma/{brand}/{file}",
+      "why": "A Figma file already exists at eject time — usually where the brand came from — and the plugin regenerates variables live. Shipping these would ship a snapshot that goes stale on first regeneration (#674, #678)."
+    },
+    {
+      "kind": "preview",
+      "pattern": "out/tokens.html",
+      "why": "A preview surface for inspecting the corpus. Ours, not a client deliverable."
+    },
+    {
+      "kind": "fidelity-report",
+      "pattern": "out/{brand}-fidelity-report.md",
+      "why": "Measures observed-vs-generated gap for a STANDARD-dialect brief. A regression artifact; only brands imported that way have one."
+    },
+    {
+      "kind": "modes-report",
+      "pattern": "modes-report.md",
+      "why": "Engine-root report on mode coverage. Ours."
+    },
+    {
+      "kind": "regression-report",
+      "pattern": "nb-regression-report.md",
+      "why": "The NB perceptual regression record. Ours."
+    },
+    {
+      "kind": "lever-manifest",
+      "pattern": "schema/lever-manifest.json",
+      "why": "Describes the engine's own levers to a product agent. Product-facing, not client-facing — a payload agent has no levers to turn."
+    },
+    {
+      "kind": "preview-spec",
+      "pattern": "schema/preview-spec.json",
+      "why": "Drives our preview surfaces. Ours."
+    },
+    {
+      "kind": "example-brands",
+      "pattern": "schema/example-brands.json",
+      "why": "The corpus of BrandInputs the studio boots from. Ours — a client's own input is a separate, per-brand artifact (#677)."
+    }
+  ]
+}
