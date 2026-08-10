@@ -292,7 +292,14 @@ export const CHUNK = 24;
 /** The default yield: a real macrotask. `setTimeout(0)` rather than a resolved promise, and the
  *  difference is the whole mechanism — `await Promise.resolve()` is a MICROtask, so it runs before the
  *  host gets control back and yields nothing at all. A build "chunked" with microtasks holds the event
- *  loop exactly as long as one that never yielded, which is a fix that measures as no fix. */
+ *  loop exactly as long as one that never yielded, which is a fix that measures as no fix.
+ *
+ *  NOT ASSERTED ANYWHERE, and it is worth being blunt about that rather than leaving it implied by the
+ *  tests' silence: swapping this line for `Promise.resolve()` leaves `test-write-components.ts` entirely
+ *  green. A harness with no event loop cannot distinguish a task from a microtask — there is no host to
+ *  hand control to, so both "yield" identically. What the suite gates is that a yield HAPPENS at every
+ *  boundary (counted at `yieldTo`); that it is a macrotask is gated only by the live run, which is why
+ *  the 1m10s / Livegraph-1006 measurement in the header is cited rather than a test name. */
 const realYield: YieldFn = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
 
 /** The node as the executor USES it — every field present, none of them narrowed. The cast happens
@@ -338,6 +345,9 @@ export const applyComponentPlan = async (
   // `Date.now` rather than `performance.now`: the sandbox is not a browser and this file compiles under a
   // `lib` without DOM, so `performance` is not declared. Millisecond resolution is ample — the quantity
   // being measured is "did this chunk hold the thread for tens of ms or hundreds".
+  //
+  // Declared here so `breathe` closes over it, but RE-STAMPED at each loop head (see both loops below) —
+  // a `chunkMs` is only a chunk's cost if the clock started when the chunk did.
   let mark = Date.now();
   /** End a chunk: report what it cost, hand control back, and restart the clock AFTER the yield so the
    *  yield's own duration is never counted as work. */
@@ -558,6 +568,15 @@ export const applyComponentPlan = async (
   // 648` at each one. Measured by mutating it back (see `test-write-components.ts`), and worth recording
   // because the intuition is that it would yield too RARELY there, not 27× too often with a frozen
   // numerator. The index advances in every case, built or skipped, which is what a boundary needs.
+  //
+  // RE-STAMP THE CLOCK HERE, and this is the fix to a reading that was confidently wrong. Between the
+  // declaration of `mark` and this point sit `planSetLayout`, three `getLocal*Async` fetches,
+  // `loadAllPagesAsync()` and a document-wide `findAllWithCriteria` — one-time setup, none of it chunk
+  // work, all of it previously charged to chunk 1. Measured with a shim whose only cost was a 120ms
+  // `loadAllPagesAsync`: the first chunk read 121ms against 1ms for its neighbours. Since the whole point
+  // of `chunkMs` is to calibrate `CHUNK` from a live run, a first reading inflated by setup would have
+  // argued for a smaller chunk than the per-member cost warrants. Same re-stamp before the wire loop.
+  mark = Date.now();
   const fresh: CompNode[] = [];
   let skipped = 0;
   for (let i = 0; i < cells.length; i++) {
@@ -685,7 +704,12 @@ export const applyComponentPlan = async (
   // idempotent re-run — where the build loop skips all 648 members and does nearly nothing — this is
   // essentially the whole cost of the run. A version that chunked only the build loop would leave the
   // re-run case exactly as unresponsive as before, while looking fixed.
+  //
+  // AND RE-STAMPED, same reason as the build loop: between that loop's last boundary and this one's first
+  // sit `combineAsVariants`, the measured layout pass, the `resize`, the guarded definitions read and one
+  // `addComponentProperty` per property. Set-level work, charged to wire chunk 1 unless the clock restarts.
   const wiredRefs: [string, string, string, string][] = [];
+  mark = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
     const member = toWire[i];

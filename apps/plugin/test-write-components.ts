@@ -34,7 +34,10 @@
  * ON THE #684 CHUNKING, THE LIMIT IS WORTH STATING BEFORE THE ASSERTIONS: this harness has no event loop
  * to starve, no Figma heartbeat, no socket to drop and no scenegraph to reconcile. So it cannot verify the
  * thing #684 is actually about — that the host stays responsive — and it cannot tell a good chunk size
- * from a bad one. What it CAN verify is the arithmetic around the yielding: that a yield happens, that it
+ * from a bad one. Nor can it tell a macrotask yield from a microtask one, for the same missing-host reason:
+ * `realYield`'s `setTimeout` could be swapped for `Promise.resolve()` and every assertion here would still
+ * pass, which is stated at `realYield` itself so the silence is not read as coverage.
+ * What it CAN verify is the arithmetic around the yielding: that a yield happens, that it
  * happens at the boundaries claimed, that it still happens in the cases where the loop body does almost
  * nothing, and that the fractions reported are monotonic within a phase and end at the total. Those are
  * exactly the parts that were wrong in draft and that a live run would not isolate — a build that freezes
@@ -279,9 +282,18 @@ const run = (plans: AnatomyPlan[], opts: ShimOpts = {}, apply: ComponentApplyOpt
  *  production, not an oversight. A microtask yields nothing to a host event loop, which is exactly why
  *  `realYield` uses `setTimeout`; but this harness has no host to yield to, so what is being measured here
  *  is the executor's control flow, and a microtask measures that identically while keeping the test
- *  synchronous-fast. The macrotask requirement is a property of the production path and is asserted by
- *  reading `realYield`, not by this. */
+ *  synchronous-fast. The macrotask requirement is a property of the production path and is NOT currently
+ *  assertable here: swapping `realYield`'s `setTimeout` for `Promise.resolve()` passes this whole suite,
+ *  because a harness with no event loop cannot tell the two apart. Only the live run can.
+ *
+ *  `yieldCalls` AND `progress` ARE COUNTED SEPARATELY, AND THAT SEPARATION IS THE GATE — docs/34 §2, an
+ *  oracle and its subject sharing a dependency. For one commit `yields` was pushed from inside
+ *  `onProgress`, so every "the executor yields on every boundary" assertion below was reading the
+ *  REPORTING cadence and calling it yielding: deleting `await yieldTo()` from `breathe` left the suite
+ *  fully green (mutation M6, verified). A report and a yield are two facts, so they are recorded by two
+ *  callbacks that cannot substitute for one another, and asserted to agree. */
 const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number) => {
+  const yieldCalls = { n: 0 };
   const yields: string[] = [];
   const progress: ComponentProgress[] = [];
   const r = await run(plans, opts, {
@@ -290,9 +302,10 @@ const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: n
     // assertion can check ORDER, not just counts. `onProgress` fires immediately before the yield in
     // `breathe`, so the two arrays are index-parallel.
     onProgress: (p) => { progress.push({ ...p }); yields.push(`${p.phase}:${p.done}/${p.total}`); },
-    yieldTo: () => Promise.resolve(),
+    // The ONLY witness that control was handed back. Nothing else in this file increments it.
+    yieldTo: () => { yieldCalls.n++; return Promise.resolve(); },
   });
-  return { r, yields, progress };
+  return { r, yields, progress, yieldCalls: yieldCalls.n };
 };
 
 // ---- the plans: the same 21-variant button grid the engine's set gates run on --------------
@@ -531,6 +544,15 @@ ok(threw.includes('share a component name'), `two plans at one coordinate are RE
 const yPage: Page = { children: [] };
 const y = await instrumented(grid, { ...full(), page: yPage }, 5);
 
+// THE EXECUTOR HANDS CONTROL BACK, counted at the yield itself. Every other assertion in this block reads
+// `progress`, which is the REPORTING cadence — and reporting is not yielding: with the yield deleted from
+// `breathe` and this line absent, all of them passed. So this is the one that has to come from `yieldTo`.
+ok(y.yieldCalls > 0, `the executor hands control back at all (${y.yieldCalls} yields over ${grid.length} members)`);
+// AND AS OFTEN AS IT REPORTS. Equality, not `>= 1`: the pairing is what makes the cadence assertions below
+// mean anything about yielding. A `breathe` that reported on every boundary and yielded once — which is a
+// plausible way to write it, hoisting the yield out of the loop — satisfies `> 0` and fails here.
+ok(y.yieldCalls === y.progress.length,
+  `and once per report, so a boundary that reports is a boundary that yields (${y.yieldCalls} yields, ${y.progress.length} reports)`);
 ok(y.yields.length > 0, `the executor yields at all (${y.yields.length} yields over ${grid.length} members)`);
 // BOTH phases, and this is the assertion that would have caught the draft. #684 names the member loop;
 // the reference-wiring loop walks every member with a subtree search per reference, and on an idempotent
@@ -575,6 +597,10 @@ ok(reRun.progress.filter((p) => p.phase === 'build').length === wantBoundaries.l
   `and still yields on every build boundary while building nothing (${reRun.progress.filter((p) => p.phase === 'build').length})`);
 ok(reRun.progress.filter((p) => p.phase === 'wire').length > 0,
   `and still yields while wiring, which is where a re-run spends its time (${reRun.progress.filter((p) => p.phase === 'wire').length})`);
+// Counted at the yield on the re-run too, because the re-run is the case that matters most for
+// responsiveness: it skips every member and spends its whole time in the wire loop.
+ok(reRun.yieldCalls === reRun.progress.length && reRun.yieldCalls > 0,
+  `the re-run hands control back on every boundary as well (${reRun.yieldCalls} yields, ${reRun.progress.length} reports)`);
 
 // A run with NO options is the production call shape — it must still complete, and must yield without
 // anyone passing a yield in. `realYield` is not injected here, so this genuinely goes through

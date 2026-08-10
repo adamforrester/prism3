@@ -11,8 +11,11 @@
 
 **STATUS: shipped, with one number still to measure.** `regen --check` unchanged at **104** — this is
 plugin-side execution, no emitted artifact moves. Engine tests unchanged at **2061**; plugin assertions
-**197 → 213** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
-and on this branch). **`CHUNK = 24` is a guess with a rationale, not a measurement** — the live 648 run
+**197 → 249** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
+in a throwaway worktree and on this branch: `test-write-components` 51 → 70, plus 33 new in
+`test-build-telemetry`, plus 3 from the review fix below. An earlier draft of this line said **213**, which
+was the count after the first commit and was not re-measured when the telemetry file landed in the second —
+a stale number in exactly the place the entry tells you to trust it). **`CHUNK = 24` is a guess with a rationale, not a measurement** — the live 648 run
 that would settle it is the owner's, and the code says so at the constant.
 
 **What was wrong, and it was written down as a justification.** The file's own header said *"a plugin has
@@ -46,8 +49,11 @@ evidence would be that the run finished, which it does either way. Passing `yiel
 into an observable event, so "does it yield, and at which boundaries" becomes checkable. The harness's
 injected yield is deliberately a *microtask*, which is the opposite of the production requirement: there is
 no host event loop here to yield to, so what is being measured is control flow, and a microtask measures
-that identically while keeping the suite fast. The macrotask requirement is a property of the production
-path and is asserted by reading `realYield`, not by the harness.
+that identically while keeping the suite fast. **The macrotask requirement is NOT asserted anywhere** —
+swapping `realYield`'s `setTimeout` for `Promise.resolve()` leaves the whole suite green, because a harness
+with no host cannot tell a task from a microtask. An earlier draft of this entry and of the PR body claimed
+it was "asserted by reading `realYield`"; it is not, and a comment at `realYield` now says so, so the
+silence is not read as coverage. Only the live run gates it.
 
 **Undo is one step for the whole set, and that is a decision.** By Figma's default, plugin actions are not
 committed to undo history individually, so *not* calling `figma.commitUndo()` collapses the run into one
@@ -137,6 +143,36 @@ Livegraph stay connected (there is no "connected" message — the signal is the 
 numbers. `CHUNK` is set from those and the measurement recorded at the constant. #684 also flags a
 `net::ERR_INTERNET_DISCONNECTED` in the same console with a cheap discriminator — idle for two minutes
 without building — which is unchanged by this work either way.
+
+**Two findings from the independent review, both fixed before the live run, and the second is the reason
+the run waited.**
+
+- **The harness counted progress reports and called it yielding.** `instrumented`'s `yields` array was
+  pushed from inside `onProgress`, so every assertion phrased as "the executor yields on every boundary"
+  was reading the *reporting* cadence. Replacing `await yieldTo()` in `breathe` with a comment left the
+  suite **fully green** — reproduced here, not taken on report. This is exactly docs/34 §2: an oracle and
+  its subject sharing a dependency. The fix is a second callback that nothing else can increment
+  (`yieldTo: () => { yieldCalls.n++; … }`) plus an assertion that yields and reports are **equal**, and the
+  equality is load-bearing rather than defensive: a `breathe` that reported every boundary and yielded once
+  — a plausible way to write it, hoisting the yield out of the loop — satisfies `> 0` and fails equality.
+  Both mutations confirmed: no-yield gives `0 yields, 10 reports` (3 failures), yield-on-first-quarter gives
+  `2 yields, 10 reports` (2 failures).
+- **The first `chunkMs` of each phase absorbed the setup that preceded it** — which is the *one* number the
+  live run exists to produce. Between `let mark = Date.now()` and the build loop sat `planSetLayout`, three
+  `getLocal*Async` fetches, `loadAllPagesAsync()` and a document-wide `findAllWithCriteria`; between the
+  build loop's last boundary and the wire loop sat `combineAsVariants`, the measured layout pass, the
+  `resize`, the definitions read and one `addComponentProperty` per property. All one-time set-level work,
+  none of it chunk work, all of it charged to chunk 1. Measured with a shim whose only cost was a 120ms
+  call: **first chunk 121ms against 1ms for its neighbours**, in each loop independently. The clock is now
+  re-stamped at both loop heads — 121ms → 0ms — and each re-stamp was confirmed load-bearing by removing it
+  alone and watching the 120ms reappear. Left unfixed, the calibration would have argued for a smaller
+  `CHUNK` than the per-member cost warrants, from a number that had nothing to do with chunk size.
+
+**And one claim retracted rather than defended.** This entry and the PR body both said the macrotask
+requirement was "asserted by reading `realYield`". It is not asserted at all — see the correction above.
+Worth logging as its own line because the failure mode is a documentation one: a plausible sentence about
+where a guarantee comes from is harder to catch than a missing test, and it was written by the same hand
+that knew the harness has no event loop.
 
 ---
 
