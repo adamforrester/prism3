@@ -318,6 +318,7 @@ organization has."* The concrete moves:
 | AI proposes params → system derives (NL vibe → schema → live re-theme) | Southleft (prompt console; JSON schema = the contract) | **Gap / candidate task** — we have the plumbing (`brandState`→`apply`, `standard-design-md`, `theme-schema.json`); missing the NL front door |
 | Verified *generation* (contrast contracts, regression, modes) | Southleft (WCAG-AA solver — but single accent / lead pairs / one mode-lead); the rest none | **Prism3's differentiator holds** — ours verifies 488/488 contracts across four modes, not one lead pair |
 | Figma as the underserved agent surface | ds-brain (open question), Astryx (absent) | Actively building — `emit-figma` (`10`), MCP materialization route |
+| A section-level composition library ("blocks") as the shipped artifact above components | Initium (197 blocks / 23 types), daisyUI (211 page architectures matched by intent), Cloudscape (181 addressable exemplars) — the last two via `36` §2 | **Gap** — no tier above components exists; `preview-spec.json` is 8 product-UI components. Note the convergence: `36` scores us Behind on *exemplars*, and a block library is the same artifact serving both audiences (§8) |
 
 ---
 
@@ -365,3 +366,136 @@ the appearance of rigor.
 **One real question it exposed**, filed rather than logged: the plugin writes Figma variables and reads
 only to reconcile during that write. If a designer edits those variables afterward, we cannot tell. That
 is the **Figma-side twin of the three-way-merge problem** #668 solves for code, and it is unsolved.
+
+---
+
+## 8. Initium — a block library as the tier above components (reviewed 2026-08-10)
+
+A commercial library of **blocks**: section-level compositions of components (hero, pricing, testimonial,
+logo wall, bento) organized by the *page role* they fill, plus a smaller set of pre-built page examples
+assembled from them. Reviewed from the product's own navigation rather than a write-up, so the counts
+below are the shape of the catalogue, not a claim about its quality.
+
+**The measured shape, because the density is the interesting part.** 23 block types carrying **197
+blocks**, plus 10 page-example types carrying 28 examples. The distribution is steeply uneven and that
+unevenness is the signal — Feature 23, Hero 22, Header 20, Gallery 12, LP Navbars 10, Contact 9, Footers 9,
+Logo 8, Blog 8, then a tail of 3–7 across CTA, Pricing, Testimonials, Stats, Bento, FAQ, Comparison,
+Banners, Rich Text, Timeline, Team, Career, Empty and 404. **Where the count is high, the block is not one
+thing with options — it is a family of genuinely different layouts.**
+
+### What we take from it
+
+**1. The tier is real, and it is missing from both repos.** Prism3 has tokens, and `14`/`28` plan
+components. Nothing occupies the layer above. `preview-spec.json` today is 8 components / 25 variants —
+button, input, card, alert, nav-item, badge, typography — all product-UI primitives, and it is a *render
+spec* for proving tokens, not a composition library. On the practice side the gap is sharper than it
+looks: KB `patterns/` is keyed to **user goals** (`ask-for-data`, `navigate`, `show-data`), which is why
+`patterns/app-shell.md` states it does *not* apply to a marketing site. A hero section resolves no user
+goal. **Blocks are keyed to page role, not user intent** — a genre neither `components/` nor `patterns/`
+covers. Logged as a KB gap.
+
+**2. Capture the axes, not the gallery — this is the whole difference.** 22 hero layouts is not 22 designs;
+it is a small set of axes multiplied out. The working hypothesis, to be tested against the field rather
+than assumed: media placement (none / trailing / leading / below / background), content alignment (start /
+center), container (contained / full-bleed / split), primary-action count, and whether a social-proof slot
+is present. Five axes of that shape span ~120 combinations, of which roughly 22 are worth shipping — so
+**the valuable artifact is the axis set plus the pruning rationale, not the 22 outputs.** This is the same
+move the engine already makes one tier down, where we ship levers rather than swatches, and it is what
+separates generating a block library from copying one.
+
+**3. A block library *is* the exemplar library.** `36` §2 row 6 scores us **Behind** on exemplars, citing
+daisyUI's *"211 page architectures matched by intent"* and Cloudscape's *"181 addressable few-shot
+exemplars at predictable URLs."* Initium is 197. Same order of magnitude, same artifact — and it serves a
+human picker and an agent's few-shot retrieval from one source. That reframes blocks from a distant
+surface into the concrete answer to a deficiency we scored ourselves on this week.
+
+**4. The inventory is a demand signal for the component backlog.** 23 block types tell you which components
+to build first by *actual composition demand* rather than by catalogue convention, and they surface
+several nothing has briefed — logo wall, stat, timeline, bento cell. The taxonomy depends on none of the
+component work, so capturing it **before** that lane activates is what makes it useful rather than
+retrospective.
+
+### Where we would be ahead
+
+**Blocks are the first artifact that actually proves the token system.** A hero exercises surface/content
+color pairing, the type scale at display sizes, container width and the spacing scale *simultaneously*.
+Every contrast contract we generate today is proven against components in isolation; a block is the first
+place a mode can look wrong while every individual contract still passes.
+
+**And one contract the field gets wrong by default.** KB `components/section.md` carries the
+don't-over-landmark rule: twelve benefit blocks on a page must be **one** named `<section>` containing a
+grid of twelve generic containers, not twelve landmarks. A block library assembled by picking sections
+produces exactly the twelve-landmark page, and the failure is invisible to everyone not using AT. Encoding
+that in the block definitions — so the page-level structure is a property of the composition rather than
+the author's discipline — is the "better than the examples" bar here, and it is already briefed.
+
+### What not to take
+
+**197 as a build target.** The count is a description of a mature commercial catalogue, not a scope. Read
+it as evidence that block families are unevenly deep, which is the useful part.
+
+**And the packaging question is unanswered for this tier.** Blocks are mostly *markup*, and `35` commits
+to ejectability — the client takes the system and leaves. Whether blocks ship as a package, get generated
+on demand, or exist only as agent exemplars is a real fork that `35` §1's boundary does not currently
+resolve. Worth settling before an inventory tempts anyone into building all of them.
+
+### What depth we actually have, stated plainly
+
+**Names and counts only — no layouts.** The catalogue was read from the product's navigation: 23 type names
+and a count per type. The hero index was then fetched directly and lists its 22 entries as *"Hero Section
+1–22"* with **no layout description of any kind** — no media placement, no alignment, no split-vs-full-width.
+So the five-axis hypothesis above is exactly that: derived from what hero sections generally vary by, **not
+read off this library**. Nothing here is evidence about how these 22 differ, and #693 exists to replace the
+hypothesis with field-derived axes rather than to confirm it.
+
+### The distribution model, which answers a question §8 opened
+
+The install command is `npx shadcn@latest add @initium/<section-name>`. **Blocks ship as a shadcn registry —
+source copied into the consumer's repo, not a runtime dependency.** That matters more than it looks: the
+packaging fork this note raised (package / generate-on-demand / exemplars-only) already has a field answer,
+and it is the *eject* model `35` commits to. A block library and an ejectable deliverable are not in tension;
+the registry pattern is how the field ships exactly that. Note also what it implies about the tier — these
+are React + Tailwind source, so "a block" here is markup, not a configuration of a component API.
+
+### The AEM mapping — closer than the component tier is
+
+**Blocks map onto authorable CMS components far more cleanly than our component tier does**, and Adobe has
+converged on the same word. Edge Delivery Services calls its unit of page composition a **block**, ships an
+open-source collection (`adobe/aem-block-collection`) containing hero, cards, columns, carousel and FAQ, and
+sets a membership rule worth stealing outright: **a block earns its place by being used on more than half of
+all projects.** That is a sharper pruning criterion than any we have, and it applies to the axis work too.
+
+Classic AEM Sites is the same shape by a different route — an authorable component is a dialog plus a content
+schema plus HTL, and a Teaser or Carousel is a block in everything but name. `27` Idea 2 already phases the
+AEM lane (Phase 1: token clientlib + skinned Core Components, no custom components; Phase 2: Web Components
+via clientlib once the code library exists). **Blocks are the missing Phase 3**, and naming them as such is
+what keeps Phase 2 from being mistaken for the whole story.
+
+**The path is projection, not conversion.** Building blocks as React or Web Components and then porting them
+to AEM is a one-way lossy translation that immediately drifts — the same failure `14` §1 rejects at the
+component tier. If the block is **defined as data**, then React, Web Components, an AEM component and an EDS
+block are four projections of one definition, and the engine's existing posture carries straight up.
+
+**But a definition that captures only layout axes cannot generate the AEM projection.** An authorable
+component needs a **content model** — which fields exist, which are required, which the author edits versus
+which the system fixes — and neither React nor Web Components force you to state it. EDS makes this most
+visible: its blocks are authored as *tables*, so the content model is literally the block's shape. **So each
+block needs a content model alongside its layout axes**, and that half is what makes the definition portable
+to a CMS at all. Recorded as scope on #693 rather than discovered later.
+
+### The gap the reference library has, which is the one we most need
+
+**There are no commerce blocks in it.** All 23 types are SaaS-marketing shaped — hero, pricing, testimonial,
+logo wall, careers. No product grid, no faceted filtering, no product detail page, no cart or checkout. **A
+taxonomy built by mirroring this library would miss the surface the practice works on most**, and would miss
+it silently, because the omission is invisible from the type list unless you go looking for it.
+
+Product detail pages are bespoke per brand and genuinely vary — but they share a skeleton (media gallery,
+title/price/rating, variant selection, quantity and add-to-cart, delivery promise, specification accordions,
+reviews, recommendations, and the sticky mobile buy bar), which is exactly the condition that makes a block
+family worth deriving rather than hand-building each time. Worth stating that **the engine's own reference
+brand is a commerce brand**: New Balance is a shoe PDP, so the corpus we regress against is already the case
+this library does not serve. Filed as scope on #693 and as a practice-side note in KB `09` §1.36.
+
+**Status: nothing committed.** Field note plus a filed axis-derivation run (#693); the axis work is next, and
+it should prove the method on hero — the deepest family — before committing to 23 of them.
