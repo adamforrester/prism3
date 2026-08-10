@@ -11,11 +11,10 @@
 
 **STATUS: shipped, with one number still to measure.** `regen --check` unchanged at **104** — this is
 plugin-side execution, no emitted artifact moves. Engine tests unchanged at **2061**; plugin assertions
-**197 → 249** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
-in a throwaway worktree and on this branch: `test-write-components` 51 → 70, plus 33 new in
-`test-build-telemetry`, plus 3 from the review fix below. An earlier draft of this line said **213**, which
-was the count after the first commit and was not re-measured when the telemetry file landed in the second —
-a stale number in exactly the place the entry tells you to trust it). **`CHUNK = 24` is a guess with a rationale, not a measurement** — the live 648 run
+**197 → 258** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
+in a throwaway worktree and on this branch. An earlier draft of this line said **213**, which was the count
+after the first commit and was not re-measured when the telemetry file landed in the second — a stale number
+in exactly the place the entry tells you to trust it. Re-measured at each commit since). **`CHUNK = 24` is a guess with a rationale, not a measurement** — the live 648 run
 that would settle it is the owner's, and the code says so at the constant.
 
 **What was wrong, and it was written down as a justification.** The file's own header said *"a plugin has
@@ -167,6 +166,40 @@ the run waited.**
   re-stamped at both loop heads — 121ms → 0ms — and each re-stamp was confirmed load-bearing by removing it
   alone and watching the 120ms reappear. Left unfixed, the calibration would have argued for a smaller
   `CHUNK` than the per-member cost warrants, from a number that had nothing to do with chunk size.
+
+**A third review pass caught the fix itself being ungated, which is the finding worth the most of the
+three.** The re-stamps were correct and *nothing failed if you deleted them* — all three, with the suite
+green at 249. The sentence above ("confirmed load-bearing by removing it alone") described a **manual probe
+that was then deleted**, and the entry read as coverage. Same shape as the first finding, one level up: a
+rule whose evidence lives outside the suite. And the subject was the single number the live 648 run exists to
+produce, so the next refactor of `breathe` would have folded setup back into chunk 1 silently.
+
+The reason it was ungated is structural rather than an oversight: the shim is fully synchronous, every
+`chunkMs` is 0, and the strongest available assertion was `chunkMs >= 0`. **A rule about WHEN a clock starts
+cannot be gated by a harness in which no clock advances.** Unlike the macrotask limit — genuinely unreachable
+here, and declared as such — this one is reachable using the very calls the source comments already name. So
+`ShimOpts.burn` charges deliberate, opt-in cost to the three windows the re-stamps exclude
+(`loadAllPagesAsync` for pre-loop setup, `combineAsVariants` for between-loops, and `instrumented`'s
+`burnYield` for the yield's own duration), and each re-stamp now fails by name with the number it excludes:
+build **120ms**, wire **120ms**, post-yield **41ms**. The post-yield one also trips the sum control at
+`800ms reported of 400ms elapsed` — the yield's time double-counted into both adjacent chunks.
+
+**Every burn has a POSITIVE CONTROL, and that is the part not to trim.** "The first chunk is 0ms" also passes
+when the burn silently never happened — a renamed shim method, an `opts.burn` that stopped being threaded
+through — and then the assertion measures nothing while reading as coverage, which is precisely the defect
+this block was written to fix. Mutating `burnMs` into a no-op fails 3 controls (`2ms >= 120ms`); without them
+it would have failed nothing at all while leaving three green assertions about clock behavior that no longer
+touched a clock.
+
+**Two nits from the same pass, both closed because both were reachable rather than stylistic.**
+`settleMs === null` shortened to `!settleMs` survived — and an instant settle is a real outcome
+(`settlePoint` returns 0 for an idle file), so the mutant prints **NOT MEASURED** for the one result that
+needs no further work. And `pct`'s `Math.ceil` → `Math.floor` survived, moving p95 on the suite's own sample
+from 400 to 13: the outlier vanishing from the near-worst, which is the statistic the whole readout is built
+around. The old bound was `p95 >= 13`, which passes either way — a range where the two candidate
+implementations differ gates neither. Both now pinned to exact values. The third nit (the
+`component-progress` branch in `write-adapter.ts` has no direct test) is left as-is: no branch in that file
+is directly tested, and a one-off harness for this one would be less honest than the consistent gap.
 
 **And one claim retracted rather than defended.** This entry and the PR body both said the macrotask
 requirement was "asserted by reading `realYield`". It is not asserted at all — see the correction above.

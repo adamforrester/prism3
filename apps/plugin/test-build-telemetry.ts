@@ -45,6 +45,12 @@ const s = phaseStats('build', spiky);
 ok(s.maxMs === 400, `the maximum is reported, not smoothed away (max=${s.maxMs}, mean would be ${Math.round(s.totalMs / s.chunks)})`);
 ok(s.worstAt === 4, `the worst chunk is located in RUN order, so an early spike is distinguishable from a late one (chunk ${s.worstAt})`);
 ok(s.p50Ms <= 13 && s.p95Ms >= 13, `p50/p95 bracket the bulk without being dragged by the outlier (p50=${s.p50Ms}, p95=${s.p95Ms})`);
+// p95 IS NEAREST-RANK CEILING, pinned to an exact value rather than a range. On these 10 samples `ceil`
+// gives rank 10 — the 400ms outlier — and `floor` gives rank 9, which is 13ms. A `>= 13` bound passes both,
+// so it does not gate the rounding at all; and the two differ on exactly the statistic the readout is built
+// around, the NEAR-WORST. Getting it wrong hides the outlier from p95 while the max still reports it, which
+// reads as one anomalous chunk rather than a distribution with a tail.
+ok(s.p95Ms === 400, `p95 by nearest-rank CEILING keeps the near-worst in view — floor would report 13 (${s.p95Ms})`);
 ok(s.minMs === 10, `the minimum is the real floor (${s.minMs})`);
 ok(s.totalMs === spiky.reduce((a, p) => a + p.chunkMs, 0), `the total is the sum of the chunks (${s.totalMs}ms)`);
 
@@ -106,6 +112,15 @@ ok(sum.includes('chunking does not reduce'),
 const unmeasured = summaryLines(both, null).join('\n');
 ok(unmeasured.includes('NOT MEASURED') && !/settle: \d/.test(unmeasured),
   'a tail that never settles reports NOT MEASURED rather than a plausible number');
+
+// A SETTLE OF ZERO IS A MEASUREMENT, NOT AN ABSENCE — the case that separates `settleMs === null` from the
+// shorter `!settleMs`, and it is reachable rather than theoretical: `settlePoint` returns 0 for an already
+// idle file and the elapsed stamp at that first tick is genuinely 0ms sometimes. Under `!settleMs` an
+// instant settle — the best possible outcome — prints as NOT MEASURED, so the calibration run would report
+// "the probe did not report" for the one result that needs no further work.
+const instant = summaryLines(both, 0).join('\n');
+ok(instant.includes('settle: 0ms') && !instant.includes('NOT MEASURED'),
+  `a settle of 0ms reports as measured, because an idle file settles instantly (${instant.split('\n').find((l) => l.includes('settle')) ?? 'no settle line'})`);
 
 // A build with NO readings is the #684 defect itself, and must say so rather than print an empty table
 // that reads as "nothing to report".

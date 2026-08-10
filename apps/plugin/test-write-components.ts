@@ -67,7 +67,22 @@ type Page = { children: Node[] };
  *  measure right. Same function the engine's stub uses, so the two paths measure identically. */
 const varValue = (name: string): number => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
 
-type ShimOpts = { vars?: string[]; styles?: string[]; effects?: string[]; comps?: string[]; page?: Page; insetValue?: unknown };
+type ShimOpts = {
+  vars?: string[]; styles?: string[]; effects?: string[]; comps?: string[]; page?: Page; insetValue?: unknown;
+  /** DELIBERATE COST, in ms, charged to a named host call — the only way this harness can gate a rule
+   *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
+   *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
+   *  `loadAllPagesAsync` (pre-build-loop work) and `combine` inside `combineAsVariants` (between-loops
+   *  work); the yield's own burn is injected at `yieldTo` by `instrumented`. Busy-wait rather than a
+   *  timer because `Date.now()` is what the executor reads, and a `setTimeout` would advance the clock
+   *  while handing control away — which is the very thing being distinguished. Opt-in per run, so only
+   *  the one block below pays for it. */
+  burn?: { setup?: number; combine?: number };
+};
+
+/** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
+ *  cannot observe is cost this harness cannot charge. */
+const burnMs = (ms: number): void => { const t0 = Date.now(); while (Date.now() - t0 < ms) { /* hold */ } };
 
 const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
@@ -185,7 +200,9 @@ const makeShim = (opts: ShimOpts = {}) => {
     getLocalTextStylesAsync: async () => (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: { family: 'Inter', style: 'Semi Bold' } })),
     getLocalEffectStylesAsync: async () => (opts.effects ?? []).map((name: string) => ({ id: `E:${name}`, name })),
     loadFontAsync: async () => {},
-    loadAllPagesAsync: async () => {},
+    // Zero-cost unless a run asks for the burn (`opts.burn.setup`). This is the last of the pre-build-loop
+    // setup calls, so a burn here lands in exactly the window the build loop's re-stamp exists to exclude.
+    loadAllPagesAsync: async () => { if (opts.burn?.setup) burnMs(opts.burn.setup); },
     // A COMPONENT the executor can instantiate, so the swap path is exercised rather than always
     // degrading to a placeholder. `createInstance` returns a node with a VECTOR inside, because the
     // icon ink routes to the vector and not the instance. `id` as well as `name`, because an
@@ -198,6 +215,10 @@ const makeShim = (opts: ShimOpts = {}) => {
     createFrame: () => mkNode('FRAME'),
     createComponentFromNode: (n: Node) => n,
     combineAsVariants: (members: Node[]) => {
+      // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp
+      // excludes. Charged here rather than in `resize` or `addComponentProperty` because this is the
+      // single most expensive of the set-level calls live.
+      if (opts.burn?.combine) burnMs(opts.burn.combine);
       const set = mkNode('COMPONENT_SET');
       set.id = 'SET:1';
       set.children = members;
@@ -292,7 +313,7 @@ const run = (plans: AnatomyPlan[], opts: ShimOpts = {}, apply: ComponentApplyOpt
  *  REPORTING cadence and calling it yielding: deleting `await yieldTo()` from `breathe` left the suite
  *  fully green (mutation M6, verified). A report and a yield are two facts, so they are recorded by two
  *  callbacks that cannot substitute for one another, and asserted to agree. */
-const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number) => {
+const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number, burnYield = 0) => {
   const yieldCalls = { n: 0 };
   const yields: string[] = [];
   const progress: ComponentProgress[] = [];
@@ -303,7 +324,11 @@ const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: n
     // `breathe`, so the two arrays are index-parallel.
     onProgress: (p) => { progress.push({ ...p }); yields.push(`${p.phase}:${p.done}/${p.total}`); },
     // The ONLY witness that control was handed back. Nothing else in this file increments it.
-    yieldTo: () => { yieldCalls.n++; return Promise.resolve(); },
+    // `burnYield` charges the YIELD's own duration, which is the third clock rule: `breathe` re-stamps
+    // AFTER awaiting, so a yield that took 40ms must not be billed to the chunk that follows it. Live,
+    // that time is the host doing its own work — the entire point of yielding — so counting it as chunk
+    // cost would make every chunk look worse the more politely the executor behaved.
+    yieldTo: () => { yieldCalls.n++; if (burnYield) burnMs(burnYield); return Promise.resolve(); },
   });
   return { r, yields, progress, yieldCalls: yieldCalls.n };
 };
@@ -601,6 +626,73 @@ ok(reRun.progress.filter((p) => p.phase === 'wire').length > 0,
 // responsiveness: it skips every member and spends its whole time in the wire loop.
 ok(reRun.yieldCalls === reRun.progress.length && reRun.yieldCalls > 0,
   `the re-run hands control back on every boundary as well (${reRun.yieldCalls} yields, ${reRun.progress.length} reports)`);
+
+// ---- #684: a `chunkMs` measures ITS CHUNK, and nothing that happened before it ----------------
+// THE ONE NUMBER THE LIVE 648 RUN EXISTS TO PRODUCE, and until this block no committed assertion protected
+// it: the three clock re-stamps in `breathe`/the two loop heads could all be deleted with the suite green at
+// 249. The reason is structural rather than an oversight — the shim is synchronous, so every `chunkMs` is 0
+// and the strongest assertion available is `chunkMs >= 0`, which no clock rule can fail. A rule about WHEN a
+// clock starts cannot be gated by a harness in which no clock advances. So the harness charges deliberate,
+// opt-in cost to the three windows the re-stamps exclude (`ShimOpts.burn`, and `instrumented`'s
+// `burnYield`), which makes the rule reachable using the very calls the source comments already name.
+//
+// EACH BURN GETS A POSITIVE CONTROL, and that is not belt-and-braces: "the first chunk is 0ms" also passes
+// when the burn silently never happened — a renamed shim method, an `opts.burn` that stopped being threaded
+// through — and then the assertion measures nothing while reading as coverage. So every case below asserts
+// BOTH that the cost is excluded where the re-stamp puts it AND that this harness could see that cost at
+// all. Without the paired control this whole block is the same defect it was written to fix.
+const BURN = 120;
+const YIELD_BURN = 40;
+const firstOf = (ps: ComponentProgress[], ph: string): number => ps.find((p) => p.phase === ph)!.chunkMs;
+
+// 1. PRE-BUILD-LOOP SETUP. `planSetLayout`, three `getLocal*Async` fetches, `loadAllPagesAsync()` and a
+//    document-wide `findAllWithCriteria` run before the first member is touched. Charged to the last of
+//    them. Live this was measured at 121ms in chunk 1 against 1ms in its neighbours.
+const burnSetupPage: Page = { children: [] };
+const burnSetup = await instrumented(grid, { ...full(), page: burnSetupPage, burn: { setup: BURN } }, 5);
+ok(firstOf(burnSetup.progress, 'build') < BURN / 2,
+  `the first build chunk excludes the ${BURN}ms of setup that preceded the loop (${firstOf(burnSetup.progress, 'build')}ms)`);
+
+// 2. BETWEEN THE LOOPS. `combineAsVariants`, the measured layout pass, the `resize`, the definitions read
+//    and one `addComponentProperty` per property sit between the build loop's last boundary and the wire
+//    loop's first. #684 does not name this loop at all, which is why the gap was here twice.
+const burnCombinePage: Page = { children: [] };
+const burnCombine = await instrumented(grid, { ...full(), page: burnCombinePage, burn: { combine: BURN } }, 5);
+ok(firstOf(burnCombine.progress, 'wire') < BURN / 2,
+  `the first wire chunk excludes the ${BURN}ms of set-level work between the loops (${firstOf(burnCombine.progress, 'wire')}ms)`);
+
+// 3. THE YIELD ITSELF. `breathe` re-stamps AFTER awaiting, so the yield's own duration is never billed to
+//    the chunk after it. Live, that time is the host doing the work yielding exists to let it do — so
+//    counting it would make every chunk look worse the more politely the executor behaved, and would push
+//    the calibration toward a smaller `CHUNK` for having yielded more often.
+const burnYieldPage: Page = { children: [] };
+const burnYield = await instrumented(grid, { ...full(), page: burnYieldPage }, 5, YIELD_BURN);
+const secondBuild = burnYield.progress.filter((p) => p.phase === 'build')[1].chunkMs;
+ok(secondBuild < YIELD_BURN / 2,
+  `a chunk excludes the ${YIELD_BURN}ms yield that preceded it (2nd build chunk ${secondBuild}ms)`);
+
+// THE POSITIVE CONTROLS. Each burn is proven VISIBLE to `chunkMs` — otherwise the three assertions above
+// are satisfied by a burn that never ran. Cost inside the loop body has no re-stamp between it and the
+// boundary, so it must land in the reading; if it does not, this harness cannot charge time at all and the
+// exclusions above are vacuous.
+const ctlNoBurn = await instrumented(grid, { ...fullFor(grid), page: { children: [] } }, 5);
+const ctlT0 = Date.now();
+await instrumented(grid, { ...fullFor(grid), page: { children: [] }, burn: { setup: BURN } }, 5);
+const ctlElapsed = Date.now() - ctlT0;
+ok(ctlElapsed >= BURN,
+  `CONTROL: the setup burn really costs wall-clock this harness can measure (${ctlElapsed}ms >= ${BURN}ms)`);
+ok(ctlNoBurn.progress.length > 0 && firstOf(ctlNoBurn.progress, 'build') >= 0,
+  'CONTROL: the un-burned run reports as usual, so the burn is the only difference between them');
+// And the yield burn: 10 boundaries at 40ms each is ~400ms of wall clock that `chunkMs` must not have
+// absorbed — so the SUM of every reported chunk stays far below the run's own duration.
+const ybT0 = Date.now();
+const ybRun = await instrumented(grid, { ...fullFor(grid), page: { children: [] } }, 5, YIELD_BURN);
+const ybElapsed = Date.now() - ybT0;
+const ybReported = ybRun.progress.reduce((a, p) => a + p.chunkMs, 0);
+ok(ybElapsed >= YIELD_BURN * ybRun.yieldCalls * 0.5,
+  `CONTROL: ${ybRun.yieldCalls} yields at ${YIELD_BURN}ms cost real wall-clock (${ybElapsed}ms elapsed)`);
+ok(ybReported < ybElapsed / 2,
+  `and the reported chunk time is a fraction of it, so yield time is excluded rather than redistributed (${ybReported}ms reported of ${ybElapsed}ms elapsed)`);
 
 // A run with NO options is the production call shape — it must still complete, and must yield without
 // anyone passing a yield in. `realYield` is not injected here, so this genuinely goes through
