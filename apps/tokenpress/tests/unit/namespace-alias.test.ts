@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '../../test-harness';
 import { createAliasReference, sanitizeNamespace } from '../../src/utils/token-name-utils';
 
 // Reproduces the exact shape of the user's namespaced export: tokens wrapped

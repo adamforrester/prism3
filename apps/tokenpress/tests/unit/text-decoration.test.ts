@@ -2,7 +2,7 @@
  * Unit tests for text decoration conversion functionality
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 
 // Since convertFigmaTextDecoration is a private method, we'll create a test version
 function convertFigmaTextDecoration(figmaTextDecoration: string): 'none' | 'underline' | 'line-through' | null {

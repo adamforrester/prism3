@@ -2,7 +2,7 @@
  * Unit tests for DTCG validator
  */
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from '../../test-harness';
 import { DTCGValidator, validateDTCGFile, DTCG_SPEC } from '../../src/utils/dtcg-validator';
 import { DTCGFile, DTCGToken } from '../../src/types/dtcg';
 

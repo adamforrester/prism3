@@ -8,7 +8,7 @@
  * end-to-end to prove the production path is fixed. VMLYR/token-forge#53.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { TypographyConverter } from '../../src/plugin/converters/typography-converter';
 import { ConversionContext } from '../../src/types/converter-types';
 

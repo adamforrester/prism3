@@ -2,7 +2,7 @@
  * Unit tests for token naming and sanitization functions
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import {
   sanitizeTokenName as sanitizeTokenNameShared,
   sanitizeFileName,

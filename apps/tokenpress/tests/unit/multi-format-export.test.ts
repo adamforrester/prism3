@@ -2,7 +2,7 @@
  * Unit tests for multi-format export architecture
  */
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from '../../test-harness';
 import { DefaultExporterRegistry } from '../../src/plugin/format-exporters/registry';
 import { CSSFormatExporter, CSSTokenTransformer } from '../../src/plugin/format-exporters/css-exporter';
 import { DTCGFile, DTCGToken } from '../../src/types/dtcg';

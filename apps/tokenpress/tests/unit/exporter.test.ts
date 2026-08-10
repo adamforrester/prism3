@@ -3,7 +3,7 @@
  * Tests critical functions like font weight mapping and text decoration conversion
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { FONT_WEIGHT_MAP } from '../../src/types/dtcg';
 
 describe('Font Weight Mapping', () => {

@@ -15,7 +15,7 @@
  * dimension fall-through alongside WIDTH_HEIGHT and GAP.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { TokenExporter } from '../../src/plugin/exporter';
 
 // Reach into the private method without hitting Figma globals.

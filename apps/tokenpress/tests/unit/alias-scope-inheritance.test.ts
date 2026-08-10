@@ -12,7 +12,7 @@
  * source and inherit the source's scopes for type resolution.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { TokenExporter } from '../../src/plugin/exporter';
 
 function makeVariable(overrides: Partial<Variable>): Variable {

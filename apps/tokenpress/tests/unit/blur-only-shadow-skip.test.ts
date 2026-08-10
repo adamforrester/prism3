@@ -10,7 +10,7 @@
  * already filters blur out).
  */
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from '../../test-harness';
 import { TokenExporter } from '../../src/plugin/exporter';
 
 function makeEffect(overrides: Partial<any> = {}): any {

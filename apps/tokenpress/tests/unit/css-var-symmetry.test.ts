@@ -9,7 +9,7 @@
  * `var()`. See VMLYR/token-forge#60.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import {
   CSSFormatExporter,
   toCSSVariableName,

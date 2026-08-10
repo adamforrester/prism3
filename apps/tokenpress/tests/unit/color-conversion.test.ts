@@ -2,7 +2,7 @@
  * Unit tests for color conversion functionality
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 
 // Test version of color conversion function from TokenExporter
 function convertColor(color: { r: number; g: number; b: number; a?: number }): {

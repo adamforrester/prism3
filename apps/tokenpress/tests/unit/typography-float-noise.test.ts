@@ -20,7 +20,7 @@
  *     preserves sub-pixel letter-spacing intent like 0.04
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { TypographyConverter } from '../../src/plugin/converters/typography-converter';
 import { ConversionContext } from '../../src/types/converter-types';
 

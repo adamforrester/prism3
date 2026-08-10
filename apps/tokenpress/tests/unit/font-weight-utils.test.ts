@@ -10,7 +10,7 @@
  * VMLYR/token-forge#53 and adamforrester/prism3-tokens#105.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { getExpectedFontWeight, extractWeightName } from '../../src/utils/font-weight-utils';
 
 describe('Font Weight Parsing', () => {

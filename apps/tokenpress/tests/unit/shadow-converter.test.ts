@@ -3,7 +3,7 @@
  * through the shadow path).
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { ShadowConverter } from '../../src/plugin/converters/shadow-converter';
 
 // Minimal fake EffectStyle / Effect to feed the converter without pulling in

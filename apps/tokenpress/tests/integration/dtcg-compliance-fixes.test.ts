@@ -8,7 +8,7 @@
  * 5. Font weights as numeric values with italic extracted to fontStyle
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { TokenExporter } from '../../src/plugin/exporter';
 import { TokenTypeDetector } from '../../src/plugin/type-detection';
 import { TypographyConverter } from '../../src/plugin/converters/typography-converter';

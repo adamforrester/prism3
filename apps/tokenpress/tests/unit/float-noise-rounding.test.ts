@@ -16,7 +16,7 @@
  * sub-pixel intent on small values like 0.04, tight enough to strip noise.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { roundToPrecision, PRECISION } from '../../src/constants';
 import { TokenExporter } from '../../src/plugin/exporter';
 import { DimensionConverter } from '../../src/plugin/converters/dimension-converter';

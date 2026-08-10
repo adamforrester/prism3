@@ -17,7 +17,7 @@
  *     through to the linear `[0, 0, 1, 1]` default with no warning.
  */
 
-import { describe, test, expect } from 'vitest';
+import { describe, test, expect } from '../../test-harness';
 import { TokenExporter } from '../../src/plugin/exporter';
 import { TokenNameCase } from '../../src/types/plugin';
 
