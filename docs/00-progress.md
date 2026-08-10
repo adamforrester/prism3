@@ -100,12 +100,43 @@ total. Those are the parts that were wrong in draft and that a live run would *n
 freezes tells you nothing about which of the two loops did it. This is the third finding of that shape from
 the first live run (#680, #681 are the others), and the note is now in the test file's header.
 
+**The sensor shipped without a readout, which the owner caught by asking how to track `chunkMs`.** It
+crossed the bridge and the adapter validated it, and then nothing displayed or logged it — so the answer to
+"how do I report these numbers" was, briefly, *you can't*. `build-telemetry.ts` is the readout: a per-chunk
+console line as the build runs, and an end-of-run block to paste back. Worth recording because the failure
+mode is specific and easy to repeat — an instrument that measures correctly and reports nowhere passes
+every gate, since nothing was asserting that the number could be read.
+
+**The readout leads with the MAXIMUM, not the mean.** A chunk size is wrong when a *single* chunk holds the
+thread too long — Figma drops a heartbeat on the worst chunk, not the average one — so a mean of 14ms with
+a 400ms outlier is a bad chunk size that reads as a good one. Each phase reports min/p50/p95/max plus
+**which** chunk was worst in run order, because "the 3rd of 27" and "the 27th of 27" mean different things:
+an early spike is per-member cost, a late one is the set growing under the writes. Percentiles are
+nearest-rank with no interpolation — 27 samples off a millisecond clock do not support invented precision.
+
+**The settle time is measured from inside, not stopwatched.** After the executor returns, a chain of
+`setTimeout(_, 0)` records how late each tick actually fires: ~1-4ms on an idle main thread, hundreds of ms
+while Figma reconciles a scenegraph that grew by thousands of nodes. The **lag is the stall**, sampled
+directly. `settlePoint` requires `CALM_TICKS = 3` consecutive quiet samples because reconciliation is
+bursty — one quiet tick between two long ones is a gap in the work, not the end of it. A tail still
+stalling when sampling stops reports **NOT MEASURED** rather than the sample budget, which would understate
+a real stall while looking precise. And the settle figure is labelled as host time *chunking cannot reduce*,
+so a future chunk-size change is not judged against a number it has no effect on.
+
+**Six mutations against the readout, all failing by name.** Member count from the reading count (reports
+"10 members" for 240 — the denominator the whole calibration is read against). `worstAt` off the sorted
+copy rather than run order. `CALM_TICKS = 1`. A null settle printing as `0ms`. The max computed as the mean.
+The no-yield line deleted. **Two of those six initially appeared to pass and did not:** the substitutions
+had failed to apply — `maxMs,` is shorthand, not `maxMs: maxMs,`, and the second over-escaped its regex. A
+mutation that does not change the file is not evidence of a blind gate, and checking *that the mutation
+landed* is now part of the loop rather than reading a green run as the answer.
+
 **Still open, and it is the owner's to close.** The live 648 build: is the file responsive throughout, does
-Livegraph stay connected, what is the post-completion settle time (Figma still has scenegraph
-reconciliation to do after the last write, so it is measured rather than assumed zero), and what does
-`chunkMs` report per chunk. `CHUNK` is set from those numbers and the measurement recorded at the
-constant. #684 also flags a `net::ERR_INTERNET_DISCONNECTED` in the same console with a cheap
-discriminator — idle for two minutes without building — which is unchanged by this work either way.
+Livegraph stay connected (there is no "connected" message — the signal is the *absence* of
+`[Livegraph] Connection closed` / code 1006), what does the settle probe report, and what are the `chunkMs`
+numbers. `CHUNK` is set from those and the measurement recorded at the constant. #684 also flags a
+`net::ERR_INTERNET_DISCONNECTED` in the same console with a cheap discriminator — idle for two minutes
+without building — which is unchanged by this work either way.
 
 ---
 

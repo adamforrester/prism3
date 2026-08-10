@@ -25,6 +25,8 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { applyComponentPlan } from './write-components';
+import type { ComponentProgress } from './write-components';
+import { chunkLine, summaryLines, settlePoint } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
@@ -161,6 +163,47 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
 const SWAP_TARGET = 'FPO-default-icon';
 
 /**
+ * Measure the POST-COMPLETION SETTLE — how long the host stays stalled after the executor has returned
+ * (#684). The 1m10s freeze the issue records happened *after* the pill said done, so it is not in any
+ * phase total and no amount of chunking removes it: Figma is reconciling a scenegraph that just grew by
+ * thousands of nodes.
+ *
+ * HOW IT MEASURES A HANG WITHOUT A STOPWATCH: schedule a chain of `setTimeout(_, 0)` and record how late
+ * each one actually fires. On an idle main thread that is ~1-4ms. Scheduled while the host is stalled, the
+ * callback cannot run until the thread is free, so the LAG *is* the stall — sampled from inside, with no
+ * clock-watching and no guess about when "done" happened. `settlePoint` finds where the lag returns to
+ * idle for `CALM_TICKS` consecutive samples (one quiet tick between two long ones is a gap in the work,
+ * not the end of it).
+ *
+ * Returns `null` if the tail never settles inside the sample budget — reported as NOT MEASURED rather than
+ * as a number, because a run that is still stalling when sampling stops has not produced a settle time and
+ * printing the budget as one would understate it.
+ *
+ * The budget: `MAX_TICKS` at ~0ms apiece costs nothing on a responsive file (it finishes in the first few
+ * ticks) and caps a pathological one. 400 ticks past a settled file is ~1-2s of idle sampling; against the
+ * measured 1m10s freeze it is the calm run that ends it, not the budget.
+ */
+const MAX_TICKS = 400;
+const measureSettle = async (): Promise<number | null> => {
+  const t0 = Date.now();
+  const lags: number[] = [];
+  const stamps: number[] = [];
+  for (let i = 0; i < MAX_TICKS; i++) {
+    const before = Date.now();
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    const now = Date.now();
+    lags.push(now - before);
+    stamps.push(now - t0);
+    // Stop as soon as it HAS settled rather than always sampling the full budget — `settlePoint` returns
+    // the index that begins the calm run, so re-checking each tick costs a scan of a short array and saves
+    // hundreds of pointless ticks on a healthy build.
+    const at = settlePoint(lags);
+    if (at >= 0) return stamps[at];
+  }
+  return null;
+};
+
+/**
  * Materialise the Button COMPONENT SET into this file (#483) — the component tier's write action.
  *
  * ITS OWN ACTION, NOT PART OF `applyTheme` (#652): a theme apply writes variables and is something a
@@ -190,12 +233,27 @@ const SWAP_TARGET = 'FPO-default-icon';
 const buildComponents = async (): Promise<void> => {
   try {
     const plans = figmaAnatomySet(button, { swapTarget: SWAP_TARGET });
+    // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
+    // and the alternative is a running aggregate that cannot report a distribution.
+    const reports: ComponentProgress[] = [];
     const r = await applyComponentPlan(plans, figma, {
       // Posted straight through, unaggregated: the executor owns the phase/fraction and this is the
       // only place that can see the timing. `chunkMs` is CALIBRATION data (see `CHUNK`) — the shim has
       // no event loop, so chunk size can only be tuned from a live run, and this is how it gets out.
-      onProgress: (p) => postToUi({ type: 'component-progress', ...p }),
+      onProgress: (p) => {
+        reports.push(p);
+        // Logged as it happens, not only in the summary. If the build hangs, the last line printed is
+        // which phase and which chunk it hung on — the single most useful fact in a hang report, and one
+        // an end-of-run summary cannot give because a hung run never reaches it.
+        console.log(chunkLine(p));
+        postToUi({ type: 'component-progress', ...p });
+      },
     });
+    // The settle probe (#684). Started AFTER the executor returns, which is the exact moment the pill says
+    // done and the file was previously frozen for 1m10s. Awaited before the summary so the summary can
+    // carry the number; the result message is posted after, so the pill's verdict and the console's
+    // settle figure describe the same run.
+    const settleMs = await measureSettle();
     // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
     // starved file can produce one miss per binding per member and the whole list is not a summary.
     const missNote = r.misses.length
@@ -211,6 +269,9 @@ const buildComponents = async (): Promise<void> => {
     // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
     // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason
     // the theme write's is — never by re-reading the prose above.
+    // The telemetry block, printed LAST so it is the bottom of the console and can be copied in one
+    // selection. It is the deliverable of the calibration run: `CHUNK` is set from these numbers.
+    for (const line of summaryLines(reports, settleMs)) console.log(line);
     postToUi({
       type: 'component-result',
       ok: r.set !== null && r.misses.length === r.skipped,
