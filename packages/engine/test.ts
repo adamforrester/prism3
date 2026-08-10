@@ -6116,9 +6116,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // which is exactly why the original probe's FRAME "control" looked like it proved a node-type
     // difference; an instance inherits the lock from its main component, and the real FPO icon ships
     // locked. So the unlock must come BEFORE the first bind, on every node.
-    const unlockAt = js.indexOf('constrainProportions=false');
-    ok(unlockAt >= 0, 'anatomy: the payload unlocks constrainProportions — a locked node silently keeps only one of a slot\'s two dimension bindings');
+    //
+    // RE-POINTED, not loosened (#682): the payload now calls `unlockAspectRatio()`, since Figma marks
+    // `constrainProportions` `@deprecated` in favour of it. This greps the new literal for the same
+    // reason it grepped the old one — the subject is an emitted STRING, so there is no symbol to
+    // typecheck and the literal is the only handle. Both halves of the pairing are kept: that the
+    // unlock is emitted at all, and that it precedes the first bind.
+    const unlockAt = js.indexOf('unlockAspectRatio()');
+    ok(unlockAt >= 0, 'anatomy: the payload unlocks the aspect ratio — a locked node silently keeps only one of a slot\'s two dimension bindings');
     ok(unlockAt < js.indexOf('setBoundVariable'), 'anatomy: the unlock precedes the first setBoundVariable (after it, the first binding is already gone)');
+    // The deprecated form is GONE, not merely joined by the new one. Without this, the re-point above
+    // would pass on a payload that emitted both and left the old call doing the work.
+    ok(!js.includes('constrainProportions'), 'anatomy: the deprecated constrainProportions setter is gone from the payload (#682)');
     // #500 also prescribed `resize()` + `layoutSizing*` as the fix. `resize()` CLEARS every dimension
     // binding, so that fix would have destroyed the binding it was meant to preserve.
     //
@@ -6470,7 +6479,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // exercise it at all. Handing the same object to several `runPayload` calls models the one thing
     // separate `figma_execute` calls actually share: the document.
     type StubPage = { children: Record<string, unknown>[] };
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown };
+    /** `fileNodes` is #681's half: what the file holds under a name at a type the COMPONENT criteria
+     *  search does not match — a COMPONENT_SET, an INSTANCE, a FRAME. `comps` alone could only express
+     *  "present as a component" and "absent", which is the distinction the defect lived inside. */
+    type StubFileNode = { name: string; type: 'COMPONENT_SET' | 'INSTANCE' | 'FRAME'; variants?: string[] };
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; fileNodes?: StubFileNode[] };
     // The stub is built by its OWN function rather than inline in `runPayload` for one reason: the
     // parity gate at the end of this block drives the PLUGIN executor (`applyComponentPlan`) against
     // the same host model the paste payload runs on. Two executors compared against two different
@@ -6503,7 +6516,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const mkNode = (type: string): Record<string, unknown> => {
         const node: Record<string, unknown> = {
           type, name: '', boundVariables: {} as Record<string, unknown>,
-          constrainProportions: false, fills: [], strokes: [], children: [] as unknown[],
+          // #682: the aspect-ratio lock STARTS ENGAGED, and only `unlockAspectRatio()` releases it — which
+          // is what makes the payload's unlock load-bearing rather than decorative. A stub that started
+          // unlocked would pass whether the payload called it or not. `_unlocks` counts the calls so the
+          // gate can distinguish "unlocked" from "never asked". Mirrors the plugin shim deliberately: the
+          // parity gate compares the two executors, so a stub modelling a different Figma would make that
+          // comparison meaningless.
+          _aspectLocked: true, _unlocks: 0,
+          fills: [], strokes: [], children: [] as unknown[],
           // BORDER-BOX modeled, because the FOOTPRINT read-back has nothing to measure otherwise.
           // Figma's `strokesIncludedInLayout` defaults to ADDING the stroke to an auto-layout frame's
           // hug axis, so an outlined member measures 2px wider than a filled one that shares its group
@@ -6574,7 +6594,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // The VALUE is recorded alongside the id, because a bound dimension is what SIZES the node live
           // — `width` above reads it. Without this the binding is a bookkeeping entry and every node
           // measures the same, which is the constant-stub trap the `width` note records.
-          setBoundVariable(prop: string, v: { id: string; value?: number }) { (node.boundVariables as Record<string, unknown>)[prop] = { id: v.id, value: v.value }; },
+          unlockAspectRatio() { node._aspectLocked = false; (node._unlocks as number)++; },
+          // THE EVICTION IS MODELLED (#682): while the aspect ratio is LOCKED, a node cannot hold two
+          // independent dimension bindings — the second setter silently evicts the first, last-write-wins,
+          // with no throw and nothing in `misses[]`. That is the defect the unlock prevents, so the stub
+          // reproduces it rather than trusting the call count. Without this, the unlock could be deleted
+          // from the payload and every geometry assertion here would still pass.
+          setBoundVariable(prop: string, v: { id: string; value?: number }) {
+            const bv = node.boundVariables as Record<string, unknown>;
+            if (node._aspectLocked && (prop === 'width' || prop === 'height')) delete bv[prop === 'width' ? 'height' : 'width'];
+            bv[prop] = { id: v.id, value: v.value };
+          },
           setTextStyleIdAsync: async () => {}, setEffectStyleIdAsync: async () => {},
           // ABSOLUTE POSITIONING, modeled with its REJECTION CASE, which is the only part worth modeling.
           // Figma ignores `layoutPositioning` on a child whose parent is not an auto-layout frame, and it
@@ -6633,10 +6663,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // because the icon-ink paint routes to the vector and not to the instance.
         // `id` as well as `name`, because an INSTANCE_SWAP property's default must be a node ID —
         // the component key, `''`, `null` and `undefined` are all refused by the live API.
-        root: { findAllWithCriteria: () => (opts.comps ?? []).map((name, i) => ({
-          name, id: `73:${37 + i}`,
-          createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
-        })) },
+        root: {
+          // The CRITERIA search: components only. A COMPONENT_SET contributes its CHILDREN under their
+          // variant coordinates and never its own name — which is #681 exactly, and why a `focus-ring`
+          // sitting in the file was reported absent.
+          findAllWithCriteria: () => [
+            ...(opts.comps ?? []),
+            ...(opts.fileNodes ?? []).flatMap((f) => (f.type === 'COMPONENT_SET' ? f.variants ?? [] : [])),
+          ].map((name, i) => ({
+            name, id: `73:${37 + i}`,
+            createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
+          })),
+          // The NAME search, every type — what the payload's diagnostic pass asks on the failure path
+          // (#681). A different question from the one above, and the whole reason the miss can now name
+          // what it found, so the stub has to be able to answer both differently.
+          findAll: (predicate: (n: { name: string; type: string }) => boolean) => [
+            ...(opts.comps ?? []).map((name) => ({ name, type: 'COMPONENT' })),
+            ...(opts.fileNodes ?? []).map((f) => ({ name: f.name, type: f.type })),
+          ].filter(predicate),
+        },
         createText: () => mkNode('TEXT'), createFrame: () => mkNode('FRAME'),
         // A REAL set: it holds the members it combined, and it models `addComponentProperty` the way the
         // live API was measured to behave (#487 step 6). Four behaviors, each of which the payload has a
@@ -6852,6 +6897,78 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `anatomy/ring: no node is built in the missing ring's place, and the rest of the tree still builds — a missing ring is a precise failure, not a failed paste and not an invisible box (${JSON.stringify(starvedKids)})`);
       ok(noRing.misses.length === 1,
         `anatomy/ring: exactly ONE miss — the ring's absence must not cascade into resolve failures for the siblings that built fine (${JSON.stringify(noRing.misses)})`);
+
+      // ---- #681: THE MISS NAMES WHAT IT FOUND, on the PASTE path too ----------------------------
+      // The live 648-variant build reported 108 identical misses saying `focus-ring` was "not in this
+      // file". It was in the file, as a component SET: the criteria search matches `ComponentNode` and
+      // never `ComponentSetNode`, so the set's own name never entered the lookup while its children were
+      // there under their variant coordinates. Three file states and a genuinely absent node all produced
+      // one string, and its one piece of advice was wrong for three of the four.
+      //
+      // Gated HERE as well as in the plugin suite because the two executors carry the same message through
+      // different mechanisms — the plugin imports `nestMissAdvice`, the payload interpolates it at emit
+      // time — so one gate could pass while the other path was silently wrong. The shared function is what
+      // keeps the WORDING from drifting; these are what keep the BEHAVIOR from drifting.
+      const ringFound = async (node: StubFileNode | undefined): Promise<string> => {
+        const r = await runPayload(ringJs, { ...ringOpts, comps: ['FPO-default-icon'], fileNodes: node ? [node] : [] });
+        return r.misses.find((m) => m.indexOf('focusRing.nestTarget') >= 0) ?? '(no miss reported)';
+      };
+      const asSet = await ringFound({ name: 'focus-ring', type: 'COMPONENT_SET', variants: ['state=default', 'state=error'] });
+      const asInstance = await ringFound({ name: 'focus-ring', type: 'INSTANCE' });
+      const asFrame = await ringFound({ name: 'focus-ring', type: 'FRAME' });
+      const absent = await ringFound(undefined);
+      // Reachability, first: the criteria search really is blind to a set, or every claim below is vacuous.
+      const setStub = makeFigmaStub({ ...ringOpts, comps: ['FPO-default-icon'], fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants: ['state=default'] }] });
+      const criteriaNames = (setStub.root.findAllWithCriteria() as { name: string }[]).map((c) => c.name);
+      ok(!criteriaNames.includes('focus-ring') && criteriaNames.includes('state=default'),
+        `anatomy/ring #681 reachable: a COMPONENT search returns the set's MEMBERS and not the set (${JSON.stringify(criteriaNames)})`);
+      ok(new Set([asSet, asInstance, asFrame, absent]).size === 4,
+        `anatomy/ring #681: four file states, four DISTINCT messages — the miss names what was found rather than always claiming absence`);
+      ok(asSet.indexOf('COMPONENT_SET') >= 0 && asSet.indexOf('not in this file') < 0,
+        `anatomy/ring #681: a SET is named as one, not called absent (${asSet})`);
+      ok(asInstance.indexOf('INSTANCE') >= 0 && asInstance.indexOf('main component') >= 0,
+        `anatomy/ring #681: an INSTANCE — what duplicating a variant out of a set produces — is named, and pointed at the main (${asInstance})`);
+      ok(asFrame.indexOf('not a component') >= 0, `anatomy/ring #681: a FRAME of that name is named as not-a-component (${asFrame})`);
+      ok(absent.indexOf('not in this file') >= 0, `anatomy/ring #681: the genuinely absent case keeps its original message verbatim (${absent})`);
+      // And the payload still DROPS the ring in all four cases rather than nesting a guess. Diagnosis only:
+      // which variant of a set to nest is #681's open policy question, left to the owner.
+      const setPage: StubPage = { children: [] };
+      await runPayload(ringJs, { ...ringOpts, comps: ['FPO-default-icon'], fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants: ['state=default'] }], page: setPage });
+      const setKids = ((setPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).map((c) => c.name);
+      ok(!setKids.includes('focusRing') && setKids.includes('label'),
+        `anatomy/ring #681: a SET of that name still builds NOTHING in the ring's place — the message diagnoses, it does not substitute a variant (${JSON.stringify(setKids)})`);
+
+      // ---- #682: the payload's unlock is exercised, not just grepped ----------------------------
+      // `unlockAt` above greps the emitted STRING; this asserts the RUN. The stub's nodes start
+      // aspect-locked and its `setBoundVariable` evicts the opposite dimension while locked, so a slot
+      // holding both bindings is only possible if the payload really called `unlockAspectRatio()` first.
+      const unlockPage: StubPage = { children: [] };
+      await runPayload(ringJs, { ...ringOpts, page: unlockPage });
+      const flat = (n: Record<string, unknown>): Record<string, unknown>[] =>
+        [n, ...(((n.children as Record<string, unknown>[]) ?? []).flatMap(flat))];
+      const pasted = (unlockPage.children as Record<string, unknown>[]).flatMap(flat);
+      const bothBound = pasted.filter((n) => {
+        const bv = (n.boundVariables as Record<string, unknown>) ?? {};
+        return bv.width && bv.height;
+      });
+      ok(bothBound.length > 0,
+        `anatomy #682: a pasted node holds BOTH dimension bindings at once (${bothBound.length}) — impossible unless the payload unlocked the aspect ratio before binding`);
+      ok(pasted.filter((n) => (n._unlocks as number) > 0).length > 0,
+        `anatomy #682: the payload called unlockAspectRatio() on the nodes it built (${pasted.filter((n) => (n._unlocks as number) > 0).length}/${pasted.length})`);
+      // NEGATIVE CONTROL for the both-bindings claim above, read off the stub directly rather than through
+      // the payload. Mutating `_aspectLocked: true` to `false` in `mkNode` left this whole suite green —
+      // the claim passes both when the payload unlocked and when the stub never locked, which is docs/34's
+      // representation-vs-detection shape. Re-engaging the lock by hand is what separates those two worlds.
+      // Read off a node from the stub's own factory that the PAYLOAD never touched, so it reports the state
+      // a node STARTS in — the half of the model that re-locking an existing node cannot see.
+      const ctl = (makeFigmaStub({}) as unknown as { createFrame(): Record<string, unknown> }).createFrame() as
+        Record<string, unknown> & { setBoundVariable(p: string, v: { id: string; value?: number }): void };
+      ok(ctl._aspectLocked === true, 'anatomy #682 reachable: a fresh stub node starts aspect-LOCKED');
+      ctl.setBoundVariable('width', { id: 'V:control', value: 10 });
+      ctl.setBoundVariable('height', { id: 'V:control', value: 10 });
+      const ctlBv = ctl.boundVariables as Record<string, unknown>;
+      ok(!!ctlBv.height && !ctlBv.width,
+        'anatomy #682 reachable: ...and while locked the stub really evicts the opposite axis — so the claim above is about the unlock, not about a stub that never locked');
       // THE INSET NEVER RESOLVED as a number. `resolveForConsumer` on an aliased variable hands back a
       // VARIABLE_ALIAS object, which is what reading `valuesByMode` would have produced — and writing it
       // to `x`/`y` yields NaN positions with no throw anywhere.

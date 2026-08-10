@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
 
 /** A Figma variable as this lane needs it: a name to index by, an id nothing here reads, and the
@@ -100,7 +100,6 @@ export interface CompNode {
   opacity?: number;
   characters?: string;
   clipsContent?: boolean;
-  constrainProportions?: boolean;
   strokesIncludedInLayout?: boolean;
   readonly width?: number;
   readonly height?: number;
@@ -127,6 +126,14 @@ export interface CompNode {
   setBoundVariable?(field: string, variable: CompVariable | null): void;
   setTextStyleIdAsync?(id: string): Promise<void>;
   setEffectStyleIdAsync?(id: string): Promise<void>;
+  /** Releases the node's `targetAspectRatio` — the replacement for the deprecated
+   *  `constrainProportions = false` (#682). Optional like every other field here, for the reason the
+   *  header gives; but unlike `constrainProportions`, which lives on `LayoutMixin` and so is genuinely
+   *  absent from some node types, this rides on `AspectRatioLockMixin`, which EVERY type this executor
+   *  creates carries — FrameNode and TextNode declare it directly, InstanceNode and ComponentNode
+   *  inherit it through `DefaultFrameMixin` → `BaseFrameMixin`. That is why the call below needs no
+   *  presence guard. */
+  unlockAspectRatio?(): void;
 }
 
 /** A COMPONENT_SET, which has a surface no ordinary node does. `componentPropertyDefinitions` is a
@@ -172,8 +179,16 @@ export interface ComponentsApi {
    *
    *  `types` is the LITERAL `'COMPONENT'[]` rather than `string[]` for the same variance reason: Figma
    *  constrains this to its `NodeType` union, so a port asking for any `string` is not satisfied. This
-   *  lane only ever searches for components, so naming that is no loss. */
-  root: { findAllWithCriteria(criteria: { types: 'COMPONENT'[] }): readonly unknown[] };
+   *  lane only ever searches for components, so naming that is no loss.
+   *
+   *  `findAll` is the DIAGNOSTIC half (#681), and it is a separate method rather than a widening of the
+   *  criteria above on purpose. The criteria search must keep returning components only — that is what
+   *  makes the `CompRef` cast at its call site true. This one is by NAME across every node type, is
+   *  called only on the failure path, and its results are read for `type` alone, never instantiated. */
+  root: {
+    findAllWithCriteria(criteria: { types: 'COMPONENT'[] }): readonly unknown[];
+    findAll(predicate: (node: { name: string; type: string }) => boolean): readonly { name: string; type: string }[];
+  };
   createText(): CompNode;
   createFrame(): CompNode;
   createComponentFromNode(node: CompNode): CompNode;
@@ -353,9 +368,11 @@ const boundPaint = (arr: unknown): boolean => {
  * (`anatomy-figma.ts`'s `PAYLOAD_*` constants carry the measurements); the ones the obvious
  * implementation gets wrong, and which this therefore states explicitly:
  *
- *  - `constrainProportions = false` BEFORE any dimension binding. A proportion-locked node keeps only
+ *  - `unlockAspectRatio()` BEFORE any dimension binding. A proportion-locked node keeps only
  *    the last of two dimension bindings — the second setter evicts the first, silently. An instance
- *    inherits the lock from its main component, and every slot binds width AND height.
+ *    inherits the lock from its main component, and every slot binds width AND height. (Was
+ *    `constrainProportions = false`, which Figma's typings now mark `@deprecated` in favour of this —
+ *    #682. Same effect, and it drops the `in` guard: see `CompNode.unlockAspectRatio`.)
  *  - NO `resize()` after binding: it CLEARS every dimension binding. The one `resize` here is on an
  *    absolute part, which binds no dimensions by construction.
  *  - Properties on the SET and only AFTER combining. `addComponentProperty` throws on a member, and
@@ -425,7 +442,17 @@ export const applyComponentPlan = async (
     } else if (n.type === 'NESTED_INSTANCE') {
       const nested = n.nestTarget ? compByName.get(n.nestTarget) : undefined;
       if (!nested) {
-        misses.push(`${n.name}.nestTarget -> ${n.nestTarget} (not in this file; nothing built — publish the shared component first)`);
+        // DIAGNOSE, then report (#681). The criteria lookup above cannot tell "absent" from "present at a
+        // type this search does not match", so the miss it produced said "not in this file" of a node the
+        // designer was looking at. A second search — by name, every type, only on this path — is what
+        // lets the message name what is actually there. `nestMissAdvice` is shared with the paste path so
+        // the two cannot drift in wording.
+        const other = n.nestTarget ? api.root.findAll((x) => x.name === n.nestTarget)[0] : undefined;
+        const found = !other ? 'ABSENT'
+          : other.type === 'COMPONENT_SET' ? 'COMPONENT_SET'
+          : other.type === 'INSTANCE' ? 'INSTANCE'
+          : 'OTHER';
+        misses.push(`${n.name}.nestTarget -> ${n.nestTarget} (${nestMissAdvice(found)})`);
         return null;
       }
       node = wr(nested.createInstance());
@@ -434,9 +461,11 @@ export const applyComponentPlan = async (
       node.clipsContent = false;
     }
     node.name = n.name;
-    // Before ANY dimension binding — see the header note. `in` rather than unconditional because an
-    // instance and a frame differ here, which is a fact about the host.
-    if ('constrainProportions' in node) node.constrainProportions = false;
+    // Before ANY dimension binding — see the header note. Unconditional, unlike the
+    // `constrainProportions` form this replaced: that needed an `in` guard because it lives on
+    // `LayoutMixin`, which not every node type has. `unlockAspectRatio` is on `AspectRatioLockMixin`,
+    // which all four types built here carry, so a guard would only hide a port that had gone wrong.
+    node.unlockAspectRatio?.();
 
     if (n.textStyle) {
       const st = styleByName.get(n.textStyle);
