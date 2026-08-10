@@ -122,6 +122,21 @@ jobs:
             exit 1
           fi
 
+      # TokenPress's own 263 assertions, ported from vitest onto tsx (the suite it arrived with). It
+      # runs the exporter end to end against Figma-shaped fixtures, so it is the only thing here that
+      # can catch a regression in the OUT direction (Figma -> DTCG). Its runner asserts a per-file
+      # census against the pre-port vitest baseline, so a test quietly vanishing fails too.
+      - name: TokenPress tests
+        run: npm run -w @prism3/tokenpress test
+
+      # The exporter writes __PLUGIN_VERSION__ into every tree's $extensions.generator.version, and
+      # it is a bare identifier with no runtime declaration — an absent bundler define ships a plugin
+      # that throws on first export. build.mjs asserts that (plus the iife wrapper, the es2018 target
+      # and jszip's setImmediate shim) against what it actually wrote. dist/ is gitignored, so a
+      # regression here is invisible to typecheck, to lint and to every source grep.
+      - name: Build TokenPress
+        run: npm run -w @prism3/tokenpress build
+
       # Can a STRANGER consume what the engine emits? This runs Style Dictionary with a deliberately
       # naive config — no preprocessors, no custom transforms — because that is the only configuration
       # that answers the question. It is a CHARACTERIZATION gate: it pins the known #609 defect (three
