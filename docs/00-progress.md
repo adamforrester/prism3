@@ -7,6 +7,103 @@
 
 ---
 
+## (2026-08-10) — The shims learn to fail: #680 and #681 made reproducible, deliberately not fixed
+
+**STATUS: shipped. No behavior change — the diff is two test files and this entry.** `regen --check`
+unchanged at **104**. Plugin suites: `test-write-components.ts` 73 assertions (9 pinned),
+`test-write-typography.ts` 39 assertions (3 pinned).
+
+**Why this is its own PR.** The first real-Figma run of the Button build produced six findings, and
+**five of them were invisible to the test suite by construction**: the in-memory shims could not
+express the states that failed. That is the representation-vs-detection defect class of docs/34 wearing
+a different hat — the checks ran, and could not fire. So this lands the *capability* first, with no
+fix on top of it, because a shim that can reproduce a defect is worth having on `main` whether or not
+the fix arrives in the same week. #681 and #682 are the follow-up; #684 (chunking) belongs to someone
+else.
+
+**Three capabilities the component shim did not have.** It modelled a flat name→component map, so
+every lookup was "found" or "not found" and nothing in between:
+
+- **`root.findAllWithCriteria` now HONORS its criteria.** It previously returned the same list whatever
+  `types` asked for. A COMPONENT_SET is now a node whose *children* come back under their variant
+  coordinates (`state=default`) while the set itself only appears when `COMPONENT_SET` is requested —
+  which is exactly the shape `write-components.ts:257` (`types: ['COMPONENT']`) cannot see.
+- **An INSTANCE is a node with a `mainComponent` link.** This is the case that matters most, because
+  duplicating a variant out of a set is the obvious manual workaround, and it lands in the same
+  false branch.
+- **Font-loaded state, per run.** `loadFontAsync` now records what it loaded and throws for a face
+  that is not *installed*; `setTextStyleIdAsync` throws for a face that is installed but was not
+  loaded **this run**. Those are two different failures, and an unconditional no-op models neither.
+
+**The pin, and why its polarity is inverted.** There was no xfail convention in this repo, so this PR
+introduces one: `pinned(cond, issue, label)` asserts the **WRONG** behavior the executor has today. It
+passes while the defect is present and goes RED the day it is fixed, naming the issue. Two reasons the
+obvious alternative does not work. A genuinely red test cannot be told apart from a broken build, and
+CI would refuse the very PR that makes a defect reproducible. And a pin **forces the fixing PR to
+touch this file** — which is what a `// TODO: broken` comment can never do. It is the same shape as
+`packages/tokens`' consumer-side count: a MEMORY of what is true rather than a RULE about what should
+be, and it says so in its own doc comment.
+
+**Reachability is asserted separately from every pin, against the shim's own search.** A pin alone is
+worthless: `all four cases report one identical message` is also satisfied by a shim that models
+nothing, since four identical inputs trivially agree. So each pin is preceded by positive assertions
+that the shim really holds the state in question — the set's members come back under their variant
+coordinates, `findAllWithCriteria({types:['COMPONENT']})` does *not* return the set's own name, the
+font guard fires unloaded and stops firing once loaded. Those are read off the shim's search, never
+off the executor's map, because reading the map would be reading the subject.
+
+**#680's reproduction is in the TYPOGRAPHY suite, not the component one, because that is where the
+defect lives.** `write-text-styles.ts:185` and `write-components.ts:295` both load fonts;
+`write-figma.ts` owns all nine `setValueForMode` call sites and contains **no `loadFontAsync` at all**.
+And the fixture is *measured, not invented* — an earlier pass hung a made-up `Clash Display Semi Bold`
+on NB's plan, and a mutation that applied a genuine fix left the pin satisfied, because the invented
+face was not one any fix would load. aurora's real faces are `Clash Display Bold / Inter Regular /
+Inter Bold / Inter Medium / Clash Display Medium / JetBrains Mono Regular`; harbor's are `Inter Bold /
+Inter Regular / Inter Semi Bold / JetBrains Mono Regular`. **aurora names three faces harbor does
+not** — so the reproduction seeds harbor's faces and runs aurora's plan, with a harbor **control** run
+beside it that applies cleanly (+49 vars, 0 misses). That asymmetry between two shipped example brands
+*is* the finding.
+
+**The two #680 pins discriminate two different fixes, and that is deliberate.** One pins the throw;
+one pins that the writer called `loadFontAsync` **zero** times. A fix that merely *catches* the error
+satisfies the first and must still fail the second — verified, not asserted: the catch-only mutation
+fires two pins and correctly leaves the load-count pin PINNED. `main.ts:148-149` collapses any throw
+into a single `write failed: ${message}`, so one unloaded font costs the whole theme — colors,
+dimensions and all — which is why the third pin says *nothing is reported*: there is no result object
+to read misses from.
+
+**Mutation table — every row confirmed to fail BY NAME, not incidentally.** This is the CLAUDE.md §4
+rule that a gate is only as strong as what it fails on:
+
+| # | Mutation | Result |
+|---|---|---|
+| 1 | Fix only the COMPONENT_SET case | 3 fail |
+| 1b | Name every found type (the real #681 fix) | **8** fail — all #681 pins; the absent-case assertion stays green |
+| 2 | Shim regresses to ignoring `criteria` | **12** fail, including all 4 reachability lines |
+| 3 | Shim drops font state | 2 fail |
+| 4 | Delete the component lane's `loadFontAsync` | 1 fail, by name |
+| 5 | Real #680 fix — load fonts, degrade | **3** fail (12 loads recorded) |
+| 6 | Catch the throw, load nothing | 2 fail; "0 loads" correctly stays PINNED |
+| 7 | Weaken the shim's own session guard | 3 fail — **reachability fires first** |
+
+Mutation 4 taught something worth keeping: it originally crashed the suite with a stack trace instead
+of failing. **A stack trace is not a test result** — it names a line rather than a claim, and it aborts
+every assertion below it. The fully-resolved run is now wrapped, with `the fully-resolved run COMPLETES
+rather than throwing` as a named assertion and an explicit early exit when it does not.
+
+**What is covered by a test and what is live-only.** Covered offline, from this PR forward: that three
+distinct file states (COMPONENT_SET / INSTANCE / FRAME) and *nothing at all* produce one identical
+"publish the shared component first" message; that the component lane's `loadFontAsync` call and its
+`catch` exist and are falsifiable; that the variable writer never loads a font and throws on a brand
+whose faces are not already loaded; and that the text-style lane already degrades correctly, which is
+the posture the variable lane needs. **Live-only, and not claimed here:** that Figma's real trigger for
+the `setValueForMode` throw is dependent-style re-resolution rather than something else. #680's decisive
+test is a completely fresh file in Figma desktop with a human watching, and no shim can stand in for it.
+`_allNamed` is test-only and deliberately **not** on the `ComponentsApi` port — this PR ships no fix, and
+a port method with no caller is dead weight.
+
+---
+
 ## (2026-08-10) — The component build yields, reports, and stays one undo step (#684)
 
 **STATUS: shipped, with one number still to measure.** `regen --check` unchanged at **104** — this is
