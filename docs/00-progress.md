@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-08-10) — Blocks: the tier above components, logged before we can build it (docs/13 §8)
+
+**STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New `13` §8 field note,
+one `13` §6 convergence row, one KB gap (`09` §1.36) in the knowledge-base repo, and the axis-derivation run filed as #693.
+Nothing is committed as a decision.
+
+**What prompted it.** Owner surfaced Initium, a commercial **block** library — section-level compositions
+(hero, pricing, testimonial, logo wall, bento) organized by the page role they fill, plus page templates
+assembled from them — as a long-term-vision reference, having attempted the same thing in Prism 1 in Figma
+and not got far. The ask was to capture the block *types* and, more valuably, the *layouts within each type*
+as a starting point for when this lane opens.
+
+**Measured from the product's navigation: 23 block types / 197 blocks, 10 page-example types / 28 examples.**
+The distribution is the useful part — Feature 23, Hero 22, Header 20, Gallery 12, then a tail at 3–7. Where
+the count is high the block is a family of different layouts, not one thing with options.
+
+**The finding worth leading with: this is the same artifact as the exemplar gap we scored ourselves on two
+days ago.** `36` §2 row 6 rates us **Behind** on exemplars, citing daisyUI's *"211 page architectures matched
+by intent"* and Cloudscape's *"181 addressable few-shot exemplars."* Initium is 197. A block library serves a
+human picker and an agent's few-shot retrieval from one source, so this moves from "distant surface" to the
+concrete answer to a scored deficiency. That connection is why the note is worth its length.
+
+**The design position, recorded now because it is what makes the capture worth doing: capture the axes, not
+the gallery.** 22 hero layouts is a handful of axes multiplied out — media placement, content alignment,
+container treatment, action count, social-proof slot — of which only some combinations are worth shipping.
+**The artifact is the axis set plus the pruning rationale**, which is the same move the engine already makes
+one tier down (levers, not swatches). A screenshot catalogue is the failure mode here, and it is the version
+that is easy to produce.
+
+**The tier is genuinely absent, checked rather than assumed.** `preview-spec.json` is 8 components / 25
+variants, all product-UI primitives, and it is a render spec for proving tokens. On the practice side the
+gap is sharper: KB `patterns/` is keyed to *user goals* and `patterns/app-shell.md` says in as many words
+that it does not apply to a marketing site. A hero resolves no user goal — blocks are keyed to **page role**.
+Neither KB layer covers the genre, which is now `09` §1.36 with a facet-vs-layer decision attached.
+
+**One accessibility contract this lane inherits, already briefed.** KB `components/section.md` carries the
+don't-over-landmark rule: twelve benefit blocks are *one* named `<section>` over a grid of twelve generic
+containers, not twelve landmarks. **A page assembled by picking blocks produces the twelve-landmark page by
+construction**, and nothing outside AT can see it. Encoding page-level structure in the block definitions
+rather than leaving it to author discipline is the "better than the examples" bar for this tier.
+
+**Sequencing, and the reason it is a note rather than a plan.** Blocks depend on the component layer
+(#252/#256), which is not built. The *taxonomy* depends on none of it — and it is a demand signal for which
+components to build first, surfacing several nothing has briefed (logo wall, stat, timeline, bento cell). So
+the inventory is worth having early and the build is not.
+
+**The open fork, named rather than deferred silently:** blocks are mostly **markup**, and `35` commits to
+ejectability. Whether they ship as a package, generate on demand, or exist only as agent exemplars is not
+resolved by `35` §1's boundary. Worth settling before an inventory tempts anyone into building 197 of them —
+and 197 is a description of a mature commercial catalogue, not a scope.
+
+**Trap for whoever picks this up:** the counts above were read off a navigation screenshot on 2026-08-10 and
+nothing re-derives them. They are a shape, not a baseline — do not build a gate against them.
+
+---
+
 ## (2026-08-10) — The four numbers #662 was held on never landed, and a word nobody outside the report knows
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. Re-lands the correction
