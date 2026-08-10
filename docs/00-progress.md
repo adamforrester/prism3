@@ -7,6 +7,45 @@
 
 ---
 
+## (2026-08-10) — The four numbers #662 was held on never landed, and a word nobody outside the report knows
+
+**STATUS: docs only.** No engine change, no emitted artifact, no gate touched. Re-lands the correction
+commit that #662 merged without, plus one glossary fix.
+
+**What happened, because the mechanism matters more than the fix.** #662's review held the PR on four
+figures in `36` §2. The corrections were made and pushed (`b54738a`, 17:04). The branch was then **rebased
+by another session onto #671 and the correction commit was dropped**, leaving a single commit dated 12:45;
+the PR merged at 17:12 carrying the original numbers. `git merge-base --is-ancestor b54738a origin/main`
+returns false, and `main`'s `36` §2 still reads `test.ts` 1922 / 485 pinned / 22 variants / "a register of
+12 instances". **Nothing anywhere reported this** — the PR went green, the review's condition was recorded
+as met in prose, and the artifact never changed.
+
+**The generalizable part: a review condition satisfied on a branch is not a review condition satisfied.**
+CI runs on the head that exists at merge time, and a rebase that drops a commit produces exactly the same
+green as one that keeps it. The only check that would have caught this is the one we did here — asserting
+the *corrected value* is present in `main`, not that the PR merged. Worth remembering when a review says
+"fix these and I'll merge": confirm the fix in the base branch afterward.
+
+**The corrections, re-measured on this tree rather than trusted from the earlier pass:** `test.ts` 1922 →
+**2040** (corroborated in three independent progress entries; `1922` appears nowhere in history, so it was
+never a stale figure — it was never true), `token-contract.json` 485 → **497** `guaranteed` keys, `preview.ts`
+22 → **25** variants, and the `34` register count **dropped rather than updated**, because `34` L395 says the
+table is the count and that its prose deliberately stops naming one (#568). Also restores the dateline on
+`36`'s preamble and un-typesets two paraphrases that were sitting inside quote marks.
+
+**And one new fix, from the cheapest possible signal: the owner asked what "exemplars" meant.** It is the
+report's category name, used 6 times across `36` with no definition. A reader of our own design record could
+not parse a row of the scorecard — which is `voice-standard.md`'s *translating* attribute failing, not a
+style preference. Now glossed at first use: a worked example an agent retrieves and copies from, held at a
+stable address; docs tell, exemplars show. **Inherited vocabulary is the easiest kind to go blind to**,
+because it arrives already feeling like a term of art.
+
+**Trap for whoever re-verifies this:** `docs/**` is in no gate's scope (#670), so none of the four numbers
+would have failed anything, and the same is true of the gloss. This entry is the only record that the first
+correction existed at all.
+
+---
+
 ## (2026-08-10) — The shims learn to fail: #680 and #681 made reproducible, deliberately not fixed
 
 **STATUS: shipped. No behavior change — the diff is two test files and this entry.** `regen --check`
