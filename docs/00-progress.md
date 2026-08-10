@@ -7,6 +7,112 @@
 
 ---
 
+
+## (2026-08-10) — TokenPress ported in as `apps/tokenpress/`, and the separability question answered against real code
+
+**STATUS: shipped as six commits on one branch.** TokenPress — the owner's Figma → DTCG export plugin, public
+in the Figma Community — now lives at `apps/tokenpress/` as `@prism3/tokenpress`. `regen --check` still reports
+**104**; no engine file changed. Two new CI steps. One prism3 gate defect found and fixed. And the measurement
+`12` §10 asked for, now re-run against code in this tree instead of a remote.
+
+**The method was the constraint, and it is the part worth carrying forward: copy first, adapt second,
+restructure never.** Commit 1 is the source tree byte-for-byte — vite config, vitest suite, husky hook, its
+own `agents.md`, all of it — with CI red and that being correct. Every later commit is one adaptation with the
+before/after measured. The reason to work this way is that it keeps "what it was" and "what we changed"
+separable forever; a single squashed port commit would have made every subsequent question about TokenPress's
+behavior unanswerable without a second repo.
+
+**The baseline that made the test rewrite checkable.** Owner's instruction, and it was the right call: run the
+original vitest suite on the ported code *before* touching it and record the number. **263 assertions across
+21 files.** Then vitest had to go (vitest 4 peer-requires vite, and the repo is standardizing on one bundler),
+so `test-harness.ts` is a dependency-free stand-in — 14 matchers, `.not`, `it.each`, `describe`/`beforeEach` —
+and `test.ts` asserts a hand-transcribed **per-file** census summing to 263. Per-file, not the total: a total
+alone lets one file lose a test while another gains one. The 21 test files' only edit is the import line,
+verified as 21 insertions / 21 deletions with no other line touched.
+
+**And the harness was wrong in a way only a real test caught.** First green run, one failure:
+`expected ["glass/backdrop"], got ["glass"]`. The harness ran test bodies as it collected them, so async
+bodies interleaved and raced through each other's `beforeEach` state. Fixed by collecting first and draining a
+queue sequentially, with the hook list snapshotted per test — and then a self-check added that asserts async
+bodies run in order (`a-start,a-end,b-start,b-end`), so the defect cannot come back silently. Also found: 18
+`__PLUGIN_VERSION__ is not defined` failures, because vite's `define` had been quietly substituting that
+identifier during the *test* transform too. tsx has no such step, so `test.ts` sets it from `package.json`.
+
+**5 mutations, 5 failures by name** (toBe / it.each / async+beforeEach / .not.toThrow / toBeCloseTo), plus an
+8-case comparison against real vitest showing exactly one deliberate divergence: our `deepEqual` treats a key
+present-but-undefined as different from absent, which is stricter. The mutation run also produced an
+**equivalent mutant** — breaking `sanitizeNamespace`'s `.replace(/^\$+/, '')` changed nothing, because
+`UNSAFE_CHARS` already strips `$` before that line ever runs. Unreachable code, not a test gap; recorded as a
+TokenPress finding and deliberately not fixed (fixing its bugs was out of scope).
+
+**A gate defect this port was the first content to expose.** `lint-layout-claims.ts` flagged six *correct*
+relative links because it never stripped `#anchor` before resolving the path — a link's anchor is not part of
+its filename. Fixed in the gate rather than by editing six docs or narrowing the scan, and both arms
+mutation-checked afterward. Worth noting *why* it surfaced now: the port added the first layout-table row whose
+doc links carried anchors.
+
+**`lint-doc-gates.ts` then caught something sharper about itself.** Adding the two CI steps, it reported them
+missing from CONTRIBUTING.md and the PR template but **not** from CLAUDE.md — because CLAUDE.md was already
+passing on a substring match against the layer-table row from an earlier commit, while its §4 gate list
+genuinely had no TokenPress entry. The gate matches on a workspace name appearing anywhere in the file, so a
+mention in one section satisfies it for another. Not fixed here (it would be a scope-creep change to a gate the
+port only happened to walk past), but it is a real weakness in a gate whose whole job is keeping three
+checklists honest, and it belongs in the `34` register.
+
+**And the lockfile, which would have made every gate above moot.** `npm ci` refuses to install when
+package.json and package-lock.json disagree, and adding a workspace makes them disagree. Measured on a pristine
+clone: exit 1, `Missing: @prism3/tokenpress@3.0.0 from lock file` plus 11 more — install is the *first* step,
+so CI would have run zero gates and the two new steps would have been untested. One entry changed rather than
+added: `node_modules/inherits` loses `"dev": true`, because jszip is a production dependency of tokenpress and
+pulls it through readable-stream.
+
+**No `typecheck` step, stated with its reason in all three documents.** TokenPress arrived without one, and its
+`tsconfig.json` mis-wires `@figma/plugin-typings` through `typeRoots`: `tsc` reports **232** errors, almost all
+`Cannot find name 'figma'`. Identical count in the source repo, so it is pre-existing and not the port's to
+fix. Wiring the step now would pin 232 errors and call it a gate. (Wiring the typings correctly drops it to
+**86**, which is the real backlog.)
+
+**The portability measurement — `12` §10a was right, and the number was understated.** §10a corrected §7.1's
+"~1 day, zero `figma.*` calls, separable" by pointing out that no *runtime* calls is not the same as no
+*coupling*: the shaping layer is saturated with Figma **types**. Re-measured here, with comments stripped so
+prose can't inflate it: **124 Figma type references across 13 source files, against 24 `figma.*` runtime
+calls — and exactly one of those 24 is outside `code.ts`/`scanner.ts`** (`exporter.ts:631`, reading
+`variable.codeSyntax`). So the *runtime* boundary really is one line from clean, and it is irrelevant, because
+`ConversionContext` embeds `Map<string, Variable>`, `TokenExporter` constructs its own scanner rather than
+receiving one, and `exportToZip` calls `scanner.scanAll()` as step one. **You cannot hand it tokens.** There
+is no intermediate representation to extract a shared core *from* — that model would have to be invented first.
+Full report in the PR body.
+
+**Bucket (c) is the finding for anyone who later tries to share code: settings that look format-generic but
+whose meaning depends on how Figma models the thing.** `lineHeightOutput` reads as an output-shape choice and
+is gated on `scopes.includes('LINE_HEIGHT')`, a Figma scope that has no analogue in a generated tree. Same for
+`OPACITY`. Worse, five type decisions are made from **variable-name regexes** — `isGridColumnsVariable`,
+`isMotionDurationVariable`, `isBreakpointVariable`, `isContainerMaxFullVariable`,
+`isNegativeDimensionVariable` — including `/^\d+$/` on the last path segment, which types **any** variable
+named `768` as a breakpoint. That layer exists because Figma discards the designer's intent and the exporter
+has to guess it back. Prism3 knows every token's type at generation time and would never run it. A shared
+"shaping" core would either carry that guesswork as dead weight or drop it and change TokenPress's output.
+
+**What has *not* happened, so nobody reads the tree as a merge.** TokenPress still has its own DTCG emitter,
+its own alias resolution, its own mode handling — mode as *directory path*, which `12` §10b measured as
+structurally unable to carry our three orthogonal axes. Living in one repo has made the duplication visible and
+measurable; it has not reduced it. `09` §4's table row moves from "downstream, contract-connected — never
+shared code" to "ported in", with a paragraph saying why that does not break the absorb-function-never-code
+principle: the original call rested on it living in a different org, and it does not.
+
+**Traps for whoever works in here next.** (1) It is a **guest** — `src/` does not follow this repo's patterns,
+and the duplication is measured, not accidental; read its own `agents.md` first and do not "align" it with the
+engine. (2) `dist/` is gitignored, so `build.mjs` asserts four properties against the file it just wrote
+(`__PLUGIN_VERSION__` substituted, iife wrapper, 0 `node:` builtins, jszip's `setImmediate` shim) — those are
+the only checks standing between a regression and a plugin that throws on first export. My own first version
+of that gate had a hole: flipping `format` to `esm` passed silently, because `src/code.ts` exports nothing, so
+no ESM statement appeared to find. It now asserts the wrapper itself. (3) jszip is **interleaved**, not a final
+step: `zip` is threaded as the first parameter through `exportVariables`/`exportTypography`/`exportShadows`
+and there is no intermediate file map, so 7 of 21 test files reach it transitively. Separating ZIP assembly
+from token conversion is real work, not a refactor.
+
+---
+
 ## (2026-08-10) — #681 the miss names what it found, #682 the deprecated proportion lock migrated
 
 **STATUS: shipped.** `regen --check` unchanged at **104**; engine suite **2073** (was 2071 — nine of the
