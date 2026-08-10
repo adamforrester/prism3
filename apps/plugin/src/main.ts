@@ -246,7 +246,11 @@ const buildComponents = async (): Promise<void> => {
         // which phase and which chunk it hung on — the single most useful fact in a hang report, and one
         // an end-of-run summary cannot give because a hung run never reaches it.
         console.log(chunkLine(p));
-        postToUi({ type: 'component-progress', ...p });
+        // FIELD BY FIELD, not `...p`, and the reason is that these two consumers want different things.
+        // The console gets the whole reading including `elapsedMs`; the pill shows a fraction and nothing
+        // more. Spreading would put every field the executor ever adds onto the bridge by default — a
+        // widening the message contract in `messages.ts` never agreed to, and one that reads as intentional.
+        postToUi({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
       },
     });
     // The settle probe (#684). Started AFTER the executor returns, which is the exact moment the pill says

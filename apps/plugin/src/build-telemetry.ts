@@ -30,6 +30,13 @@ export type PhaseStats = {
   p95Ms: number;
   maxMs: number;
   worstAt: number;
+  /** Wall-clock for the phase, yields included — the last reading's `elapsedMs`. NOT `Σ chunkMs`, which is
+   *  what `totalMs` is; the two differ by exactly the time spent yielding. */
+  elapsedMs: number;
+  /** `elapsedMs − totalMs`: what the yielding cost, which is the term that grows as `CHUNK` shrinks. The
+   *  first calibration run could not report this at all, and it is the number a further reduction of
+   *  `CHUNK` has to be argued against. */
+  yieldMs: number;
 };
 
 /** Percentile by nearest-rank on a sorted copy — the plain definition, no interpolation. With 27 samples
@@ -52,15 +59,25 @@ export const phaseStats = (phase: string, reports: ComponentProgress[]): PhaseSt
   const ms = reports.map((r) => r.chunkMs);
   const sorted = ms.slice().sort((a, b) => a - b);
   const maxMs = ms.length ? Math.max(...ms) : 0;
+  const totalMs = ms.reduce((a, b) => a + b, 0);
+  // From the LAST reading, because `elapsedMs` is cumulative from the phase's loop head — summing it would
+  // count every chunk's elapsed time again at each subsequent boundary and report a wildly inflated phase.
+  const elapsedMs = reports.length ? reports[reports.length - 1].elapsedMs : 0;
   return {
     phase,
     chunks: reports.length,
     members: reports.length ? reports[reports.length - 1].done : 0,
-    totalMs: ms.reduce((a, b) => a + b, 0),
+    totalMs,
     minMs: ms.length ? Math.min(...ms) : 0,
     p50Ms: pct(sorted, 50),
     p95Ms: pct(sorted, 95),
     maxMs,
+    elapsedMs,
+    // Clamped at 0. `elapsedMs` and `totalMs` come from the same clock so the difference cannot be
+    // meaningfully negative, but a millisecond clock plus the deliberate off-by-one in `elapsedMs` (it is
+    // stamped before the phase's last yield) can put it at -1 on a phase that yielded for ~0ms. Reporting
+    // "yields: -1ms" would read as a broken instrument rather than as the zero it is.
+    yieldMs: Math.max(0, elapsedMs - totalMs),
     // `indexOf` on the UNSORTED list, +1 for a human ordinal — the sorted copy has lost the order that
     // makes this number mean anything.
     worstAt: ms.length ? ms.indexOf(maxMs) + 1 : 0,
@@ -130,6 +147,16 @@ export const summaryLines = (reports: ComponentProgress[], settleMs: number | nu
         `total ${ms(s.totalMs)}, min ${ms(s.minMs)}, p50 ${ms(s.p50Ms)}, p95 ${ms(s.p95Ms)}, ` +
         `MAX ${ms(s.maxMs)} (chunk ${s.worstAt} of ${s.chunks})`,
     );
+    // The per-member cost and the yield overhead, on their own line so the row above stays the
+    // distribution. Per-member is the figure `CHUNK` is derived from — `CHUNK × perMember` IS the expected
+    // worst chunk — and it is the one number that transfers to a different set size, which a total does
+    // not. `yields` is what a smaller `CHUNK` buys the stall reduction with.
+    const perMember = s.members ? s.totalMs / s.members : 0;
+    out.push(
+      `[prism3 #684] ${s.phase}: ${perMember.toFixed(1)}ms per member — ` +
+        `elapsed ${ms(s.elapsedMs)} wall-clock, of which yields ${ms(s.yieldMs)} ` +
+        `(${s.chunks} yields ≈ ${(s.chunks ? s.yieldMs / s.chunks : 0).toFixed(1)}ms each)`,
+    );
   }
   // The worst chunk ACROSS phases is the number the chunk size turns on, so it is stated once, plainly,
   // rather than left to be picked out of the per-phase rows.
@@ -140,6 +167,17 @@ export const summaryLines = (reports: ComponentProgress[], settleMs: number | nu
       `[prism3 #684] worst single chunk: ${ms(worst.maxMs)} in '${worst.phase}' ≈ ${frames.toFixed(1)} frames ` +
         `(target ≤ ${SLOW_CHUNK_FRAMES}; CHUNK is the knob)`,
     );
+    // WHETHER THE KNOB CAN EVEN REACH THE TARGET, which the line above implies it can and the 2026-08-10 run
+    // proved it cannot: at ~162ms per member on a cold build, CHUNK = 1 is still ~10 frames. Saying "CHUNK is
+    // the knob" and nothing else invites the next reader to keep turning a knob that has already run out of
+    // travel — or worse, to raise SLOW_CHUNK_FRAMES until the report agrees with the build.
+    const floorMs = worst.members ? worst.totalMs / worst.members : 0;
+    if (floorMs > FRAME_MS * SLOW_CHUNK_FRAMES)
+      out.push(
+        `[prism3 #684] ⚠ the target is UNREACHABLE by CHUNK alone: one '${worst.phase}' member costs ` +
+          `${floorMs.toFixed(1)}ms, so CHUNK=1 is still ≈ ${(floorMs / FRAME_MS).toFixed(1)} frames. ` +
+          'Per-member cost is the lever, not chunk size.',
+      );
   }
   out.push(
     settleMs === null
