@@ -298,6 +298,16 @@ const buildComponents = async (): Promise<void> => {
         `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
         `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
         `${r.refs} refs across ${r.wiredMembers} members${missNote}`;
+    // The #701 hit rate, on its own line and only in the console. It answers "was the search actually
+    // avoided this run", which is the question the wire timing above cannot answer on its own: a slow wire
+    // pass with 0 retained is the fix not engaging, and a slow one with all of them retained is a cost
+    // living somewhere else. Kept out of `summary` deliberately — that string is read in a chrome row by a
+    // designer, and the retain rate is an engine-tuning fact rather than a fact about their component set.
+    console.log(
+      `[prism3 #701] wire lookups: ${r.refsRetained} retained, ${r.refsKnownAbsent} known-absent, ` +
+        `${r.refsSearched} searched (${r.refsRetained + r.refsKnownAbsent + r.refsSearched} total; ` +
+        'only the last group pays the ~24ms cold scenegraph search)',
+    );
     // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
     // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
     // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason

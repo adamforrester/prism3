@@ -424,6 +424,94 @@ line. Nothing in it is a field finding yet, and the axis table will move once a 
 it is a vocabulary to argue with, not a baseline to build against.
 
 ---
+
+## (2026-08-10) — #701 the cold wire pass stops searching a scenegraph it already walked
+
+**STATUS: shipped, and NOT YET MEASURED LIVE.** `regen --check` unchanged at **104**; all 21 gates green;
+plugin component suite **123 → 133**, baseline measured by stashing this diff and re-running rather than
+carried forward. The speedup is the one claim in this entry with no number behind it yet — see *Open*.
+
+**What #684's calibration found, and what this does about it.** The cold wire pass cost **46,375ms of a
+~151s run** against **557ms** warm for identical work over identical members — 83×, and the largest single
+lever in that data. The diagnosis came from probing the actual shape rather than from the timing: the Button
+set is **648 members × 3 deduped reference parts = 1,944 `findOne` calls**, over subtrees of **4 nodes at
+depth 1**. That is **~24ms to find one node among four**. No search algorithm costs that. The cost is not
+the traversal — it is crossing into a scenegraph Figma is still reconciling after 648
+`createComponentFromNode` calls and a `combineAsVariants`. So the fix is not a faster search: it is **not
+searching**. The build pass already holds every node the wire pass re-finds (`build` returns each child and
+the append loop has it in hand), so it now registers them and the wire loop reads that map.
+
+**The registration site is the correctness argument, and it is one line from being wrong.** Figma's
+`findOne` searches DESCENDANTS and excludes the node it is called on, so a `propertyRef` on a member's
+**root** is unwireable today. Registering at the top of `build` — the obvious simplification, one line
+shorter — puts that root in the map, and the retained route starts honouring a reference the search route
+silently drops. Both routes stay internally consistent, so **nothing in the suite noticed**: that mutation
+passed all 123 assertions before this entry's gate existed. The map is therefore built from inside the
+parent's append loop, where its membership equals `findOne`'s reach by construction. Gated with a fixture
+that puts a `propertyRef` on the root — which the real Button cannot reach, hence an explicit reachability
+assertion above it so the gate cannot be vacuous.
+
+**A third of the lookups find nothing, and skipping THOSE is half the win.** `refs` is deduped across the
+set, so every member is checked for every part *any* member declares — but the parts are not uniform per
+member: `leadingVisual` is absent on `state=pending` and `spinner` is absent on the other six states. **63
+lookups, 42 hits, 21 legitimate misses** on the 21-member fixture. The first version written here was
+`kept ?? findOne(...)`, which sends all 21 back to the host at the full ~24ms cold price — the most
+expensive way to learn nothing. Keying off **whether the member has a map** rather than whether the *part*
+is in it takes the cold pass to **zero** searches. Kept as its own reported category (`refsKnownAbsent`)
+rather than folded into the hits, because the two answer different questions.
+
+**The instrument problem again, in a new shape.** #684's was that `chunkMs` could not price the yield. This
+one is worse: the fix is **invisible to the entire offline suite**. Every correctness assertion passes either
+way (the same references get wired), and the harness has no scenegraph, so `findOne` is a cheap array walk
+and the clock sees nothing. **A version whose map silently never populated would ship green and unchanged.**
+Hence `refsRetained` / `refsKnownAbsent` / `refsSearched`: three exhaustive routes summing to one lookup per
+(member × reference), so "the search was avoided" is checkable **by value, offline**, without a stopwatch.
+They also reach the console, so the live run reports its own hit rate instead of leaving it to be inferred.
+
+**The read-backs keep searching, deliberately.** Reusing the retained reference in the verification loop is
+the faster code and a strictly weaker check — it would read the property back off the object the setter just
+wrote to, asserting our own variable rather than the file's state. Re-finding by name asks Figma where that
+part is *now*, which keeps two things catchable: a reference Figma accepted and dropped, and the one host
+claim this fix rests on (`createComponentFromNode` "preserv[es] all of its properties and children", Figma's
+own typings) turning out to be false. If that ever breaks it surfaces as a loud `DISCARDED` miss per
+reference rather than as a set that looks built and is inert. This was a deliberate call, taken over the
+faster option. It earned itself immediately: the shared-map mutation below is caught **by the read-back**,
+and only a read-back that re-finds by name can see it.
+
+**Five mutations, each confirmed failing by name (docs/34):**
+
+| mutation | caught by |
+|---|---|
+| the map never populates | 4 assertions incl. the ORPHAN misses and `wiredMembers 0/21` |
+| **map populates, wire loop searches anyway** (the silent no-fix) | the ZERO-searches assertion, **and nothing else** |
+| registered at the top of `build` (root leaks into the map) | the two root-reference assertions |
+| `kept ?? findOne` (keyed off the node, not the map) | ZERO-searches + the known-absent split |
+| one map shared across the set instead of per member | the independent read-back, as 60 `DISCARDED` misses |
+
+The second row is the one worth remembering: **exactly one assertion stands between this fix and shipping as
+a no-op.** The suite's other 132 are indifferent to whether it works.
+
+**Traps recorded at their sites.** The shim's `createComponentFromNode` is `(n) => n`, so the harness can
+**never** test whether that call preserves child references — noted where the fast path depends on it. The
+map is per member because part names are unique *within* a member and identical across all 648. And the
+read-back loop's own 1,944 `findOne` calls fall **outside both phases' timers**, so there is unmeasured cost
+the wire figure never included; left alone here (one concern per PR) but it means the ~46s is a floor, not a
+ceiling.
+
+**Open, not claimed.** No live measurement yet. Evaluating it needs the cold/warm ratio in one sitting —
+build into a fresh file, record the wire figures and the new `[prism3 #701]` line, press build again without
+undoing, record again — and per #699's process note the build must be made **in the checkout Figma actually
+points at**, with a marker verified present in `dist/main.js` (`#701` is there, count 1). The `CHUNK` comment's
+measurement table still describes the code as it was; re-measuring it is the point of that run. Note also
+that the warm re-run is *unchanged by design*: it builds nothing, so it has no map and searches for
+everything. That is the right trade — the case with no fast route available is the case that never needed
+one (~0.86ms/member) — but it means this fixes the cold run only, and the table will still show a gap.
+
+**Still open from #684:** **#700**, the ~162ms/member cold build cost, which is what puts the 4-frame target
+out of reach at any `CHUNK`. Unassigned, needs profiling first.
+
+---
+
 ## (2026-08-10) — the two exporters measured against each other for the first time (`tools/exporter-comparison/`)
 
 **STATUS: shipped. Neither exporter modified, no rewrite started.** #697's Verify section asks for a comparison

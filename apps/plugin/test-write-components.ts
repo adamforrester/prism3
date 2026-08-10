@@ -44,7 +44,7 @@
  * tells you nothing about which of the two loops did it. The responsiveness itself is verified by running
  * it in Figma, and the chunk size is set from `chunkMs` off that run. See `CHUNK` in `write-components.ts`.
  */
-import { figmaAnatomyPlan, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planComponentName } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomyPlan, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName } from '@prism3/engine/anatomy-figma';
 import { button } from '@prism3/engine/components/button';
 import { applyComponentPlan, CHUNK } from './src/write-components';
 import type { ComponentApplyOptions, ComponentProgress } from './src/write-components';
@@ -699,6 +699,85 @@ ok(withDup.misses.some((m) => m.includes('UNREADABLE') && m.includes('share a na
   'a duplicate member name is reported as ONE cause naming the likely culprit, rather than throwing');
 ok(withDup.properties.length === 0 && withDup.refs === 0,
   'and no properties are declared on a poisoned set, so the single cause is not buried under consequences');
+
+// ---- #701: the wire pass REUSES what the build pass built, instead of re-finding it ----------
+// The cold wire pass cost 46,375ms of a ~151s live run doing 1,944 `findOne` calls at ~24ms each, on a
+// scenegraph Figma was still reconciling. The fix is to not search: `build` registers each child it makes
+// and the wire loop reads that map.
+//
+// WHAT THIS SUITE CAN AND CANNOT GATE, stated because the gap is the whole reason these assertions are
+// counts rather than timings. It CANNOT gate the speedup: there is no scenegraph here, so `findOne` is a
+// cheap array walk and the fix saves nothing measurable — a version whose map never populated would run
+// identically fast and wire every reference correctly, passing every other assertion in this file. What it
+// CAN gate, by value, is WHICH PATH each lookup took. That is the difference between "the references are
+// right" (already covered above, and still true either way) and "the search was actually avoided".
+//
+// THE EXPECTED NUMBERS COME FROM THE PLANS, NOT FROM THE RESULT (docs/34): `planSetLayout` derives `refs`
+// from the plan trees, so `21 × refs.length` is an independent count of the lookups a 21-member first run
+// must make. Comparing against `r1.refs` instead would compare the subject with itself — and would also be
+// simply wrong, which is how this shape got found. `refs` is deduped ACROSS the set (3 parts) while `r1.refs`
+// counts references actually WRITTEN (42), because a third of the lookups legitimately find nothing:
+// `leadingVisual` is absent on `state=pending` and `spinner` is absent on the other six states.
+const refParts = planSetLayout(grid, 'test-701').refs;
+const wantLookups = 21 * refParts.length;
+ok(refParts.length === 3 && wantLookups === 63,
+  `the fixture makes ${wantLookups} lookups — 21 members × ${refParts.length} deduped ref parts (${refParts.map((r) => r.part).join(', ')})`);
+// PIN THE SPLIT, because it is what makes `refsKnownAbsent` a real category rather than a rounding error:
+// 42 of the 63 find a node and 21 do not, and that 21 is a third of the cold pass's round-trips.
+ok(r1.refs === 42 && wantLookups - r1.refs === 21,
+  `and only ${r1.refs} of them find a node — the other ${wantLookups - r1.refs} are parts this variant does not build (the spinner off pending, the leading visual on it)`);
+// THE THREE ROUTES ARE EXHAUSTIVE. Asserted as a sum against the independent total, so a route that stopped
+// being counted cannot hide inside another.
+ok(r1.refsRetained + r1.refsKnownAbsent + r1.refsSearched === wantLookups,
+  `every lookup takes exactly one of the three routes — ${r1.refsRetained} + ${r1.refsKnownAbsent} + ${r1.refsSearched} = ${wantLookups}`);
+// THE CLAIM ITSELF: on a first run the build pass built every member, so NOT ONE lookup may reach the
+// scenegraph — including the ones that find nothing, which is the half a `kept ?? findOne` version would
+// have sent back to the host at full cold price. Asserted as `=== 0` rather than "mostly avoided", because a
+// partial rate is the signature of the map being keyed wrong for some members and would read as a pass.
+ok(r1.refsSearched === 0 && r1.refsRetained === r1.refs && r1.refsKnownAbsent === wantLookups - r1.refs,
+  `a cold run searches the scenegraph ZERO times — ${r1.refsRetained} nodes handed over by the build pass and ${r1.refsKnownAbsent} known absent without asking`);
+// AND THE CONVERSE, which is what stops the assertion above from being satisfiable by a constant: the
+// idempotent re-run builds nothing, so it has no map, retains nothing and searches everything. Both runs are
+// pinned, so a `refsRetained` hard-coded to the total fails here and a `refsSearched` hard-coded to 0 does too.
+ok(r2.refsRetained === 0 && r2.refsKnownAbsent === 0 && r2.refsSearched === wantLookups,
+  `and a re-run that built nothing has no map to read, so all ${r2.refsSearched} lookups search — the fast route is a fact about this run, not a constant`);
+// The references still land, on the same members, by the fallback route — the fallback is not a silent
+// downgrade to wiring less. This is the assertion that would catch `refsKnownAbsent` swallowing a part that
+// really was there: skipping a search for a node the member HAS would show up here as a lost reference.
+ok(r2.refs === r1.refs && r2.wiredMembers === r1.wiredMembers,
+  `both routes wire the SAME references across the SAME members (${r1.refs}/${r1.wiredMembers} retained vs ${r2.refs}/${r2.wiredMembers} searched)`);
+// The read-back is what makes the retained path safe to trust, so pin that it is still SEARCHING rather
+// than reading back through the reference the setter used. If `createComponentFromNode` ever stops
+// preserving children, this is the check that reports it — and it can only report it while independent.
+// A retained-reference read-back would assert our own variable and pass regardless.
+ok(r1.misses.length === 0 && r2.misses.filter((m) => !m.includes('ALREADY PRESENT')).length === 0,
+  'the independent read-back agrees with every retained-path write — no DISCARDED reference on either run');
+
+// THE MAP'S REACH MUST EQUAL `findOne`'S REACH, and this is the assertion that makes that claim more than a
+// comment. `build` registers each child from inside its PARENT's append loop, deliberately, because Figma's
+// `findOne` searches descendants and excludes the node it is called on: a `propertyRef` on a member's ROOT
+// is therefore unwireable today. Registering at the top of `build` instead — the obvious simplification,
+// one line shorter — would put that root in the map and the retained route would start honouring a
+// reference the search route silently drops. Both routes would still be self-consistent, so nothing else
+// here notices; verified as a mutation, which passed the whole suite before this block existed.
+//
+// The real Button cannot reach it (its `container` root carries no `propertyRef`), so the fixture puts one
+// there. `rootText` is then a property Figma would declare and no node would reference — an ORPHAN — and
+// that miss is the observable: it must appear on BOTH routes, because "the root is not wireable" is a fact
+// about Figma, not a difference between our two ways of finding a node.
+const rootRef = grid.map((p) => ({ ...p, root: { ...p.root, characters: 'Root', propertyRef: { field: 'characters' as const, prop: 'rootText' } } }));
+ok(planSetLayout(rootRef, 'test-701-root').refs.some((r) => r.part === String(grid[0].root.name)),
+  `reachability: the fixture really does declare a reference on the member ROOT ('${grid[0].root.name}'), which the real Button does not — so the assertions below are not vacuous`);
+const rootPage: Page = { children: [] };
+const rr1 = await run(rootRef, { ...fullFor(rootRef), page: rootPage });
+const rr2 = await run(rootRef, { ...fullFor(rootRef), page: rootPage });
+const orphaned = (res: typeof rr1): boolean => res.misses.some((m) => m.includes('rootText') && m.includes('ORPHAN'));
+ok(orphaned(rr1) && orphaned(rr2),
+  'a reference on the member ROOT is wired by NEITHER route — the retained map registers children only, so it cannot honour what a subtree search cannot reach');
+// And stated as the counts, which is where a root leaking into the map shows up directly: the root is one
+// extra lookup per member that must be known-absent, never retained.
+ok(rr1.refsSearched === 0 && rr1.refsRetained === r1.refsRetained && rr1.refsKnownAbsent === r1.refsKnownAbsent + 21,
+  `the root accounts for exactly 21 more known-absent lookups and not one more retained (${rr1.refsRetained} retained, ${rr1.refsKnownAbsent} known absent)`);
 
 // ---- the offline guards still fire, from this path too --------------------------------------
 // `planSetLayout` throws on an incoherent set, which is the right moment to fail: before anything

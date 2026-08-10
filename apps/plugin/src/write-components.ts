@@ -236,6 +236,28 @@ export type ComponentApplyResult = {
    *  whole point of the per-member loop is that references do NOT propagate. */
   refs: number;
   wiredMembers: number;
+  /**
+   * WHICH ROUTE each wire-pass lookup took to its node (#701) — the three are exhaustive and sum to one
+   * per (member × declared reference), so they decompose a total rather than counting three things.
+   *
+   *   `refsRetained`     the build pass built this part and handed the node over — no host round-trip
+   *   `refsKnownAbsent`  the build pass built this MEMBER and this part was not among its nodes, so it is
+   *                      absent and no search could find it. A real third of the work: `refs` is deduped
+   *                      across the set, so every member is checked for every part ANY member declares,
+   *                      and on the Button `spinner` exists only on `state=pending`.
+   *   `refsSearched`     no map for this member (the build pass skipped it — an idempotent re-run), so the
+   *                      scenegraph was searched. The ~24ms-per-lookup cold path.
+   *
+   * They exist because the fix they measure is invisible to everything else. Every correctness assertion
+   * passes either way (the same references get wired), and the harness's clock cannot see it (no scenegraph
+   * to be slow), so a version whose map silently never populated would ship green and unchanged. These make
+   * "the search was avoided" checkable by value, offline.
+   *
+   * Plugin-only, like `skipped`: a paste CHUNK has no build phase of its own to retain anything from.
+   */
+  refsRetained: number;
+  refsKnownAbsent: number;
+  refsSearched: number;
   /** Non-fatal: a name that did not resolve, a write Figma discarded, a read-back that disagreed. */
   misses: string[];
 };
@@ -329,7 +351,10 @@ export type ComponentApplyOptions = {
  * THE COLD/WARM GAP IS THE LARGER LEVER AND IS NOT THIS CONSTANT'S TO FIX: cold wire cost 83× warm wire
  * for identical work over identical members (46,375ms vs 557ms), because the cold pass walks a scenegraph
  * Figma is still reconciling after 648 `createComponentFromNode` calls and a `combineAsVariants`. That is
- * ~46s of a ~151s run and no chunk size touches it.
+ * ~46s of a ~151s run and no chunk size touches it. **Addressed since, in the only way that gap admits —
+ * by not walking it** (#701, `builtParts`): the wire loop reuses the nodes the build loop already holds
+ * instead of re-finding each by name. The wire figure in the table above therefore describes the code as
+ * it was, and re-measuring it is the point of the next live run — see `refsRetained`.
  */
 export const CHUNK = 4;
 
@@ -379,6 +404,8 @@ const boundPaint = (arr: unknown): boolean => {
  *    `combineAsVariants` REWRITES the ids of anything declared before it.
  *  - `componentPropertyReferences` do not propagate: wiring one member leaves the others inert.
  *  - Appending does NOT grow the set's frame, hence the explicit `resize`.
+ *  - A subtree search on a scenegraph Figma is still reconciling costs ~24ms to find one node among four
+ *    (measured, #701), so the wire pass reuses the nodes the build pass built rather than re-finding them.
  */
 export const applyComponentPlan = async (
   plans: AnatomyPlan[],
@@ -430,8 +457,14 @@ export const applyComponentPlan = async (
 
   /** Build one node and its subtree. Returns `null` for a NESTED_INSTANCE whose shared component is
    *  absent — no placeholder, deliberately: an unstroked frame in a focus ring's place is invisible and
-   *  reads as a ring that built fine, where a slot's placeholder is a box a designer can still fill. */
-  const build = async (n: FigmaNodePlan): Promise<Wr | null> => {
+   *  reads as a ring that built fine, where a slot's placeholder is a box a designer can still fill.
+   *
+   *  `parts` is the #701 collector: every descendant the wire loop will later need, registered by name
+   *  as it is built, so that loop does not have to search the scenegraph for a node this loop is holding.
+   *  Optional, and threaded through the recursion rather than closed over, because it is PER MEMBER — one
+   *  map shared across the whole set would collide on part names, which are unique within a member and
+   *  identical across all 648 of them. */
+  const build = async (n: FigmaNodePlan, parts?: Map<string, Wr>): Promise<Wr | null> => {
     let node: Wr;
     if (n.type === 'TEXT') node = wr(api.createText());
     else if (n.type === 'INSTANCE_SWAP') {
@@ -568,9 +601,24 @@ export const applyComponentPlan = async (
     const absolutes: [FigmaNodePlan, Wr][] = [];
     const centered: [FigmaNodePlan, Wr][] = [];
     for (const c of n.children) {
-      const kid = await build(c);
+      const kid = await build(c, parts);
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
       node.appendChild?.(kid);
+      // REGISTERED HERE AND NOWHERE ELSE (#701) — on the child, after it built, inside the parent's loop.
+      // That placement is the whole correctness argument, because it makes this map's membership match
+      // `findOne`'s reach EXACTLY, and the two must agree or the fast path is a behaviour change:
+      //
+      //   - Figma's `findOne` searches DESCENDANTS and excludes the node it is called on, so a
+      //     `propertyRef` on a member's ROOT is not wireable today. Registering at the top of `build`
+      //     would put that root in the map and the wire loop would start honouring a reference the
+      //     search path silently drops — a divergence that would read as this optimisation "fixing" a
+      //     bug it was not asked to fix, on the one path no test covers.
+      //   - A `!kid` subtree is absent from both, for free: it never reaches this line.
+      //
+      // Every node is registered, not just the `propertyRef`-bearing ones. `refNodes` knows which parts
+      // matter and this loop does not, and filtering here would mean importing that knowledge into the
+      // executor to save a few dozen map entries per member.
+      parts?.set(c.name, kid);
       if (c.absoluteInset) absolutes.push([c, kid]);
       if (c.absoluteCenter) centered.push([c, kid]);
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
@@ -645,12 +693,23 @@ export const applyComponentPlan = async (
   // argued for a smaller chunk than the per-member cost warrants. Same re-stamp before the wire loop.
   mark = phaseStart = Date.now();
   const fresh: CompNode[] = [];
+  // THE #701 MAP: member name -> (part name -> the node this loop built). Keyed by the member's name
+  // rather than by its node, because that is the key the wire loop has — it walks `set.children`, and
+  // `combineAsVariants` hands back members whose identity relationship to `fresh` is Figma's business.
+  //
+  // POPULATED ONLY FOR MEMBERS THIS RUN BUILT, which is a limit worth stating rather than discovering:
+  // the skip branch below never calls `build`, so an idempotent re-run reaches the wire loop with an
+  // EMPTY map and searches for every part exactly as before. That is the right trade rather than a gap —
+  // the cold run this fixes spends ~46s in that loop and the warm one spends ~0.6s (#684's measurements),
+  // so the case with no fast path available is the case that does not need one.
+  const builtParts = new Map<string, Map<string, Wr>>();
   let skipped = 0;
   for (let i = 0; i < cells.length; i++) {
     const spec = cells[i];
     if (have.has(spec.name)) { skipped++; misses.push(`member ${spec.name} -> ALREADY PRESENT (skipped; this set has been written before)`); }
     else {
-      const root = await build(spec.root);
+      const parts = new Map<string, Wr>();
+      const root = await build(spec.root, parts);
       // `!root` is a missing shared component — its own miss is already recorded, precisely. It must NOT
       // skip the boundary check below, which is why this is an else-branch rather than a `continue`: a
       // plan set whose every member failed to build would otherwise never yield at all.
@@ -659,6 +718,11 @@ export const applyComponentPlan = async (
         const comp = wr(api.createComponentFromNode(root));
         comp.name = spec.name;
         fresh.push(comp);
+        // AFTER the component exists and is named, under the name the wire loop will look it up by.
+        // `createComponentFromNode` "preserv[es] all of its properties and children" (Figma's own words in
+        // the typings), so these descendants are the same nodes now inside `comp` — the one host claim this
+        // fast path rests on, and the read-back below is deliberately left able to catch it being false.
+        builtParts.set(spec.name, parts);
       }
     }
     // Trailing boundary INCLUDED (`i + 1 === cells.length`), so the last partial chunk reports too —
@@ -669,7 +733,7 @@ export const applyComponentPlan = async (
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');
-      return { set: null, id: '', variants: 0, added: 0, skipped, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, misses };
+      return { set: null, id: '', variants: 0, added: 0, skipped, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, misses };
     }
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
@@ -776,12 +840,42 @@ export const applyComponentPlan = async (
   // sit `combineAsVariants`, the measured layout pass, the `resize`, the guarded definitions read and one
   // `addComponentProperty` per property. Set-level work, charged to wire chunk 1 unless the clock restarts.
   const wiredRefs: [string, string, string, string][] = [];
+  // WHICH ROUTE each reference took to its node, counted (#701). Not timing — the harness has no
+  // scenegraph, so it can never gate the speedup this exists for; what it can gate, exactly and by value,
+  // is that the fast route was actually taken. A version of this fix whose map never populated would be
+  // silently as slow as before and pass every correctness assertion in the suite, which is the failure
+  // these numbers make impossible. They also reach the console, so the live run reports its own hit rate
+  // instead of leaving "did it work?" to be inferred from a stopwatch.
+  let refsRetained = 0;
+  let refsKnownAbsent = 0;
+  let refsSearched = 0;
   mark = phaseStart = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
     const member = toWire[i];
+    // The map this run built for THIS member, or nothing if the build loop skipped it. Named for the
+    // member rather than shadowing the read-back loop's `held`, which is a different thing entirely.
+    const builtFor = builtParts.get(String(member.name));
     for (const r of refs) {
-      const node = member.findOne?.((x) => x.name === r.part) as CompNode | null | undefined;
+      // THE #701 FAST ROUTE, and it covers the misses as well as the hits — which is the half worth being
+      // explicit about, because it is where a third of this fixture's lookups live. `refs` is deduped
+      // across the whole set (every member is checked for every part any member declares), but the parts
+      // are NOT uniform per member: on this Button, `leadingVisual` is absent on `state=pending` and
+      // `spinner` is absent everywhere else, so 21 of 63 lookups legitimately find nothing.
+      //
+      // For a member THIS RUN BUILT, absent-from-the-map means absent-from-the-member — the registration
+      // site is the append loop, so the map's membership is exactly `findOne`'s reach by construction.
+      // Searching anyway would be a guaranteed-null host round-trip at the ~24ms cold price, which is the
+      // most expensive way to learn nothing. So a built member skips the search on both outcomes and the
+      // cold pass reaches zero searches, not two-thirds of zero.
+      //
+      // `builtFor` presence, NOT the node's: the distinction between "we know this member's parts" and
+      // "this part is one of them". Keying off `kept` alone would send every legitimate absence back to
+      // the scenegraph and quietly restore a third of the cost this exists to remove.
+      const kept = builtFor?.get(r.part);
+      let node: CompNode | null | undefined;
+      if (builtFor) { node = kept; if (kept) refsRetained++; else refsKnownAbsent++; }
+      else { node = member.findOne?.((x) => x.name === r.part) as CompNode | null | undefined; refsSearched++; }
       // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
       // legitimate case. `planSetProperties` only declares a property some node references.
       if (!node) continue;
@@ -796,6 +890,15 @@ export const applyComponentPlan = async (
   }
   // READ BACK every reference. Figma throws on a reference naming an unknown property, so this covers
   // the other direction — one the setter ACCEPTED and did not retain.
+  //
+  // AND IT KEEPS SEARCHING, deliberately, now that the wire loop above does not (#701). Reusing the
+  // retained reference here would be the faster code and a strictly weaker check: it would read the
+  // property back off the very object the setter just wrote to, which asserts our own variable rather
+  // than the file's state. Re-finding by name asks Figma where that part is NOW, so the two things this
+  // has to catch stay catchable — a reference Figma accepted and dropped, and the assumption the fast
+  // path rests on (that `createComponentFromNode` keeps the child nodes) turning out to be false. If that
+  // assumption ever breaks, it surfaces here as a loud `DISCARDED` miss per reference rather than as a set
+  // that looks built and is inert. docs/34: the check must not share its subject with the thing it checks.
   for (const [mName, part, field, id] of wiredRefs) {
     const member = members.find((c) => c.name === mName);
     const node = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
@@ -860,6 +963,9 @@ export const applyComponentPlan = async (
     properties: [...bare.keys()].map((k) => `${k}:${defs[bare.get(k)!].type}`),
     refs: wiredRefs.length,
     wiredMembers: new Set(wiredRefs.map((r) => r[0])).size,
+    refsRetained,
+    refsKnownAbsent,
+    refsSearched,
     misses: misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss),
   };
 };
