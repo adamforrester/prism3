@@ -6,8 +6,8 @@
   "description": "Export Figma Variables, Text Styles, and Effect Styles to DTCG/W3C-compliant JSON with intelligent composite token compilation (typography, shadows, transitions)",
   "main": "dist/code.js",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch",
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
     "test": "npx tsx test.ts",
     "test:sd": "cd tests/sd && npm run build",
     "lint": "eslint . --ext .ts",
@@ -21,14 +21,13 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
+    "esbuild": "^0.24.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "prettier": "^3.6.2",
     "typescript": "^5.0.0",
-    "typescript-eslint": "^8.46.3",
-    "vite": "^8.0.14",
-    "vitest": "^4.1.7"
+    "typescript-eslint": "^8.46.3"
   },
   "dependencies": {
     "jszip": "^3.10.1"

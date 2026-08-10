@@ -88,8 +88,7 @@ export default tseslint.config(
       'src/legacy/**',
       '*.js',
       '**/*.js',
-      'vite.config.ts',
-      'vite.config.simple.ts',
+      'build.mjs',
     ],
   }
 );

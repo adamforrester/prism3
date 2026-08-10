@@ -1305,8 +1305,8 @@ export class TokenExporter {
   }
 
   private getFileExtensions() {
-    // __PLUGIN_VERSION__ is injected by Vite's define from package.json so this
-    // tracks the real release. See vite.config.ts and src/types/build-globals.d.ts.
+    // __PLUGIN_VERSION__ is injected by the bundler's define from package.json so this
+    // tracks the real release. See build.mjs and src/types/build-globals.d.ts.
     return {
       generator: {
         name: 'Token Press',
