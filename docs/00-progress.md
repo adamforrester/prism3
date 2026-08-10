@@ -40,6 +40,22 @@ style preference. Now glossed at first use: a worked example an agent retrieves 
 stable address; docs tell, exemplars show. **Inherited vocabulary is the easiest kind to go blind to**,
 because it arrives already feeling like a term of art.
 
+**Then the corrected test count went stale while this branch was open, which settles the question the fix
+had ducked.** `2040` was right on 2026-08-08 and is **2061** today — two days. The register count had already
+been resolved by *dropping* the number (`34` L395: the table is the count), and the same reasoning obviously
+applies here; the only reason it wasn't applied is that `test.ts` has no maintained table to point at
+instead. It now reads *"a 2,000-assertion suite — run it for the current figure, which moves weekly"*: an
+order-of-magnitude claim carries the argument that cell is actually making, and does not rot. **Two of the
+four original defects were the same defect** — a live number frozen into prose — and only one of them got the
+structural fix on the first pass. The other two (`497` pinned paths, `25` variants) are re-verified here and
+are stable because they move on deliberate contract changes, not on every commit.
+
+**Gates: all green, run for real in this checkout** after `npm install` (it had no `node_modules`, the loud
+failure `#661` introduced). 2061 engine assertions, 49 MCP, NB regression PASS at ΔE00 1.95 with 11/11
+contrast and 23/23 dimensions, `regen --check` **104** in sync, token contract unchanged at 497, 982/982
+aliases resolving and 536/536 mode contracts passing, and the six lint gates clean. Recorded because a
+docs-only diff is exactly the case where a contributor is tempted to assert the table instead of running it.
+
 **Trap for whoever re-verifies this:** `docs/**` is in no gate's scope (#670), so none of the four numbers
 would have failed anything, and the same is true of the gloss. This entry is the only record that the first
 correction existed at all.
