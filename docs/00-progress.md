@@ -7,6 +7,226 @@
 
 ---
 
+## (2026-08-10) — The component build yields, reports, and stays one undo step (#684)
+
+**STATUS: shipped, with one number still to measure.** `regen --check` unchanged at **104** — this is
+plugin-side execution, no emitted artifact moves. Engine tests unchanged at **2061**; plugin assertions
+**197 → 259** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
+in a throwaway worktree and on this branch. An earlier draft of this line said **213**, which was the count
+after the first commit and was not re-measured when the telemetry file landed in the second — a stale number
+in exactly the place the entry tells you to trust it. Re-measured at each commit since). **`CHUNK = 24` is a guess with a rationale, not a measurement** — the live 648 run
+that would settle it is the owner's, and the code says so at the constant.
+
+**What was wrong, and it was written down as a justification.** The file's own header said *"a plugin has
+no 45KB transport ceiling, so it never needs to chunk."* That conflates **transport size** with
+**execution time**. The paste path chunks because `figma_execute` has a byte ceiling; a plugin chunks
+because it runs on Figma's **main thread**, and the question is not how much data moves but how long the
+event loop is held. There was no `setTimeout`, no `await new Promise`, no yield of any kind in
+`applyComponentPlan` — 648 members, ~3,000 nodes and 1,350 property references in one unbroken run. The
+first real-Figma build left the file unresponsive for **1 min 10 s** after the pill said done, dropped
+Livegraph with code **1006**, and failed the multiplayer socket while the file sat unsaved. The last part
+is the one that matters: several thousand nodes exist locally with the sync channel dead. That is
+data-safety, not ergonomics.
+
+**#684 says "chunk the member loop". There are two long loops, and the second one is the whole cost of the
+re-run.** The reference-wiring loop walks every member with a `findOne` subtree search per reference. On an
+idempotent re-run the build loop skips all 648 doing almost nothing, so wiring is essentially the entire
+run — chunking only the build loop would have left that case exactly as unresponsive as before **while
+looking fixed**. Both loops now chunk with a `yieldTo` between them.
+
+**Microtask vs macrotask is the mechanism, not a detail.** `await Promise.resolve()` is a microtask: it
+runs before the host gets control back and yields nothing at all. A build "chunked" with microtasks holds
+the event loop exactly as long as one that never yielded. `realYield` is `setTimeout(resolve, 0)`, which
+exists in the Figma sandbox (declared globally by `plugin-typings`, so it compiles under
+`tsconfig.main.json`'s no-DOM `lib`). `Date.now` rather than `performance.now` for the same reason —
+`performance` is not declared under that `lib`, and millisecond resolution is ample for "tens of ms or
+hundreds".
+
+**The yield is INJECTED, and that is what makes it gateable.** A real timer per chunk would trade the
+defect for a slow suite and — more to the point — leave the yield invisible to the harness: the only
+evidence would be that the run finished, which it does either way. Passing `yieldTo` in turns the yield
+into an observable event, so "does it yield, and at which boundaries" becomes checkable. The harness's
+injected yield is deliberately a *microtask*, which is the opposite of the production requirement: there is
+no host event loop here to yield to, so what is being measured is control flow, and a microtask measures
+that identically while keeping the suite fast. **The macrotask requirement is NOT asserted anywhere** —
+swapping `realYield`'s `setTimeout` for `Promise.resolve()` leaves the whole suite green, because a harness
+with no host cannot tell a task from a microtask. An earlier draft of this entry and of the PR body claimed
+it was "asserted by reading `realYield`"; it is not, and a comment at `realYield` now says so, so the
+silence is not read as coverage. Only the live run gates it.
+
+**Undo is one step for the whole set, and that is a decision.** By Figma's default, plugin actions are not
+committed to undo history individually, so *not* calling `figma.commitUndo()` collapses the run into one
+entry (confirmed in `plugin-typings/plugin-api.d.ts:270-296`). Chunking makes per-chunk commits possible
+and they are deliberately not done: a designer who did not mean to build presses ⌘Z once and the set is
+gone, because "Build Button set" was one action from where they were standing. Stated in the header
+explicitly, because otherwise it is a decision inferable only from an absence.
+
+**`component-progress` is a new message kind, not a field on `component-result`.** Same rule the rest of
+that bridge follows — one kind per fact. A progress reading has no `ok`, is superseded milliseconds later,
+and belongs in the pending state the UI already has rather than a verdict slot. Folded together, every
+intermediate reading would land in the verdict slot and the last one would have to be told apart from a
+real result by inspecting its fields. It is the only non-terminal message on the bridge. `phase`
+(`build`/`wire`) travels with the fraction because there are two loops over the same member count: a bare
+fraction runs to 648 and then restarts at 1, which reads as a build that failed and started over.
+
+**Three things in the UI wiring that a first draft gets wrong, all found by mutation or by reading.**
+
+- **Progress is a text swap, not a `renderBar()`.** It fires at every boundary — 27 times per phase at
+  `CHUNK = 24` over 648 — and re-rendering the bar discards and remakes every control in it, blurring
+  whatever the designer had focused and resetting the brand switcher's open state mid-build.
+- **A late boundary message must be dropped, not applied.** The progress handler returns unless
+  `componentState === 'pending'`. Without that, a boundary still queued when `component-result` is handled
+  resurrects the fraction and the pill goes from a verdict back to a countdown.
+- **The fraction clears in three places** — on the result, on the next click, and (by the guard above)
+  never after the verdict. A build that throws in the main thread posts a failed result; one that never
+  answers posts nothing at all, and then the stale fraction is the first thing the *next* build shows.
+
+**Four mutations, each confirming the new gates fail by name — the docs/34 discipline.** Dropping the
+trailing-partial boundary (`|| i + 1 === cells.length`) fails 4 assertions including the one-member case,
+which reports nothing at all. Removing the wire-loop yield fails "both long loops yield" with `wire 0`.
+Removing the `Math.max(1, …)` clamp on `chunk` fails the chunk-of-0 assertion, reporting 1 of 21. Setting
+`CHUNK` to the whole set fails the plausible-range pin. The boundary expectation is **written out**
+(`['5/21', …, '21/21']`) rather than recomputed from `(i + 1) % chunk` — derived that way it would agree
+with a broken chunker by construction.
+
+**A fifth mutation corrected a claim I had written in two places.** Both the executor comment and the test
+comment said that keying the yield on `fresh.length` instead of the cell index would make the idempotent
+re-run *never yield*. Mutating it back shows the opposite: `fresh.length` stays 0 through a full-skip run,
+so `0 % chunkSize === 0` is true on **every** iteration — it yields 21 times (648 live) and reports `0 of
+N` at each one. Same defect, opposite failure mode, and the assertion that catches it is the re-run
+boundary count. Both comments now record the measured behavior and that the intuition was backwards.
+
+**What the harness cannot prove, said plainly rather than implied.** It has no event loop to starve, no
+Figma heartbeat, no socket to drop and no scenegraph to reconcile. So it cannot verify the thing #684 is
+about — that the host stays responsive — and it cannot tell a good chunk size from a bad one. What it does
+verify is the arithmetic around the yielding: that a yield happens, at the boundaries claimed, in the
+cases where the loop body does almost nothing, with fractions monotonic within a phase and ending at the
+total. Those are the parts that were wrong in draft and that a live run would *not* isolate — a build that
+freezes tells you nothing about which of the two loops did it. This is the third finding of that shape from
+the first live run (#680, #681 are the others), and the note is now in the test file's header.
+
+**The sensor shipped without a readout, which the owner caught by asking how to track `chunkMs`.** It
+crossed the bridge and the adapter validated it, and then nothing displayed or logged it — so the answer to
+"how do I report these numbers" was, briefly, *you can't*. `build-telemetry.ts` is the readout: a per-chunk
+console line as the build runs, and an end-of-run block to paste back. Worth recording because the failure
+mode is specific and easy to repeat — an instrument that measures correctly and reports nowhere passes
+every gate, since nothing was asserting that the number could be read.
+
+**The readout leads with the MAXIMUM, not the mean.** A chunk size is wrong when a *single* chunk holds the
+thread too long — Figma drops a heartbeat on the worst chunk, not the average one — so a mean of 14ms with
+a 400ms outlier is a bad chunk size that reads as a good one. Each phase reports min/p50/p95/max plus
+**which** chunk was worst in run order, because "the 3rd of 27" and "the 27th of 27" mean different things:
+an early spike is per-member cost, a late one is the set growing under the writes. Percentiles are
+nearest-rank with no interpolation — 27 samples off a millisecond clock do not support invented precision.
+
+**The settle time is measured from inside, not stopwatched.** After the executor returns, a chain of
+`setTimeout(_, 0)` records how late each tick actually fires: ~1-4ms on an idle main thread, hundreds of ms
+while Figma reconciles a scenegraph that grew by thousands of nodes. The **lag is the stall**, sampled
+directly. `settlePoint` requires `CALM_TICKS = 3` consecutive quiet samples because reconciliation is
+bursty — one quiet tick between two long ones is a gap in the work, not the end of it. A tail still
+stalling when sampling stops reports **NOT MEASURED** rather than the sample budget, which would understate
+a real stall while looking precise. And the settle figure is labelled as host time *chunking cannot reduce*,
+so a future chunk-size change is not judged against a number it has no effect on.
+
+**Six mutations against the readout, all failing by name.** Member count from the reading count (reports
+"10 members" for 240 — the denominator the whole calibration is read against). `worstAt` off the sorted
+copy rather than run order. `CALM_TICKS = 1`. A null settle printing as `0ms`. The max computed as the mean.
+The no-yield line deleted. **Two of those six initially appeared to pass and did not:** the substitutions
+had failed to apply — `maxMs,` is shorthand, not `maxMs: maxMs,`, and the second over-escaped its regex. A
+mutation that does not change the file is not evidence of a blind gate, and checking *that the mutation
+landed* is now part of the loop rather than reading a green run as the answer.
+
+**Still open, and it is the owner's to close.** The live 648 build: is the file responsive throughout, does
+Livegraph stay connected (there is no "connected" message — the signal is the *absence* of
+`[Livegraph] Connection closed` / code 1006), what does the settle probe report, and what are the `chunkMs`
+numbers. `CHUNK` is set from those and the measurement recorded at the constant. #684 also flags a
+`net::ERR_INTERNET_DISCONNECTED` in the same console with a cheap discriminator — idle for two minutes
+without building — which is unchanged by this work either way.
+
+**Two findings from the independent review, both fixed before the live run, and the second is the reason
+the run waited.**
+
+- **The harness counted progress reports and called it yielding.** `instrumented`'s `yields` array was
+  pushed from inside `onProgress`, so every assertion phrased as "the executor yields on every boundary"
+  was reading the *reporting* cadence. Replacing `await yieldTo()` in `breathe` with a comment left the
+  suite **fully green** — reproduced here, not taken on report. This is exactly docs/34 §2: an oracle and
+  its subject sharing a dependency. The fix is a second callback that nothing else can increment
+  (`yieldTo: () => { yieldCalls.n++; … }`) plus an assertion that yields and reports are **equal**, and the
+  equality is load-bearing rather than defensive: a `breathe` that reported every boundary and yielded once
+  — a plausible way to write it, hoisting the yield out of the loop — satisfies `> 0` and fails equality.
+  Both mutations confirmed: no-yield gives `0 yields, 10 reports` (3 failures), yield-on-first-quarter gives
+  `2 yields, 10 reports` (2 failures).
+- **The first `chunkMs` of each phase absorbed the setup that preceded it** — which is the *one* number the
+  live run exists to produce. Between `let mark = Date.now()` and the build loop sat `planSetLayout`, three
+  `getLocal*Async` fetches, `loadAllPagesAsync()` and a document-wide `findAllWithCriteria`; between the
+  build loop's last boundary and the wire loop sat `combineAsVariants`, the measured layout pass, the
+  `resize`, the definitions read and one `addComponentProperty` per property. All one-time set-level work,
+  none of it chunk work, all of it charged to chunk 1. Measured with a shim whose only cost was a 120ms
+  call: **first chunk 121ms against 1ms for its neighbours**, in each loop independently. The clock is now
+  re-stamped at both loop heads — 121ms → 0ms — and each re-stamp was confirmed load-bearing by removing it
+  alone and watching the 120ms reappear. Left unfixed, the calibration would have argued for a smaller
+  `CHUNK` than the per-member cost warrants, from a number that had nothing to do with chunk size.
+
+**A third review pass caught the fix itself being ungated, which is the finding worth the most of the
+three.** The re-stamps were correct and *nothing failed if you deleted them* — all three, with the suite
+green at 249. The sentence above ("confirmed load-bearing by removing it alone") described a **manual probe
+that was then deleted**, and the entry read as coverage. Same shape as the first finding, one level up: a
+rule whose evidence lives outside the suite. And the subject was the single number the live 648 run exists to
+produce, so the next refactor of `breathe` would have folded setup back into chunk 1 silently.
+
+The reason it was ungated is structural rather than an oversight: the shim is fully synchronous, every
+`chunkMs` is 0, and the strongest available assertion was `chunkMs >= 0`. **A rule about WHEN a clock starts
+cannot be gated by a harness in which no clock advances.** Unlike the macrotask limit — genuinely unreachable
+here, and declared as such — this one is reachable using the very calls the source comments already name. So
+`ShimOpts.burn` charges deliberate, opt-in cost to the three windows the re-stamps exclude
+(`loadAllPagesAsync` for pre-loop setup, `combineAsVariants` for between-loops, and `instrumented`'s
+`burnYield` for the yield's own duration), and each re-stamp now fails by name with the number it excludes:
+build **120ms**, wire **120ms**, post-yield **41ms**. The post-yield one also trips the sum control at
+`800ms reported of 400ms elapsed` — the yield's time double-counted into both adjacent chunks.
+
+**Every burn has a POSITIVE CONTROL, and that is the part not to trim.** "The first chunk is 0ms" also passes
+when the burn silently never happened — a renamed shim method, an `opts.burn` that stopped being threaded
+through — and then the assertion measures nothing while reading as coverage, which is precisely the defect
+this block was written to fix. Mutating `burnMs` into a no-op fails 4 controls; without them it would have
+failed nothing at all while leaving three green assertions about clock behavior that no longer touched a
+clock.
+
+**And a fourth review pass caught that rule being applied two-thirds of the time — inside the commit that
+stated it.** The paragraph above shipped with controls for `setup` and the yield and **none for `combine`**.
+Neutering that one line (`if (opts.burn?.combine) …`) left case 2 reporting a **green tick at 0ms**, and the
+consequence was not theoretical: with the wire re-stamp *also* deleted the suite stayed at ALL PASS, so the
+whole clock gate rested on one unasserted line in a shim method this PR edited twice. This is the sharpest
+instance of the family in `docs/34`'s register — not a missing gate, nor even a gate built from its subject,
+but **a stated rule followed incompletely by the commit that stated it**, which reads as compliance precisely
+because the comment asserts it.
+
+Fixed so the asymmetry cannot recur rather than by adding one line: the two shim-charged burns are controlled
+by **mapping over their names**, so a fourth burn without a control is a missing key rather than a missing
+paragraph someone has to notice. The witness is wall clock as a **delta against an un-burned baseline** — a
+burn's cost is excluded from every `chunkMs` by the very re-stamp under test, and an absolute `>= BURN` bound
+is also satisfiable by a slow machine, where what needs proving is that the burn is the difference between the
+two runs. Each burn now fails independently: `combine` neutered → 1 (`1ms vs 1ms un-burned, +0ms`), `setup`
+neutered → 1, `burnMs` a no-op → 4, and the compound neutered-burn-plus-deleted-re-stamp that previously
+passed → 1.
+
+**Two nits from the same pass, both closed because both were reachable rather than stylistic.**
+`settleMs === null` shortened to `!settleMs` survived — and an instant settle is a real outcome
+(`settlePoint` returns 0 for an idle file), so the mutant prints **NOT MEASURED** for the one result that
+needs no further work. And `pct`'s `Math.ceil` → `Math.floor` survived, moving p95 on the suite's own sample
+from 400 to 13: the outlier vanishing from the near-worst, which is the statistic the whole readout is built
+around. The old bound was `p95 >= 13`, which passes either way — a range where the two candidate
+implementations differ gates neither. Both now pinned to exact values. The third nit (the
+`component-progress` branch in `write-adapter.ts` has no direct test) is left as-is: no branch in that file
+is directly tested, and a one-off harness for this one would be less honest than the consistent gap.
+
+**And one claim retracted rather than defended.** This entry and the PR body both said the macrotask
+requirement was "asserted by reading `realYield`". It is not asserted at all — see the correction above.
+Worth logging as its own line because the failure mode is a documentation one: a plausible sentence about
+where a guarantee comes from is harder to catch than a missing test, and it was written by the same hand
+that knew the harness has no event loop.
+
+---
+
 ## (2026-08-10) — The set's column axis is CHOSEN, and the gate that could not see it (#656)
 
 **STATUS: shipped.** `regen --check` unchanged at **104** — the grid is a paste-time layout decision and
