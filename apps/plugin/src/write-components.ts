@@ -243,6 +243,22 @@ export type ComponentProgress = {
    *  chunk rather than accumulated because the useful question is "did any single chunk hold the thread
    *  too long", and a total cannot answer it. */
   chunkMs: number;
+  /**
+   * Wall-clock ms since this PHASE's loop head, INCLUDING every yield taken so far — and the reason it
+   * exists is that `chunkMs` alone cannot price the fix (#684 calibration, run of 2026-08-10).
+   *
+   * The first live run reported `build: total 105171ms` as the sum of 27 `chunkMs`, which by construction
+   * excludes the yields. So the run could say what the work cost and could NOT say what the yielding cost
+   * — while the decision it was gathered for, lowering `CHUNK` from 24 to 4, multiplies the number of
+   * yields by six. Calibrating a knob without measuring the thing the knob multiplies is how a fix gets
+   * shipped on an assumption; `elapsedMs − Σ chunkMs` is that cost, in the same run that argues for it.
+   *
+   * MEASURED AT THE SAME INSTANT as `chunkMs`, before the yield, so the difference at the LAST reading is
+   * every yield in the phase but its final one. That off-by-one is deliberate rather than a rounding: the
+   * report has to be posted before control leaves, or the host would not receive it until the next chunk
+   * boundary and the pill would trail a chunk behind (see `breathe`).
+   */
+  elapsedMs: number;
 };
 
 /** Yield to the host between chunks — and the reason this is INJECTED rather than called directly.
@@ -273,21 +289,34 @@ export type ComponentApplyOptions = {
 };
 
 /**
- * Members per chunk, and the honest state of this number: **it is a starting point, not a measurement.**
+ * Members per chunk. **This is now a measurement** — from the live 648-member Button build of 2026-08-10,
+ * the run the previous version of this comment asked for. What it measured, per member, cold:
  *
- * The reasoning behind 24: at ~60fps a frame is ~16ms, and a chunk should aim to hold the thread for
- * about one frame's worth of work so Figma can service a heartbeat between chunks. A Button member is a
- * subtree of ~4-5 nodes with bindings and read-backs on each, so a chunk of 24 is ~110 nodes — the same
- * order as the paste path's per-chunk member count, which is the only comparable figure that has ever
- * been run against real Figma.
+ *   build   105,171ms over 648 members  →  ~162ms/member   (worst chunk at CHUNK=24: 4,952ms)
+ *   wire     46,375ms over 648 members  →   ~72ms/member   (worst chunk at CHUNK=24: 1,870ms)
+ *   wire, warm re-run  557ms            →  ~0.86ms/member  (worst chunk: 22ms)
  *
- * WHAT WOULD MAKE THIS A MEASUREMENT: a live 648-member build reporting `chunkMs` per chunk (which
- * `ComponentProgress` now carries for exactly this purpose), with the file staying responsive and
- * Livegraph staying connected throughout. Until that run happens this constant is a guess with a
- * rationale, and saying so here is the point — `docs/34`'s register exists because a number whose basis
- * has been forgotten reads identically to one that was measured.
+ * 4, because 162ms/member × 4 ≈ 650ms puts the worst chunk under a second, where a stall is perceived as
+ * a stutter rather than a freeze. That is a 7.6× improvement on the measured 4,952ms.
+ *
+ * READ THE LIMIT OF THIS KNOB BEFORE TURNING IT, because the run also established what it cannot do: at
+ * ~162ms per member, `SLOW_CHUNK_FRAMES`' 4-frame (~64ms) target is UNREACHABLE AT ANY CHUNK SIZE. Even
+ * `CHUNK = 1` holds the thread for ~162ms, ~10 frames. The readout flagged every cold chunk `⚠ SLOW` and
+ * it was right to; the honest response is to leave the target where it is and record that this constant
+ * cannot meet it, rather than to raise the threshold until the report goes green. Getting under it needs
+ * the per-member cost to come down — filed separately, along with the cold-wire finding below.
+ *
+ * AND WHY NOT LOWER STILL: each chunk costs a yield, and 4 already takes 162 of them per phase. The
+ * measured price of a yield is what `elapsedMs` was added to report (see `ComponentProgress`) — the run
+ * that set this number could not see it, because `chunkMs` excludes the yield by construction. A future
+ * sweep below 4 should read that figure first; it is the term that starts to dominate.
+ *
+ * THE COLD/WARM GAP IS THE LARGER LEVER AND IS NOT THIS CONSTANT'S TO FIX: cold wire cost 83× warm wire
+ * for identical work over identical members (46,375ms vs 557ms), because the cold pass walks a scenegraph
+ * Figma is still reconciling after 648 `createComponentFromNode` calls and a `combineAsVariants`. That is
+ * ~46s of a ~151s run and no chunk size touches it.
  */
-export const CHUNK = 24;
+export const CHUNK = 4;
 
 /** The default yield: a real macrotask. `setTimeout(0)` rather than a resolved promise, and the
  *  difference is the whole mechanism — `await Promise.resolve()` is a MICROtask, so it runs before the
@@ -349,10 +378,19 @@ export const applyComponentPlan = async (
   // Declared here so `breathe` closes over it, but RE-STAMPED at each loop head (see both loops below) —
   // a `chunkMs` is only a chunk's cost if the clock started when the chunk did.
   let mark = Date.now();
+  // The phase's OWN start, stamped at each loop head beside `mark` and never touched by `breathe`. Two
+  // clocks because they answer different questions and one cannot serve both: `mark` restarts every chunk
+  // (what did THIS chunk cost), `phaseStart` runs for the whole phase (what has the phase cost including
+  // the yields). Subtracting one from the other is what prices a yield — see `elapsedMs`.
+  let phaseStart = mark;
   /** End a chunk: report what it cost, hand control back, and restart the clock AFTER the yield so the
    *  yield's own duration is never counted as work. */
   const breathe = async (phase: 'build' | 'wire', done: number, total: number): Promise<void> => {
-    onProgress?.({ phase, done, total, chunkMs: Date.now() - mark });
+    // ONE `Date.now()` for both figures rather than one apiece. Two calls would put the reporter's own
+    // cost between them, so `elapsedMs` would carry it and `chunkMs` would not — a systematic skew in
+    // exactly the subtraction this field exists to make.
+    const now = Date.now();
+    onProgress?.({ phase, done, total, chunkMs: now - mark, elapsedMs: now - phaseStart });
     await yieldTo();
     mark = Date.now();
   };
@@ -576,7 +614,7 @@ export const applyComponentPlan = async (
   // `loadAllPagesAsync`: the first chunk read 121ms against 1ms for its neighbours. Since the whole point
   // of `chunkMs` is to calibrate `CHUNK` from a live run, a first reading inflated by setup would have
   // argued for a smaller chunk than the per-member cost warrants. Same re-stamp before the wire loop.
-  mark = Date.now();
+  mark = phaseStart = Date.now();
   const fresh: CompNode[] = [];
   let skipped = 0;
   for (let i = 0; i < cells.length; i++) {
@@ -709,7 +747,7 @@ export const applyComponentPlan = async (
   // sit `combineAsVariants`, the measured layout pass, the `resize`, the guarded definitions read and one
   // `addComponentProperty` per property. Set-level work, charged to wire chunk 1 unless the clock restarts.
   const wiredRefs: [string, string, string, string][] = [];
-  mark = Date.now();
+  mark = phaseStart = Date.now();
   const toWire = readable ? members : [];
   for (let i = 0; i < toWire.length; i++) {
     const member = toWire[i];

@@ -7,6 +7,97 @@
 
 ---
 
+## (2026-08-10) — #684 calibrated on real Figma: CHUNK = 4, and what chunking cannot fix
+
+**STATUS: `CHUNK` is now a measurement.** The live 648-member Button build that #691 was instrumented for
+has been run in real Figma. `CHUNK` 24 → 4, `ComponentProgress` gains `elapsedMs`, and the readout learned
+to say when the chunk size has run out of travel. Plugin assertions **278 → 297** — `test-write-components.ts`
+91 → 99, `test-build-telemetry.ts` 35 → 46; baseline measured by stashing this diff on
+`origin/main` (`480c609`) and re-running, not carried forward from #691's number. Engine untouched;
+`regen --check` still 104.
+
+**#684 IS FIXED, AND THE FILE STILL STALLS.** Both are true and the distinction is the entry. The build
+yielded 54 times, the pill counted, and the designer clicked Figma's UI and dragged the plugin window
+mid-build — the interactivity #684 was filed for. But each chunk held the thread for 3–5 seconds, so what
+was one long freeze is now 27 shorter ones. **Chunking made the run interruptible, not smooth.** A fix that
+delivers exactly what it promised and does not resolve the complaint is worth naming as such rather than
+closing on a green gate.
+
+**The measurement, per member, cold:**
+
+| phase | total | per member | worst chunk at CHUNK=24 |
+|---|---|---|---|
+| build | 105,171ms / 648 | **~162ms** | 4,952ms ≈ 310 frames |
+| wire | 46,375ms / 648 | **~72ms** | 1,870ms ≈ 117 frames |
+| wire, warm re-run | 557ms / 648 | **~0.86ms** | 22ms ≈ 1.4 frames |
+
+Settle was healthy both runs (463ms cold, 35ms warm) and **no Livegraph 1006 and no `net::` line appeared** —
+the multiplayer failure from the pre-#684 baseline did not recur. `[Local fonts] using agent` mid-wire is benign.
+
+**CHUNK = 4 because 162 × 4 ≈ 650ms crosses under one second**, where a stall reads as a stutter rather than
+a freeze — 7.6× better than the measured worst chunk. Not lower, because each chunk costs a yield and 4
+already takes 162 of them per phase; see the instrument gap below.
+
+**THE 4-FRAME TARGET IS UNREACHABLE BY CHUNK AT ANY VALUE, and the readout now says so.** At ~162ms per
+member, `CHUNK = 1` still holds the thread ~10 frames. `SLOW_CHUNK_FRAMES` deliberately stays at 4 and the
+cold run deliberately keeps flagging every chunk `⚠ SLOW`: the tempting move is to raise the threshold until
+the report agrees with the build, which would convert a real finding into a green tick. Instead
+`summaryLines` emits an explicit `⚠ the target is UNREACHABLE by CHUNK alone` line whenever one member costs
+more than the whole frame budget, so the next reader is told the knob has no travel left rather than
+inferring it. Gated both ways — a cheap per-member phase must NOT print it, or the warning is a decoration
+that always fires.
+
+**THE INSTRUMENT COULD NOT PRICE ITS OWN FIX, which is why `elapsedMs` exists.** `chunkMs` excludes the
+yield by construction, so `build: total 105171ms` was the sum of the work and said nothing about the
+yielding — while the decision it was gathered for multiplies the yield count by six. Calibrating a knob
+without measuring the term the knob multiplies is shipping on an assumption. `elapsedMs` is cumulative from
+each phase's loop head and includes the yields, so `elapsedMs − Σ chunkMs` is the yield cost, reported per
+phase. **This is the one timing field the offline harness can gate by value**: every `chunkMs` is 0 in a
+synchronous shim, but the yield is injectable, so the existing `burnYield` gives a real interval to measure.
+Two clocks now: `mark` restarts each chunk, `phaseStart` runs the phase, and the comment says why one cannot
+serve both.
+
+**Traps recorded.** (1) `elapsedMs` is CUMULATIVE — summing it in `phaseStats` inflates the phase and makes
+`yieldMs` nonsense; it is read off the last reading, and a mutation confirms the sum is caught. (2)
+`phaseStart` is re-stamped at BOTH loop heads; drop the wire one and the whole build phase is charged to
+wire's first reading, which the per-phase "first reading starts near zero" assertion catches by name. (3)
+`yieldMs` is clamped at 0 — the deliberate off-by-one (the report is posted before the phase's last yield,
+because posting after it would put the pill a chunk behind) plus a millisecond clock can land elapsed one
+tick under total, and `yields: -1ms` reads as a broken instrument. (4) `main.ts` posts the progress message
+**field by field, not `...p`** — the console wants the whole reading, the pill wants a fraction, and a spread
+silently widens the bridge contract with every field the executor later adds.
+
+**Five mutations, each confirmed failing by name** (docs/34): `elapsedMs` from `mark` → the two yield-span
+assertions; wire `phaseStart` re-stamp deleted → the wire first-reading assertion; cumulative field summed →
+three telemetry assertions; per-member divided by chunks → the per-member assertion (it reads 100.0 instead
+of 4.2); `UNREACHABLE` printed unconditionally → the two converse assertions.
+
+**The two real levers are filed, not fixed here** — one concern per PR, and neither is a chunk size:
+- **~162ms per member on a cold build** is the number that puts the 4-frame target out of reach.
+- **Cold wire costs 83× warm wire** — 46,375ms against 557ms for identical work over identical members,
+  because the cold pass walks a scenegraph Figma is still reconciling after 648 `createComponentFromNode`
+  calls and a `combineAsVariants`. That is ~46s of a ~151s run and no chunk size touches it. Largest single
+  lever in the data.
+
+**Baseline discrepancy, open rather than resolved.** The pre-#684 figure was ~1m10s perceived-frozen; this
+run was 2m32s of executor time. Not a regression I can establish: the old number was wall-clock-by-feel with
+no timers in the code, on a different file and Figma build. Recorded so nobody reads 151s as "chunking made
+it slower" — or as a comparison that was ever made.
+
+**The run also gated the one thing the harness cannot.** `realYield`'s `setTimeout(0)` must be a macrotask;
+swapping it for `Promise.resolve()` leaves the whole suite green, because a harness with no event loop cannot
+tell a task from a microtask. A pill that counted and a UI that answered clicks is the only evidence that
+line is right, and it is now evidence rather than an argument.
+
+**Process note worth keeping: `dist/` is gitignored, so merging #691 changed nothing on disk.** All five
+worktrees still held a pre-#684 `main.js` (275.3K, zero `#684` markers) against merged main's 281.9K, and the
+plugin had been imported from a *different* worktree's `manifest.json` than the one being edited. Running the
+calibration against that build would have reproduced the original freeze and read as the fix not working.
+Before any live plugin run: rebuild in the checkout Figma actually points at, and verify a marker from the
+new code is present in `dist/main.js`.
+
+---
+
 ## (2026-08-10) — Blocks: the tier above components, logged before we can build it (docs/13 §8)
 
 **STATUS: docs only.** No engine change, no emitted artifact, no gate touched. New `13` §8 field note,

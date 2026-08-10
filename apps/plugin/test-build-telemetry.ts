@@ -31,11 +31,30 @@ const ok = (cond: boolean, label: string): void => {
 
 console.log('plugin BUILD TELEMETRY (#684) — the calibration readout\n');
 
+/** One reading. `elapsedMs` defaults to `chunkMs` — a single chunk that yielded for 0ms, the honest value
+ *  for a one-off literal rather than a placeholder that would make `yieldMs` negative. */
+const rd = (ph: 'build' | 'wire', done: number, total: number, chunkMs: number, elapsedMs = chunkMs): ComponentProgress =>
+  ({ phase: ph, done, total, chunkMs, elapsedMs });
+
 /** A phase's readings, from a hand-written ms list. `done` advances by the chunk size so `total` and the
  *  member count are DIFFERENT from the reading count — which is the confusion the assertions below are
- *  looking for. */
-const phase = (name: 'build' | 'wire', msList: number[], chunk = 24): ComponentProgress[] =>
-  msList.map((chunkMs, i) => ({ phase: name, done: (i + 1) * chunk, total: msList.length * chunk, chunkMs }));
+ *  looking for.
+ *
+ *  `elapsedMs` is built CUMULATIVELY, with `yieldEach` ms of yield charged per boundary — the shape the
+ *  executor actually produces (see `ComponentProgress`), so `elapsedMs − Σ chunkMs` is the yield total.
+ *  Default 0 keeps every pre-existing assertion reading a phase that yielded instantly. */
+const phase = (name: 'build' | 'wire', msList: number[], chunk = 24, yieldEach = 0): ComponentProgress[] => {
+  let elapsed = 0;
+  return msList.map((chunkMs, i) => {
+    // The chunk's own cost lands BEFORE its report and the yield AFTER it, which is why the yield of the
+    // i-th boundary is added on the (i+1)-th reading and the last one is never counted — the deliberate
+    // off-by-one `elapsedMs` documents. A helper that folded them all in would model a shape the executor
+    // cannot emit, and the assertions below would be pinned to fiction.
+    if (i > 0) elapsed += yieldEach;
+    elapsed += chunkMs;
+    return { phase: name, done: (i + 1) * chunk, total: msList.length * chunk, chunkMs, elapsedMs: elapsed };
+  });
+};
 
 // ---- the distribution: the MAX is what a chunk size turns on ---------------------------------
 // A mean hides the number that matters. Figma drops a heartbeat on the worst chunk, not the average one,
@@ -73,6 +92,36 @@ ok(one.minMs === 42 && one.p50Ms === 42 && one.p95Ms === 42 && one.maxMs === 42 
 const empty = phaseStats('build', []);
 ok(empty.chunks === 0 && empty.members === 0 && Number.isFinite(empty.maxMs) && empty.maxMs === 0,
   `an empty phase folds to zeros rather than -Infinity (max=${empty.maxMs})`);
+ok(empty.elapsedMs === 0 && empty.yieldMs === 0, `and its elapsed/yield fold to zero too (${empty.elapsedMs}/${empty.yieldMs})`);
+
+// ---- elapsed wall-clock and the price of yielding --------------------------------------------
+// WHY THIS IS GATED AT ALL: the first live run (2026-08-10) could report what the chunks cost and could NOT
+// report what the yielding cost, because `chunkMs` excludes the yield by construction. `CHUNK` then dropped
+// 24 → 4, multiplying the yield count by six — a knob turned against an unmeasured term. `elapsedMs` closes
+// that, so its arithmetic is worth pinning.
+const yielded = phase('build', [100, 100, 100], 24, 30);
+const ys = phaseStats('build', yielded);
+// ELAPSED IS THE LAST READING, NOT A SUM. Summing a cumulative field is the defect this pins: it would
+// report 300 + 430 + ... here instead of 360, inflating the phase and making `yieldMs` nonsense.
+ok(ys.elapsedMs === 360,
+  `elapsed is the LAST reading's cumulative stamp, not the sum of them — summing would give ${yielded.reduce((a, p) => a + p.elapsedMs, 0)} (${ys.elapsedMs})`);
+ok(ys.totalMs === 300, `total stays Σ chunkMs, unchanged by the yields (${ys.totalMs})`);
+// 2 yields of 30ms, not 3: the last boundary's yield happens after its report, so it is outside the window.
+ok(ys.yieldMs === 60,
+  `yieldMs is elapsed − total, which is every yield but the phase's last (2 × 30ms = ${ys.yieldMs})`);
+// A phase whose yields cost nothing reports zero, NOT a negative — the clamp. Reachable, not theoretical:
+// the deliberate off-by-one plus a millisecond clock can land elapsed one tick under total.
+const clamped = phaseStats('build', [rd('build', 24, 24, 50, 49)]);
+ok(clamped.yieldMs === 0,
+  `an elapsed stamp a tick BELOW total clamps to 0 rather than printing a negative yield time (${clamped.yieldMs})`);
+// And it reaches the summary, both as wall-clock and as per-member — the two figures a future CHUNK change
+// is argued from. Per-member is asserted by VALUE: 300ms over 72 members is 4.2, and a readout that divided
+// by the chunk COUNT would say 100.0.
+const yieldedOut = summaryLines(yielded, 0).join('\n');
+ok(yieldedOut.includes('elapsed 360ms') && yieldedOut.includes('yields 60ms'),
+  'the summary reports elapsed wall-clock and the yield cost, so a CHUNK change can be priced');
+ok(yieldedOut.includes('4.2ms per member'),
+  `per-member cost divides by MEMBERS not chunks — by chunks it would read 100.0 (${yieldedOut.split('\n').find((l) => l.includes('per member'))?.trim() ?? 'absent'})`);
 
 // ---- phases are split in RUN order, and discovered ------------------------------------------
 const both = [...phase('build', [10, 20]), ...phase('wire', [30, 40])];
@@ -81,21 +130,21 @@ ok(split.length === 2 && split[0].phase === 'build' && split[1].phase === 'wire'
   `phases are reported in the order they ran (${split.map((x) => x.phase).join(' → ')})`);
 ok(split[0].chunks === 2 && split[1].chunks === 2, 'each phase folds only its own readings');
 // Discovered, not hardcoded: a third phase added to the executor shows up without editing the readout.
-const three = summarize([...both, { phase: 'polish' as 'build', done: 1, total: 1, chunkMs: 5 }]);
+const three = summarize([...both, rd('polish' as 'build', 1, 1, 5)]);
 ok(three.length === 3 && three[2].phase === 'polish',
   `a phase the readout has never heard of is reported anyway (${three.map((x) => x.phase).join(', ')})`);
 
 // ---- the per-chunk line: readable, and flags the slow ones -----------------------------------
-const fast = chunkLine({ phase: 'build', done: 24, total: 648, chunkMs: 12 });
-const slow = chunkLine({ phase: 'build', done: 48, total: 648, chunkMs: FRAME_MS * SLOW_CHUNK_FRAMES + 1 });
+const fast = chunkLine(rd('build', 24, 648, 12));
+const slow = chunkLine(rd('build', 48, 648, FRAME_MS * SLOW_CHUNK_FRAMES + 1));
 ok(fast.includes('24/648') && fast.includes('12ms'), `a chunk line carries its fraction and its cost (${fast.trim()})`);
 ok(!fast.includes('SLOW') && slow.includes('SLOW'),
   `only a chunk over ${FRAME_MS * SLOW_CHUNK_FRAMES}ms is flagged slow (${slow.trim()})`);
 // The threshold is a > comparison, so a chunk exactly AT the budget is not flagged — asserted because an
 // off-by-one here would flag every chunk on a file that happens to land on the boundary.
-ok(!chunkLine({ phase: 'build', done: 1, total: 1, chunkMs: FRAME_MS * SLOW_CHUNK_FRAMES }).includes('SLOW'),
+ok(!chunkLine(rd('build', 1, 1, FRAME_MS * SLOW_CHUNK_FRAMES)).includes('SLOW'),
   `a chunk exactly at the budget is not flagged (${FRAME_MS * SLOW_CHUNK_FRAMES}ms)`);
-ok(chunkLine({ phase: 'wire', done: 324, total: 648, chunkMs: 9 }).includes('50%'),
+ok(chunkLine(rd('wire', 324, 648, 9)).includes('50%'),
   'the percentage is computed from the fraction, so a designer can read progress without dividing');
 
 // ---- the summary block ----------------------------------------------------------------------
@@ -104,6 +153,29 @@ ok(sum.includes('build:') && sum.includes('wire:'), 'the summary carries a row p
 ok(sum.includes('MAX 40ms') && sum.includes("worst single chunk: 40ms in 'wire'"),
   'the worst chunk ACROSS phases is stated once, plainly, rather than left to be picked out of the rows');
 ok(sum.includes('1234ms') && sum.includes('settle'), 'the settle time is reported');
+
+// ---- when CHUNK cannot reach the target, the readout says so ---------------------------------
+// THE FINDING FROM THE 2026-08-10 RUN, and the reason it is gated rather than left in a comment: at ~162ms
+// per member, no chunk size satisfies the 4-frame target, because CHUNK=1 is still ~10 frames. The failure
+// mode this guards is a future reader raising SLOW_CHUNK_FRAMES until the report agrees with the build —
+// the report has to distinguish "the chunk size is too big" from "the chunk size is irrelevant".
+// One member costing 5× the whole budget: 10 chunks of 1 member each, at 5 × the 4-frame budget.
+const perMemberFloor = FRAME_MS * SLOW_CHUNK_FRAMES * 5;
+const heavy = summaryLines(phase('build', Array(10).fill(perMemberFloor), 1), 0).join('\n');
+ok(heavy.includes('UNREACHABLE by CHUNK alone') && heavy.includes('CHUNK=1'),
+  'a per-member cost above the whole frame budget is reported as UNREACHABLE, not as a chunk size to keep tuning');
+// AND THE CONVERSE, which is what stops the line from being a decoration that always prints: a cheap
+// per-member cost must NOT claim unreachability. Without this, the assertion above passes on a readout that
+// prints the warning unconditionally.
+const light = summaryLines(phase('build', [200], 100), 0).join('\n');
+ok(!light.includes('UNREACHABLE'),
+  `a 2ms-per-member phase is squarely reachable and says nothing about it (200ms over 100 members)`);
+// The boundary: exactly AT the budget is reachable (a 4-frame chunk of one member meets a ≤4-frame target),
+// one millisecond over is not. Pins the comparison direction, which an off-by-one would silently invert.
+ok(!summaryLines(phase('build', [FRAME_MS * SLOW_CHUNK_FRAMES], 1), 0).join('\n').includes('UNREACHABLE'),
+  `a per-member cost exactly at the budget is reachable (${FRAME_MS * SLOW_CHUNK_FRAMES}ms)`);
+ok(summaryLines(phase('build', [FRAME_MS * SLOW_CHUNK_FRAMES + 1], 1), 0).join('\n').includes('UNREACHABLE'),
+  `and one millisecond over is not (${FRAME_MS * SLOW_CHUNK_FRAMES + 1}ms)`);
 ok(sum.includes('chunking does not reduce'),
   'and is labelled as host time chunking cannot reduce, so a chunk-size change is not judged against it');
 

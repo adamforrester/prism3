@@ -835,6 +835,44 @@ ok(ybElapsed >= YIELD_BURN * ybRun.yieldCalls * 0.5,
 ok(ybReported < ybElapsed / 2,
   `and the reported chunk time is a fraction of it, so yield time is excluded rather than redistributed (${ybReported}ms reported of ${ybElapsed}ms elapsed)`);
 
+// ---- #684 follow-up: `elapsedMs` INCLUDES the yields, which is why it exists -------------------
+// THE ONE TIMING FIELD THIS HARNESS CAN GATE BY VALUE. Every `chunkMs` is 0 here because the shim is
+// synchronous — that is the whole reason the block above needed burns. But `elapsedMs` spans the yields, and
+// the yield IS injectable, so the yield burn gives this harness a real interval to measure for once.
+//
+// What it protects: `elapsedMs` was added because the live run could price the chunks and not the yielding,
+// while `CHUNK` dropped 24 → 4 and multiplied the yield count by six. If it were stamped from `mark` (the
+// per-chunk clock) instead of `phaseStart`, it would exclude the yields exactly as `chunkMs` does — the
+// field would duplicate `chunkMs`, the summary's "yields Xms" would read 0 on every run, and the term the
+// next CHUNK change has to be argued against would be invisible again. Asserted per phase, because
+// `phaseStart` is re-stamped at each loop head and a missing re-stamp there charges the whole build phase
+// to the wire phase's first reading.
+for (const ph of ['build', 'wire'] as const) {
+  const ps = ybRun.progress.filter((p) => p.phase === ph);
+  const last = ps[ps.length - 1];
+  const sumChunks = ps.reduce((a, p) => a + p.chunkMs, 0);
+  // n-1 yields inside the window: the last boundary's yield lands after its own report (see `elapsedMs`).
+  const want = YIELD_BURN * (ps.length - 1) * 0.5;
+  ok(last.elapsedMs - sumChunks >= want,
+    `${ph}: elapsedMs spans the ${ps.length - 1} yields inside the phase that chunkMs excludes ` +
+    `(${last.elapsedMs}ms elapsed − ${sumChunks}ms of chunks = ${last.elapsedMs - sumChunks}ms of yielding, ≥ ${want}ms)`);
+  // MONOTONIC AND PER-PHASE. A cumulative field must never go backwards, and each phase must start its own
+  // count from ~0 — if `phaseStart` were stamped once at the top of the run, the wire phase's first reading
+  // would already carry the entire build phase and this would catch it.
+  ok(ps.every((p, i) => i === 0 || p.elapsedMs >= ps[i - 1].elapsedMs),
+    `${ph}: elapsedMs is cumulative and never decreases across the phase`);
+  ok(ps[0].elapsedMs < YIELD_BURN,
+    `${ph}: the phase's FIRST reading starts near zero, so the clock was re-stamped at this loop head rather than at the run's (${ps[0].elapsedMs}ms)`);
+}
+// The un-burned control: with a free yield, elapsed and total agree — so the assertions above are reading
+// the burn and not some constant offset the executor adds regardless.
+for (const ph of ['build', 'wire'] as const) {
+  const ps = ctlNoBurn.progress.filter((p) => p.phase === ph);
+  const last = ps[ps.length - 1];
+  ok(last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0) < YIELD_BURN / 2,
+    `CONTROL: ${ph} with a free yield shows almost no gap between elapsed and Σ chunkMs (${last.elapsedMs - ps.reduce((a, p) => a + p.chunkMs, 0)}ms)`);
+}
+
 // A run with NO options is the production call shape — it must still complete, and must yield without
 // anyone passing a yield in. `realYield` is not injected here, so this genuinely goes through
 // `setTimeout(0)`: proof the default path is wired, not merely that the injected one works.
