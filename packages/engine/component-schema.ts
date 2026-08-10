@@ -232,6 +232,23 @@ export type FigmaProperties = {
    *  756 — and the count gate asserted the 189, which read as agreement. `figmaAxisNames` is the fix
    *  for the class, not just the instance. */
   slotAxes?: { name: string; part: string }[];
+  /** Which axis lays out ACROSS the set's columns — the one grid decision a def gets to make (#656).
+   *
+   *  Declared rather than inferred for the same reason `slotAxes` exists: `planSetLayout` used to take
+   *  the last VARYING axis in `figmaAxisNames` order, which is declaration order, so the column axis
+   *  was whatever happened to be declared last. When the grid rule was written that was `state`
+   *  (`state` across, `appearance` down — the shape the color layer was verified against); appending
+   *  `slotAxes` after `stateAxis` in #536 moved it to `trailing` and reshaped every set the engine
+   *  lays out to 324×2, with nobody choosing that and no gate able to notice.
+   *
+   *  So the point is not that `state` is the right answer for Button — it is that the answer stops
+   *  being a side effect of array order. An axis added later cannot silently reshape a declared grid.
+   *
+   *  ABSENT is legitimate, and falls back to the highest-cardinality varying axis (ties broken by
+   *  declaration order) — a def that has not thought about its grid still gets the widest table
+   *  available rather than whichever axis sorts last. Validated against the def's own axis names, so
+   *  a `gridAxis` naming an axis this def does not project is an error rather than a silent fallback. */
+  gridAxis?: string;
   /** prop name → part name. BOOLEAN property; drives that one part's `visible`. An empty object is
    *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
    *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
@@ -443,6 +460,36 @@ export const figmaAxisNames = (def: ComponentDef): string[] => {
   ];
 };
 
+/**
+ * Which axis belongs across the COLUMNS (#656) — the declared preference, else the widest axis.
+ *
+ * Takes the DECLARED axis and the varying axes with their cardinalities, rather than a `ComponentDef`,
+ * because the caller is `planSetLayout`, which receives plans and never the def. "Varying" is a fact
+ * about the plans in hand, not about the declaration: a scoped set (one size, say) varies over fewer
+ * axes than the def projects, and an axis with one value is not a column of one — it is not a column.
+ *
+ * Two sources, in order:
+ *  1. `declared`, when there is one AND it is among the varying axes. A declared axis that does not
+ *     vary in this particular set is not an error — it is a scoped set, and falling back is useful.
+ *  2. Otherwise the highest-cardinality varying axis, ties broken by the order given (declaration
+ *     order, as `figmaAxisNames` emits it). Cardinality is the right fallback because the widest axis
+ *     makes the shortest table, and a 108×6 table reads where a 324×2 strip does not.
+ *
+ * LIVES HERE rather than inside `planSetLayout`, and the placement is the point: `planSetLayout` is
+ * the SUBJECT of #656's gate, so an expectation computed by calling back into it would agree with it
+ * by construction. Kept separate, the rule can be checked against a hand-written table on one side
+ * and against the layout function's actual output on the other — two derivations that CAN disagree.
+ * **Do not inline this into `planSetLayout` to save a parameter: that deletes the gate.**
+ */
+export const gridColumnAxis = (
+  declared: string | undefined,
+  varying: readonly { name: string; values: number }[],
+): string | undefined => {
+  if (!varying.length) return undefined;
+  if (declared && varying.some((v) => v.name === declared)) return declared;
+  return varying.reduce((best, v) => (v.values > best.values ? v : best), varying[0]).name;
+};
+
 /** How many variants the declared surface projects — the product of every axis's cardinality.
  *  Slot axes are boolean, so each doubles. Derived rather than restated, so adding an axis moves
  *  this number without anyone remembering to. */
@@ -541,6 +588,18 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
       // says is always there would emit a `false` coordinate the plan cannot actually build.
       else if (!p.optional) e.push(`figmaProperties.slotAxes.${name} → part '${part}' is not optional — presence is not a question for a part that is always there`);
     }
+  }
+
+  // ---- the grid column axis ----
+  // Checked against the def's OWN axis names, so a `gridAxis` naming an axis this def does not
+  // project is an error rather than a silent fallback to cardinality. That distinction is the whole
+  // value of the field: a typo'd or renamed axis would otherwise leave the grid looking chosen while
+  // it was inherited again — exactly the #656 failure, restored by a rename nobody ran a gate over.
+  // Placed after the three axis blocks because it needs the complete name list they build.
+  if (fp.gridAxis !== undefined) {
+    const names = figmaAxisNames(def);
+    if (!names.includes(fp.gridAxis))
+      e.push(`figmaProperties.gridAxis: '${fp.gridAxis}' is not an axis this def projects [${names.join(', ')}] — the grid's column axis must be one Figma will carry`);
   }
 
   // ---- the part-targeting maps ----

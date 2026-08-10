@@ -41,7 +41,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -7335,6 +7335,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // executor's miss strings were written byte-identical to the payload's: comparing sets makes a path
       // that reports the wrong CAUSE fail, where comparing counts would not.
       //
+      // AND THE ONE CLAIM IT CANNOT MAKE, named here because the position assertion below LOOKS like it
+      // does (#656). Both sides of `posMap` are laid out by `planSetLayout`, so every member moves
+      // together under any layout change and the comparison stays green. The expectation is not derived
+      // from the subject — this is not the usual docs/34 shape — but both SIDES of the comparison share
+      // it, which is the same blindness reached a different way. That is exactly how the column axis
+      // became `trailing` and nothing noticed. `posMap` remains a real gate on everything downstream of
+      // the layout (measuring, cell writing, read-back); the layout itself is gated separately, against
+      // a hand-written table, in the GRID COLUMN AXIS block below.
+      //
       // ONE STUB, TWO DRIVERS. Both run against `makeFigmaStub`, which is why it was lifted out of
       // `runPayload`. Two executors judged by two different host models would be comparing the models.
       {
@@ -7396,6 +7405,148 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const skewed = await plugRun(grid, { ...fullSet, comps: [], page: { children: [] } });
         ok(sorted(skewed.properties) !== sorted(pasted.properties ?? []) && sorted(skewed.misses) !== sorted(pasted.misses),
           `parity gate: two paths that genuinely diverge are REPORTED as different — the comparison above is live, not two readings of one shared expression (plugin ${sorted(skewed.properties)} vs paste ${sorted(pasted.properties ?? [])})`);
+      }
+
+      // ---- THE GRID COLUMN AXIS (#656) -----------------------------------------------------------
+      // The layout claim the parity block above cannot make, gated against a HAND-WRITTEN table.
+      //
+      // WHY IT HAS TO BE HAND-WRITTEN. `planSetLayout` is the subject, so any expectation computed by
+      // calling it agrees with it by construction — and the sub-shape #656 found is subtler than that:
+      // the `posMap` parity assertion does not derive its expectation from the subject at all, it
+      // compares two executors, and BOTH of them lay out through `planSetLayout`. The expectation is
+      // independent; the two SIDES of the comparison share the subject. Every member moved together
+      // when the column axis silently became `trailing` (#536 appended `slotAxes` after `stateAxis`,
+      // and `varying[varying.length - 1]` is declaration order), so the parity gate stayed green while
+      // the full Button set reshaped to 324 rows × 2 columns — measured live at 320 × 23304px, against
+      // the shim's predicted 264 × 11640. Nobody chose that shape and no gate could report it.
+      //
+      // So every expectation below is a literal `(name → row, col)` table written out by hand from the
+      // declared axis and the known value orders. It can disagree with the code, which is the only
+      // property that makes it a gate. Do NOT rewrite any of these tables as a call to
+      // `planSetLayout`, `gridColumnAxis` or `figmaAxisNames` — that deletes the gate and reports it
+      // as a pass (docs/34).
+      {
+        const at = (name: string, key: string) => name.split(', ').map((kv) => kv.split('=')).find(([k]) => k === key)![1];
+        const cellMap = (plans: AnatomyPlan[]) => {
+          const { cells } = planSetLayout(plans, 'gridAxis gate');
+          return new Map(cells.map((c) => [c.name, `r${c.row}c${c.col}`]));
+        };
+        // Keyed on the two axes each table varies, so the table reads as a table.
+        const check = (label: string, plans: AnatomyPlan[], keys: [string, string], want: Record<string, string>) => {
+          const got = [...cellMap(plans).entries()]
+            .map(([n, cell]) => [`${at(n, keys[0])}/${at(n, keys[1])}`, cell] as const)
+            .sort(([a], [b]) => a.localeCompare(b));
+          const wantSorted = Object.entries(want).sort(([a], [b]) => a.localeCompare(b));
+          ok(JSON.stringify(got) === JSON.stringify(wantSorted),
+            `#656 ${label} — got ${JSON.stringify(got)} vs hand-written ${JSON.stringify(wantSorted)}`);
+        };
+
+        // TABLE 1 — THE DECLARATION IS HONORED OVER CARDINALITY. `size` varies three ways and `state`
+        // two, so the cardinality fallback would put `size` across; Button declares `gridAxis: 'state'`,
+        // so `state` goes across and `size` down. Column order is first appearance, which is the order
+        // these plans are built in: rest, then hover.
+        const declOrder = ['small', 'medium', 'large'].flatMap((sz) => ['rest', 'hover'].map((st) =>
+          figmaAnatomyPlan(button, sz, { leading: false, trailing: false, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st })));
+        check('the DECLARED axis takes the columns even when another axis is wider', declOrder, ['size', 'state'], {
+          'small/rest': 'r0c0', 'small/hover': 'r0c1',
+          'medium/rest': 'r1c0', 'medium/hover': 'r1c1',
+          'large/rest': 'r2c0', 'large/hover': 'r2c1',
+        });
+
+        // TABLE 2 — THE SAME PLANS WITH NO DECLARATION fall back to the widest axis, transposing the
+        // table. Same six members, so this isolates the declaration and nothing else: `size` (3) beats
+        // `state` (2) and goes across. A def that has not thought about its grid still gets the shortest
+        // table available rather than whichever axis happens to sort last.
+        const undeclared: ComponentDef = { ...button, figmaProperties: { ...button.figmaProperties!, gridAxis: undefined } };
+        const noDecl = ['small', 'medium', 'large'].flatMap((sz) => ['rest', 'hover'].map((st) =>
+          figmaAnatomyPlan(undeclared, sz, { leading: false, trailing: false, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st })));
+        check('with NO declared axis the widest one takes the columns', noDecl, ['size', 'state'], {
+          'small/rest': 'r0c0', 'medium/rest': 'r0c1', 'large/rest': 'r0c2',
+          'small/hover': 'r1c0', 'medium/hover': 'r1c1', 'large/hover': 'r1c2',
+        });
+
+        // TABLE 3 — THE REGRESSION ITSELF, at the smallest size that exhibits it. `state` and `trailing`
+        // both vary two ways, so cardinality TIES and the tie-break is declaration order — which is the
+        // one input the old rule also used, from the other end. The old rule took the LAST varying axis
+        // (`trailing`, because `slotAxes` are appended after `stateAxis`); the new one takes the first of
+        // the tied pair, which is `state`. Restore `varying[varying.length - 1]` and this table
+        // transposes. The literal below is the axis the old rule would have picked, spelled out so the
+        // regression is named in the source rather than implied.
+        const OLD_RULE_WOULD_PICK = 'trailing';
+        const tied = ['rest', 'hover'].flatMap((st) => [false, true].map((t) =>
+          figmaAnatomyPlan(button, 'medium', { leading: false, trailing: t, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st })));
+        check(`a cardinality TIE goes to the declared axis, not to the last-declared one (${OLD_RULE_WOULD_PICK})`, tied, ['state', 'trailing'], {
+          'rest/false': 'r0c0', 'hover/false': 'r0c1',
+          'rest/true': 'r1c0', 'hover/true': 'r1c1',
+        });
+
+        // THE FULL SET'S SHAPE, as two literals a hand-count justifies rather than a product of
+        // `.length`s. 648 = 3 intent × 3 appearance × 3 size × 6 state × 2 leading × 2 trailing; with
+        // `state` across, that is 6 columns and 648/6 = 108 rows. Written as literals deliberately: a
+        // shape computed from the axes is the declaration restating itself, which is the defect the
+        // 189-vs-756 miscount already cost this repo once.
+        const fullLayout = planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), '#656 full');
+        ok(fullLayout.colKey === 'state' && fullLayout.rows === 108 && fullLayout.cols === 6,
+          `#656: the full Button set lays out 108 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 324×2, measured live at 320×23304px)`);
+        ok(JSON.stringify(fullLayout.colVals) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
+          `#656: the columns run in the def's own state order, so the table reads left to right the way the states are declared — got ${JSON.stringify(fullLayout.colVals)}`);
+        // And the row keys are every OTHER varying axis. `rowKeys` used to be `varying.slice(0, -1)`,
+        // which is only correct while the column axis is the last element — the exact assumption that
+        // stops holding the moment the axis is chosen. A `state` still present in `rowKeys` would put
+        // every member of a row in one cell.
+        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['intent', 'appearance', 'size', 'leading', 'trailing']),
+          `#656: the rows combine every varying axis EXCEPT the column one — got ${JSON.stringify(fullLayout.rowKeys)}`);
+
+        // ON CANVAS, because a cell index is not a coordinate. Run table 1's set through the real
+        // payload and read the geometry off the page: members the hand table puts in one row must share
+        // a `y`, members in one column must share an `x`, and the three rows must be at three distinct
+        // `y` values. This is what turns the table above into a claim about what a designer sees — and
+        // it is derived from the HAND table, not from `cells`.
+        const gridOpts = {
+          vars: declOrder.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: declOrder.flatMap((p) => planTextStyles(p.root)),
+          comps: ['FPO-default-icon', 'focus-ring'],
+        };
+        const gridPage: StubPage = { children: [] };
+        const gridRun = await runPayload(planSetToPluginJs(declOrder), { ...gridOpts, page: gridPage });
+        ok(gridRun.misses.length === 0, `#656: the 6-member grid pastes clean${gridRun.misses.length ? ` — ${JSON.stringify(gridRun.misses.slice(0, 4))}` : ''}`);
+        const placed = new Map((gridPage.children.find((c) => c.type === 'COMPONENT_SET')!.children as Record<string, unknown>[])
+          .map((c) => [`${at(c.name as string, 'size')}/${at(c.name as string, 'state')}`, { x: c.x as number, y: c.y as number }]));
+        ok(placed.size === 6, `#656: all six members reached the page (${placed.size})`);
+        const ys = ['small', 'medium', 'large'].map((sz) => placed.get(`${sz}/rest`)!.y);
+        ok(['small', 'medium', 'large'].every((sz) => placed.get(`${sz}/rest`)!.y === placed.get(`${sz}/hover`)!.y),
+          '#656: the two states of one size share a `y` — `state` is the ACROSS axis on canvas, not merely in the cell index');
+        ok(new Set(ys).size === 3 && ys[0] < ys[1] && ys[1] < ys[2],
+          `#656: the three sizes sit at three increasing y values — the DOWN axis is size (${JSON.stringify(ys)})`);
+        ok(new Set(['small', 'medium', 'large'].map((sz) => placed.get(`${sz}/rest`)!.x)).size === 1
+          && new Set(['small', 'medium', 'large'].map((sz) => placed.get(`${sz}/hover`)!.x)).size === 1
+          && placed.get('small/rest')!.x < placed.get('small/hover')!.x,
+          '#656: `rest` shares one column `x` and `hover` the next — the columns are columns, and in declared order');
+      }
+
+      // ---- `gridAxis` VALIDATION (#656) ----------------------------------------------------------
+      // The field's value is entirely in being CHECKED. An unchecked `gridAxis` that names a renamed or
+      // misspelled axis falls through to the cardinality fallback, which puts the grid back where #656
+      // found it while the def still reads as though it chose. So the validator resolves the name
+      // against the axes this def actually projects.
+      {
+        const fp = button.figmaProperties!;
+        const withAxis = (gridAxis: string | undefined): ComponentDef => ({ ...button, figmaProperties: { ...fp, gridAxis } });
+        ok(figmaPropertyErrors(button).length === 0, '#656: Button with `gridAxis: \'state\'` validates clean');
+        ok(figmaPropertyErrors(withAxis(undefined)).length === 0, '#656: omitting `gridAxis` is legitimate — the fallback is a designed behavior, not a missing declaration');
+        const bad = figmaPropertyErrors(withAxis('tone'));
+        ok(bad.some((m) => /gridAxis: 'tone' is not an axis this def projects/.test(m)),
+          `#656: a \`gridAxis\` naming an axis the def does not project is an ERROR, not a silent fallback — got ${JSON.stringify(bad)}`);
+        // A CODE-ONLY axis is the case that would otherwise slip through: `width` is a real axis on this
+        // def and deliberately unprojected, so a `gridAxis: 'width'` names something that exists
+        // everywhere except in the set Figma builds.
+        ok(figmaPropertyErrors(withAxis('width')).some((m) => /gridAxis: 'width'/.test(m)),
+          '#656: an axis the def declares but does NOT project is refused too — it exists in `variants` and cannot be a column');
+        // And the slot axes ARE eligible. Nothing about the fix says the columns must be the state axis;
+        // it says the choice must be made. A def whose most readable table really is slot presence must
+        // be able to say so.
+        ok(figmaPropertyErrors(withAxis('trailing')).length === 0,
+          '#656: a slot-presence axis is a legitimate column axis — the fix is that the axis is CHOSEN, not that it is `state`');
       }
     }
 

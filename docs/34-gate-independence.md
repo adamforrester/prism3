@@ -414,6 +414,36 @@ rule and keep the pin only for what genuinely is not yours to fix — #642 kept 
 `aurora` gradients, which are *correct* DTCG that a stock Style Dictionary has no handler for. Splitting
 the two was the whole upgrade; widening either to clear a red is the move that ends the measurement.
 
+### 11. Both SIDES of the comparison share the subject
+
+Shape 2's tell — *you can point at one function both sides call* — is about the **oracle** sharing a
+derivation with the subject. This is the same silence reached from the other direction, and it passes
+shape 2's own test: the expectation is not derived from the subject at all. The gate compares two
+**independent implementations** to each other, which is a genuinely strong claim, and the subject sits
+*underneath both of them*. Every difference the subject could introduce, it introduces on both sides, so
+the comparison stays green while the shared thing moves arbitrarily.
+
+`#656` is the instance. `test.ts`'s member-placement gate compares two executors — the pasted plugin-JS
+payload and `apps/plugin/src/write-components.ts`'s `applyComponentPlan` — reading every member's
+`name@x,y WxH` off two separate stub pages. Two hosts, two writers, two read-backs, and the assertion is
+strong about all of it. But both lay out through `planSetLayout`. When #536 appended `slotAxes` after
+`stateAxis`, `varying[varying.length - 1]` moved the column axis from `state` to the boolean `trailing`
+and reshaped the full Button set from a readable 108 × 6 table to a 324 × 2 strip — measured live at
+320 × 23304px. Both paths built the strip. The positions matched perfectly. The gate that exists to
+check member placement could not report the largest possible change to member placement.
+
+Worth naming because the mutation discipline does not surface it either: mutate `planSetLayout` and the
+suite goes red *somewhere* — 5 assertions, in #656's case — while the placement gate stays green, so
+"the suite noticed" reads as coverage. Only *"is my gate among the failures, by name"* separates them.
+
+**Tell:** the gate compares two things that are independent **of each other** but not of a third thing
+they both go through. Ask what is *below* both sides, not just what is beside them. **Fix:** gate the
+shared thing separately, against an expectation from outside the code — #656's is a hand-written
+`(name → row, col)` table plus two literals a hand-count justifies (`108`, `6`), with an explicit
+comment forbidding their rewrite as a call to the layout function. The parity gate is left exactly as it
+was: it is a real gate on everything downstream of the layout, and the fix is a second gate, not a
+replacement.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -480,7 +510,7 @@ independence failures — counted because they are the same silence from a diffe
 | 2026-08-08 | `lint-skills.ts:163` engine-ref regex (#650 spike) | 9 | the detector matching nothing after its fixtures were renamed |
 | 2026-08-08 | `lint-us-english.ts` surface map (#650 spike) | 9 | same rename, same silence, minutes later |
 | 2026-08-08 | engine component defs (#657) | 9 | `notes.evolution` undeclared for five PRs, typechecked by nothing — and 4 of 5 defs still silent on `f02d30f`, measured |
-| 2026-08-08 | `planSetLayout` member placement (#656) | 2 | both executors' coordinates, from the one layout function they share |
+| 2026-08-08 | `planSetLayout` member placement (#656) | 11 | both executors' coordinates, from the one layout function they share — and the shape it named: 324×2 measured live at 320×23304px, gate green |
 | 2026-08-07 `[in review]` | `test.ts` pending-width assertions (#612) | 8 | a button growing 28px mid-submit, asserted as *correct* |
 | 2026-08-07 `[in review]` | `mutateRing` anchor (#612) | 7 | the ring's own gate, mutating a different function |
 | 2026-08-07 `[in review]` | payload stub, TEXT width (#612) | 4 | a corner-pinned spinner indistinguishable from a centered one |

@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { expandKey } from './component-schema';
+import { expandKey, gridColumnAxis } from './component-schema';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -181,6 +181,11 @@ export type AnatomyPlan = {
    *  fails to honor them. A plan whose `codeOnly` is empty is claiming Figma holds everything. */
   codeOnly: string[];
   derived: Record<string, string>;
+  /** Which axis the def wants across the set's COLUMNS (#656) — `figmaProperties.gridAxis`, carried
+   *  onto the plan for the same reason `codeOnly` is: `planSetLayout` receives PLANS, never the def,
+   *  and a layout decision the def made has to travel with the artifact it describes. Absent when the
+   *  def declares no preference, which `planSetLayout` resolves by cardinality. */
+  gridAxis?: string;
 };
 
 /** Root-relative token ref → the emitted Figma variable name. The emitters slash-path the same
@@ -521,6 +526,7 @@ export const figmaAnatomyPlan = (
     root: node(a.root, a.parts[a.root]),
     codeOnly: [...a.codeOnly],
     derived: { ...(a.derived ?? {}) },
+    ...(def.figmaProperties?.gridAxis ? { gridAxis: def.figmaProperties.gridAxis } : {}),
   };
 };
 
@@ -1210,29 +1216,39 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   if (new Set(names).size !== names.length) throw new Error(`${fn}: two plans share a component name — the set would have duplicate variants`);
 
   // GRID PLACEMENT. Only the axes that actually vary get a dimension — a `size` axis with one value is
-  // not a row of one, it is not a row. The LAST varying axis becomes the columns and the rest combine
-  // into rows.
+  // not a row of one, it is not a row. One varying axis becomes the columns and the rest combine into
+  // rows.
   //
-  // WHICH AXIS THAT IS, IS AN ARTIFACT OF DECLARATION ORDER, NOT A LAYOUT CHOICE. `keys` comes from
-  // `planComponentName`, which emits in `figmaAxisNames` order: variantAxes, then stateAxis, then
-  // slotAxes. So for the full button set the last varying axis is `trailing` — two values — and the
-  // set lays out 324 rows x 2 columns, not the readable table you would draw by hand. An earlier
-  // version of this comment claimed `state` across and `appearance` down, describing the same table
-  // shape as the grid dump the color layer was verified against; that was true before the slot axes
-  // (#536 item 5) were appended AFTER `stateAxis`, and has been false since. Do not read a designer
-  // affordance into this line.
+  // WHICH AXIS IS NOW CHOSEN, NOT INHERITED (#656). It used to be `varying[varying.length - 1]` — the
+  // last axis in `figmaAxisNames` order, i.e. declaration order — so the column axis was whatever
+  // happened to be declared last. When the rule was written that was `state`, giving `state` across
+  // and `appearance` down, the shape the color layer was verified against. Appending `slotAxes` after
+  // `stateAxis` (#536 item 5) moved it to `trailing`, a boolean: the full Button set laid out 324 rows
+  // × 2 columns, measured live at 320 × 23304px. Nobody chose that, and no gate could notice — see the
+  // note on the gate below.
   //
-  // Deliberately left as-is by #483, which only added the trigger: choosing the row/column keys is a
-  // design decision with its own tradeoffs, and the gate that looks like it covers member placement
-  // (`test.ts`'s coordinate/pitch parity) compares the two executors, both of which call THIS — so it
-  // stays green under any layout change and proves nothing about one. Fixing this needs an
-  // independently-derived expectation, which is its own piece of work. Tracked in #656.
+  // `gridColumnAxis` (in `component-schema.ts`) resolves it: the def's declared `gridAxis` when it
+  // varies here, else the highest-cardinality varying axis. Button declares `state` → 108 × 6.
+  //
+  // THE RULE LIVES IN `component-schema.ts`, NOT HERE, AND THAT IS LOAD-BEARING. This function is the
+  // subject of #656's gate; a gate whose expectation came from calling this function would agree with
+  // it by construction (docs/34). The sub-shape #656 adds to that family is worth naming, because it
+  // is not the usual one: `test.ts`'s member-placement parity gate does not derive its expectation
+  // from the subject — it compares two executors, and BOTH call `planSetLayout`. The expectation is
+  // independent; the two SIDES of the comparison share the subject. So it stays green under any
+  // layout change, and is a real gate for everything downstream (node building, combine ordering,
+  // position writing, read-backs) while being blind to the layout itself.
   const keys = axes.split(',');
   const valuesOf = (p: AnatomyPlan) => Object.fromEntries(planComponentName(p).split(', ').map((kv) => kv.split('=') as [string, string]));
   const vals = plans.map(valuesOf);
   const varying = keys.filter((k) => new Set(vals.map((v) => v[k])).size > 1);
-  const colKey = varying[varying.length - 1];
-  const rowKeys = varying.slice(0, -1);
+  // Every plan in a set carries the same `gridAxis` (they come from one def via `figmaAnatomySet`), so
+  // the first is the set's. Read off the PLAN rather than a def this function never receives.
+  const colKey = gridColumnAxis(
+    plans[0].gridAxis,
+    varying.map((k) => ({ name: k, values: new Set(vals.map((v) => v[k])).size })),
+  );
+  const rowKeys = varying.filter((k) => k !== colKey);
   const order = (list: string[]) => { const seen: string[] = []; for (const x of list) if (!seen.includes(x)) seen.push(x); return seen; };
   const cols = colKey ? order(vals.map((v) => v[colKey])) : [''];
   const rows = order(vals.map((v) => rowKeys.map((k) => v[k]).join(' ')));
