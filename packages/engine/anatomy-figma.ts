@@ -420,7 +420,7 @@ export const figmaAnatomyPlan = (
     } else {
       // Both axes, bound to the SAME variable. That is legal — an unlocked node tracks a square
       // artboard on both axes — but it is legal only because the executor unlocks the node first;
-      // see the `constrainProportions` note in `planToPluginJs`.
+      // see the `unlockAspectRatio()` note in `planToPluginJs`.
       if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
     }
 
@@ -748,6 +748,45 @@ export const planComponentName = (plan: AnatomyPlan): string =>
   ].join(', ');
 
 /**
+ * WHAT A MISSING NEST TARGET ACTUALLY IS, in the message the designer reads (#681).
+ *
+ * The live 648-variant build reported 108 identical misses — every `state=focus-visible` member — saying
+ * `focus-ring` was "not in this file; publish the shared component first". It WAS in the file, as a
+ * component SET. `findAllWithCriteria({types:['COMPONENT']})` matches `ComponentNode` and never
+ * `ComponentSetNode`, so the set's own name never entered the lookup while its CHILDREN were there under
+ * their variant coordinates. Three distinct file states and a genuinely absent node all produced one
+ * string, and the one piece of advice it gave was wrong for three of the four.
+ *
+ * This is DIAGNOSIS ONLY, and the boundary is deliberate: it names what is in the file and what to do
+ * about it, and it does NOT nest anything. Which variant of a set to nest — and whether that is exposed
+ * per instance — is a policy decision with real design consequences, flagged on #681 for the owner. A
+ * message that guessed would be worse than one that explains, because a wrong ring that builds looks
+ * like success.
+ *
+ * SHARED BY BOTH EXECUTORS, and it has to be a function rather than a constant because the paste path is
+ * an emitted STRING that cannot import: the plugin calls this directly, and `PAYLOAD_BUILD` interpolates
+ * its output for each case at emit time. That is the only way the two call sites cannot drift in wording
+ * — which they would, being 500 lines and one language boundary apart.
+ */
+export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT'): string => {
+  switch (found) {
+    case 'COMPONENT_SET':
+      // The 108-miss case. Says what is there and what to do, and stops short of choosing a variant.
+      return 'found a COMPONENT_SET of that name, not a component; nothing built — nest a specific variant, or publish one as its own component';
+    case 'INSTANCE':
+      // Called out separately because duplicating a variant out of a set is the obvious workaround for
+      // the case above, and it lands here — where the old message said "not in this file" of a node the
+      // designer had just made.
+      return 'found an INSTANCE of that name, not a component; nothing built — nest the main component instead of a copy of it';
+    case 'OTHER':
+      return 'found a node of that name that is not a component; nothing built — rename it, or publish the component under this name';
+    case 'ABSENT':
+      // The one row the original message got right, kept verbatim.
+      return 'not in this file; nothing built — publish the shared component first';
+  }
+};
+
+/**
  * The SHELL: plan → plugin JS for `figma_execute`. Mirrors `materialise-to-figma.ts` — the
  * generated code resolves variable NAMES to live variables, so the same plan works in any file
  * that has had the token passes run against it.
@@ -768,12 +807,16 @@ export const planComponentName = (plan: AnatomyPlan): string =>
  * discards the write is invisible to it. A Figma setter that accepts a call is not a Figma setter
  * that honored it. Hence:
  *
- *  - `constrainProportions=false` before binding. A proportion-locked node cannot hold two
+ *  - `unlockAspectRatio()` before binding. A proportion-locked node cannot hold two
  *    independent dimension bindings — the second `setBoundVariable` EVICTS the first, last-write-
  *    wins, with no throw and nothing in `misses`. It bites FRAME, COMPONENT and INSTANCE alike;
  *    `createFrame()` happens to default to unlocked, but an instance inherits the lock from its main
  *    component, and `FPO-default-icon` ships locked. Every slot binds `width` AND `height`, so this
- *    is not a corner case — it is every slot in every plan.
+ *    is not a corner case — it is every slot in every plan. (Was `constrainProportions=false`, which
+ *    Figma's typings mark `@deprecated` in favour of this — #682. The payload calls it unconditionally:
+ *    the old form needed an `in` guard because `constrainProportions` is on `LayoutMixin`, absent from
+ *    some node types, while `unlockAspectRatio` is on `AspectRatioLockMixin`, which FrameNode, TextNode,
+ *    InstanceNode and ComponentNode all carry.)
  *  - NO `resize()` after binding. `resize()` CLEARS every dimension binding on all three node types.
  *    Binding then resizing loses the binding; resizing then binding is fine. (`appendChild` into
  *    auto-layout and setting `layoutSizing*` are both safe — measured, not assumed.)
@@ -872,13 +915,19 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // unstroked frame in a focus ring's place is invisible and reads as a ring that built fine; a slot's
     // placeholder is a box a designer can still fill. So a missing ring builds NOTHING and says so.
     const nested=compByName.get(n.nestTarget);
-    if(!nested){misses.push(n.name+'.nestTarget -> '+n.nestTarget+' (not in this file; nothing built — publish the shared component first)');return null;}
+    if(!nested){
+      // DIAGNOSE before reporting (#681): a second search, by name across every node type, so the miss
+      // can say what is actually in the file. Only on the failure path — the happy path pays nothing.
+      const other=figma.root.findAll(x=>x.name===n.nestTarget)[0];
+      const found=!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))};
+      misses.push(n.name+'.nestTarget -> '+n.nestTarget+' ('+found+')');return null;
+    }
     node=nested.createInstance();
   }
   else{node=figma.createFrame();node.clipsContent=false;}
   node.name=n.name;
   // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
-  if('constrainProportions' in node)node.constrainProportions=false;
+  node.unlockAspectRatio();
   if(n.textStyle){
     const st=styleByName.get(n.textStyle);
     if(!st)misses.push(n.name+'.textStyle -> '+n.textStyle);

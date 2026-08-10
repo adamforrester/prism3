@@ -163,7 +163,12 @@ const makeShim = (opts: ShimOpts = {}) => {
   const mkNode = (type: string): Node => {
     const node: Node = {
       type, name: '', boundVariables: {} as Record<string, unknown>,
-      constrainProportions: false, fills: [] as unknown[], strokes: [] as unknown[], children: [] as Node[],
+      // #682: the aspect-ratio lock STARTS ENGAGED and only `unlockAspectRatio()` releases it, which is
+      // the whole reason the call is load-bearing. A shim that started unlocked would pass whether the
+      // executor called it or not. `_unlocks` counts the calls, because the port field is optional and
+      // the call site is `?.()` — an absent method skips silently, so "nothing threw" is not evidence.
+      _aspectLocked: true, _unlocks: 0,
+      fills: [] as unknown[], strokes: [] as unknown[], children: [] as Node[],
       // `strokeWeight` starts at 0 so the executor's `if(!node.strokeWeight)` default fires as it does
       // live; `strokesIncludedInLayout` starts TRUE because that is Figma's default and the thing
       // border-box has to override.
@@ -200,10 +205,23 @@ const makeShim = (opts: ShimOpts = {}) => {
         // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child.
         return pad + flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0) + (stroked ? 2 * (node.strokeWeight as number) : 0);
       },
+      // Releases the aspect-ratio lock (#682). Counted as well as applied: the port field is optional and
+      // the executor calls it `?.()`, so a port that lost the method would skip the unlock in silence.
+      unlockAspectRatio() { node._aspectLocked = false; (node._unlocks as number)++; },
       // The VALUE alongside the id, because a bound dimension is what SIZES the node live — the getters
       // above read it. Without it the binding is bookkeeping and every node measures the same.
+      //
+      // AND THE EVICTION IS MODELLED (#682). While the aspect ratio is LOCKED, a node cannot hold two
+      // independent dimension bindings: the second setter silently evicts the first, last-write-wins,
+      // with no throw and nothing in `misses[]`. That is the defect the unlock exists to prevent, so the
+      // shim reproduces it rather than merely counting the call — without this, `unlockAspectRatio()`
+      // could be deleted from the executor and every geometry assertion here would still pass.
       setBoundVariable(prop: string, v: { id: string; value?: number }) {
-        (node.boundVariables as Record<string, unknown>)[prop] = { id: v.id, value: v.value };
+        const bv = node.boundVariables as Record<string, unknown>;
+        if (node._aspectLocked && (prop === 'width' || prop === 'height')) {
+          delete bv[prop === 'width' ? 'height' : 'width'];
+        }
+        bv[prop] = { id: v.id, value: v.value };
       },
       // APPLYING A STYLE RE-RESOLVES THE TEXT, so Figma demands the style's font be loaded FIRST — and
       // nothing a previous run loaded counts (#680). Modelled because an unconditional success makes the
@@ -311,10 +329,22 @@ const makeShim = (opts: ShimOpts = {}) => {
         }
         return found;
       },
-      // What a NAME-based search over the whole file sees, which is a different question from a
-      // criteria search and the one a better miss message has to ask. Not part of `ComponentsApi`
-      // today — deliberately: this PR adds no fix, and a port method with no caller is dead weight. It
-      // is here so the tests below can state what the file HELD when the lookup reported it absent.
+      // What a NAME-based search over the whole file sees, which is a different question from a criteria
+      // search and the one the miss message has to ask (#681). It was `_allNamed`, test-only, when the
+      // reproduction landed without a fix; now that the executor diagnoses its own miss it IS the port's
+      // `findAll`, so the shim answers the same question the live host does.
+      //
+      // Returns the file's nodes irrespective of type — a COMPONENT_SET under its OWN name (unlike the
+      // criteria search above, which only ever yields its children), an INSTANCE, a FRAME. That
+      // difference between the two searches is the entire defect, so the shim has to hold both.
+      findAll: (predicate: (n: { name: string; type: string }) => boolean): { name: string; type: string }[] =>
+        [
+          ...(opts.comps ?? []).map((c) => ({ name: c, type: 'COMPONENT' })),
+          ...(opts.fileNodes ?? []).map((f) => ({ name: f.name, type: f.type })),
+        ].filter(predicate),
+      /** Kept as the REACHABILITY probe, distinct from `findAll` above on purpose: the assertions below
+       *  state what the file holds, and reading them off the same method the executor now calls would be
+       *  reading the subject. Two spellings of one question is the point, not duplication. */
       _allNamed: (name: string): { name: string; type: string }[] => [
         ...(opts.comps ?? []).filter((c) => c === name).map((c) => ({ name: c, type: 'COMPONENT' })),
         ...(opts.fileNodes ?? []).filter((f) => f.name === name).map((f) => ({ name: f.name, type: f.type })),
@@ -901,7 +931,7 @@ ok(clamped.progress.filter((p) => p.phase === 'build').length === grid.length,
 ok(Number.isInteger(CHUNK) && CHUNK > 1 && CHUNK < 200, `CHUNK is a plausible chunk size, not the whole set (${CHUNK})`);
 
 // =============================================================================================
-// #681 — A NEST TARGET THAT *IS* IN THE FILE, REPRODUCED. NOT FIXED HERE.
+// #681 — A NEST TARGET THAT *IS* IN THE FILE. FIXED: THE MISS NAMES WHAT IT FOUND.
 // =============================================================================================
 // The live 648-variant build reported 108 identical misses — exactly 648 / 6, every `state=focus-visible`
 // member — saying `focus-ring` was "not in this file; publish the shared component first". It WAS in the
@@ -911,11 +941,16 @@ ok(Number.isInteger(CHUNK) && CHUNK > 1 && CHUNK < 200, `CHUNK is a plausible ch
 //
 // This had no test because the old shim ignored its criteria and returned every `comps` entry as a bare
 // COMPONENT: the distinction between "absent" and "present but the wrong node type" could not exist. The
-// shim now honors the criteria, which is what makes the three cases below reachable at all — and
+// shim now honors the criteria, which is what makes the four cases below reachable at all — and
 // reachability is the point, per docs/34: a check that runs but cannot fire is reported as a pass.
 //
-// The fix is #681's own PR, which must decide the message wording (and deliberately NOT the
-// set-resolution policy — which variant of a ring to nest is the owner's call).
+// THE PINS BELOW WERE FLIPPED when the fix landed, which is the polarity working as designed: the fixing
+// PR could not leave this file claiming the old behavior. The executor now runs a second, name-based
+// search on the failure path only and reports through the shared `nestMissAdvice`.
+//
+// STILL DELIBERATELY NOT DECIDED: the set-resolution policy. Nothing here nests a variant of a set, and
+// the message stops at naming what it found and what to do — which variant, and whether that is exposed
+// per instance, is the owner's call, flagged on #681. A wrong ring that builds looks like success.
 
 const NEST = 'focus-ring';
 const withoutRing = full().comps!.filter((c) => c !== NEST);
@@ -954,28 +989,46 @@ for (const c of nestCases) {
   const r = await run(grid, { ...c.opts, page: { children: [] } });
   nestResults.push({ label: c.label, miss: nestMiss(r.misses), built: r.variants });
 }
-// The ABSENT case is CORRECT behavior and stays a positive assertion — it is the one row of #681's table
-// the current message gets right, and the fix must not change it.
+// The ABSENT case was the one row of #681's table the old message got right, so it was a positive
+// assertion before the fix and is UNCHANGED by it — which is the point of having written it that way:
+// it is the regression guard on the fix, not a claim the fix delivers.
 ok(nestResults[0].miss !== undefined && nestResults[0].miss!.indexOf('not in this file') >= 0,
-  `#681 with nothing of that name, the existing message is right and must survive the fix (${nestResults[0].miss})`);
-// Every case still BUILDS its whole set — the ring is dropped, not the run. True today, and stated so
-// the fix cannot quietly start refusing.
+  `#681 with nothing of that name, the original message survived the fix verbatim (${nestResults[0].miss})`);
+// Every case still BUILDS its whole set — the ring is dropped, not the run. True before the fix and after.
 ok(nestResults.every((r) => r.built === 21), `#681 every case still assembles all 21 members (${nestResults.map((r) => r.built).join('/')})`);
 
+// FLIPPED (was two pins per case): a node PRESENT at the wrong type is no longer described as absent, and
+// no longer told to publish a library it already has.
 for (const r of nestResults.slice(1)) {
-  pinned(r.miss !== undefined && r.miss.indexOf('not in this file') >= 0, '#681',
-    `with ${r.label} named ${NEST} in the file, the miss still claims it is "not in this file" — ${r.miss}`);
-  pinned(r.miss !== undefined && r.miss.indexOf('publish the shared component first') >= 0, '#681',
-    `...and still advises publishing a library, which is irrelevant when the node is present at the wrong type (${r.label})`);
+  ok(r.miss !== undefined && r.miss.indexOf('not in this file') < 0,
+    `#681 with ${r.label} named ${NEST} in the file, the miss no longer claims it is "not in this file" — ${r.miss}`);
+  ok(r.miss !== undefined && r.miss.indexOf('publish the shared component first') < 0,
+    `#681 ...and no longer advises publishing a library, which is irrelevant when the node is present at the wrong type (${r.label})`);
 }
-// THE EXPENSIVE HALF: all four node types produce the SAME string, so the miss carries no information a
-// designer could act on. This is the assertion the fix inverts — four distinguishable messages.
-pinned(new Set(nestResults.map((r) => r.miss)).size === 1, '#681',
-  `all four file states report ONE identical message, so nothing in it names what was actually found (${nestResults.map((r) => r.label).join(' / ')})`);
-// The INSTANCE row is called out on its own because duplicating a variant out of a set is the obvious
-// manual workaround for the COMPONENT_SET case — a designer following the advice lands here.
-pinned(nestResults[2].miss === nestResults[0].miss, '#681',
-  'an INSTANCE — what duplicating a variant out of a set produces — is indistinguishable from nothing at all');
+// FLIPPED, and this is the expensive half: four file states, four DISTINGUISHABLE messages. Was pinned at
+// `size === 1` — one string carrying no information a designer could act on.
+ok(new Set(nestResults.map((r) => r.miss)).size === 4, '#681'
+  + ` all four file states report a DIFFERENT message, so the miss names what was actually found (${new Set(nestResults.map((r) => r.miss)).size}/4 distinct)`);
+// Each message names the node type it found, checked one at a time rather than by counting distinctness —
+// four distinct strings could still all be wrong.
+ok(nestResults[1].miss!.indexOf('COMPONENT_SET') >= 0, `#681 the COMPONENT_SET case says so by name — ${nestResults[1].miss}`);
+ok(nestResults[2].miss!.indexOf('INSTANCE') >= 0, `#681 the INSTANCE case says so by name — ${nestResults[2].miss}`);
+ok(nestResults[3].miss!.indexOf('not a component') >= 0, `#681 the FRAME case says it is not a component — ${nestResults[3].miss}`);
+// FLIPPED. The INSTANCE row had its own pin because duplicating a variant out of a set is the obvious
+// manual workaround for the COMPONENT_SET case, so a designer following the old advice landed exactly
+// here — and got told the node they had just made did not exist.
+ok(nestResults[2].miss !== nestResults[0].miss,
+  '#681 an INSTANCE — what duplicating a variant out of a set produces — is now distinguishable from nothing at all');
+// And the ADVICE differs, not merely the diagnosis: the set case points at nesting a variant, the instance
+// case at nesting the main. A message that named the type but gave one generic instruction would pass
+// every assertion above.
+ok(nestResults[1].miss!.indexOf('nest a specific variant') >= 0 && nestResults[2].miss!.indexOf('main component') >= 0,
+  '#681 each case carries the action for THAT case, not one generic instruction');
+// THE POLICY BOUNDARY, asserted: diagnosis only. Every case still drops the ring rather than guessing a
+// variant to nest, because a wrong ring that builds looks like success. This is what must not change
+// without the owner's decision on #681.
+ok(nestResults.slice(1).every((r) => r.built === 21 && r.miss !== undefined),
+  '#681 no case silently nests a substitute — each reports and drops the ring, which is the policy #681 leaves to the owner');
 
 // =============================================================================================
 // #680 — FIGMA'S FONT-LOADED STATE, NOW MODELLED. The components lane already loads; it does not degrade.
@@ -1011,6 +1064,86 @@ pinned(unavailThrew.indexOf('unloaded font') >= 0, '#680',
 ok(unavailMisses.length === 0, '#680 (bookkeeping) the unavailable-font run returned nothing, because it threw — see the pin above');
 // #680's stated posture is `write-text-styles`': report what was skipped, write everything else. That is
 // what the fix must give this lane too, and this is the assertion that will invert.
+
+// =============================================================================================
+// #682 — THE DEPRECATED PROPORTION LOCK, MIGRATED TO `unlockAspectRatio()`
+// =============================================================================================
+// Figma's typings mark `constrainProportions` `@deprecated` in favour of `targetAspectRatio` /
+// `lockAspectRatio` / `unlockAspectRatio`. The migration is mechanical, but the thing it must not break
+// is subtle, so it is asserted three ways rather than one.
+//
+// Reachability first, and it is the whole reason these assertions can fail: the shim's nodes now START
+// aspect-LOCKED, and while locked `setBoundVariable` EVICTS the opposite dimension — the silent
+// last-write-wins the unlock exists to prevent. A shim whose nodes started unlocked would pass these
+// whether the executor called anything or not.
+const unlockPage: Page = { children: [] };
+const unlockRun = await run(grid, { ...full(), page: unlockPage });
+const allNodes = (n: Node): Node[] => [n, ...(((n.children as Node[]) ?? []).flatMap(allNodes))];
+const built = unlockPage.children.flatMap(allNodes);
+ok(built.length > 0, `#682 reachable: the run produced nodes to inspect (${built.length})`);
+
+// 1. THE CALL HAPPENS, on every node `build()` produces. `?.()` at the call site means an absent port
+//    method skips in silence, so a call COUNT is the only thing that distinguishes "unlocked" from
+//    "never asked".
+//
+//    Scoped to built nodes, and the exclusion is stated rather than silent: the COMPONENT_SET itself is
+//    created by `combineAsVariants`, never passes through `build()`, and so is never unlocked. That is
+//    correct and not an oversight — the set is `resize()`d and binds NO dimension variable, so it has no
+//    second binding to evict. `every built node` was the first form of this assertion and it failed
+//    66/67 on exactly that node, which is how the distinction got established instead of assumed.
+const buildable = built.filter((n) => n.type !== 'COMPONENT_SET');
+ok(buildable.length === built.length - 1,
+  `#682 reachable: exactly one node is not build()-produced — the set (${built.length - buildable.length})`);
+const unlocked = buildable.filter((n) => (n._unlocks as number) > 0);
+ok(unlocked.length === buildable.length,
+  `#682 every built node had unlockAspectRatio() called on it (${unlocked.length}/${buildable.length}) — counted, because the call site is optional-chained`);
+ok(buildable.every((n) => n._aspectLocked === false), '#682 ...and every one ended up actually unlocked, not merely called');
+// The set keeps its lock, and that is safe ONLY while it binds no dimensions. Asserted, so the day
+// something binds a dimension on the set this fails rather than silently losing one.
+const setNodes = built.filter((n) => n.type === 'COMPONENT_SET');
+ok(setNodes.every((n) => {
+  const bv = (n.boundVariables as Record<string, unknown>) ?? {};
+  return !bv.width && !bv.height;
+}), '#682 the un-unlocked set binds no dimension variable, which is what makes leaving it locked harmless');
+
+// 2. IT PRECEDED THE BINDINGS — the ordering claim, checked through its CONSEQUENCE rather than a
+//    timestamp: a slot binds width AND height to the same square-artboard variable, and both survive
+//    only if the unlock came first. This is the assertion that fails if the unlock is moved after the
+//    binds, which a call count alone would not catch.
+const slots = built.filter((n) => {
+  const bv = n.boundVariables as Record<string, unknown>;
+  return bv && (bv.width || bv.height);
+});
+ok(slots.length > 0, `#682 reachable: some node binds a dimension at all (${slots.length})`);
+const bothAxes = slots.filter((n) => {
+  const bv = n.boundVariables as Record<string, unknown>;
+  return bv.width && bv.height;
+});
+ok(bothAxes.length > 0,
+  `#682 a node holds BOTH dimension bindings at once (${bothAxes.length}/${slots.length}) — while locked, the second bind evicts the first, so this is the unlock's real effect`);
+// ...AND THE SHIM'S LOCK REALLY EVICTS — the negative control for the assertion above, read off the shim
+// directly rather than through the executor. Without it, `bothAxes` passes both when the executor unlocked
+// and when the shim never locked at all: mutating `_aspectLocked: true` to `false` in `mkNode` left both
+// suites 100% green, which is the docs/34 shape — a check that runs but cannot fire. Re-engaging the lock
+// on an already-built node and driving it by hand is the one probe that tells those two worlds apart.
+// A node straight from the shim's own factory, NOT one the executor touched — so it reports the state a
+// node STARTS in, which is the half of the model M8 breaks and re-locking an existing node cannot see.
+const fresh = (makeShim({}) as unknown as { createFrame(): Node }).createFrame();
+ok(fresh._aspectLocked === true, '#682 reachable: a fresh shim node starts aspect-LOCKED');
+(fresh as unknown as { setBoundVariable(p: string, v: { id: string; value?: number }): void })
+  .setBoundVariable('width', { id: 'V:control', value: 10 });
+(fresh as unknown as { setBoundVariable(p: string, v: { id: string; value?: number }): void })
+  .setBoundVariable('height', { id: 'V:control', value: 10 });
+const ctlBv = fresh.boundVariables as Record<string, unknown>;
+ok(!!ctlBv.height && !ctlBv.width,
+  '#682 reachable: ...and while locked it really evicts the opposite axis — so the both-axes claim above is about the unlock, not about a shim that never locked');
+
+// 3. THE DEPRECATED PROPERTY IS GONE, not merely joined by the new call. Without this the migration
+//    would pass on an executor that set both and left the old one doing the work.
+ok(!built.some((n) => 'constrainProportions' in n),
+  '#682 no node carries constrainProportions any more — the deprecated setter is gone, not shadowed');
+ok(unlockRun.misses.length === 0 && unlockRun.variants === 21,
+  `#682 ...and the migrated build is still clean (${unlockRun.variants} members, ${unlockRun.misses.length} misses)`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
