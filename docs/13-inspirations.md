@@ -439,5 +439,63 @@ to ejectability — the client takes the system and leaves. Whether blocks ship 
 on demand, or exist only as agent exemplars is a real fork that `35` §1's boundary does not currently
 resolve. Worth settling before an inventory tempts anyone into building all of them.
 
+### What depth we actually have, stated plainly
+
+**Names and counts only — no layouts.** The catalogue was read from the product's navigation: 23 type names
+and a count per type. The hero index was then fetched directly and lists its 22 entries as *"Hero Section
+1–22"* with **no layout description of any kind** — no media placement, no alignment, no split-vs-full-width.
+So the five-axis hypothesis above is exactly that: derived from what hero sections generally vary by, **not
+read off this library**. Nothing here is evidence about how these 22 differ, and #693 exists to replace the
+hypothesis with field-derived axes rather than to confirm it.
+
+### The distribution model, which answers a question §8 opened
+
+The install command is `npx shadcn@latest add @initium/<section-name>`. **Blocks ship as a shadcn registry —
+source copied into the consumer's repo, not a runtime dependency.** That matters more than it looks: the
+packaging fork this note raised (package / generate-on-demand / exemplars-only) already has a field answer,
+and it is the *eject* model `35` commits to. A block library and an ejectable deliverable are not in tension;
+the registry pattern is how the field ships exactly that. Note also what it implies about the tier — these
+are React + Tailwind source, so "a block" here is markup, not a configuration of a component API.
+
+### The AEM mapping — closer than the component tier is
+
+**Blocks map onto authorable CMS components far more cleanly than our component tier does**, and Adobe has
+converged on the same word. Edge Delivery Services calls its unit of page composition a **block**, ships an
+open-source collection (`adobe/aem-block-collection`) containing hero, cards, columns, carousel and FAQ, and
+sets a membership rule worth stealing outright: **a block earns its place by being used on more than half of
+all projects.** That is a sharper pruning criterion than any we have, and it applies to the axis work too.
+
+Classic AEM Sites is the same shape by a different route — an authorable component is a dialog plus a content
+schema plus HTL, and a Teaser or Carousel is a block in everything but name. `27` Idea 2 already phases the
+AEM lane (Phase 1: token clientlib + skinned Core Components, no custom components; Phase 2: Web Components
+via clientlib once the code library exists). **Blocks are the missing Phase 3**, and naming them as such is
+what keeps Phase 2 from being mistaken for the whole story.
+
+**The path is projection, not conversion.** Building blocks as React or Web Components and then porting them
+to AEM is a one-way lossy translation that immediately drifts — the same failure `14` §1 rejects at the
+component tier. If the block is **defined as data**, then React, Web Components, an AEM component and an EDS
+block are four projections of one definition, and the engine's existing posture carries straight up.
+
+**But a definition that captures only layout axes cannot generate the AEM projection.** An authorable
+component needs a **content model** — which fields exist, which are required, which the author edits versus
+which the system fixes — and neither React nor Web Components force you to state it. EDS makes this most
+visible: its blocks are authored as *tables*, so the content model is literally the block's shape. **So each
+block needs a content model alongside its layout axes**, and that half is what makes the definition portable
+to a CMS at all. Recorded as scope on #693 rather than discovered later.
+
+### The gap the reference library has, which is the one we most need
+
+**There are no commerce blocks in it.** All 23 types are SaaS-marketing shaped — hero, pricing, testimonial,
+logo wall, careers. No product grid, no faceted filtering, no product detail page, no cart or checkout. **A
+taxonomy built by mirroring this library would miss the surface the practice works on most**, and would miss
+it silently, because the omission is invisible from the type list unless you go looking for it.
+
+Product detail pages are bespoke per brand and genuinely vary — but they share a skeleton (media gallery,
+title/price/rating, variant selection, quantity and add-to-cart, delivery promise, specification accordions,
+reviews, recommendations, and the sticky mobile buy bar), which is exactly the condition that makes a block
+family worth deriving rather than hand-building each time. Worth stating that **the engine's own reference
+brand is a commerce brand**: New Balance is a shoe PDP, so the corpus we regress against is already the case
+this library does not serve. Filed as scope on #693 and as a practice-side note in KB `09` §1.36.
+
 **Status: nothing committed.** Field note plus a filed axis-derivation run (#693); the axis work is next, and
 it should prove the method on hero — the deepest family — before committing to 23 of them.

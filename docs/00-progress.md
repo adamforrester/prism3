@@ -58,6 +58,39 @@ ejectability. Whether they ship as a package, generate on demand, or exist only 
 resolved by `35` §1's boundary. Worth settling before an inventory tempts anyone into building 197 of them —
 and 197 is a description of a mature commercial catalogue, not a scope.
 
+**Second pass, after the owner asked what depth we actually had — and the honest answer was "none."** The
+catalogue was read from a navigation screenshot: 23 type names and a count each. Fetching the hero index
+directly returned 22 entries named *"Hero Section 1–22"* with **no layout description of any kind**. So the
+five-axis hypothesis in `13` §8 is derived from what hero sections generally vary by, **not read off this
+library**, and it is now labeled as such in the doc. Worth holding onto as a pattern: a count is the cheapest
+thing to capture and the least informative, and it reads like depth in a progress log unless someone says
+otherwise.
+
+**The fetch answered the packaging fork this entry had left open.** Install is `npx shadcn@latest add
+@initium/<name>` — blocks ship as a **shadcn registry, source copied into the consumer's repo**. That is the
+eject model `35` already commits to, so a block library and an ejectable deliverable were never in tension;
+the field has a shipped answer and we should use it rather than re-derive one.
+
+**And the AEM connection the owner raised is stronger than the component tier's.** Adobe converged on the same
+word: Edge Delivery Services calls its unit of page composition a **block**, ships `adobe/aem-block-collection`
+(hero, cards, columns, carousel, FAQ), and admits a block **only if it is used on more than half of all
+projects** — a sharper pruning rule than anything we have, and directly reusable on the axis work. `27` Idea 2
+already phases the AEM lane; **blocks are the missing Phase 3.** The path is **projection, not conversion** —
+building in React and porting to AEM is the one-way lossy translation `14` §1 rejects one tier down. **The
+non-obvious consequence:** an authorable CMS component needs a **content model** (which fields exist, which are
+required, which the author edits) that neither React nor Web Components force you to state, and EDS makes it
+literal by authoring blocks as tables. So a block definition capturing only layout axes **cannot** generate the
+AEM projection. Added as scope on #693 before it could be discovered late.
+
+**The reference library's blind spot is the one that matters most here: no commerce blocks at all.** All 23
+types are SaaS-marketing shaped — no product grid, no faceted filtering, no PDP, no cart. A taxonomy built by
+mirroring it would miss the practice's most common surface *silently*, since nothing in the type list announces
+the omission. PDPs vary by brand but share a skeleton (gallery, title/price/rating, variant selection,
+add-to-cart, delivery promise, spec accordions, reviews, recommendations, sticky mobile buy bar) — which is the
+precondition for deriving a family rather than hand-building each one. **The engine's own regression brand is a
+commerce brand**: New Balance is a shoe PDP, so the corpus we measure against is already the case this library
+does not serve.
+
 **Trap for whoever picks this up:** the counts above were read off a navigation screenshot on 2026-08-10 and
 nothing re-derives them. They are a shape, not a baseline — do not build a gate against them.
 
