@@ -56,6 +56,23 @@ const ok = (cond: boolean, label: string): void => {
   else { failed++; console.error(`  ✗ ${label}`); }
 };
 
+/**
+ * A KNOWN DEFECT, PINNED — reproduced here, deliberately not fixed here.
+ *
+ * `cond` states the WRONG behavior the executor has today, so the pin passes while the defect is
+ * present and goes RED the day it is fixed, naming the issue and the assertion to flip. That is the
+ * opposite polarity from `ok` and the sign is the whole point: a test left genuinely red cannot be told
+ * apart from a broken build, and CI would refuse the PR that makes the defect reproducible at all.
+ *
+ * Same shape as `packages/tokens`' consumer-side count: a MEMORY of what is true rather than a RULE
+ * about what should be. The pin is what forces the fixing PR to touch this file — it cannot land a fix
+ * and leave the reproduction claiming the old behavior.
+ */
+const pinned = (cond: boolean, issue: string, label: string): void => {
+  if (cond) console.log(`  ⊗ ${issue} PINNED (defect still present, as expected): ${label}`);
+  else { failed++; console.error(`  ✗ ${issue} is FIXED — flip this pin to a positive assertion: ${label}`); }
+};
+
 // ---- the in-memory components shim --------------------------------------------------------
 type Node = Record<string, unknown>;
 /** A PAGE that outlives one run, because idempotency's whole premise is that run 2 finds what run 1
@@ -67,8 +84,44 @@ type Page = { children: Node[] };
  *  measure right. Same function the engine's stub uses, so the two paths measure identically. */
 const varValue = (name: string): number => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
 
+type FontName = { family: string; style: string };
+const fontKey = (f: FontName): string => `${f.family}|${f.style}`;
+/** The font every text style in this shim names, unless a case overrides it. Semi Bold rather than
+ *  Regular so a style's font is DIFFERENT from the font a fresh `createText` node starts on — equal
+ *  fonts would make the loaded-font model below unfalsifiable. */
+const STYLE_FONT: FontName = { family: 'Inter', style: 'Semi Bold' };
+
+/**
+ * A node in the FILE the executor searches, beyond the plain components `comps` names.
+ *
+ * Its `type` is the whole of #681: `findAllWithCriteria({ types: ['COMPONENT'] })` matches
+ * `ComponentNode` and never `ComponentSetNode`, so a `focus-ring` that is a component SET is absent
+ * from the lookup while its CHILDREN are present under their variant coordinates (`state=default`).
+ * A flat name→component map cannot express that, which is why the live defect had no test.
+ */
+type FileNode =
+  /** A component SET. Its `variants` become child COMPONENTs named by their variant coordinate — which
+   *  is what a criteria search actually returns, and why the set's own name never enters the map. */
+  | { name: string; type: 'COMPONENT_SET'; variants: string[] }
+  /** An INSTANCE of a component, the shape a designer produces by duplicating a variant out of a set or
+   *  dragging one in from a library. Its `main` is reachable only THROUGH the instance: an instance of a
+   *  library component has no main in this file, so a criteria search cannot find it. */
+  | { name: string; type: 'INSTANCE'; main: string }
+  /** A FRAME or GROUP someone named the same thing — the third row of #681's message table. */
+  | { name: string; type: 'FRAME' | 'GROUP' };
+
 type ShimOpts = {
   vars?: string[]; styles?: string[]; effects?: string[]; comps?: string[]; page?: Page; insetValue?: unknown;
+  /** Nodes in the file that are NOT plain components (#681). Kept separate from `comps` so every
+   *  existing case reads unchanged: `comps` still means "a plain COMPONENT of this name". */
+  fileNodes?: FileNode[];
+  /** Fonts `loadFontAsync` REFUSES — a family/style that is not installed. Figma fails this at the load
+   *  call, which is a different failure from a font that exists but has not been loaded this run; both
+   *  are modelled, and the executor's `catch` around the load was unreachable until now. */
+  unavailableFonts?: FontName[];
+  /** The font every text style names. Overridable so a case can put a font the run cannot load behind
+   *  a style the plan does resolve. */
+  styleFont?: FontName;
   /** DELIBERATE COST, in ms, charged to a named host call — the only way this harness can gate a rule
    *  about WHEN the clock starts. Everything else here is synchronous, so every `chunkMs` is 0 and the
    *  strongest available assertion is `>= 0`, which no clock rule can fail. `setup` burns inside
@@ -87,6 +140,18 @@ const burnMs = (ms: number): void => { const t0 = Date.now(); while (Date.now() 
 const makeShim = (opts: ShimOpts = {}) => {
   const names = new Set(opts.vars ?? []);
   const page = opts.page;
+  /**
+   * FIGMA'S FONT-LOADED STATE — per plugin RUN, and the host behavior no shim modelled (#680).
+   *
+   * A font must be loaded before any write that resolves text in it, and nothing a previous run loaded
+   * is loaded in this one. Modelled here because the alternative — an unconditional no-op
+   * `loadFontAsync` — makes the executor's whole font path unfalsifiable: it can never throw, so the
+   * `catch` that reports it is a check that runs and cannot fire.
+   */
+  const loadedFonts = new Set<string>();
+  const unavailable = new Set((opts.unavailableFonts ?? []).map(fontKey));
+  const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
+  const fontOfStyle = (id: string): FontName | undefined => textStyles.find((s) => s.id === id)?.fontName;
   // Members LEAVE the page when they join a set, as they do live — otherwise `set.children` and the
   // page disagree about who owns what, which is the state the skip-by-name check reads.
   const takeFromPage = (kids: Node[]): void => {
@@ -140,7 +205,16 @@ const makeShim = (opts: ShimOpts = {}) => {
       setBoundVariable(prop: string, v: { id: string; value?: number }) {
         (node.boundVariables as Record<string, unknown>)[prop] = { id: v.id, value: v.value };
       },
-      setTextStyleIdAsync: async (id: string) => { node._textStyleId = id; },
+      // APPLYING A STYLE RE-RESOLVES THE TEXT, so Figma demands the style's font be loaded FIRST — and
+      // nothing a previous run loaded counts (#680). Modelled because an unconditional success makes the
+      // executor's `loadFontAsync` call deletable with the whole suite green: the `catch` that reports a
+      // font it could not load is a check that runs and cannot fire. The message is Figma's own.
+      setTextStyleIdAsync: async (id: string) => {
+        const fn = fontOfStyle(id);
+        if (fn && !loadedFonts.has(fontKey(fn)))
+          throw new Error(`in setTextStyleIdAsync: unloaded font "${fn.family} ${fn.style}". Please call figma.loadFontAsync({ family: "${fn.family}", style: "${fn.style}" }) and await the returned promise first.`);
+        node._textStyleId = id;
+      },
       setEffectStyleIdAsync: async (id: string) => { node._effectStyleId = id; },
       // ABSOLUTE POSITIONING with its REJECTION CASE, which is the only part worth modelling: Figma
       // ignores `layoutPositioning` on a child of a non-auto-layout parent, and it ignores it SILENTLY.
@@ -197,20 +271,55 @@ const makeShim = (opts: ShimOpts = {}) => {
       setBoundVariableForPaint: (p: object, field: string, v: { id: string }) => ({ ...p, boundVariables: { [field]: { id: v.id } } }),
     },
     // `fontName` on every style, because the executor loads the STYLE'S font before writing text.
-    getLocalTextStylesAsync: async () => (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: { family: 'Inter', style: 'Semi Bold' } })),
+    getLocalTextStylesAsync: async () => textStyles,
     getLocalEffectStylesAsync: async () => (opts.effects ?? []).map((name: string) => ({ id: `E:${name}`, name })),
-    loadFontAsync: async () => {},
+    // TWO failure modes, and they are different (#680): a font that is not INSTALLED fails here, at the
+    // load; a font that exists but has not been loaded THIS RUN fails later, at the write. An
+    // unconditional no-op models neither.
+    loadFontAsync: async (fn: FontName) => {
+      if (unavailable.has(fontKey(fn))) throw new Error(`Cannot load font "${fn.family} ${fn.style}": it is not available.`);
+      loadedFonts.add(fontKey(fn));
+    },
     // Zero-cost unless a run asks for the burn (`opts.burn.setup`). This is the last of the pre-build-loop
-    // setup calls, so a burn here lands in exactly the window the build loop's re-stamp exists to exclude.
     loadAllPagesAsync: async () => { if (opts.burn?.setup) burnMs(opts.burn.setup); },
-    // A COMPONENT the executor can instantiate, so the swap path is exercised rather than always
-    // degrading to a placeholder. `createInstance` returns a node with a VECTOR inside, because the
-    // icon ink routes to the vector and not the instance. `id` as well as `name`, because an
-    // INSTANCE_SWAP default must be a node ID.
-    root: { findAllWithCriteria: () => (opts.comps ?? []).map((name, i) => ({
-      name, id: `73:${37 + i}`,
-      createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null; return inst; },
-    })) },
+    // WHAT A CRITERIA SEARCH ACTUALLY RETURNS (#681). `types: ['COMPONENT']` matches `ComponentNode`
+    // only, so this honors the criteria rather than ignoring them — the previous flat map returned every
+    // entry as a bare COMPONENT whatever it was, which is exactly why the live defect could not be
+    // reproduced. `comps` are plain components; `fileNodes` are everything else in the file, and each
+    // contributes what a real search would see:
+    //   · COMPONENT_SET — its CHILDREN, named by variant coordinate. The set's own name never appears,
+    //     which is the whole defect: the lookup misses a `focus-ring` that is in the file.
+    //   · INSTANCE — nothing. An instance is not a COMPONENT, and its main component is reachable only
+    //     through the instance (for a library instance, not at all).
+    //   · FRAME/GROUP — nothing, for the same reason.
+    root: {
+      findAllWithCriteria: (criteria?: { types?: string[] }) => {
+        const types = criteria?.types ?? ['COMPONENT'];
+        const mkRef = (name: string, i: number) => ({
+          name, id: `73:${37 + i}`,
+          createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null; return inst; },
+        });
+        const found: { name: string; id: string; createInstance: () => Node }[] = [];
+        let seq = 0;
+        for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mkRef(name, seq++));
+        for (const fn of opts.fileNodes ?? []) {
+          if (fn.type === 'COMPONENT_SET') {
+            if (types.includes('COMPONENT_SET')) found.push(mkRef(fn.name, seq++));
+            // The members, under their variant coordinates — the names a COMPONENT search really returns.
+            if (types.includes('COMPONENT')) for (const v of fn.variants) found.push(mkRef(v, seq++));
+          } else if (types.includes(fn.type)) found.push(mkRef(fn.name, seq++));
+        }
+        return found;
+      },
+      // What a NAME-based search over the whole file sees, which is a different question from a
+      // criteria search and the one a better miss message has to ask. Not part of `ComponentsApi`
+      // today — deliberately: this PR adds no fix, and a port method with no caller is dead weight. It
+      // is here so the tests below can state what the file HELD when the lookup reported it absent.
+      _allNamed: (name: string): { name: string; type: string }[] => [
+        ...(opts.comps ?? []).filter((c) => c === name).map((c) => ({ name: c, type: 'COMPONENT' })),
+        ...(opts.fileNodes ?? []).filter((f) => f.name === name).map((f) => ({ name: f.name, type: f.type })),
+      ],
+    },
     createText: () => mkNode('TEXT'),
     createFrame: () => mkNode('FRAME'),
     createComponentFromNode: (n: Node) => n,
@@ -368,8 +477,21 @@ ok(full().comps!.includes('FPO-default-icon') && full().comps!.includes('focus-r
 ok(planSetProperties(grid).length > 0, `the plans derive component properties (${planSetProperties(grid).map((p) => `${p.name}:${p.type}`).join(', ')})`);
 
 // ---- the fully-resolved run ----------------------------------------------------------------
+// GUARDED, because a stack trace is not a test result: it names a line rather than a claim, and it
+// aborts every assertion below it — including the ones a reader would go looking for. This became a real
+// possibility once the shim started modelling Figma's font-loaded state (#680): deleting this lane's
+// `loadFontAsync` call makes `setTextStyleIdAsync` throw from here, and that must read as the failure of
+// a named claim, not as a crash.
 const page: Page = { children: [] };
-const r1 = await run(grid, { ...full(), page });
+let r1Threw = '';
+let r1!: Awaited<ReturnType<typeof run>>;
+try { r1 = await run(grid, { ...full(), page }); } catch (e) { r1Threw = (e as Error).message; }
+ok(r1Threw === '', `the fully-resolved run COMPLETES rather than throwing${r1Threw ? ` — ${r1Threw.slice(0, 110)}` : ''}`);
+if (r1Threw) {
+  console.error('\n  (every assertion below depends on that run, so the suite stops here)');
+  console.log(`\nplugin COMPONENT write-adapter: ${failed} FAILED`);
+  process.exit(1);
+}
 
 ok(r1.misses.length === 0, `fully-resolved run reports NO misses (${r1.misses.length}${r1.misses.length ? ` — ${r1.misses.slice(0, 3).join('; ')}` : ''})`);
 ok(r1.set === 'button' && r1.variants === 21 && r1.added === 21, `one set named 'button' holding all 21 members, all newly built (set=${r1.set}, variants=${r1.variants}, added=${r1.added})`);
@@ -739,6 +861,118 @@ ok(clamped.progress.filter((p) => p.phase === 'build').length === grid.length,
 // this cannot judge the value (no event loop), so it only catches a `CHUNK` left at 0, at 1, or set to
 // something that would make the whole set one chunk again, which is the regression that matters.
 ok(Number.isInteger(CHUNK) && CHUNK > 1 && CHUNK < 200, `CHUNK is a plausible chunk size, not the whole set (${CHUNK})`);
+
+// =============================================================================================
+// #681 — A NEST TARGET THAT *IS* IN THE FILE, REPRODUCED. NOT FIXED HERE.
+// =============================================================================================
+// The live 648-variant build reported 108 identical misses — exactly 648 / 6, every `state=focus-visible`
+// member — saying `focus-ring` was "not in this file; publish the shared component first". It WAS in the
+// file, as a component SET. `types: ['COMPONENT']` matches `ComponentNode` and never `ComponentSetNode`,
+// so the criteria search returned the set's CHILDREN under their variant coordinates and the set's own
+// name never entered the map.
+//
+// This had no test because the old shim ignored its criteria and returned every `comps` entry as a bare
+// COMPONENT: the distinction between "absent" and "present but the wrong node type" could not exist. The
+// shim now honors the criteria, which is what makes the three cases below reachable at all — and
+// reachability is the point, per docs/34: a check that runs but cannot fire is reported as a pass.
+//
+// The fix is #681's own PR, which must decide the message wording (and deliberately NOT the
+// set-resolution policy — which variant of a ring to nest is the owner's call).
+
+const NEST = 'focus-ring';
+const withoutRing = full().comps!.filter((c) => c !== NEST);
+/** The three files, differing ONLY in what they hold under the name `focus-ring`. */
+const nestCases: { label: string; opts: ShimOpts }[] = [
+  { label: 'nothing of that name', opts: { ...full(), comps: withoutRing } },
+  { label: 'a COMPONENT_SET', opts: { ...full(), comps: withoutRing, fileNodes: [{ name: NEST, type: 'COMPONENT_SET', variants: ['state=default', 'state=error'] }] } },
+  { label: 'an INSTANCE', opts: { ...full(), comps: withoutRing, fileNodes: [{ name: NEST, type: 'INSTANCE', main: NEST }] } },
+  { label: 'a FRAME', opts: { ...full(), comps: withoutRing, fileNodes: [{ name: NEST, type: 'FRAME' }] } },
+];
+
+// ---- REACHABILITY FIRST: the shim really models each file, or every pin below is vacuous -------
+// Asserted against the shim's OWN search, because the executor's map is what is under test — reading
+// the map back would be reading the subject.
+for (const c of nestCases.slice(1)) {
+  const api = makeShim(c.opts) as unknown as {
+    root: { findAllWithCriteria: (crit: { types: string[] }) => { name: string }[]; _allNamed: (n: string) => { type: string }[] };
+  };
+  const held = api.root._allNamed(NEST).map((n) => n.type);
+  ok(held.length === 1, `#681 reachable: the file holds exactly one node named ${NEST}, ${c.label} (${held.join(', ')})`);
+  const searched = api.root.findAllWithCriteria({ types: ['COMPONENT'] }).map((n) => n.name);
+  ok(!searched.includes(NEST),
+    `#681 reachable: a COMPONENT search does NOT return ${NEST} when it is ${c.label} — the lookup is genuinely blind to it (${searched.filter((n) => n.indexOf('state=') === 0 || n === NEST).join(', ') || 'nothing of that name'})`);
+}
+// And the COMPONENT_SET case specifically returns the MEMBERS, which is the misleading part live: the
+// search comes back non-empty, just never under the name asked for.
+const setApi = makeShim(nestCases[1].opts) as unknown as { root: { findAllWithCriteria: (c: { types: string[] }) => { name: string }[] } };
+const setSearched = setApi.root.findAllWithCriteria({ types: ['COMPONENT'] }).map((n) => n.name);
+ok(setSearched.includes('state=default') && setSearched.includes('state=error'),
+  `#681 reachable: the set's MEMBERS come back under their variant coordinates (${setSearched.filter((n) => n.indexOf('state=') === 0).join(', ')})`);
+
+// ---- the four runs, and the miss each one reports ---------------------------------------------
+const nestMiss = (misses: string[]): string | undefined => misses.find((m) => m.indexOf(`nestTarget -> ${NEST}`) >= 0);
+const nestResults: { label: string; miss: string | undefined; built: number }[] = [];
+for (const c of nestCases) {
+  const r = await run(grid, { ...c.opts, page: { children: [] } });
+  nestResults.push({ label: c.label, miss: nestMiss(r.misses), built: r.variants });
+}
+// The ABSENT case is CORRECT behavior and stays a positive assertion — it is the one row of #681's table
+// the current message gets right, and the fix must not change it.
+ok(nestResults[0].miss !== undefined && nestResults[0].miss!.indexOf('not in this file') >= 0,
+  `#681 with nothing of that name, the existing message is right and must survive the fix (${nestResults[0].miss})`);
+// Every case still BUILDS its whole set — the ring is dropped, not the run. True today, and stated so
+// the fix cannot quietly start refusing.
+ok(nestResults.every((r) => r.built === 21), `#681 every case still assembles all 21 members (${nestResults.map((r) => r.built).join('/')})`);
+
+for (const r of nestResults.slice(1)) {
+  pinned(r.miss !== undefined && r.miss.indexOf('not in this file') >= 0, '#681',
+    `with ${r.label} named ${NEST} in the file, the miss still claims it is "not in this file" — ${r.miss}`);
+  pinned(r.miss !== undefined && r.miss.indexOf('publish the shared component first') >= 0, '#681',
+    `...and still advises publishing a library, which is irrelevant when the node is present at the wrong type (${r.label})`);
+}
+// THE EXPENSIVE HALF: all four node types produce the SAME string, so the miss carries no information a
+// designer could act on. This is the assertion the fix inverts — four distinguishable messages.
+pinned(new Set(nestResults.map((r) => r.miss)).size === 1, '#681',
+  `all four file states report ONE identical message, so nothing in it names what was actually found (${nestResults.map((r) => r.label).join(' / ')})`);
+// The INSTANCE row is called out on its own because duplicating a variant out of a set is the obvious
+// manual workaround for the COMPONENT_SET case — a designer following the advice lands here.
+pinned(nestResults[2].miss === nestResults[0].miss, '#681',
+  'an INSTANCE — what duplicating a variant out of a set produces — is indistinguishable from nothing at all');
+
+// =============================================================================================
+// #680 — FIGMA'S FONT-LOADED STATE, NOW MODELLED. The components lane already loads; it does not degrade.
+// =============================================================================================
+// The live failure was in `write-figma.ts` (the variable writer, which loads no fonts at all) — see
+// `test-write.ts` for the reproduction at the site of the defect. What the shim's new font state buys
+// HERE is different and worth having on its own: this lane's `loadFontAsync` call and the `catch` around
+// it were both unfalsifiable while the shim's load was an unconditional no-op.
+
+// The POSITIVE half, now reachable: the style's font is loaded BEFORE the style is applied. `r1` above
+// ran clean against a shim that throws from `setTextStyleIdAsync` on an unloaded font, so deleting the
+// load call now fails the fully-resolved run instead of passing it. Stated explicitly because "some
+// other assertion happens to cover it" is not a gate anyone can find later.
+const fontPage: Page = { children: [] };
+const loadedRun = await run(grid, { ...full(), page: fontPage });
+ok(loadedRun.misses.length === 0 && loadedRun.variants === 21,
+  `#680 the style's own font is loaded before the style is applied — an unloaded font now THROWS from setTextStyleIdAsync (${loadedRun.misses.length} misses)`);
+ok(!loadedRun.misses.some((m) => m.indexOf('.font ->') >= 0), '#680 ...and nothing was reported as unloadable when every font is available');
+
+// The OTHER failure mode: a font that is not INSTALLED. Figma fails that at the load call, and this lane
+// catches it and reports a miss — then applies the style anyway, which throws, and nothing catches THAT.
+const missingFont: FontName = { family: 'Clash Display', style: 'Semi Bold' };
+let unavailThrew = '';
+let unavailMisses: string[] = [];
+try {
+  const r = await run(grid, { ...full(), page: { children: [] }, styleFont: missingFont, unavailableFonts: [missingFont] });
+  unavailMisses = r.misses;
+} catch (e) { unavailThrew = (e as Error).message; }
+// The load failure IS reported — the `catch` at write-components.ts:296 works, and is now exercised.
+// (Only reachable when the run survives to return; pinned below is the case where it does not.)
+pinned(unavailThrew.indexOf('unloaded font') >= 0, '#680',
+  `a brand whose typeface is not installed loses the WHOLE component build rather than degrading — the load miss is reported, then the style is applied anyway and the throw escapes (${unavailThrew.slice(0, 80)}…)`);
+ok(unavailMisses.length === 0, '#680 (bookkeeping) the unavailable-font run returned nothing, because it threw — see the pin above');
+// #680's stated posture is `write-text-styles`': report what was skipped, write everything else. That is
+// what the fix must give this lane too, and this is the assertion that will invert.
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
