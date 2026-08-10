@@ -214,7 +214,7 @@ natively — they sort together in the picker, and they keep the axes from readi
 | Lane | Covers | Gated by |
 |---|---|---|
 | `lane:engine` | The pure core **and `emit-figma`** | Engine tests, NB regression, byte-repro fixture, `out/*` discipline |
-| `lane:web` | The dashboard / theme studio | `tsc` + build, headless drive |
+| `lane:studio` | The dashboard / theme studio (`apps/studio`, `@prism3/studio`) | `tsc` + build, headless drive |
 | `lane:plugin` | The Figma plugin workspace | Two-context typecheck, shim tests, 0 `node:` builtins, live drive |
 | `lane:figma` | **Canvas craft** — building components *in Figma*, canvas docs, library structure, Code Connect authoring | Design review; no code gates |
 | `lane:code-library` | The **code** component library — headless core + its projections (WC, React, Storybook, `.ai.json`, usage docs) (`docs/19`) | TBD when the lane activates — Storybook, a11y, visual regression |
