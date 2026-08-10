@@ -640,7 +640,10 @@ ok(reRun.yieldCalls === reRun.progress.length && reRun.yieldCalls > 0,
 // when the burn silently never happened — a renamed shim method, an `opts.burn` that stopped being threaded
 // through — and then the assertion measures nothing while reading as coverage. So every case below asserts
 // BOTH that the cost is excluded where the re-stamp puts it AND that this harness could see that cost at
-// all. Without the paired control this whole block is the same defect it was written to fix.
+// all. Without the paired control this whole block is the same defect it was written to fix — which it was,
+// for one of the three burns, until the control loop below was derived from the burn list instead of written
+// out by hand. A rule stated in a comment and applied two-thirds of the time is worth less than the comment
+// implies, so the enforcement is now structural: see THE POSITIVE CONTROLS.
 const BURN = 120;
 const YIELD_BURN = 40;
 const firstOf = (ps: ComponentProgress[], ph: string): number => ps.find((p) => p.phase === ph)!.chunkMs;
@@ -671,16 +674,32 @@ const secondBuild = burnYield.progress.filter((p) => p.phase === 'build')[1].chu
 ok(secondBuild < YIELD_BURN / 2,
   `a chunk excludes the ${YIELD_BURN}ms yield that preceded it (2nd build chunk ${secondBuild}ms)`);
 
-// THE POSITIVE CONTROLS. Each burn is proven VISIBLE to `chunkMs` — otherwise the three assertions above
-// are satisfied by a burn that never ran. Cost inside the loop body has no re-stamp between it and the
-// boundary, so it must land in the reading; if it does not, this harness cannot charge time at all and the
-// exclusions above are vacuous.
+// THE POSITIVE CONTROLS, ONE PER BURN AND DERIVED FROM THE BURN LIST SO THERE CANNOT BE TWO OF THREE.
+// Each burn is proven VISIBLE — otherwise the exclusions above are satisfied by a burn that never ran, which
+// is this block's own thesis used against it. The first version of this block controlled `setup` and the
+// yield and NOT `combine`, and the cost of that asymmetry was exact: neutering the one unasserted line
+// (`if (opts.burn?.combine) …`) left case 2 reporting a green tick at 0ms, and with the wire re-stamp then
+// also deleted the suite stayed at ALL PASS — the gate resting on an unasserted line in a shim method this
+// PR edited twice. So the two shim-charged burns are controlled by MAPPING over their names rather than by
+// two hand-written blocks: adding a fourth burn without a control is then a missing key, not a missing
+// paragraph someone has to notice.
+//
+// A burn's cost is excluded from every `chunkMs` by the very re-stamp under test, so the witness is WALL
+// CLOCK, measured as the DELTA against an un-burned baseline. The delta rather than a bare `>= BURN`: an
+// absolute bound is also satisfiable by a slow machine, and what needs proving is that the burn is the
+// difference between the two runs.
+const timeRun = async (burn?: ShimOpts['burn']): Promise<number> => {
+  const t0 = Date.now();
+  await instrumented(grid, { ...fullFor(grid), page: { children: [] }, burn }, 5);
+  return Date.now() - t0;
+};
+const ctlBase = await timeRun();
+for (const key of ['setup', 'combine'] as const) {
+  const elapsed = await timeRun({ [key]: BURN });
+  ok(elapsed - ctlBase >= BURN * 0.5,
+    `CONTROL: the ${key} burn really costs wall-clock this harness can measure (${elapsed}ms vs ${ctlBase}ms un-burned, +${elapsed - ctlBase}ms)`);
+}
 const ctlNoBurn = await instrumented(grid, { ...fullFor(grid), page: { children: [] } }, 5);
-const ctlT0 = Date.now();
-await instrumented(grid, { ...fullFor(grid), page: { children: [] }, burn: { setup: BURN } }, 5);
-const ctlElapsed = Date.now() - ctlT0;
-ok(ctlElapsed >= BURN,
-  `CONTROL: the setup burn really costs wall-clock this harness can measure (${ctlElapsed}ms >= ${BURN}ms)`);
 ok(ctlNoBurn.progress.length > 0 && firstOf(ctlNoBurn.progress, 'build') >= 0,
   'CONTROL: the un-burned run reports as usual, so the burn is the only difference between them');
 // And the yield burn: 10 boundaries at 40ms each is ~400ms of wall clock that `chunkMs` must not have

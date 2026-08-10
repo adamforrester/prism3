@@ -11,7 +11,7 @@
 
 **STATUS: shipped, with one number still to measure.** `regen --check` unchanged at **104** — this is
 plugin-side execution, no emitted artifact moves. Engine tests unchanged at **2061**; plugin assertions
-**197 → 258** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
+**197 → 259** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
 in a throwaway worktree and on this branch. An earlier draft of this line said **213**, which was the count
 after the first commit and was not re-measured when the telemetry file landed in the second — a stale number
 in exactly the place the entry tells you to trust it. Re-measured at each commit since). **`CHUNK = 24` is a guess with a rationale, not a measurement** — the live 648 run
@@ -187,9 +187,27 @@ build **120ms**, wire **120ms**, post-yield **41ms**. The post-yield one also tr
 **Every burn has a POSITIVE CONTROL, and that is the part not to trim.** "The first chunk is 0ms" also passes
 when the burn silently never happened — a renamed shim method, an `opts.burn` that stopped being threaded
 through — and then the assertion measures nothing while reading as coverage, which is precisely the defect
-this block was written to fix. Mutating `burnMs` into a no-op fails 3 controls (`2ms >= 120ms`); without them
-it would have failed nothing at all while leaving three green assertions about clock behavior that no longer
-touched a clock.
+this block was written to fix. Mutating `burnMs` into a no-op fails 4 controls; without them it would have
+failed nothing at all while leaving three green assertions about clock behavior that no longer touched a
+clock.
+
+**And a fourth review pass caught that rule being applied two-thirds of the time — inside the commit that
+stated it.** The paragraph above shipped with controls for `setup` and the yield and **none for `combine`**.
+Neutering that one line (`if (opts.burn?.combine) …`) left case 2 reporting a **green tick at 0ms**, and the
+consequence was not theoretical: with the wire re-stamp *also* deleted the suite stayed at ALL PASS, so the
+whole clock gate rested on one unasserted line in a shim method this PR edited twice. This is the sharpest
+instance of the family in `docs/34`'s register — not a missing gate, nor even a gate built from its subject,
+but **a stated rule followed incompletely by the commit that stated it**, which reads as compliance precisely
+because the comment asserts it.
+
+Fixed so the asymmetry cannot recur rather than by adding one line: the two shim-charged burns are controlled
+by **mapping over their names**, so a fourth burn without a control is a missing key rather than a missing
+paragraph someone has to notice. The witness is wall clock as a **delta against an un-burned baseline** — a
+burn's cost is excluded from every `chunkMs` by the very re-stamp under test, and an absolute `>= BURN` bound
+is also satisfiable by a slow machine, where what needs proving is that the burn is the difference between the
+two runs. Each burn now fails independently: `combine` neutered → 1 (`1ms vs 1ms un-burned, +0ms`), `setup`
+neutered → 1, `burnMs` a no-op → 4, and the compound neutered-burn-plus-deleted-re-stamp that previously
+passed → 1.
 
 **Two nits from the same pass, both closed because both were reachable rather than stylistic.**
 `settleMs === null` shortened to `!settleMs` survived — and an instant settle is a real outcome
