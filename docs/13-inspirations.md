@@ -318,3 +318,50 @@ organization has."* The concrete moves:
 | AI proposes params → system derives (NL vibe → schema → live re-theme) | Southleft (prompt console; JSON schema = the contract) | **Gap / candidate task** — we have the plumbing (`brandState`→`apply`, `standard-design-md`, `theme-schema.json`); missing the NL front door |
 | Verified *generation* (contrast contracts, regression, modes) | Southleft (WCAG-AA solver — but single accent / lead pairs / one mode-lead); the rest none | **Prism3's differentiator holds** — ours verifies 488/488 contracts across four modes, not one lead pair |
 | Figma as the underserved agent surface | ds-brain (open question), Astryx (absent) | Actively building — `emit-figma` (`10`), MCP materialization route |
+
+---
+
+## 7. Vocabulary watch — naming the Figma ⇄ JSON engine (Nathan Curtis poll, 2026-08-09)
+
+A different kind of entry from §1–§5: not a system review, a **naming signal**. Logged because Curtis is
+the lineage source behind several POVs this repo already builds on (components-as-data, the Specs CLI
+verifier in `14` §4, the three-tier taxonomy, `27` Idea 5) and because the thing he is naming is the thing
+we are adjacent to.
+
+**The question, verbatim:** *"How do you refer to a deterministic transformation engine between Figma +
+JSON schema-based contract that goes both ways without data loss?"* Options offered: **Lossless ·
+Bi-directional transpiler · Round tripping · Reversible UI serializer.**
+
+**What it tells us: we are not that, and the difference is the product.** All four candidate terms
+presuppose **isomorphism** — both sides carry the same information, so a faithful mapping runs either
+way. Prism3 is deliberately asymmetric. `BrandInput` is *smaller* than the token system it produces:
+sparse anchors go in, and the engine supplies the color science, the contrast contracts and the scale
+math. That gap is the value. The inverse is not determined, which is why #677 rules out reconstructing a
+`BrandInput` from emitted tokens rather than filing it as work.
+
+**The distinction worth keeping — reversible is not reproducible.**
+
+| | means | what it buys |
+|---|---|---|
+| **Reversible** | you can reconstruct the input from the output | round-trip editing across two equal representations |
+| **Reproducible** | the same input at the same `ENGINE_VERSION` always yields the same output | a **byte-identical baseline**, which is what a three-way merge needs (#668) |
+
+For handoff, the second is strictly stronger. A reversible transpiler would let a client invert the
+artifact; a reproducible generator lets them carry the input forward and regenerate. Only the second
+gives the pristine baseline that shadcn has lacked since 2023 (`00` 2026-08-09 entry). **Reversibility
+would not have helped there** — worth stating, because "goes both ways" sounds like the more powerful
+property and for this problem it is not.
+
+**Where we do claim a round trip, it is much narrower.** `$extensions.figma.variableId` is the linkage
+keeping the DTCG and raw-figma projections reconcilable — identity preservation at the token level, not
+information-preserving transformation of a system. Do not let the broader term attach to it.
+
+**Read this as vocabulary, not evidence.** It is a poll with single-digit votes, and the terms on offer
+are the author's, not the field's settled usage. The value is having a crisp answer to *"is Prism3 a
+bi-directional transpiler?"* — no; it is a generator with a versioned name contract — rather than
+adopting whichever term wins. `27` Idea 5's caution applies: a label with nothing behind it manufactures
+the appearance of rigor.
+
+**One real question it exposed**, filed rather than logged: the plugin writes Figma variables and reads
+only to reconcile during that write. If a designer edits those variables afterward, we cannot tell. That
+is the **Figma-side twin of the three-way-merge problem** #668 solves for code, and it is unsolved.

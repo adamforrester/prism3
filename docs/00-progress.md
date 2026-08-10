@@ -7,6 +7,76 @@
 
 ---
 
+## (2026-08-10) — Payload membership is declared, not inferred from where a file sits (#674)
+
+**STATUS: PR open, all 22 gates green** (21 + the one this adds). New authored
+`packages/engine/schema/payload-manifest.json` and gate `packages/engine/lint-payload-manifest.ts`, wired
+into `ci.yml` + `CLAUDE.md` §4 + `CONTRIBUTING.md` §3 + the PR template together. `regen --check` unchanged
+at **104** — the manifest is deliberately NOT a regen artifact, so it adds no emitted artifact.
+
+**The defect.** `out/` mixed three unrelated kinds of file — the brand's token trees (payload), a
+regression report and a preview page (ours) — with **no mechanism saying which is which**. The only thing
+distinguishing them was that a human knew. #668's emitter and #625's delivery mechanism both need an
+answer to "which of these travels?", and with no mechanism the answer becomes *whatever the first
+implementation happened to copy*. Same shape as the `Prism3/` debt #650 spent three PRs unwinding.
+
+**The field is unanimous, and we were the outlier.** npm declares `files[]`; shadcn a typed `files[]` per
+registry item; Style Dictionary per-platform `files[]`; CRA `folders`. Not one uses "everything in the
+output directory" — that is what they all moved *away* from. Primer's two agent-facing markdown files ship
+because they are LISTED, not because of where they were written.
+
+**The load-bearing decision: the manifest is AUTHORED, and not a regen artifact.** Regenerated from a scan
+of `out/`, it would classify every new artifact itself and report that as a pass — the manifest would be a
+second copy of the directory listing, which is membership-by-location wearing a manifest's clothes. That
+is the same reasoning that keeps `token-contract.json` out of regen (principle 5): **a gate allowed to
+rewrite what it reads has no memory.** So adding an emitted artifact FAILS this gate until a human
+classifies it, and that friction is the feature — it is the moment the payload question gets asked, which
+is the only moment it can be answered deliberately.
+
+**Brands are data; kinds are decisions.** Rules are per-*kind* and brand-parameterized, so a fifth brand's
+six files are covered by existing rules — but the brand must still be added to an explicit `brands` list,
+asserted in both directions. A new artifact *kind* has no rule and fails. That split is the whole design:
+the thing that varies routinely is parameterized, the thing that encodes a judgment is stated.
+
+**The trap the design sidesteps, which is where a rewrite would land.** Patterns expand over the
+manifest's **authored** brand list, never over brands discovered from `out/`. Expanding over discovered
+brands would make a new brand's files match automatically — the manifest would have no memory of which
+brands are expected, and the gate could not fail for the case it most needs to catch. This is not
+theoretical: it is the naive implementation, and it passes every test except the one that matters.
+
+**Mutation-tested, seven catchable mutations, each failing BY NAME** (docs/34):
+
+| mutation | fails with |
+|---|---|
+| a new unclassified artifact in `out/` | `UNCLASSIFIED` |
+| a payload rule deleted | `UNCLASSIFIED` ×4 |
+| a rule matching nothing | `STALE RULE` |
+| **a new brand emitted but undeclared** | **`BRAND NOT DECLARED`** — the independence proof |
+| a declared brand removed | `BRAND NOT DECLARED` |
+| a declared brand emitting nothing | `BRAND NOT EMITTED` |
+| two rules claiming one file | `AMBIGUOUS` |
+
+**And one that does NOT fail, recorded rather than papered over.** Moving `canonical-tree` from `payload`
+to `ours` — a serious error that would silently drop the brand's token system from every future eject —
+**passes, exit 0, no output.** Confirmed by mutation, not reasoned. The gate checks a class is DECLARED,
+not that it is RIGHT, and there is no second opinion to check it against that would not be derived from
+the manifest or the filename, both of which are under test. The class is a human judgment; the honest
+guard is review, which is what the `why` field on every rule exists for. Written into the gate header
+because **a gate whose limits are undocumented gets trusted past them**, and seven caught mutations make
+this one look more complete than it is.
+
+**Scope call worth stating:** the manifest covers every committed *generated* artifact — `out/**`,
+`ENGINE_ARTIFACTS`, `SCHEMA_ARTIFACTS` — not just `out/`. Covering only `out/` would leave the other two
+regions undeclared and recreate the gap one level over. Hand-authored files under `schema/` are out of
+scope: the question is "which of the things the engine EMITS travel?"
+
+**What this unblocks and what it dissolves.** #668 can now declare its artifacts rather than inventing a
+file list. The `out/` flat-vs-per-brand layout question is **dissolved, not deferred** — once membership
+is declared, a payload is assembled by reading the declaration and the on-disk shape stops mattering.
+#677's per-brand brand input has a place to be classified the day it lands.
+
+---
+
 ## (2026-08-09) — The eject payload, checked against what the field's examples actually fail at (#668, #674, #675)
 
 **STATUS: issues only — no code change beyond this entry, the gate header and the tokens README.**

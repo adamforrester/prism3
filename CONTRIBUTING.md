@@ -59,6 +59,13 @@ npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo
                                                     # The second half is the point: two of the three
                                                     # defects that filed this were ABSENCES, and no sweep
                                                     # for wrong strings finds a row that is not there
+npx tsx packages/engine/lint-payload-manifest.ts     # every emitted artifact is classified payload or ours
+                                                    # (#674). The manifest is AUTHORED, never regenerated:
+                                                    # built from a scan it would classify each new artifact
+                                                    # itself and call that a pass. Adding an emitted
+                                                    # artifact FAILS this until a human classifies it. It
+                                                    # checks a class is DECLARED, not that it is RIGHT —
+                                                    # that is what the `why` on each rule is for
 npx tsx packages/engine/typecheck-components.ts     # the component defs typecheck against their schema
                                                     # (#657). `tsc --noEmit` over the DECLARED scope in
                                                     # packages/engine/tsconfig.json — a check, not a

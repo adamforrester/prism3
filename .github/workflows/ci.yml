@@ -196,3 +196,14 @@ jobs:
       # in the tables that promise to describe the repo.
       - name: Docs describe the repo that exists
         run: npx --yes tsx@4 packages/engine/lint-layout-claims.ts
+
+      # `out/` mixed the brand's token trees (which travel to a client on eject) with a regression
+      # report and a preview page (which do not), and NOTHING said which was which — the only thing
+      # distinguishing them was that a human knew. Every payload-assembling tool in the field declares
+      # membership explicitly (npm `files[]`, shadcn's typed `files[]`, SD per-platform `files[]`); none
+      # uses "everything in the output directory". The manifest is AUTHORED and deliberately NOT a regen
+      # artifact: regenerated from a scan it would classify each new artifact itself and report that as a
+      # pass, which is the defect it exists to remove. Adding an emitted artifact fails this until a
+      # human classifies it — that friction is the feature.
+      - name: Every emitted artifact is classified payload or ours
+        run: npx --yes tsx@4 packages/engine/lint-payload-manifest.ts
