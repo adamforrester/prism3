@@ -7,6 +7,66 @@
 
 ---
 
+## (2026-08-10) — #681 the miss names what it found, #682 the deprecated proportion lock migrated
+
+**STATUS: shipped.** `regen --check` unchanged at **104**; engine suite **2073** (was 2071 — nine of the
+new assertions replace #681 pins in place, two are new negative controls); plugin component suite ALL PASS.
+Both fixes are the follow-up half of #692, which made these two defects reproducible and fixed neither.
+
+**#681 — one message, two call sites, four file states.** Three distinct node types produced the same
+false sentence: *"not in this file; publish the shared component first."* A `focus-ring` that is a
+COMPONENT_SET, an INSTANCE, or a plain FRAME is all *present*, and the advice to publish a library is
+irrelevant in every one of those cases. **The INSTANCE case is the one that mattered live** — duplicating
+a variant out of a set is the obvious manual workaround and produces exactly that node, so the message
+sent the designer to solve a problem they did not have. `nestMissAdvice()` in `anatomy-figma.ts` now maps
+four file states to four sentences, and **it is a function rather than a constant because the two call
+sites are on opposite sides of a language boundary**: the plugin imports it, and the emitted paste payload
+interpolates `${JSON.stringify(nestMissAdvice('…'))}` at emit time because plugin-JS cannot import. One
+function keeps the *wording* from drifting; two independent gate sets keep the *behavior* from drifting,
+which mutation M2 confirmed — reverting only the payload left the plugin suite fully green.
+
+**What is deliberately NOT decided: the set-resolution policy.** Nothing nests a substitute. Which
+variant of a set should nest, and whether that is exposed per instance, is the owner's call and stays
+open on #681 — so the diagnosis-only boundary is now *asserted* in both suites (a SET in the file still
+builds nothing in the ring's place), and cannot be widened silently by whoever implements the policy.
+
+**#682 — `constrainProportions` → `unlockAspectRatio()`**, at both call sites. Verified against the
+typings rather than assumed: `constrainProportions` is `@deprecated` on `LayoutMixin`
+(`plugin-api.d.ts:7108`) while `unlockAspectRatio()` lives on a separate `AspectRatioLockMixin` (7294)
+that **all four created node types carry** — so the old `in` guard was necessary and its absence is now
+the correct form, not a shortcut. `test.ts:6119` gated the old pairing by grepping the literal string;
+it is **re-pointed, not loosened**, with a comment saying so, and joined by an assertion that the
+deprecated setter is *gone* rather than merely joined by the new call (mutation M6: emitting both fails
+exactly that one assertion and nothing else).
+
+**The migration is not cosmetic in test terms, and that is the part worth carrying.** A call count is
+nearly unfalsifiable — the executor calls it `?.()`, so an absent port method skips in silence and
+"nothing threw" is not evidence. So the shims model the *failure*: nodes **start aspect-locked**, and
+while locked `setBoundVariable` **evicts the opposite dimension**, last-write-wins, no throw, nothing in
+`misses[]`. A slot holding both width and height is then only possible if the unlock really ran first,
+which is what catches the unlock being *moved after* the binds (M7) as well as deleted (M4/M5).
+
+**Nine mutations, each failing by name — and one of them found a real hole.** M8 set the shims' nodes to
+start *unlocked*, and **both suites stayed 100% green**: docs/34's representation-vs-detection shape
+exactly, a check that runs but cannot fire. The both-axes claim could not distinguish "the executor
+unlocked" from "the shim never locked." Fixed by a **negative control in each suite** that reads a node
+straight from the shim's own factory — one the executor never touched, so it reports the state a node
+*starts* in, which re-locking an existing node cannot see. First attempt at the control did exactly that
+and passed under M8; the factory-fresh node is what made it fire. The remaining mutations: M1 revert the
+plugin fix (12 fail), M2 revert only the payload (4 fail, plugin green), M3 collapse the shared function
+(12 + 4), M4/M5 delete each unlock (4 named + parity gate / 2 runtime + the grep), M6b write the
+deprecated setter unconditionally (1), M9 blind the shim's `findAll` to file nodes (12).
+
+**Covered by a test vs live-only, stated plainly.** Covered: every message the four file states produce,
+on both executors; the unlock happening, happening *before* the binds, and the deprecated form being
+gone; the diagnosis-only boundary. **Live-only:** that Figma's real `unlockAspectRatio()` behaves as the
+shim models it (the eviction is our model of the host, not a measurement of it), that the new sentences
+actually land the designer on the right next action, and that the INSTANCE case arises as often in
+practice as the one live run suggested. The shims cannot model the host, only our belief about it — the
+same limit #692's entry recorded, and the reason a human still runs the Button in Figma desktop.
+
+---
+
 ## (2026-08-10) — #684 calibrated on real Figma: CHUNK = 4, and what chunking cannot fix
 
 **STATUS: `CHUNK` is now a measurement.** The live 648-member Button build that #691 was instrumented for
@@ -239,66 +299,6 @@ docs-only diff is exactly the case where a contributor is tempted to assert the 
 **Trap for whoever re-verifies this:** `docs/**` is in no gate's scope (#670), so none of the four numbers
 would have failed anything, and the same is true of the gloss. This entry is the only record that the first
 correction existed at all.
-
----
-
-## (2026-08-10) — #681 the miss names what it found, #682 the deprecated proportion lock migrated
-
-**STATUS: shipped.** `regen --check` unchanged at **104**; engine suite **2073** (was 2071 — nine of the
-new assertions replace #681 pins in place, two are new negative controls); plugin component suite ALL PASS.
-Both fixes are the follow-up half of #692, which made these two defects reproducible and fixed neither.
-
-**#681 — one message, two call sites, four file states.** Three distinct node types produced the same
-false sentence: *"not in this file; publish the shared component first."* A `focus-ring` that is a
-COMPONENT_SET, an INSTANCE, or a plain FRAME is all *present*, and the advice to publish a library is
-irrelevant in every one of those cases. **The INSTANCE case is the one that mattered live** — duplicating
-a variant out of a set is the obvious manual workaround and produces exactly that node, so the message
-sent the designer to solve a problem they did not have. `nestMissAdvice()` in `anatomy-figma.ts` now maps
-four file states to four sentences, and **it is a function rather than a constant because the two call
-sites are on opposite sides of a language boundary**: the plugin imports it, and the emitted paste payload
-interpolates `${JSON.stringify(nestMissAdvice('…'))}` at emit time because plugin-JS cannot import. One
-function keeps the *wording* from drifting; two independent gate sets keep the *behavior* from drifting,
-which mutation M2 confirmed — reverting only the payload left the plugin suite fully green.
-
-**What is deliberately NOT decided: the set-resolution policy.** Nothing nests a substitute. Which
-variant of a set should nest, and whether that is exposed per instance, is the owner's call and stays
-open on #681 — so the diagnosis-only boundary is now *asserted* in both suites (a SET in the file still
-builds nothing in the ring's place), and cannot be widened silently by whoever implements the policy.
-
-**#682 — `constrainProportions` → `unlockAspectRatio()`**, at both call sites. Verified against the
-typings rather than assumed: `constrainProportions` is `@deprecated` on `LayoutMixin`
-(`plugin-api.d.ts:7108`) while `unlockAspectRatio()` lives on a separate `AspectRatioLockMixin` (7294)
-that **all four created node types carry** — so the old `in` guard was necessary and its absence is now
-the correct form, not a shortcut. `test.ts:6119` gated the old pairing by grepping the literal string;
-it is **re-pointed, not loosened**, with a comment saying so, and joined by an assertion that the
-deprecated setter is *gone* rather than merely joined by the new call (mutation M6: emitting both fails
-exactly that one assertion and nothing else).
-
-**The migration is not cosmetic in test terms, and that is the part worth carrying.** A call count is
-nearly unfalsifiable — the executor calls it `?.()`, so an absent port method skips in silence and
-"nothing threw" is not evidence. So the shims model the *failure*: nodes **start aspect-locked**, and
-while locked `setBoundVariable` **evicts the opposite dimension**, last-write-wins, no throw, nothing in
-`misses[]`. A slot holding both width and height is then only possible if the unlock really ran first,
-which is what catches the unlock being *moved after* the binds (M7) as well as deleted (M4/M5).
-
-**Nine mutations, each failing by name — and one of them found a real hole.** M8 set the shims' nodes to
-start *unlocked*, and **both suites stayed 100% green**: docs/34's representation-vs-detection shape
-exactly, a check that runs but cannot fire. The both-axes claim could not distinguish "the executor
-unlocked" from "the shim never locked." Fixed by a **negative control in each suite** that reads a node
-straight from the shim's own factory — one the executor never touched, so it reports the state a node
-*starts* in, which re-locking an existing node cannot see. First attempt at the control did exactly that
-and passed under M8; the factory-fresh node is what made it fire. The remaining mutations: M1 revert the
-plugin fix (12 fail), M2 revert only the payload (4 fail, plugin green), M3 collapse the shared function
-(12 + 4), M4/M5 delete each unlock (4 named + parity gate / 2 runtime + the grep), M6b write the
-deprecated setter unconditionally (1), M9 blind the shim's `findAll` to file nodes (12).
-
-**Covered by a test vs live-only, stated plainly.** Covered: every message the four file states produce,
-on both executors; the unlock happening, happening *before* the binds, and the deprecated form being
-gone; the diagnosis-only boundary. **Live-only:** that Figma's real `unlockAspectRatio()` behaves as the
-shim models it (the eviction is our model of the host, not a measurement of it), that the new sentences
-actually land the designer on the right next action, and that the INSTANCE case arises as often in
-practice as the one live run suggested. The shims cannot model the host, only our belief about it — the
-same limit #692's entry recorded, and the reason a human still runs the Button in Figma desktop.
 
 ---
 
