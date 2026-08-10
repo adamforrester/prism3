@@ -125,12 +125,17 @@ export interface HostCommit {
    *
    *  `component-result` (#483) is a third kind of the same shape for the same reason: the theme write and
    *  the component build are separate actions with separate buttons, so each needs a verdict slot of its
-   *  own — one cannot overwrite the other's. */
+   *  own — one cannot overwrite the other's.
+   *
+   *  `component-progress` (#684) is the one NON-TERMINAL kind: it arrives many times per build and is
+   *  superseded by the next one, so it belongs in the pending state rather than a verdict slot. It has no
+   *  `ok` for that reason — a fraction is not an outcome. */
   onHostMessage(
     cb: (
       msg:
         | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
+        | { kind: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
         | { kind: 'seed-info'; ok: boolean; summary: string }
         | { kind: 'restore-input'; input: unknown }
         | { kind: 'restore-input-error'; message: string }
@@ -166,7 +171,10 @@ const figmaCommit = (): HostCommit => ({
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {
       const m = (e.data && e.data.pluginMessage) as
-        | { type?: string; ok?: boolean; headline?: string; summary?: string; input?: unknown; message?: string; families?: unknown; styles?: unknown }
+        | {
+            type?: string; ok?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
+            families?: unknown; styles?: unknown; phase?: unknown; done?: unknown; total?: unknown; chunkMs?: unknown;
+          }
         | undefined;
       if (!m) return;
       if (m.type === 'apply-result') {
@@ -180,6 +188,20 @@ const figmaCommit = (): HostCommit => ({
         // because an older host that sends no headline sends no counts to put in one either.
         const headline = typeof m.headline === 'string' && m.headline ? m.headline : m.ok ? '✓ built' : '✗ build failed';
         cb({ kind: 'component-result', ok: !!m.ok, headline, summary: String(m.summary ?? '') });
+      } else if (m.type === 'component-progress') {
+        // Validated, not coerced, and DROPPED if the numbers are unusable — unlike the result kinds
+        // above, which fall back to a default headline. A result is a fact the designer is waiting for,
+        // so a degraded one is still worth showing; a progress reading is one of dozens and the next one
+        // is milliseconds away, so a "0 of 0" is strictly worse than the previous reading staying put.
+        const n = (x: unknown): number | null => (typeof x === 'number' && Number.isFinite(x) && x >= 0 ? Math.floor(x) : null);
+        const done = n(m.done);
+        const total = n(m.total);
+        // `phase` is checked against the union rather than cast: it selects a label the UI shows, and an
+        // unknown phase from a newer host should read as generic progress instead of printing its name.
+        const phase = m.phase === 'build' || m.phase === 'wire' ? m.phase : null;
+        if (phase && done !== null && total !== null && total > 0) {
+          cb({ kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 });
+        }
       } else if (m.type === 'seed-info') {
         cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? '') });
       } else if (m.type === 'restore-input' && m.input) {

@@ -16,11 +16,30 @@
  * independent implementations, and it is what `test.ts`'s parity gate compares.
  *
  * MODELLED ON THE CHUNKED PASTE, NOT THE SINGLE-SHOT ONE, for a reason that is about the host rather
- * than the code: a plugin has no 45KB transport ceiling, so it never needs to chunk — but it does need
- * to survive a designer pressing the button twice, which the single-shot payload does not (a second
- * paste combines a second set beside the first). So this is find-or-create the set by name, skip
- * members already present, append, re-lay-out the UNION and resize — i.e. the chunked shape with one
- * chunk of unbounded size. Re-running is idempotent and says what it skipped.
+ * than the code: it needs to survive a designer pressing the button twice, which the single-shot payload
+ * does not (a second paste combines a second set beside the first). So this is find-or-create the set by
+ * name, skip members already present, append, re-lay-out the UNION and resize. Re-running is idempotent
+ * and says what it skipped.
+ *
+ * AND IT CHUNKS ITS OWN EXECUTION TOO (#684) — which this file's header previously denied, in a sentence
+ * worth quoting because it is the exact confusion to avoid: *"a plugin has no 45KB transport ceiling, so
+ * it never needs to chunk."* That conflates TRANSPORT SIZE with EXECUTION TIME. The paste path chunks
+ * because a `figma_execute` payload has a byte ceiling; a plugin chunks because it runs on Figma's MAIN
+ * THREAD, and the question is not how much data moves but how long the event loop is held. With one
+ * unbounded chunk, the first live 648-member build left the file unresponsive for **1 min 10 s** after
+ * the pill said done, dropped Figma's own Livegraph socket with code 1006, and failed the multiplayer
+ * connection — while the file sat in an unsaved state with its sync channel dead. That last part is a
+ * data-safety property, not an ergonomic one.
+ *
+ * So both long loops here — building members, and wiring property references across them — run in chunks
+ * with a `yieldTo` between them, and report progress at every boundary. See `ComponentApplyOptions`.
+ *
+ * UNDO IS ONE STEP FOR THE WHOLE SET, and we get that by NOT calling `figma.commitUndo()` anywhere: by
+ * Figma's own default, plugin actions are not committed to undo history individually, so the entire run
+ * collapses into a single undo entry. Chunking would let us commit per chunk and it is deliberately not
+ * done — a designer who did not mean to build presses ⌘Z once and the set is gone, because "Build Button
+ * set" was one action from where they were standing. This is the one host behavior here that is a
+ * DECISION rather than a measurement, so it is stated rather than left to be inferred from an absence.
  *
  * MISS STRINGS ARE DELIBERATELY BYTE-IDENTICAL to the paste payload's for every condition both paths
  * can hit while BUILDING a node. That is not tidiness: it is what lets the parity gate compare the two
@@ -206,6 +225,76 @@ export type ComponentApplyResult = {
   misses: string[];
 };
 
+/**
+ * How far through a build we are — posted at every chunk boundary (#684).
+ *
+ * `phase` rather than one flat percentage, because the two long loops are not interchangeable work: a
+ * designer watching "412/648" during `wire` needs to know the members already exist and it is the
+ * property references being attached, or the second pass reads as the first one having restarted.
+ *
+ * `done`/`total` are MEMBER counts in both phases, which is what makes them comparable across the two —
+ * and `total` is the full set, not the chunk, so the number never resets mid-run.
+ */
+export type ComponentProgress = {
+  phase: 'build' | 'wire';
+  done: number;
+  total: number;
+  /** Wall-clock ms this chunk's work took, EXCLUDING the yield — the calibration signal. Reported per
+   *  chunk rather than accumulated because the useful question is "did any single chunk hold the thread
+   *  too long", and a total cannot answer it. */
+  chunkMs: number;
+};
+
+/** Yield to the host between chunks — and the reason this is INJECTED rather than called directly.
+ *
+ *  `setTimeout` exists in the Figma sandbox (declared globally by `plugin-typings`), and `await
+ *  new Promise(r => setTimeout(r, 0))` is what actually returns control to Figma so it can service its
+ *  own heartbeats, repaint, and let the socket breathe. But a test harness that awaited a real timer for
+ *  every one of 648 members would trade the defect for a slow suite, and — more to the point — a harness
+ *  cannot ASSERT that a yield happened if the yield is invisible to it. Passing it in makes the yield an
+ *  observable event: the shim counts calls, so "does it yield, and at the right boundaries" is checkable.
+ *
+ *  What the shim still cannot prove is anything about the HOST: it has no event loop, no heartbeat and no
+ *  scenegraph reconciliation. Chunk SIZE is therefore calibrated live and cannot be gated here — see
+ *  `CHUNK` below. */
+export type YieldFn = () => Promise<void>;
+
+/** Options the plugin passes and the harness overrides — every field optional, so the executor's
+ *  contract with `main.ts` is unchanged for callers that want the defaults. */
+export type ComponentApplyOptions = {
+  /** Called at every chunk boundary. Synchronous by design: it posts a message and returns, and an
+   *  awaited reporter would add an unbounded amount of unmeasured time to the loop it is measuring. */
+  onProgress?: (p: ComponentProgress) => void;
+  /** How control returns to the host. Defaults to a real `setTimeout(0)` when absent. */
+  yieldTo?: YieldFn;
+  /** Members per chunk. Named `chunk` rather than baked in so the live calibration run can sweep it
+   *  without a rebuild, and so the harness can force many small chunks over a small plan set. */
+  chunk?: number;
+};
+
+/**
+ * Members per chunk, and the honest state of this number: **it is a starting point, not a measurement.**
+ *
+ * The reasoning behind 24: at ~60fps a frame is ~16ms, and a chunk should aim to hold the thread for
+ * about one frame's worth of work so Figma can service a heartbeat between chunks. A Button member is a
+ * subtree of ~4-5 nodes with bindings and read-backs on each, so a chunk of 24 is ~110 nodes — the same
+ * order as the paste path's per-chunk member count, which is the only comparable figure that has ever
+ * been run against real Figma.
+ *
+ * WHAT WOULD MAKE THIS A MEASUREMENT: a live 648-member build reporting `chunkMs` per chunk (which
+ * `ComponentProgress` now carries for exactly this purpose), with the file staying responsive and
+ * Livegraph staying connected throughout. Until that run happens this constant is a guess with a
+ * rationale, and saying so here is the point — `docs/34`'s register exists because a number whose basis
+ * has been forgotten reads identically to one that was measured.
+ */
+export const CHUNK = 24;
+
+/** The default yield: a real macrotask. `setTimeout(0)` rather than a resolved promise, and the
+ *  difference is the whole mechanism — `await Promise.resolve()` is a MICROtask, so it runs before the
+ *  host gets control back and yields nothing at all. A build "chunked" with microtasks holds the event
+ *  loop exactly as long as one that never yielded, which is a fix that measures as no fix. */
+const realYield: YieldFn = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+
 /** The node as the executor USES it — every field present, none of them narrowed. The cast happens
  *  once per created node rather than per field, because the PLAN decided the node kind: a TEXT node's
  *  `characters` is not in doubt. The two genuine runtime forks Figma does have keep their `in` checks
@@ -238,7 +327,25 @@ const boundPaint = (arr: unknown): boolean => {
  *  - `componentPropertyReferences` do not propagate: wiring one member leaves the others inert.
  *  - Appending does NOT grow the set's frame, hence the explicit `resize`.
  */
-export const applyComponentPlan = async (plans: AnatomyPlan[], api: ComponentsApi): Promise<ComponentApplyResult> => {
+export const applyComponentPlan = async (
+  plans: AnatomyPlan[],
+  api: ComponentsApi,
+  opts: ComponentApplyOptions = {},
+): Promise<ComponentApplyResult> => {
+  const yieldTo = opts.yieldTo ?? realYield;
+  const chunkSize = Math.max(1, opts.chunk ?? CHUNK);
+  const onProgress = opts.onProgress;
+  // `Date.now` rather than `performance.now`: the sandbox is not a browser and this file compiles under a
+  // `lib` without DOM, so `performance` is not declared. Millisecond resolution is ample — the quantity
+  // being measured is "did this chunk hold the thread for tens of ms or hundreds".
+  let mark = Date.now();
+  /** End a chunk: report what it cost, hand control back, and restart the clock AFTER the yield so the
+   *  yield's own duration is never counted as work. */
+  const breathe = async (phase: 'build' | 'wire', done: number, total: number): Promise<void> => {
+    onProgress?.({ phase, done, total, chunkMs: Date.now() - mark });
+    await yieldTo();
+    mark = Date.now();
+  };
   // The OFFLINE half, shared with the paste path: the three set-level guards (one component, one axis
   // shape, no duplicate coordinate), the grid, the derived properties and the part→property refs. It
   // THROWS on a set that could not be assembled coherently, which is the right moment to fail — before
@@ -445,16 +552,33 @@ export const applyComponentPlan = async (plans: AnatomyPlan[], api: ComponentsAp
   const have = new Set((set?.children ?? []).map((c) => c.name));
   const byCell = new Map(cells.map((c) => [c.name, c] as const));
 
+  // CHUNKED (#684). The yield is on the CELL index, not on `fresh.length`, because `fresh.length` is not
+  // monotonic with the loop — a run that skips every member by name leaves it at 0 for all 648 cells, so
+  // `0 % chunkSize === 0` is true every time: it would yield on every single iteration and report `0 of
+  // 648` at each one. Measured by mutating it back (see `test-write-components.ts`), and worth recording
+  // because the intuition is that it would yield too RARELY there, not 27× too often with a frozen
+  // numerator. The index advances in every case, built or skipped, which is what a boundary needs.
   const fresh: CompNode[] = [];
   let skipped = 0;
-  for (const spec of cells) {
-    if (have.has(spec.name)) { skipped++; misses.push(`member ${spec.name} -> ALREADY PRESENT (skipped; this set has been written before)`); continue; }
-    const root = await build(spec.root);
-    if (!root) continue;   // its own miss is already recorded, precisely
-    api.currentPage.appendChild(root);
-    const comp = wr(api.createComponentFromNode(root));
-    comp.name = spec.name;
-    fresh.push(comp);
+  for (let i = 0; i < cells.length; i++) {
+    const spec = cells[i];
+    if (have.has(spec.name)) { skipped++; misses.push(`member ${spec.name} -> ALREADY PRESENT (skipped; this set has been written before)`); }
+    else {
+      const root = await build(spec.root);
+      // `!root` is a missing shared component — its own miss is already recorded, precisely. It must NOT
+      // skip the boundary check below, which is why this is an else-branch rather than a `continue`: a
+      // plan set whose every member failed to build would otherwise never yield at all.
+      if (root) {
+        api.currentPage.appendChild(root);
+        const comp = wr(api.createComponentFromNode(root));
+        comp.name = spec.name;
+        fresh.push(comp);
+      }
+    }
+    // Trailing boundary INCLUDED (`i + 1 === cells.length`), so the last partial chunk reports too —
+    // without it a 648-member run reports 27 chunks of 24 and stays silent on the final 0-23 members,
+    // and the pill's last progress reading would never equal the total.
+    if ((i + 1) % chunkSize === 0 || i + 1 === cells.length) await breathe('build', i + 1, cells.length);
   }
   if (!set) {
     if (fresh.length === 0) {
@@ -555,8 +679,16 @@ export const applyComponentPlan = async (plans: AnatomyPlan[], api: ComponentsAp
   // WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant leaves
   // every sibling's `componentPropertyReferences` empty, so a set wired once looks correct on whichever
   // variant a designer inspects and is inert on the other twenty.
+  //
+  // CHUNKED TOO (#684), and it is not the smaller of the two loops: this walks EVERY member in the set
+  // (not just the ones this run built) doing a `findOne` subtree search per reference, so on an
+  // idempotent re-run — where the build loop skips all 648 members and does nearly nothing — this is
+  // essentially the whole cost of the run. A version that chunked only the build loop would leave the
+  // re-run case exactly as unresponsive as before, while looking fixed.
   const wiredRefs: [string, string, string, string][] = [];
-  for (const member of readable ? members : []) {
+  const toWire = readable ? members : [];
+  for (let i = 0; i < toWire.length; i++) {
+    const member = toWire[i];
     for (const r of refs) {
       const node = member.findOne?.((x) => x.name === r.part) as CompNode | null | undefined;
       // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
@@ -569,6 +701,7 @@ export const applyComponentPlan = async (plans: AnatomyPlan[], api: ComponentsAp
         wiredRefs.push([String(member.name), r.part, r.field, id]);
       } catch (err) { misses.push(`ref ${member.name}/${r.part}.${r.field} -> ${r.prop} (${(err as Error).message})`); }
     }
+    if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
   }
   // READ BACK every reference. Figma throws on a reference naming an unknown property, so this covers
   // the other direction — one the setter ACCEPTED and did not retain.

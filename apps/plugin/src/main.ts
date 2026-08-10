@@ -181,11 +181,21 @@ const SWAP_TARGET = 'FPO-default-icon';
  * The global `figma` satisfies `ComponentsApi` wholesale, so this call site is what proves that port on
  * every typecheck — the same way the three sibling lanes are proven, and what retired
  * `write-components.ts`'s hand-written `PortHolds` assertion.
+ *
+ * IT REPORTS PROGRESS AS IT GOES (#684), which is only possible because the executor now yields — a
+ * message posted from inside a loop that never returns to the event loop is queued, not delivered, so
+ * before the chunking this function had nothing to report and no moment to report it in. `onProgress`
+ * fires at every chunk boundary; the terminal `component-result` still lands exactly once, at the end.
  */
 const buildComponents = async (): Promise<void> => {
   try {
     const plans = figmaAnatomySet(button, { swapTarget: SWAP_TARGET });
-    const r = await applyComponentPlan(plans, figma);
+    const r = await applyComponentPlan(plans, figma, {
+      // Posted straight through, unaggregated: the executor owns the phase/fraction and this is the
+      // only place that can see the timing. `chunkMs` is CALIBRATION data (see `CHUNK`) — the shim has
+      // no event loop, so chunk size can only be tuned from a live run, and this is how it gets out.
+      onProgress: (p) => postToUi({ type: 'component-progress', ...p }),
+    });
     // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
     // starved file can produce one miss per binding per member and the whole list is not a summary.
     const missNote = r.misses.length

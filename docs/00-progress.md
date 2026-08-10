@@ -7,6 +7,108 @@
 
 ---
 
+## (2026-08-10) — The component build yields, reports, and stays one undo step (#684)
+
+**STATUS: shipped, with one number still to measure.** `regen --check` unchanged at **104** — this is
+plugin-side execution, no emitted artifact moves. Engine tests unchanged at **2061**; plugin assertions
+**197 → 213** (counted as `✓` lines from `npm run -w @prism3/plugin test`, on `origin/main` at `2a6c1f1`
+and on this branch). **`CHUNK = 24` is a guess with a rationale, not a measurement** — the live 648 run
+that would settle it is the owner's, and the code says so at the constant.
+
+**What was wrong, and it was written down as a justification.** The file's own header said *"a plugin has
+no 45KB transport ceiling, so it never needs to chunk."* That conflates **transport size** with
+**execution time**. The paste path chunks because `figma_execute` has a byte ceiling; a plugin chunks
+because it runs on Figma's **main thread**, and the question is not how much data moves but how long the
+event loop is held. There was no `setTimeout`, no `await new Promise`, no yield of any kind in
+`applyComponentPlan` — 648 members, ~3,000 nodes and 1,350 property references in one unbroken run. The
+first real-Figma build left the file unresponsive for **1 min 10 s** after the pill said done, dropped
+Livegraph with code **1006**, and failed the multiplayer socket while the file sat unsaved. The last part
+is the one that matters: several thousand nodes exist locally with the sync channel dead. That is
+data-safety, not ergonomics.
+
+**#684 says "chunk the member loop". There are two long loops, and the second one is the whole cost of the
+re-run.** The reference-wiring loop walks every member with a `findOne` subtree search per reference. On an
+idempotent re-run the build loop skips all 648 doing almost nothing, so wiring is essentially the entire
+run — chunking only the build loop would have left that case exactly as unresponsive as before **while
+looking fixed**. Both loops now chunk with a `yieldTo` between them.
+
+**Microtask vs macrotask is the mechanism, not a detail.** `await Promise.resolve()` is a microtask: it
+runs before the host gets control back and yields nothing at all. A build "chunked" with microtasks holds
+the event loop exactly as long as one that never yielded. `realYield` is `setTimeout(resolve, 0)`, which
+exists in the Figma sandbox (declared globally by `plugin-typings`, so it compiles under
+`tsconfig.main.json`'s no-DOM `lib`). `Date.now` rather than `performance.now` for the same reason —
+`performance` is not declared under that `lib`, and millisecond resolution is ample for "tens of ms or
+hundreds".
+
+**The yield is INJECTED, and that is what makes it gateable.** A real timer per chunk would trade the
+defect for a slow suite and — more to the point — leave the yield invisible to the harness: the only
+evidence would be that the run finished, which it does either way. Passing `yieldTo` in turns the yield
+into an observable event, so "does it yield, and at which boundaries" becomes checkable. The harness's
+injected yield is deliberately a *microtask*, which is the opposite of the production requirement: there is
+no host event loop here to yield to, so what is being measured is control flow, and a microtask measures
+that identically while keeping the suite fast. The macrotask requirement is a property of the production
+path and is asserted by reading `realYield`, not by the harness.
+
+**Undo is one step for the whole set, and that is a decision.** By Figma's default, plugin actions are not
+committed to undo history individually, so *not* calling `figma.commitUndo()` collapses the run into one
+entry (confirmed in `plugin-typings/plugin-api.d.ts:270-296`). Chunking makes per-chunk commits possible
+and they are deliberately not done: a designer who did not mean to build presses ⌘Z once and the set is
+gone, because "Build Button set" was one action from where they were standing. Stated in the header
+explicitly, because otherwise it is a decision inferable only from an absence.
+
+**`component-progress` is a new message kind, not a field on `component-result`.** Same rule the rest of
+that bridge follows — one kind per fact. A progress reading has no `ok`, is superseded milliseconds later,
+and belongs in the pending state the UI already has rather than a verdict slot. Folded together, every
+intermediate reading would land in the verdict slot and the last one would have to be told apart from a
+real result by inspecting its fields. It is the only non-terminal message on the bridge. `phase`
+(`build`/`wire`) travels with the fraction because there are two loops over the same member count: a bare
+fraction runs to 648 and then restarts at 1, which reads as a build that failed and started over.
+
+**Three things in the UI wiring that a first draft gets wrong, all found by mutation or by reading.**
+
+- **Progress is a text swap, not a `renderBar()`.** It fires at every boundary — 27 times per phase at
+  `CHUNK = 24` over 648 — and re-rendering the bar discards and remakes every control in it, blurring
+  whatever the designer had focused and resetting the brand switcher's open state mid-build.
+- **A late boundary message must be dropped, not applied.** The progress handler returns unless
+  `componentState === 'pending'`. Without that, a boundary still queued when `component-result` is handled
+  resurrects the fraction and the pill goes from a verdict back to a countdown.
+- **The fraction clears in three places** — on the result, on the next click, and (by the guard above)
+  never after the verdict. A build that throws in the main thread posts a failed result; one that never
+  answers posts nothing at all, and then the stale fraction is the first thing the *next* build shows.
+
+**Four mutations, each confirming the new gates fail by name — the docs/34 discipline.** Dropping the
+trailing-partial boundary (`|| i + 1 === cells.length`) fails 4 assertions including the one-member case,
+which reports nothing at all. Removing the wire-loop yield fails "both long loops yield" with `wire 0`.
+Removing the `Math.max(1, …)` clamp on `chunk` fails the chunk-of-0 assertion, reporting 1 of 21. Setting
+`CHUNK` to the whole set fails the plausible-range pin. The boundary expectation is **written out**
+(`['5/21', …, '21/21']`) rather than recomputed from `(i + 1) % chunk` — derived that way it would agree
+with a broken chunker by construction.
+
+**A fifth mutation corrected a claim I had written in two places.** Both the executor comment and the test
+comment said that keying the yield on `fresh.length` instead of the cell index would make the idempotent
+re-run *never yield*. Mutating it back shows the opposite: `fresh.length` stays 0 through a full-skip run,
+so `0 % chunkSize === 0` is true on **every** iteration — it yields 21 times (648 live) and reports `0 of
+N` at each one. Same defect, opposite failure mode, and the assertion that catches it is the re-run
+boundary count. Both comments now record the measured behavior and that the intuition was backwards.
+
+**What the harness cannot prove, said plainly rather than implied.** It has no event loop to starve, no
+Figma heartbeat, no socket to drop and no scenegraph to reconcile. So it cannot verify the thing #684 is
+about — that the host stays responsive — and it cannot tell a good chunk size from a bad one. What it does
+verify is the arithmetic around the yielding: that a yield happens, at the boundaries claimed, in the
+cases where the loop body does almost nothing, with fractions monotonic within a phase and ending at the
+total. Those are the parts that were wrong in draft and that a live run would *not* isolate — a build that
+freezes tells you nothing about which of the two loops did it. This is the third finding of that shape from
+the first live run (#680, #681 are the others), and the note is now in the test file's header.
+
+**Still open, and it is the owner's to close.** The live 648 build: is the file responsive throughout, does
+Livegraph stay connected, what is the post-completion settle time (Figma still has scenegraph
+reconciliation to do after the last write, so it is measured rather than assumed zero), and what does
+`chunkMs` report per chunk. `CHUNK` is set from those numbers and the measurement recorded at the
+constant. #684 also flags a `net::ERR_INTERNET_DISCONNECTED` in the same console with a cheap
+discriminator — idle for two minutes without building — which is unchanged by this work either way.
+
+---
+
 ## (2026-08-10) — The set's column axis is CHOSEN, and the gate that could not see it (#656)
 
 **STATUS: shipped.** `regen --check` unchanged at **104** — the grid is a paste-time layout decision and

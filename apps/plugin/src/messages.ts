@@ -79,6 +79,27 @@ export type MainToUi =
    *  `headline` obeys the same ≤24-char pill budget (`componentHeadline`, gated in
    *  `test-apply-summary.ts`); `summary` carries the counts and the misses behind it. */
   | { type: 'component-result'; ok: boolean; headline: string; summary: string }
+  /** A component build is UNDERWAY (#684) — posted at every chunk boundary, many times per build.
+   *
+   *  THE ONLY NON-TERMINAL MESSAGE ON THIS BRIDGE, and the reason it had to exist: `build-components`
+   *  used to post exactly one message, at the end. On the first live 648-member build that meant the pill
+   *  read a frozen `⋯ Building…` for the whole run, then the file stayed unresponsive for **1 min 10 s**
+   *  after it said done. Nothing could be posted mid-run because nothing yielded; the executor now chunks
+   *  (see `write-components.ts`), and this is what a chunk boundary says.
+   *
+   *  DISTINCT FROM `component-result` rather than a `progress` field on it, for the reason every other
+   *  split on this bridge has: one kind per fact. A progress reading is not a verdict — it has no `ok`,
+   *  it is superseded by the next one microseconds later, and the UI shows it in the PENDING state it
+   *  already has rather than in a result slot. Folded together, every intermediate reading would land in
+   *  the verdict slot and the last one would have to be told apart from a real result by inspecting its
+   *  fields.
+   *
+   *  `phase` is `build` (making members) or `wire` (attaching property references across them) — two
+   *  loops over the same member count, so a bare fraction would appear to restart at 0 halfway through a
+   *  build that is progressing perfectly. `chunkMs` is what the chunk cost, carried up so a live run can
+   *  CALIBRATE the chunk size: the shim has no event loop, so that number cannot be gated and has to be
+   *  observed. See `CHUNK` in `write-components.ts`. */
+  | { type: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
    *  human summary. Informational — the actual knob-rehydration is `restore-input` below. */
   | { type: 'seed-info'; ok: boolean; summary: string }

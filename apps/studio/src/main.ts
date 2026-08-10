@@ -345,6 +345,17 @@ let applyState: { ok: boolean; headline: string; summary: string } | 'pending' |
  *  report into the theme write's pill without claiming something about the variables it never touched,
  *  and with no slot of its own it would have nowhere to be `pending` while it writes hundreds of nodes. */
 let componentState: { ok: boolean; headline: string; summary: string } | 'pending' | null = null;
+/** How far the in-flight component build has got (#684) — `null` between builds and until the first
+ *  chunk boundary reports.
+ *
+ *  A SIBLING OF `componentState` RATHER THAN A VARIANT OF IT, which is the same call the wire makes and
+ *  for the same reason: this is not a verdict. `componentState` holds at most one value per action and
+ *  the whole UI treats it as the answer; a progress reading is one of dozens, is stale the moment the
+ *  next one lands, and has no `ok`. Folded in as a third variant it would also widen the type
+ *  `renderApplyStatus` shares with `applyState`, forcing the theme write to handle a state it can never
+ *  be in. Kept beside it, `componentState === 'pending'` still means exactly "in flight" and this only
+ *  says how far. */
+let componentProgress: { phase: 'build' | 'wire'; done: number; total: number } | null = null;
 /** WHICH result's full detail is expanded, at most one. Collapsed by default: the headline answers the
  *  question ninety-nine times out of a hundred, and the detail is counts across five or six axes.
  *
@@ -412,7 +423,24 @@ commit.onHostMessage((m) => {
     // hundreds, so a bad result the designer has to click to see is a bad result they will not read.
     componentState = { ok: m.ok, headline: m.headline, summary: m.summary };
     openDetail = m.ok ? null : 'components';
+    // Clear the progress before re-rendering, not after: the verdict has landed, and a stale fraction
+    // left in this slot would be the thing a NEXT build's first render shows — "412 of 648" under a pill
+    // that already says built, from the run before.
+    componentProgress = null;
     if (barHost) { renderBar(); syncApplyDetail(); }
+    return;
+  }
+  if (m.kind === 'component-progress') {
+    // #684. Accepted only while the build is actually in flight. Out of order this is not merely useless
+    // but wrong: a boundary message still in the queue when `component-result` is handled would resurrect
+    // the fraction the line above just cleared, and the pill would go from a verdict back to a countdown.
+    if (componentState !== 'pending') return;
+    componentProgress = { phase: m.phase, done: m.done, total: m.total };
+    // Text swap, NOT `renderBar()`. This fires at every chunk boundary — 27 per phase, so 54 times, in a
+    // 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in it, which
+    // would blur whatever the designer had focused and reset the brand switcher's open state mid-build.
+    // The pending pill is the only thing that changed, so it is the only thing rewritten.
+    if (componentPendingEl) componentPendingEl.textContent = componentPendingText();
     return;
   }
   if (m.kind === 'seed-info') {
@@ -6672,9 +6700,41 @@ const renderExportMenu = (): HTMLElement => {
  *  copied because everything here except the pending text and the accessible name is the same for both,
  *  and the parts that are easiest to get wrong (the 24-char headline, `aria-expanded`/`aria-controls`
  *  agreeing with the row that is actually open) are exactly the parts a copy would drift on. */
+/** The live pending text for the component build (#684).
+ *
+ *  PHASE NAMED, NOT JUST A FRACTION, because there are two loops over the same member count — building
+ *  members, then wiring property references across them. A bare "412 of 648" would run to 648 and then
+ *  restart at 1, which reads as a build that failed and started over. Naming the phase makes the reset
+ *  the expected thing it is.
+ *
+ *  Before the first boundary reports there is no fraction to show, so this is the pre-#684 string — which
+ *  is also what a host build older than this one leaves on screen for the whole build.
+ *
+ *  NOT SUBJECT TO THE 24-CHAR PILL BUDGET, unlike the headlines in `apply-summary.ts`: pending renders as
+ *  `.bar-seed` text, not the `.applystat` pill, and `.bar-seed` ellipsizes at 220px rather than clipping a
+ *  verdict. The longest string here is "Wiring references… 648 of 648" at 29 characters. */
+const componentPendingText = (): string => {
+  const p = componentProgress;
+  if (!p) return 'Building the Button set…';
+  const label = p.phase === 'build' ? 'Building members' : 'Wiring references';
+  return `${label}… ${p.done} of ${p.total}`;
+};
+/** The live pending `<span>`, so a chunk boundary can rewrite its text instead of re-rendering the bar
+ *  (see the `component-progress` handler). Held from the last render and never read for state — if the
+ *  bar re-renders for another reason the reference is replaced, and if it is stale the text update simply
+ *  lands on a detached node while the fresh one already renders the current fraction. */
+let componentPendingEl: HTMLElement | null = null;
+
 function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components'): HTMLElement {
   const noun = which === 'apply' ? 'apply' : 'component build';
-  if (state === 'pending') return el('span', 'bar-seed', which === 'apply' ? 'Writing to Figma…' : 'Building the Button set…');
+  if (state === 'pending') {
+    // The theme write's pending text is static and the component build's is not (#684), so only the
+    // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
+    // second; a 648-member build takes tens of seconds, which is precisely why it reports.
+    if (which === 'apply') return el('span', 'bar-seed', 'Writing to Figma…');
+    componentPendingEl = el('span', 'bar-seed', componentPendingText());
+    return componentPendingEl;
+  }
   const open = openDetail === which;
   const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (open ? ' open' : '');
   const btn = el('button', cls) as HTMLButtonElement;
@@ -6825,7 +6885,11 @@ function renderBar(): void {
     // designer cannot recover from the result: the set binds variables by name, so a build into an
     // unthemed file misses every binding.
     compBtn.title = 'Builds the Button set on this page. Apply to Figma first — it binds those variables.';
-    compBtn.onclick = () => { componentState = 'pending'; openDetail = null; renderBar(); syncApplyDetail(); commit.postComponents(); };
+    // `componentProgress` clears here as well as on the result (#684) — belt and braces on purpose. The
+    // result handler is the normal path, but a build that THROWS in the main thread before the executor
+    // returns posts a failed result, and one that never answers at all posts nothing; without this line a
+    // fraction from the abandoned run would be the first thing the next build's pill shows.
+    compBtn.onclick = () => { componentState = 'pending'; componentProgress = null; openDetail = null; renderBar(); syncApplyDetail(); commit.postComponents(); };
     actions.append(compBtn);
   }
 

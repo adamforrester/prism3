@@ -30,10 +30,21 @@
  * properties are declared on the set after combining and wired to EVERY member; a re-run is idempotent;
  * and the degraded cases (missing variables, missing swap target, missing shared component, a stray
  * member, a duplicate member name) are reported as misses rather than thrown or silently dropped.
+ *
+ * ON THE #684 CHUNKING, THE LIMIT IS WORTH STATING BEFORE THE ASSERTIONS: this harness has no event loop
+ * to starve, no Figma heartbeat, no socket to drop and no scenegraph to reconcile. So it cannot verify the
+ * thing #684 is actually about — that the host stays responsive — and it cannot tell a good chunk size
+ * from a bad one. What it CAN verify is the arithmetic around the yielding: that a yield happens, that it
+ * happens at the boundaries claimed, that it still happens in the cases where the loop body does almost
+ * nothing, and that the fractions reported are monotonic within a phase and end at the total. Those are
+ * exactly the parts that were wrong in draft and that a live run would not isolate — a build that freezes
+ * tells you nothing about which of the two loops did it. The responsiveness itself is verified by running
+ * it in Figma, and the chunk size is set from `chunkMs` off that run. See `CHUNK` in `write-components.ts`.
  */
 import { figmaAnatomyPlan, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planComponentName } from '@prism3/engine/anatomy-figma';
 import { button } from '@prism3/engine/components/button';
-import { applyComponentPlan } from './src/write-components';
+import { applyComponentPlan, CHUNK } from './src/write-components';
+import type { ComponentApplyOptions, ComponentProgress } from './src/write-components';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 
 let failed = 0;
@@ -253,7 +264,36 @@ const makeShim = (opts: ShimOpts = {}) => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
-const run = (plans: AnatomyPlan[], opts: ShimOpts = {}) => applyComponentPlan(plans, makeShim(opts) as any);
+const run = (plans: AnatomyPlan[], opts: ShimOpts = {}, apply: ComponentApplyOptions = {}) =>
+  applyComponentPlan(plans, makeShim(opts) as any, apply);
+
+/** A run that RECORDS its yields and its progress reports (#684).
+ *
+ *  The injected `yieldTo` is what makes the yield observable at all — it resolves immediately rather than
+ *  through a real timer, which is the point twice over: the suite does not pay 54 timer ticks per run, and
+ *  a yield that happened is distinguishable from one that did not. With the production `setTimeout(0)`
+ *  there is nothing to assert against; the only evidence would be that the run finished, which it does
+ *  either way.
+ *
+ *  It resolves via `Promise.resolve()` — a MICROTASK — and that is a deliberate difference from
+ *  production, not an oversight. A microtask yields nothing to a host event loop, which is exactly why
+ *  `realYield` uses `setTimeout`; but this harness has no host to yield to, so what is being measured here
+ *  is the executor's control flow, and a microtask measures that identically while keeping the test
+ *  synchronous-fast. The macrotask requirement is a property of the production path and is asserted by
+ *  reading `realYield`, not by this. */
+const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: number) => {
+  const yields: string[] = [];
+  const progress: ComponentProgress[] = [];
+  const r = await run(plans, opts, {
+    chunk,
+    // Recorded in the order they fire, tagged with the phase and fraction that was current — so an
+    // assertion can check ORDER, not just counts. `onProgress` fires immediately before the yield in
+    // `breathe`, so the two arrays are index-parallel.
+    onProgress: (p) => { progress.push({ ...p }); yields.push(`${p.phase}:${p.done}/${p.total}`); },
+    yieldTo: () => Promise.resolve(),
+  });
+  return { r, yields, progress };
+};
 
 // ---- the plans: the same 21-variant button grid the engine's set gates run on --------------
 const grid = button.variants!.appearance!.flatMap((ap) => button.states!.map((st) =>
@@ -483,6 +523,85 @@ const dupCoord = [grid[0], { ...grid[0] }];
 threw = '';
 try { await run(dupCoord, { ...full(), page: { children: [] } }); } catch (e) { threw = (e as Error).message; }
 ok(threw.includes('share a component name'), `two plans at one coordinate are REFUSED (${threw.slice(0, 60)}…)`);
+
+// ---- #684: the executor YIELDS, in both loops, at the boundaries it claims -------------------
+// What is being gated is control flow, not responsiveness — see the note in this file's header. The
+// fixture is 21 members, so a chunk of 5 gives 5 boundaries per phase (4 full + 1 partial) and the
+// partial one is the case a naive `i % chunk === 0` drops.
+const yPage: Page = { children: [] };
+const y = await instrumented(grid, { ...full(), page: yPage }, 5);
+
+ok(y.yields.length > 0, `the executor yields at all (${y.yields.length} yields over ${grid.length} members)`);
+// BOTH phases, and this is the assertion that would have caught the draft. #684 names the member loop;
+// the reference-wiring loop walks every member with a subtree search per reference, and on an idempotent
+// re-run it is essentially the whole cost. Chunking only the first would look fixed and freeze the re-run.
+const buildYields = y.progress.filter((p) => p.phase === 'build');
+const wireYields = y.progress.filter((p) => p.phase === 'wire');
+ok(buildYields.length > 0 && wireYields.length > 0,
+  `both long loops yield — building members AND wiring references (build ${buildYields.length}, wire ${wireYields.length})`);
+
+// The boundaries are the ones a chunk of 5 over 21 implies, INCLUDING the trailing partial chunk. Written
+// out rather than recomputed from the executor's own arithmetic: an expectation derived by re-running
+// `(i + 1) % chunk` would agree with a broken chunker by construction (docs/34).
+const wantBoundaries = ['5/21', '10/21', '15/21', '20/21', '21/21'];
+ok(JSON.stringify(buildYields.map((p) => `${p.done}/${p.total}`)) === JSON.stringify(wantBoundaries),
+  `build yields land on every chunk boundary and on the final partial one (${buildYields.map((p) => p.done).join(',')})`);
+ok(JSON.stringify(wireYields.map((p) => `${p.done}/${p.total}`)) === JSON.stringify(wantBoundaries),
+  `wire yields land on the same boundaries (${wireYields.map((p) => p.done).join(',')})`);
+// Reaching the total is the property the UI depends on: the pill shows the fraction, and a loop whose last
+// partial chunk is silent leaves it reading "20 of 21" under a pill that says built.
+ok(buildYields[buildYields.length - 1].done === grid.length && wireYields[wireYields.length - 1].done === grid.length,
+  `each phase's last report equals the total, so the fraction never stalls short (${grid.length})`);
+// Monotonic WITHIN a phase. Across phases it resets, by design — which is why the phase is on the wire at
+// all, and why the UI names it rather than showing a bare fraction.
+const nonMonotonic = (ps: ComponentProgress[]): boolean => ps.some((p, i) => i > 0 && p.done <= ps[i - 1].done);
+ok(!nonMonotonic(buildYields) && !nonMonotonic(wireYields), 'reported progress is strictly increasing within each phase');
+ok(y.progress.every((p) => p.total === grid.length), `every report carries the same total, so the denominator never moves (${grid.length})`);
+ok(y.progress.every((p) => typeof p.chunkMs === 'number' && p.chunkMs >= 0),
+  'every report carries a non-negative chunkMs — the calibration signal, whose VALUE only a live run can judge');
+// Chunking must not change the outcome. The clean-run assertions above ran at the default chunk size, so
+// this compares a 5-chunk run against them: same members, same misses, same set.
+ok(y.r.added === 21 && y.r.misses.length === 0 && y.r.set === 'button',
+  `chunking does not change what gets built (added=${y.r.added}, misses=${y.r.misses.length}, set=${y.r.set})`);
+
+// THE IDEMPOTENT RE-RUN YIELDS ON THE SAME BOUNDARIES. This is the case a `fresh.length`-keyed chunker
+// gets wrong, and the failure is not the obvious one: `fresh.length` stays 0 through a full-skip run, so
+// `0 % chunk === 0` is true on EVERY iteration — it yields 21 times and reports `0 of 21` each time.
+// Measured by mutation, which is also how the direction was corrected: the guess was that it would never
+// yield. Either way the fraction is a lie and the yields are unbounded, hence keying on the cell index.
+const reRun = await instrumented(grid, { ...full(), page: yPage }, 5);
+ok(reRun.r.added === 0 && reRun.r.skipped === 21, `the re-run skips every member (added=${reRun.r.added}, skipped=${reRun.r.skipped})`);
+ok(reRun.progress.filter((p) => p.phase === 'build').length === wantBoundaries.length,
+  `and still yields on every build boundary while building nothing (${reRun.progress.filter((p) => p.phase === 'build').length})`);
+ok(reRun.progress.filter((p) => p.phase === 'wire').length > 0,
+  `and still yields while wiring, which is where a re-run spends its time (${reRun.progress.filter((p) => p.phase === 'wire').length})`);
+
+// A run with NO options is the production call shape — it must still complete, and must yield without
+// anyone passing a yield in. `realYield` is not injected here, so this genuinely goes through
+// `setTimeout(0)`: proof the default path is wired, not merely that the injected one works.
+const defPage: Page = { children: [] };
+const defRun = await run(grid, { ...full(), page: defPage });
+ok(defRun.added === 21 && defRun.misses.length === 0,
+  `the no-options call shape still builds the whole set through the real setTimeout yield (added=${defRun.added})`);
+
+// A single member is the degenerate chunk case: one boundary, at 1/1. A chunker that only fires on the
+// modulo would report nothing at all here, and the pill would sit at "Building the Button set…" forever.
+const onePage: Page = { children: [] };
+const one = await instrumented([grid[0]], { ...fullFor([grid[0]]), page: onePage });
+ok(one.progress.filter((p) => p.phase === 'build').map((p) => `${p.done}/${p.total}`).join() === '1/1',
+  `a one-member set reports exactly one build boundary, at 1/1 (${one.progress.filter((p) => p.phase === 'build').map((p) => `${p.done}/${p.total}`).join() || 'none'})`);
+
+// A chunk of 0 or a negative would make `i % chunk` NaN-or-never and silently stop all reporting; the
+// executor clamps to 1. Asserted because the value comes from a caller, and the failure is invisible.
+const clampPage: Page = { children: [] };
+const clamped = await instrumented(grid, { ...full(), page: clampPage }, 0);
+ok(clamped.progress.filter((p) => p.phase === 'build').length === grid.length,
+  `a chunk size of 0 clamps to 1 rather than disabling reporting (${clamped.progress.filter((p) => p.phase === 'build').length} of ${grid.length})`);
+
+// The default is a real number in a plausible range — a pin, not a derivation. It is deliberately loose:
+// this cannot judge the value (no event loop), so it only catches a `CHUNK` left at 0, at 1, or set to
+// something that would make the whole set one chunk again, which is the regression that matters.
+ok(Number.isInteger(CHUNK) && CHUNK > 1 && CHUNK < 200, `CHUNK is a plausible chunk size, not the whole set (${CHUNK})`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
