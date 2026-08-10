@@ -189,10 +189,22 @@ integration configured by URL.
 
 ## Idea 5 — Normative requirement levels (RFC 2119) on generated guidance
 
-**Raised 2026-08-04 · status: logged, not scoped.** Owner-raised from a Nathan Curtis post
-endorsing Cloudflare's engineering-standards approach. Worth taking seriously on lineage
-alone: Curtis is the source of several POVs this repo already builds on (components-as-data,
-the Specs CLI read-back verifier in `14` §4, the three-tier token taxonomy).
+**Raised 2026-08-04 · status: partly scoped — the payload slice by #675 (2026-08-10); the rest
+still logged.** Owner-raised from a Nathan Curtis post endorsing Cloudflare's
+engineering-standards approach. Worth taking seriously on lineage alone: Curtis is the source of
+several POVs this repo already builds on (components-as-data, the Specs CLI read-back verifier in
+`14` §4, the three-tier token taxonomy).
+
+**What #675 took, and what it left.** #675 decided the register for emitted payload prose (#668)
+and admitted RFC 2119 keywords into that one channel — so *"Where it would land first"* below has
+an answer for the payload case, and **The trap** below is now a binding rule rather than a cost to
+price. It is recorded in `voice-standard.md` §4 with the reasoning in `29-tone-of-voice.md` §4.1:
+a `MUST` in payload prose requires a check the reading agent can run against artifacts present in
+the payload, because an ejected client's repo runs no Prism3 CI. Everything else here is
+untouched and still logged — levels on `.ai.json`, the approved → enforced lifecycle, and
+machine-readable `status` in doc frontmatter. **The body stays rather than collapsing to a
+pointer** (contra this file's own graduation rule) because only one of three proposals moved; the
+rule applies when the last of them does.
 
 ### Lineage
 
@@ -275,10 +287,15 @@ and it should be priced before starting.
   authoring time instead of retrofitted. `14` §3 already notes a11y contracts "are not
   representable in Figma at all — they live in the definition, the `.ai.json`, and the code
   outputs": MUST-shaped statements explicitly needing an enforceable home.
-- **The voice standard** — `voice-standard.md` §2 is literally a MUST list awaiting a gate
-  (#617). The pattern is already in flight; this would name it.
+- **The voice standard** — `voice-standard.md` §2 is a MUST list awaiting a gate (#617). The
+  pattern was already moving; this would name it. **Landed, in the reverse direction:** #617
+  built the gate (`lint-voice.ts`), and #675 then wrote the trap above into the standard as a
+  rule — `voice-standard.md` §4 and §6 question 6.
+- **The eject payload** (#668) — decided by #675, above. The payload is where the trap has the
+  most force, because the reader has no CI to appeal to.
 
 *Refs: `14` §3–§4 (component-layer contracts + the Specs CLI verifier), `28` (the anatomy schema
 that would carry them), `30-versioning-and-compatibility` (the closest existing governed
-contract), `voice-standard.md` §2 + #617, KB `04` (enforcement-or-decay), `13` (inspirations —
-where Curtis-sourced ideas are logged).*
+contract), `voice-standard.md` §2 + #617, `voice-standard.md` §4 + `29-tone-of-voice.md` §4.1 +
+#675 (the payload slice, scoped), #668 (the artifact it binds), KB `04` (enforcement-or-decay),
+`13` (inspirations — where Curtis-sourced ideas are logged).*
