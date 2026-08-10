@@ -160,7 +160,9 @@ in-product: the voice should be invisible enough that the brand being built is t
 thing in the room.
 
 This attribute is what makes §4 necessary. It binds hard in the plugin, and it **relaxes in
-marketing** — because on the marketing site, the brand on screen *is* ours.
+marketing** — because on the marketing site, the brand on screen *is* ours. It does not reach
+the **payload agents** channel at all, and for a different reason than marketing: there is no
+screen and no human reader there. See §4.1.
 
 ### 3.5 Declarative ≠ formal — the reconciliation
 Google argues developer docs should read as *"a knowledgeable friend,"* conversational
@@ -195,23 +197,90 @@ These are mechanically checkable, which is what makes them worth writing down (�
 Voice (§3) is constant. Two things vary: **register** (density, length, person) and
 **permission** (how much personality is allowed). Recessive-ness is the dial.
 
-| | **A · Plugin & dashboard UI** | **B · Usage guidance** | **C · Developer docs** | **D · Marketing site** |
-|---|---|---|---|---|
-| **Reader & state** | Designer mid-task, theming a brand. Attention is on their work, not our chrome. | Designer/dev deciding *which* thing to use and whether they're using it right. | Dev integrating, terminal open, wants it to work. | Evaluator deciding whether this is worth their time. Skeptical. |
-| **Job of the copy** | Let them act without stopping to learn. | Prevent the wrong choice; make the right one obvious. | Get them to a working state, then to the contract. | Make the thesis land in one screen. |
-| **Register** | Terse. Fragment-friendly. Label + one line. | Prose, but decision-shaped. Do/don't pairs. | Instructional, task-ordered. Code first, prose after. | Confident, concrete, whole sentences. |
-| **Person** | System as subject ("Drives component sizes"). Second person only for direct action. | Second person permitted ("Use this when…", "Don't…"). | Second person, imperative ("Run…", "Bind…"). | First person plural permitted ("we generate", "our engine"). |
-| **Length** | ≤1 line per control; ~90 chars for a `desc`. | 1–3 sentences per rule. | As long as correctness needs. | Short. Every sentence earns the next. |
-| **Jargon** | Recognizable names only in **labels**; precise terms allowed in **descriptions** (see §6). | Introduce the term, then use it. This is where vocabulary gets taught. | Full precision assumed. Token paths, API names, exact types. | Translate everything. A term the reader doesn't know is a lost reader. |
-| **Numbers** | Inline, always (`4.5:1`). | Inline, with the standard named. | Exact, with units and types. | Only when the number *is* the argument (e.g. "432 contrast contracts, every build"). |
-| **Personality** | **None.** Recessive binds hardest here. | None. | **None** — corrected. The first draft allowed "dry asides where they aid recall"; Google's guide bans exclamation marks and figurative language outright for non-native readers, and that reasoning holds for us. Conversational ≠ characterful. | **Permitted** — this is our brand, not the client's. Still no hype, and the §3.5 bans still apply. |
-| **Failure mode to avoid** | Chrome that talks more than the work. | Rules with no reason attached. | Prose where a code block would do. | Claims the engine can't back. |
+| | **A · Plugin & dashboard UI** | **B · Usage guidance** | **C · Developer docs** | **D · Marketing site** | **E · Payload agents** |
+|---|---|---|---|---|---|
+| **Reader & state** | Designer mid-task, theming a brand. Attention is on their work, not our chrome. | Designer/dev deciding *which* thing to use and whether they're using it right. | Dev integrating, terminal open, wants it to work. | Evaluator deciding whether this is worth their time. Skeptical. | A model working in an ejected client repo. No engine to call, no CI, no system to query. |
+| **Job of the copy** | Let them act without stopping to learn. | Prevent the wrong choice; make the right one obvious. | Get them to a working state, then to the contract. | Make the thesis land in one screen. | Resolve token names correctly from what the payload contains, and refuse to guess. |
+| **Register** | Terse. Fragment-friendly. Label + one line. | Prose, but decision-shaped. Do/don't pairs. | Instructional, task-ordered. Code first, prose after. | Confident, concrete, whole sentences. | Normative. RFC 2119 levels (`MUST` / `SHOULD` / `MAY`), one rule per line, no preamble. |
+| **Person** | System as subject ("Drives component sizes"). Second person only for direct action. | Second person permitted ("Use this when…", "Don't…"). | Second person, imperative ("Run…", "Bind…"). | First person plural permitted ("we generate", "our engine"). | Second person imperative, addressed to the agent ("Read the inventory before writing a name"). |
+| **Length** | ≤1 line per control; ~90 chars for a `desc`. | 1–3 sentences per rule. | As long as correctness needs. | Short. Every sentence earns the next. | One rule, one sentence. |
+| **Jargon** | Recognizable names only in **labels**; precise terms allowed in **descriptions** (see §6). | Introduce the term, then use it. This is where vocabulary gets taught. | Full precision assumed. Token paths, API names, exact types. | Translate everything. A term the reader doesn't know is a lost reader. | Full precision, verbatim. A paraphrased token path is a wrong one — there is nothing here to teach vocabulary to. |
+| **Numbers** | Inline, always (`4.5:1`). | Inline, with the standard named. | Exact, with units and types. | Only when the number *is* the argument (e.g. "432 contrast contracts, every build"). | Exact, and checkable against a file that travels in the payload. |
+| **Personality** | **None.** Recessive binds hardest here. | None. | **None** — corrected. The first draft allowed "dry asides where they aid recall"; Google's guide bans exclamation marks and figurative language outright for non-native readers, and that reasoning holds for us. Conversational ≠ characterful. | **Permitted** — this is our brand, not the client's. Still no hype, and the §3.5 bans still apply. | **None**, and recessive does not apply either — §3.4 has nothing to be recessive against here (§4.1). |
+| **Failure mode to avoid** | Chrome that talks more than the work. | Rules with no reason attached. | Prose where a code block would do. | Claims the engine can't back. | A `MUST` the reader cannot check — a normative label with no gate behind it. |
 
-### The one rule that spans all four
+### The one rule that spans all five
 **Never claim a guarantee the engine doesn't verify.** Prism3's entire differentiator is
 that its output is gated — contrast contracts, alias resolution, byte-reproduction. Copy
 that overstates in marketing, or implies a contract in the UI that no test enforces, spends
 the one asset the product has. If a claim isn't gated, phrase it as intent, not guarantee.
+
+Column E is that rule with the volume turned up, because normative keywords make the claim
+explicit. §4.1 is what follows from taking it seriously.
+
+### 4.1 Column E — payload agents (added 2026-08-10, #675)
+
+#668 proposes emitting a **rules** artifact into the eject payload, modeled on Primer's
+`DESIGN_TOKENS_GUIDE.md`: RFC 2119 keywords plus a "Hallucination Guard" telling the reading
+agent to annotate an uncertain token name rather than invent one. Emitted prose is gated —
+`lint-voice.ts` scope imports from `regen.ts`, so a new artifact is covered the day it exists —
+and normative shouting reads as close to the opposite of §3.4. #675 was filed to settle that
+collision before the emitter was written rather than at gate time.
+
+**The prior question had to resolve first: does this standard reach prose whose reader is a
+model?** Partly. §3's four attributes are about how Prism3 says things, and three of them —
+precise, declarative, translating — apply to a rules file as well as they apply to a lever
+description. The fourth does not. §3.4 exists so the tool's voice does not compete with **the
+brand on screen**, and a payload rules file has no brand voice in it and is not on screen: it is
+instructions about token names, read by a model. The attribute was written before that surface
+existed, so extending it there is over-application rather than consistency. The standard's own
+pre-ship check already scopes it this way — "would this compete with the brand on screen?
+(product surfaces only)".
+
+**Why a channel and not a per-artifact exception.** Three options were on the table: carve out the
+channel, drop RFC 2119 and write declarative prose, or permit the keywords in the rules file
+alone. The third is narrowest and the gate can express it, which is what makes it tempting and
+what makes it wrong over time. §4 exists precisely to say that register varies while voice does
+not, and payload agents vary on every axis §4 tracks: a different reader (a model), a different
+job (name resolution with nothing to query), a different failure mode (a confident name that does
+not exist). That is a channel by the same test that made C a channel. A per-artifact exception,
+by contrast, accretes — the second payload artifact gets its own line, then the third, until the
+standard is a list of places it does not apply. A channel row stays one row.
+
+**What the decision costs, and this is the part that binds.** `27-future-ideas.md` Idea 5 holds
+this repo's position on 2119 keywords, and it rules that **a normative label with no gate behind
+it is worse than no label** — it manufactures the appearance of rigor. So `MUST` has to mean *a
+gate exists*, not *we mean it strongly*, and adopting levels creates an obligation: every `MUST`
+either gets a gate or becomes a `SHOULD`. The payload is the hardest case for that rule, and the
+issue did not carry it when filed. **An ejected client's repo runs no Prism3 CI.** A `MUST` there
+is the canonical instance of the thing Idea 5 rules against, unless the check travels with it.
+
+So the rule recorded in `voice-standard.md` §4 is narrower than "2119 is allowed here":
+
+> A `MUST` in emitted payload prose requires a check the **reading agent** can run against
+> artifacts **present in the payload**. Anything else is a `SHOULD`.
+
+Primer's Hallucination Guard passes that test and is the worked example — *if you cannot verify a
+token name, annotate it rather than guess* is mechanizable by the reader, because the emitted
+inventory travels in the payload and the agent can check a name against it without us. A rule that
+needs `regen --check` cannot be a `MUST` in a repo that does not have `regen`. The stronger form,
+when a rule is mechanizable, is to emit the checker beside the rules rather than only state the
+rule; the honest fallback is `SHOULD`.
+
+**The obligation is dated, not waived.** No payload artifact ships today, so `lint-voice.ts` has
+no payload prose to scan and no channel logic in it — writing that logic now would be speculative
+code against an artifact whose shape #668 has not fixed. What is recorded instead is when it comes
+due: **the PR that emits payload prose teaches the gate this channel**, and mutation-tests both
+directions — banned §2 prose in a payload artifact must still fail by name, and the same prose in a
+non-payload artifact must still fail, because a carve-out that silently widens is a deleted gate
+(`34-gate-independence.md`). A carve-out the gate cannot see is not enforceable, which is the
+argument `lint-us-english.ts` makes about `apps/studio/src` comments.
+
+**One thing this does not decide.** Idea 5's other observation is that `.ai.json` already ships
+MUST-shaped prose with no level — `avoid_when: "Do not use for surfaces placed on the page…"`. The
+payload artifacts inherit that problem rather than introduce it, and §8's open question 4 (*is
+`.ai.json` a channel?*) is still open. #675 settled the register for prose written *as* rules for
+an agent; it did not retroactively relabel prose already shipping.
 
 ---
 
@@ -282,11 +351,16 @@ unusual position and it makes mechanical enforcement more valuable than review.
 2. **Does the plugin need a distinct voice from the web dashboard?** Treated as one channel
    here because they share `apps/studio/src` (docs/09). If the plugin ever addresses a different
    reader — e.g. a Dev Mode surface (docs/27 Idea 1) reads to a *developer*, not a designer
-   — that's a fifth column, not a variation of A.
+   — that's a column of its own, not a variation of A.
 3. **Doc 26 §Controls & labels** — resolve §6.
 4. **Is `.ai.json` a channel?** Its reader is an agent, not a human. Current prose reads as
    channel B, which is probably right, but it has never been decided deliberately and the
-   KB's AI-surface content guidance (04) may argue otherwise.
+   KB's AI-surface content guidance (04) may argue otherwise. **Still open after #675**, and
+   sharper for it: §4.1 admitted column E on the argument that a model-reading surface is a
+   distinct channel, and `.ai.json` is a model-reading surface that also travels in the payload.
+   The two answers differ in what the prose *is* — E is rules written for an agent, `.ai.json` is
+   guidance about a token that an agent happens to read — but that line is worth testing rather
+   than assuming. Deciding it also decides whether `avoid_when`'s MUST-shaped prose takes a level.
 
 ---
 
