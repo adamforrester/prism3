@@ -7,6 +7,83 @@
 
 ---
 
+## (2026-08-10) — The set's column axis is CHOSEN, and the gate that could not see it (#656)
+
+**STATUS: shipped.** `regen --check` unchanged at **104** — the grid is a paste-time layout decision and
+touches no emitted artifact. Engine tests **2045 → 2061**.
+
+**What was wrong, in one line.** `planSetLayout` took `varying[varying.length - 1]` as the column axis —
+the last axis in `figmaAxisNames` order, which is *declaration* order. So the column axis was whatever
+happened to be declared last. When the rule was written that was `state`, giving the readable
+`state`-across / `appearance`-down table the color layer was reviewed as. #536 item 5 appended `slotAxes`
+after `stateAxis` and the column axis silently became `trailing`, a boolean: the full Button set laid out
+**324 rows × 2 columns**. The first real-Figma run measured that strip at **320 × 23304px** — against the
+shim's predicted 264 × 11640, off by ~2× on both dimensions, which is why the run sheet tagged the
+prediction `[SHIM]` rather than treating it as an expectation. Nobody chose the strip and nothing reported
+it.
+
+**The fix is small and its point is not the arithmetic.** `figmaProperties.gridAxis` is a new optional
+field naming the column axis; `gridColumnAxis(declared, varying)` in `component-schema.ts` resolves it —
+the declared axis when it varies in the set at hand, else the highest-cardinality varying axis, ties
+broken by declaration order. Button declares `state`, so the set is now **108 × 6**. Absent is legitimate:
+a def that has not thought about its grid gets the widest axis across, i.e. the shortest table, rather
+than whichever axis sorts last. The field is validated against `figmaAxisNames(def)`, so a `gridAxis`
+naming a renamed, misspelled or code-only axis is an error rather than a silent fall-through to the
+fallback — an unchecked field would put the grid straight back where #656 found it while the def still
+read as though it chose.
+
+Three placements are load-bearing and each will look like an inefficiency to whoever tidies next:
+
+- **`gridColumnAxis` lives in `component-schema.ts`, not inside `planSetLayout`.** Inlining it to save a
+  parameter deletes the gate: `planSetLayout` is the *subject*, so an expectation computed by calling back
+  into it agrees with it by construction. Kept separate, the rule can be checked against a hand-written
+  table on one side and the layout function's real output on the other.
+- **`gridAxis` rides on the `AnatomyPlan`,** because `planSetLayout` receives plans and never the def —
+  the same reason `codeOnly` is carried.
+- **`rowKeys` is `varying.filter(k => k !== colKey)`, not `varying.slice(0, -1)`.** The slice is only
+  correct while the column axis *is* the last element, which is the exact assumption that stops holding
+  the moment the axis is chosen. Left as a slice, two members collide into one cell — and, tellingly, the
+  parity gate passes that.
+
+**The gate is the actual work, and it named a new sub-shape (docs/34 § 11).** The existing
+member-placement gate compares two executors — the pasted payload and `applyComponentPlan` — reading
+`name@x,y WxH` off two separate stub pages. Two hosts, two writers, two read-backs; a strong claim about
+everything downstream of the layout. But *both lay out through `planSetLayout`*, so it stays green under
+any layout change, and stayed green through the 324 × 2 reshape. This is **not** docs/34's usual shape:
+the expectation is not derived from the subject at all. Both **sides of the comparison** share the
+subject, which sits underneath them. Shape 2's tell ("you can point at one function both sides call")
+does not fire, because that tell is about the oracle. The new question is *what is below both sides*
+rather than what is beside them.
+
+The parity gate was **left exactly as it is** — it gates node building, combine ordering, position
+writing and read-backs, and none of that is broken. The layout is gated separately, from outside the
+code: three hand-written `(name → row, col)` tables, a shape asserted as two literals a hand-count
+justifies (`648 = 3 × 3 × 3 × 6 × 2 × 2`, so 6 columns and 108 rows — **not** a product of `.length`s,
+which is the 189-vs-756 miscount again), and one 6-member set run through the real payload so the cell
+indices become `x`/`y` a designer would see. Every table carries a comment forbidding its rewrite as a
+call to `planSetLayout`, `gridColumnAxis` or `figmaAxisNames`.
+
+**Mutation-proven, by name, five ways.** The distinction that matters here: mutating `planSetLayout`
+turns the suite red *somewhere*, so "the suite noticed" reads as coverage when it is not. Each mutation
+below was checked for *this* gate among the failures.
+
+| mutation | result |
+|---|---|
+| restore `varying[varying.length - 1]` + `slice(0, -1)` | 5 fail — incl. `got 324×2 on 'trailing'` |
+| drop the `declared &&` branch in `gridColumnAxis` | 4 fail — incl. all three on-canvas `x`/`y` claims |
+| `rowKeys` back to `varying.slice(0, -1)` alone | 4 fail — two members collide into one cell |
+| disable the `gridAxis` validation block | 2 fail — the typo and code-only-axis cases |
+| stop carrying `gridAxis` onto the plan | 4 fail — the declaration stops reaching the layout |
+
+**Test-covered vs live-only, stated plainly.** Everything above is test-covered offline: the axis choice,
+the row/column derivation, the validation, the full set's 108 × 6 shape, and cell→`x`/`y` on the stub
+page. **Live-only:** that a 108 × 6 table is the more readable artifact *in Figma*, and the resulting set
+box (the shim's box arithmetic was already measured wrong by ~2×, so no number here predicts it). The
+strip's 320 × 23304px is recorded as history, not as an expectation to compare against. **Not touched:**
+#684's chunk size — it needs a live measurement and changes undo granularity.
+
+---
+
 ## (2026-08-10) — Payload agents become a channel in the voice standard, and `MUST` acquires a price (#675)
 
 **STATUS: docs only — no code change, no gate change, no emitted artifact moved.** `regen --check`

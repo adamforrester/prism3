@@ -310,6 +310,13 @@ export const button: ComponentDef = {
     // `isDisabled` collapse into the state axis; `onClick`/`type`/`href` are behavioral. A Figma
     // BOOLEAN drives one node's `visible` and nothing else, and none of those are that.
     booleans: {},
+    // The set's COLUMNS (#656). `state` because it is the axis a designer reads across — the six
+    // steps of one skin, side by side, is how the color layer was reviewed and how the legacy sheet
+    // is drawn. It is also the widest axis here, so the cardinality fallback would pick it anyway;
+    // declaring it is what stops the next axis added to this def from taking the columns by accident,
+    // which is precisely what `slotAxes` did in #536 (the full set laid out 324 × 2, measured live at
+    // 320 × 23304px). With this, 108 rows × 6 columns.
+    gridAxis: 'state',
   },
 
   accessibility: {
