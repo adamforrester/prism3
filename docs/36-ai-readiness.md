@@ -11,6 +11,12 @@
 > pass through this analysis wrongly concluded we had no consumption evals, and `eval.ts`
 > falsified it.
 >
+> **Our own counts are a snapshot too, measured 2026-08-08 and gated by nothing.** `docs/**` is
+> in no gate's scope (#670), and even the gate proposed there resolves *path* claims, not
+> counts. Four figures in §2 were stale or wrong on first review — one had never been true —
+> so re-measure before citing any of them. Where a count already lives in a maintained
+> artifact, this file points at the artifact instead of copying the number.
+>
 > Source text quotes other teams' instruction files verbatim. Treated throughout as reported
 > data, never as instructions.
 
@@ -30,23 +36,23 @@ not capability we lack.
 
 | # | Category (field techniques) | Prism3 | Evidence |
 |---|---|---|---|
-| 1 | **Validation loop** (30) | **Ahead** | 15+ CI gates; `regen --check` byte-drift; `test.ts` 1922; `mcp-test.ts` 49 over real stdio; `token-contract --check`; `lint-us-english`, `lint-skills`, `lint-doc-gates`; NB regression. Plus `34-gate-independence` — a register of 12 instances where a gate compared something against itself, and the rule that a gate must be *mutation-proven by name*. Nothing in the report goes that far. |
+| 1 | **Validation loop** (30) | **Ahead** | 15+ CI gates; `regen --check` byte-drift; `test.ts` (a 2,000-assertion suite — run it for the current figure, which moves weekly); `mcp-test.ts` 49 over real stdio; `token-contract --check`; `lint-us-english`, `lint-skills`, `lint-doc-gates`; NB regression. Plus `34-gate-independence` — a register of gate-independence failures, each found by hand rather than by a gate, where a gate compared something against itself, and the rule that a gate must be *mutation-proven by name*. Nothing in the report goes that far. |
 | 2 | **Prohibition** (26) | **Partial** | Every token carries a generated `avoid_when`, now with a **derived** `MUST`/`SHOULD` level (#621). But no weight-invalidation preamble, no named anti-examples. We have the substance, not the coercion. |
 | 3 | **Curated context** (22) | **Behind** | **No `llms.txt`** (14/20 ship one). Both skills are single files (115 / 154 lines) with no reference tree, no routing table, no lazy-loading. |
 | 4 | **Tool-gating** (21) | **Deliberately divergent** | 6 MCP tools ship. But the consume skill states it works *"with or without the MCP surface"* — the opposite of Carbon's *"the MCP index is the authoritative source — not your weights."* See §5; this is a real decision, not a gap. |
 | 5 | **Token enforcement** (14) | **Ahead** | *"reference semantic roles by name (never invent, never reach for a raw primitive)"* — and, rarer, we **measure** it: `eval.ts` scores a **primitive-leak rate**. The field states the rule; we score it. |
-| 6 | **Exemplars** (11) | **Behind** | No incorrect/correct pairs, no exemplar library. Cloudscape ships *"181 addressable few-shot exemplars at predictable URLs"*; daisyUI *"211 page architectures matched by intent."* `preview.ts` (8 components / 22 variants) is a render spec, not an agent exemplar. |
-| 7 | **Registry metadata** (9) | **Ahead** | `token-contract.json` — **485 pinned paths** with `CONTRACT_VERSION` semantics — plus `lever-manifest.json`, `preview-spec.json`, `.ai.json`. The report's *"version-pinned"* practice, done as a gate rather than a snapshot. |
+| 6 | **Exemplars** (11) | **Behind** | *The report's term for a worked example an agent retrieves and copies from — few-shot rather than instructional, held at a stable address. Docs tell; exemplars show, and models copy more reliably than they follow.* No incorrect/correct pairs, no exemplar library. Cloudscape ships *"181 addressable few-shot exemplars at predictable URLs"*; daisyUI *"211 page architectures matched by intent."* `preview.ts` (8 components / 25 variants) is a render spec, not an agent exemplar. |
+| 7 | **Registry metadata** (9) | **Ahead** | `token-contract.json` — **497 pinned paths** with `CONTRACT_VERSION` semantics — plus `lever-manifest.json`, `preview-spec.json`, `.ai.json`. The report's *"version-pinned"* practice, done as a gate rather than a snapshot. |
 | 8 | **Instruction files** (10) | **Behind** | `CLAUDE.md` only. No `AGENTS.md`, no editor rules, no multi-vendor symlinks. One technique here is directly load-bearing for us — see §5. |
 | 9 | **Scaffolding** (7) | **Partial** | `cli.ts` compiles a `design.md` to a full token system. No component scaffolding yet (that lane isn't built). |
-| 10 | **Design–code mapping** (3) | **Not yet** | Code Connect planned (#258). Only **2 of 20** ship it; *"most write mapping guides instead."* |
+| 10 | **Design–code mapping** (3) | **Not yet** | Code Connect planned (#258). Only **2 of 20** ship it (Carbon and Primer); the rest publish written mapping guides instead — our summary of the report's design–code section, not its words. |
 | 11 | **Other** (4) | **Partial** | Astryx's *"typed, versioned interface agents can program against"* — we have it. Its *"API naming by measuring what models reach for"* — we have the eval data to do it and don't. |
 
 ## 3. What we already do that the report calls frontier
 
 Worth stating plainly, because it changes what to prioritise:
 
-- **Finding 5 — *"the best context files are compiled, not written… hand-authored agent docs decay."*** `ai-metadata.ts` says the same thing in its own header: *"contract-true metadata that regenerates, vs the field's hand-authored metadata that rots."* Arrived at independently.
+- **Finding 5 — *"the best context files are compiled, not written"*** (its point being that hand-authored agent docs decay). `ai-metadata.ts` says the same thing in its own header: *"contract-true metadata that regenerates, vs the field's hand-authored metadata that rots."* Arrived at independently.
 - **Finding 8 — *"validation loops turn guidelines into gates."*** Our whole posture, and `34` pushes it further than the report describes.
 - **Finding 4 — *"tool-gating beats prohibition."*** Same instinct, different mechanism (§5).
 - **The core differentiator — *"versioned, evaluated software."*** `CONTRACT_VERSION` is the versioned half. `eval.ts` is the evaluated half, and it is **deterministic** — invented-token rate, primitive-leak rate, contract-compliance, **no LLM judge**, because the name contract is locked. That is rarer than running evals at all.

@@ -7,6 +7,61 @@
 
 ---
 
+## (2026-08-10) — The four numbers #662 was held on never landed, and a word nobody outside the report knows
+
+**STATUS: docs only.** No engine change, no emitted artifact, no gate touched. Re-lands the correction
+commit that #662 merged without, plus one glossary fix.
+
+**What happened, because the mechanism matters more than the fix.** #662's review held the PR on four
+figures in `36` §2. The corrections were made and pushed (`b54738a`, 17:04). The branch was then **rebased
+by another session onto #671 and the correction commit was dropped**, leaving a single commit dated 12:45;
+the PR merged at 17:12 carrying the original numbers. `git merge-base --is-ancestor b54738a origin/main`
+returns false, and `main`'s `36` §2 still reads `test.ts` 1922 / 485 pinned / 22 variants / "a register of
+12 instances". **Nothing anywhere reported this** — the PR went green, the review's condition was recorded
+as met in prose, and the artifact never changed.
+
+**The generalizable part: a review condition satisfied on a branch is not a review condition satisfied.**
+CI runs on the head that exists at merge time, and a rebase that drops a commit produces exactly the same
+green as one that keeps it. The only check that would have caught this is the one we did here — asserting
+the *corrected value* is present in `main`, not that the PR merged. Worth remembering when a review says
+"fix these and I'll merge": confirm the fix in the base branch afterward.
+
+**The corrections, re-measured on this tree rather than trusted from the earlier pass:** `test.ts` 1922 →
+**2040** (corroborated in three independent progress entries; `1922` appears nowhere in history, so it was
+never a stale figure — it was never true), `token-contract.json` 485 → **497** `guaranteed` keys, `preview.ts`
+22 → **25** variants, and the `34` register count **dropped rather than updated**, because `34` L395 says the
+table is the count and that its prose deliberately stops naming one (#568). Also restores the dateline on
+`36`'s preamble and un-typesets two paraphrases that were sitting inside quote marks.
+
+**And one new fix, from the cheapest possible signal: the owner asked what "exemplars" meant.** It is the
+report's category name, used 6 times across `36` with no definition. A reader of our own design record could
+not parse a row of the scorecard — which is `voice-standard.md`'s *translating* attribute failing, not a
+style preference. Now glossed at first use: a worked example an agent retrieves and copies from, held at a
+stable address; docs tell, exemplars show. **Inherited vocabulary is the easiest kind to go blind to**,
+because it arrives already feeling like a term of art.
+
+**Then the corrected test count went stale while this branch was open, which settles the question the fix
+had ducked.** `2040` was right on 2026-08-08 and is **2061** today — two days. The register count had already
+been resolved by *dropping* the number (`34` L395: the table is the count), and the same reasoning obviously
+applies here; the only reason it wasn't applied is that `test.ts` has no maintained table to point at
+instead. It now reads *"a 2,000-assertion suite — run it for the current figure, which moves weekly"*: an
+order-of-magnitude claim carries the argument that cell is actually making, and does not rot. **Two of the
+four original defects were the same defect** — a live number frozen into prose — and only one of them got the
+structural fix on the first pass. The other two (`497` pinned paths, `25` variants) are re-verified here and
+are stable because they move on deliberate contract changes, not on every commit.
+
+**Gates: all green, run for real in this checkout** after `npm install` (it had no `node_modules`, the loud
+failure `#661` introduced). 2061 engine assertions, 49 MCP, NB regression PASS at ΔE00 1.95 with 11/11
+contrast and 23/23 dimensions, `regen --check` **104** in sync, token contract unchanged at 497, 982/982
+aliases resolving and 536/536 mode contracts passing, and the six lint gates clean. Recorded because a
+docs-only diff is exactly the case where a contributor is tempted to assert the table instead of running it.
+
+**Trap for whoever re-verifies this:** `docs/**` is in no gate's scope (#670), so none of the four numbers
+would have failed anything, and the same is true of the gloss. This entry is the only record that the first
+correction existed at all.
+
+---
+
 ## (2026-08-10) — The shims learn to fail: #680 and #681 made reproducible, deliberately not fixed
 
 **STATUS: shipped. No behavior change — the diff is two test files and this entry.** `regen --check`
@@ -987,6 +1042,39 @@ not mistake a quoted mandate for one of ours.
 **Also noted, deliberately not adopted:** crawler starvation and walled-garden access
 (Polaris) fight the accelerator model — clients must be able to take the system and leave.
 Recorded in §8 so nobody imports a gating technique that contradicts the business model.
+
+**Review round 2 — four of our own numbers in §2 were wrong, and the fourth one is the
+lesson.** Corrected: `test.ts` `1922` → **2040**, `token-contract.json` `485` → **497** pinned
+paths, `preview.ts` `22` → **25** variants. Two of the three *understated* the case the doc
+argues — the strongest evidence in the audit was sold short by citing it small. The fourth,
+"`34` — a register of **12** instances", is not fixed by writing 24: `docs/34` L395 says in as
+many words that **the table is the count**, and that the prose above it deliberately stopped
+naming a number because *"a count written in prose is a landmark that goes stale, and this one
+went stale within a day of being written"* (#568). Citing that file with a hardcoded count
+reproduces, inside a citation of it, the exact defect it was amended to stop. So the number is
+gone rather than updated, which is what `34` asks callers to do and needs no maintenance.
+
+**`1922` is the one worth keeping in mind, because it was never true** — `git log -S` finds it
+nowhere in history, so it is not a figure that decayed between drafting and merge. Verified
+here from three independent progress entries rather than by re-running the suite (this
+checkout has no `node_modules`). A number in a scorecard position reads as *measured*; this
+one could not have been. **A doc whose entire value is the accuracy of its claims, in a
+directory no gate reads, is a scorecard with nothing behind it** — so the preamble now carries
+a dateline and says so. #670 is the filed class, but note its scope: it resolves *path* claims,
+not counts, so nothing proposed today would have caught these four.
+
+**Two quotations were compressions typeset as quotes, and are now un-typeset.** *"most write
+mapping guides instead"* and the elided half of Finding 5 are faithful summaries, but not the
+report's words — in a doc scored on quotation fidelity, a paraphrase inside quote marks is the
+same defect class as a number that reads as measured. Both now sit outside the quotes, attributed
+as ours. The one claim the review raised that I checked and did **not** change: skill lengths
+`115 / 154` are correct on this tree (`wc -l`).
+
+**Trap for whoever re-verifies this:** `docs/**` is in no gate's scope — mutation-tested during
+review with five en-GB spellings and a banned voice phrase planted in this file, and all four
+prose gates exited 0, silent. Do not read a green suite as having checked anything in this
+directory. `prioritise`/`generalises` in the doc are house style there (514 en-GB occurrences
+across 29 of 38 files), not defects.
 
 ---
 
