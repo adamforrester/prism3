@@ -7,6 +7,92 @@
 
 ---
 
+## (2026-08-10) — Payload agents become a channel in the voice standard, and `MUST` acquires a price (#675)
+
+**STATUS: docs only — no code change, no gate change, no emitted artifact moved.** `regen --check`
+unchanged at **104**. Files touched: `voice-standard.md` §1/§4/§6, `29-tone-of-voice.md` §3.4/§4/§4.1/§8,
+`27-future-ideas.md` Idea 5, this entry.
+
+**The question was prior to the one the issue asked.** #675 was filed as a collision: #668 wants to emit a
+payload **rules** artifact using RFC 2119 keywords, emitted prose is gated by `lint-voice.ts`, and the
+standard's load-bearing attribute is **recessive**. Three options were on the table — carve out a channel,
+drop 2119 and write declarative prose, or permit the keywords in that one file. Answering any of them first
+would have been answering the wrong question. The real one is: **does `voice-standard.md` reach prose whose
+reader is a model?**
+
+**Partly, and the part that does not reach is exactly the one in tension.** §3's four attributes describe how
+Prism3 says things; precise, declarative and translating apply to a rules file as well as to a lever
+description. Recessive does not. It exists so the tool's voice does not compete with **the brand on screen** —
+and a payload rules file has no brand voice in it and is not on screen. It is instructions about token names,
+read by a model. The attribute was written before that surface existed, so extending it there is
+over-application, not consistency. The standard's own pre-ship check already said so, in a parenthesis nobody
+had had cause to read closely: *"Would this compete with the brand on screen? (product surfaces only)."*
+
+**Option 1, and the reason the narrow option is the expensive one.** Option 3 — normative keywords permitted
+in the payload rules file alone — is narrowest, and the gate can express it, which is what makes it tempting.
+It is still wrong, because per-artifact exceptions accrete: the second payload artifact gets its own line,
+then the third, and the standard becomes a list of places it does not apply. §4 already exists to express that
+**register** changes per channel while **voice** does not, and payload agents vary on every axis §4 tracks.
+
+| | the other four channels | payload agents |
+|---|---|---|
+| Reader | a person | **a model**, in an ejected repo, with no system to query |
+| Job | decide, act, evaluate | **resolve a token name correctly**, from what the payload contains |
+| Failure mode | chrome, missing reasons, unbacked claims | **a confident name that does not exist** |
+
+Three differences on the axes the matrix is made of is a channel by the same test that admitted developer
+docs. A channel row stays one row.
+
+**The constraint that nearly got dropped, and it is the substance of the decision.** `27` Idea 5 already holds
+this repo's POV on 2119 keywords, and it carries a rule that binds here: **a normative label with no gate
+behind it is worse than no label** — it manufactures the appearance of rigor. So `MUST` means *a gate exists*,
+not *we mean it strongly*, and adopting levels **creates an obligation**: every `MUST` either gets a gate or
+becomes a `SHOULD`. The issue as filed did not link Idea 5, and the payload is the case where the rule has the
+most force — **an ejected client's repo runs no Prism3 CI.** A `MUST` there is the canonical instance of the
+thing Idea 5 rules against, unless the check travels with the prose. So the recorded rule is narrower than
+"2119 is allowed in this channel":
+
+> A `MUST` in emitted payload prose requires a check the **reading agent** can run against artifacts
+> **present in the payload**. Anything else is a `SHOULD`.
+
+Primer's Hallucination Guard is the worked example of a legitimate one: *if you cannot verify a token name,
+annotate it rather than guess* is mechanizable **by the reader**, because the emitted inventory travels in the
+payload. A rule that needs `regen --check` cannot be a `MUST` in a repo that has no `regen`. Recorded in §4
+beside the table and as question 6 of the pre-ship check, so a writer meets it where they are writing.
+
+**Deliberately no `lint-voice.ts` change, and the reason is not "later".** No payload artifact exists — #668
+is unbuilt — so there is no payload prose to scan and nothing to carve out of. Channel logic written now would
+be speculative code against an artifact whose shape is undecided, which working-principle #2 rules out. What
+is recorded instead is **when the debt comes due**: the PR that emits payload prose teaches the gate this
+channel in that same PR, and mutation-tests both directions per `34` — banned §2 prose in a payload artifact
+must fail **by name**, and the same prose in a non-payload artifact must still fail, because a carve-out that
+silently widens is a deleted gate. A carve-out the gate cannot see is not enforceable, which is the argument
+`lint-us-english.ts` makes about `apps/studio/src` comments.
+
+**And this does not violate Idea 5 today by permitting a `MUST` with no gate.** Nothing emits a `MUST` yet.
+The rule binds the first PR that ships payload prose, which is the same PR that has to teach the gate.
+Permitting the register ahead of the artifact would only be a problem if the permission arrived without the
+obligation attached; both landed in the same edit.
+
+**Idea 5 promoted, and only by the slice that moved.** Its status line goes from *"logged, not scoped"* to
+*partly scoped*. The body stays rather than collapsing to a pointer — `27`'s own graduation rule says to
+replace a graduated idea with a pointer, and one of its three proposals moved. Levels on `.ai.json`, the
+approved → enforced lifecycle, and machine-readable doc `status` are untouched.
+
+**Left open on purpose.** `29` §8 question 4 — *is `.ai.json` a channel?* — is sharper now and still
+unanswered. `.ai.json` is model-read and travels in the payload, which is the argument that admitted column E;
+what separates them is that column E is prose written **as rules for an agent** while `.ai.json` is guidance
+about a token that an agent happens to read. That line is worth testing rather than assuming, and deciding it
+also decides whether `avoid_when`'s MUST-shaped prose takes a level. #675 settled the register for new rules
+prose; it did not retroactively relabel prose already shipping.
+
+**Trap for whoever re-verifies this.** `lint-voice.ts` scope does **not** include `docs/**` — it imports
+`regen.ts`'s emitted-artifact scope plus the built bundle. So none of these four files is gated by the gate
+they describe, and a green `lint-voice.ts` run on this PR says nothing about their prose. The same holds for
+`lint-us-english.ts`: `voice-standard.md` and `29` carry pre-existing en-GB spellings (`colour`,
+`infantilising`, `nominalisation`) that are out of scope and were left alone.
+---
+
 ## (2026-08-10) — Payload membership is declared, not inferred from where a file sits (#674)
 
 **STATUS: PR open, all 22 gates green** (21 + the one this adds). New authored
