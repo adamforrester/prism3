@@ -8,6 +8,137 @@
 ---
 
 
+## (2026-08-10) — the two exporters measured against each other for the first time (`tools/exporter-comparison/`)
+
+**STATUS: shipped. Neither exporter modified, no rewrite started.** #697's Verify section asks for a comparison
+it says "does not exist today and is the only thing that would catch the two implementations drifting": theme a
+brand, export it both ways, diff the trees. `tools/exporter-comparison/` runs it — reading the committed
+`out/figma/<brand>/`, adapting it into Figma's object model, running TokenPress's real `TokenExporter` in its
+default DTCG configuration, and diffing against prism3's conforming projection (`base` + `<mode>.overlay`, #609).
+`regen --check` reports **104**; no engine or TokenPress file changed.
+
+**The classification is the deliverable, not the harness.** Raw diff output over two ~550-token trees is noise.
+Every difference lands in one of five categories, and each category carries a verdict — EXPECTED (a consequence
+of a decision already on record in #609/#696/#697) or SURPRISING. **Each verdict is guarded by a predicate over
+the measured report, not written as prose beside it**, so a claim that stops being true stops printing instead of
+standing there as a stale assertion; the mutation check is in the entry below.
+
+| | nb | aurora |
+|---|---|---|
+| prism3 base leaves / TokenPress union | 565 / 506 | 611 / 545 |
+| shared paths | 447 (79.1%) | 487 (79.7%) |
+| **type differences** | **0** | **0** |
+| value differences | 213 | 253 |
+| float32-attributable / of those lossy | 100 / **0** | 152 / **0** |
+| **unpaired paths, both directions** | **0 / 0** | **2 / 0** (the gradients) |
+
+**The float32 question #703 raised is answered: the cleanup fires and is not lossy *for 8-bit-authored colors*,
+verified exhaustively.** That boundary is the claim, not a hedge on it — outside 8-bit authorship the cleanup can
+still quantize, and aurora's hex-alpha finding below is exactly that boundary appearing on real input. #703 flagged
+`roundToPrecision` as "a silent lossy rewrite when applied to a source that never had the artifact", and this was
+the first chance to see it. It fires — 118 nb / 160 aurora adapted variables carry a genuine float32 artifact,
+because `emit-figma-color.ts` applies `Math.fround` deliberately — and **every** attributable difference still
+names the authored 8-bit value. The corpus-independent check matters more than the corpus one: **all 256 8-bit
+channels round-trip through `fround`-then-4dp**, worst deviation 0.0125 of a 255-step. Closed as measured-safe
+for 8-bit-authored color, which is what both brands are.
+
+**Getting that answer required composing the two roundings, and the wrong test looked like a real result.** The
+artifact is never visible in isolation: the pipeline is `i/255 → fround → 4dp`, and a bare `Math.fround` test
+explains nothing. Worse, the composed test **overlaps** the hex-byte quantization test — both fit an
+8-bit-authored channel — so the two are applied in a documented ORDER. Reversing the two blocks reattributed 100
+of nb's differences to the wrong exporter *with no other visible change in the output*. That ordering is
+load-bearing and says so in the file.
+
+**Four SURPRISING findings. The first is a shipping defect in our own emitter, and it is the strongest
+justification the harness has — it is the only thing that has ever caught it:**
+
+- **Every mode-varying shadow is silently dropped from every overlay — filed as #708.** A conforming consumer
+  reading `base` + `dark.overlay` gets **light-mode shadows in dark mode**, in all four brands. Root cause is
+  `emit-dtcg-overlay.ts:159`: the modes extension has **two shapes** — color wraps its per-mode value in `$value`,
+  shadow is the bare array — and the projector's guard (`if (!m || !('$value' in m)) return undefined;`) reads only
+  the first, so every shadow silently returns `undefined`. nb has 7 mode-varying shadows, all with values that
+  differ between modes (`shadow.inset` 0.08→0.3, `shadow.xs` 0.1→0.03, `shadow.md` 0.12→0.06), and **0** reach the
+  overlay. Every existing gate passes it, because the base+overlay cascade leaves every token "present in every
+  mode" — the values are just the wrong ones. Visible here only because TokenPress, coming from Figma styles that
+  have no modes, exposes all 7 as real `shadow-dark.*` tokens. This is **not** "the Figma path is more complete";
+  it is a comparison against a second implementation surfacing a bug in ours. Found by a hypothesis being *wrong*:
+  pairing the `shadow-dark.*` names against the dark overlay was the obvious guess, and measuring it disproved it.
+- **Opacity disagrees by 100× — filed as #709, on TokenPress's side.** prism3 says `0.05`, TokenPress says `5`.
+  11 tokens on each brand, and the only difference in the whole report that changes a value a consumer applies
+  directly. Not predicted by #696, #697 or #703. Ownership was measured rather than assumed, and it is a
+  *convention collision*, not a bug in one file: prism3's `emit-figma-dims.ts:255` multiplies by 100 **deliberately**
+  because a Figma `OPACITY`-scoped FLOAT is a percent (0–100) — commented "Verified live: passing 0.9 renders as
+  0.9%", and pinned by `test.ts:866` + `test.ts:4573`. TokenPress types the scope `number` correctly
+  (`exporter.ts:727`) and then passes the value through unconverted (`:915` rounds for diff stability, never
+  divides — probed: `5→5`, `90→90`). So each side is right about its own target and the round-trip is wrong; the
+  conversion belongs where the Figma convention is being *left*. It also explains why nothing caught it —
+  TokenPress's only opacity test asserts the **type** and never the **range**.
+- **TokenPress emits 11 composites twice** — `typography.*` from the text styles and `font-fluid.*` from the
+  type-sets variables — because prism3 emits the same typography down both channels and TokenPress reads both. A
+  consumer gets two spellings of one token with nothing marking them the same.
+- **aurora's hex `colorFormat` quantizes shadow alpha on prism3's own side**: authored `0.1` → `1a` → `0.10196…`.
+  nb, which uses `rgb()`, keeps `0.1` exactly. A prism3-side lossiness that depends on a per-brand lever — and
+  **visible only because two brands were run**, which is the whole argument for the task's "one brand would tell
+  you about one brand."
+
+**Bucket (c), observed rather than reasoned about** (#703 predicted these "range from inert to destructive"):
+the breakpoint regex `/^\d+$/` is **INERT** — it reaches 214/253 numeric-tailed variables and changes no verdict,
+because every one is a dimension on both sides anyway. The scopes-gated handling is **INERT for a reason nobody
+predicted**: no variable in either brand carries `LINE_HEIGHT` at all, so `lineHeightOutput` has no input, and the
+12 `OPACITY`-scoped variables agree on *type* (the 100× problem is in the value, which that gate does not touch).
+**That is an artifact of this input, not a property of the settings** — the measurement cannot determine whether
+they are destructive in general, only that they are inert against what prism3 emits. And the reason is not missing
+scope metadata: **every** adapted variable carries scopes (994 nb / 1049 aurora, 0 without). It is that no
+line-height or letter-spacing *variable* is emitted for the gate to reach — those reach Figma only inside text
+styles, the same root cause as the unpaired-path findings. Motion-duration and easing detection are
+inert with 0 matches, because no motion collection is emitted. **`hasMultiMode` FIRES**, and it is the single
+highest-impact setting in the comparison: one computed boolean produces the entire directory layout.
+
+**The axis question, answered by observation.** #697 asks how Figma's modes map to DTCG. The answer is that the
+current output does not encode the distinction anywhere: `dark`/`hc-dark`/`hc-light`/`light` (appearance),
+`sm`…`2xl` (breakpoint) and `desktop`/`mobile`/`shared` (viewport) sit as **peer top-level directories** — 12 on
+nb, 13 on aurora — and ~185 paths appear in more than one file with different values, which a consumer merging the
+ZIP resolves by file order, i.e. by accident. **The proof is a constant in the harness**: `BASE_EQUIVALENT_MODES`
+had to be supplied by hand, because the emission carries **no default-mode marker at all**. Letting ZIP order
+decide made `dark/color.json` win and reported all 228 color aliases as differences — measuring the adapter's
+alphabetical sort, not the exporters.
+
+**The five workarounds are findings, not plumbing**, per the task's rule. W1: aliases are by NAME in the emission
+and by ID in TokenPress, so ids are minted (measured sound — 0 name collisions, 0 unresolved of 727/729). W2: the
+mode axis is reassembled from filenames, which is #697's three-axis problem in executable form. W3: three
+"collections" are Figma STYLES; **gradients have no scanner channel at all**, so aurora's 2 are unreachable — the
+only genuinely unpaired paths in either brand. W4: a bound text-style property splits into a resolved value plus a
+`boundVariables` entry, and since a style has no node, *desktop wins and mobile's values never reach the
+typography file*. W5: `exportToZip()` builds its own scanner, so the only way to feed it is a global `figma` stub
+— #703's "no seam" as running code. `assertAdaptable()` **throws** rather than warns when W1/W2 are unsound,
+because a diff computed from an ambiguous adaptation measures the adapter.
+
+**Three normalizer bugs that each produced a confident wrong number, all found by disbelieving the result:**
+a `stripRoot` that dropped *any* single top-level key deleted a real path segment on TokenPress's side and reported
+**2.5% shared** (fixed: strip a NAMED key; shared went 14 → 447); the alphabetical default mode above; and a
+"shape" bucket that held 189 differences *without ever comparing numbers*, which reported float32 as 0 in both
+directions. Each looked like a finding. The pattern: when a harness reports something dramatic about two mature
+systems, suspect the harness first.
+
+**Where this should live, and why it is not in CI.** `tools/` is new — measurement harnesses that are runnable and
+committed but deliberately outside the gate list. A gate asserts a difference is *wrong*; almost every category
+here is a difference that is *right for its host* (#697's own words), so failing a build on it would report a
+decision nobody has made. **Two categories are the exception and are assertable today**: type differences (0/0)
+and unpaired paths (0 on nb, 2-with-a-known-cause on aurora) are consumer-visible breaks in either direction.
+The recommendation is to gate exactly those two once the harness runs on more than two brands, and leave
+categories 3–5 reporting until #697's byte-for-byte question is actually decided. Recorded in the harness README
+so the next person does not have to re-derive the distinction.
+
+**One narrow correction to #703's own numbers**, found while building this — and it is smaller than it may read.
+#703 reported 24 runtime `figma.*` calls repo-wide with **exactly one** in `exporter.ts`. That one, `:631`, is
+`token.$extensions.figma.codeSyntax = variable.codeSyntax` — a property on TokenPress's own *output* object, in
+prism3's emitted namespace, not a Figma API call. So the correction is **1 → 0 in `exporter.ts`**, not 24 → 0; the
+other 23 are real, and they all live in `code.ts` + `scanner.ts` where #703 put them. **The portability conclusion
+is unchanged**: it rested on the *types* (124 references across 13 files — measured again here at 138 with a wider
+type list, same 13 files), never on the runtime calls. "Rewrite, not refactor" stands exactly as #703 argued it.
+What the correction does buy is the reason W5 needs only a four-method stub.
+
+
 ## (2026-08-10) — TokenPress ported in as `apps/tokenpress/`, and the separability question answered against real code
 
 **STATUS: shipped as six commits on one branch.** TokenPress — the owner's Figma → DTCG export plugin, public
