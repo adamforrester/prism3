@@ -75,6 +75,23 @@ npx tsx packages/engine/typecheck-components.ts     # the component defs typeche
                                                     # actually read, because a passing typecheck says
                                                     # nothing about which files it opened — before this,
                                                     # 1 of 5 defs was checked, via a plugin import
+npx tsx packages/engine/lint-overlay-completeness.ts # each mode's overlay carries EXACTLY the leaves that
+                                                    # vary in it (#708). Both directions: a varying leaf
+                                                    # missing, and a non-varying leaf present. The defect
+                                                    # was invisible to every other gate because the
+                                                    # base+overlay cascade means every token is always
+                                                    # present in every mode — base supplies it — so a
+                                                    # dropped override resolves to a real value, just the
+                                                    # WRONG one: 28 mode-varying shadows were absent from
+                                                    # every overlay in all four brands and consumers
+                                                    # rendered light shadows in dark. Its independence is
+                                                    # the design: EXPECTED is derived from the projector's
+                                                    # INPUT (the canonical `modes` extension) by this
+                                                    # file's own traversal, ACTUAL is read from the
+                                                    # projector's OUTPUT. Deriving EXPECTED by re-running
+                                                    # buildOverlay, or from the overlays themselves, is
+                                                    # the gate agreeing with itself — do not "simplify"
+                                                    # the duplicated walk away; it IS the gate
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

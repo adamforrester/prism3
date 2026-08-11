@@ -55,6 +55,28 @@ export const buildFigmaShadow = (theme: Theme): FigmaEffectStylesFile => {
   const shadowNode = tree[root].shadow ?? {};
   const styles: FigmaEffectStyle[] = [];
 
+  /**
+   * One mode's shadow layers, or `undefined` when the leaf has no entry for that mode.
+   *
+   * THROWS on an entry that exists but is not the wrapped `{ $value: [...] }` shape (#708). The bare
+   * array this used to accept is exactly what broke the DTCG projector, so tolerating it here would
+   * re-admit the shape the producer was normalized to eliminate — and this emitter would keep working,
+   * which is how the divergence survived in the first place.
+   */
+  const modeLayers = (leaf: any, mode: string): any[] | undefined => {
+    const entry = leaf.$extensions?.prism3?.modes?.[mode];
+    if (entry === undefined) return undefined;
+    const v = entry?.$value;
+    if (!Array.isArray(v)) {
+      throw new Error(
+        `emit-figma-styles: shadow mode entry '${mode}' is not the wrapped { $value: [...] } shape ` +
+        `(got ${Array.isArray(entry) ? 'a bare array — the #708 shape' : typeof entry}). ` +
+        `Every mode entry wraps its value in $value; see tree.ts shadowLeaf.`,
+      );
+    }
+    return v;
+  };
+
   // Emit ordered: shadow/<step> first (light), then shadow-dark/<step> (dark).
   // Iterating twice on the same key order keeps materialise-side pairing simple.
   const keys = Object.keys(shadowNode);
@@ -71,9 +93,12 @@ export const buildFigmaShadow = (theme: Theme): FigmaEffectStylesFile => {
   for (const key of keys) {
     const leaf = shadowNode[key];
     const inset = key === 'inset';
-    const darkLayerData = leaf.$extensions?.prism3?.modes?.dark;
+    // `modeLayers` unwraps the `$value` every mode entry now carries (#708). Reading the entry as the
+    // array directly is what this used to do, and it is why the shape could not be normalized without
+    // touching this file.
+    const darkLayerData = modeLayers(leaf, 'dark');
     if (!darkLayerData) continue;
-    const darkLayers = (darkLayerData as any[]).map((l: any) => shadowLayerToEffect(l, inset));
+    const darkLayers = darkLayerData.map((l: any) => shadowLayerToEffect(l, inset));
     styles.push({
       name: `shadow-dark/${key}`,
       description: String(leaf.$description ?? '') + ' — dark mode (reduced; surface-lift pattern)',
@@ -88,13 +113,13 @@ export const buildFigmaShadow = (theme: Theme): FigmaEffectStylesFile => {
   for (const mode of extraModes) {
     for (const key of keys) {
       const leaf = shadowNode[key];
-      const layerData = leaf.$extensions?.prism3?.modes?.[mode];
+      const layerData = modeLayers(leaf, mode);
       if (!layerData) continue;
       const inset = key === 'inset';
       styles.push({
         name: `shadow-${mode}/${key}`,
         description: String(leaf.$description ?? '') + ` — ${mode} mode (per-mode softness/tint)`,
-        effects: (layerData as any[]).map((l: any) => shadowLayerToEffect(l, inset)),
+        effects: layerData.map((l: any) => shadowLayerToEffect(l, inset)),
       });
     }
   }

@@ -118,14 +118,21 @@ const shadowLeaf = (theme: Theme, step: ShadowStep, description: string): Token 
   // carries no mode overrides on shadow either.
   const darkVals = theme.modes.includes('dark') ? step.dark.map((l) => shadowLayerValue(base, l, fmt)) : undefined;
   const modes: Record<string, unknown> = {};
-  if (darkVals) modes.dark = darkVals;
+  // WRAPPED IN `$value`, like every other mode entry — see #708. This shape is not cosmetic: it is the
+  // one thing `emit-dtcg-overlay.ts` needs to recognize a mode entry at all. Shadow used to write the
+  // bare layer array here while color wrote `{ $value, contrast, … }`, so the projector's guard
+  // (`'$value' in m`) read the color shape, silently rejected every shadow, and every mode-varying
+  // shadow was dropped from every overlay in all four brands — a conforming consumer reading
+  // base + dark.overlay rendered LIGHT shadows in dark mode. Two shapes for one concept was the defect;
+  // the guard was only where it surfaced. Any future composite that gains per-mode values wraps too.
+  if (darkVals) modes.dark = { $value: darkVals };
   // Per-mode shadow overrides (Phase D): a mode re-derives its ramp at its own softness/tint (+ its own
   // tinted colorRgb). Emit `modes.<mode>` from the pre-picked appearance layers (a dark override overwrites
   // the derived dark reduction with the re-derived one). A brand with no `modeLevers.shadow` has an empty
-  // shadowByMode → nothing emitted here → byte-identical.
+  // shadowByMode → nothing emitted here.
   for (const [mode, sm] of Object.entries(theme.shadow.shadowByMode ?? {})) {
     const layers = sm.layers[step.name];
-    if (layers) modes[mode] = layers.map((l) => shadowLayerValue(sm.colorRgb, l, fmt));
+    if (layers) modes[mode] = { $value: layers.map((l) => shadowLayerValue(sm.colorRgb, l, fmt)) };
   }
   return {
     $type: 'shadow',

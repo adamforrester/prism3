@@ -222,3 +222,17 @@ jobs:
       # human classifies it — that friction is the feature.
       - name: Every emitted artifact is classified payload or ours
         run: npx --yes tsx@4 packages/engine/lint-payload-manifest.ts
+
+      # #708: every mode-varying leaf reaches its mode's overlay, and nothing else does. The defect was
+      # silent in every direction — `$extensions.prism3.modes` was written in two shapes (color wrapped
+      # its value, shadow was a bare array), the projector's guard read one of them, and 28 mode-varying
+      # shadows were dropped from every overlay in all four brands. A conforming consumer reading
+      # base + dark.overlay rendered LIGHT shadows in dark mode. Nothing caught it because the
+      # base+overlay cascade means every token is always present in every mode — base supplies it — so
+      # coverage, presence and alias gates were all legitimately green. Nothing held an independent
+      # answer to WHICH tokens ought to differ per mode. This does: it derives that set from the
+      # projector's INPUT (the canonical modes extension) and compares it against the projector's
+      # OUTPUT (the emitted overlays) — never by re-running the projector, which would be the gate
+      # agreeing with itself. Covers every composite type by rule, not by a list naming `shadow`.
+      - name: Overlays carry exactly the leaves that vary per mode
+        run: npx --yes tsx@4 packages/engine/lint-overlay-completeness.ts
