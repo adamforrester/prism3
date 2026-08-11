@@ -12,6 +12,38 @@ npx tsx tools/block-capture/capture.ts targets.json --viewports desktop,mobile -
 Output lands in `tools/block-capture/out/`, which is **gitignored on purpose** — see *What not to
 commit*.
 
+## If you are an agent picking this up
+
+The loop, in order. Sections below explain each; this is the routing table.
+
+1. **Install playwright.** `npm i -D playwright && npx playwright install chromium`. It is
+   deliberately not a repo dependency — this repo is dependency-free and buildless, and this runs on
+   a workstation rather than in CI.
+2. **Run `--self-check` and stop if it fails.** Not ceremony. A broken probe does not crash, it
+   returns *plausible numbers about the wrong thing*, and a corpus built from those is worse than no
+   corpus. Two real defects were caught this way on the first run.
+3. **Enumerate one family yourself, then write `targets.json`.** Nothing in this repo knows which
+   variants exist — that is the one step no code here performs, and it is left to you on purpose: it
+   wants a browser that can actually see the page, which the authoring environment did not have.
+   Open the library's category page, count the variants, and confirm the slugs. Relume's pattern is
+   `section_<family><n>`, but **verify the run is contiguous rather than assuming it**. Do not infer
+   a count from a screenshot or from this file.
+4. **Capture ONE variant and read the row before running the rest.** Without a `selector` the probe
+   takes the largest `<section>`/`<main>` child. A wrong root produces confident numbers about the
+   wrong element and **nothing in the output looks unusual** — check that `section.w`, `headings` and
+   `media` describe the block you think you captured. If they do not, pass a `selector`.
+5. **If every row fails on navigation, retry `--headed` before concluding you are blocked.** The
+   failure summary distinguishes a navigation failure from a post-navigation one; only the first is
+   worth retrying.
+6. **Hand back the JSON rows. Do not commit `out/`.** Screenshots and anything resembling a paid
+   library's source stay local; what gets committed is the derived axis table in `docs/37`.
+
+**Start with an ecommerce family.** No openly readable library carries commerce sections — the axis
+work has a named hole there (`docs/37` §2) and it is the part closest to the practice's actual work.
+
+**If you add a measurement, add a fixture.** The self-check is the only thing standing between a
+misreading probe and a corpus nobody can trust.
+
 ## Why a browser
 
 `docs/37` §4 records two limits this exists to lift.

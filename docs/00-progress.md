@@ -7,6 +7,44 @@
 
 ---
 
+## (2026-08-11) — A runbook for the capture harness, and the gap it deliberately does not close
+
+**STATUS: shipped.** `tools/block-capture/README.md` gains an *"If you are an agent picking this up"*
+routing section. No code change, no engine change, no gate touched.
+
+**The gap it names rather than fixes.** The harness captures a list it is handed; **nothing enumerates
+the list.** `targets.example.json` holds three hand-written URLs, and no code here knows that Relume's
+Category Filters family has six variants. An agent pulling `main` gets as far as the self-check and
+then stalls at *"which URLs?"*
+
+**A `--discover` mode was the obvious fix and was deliberately not written.** Playwright cannot reach
+any external site from the authoring container, so scraping code to parse a category index would ship
+**untested against the DOM it exists to parse** — the same class of thing this lane spent the day
+catching (four unverified numbers in `36`, an axis invented from memory in `37`, two probe defects that
+returned plausible output). Writing a fifth instance of it *as the remedy* is a bad trade. Discovery
+wants eyes on the page; a local agent has them and this environment does not. **Left as a human/agent
+step on purpose, and the README says why so nobody "fixes" it blind later.**
+
+**Both behavioral claims in the runbook were verified, not asserted** — it tells an agent that a
+whole-run failure distinguishes a navigation problem from a probe problem, so that had to be true:
+
+- Unreachable host → `net::ERR_TUNNEL_CONNECTION_FAILED` … *"Every row failed on navigation — the site
+  is blocking this browser, or it cannot reach the network. Try --headed."*
+- Probe forced to throw → *"Every row failed after navigation — the probe is broken, not the site. Fix
+  that before re-running fifty URLs."*
+
+The second needed a second attempt to test at all: run under `--self-check` it exits through the
+self-check path instead, which is correct behavior and the wrong branch. **A claim about a code path
+is only verified by the input that reaches that path** — worth remembering, because the first run
+looked like a pass.
+
+**Trap the runbook makes prominent, because it is the one that silently poisons a corpus:** without a
+`selector` the probe takes the largest `<section>`/`<main>` child. Capture ONE variant and read the
+row — `section.w`, `headings`, `media` — before running fifty. A wrong root yields confident numbers
+about the wrong element and nothing in the output looks unusual.
+
+---
+
 ## (2026-08-11) — A capture harness for the block corpus, and two defects its own fixtures caught
 
 **STATUS: shipped.** New `tools/block-capture/` — `capture.ts`, two fixtures, a `--self-check`, a
