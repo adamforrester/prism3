@@ -8,6 +8,58 @@
 ---
 
 
+## (2026-08-11) — Three of five block libraries are readable, and a second witness corrected the first (docs/37, 36)
+
+**STATUS: docs only.** No engine change, no emitted artifact, no gate touched. `37` §2/§3/§4 updated with
+measured access and two resolved holes; `36` §2 row 6 gains a re-verification note.
+
+**The access question, answered by testing rather than assuming.** `adobe/aem-block-collection` gives
+**full source** — `carousel.js` pulled with its ARIA handling intact. daisyUI's free component pages carry
+markup. Tailwind Plus publishes its full catalogue with counts but paywalls markup past the first variant.
+Relume and Initium stay gated per the earlier measurement. Matrix now in `37` §4, with the instruction to
+re-test it: **every row is a vendor's current business decision, not a property of the library.**
+
+**The highest-value finding is the cheapest one: Tailwind Plus names its variants, and the names are the
+axes.** *"Simple centered"*, *"Split with screenshot"*, *"Split with code example"*, *"Simple centered
+with background image"*, each paired light/dark. The vendor already did the classification, so its axes
+read straight off the catalogue — **no markup, no screenshots**. For axis derivation the paywalled markup
+turns out not to be the part we needed.
+
+**And it corrected the first witness within a day, in exactly the way `37` warned it would.** Two of §2's
+recorded holes were wrong: *"no background media"* — Tailwind Plus ships *"Simple centered with background
+image"*; *"no dark surface with media"* — every Tailwind Plus hero is paired light/dark including the
+media-bearing ones. **The first pass drew a conclusion from an absence, and an absence in one vendor's
+catalogue is a fact about that vendor.** The axis I had invented, then deleted as unattested, was real all
+along. Both holes are now annotated in place rather than silently edited, because the *pattern* of the
+error is the reusable part. Also gained a `media kind` value no witness had suggested — a **code block** in
+the media slot.
+
+**`adobe/aem-block-collection` was filed wrong and is now re-described.** Its ~19 blocks are hero, columns,
+cards, header, footer, embed, fragment, table, video, accordion, breadcrumbs, carousel, modal, quote,
+search, tabs — **page mechanics, not marketing sections.** No pricing, testimonial, logo wall, stats or CTA.
+Its value to the corpus is the membership rule and real accessible source, **not layout variants**, and `37`
+§3 said the opposite.
+
+**The daisyUI figure: I doubted a merged claim, checked the source, and the claim was right.** `36` §2 row 6
+cites *"211 page architectures."* daisyUI's public surface is ~68 CSS-class components with a 5-variant
+hero, so the figure was not locatable — which looked like decay. The report's per-system record settles it:
+the 211 live in **`daisyui-blueprint`, a licensed MCP** (LICENSE + EMAIL env vars). **The quote is accurate;
+my search was pointed at the wrong surface.** Worth holding onto — *"I cannot find it"* and *"it is not
+true"* are different findings, and the overview page not carrying a figure says nothing about the full
+record. The fix is a precision note, not a correction.
+
+**But the check paid for itself, because the report's description of those 211 entries is the most useful
+sentence in this file's sources:** *"purpose, sections, content order, actions, navigation, responsive
+behavior, interaction states, edge cases."* **That is not a layout gallery — it is a page-level content
+model**, which is the second half `37` §4 says a block definition needs and the half no screenshot can
+supply. Someone has built the artifact this lane is describing and sells it behind a license. Validation of
+the shape, and a commercial datapoint.
+
+**Trap for whoever picks this up:** `37` §2 is still one witness for *classification*; only its hole list
+has a second. Do not read the annotated holes as the axis table now being field-derived.
+
+---
+
 ## (2026-08-11) — #708 fixed: mode-varying shadows reach their overlays, and a gate now asserts overlay completeness
 
 **STATUS: shipped.** #708 — every mode-varying shadow silently dropped from every overlay — is fixed in both

@@ -54,13 +54,17 @@ With these slots layered on top:
 
 ### What this witness does not contain, which is the more useful half
 
-Empty cells, all confirmed absent across the full 22:
+Empty cells, all confirmed absent across the full 22 — **and the annotations show what a second
+witness did to them within a day:**
 
-- **No background media.** Not one variant sets text over a full-bleed image or video. This was in the pre-survey hypothesis and is simply not how this vendor builds heroes.
-- **No dark surface with media.** Both dark variants are media-free. Whether that is a deliberate constraint or an unfilled cell cannot be told from outside.
-- **No form in the hero** — no email capture, no search entry.
-- **No true 50/50 edge-to-edge split**, and no carousel or rotating hero.
-- **Nothing commerce-shaped** — no price, no product, no availability, no add-to-cart.
+- **No background media.** Not one variant sets text over a full-bleed image or video. **Resolved 2026-08-11 — the axis is real and this vendor simply does not ship it:** Tailwind Plus names a hero variant *"Simple centered with background image."* The first pass drew the wrong conclusion from an absence, which is the trap a single witness sets.
+- **No dark surface with media.** Both dark variants are media-free. **Resolved the same way:** Tailwind Plus pairs *every* hero variant light/dark, including the media-bearing ones, so dark-with-media is ordinary. Surface is confirmed as a real axis rather than an Initium quirk.
+- **No form in the hero** — no email capture, no search entry. Still open.
+- **No true 50/50 edge-to-edge split**, and no carousel or rotating hero. Still open.
+- **Nothing commerce-shaped** — no price, no product, no availability, no add-to-cart. Still open here; Relume and Tailwind Plus both carry ecommerce sets and are the places to close it.
+
+**And one axis value no witness had suggested:** Tailwind Plus ships *"Split with code example"* — a
+code block occupying the media slot. `media kind` gains a value, from a vendor naming its own variants.
 
 ### What the exercise corrected in the hypothesis
 
@@ -79,10 +83,28 @@ libraries, and what each is good for:
 | Library | Shape | Why it is in the corpus |
 |---|---|---|
 | Initium | 23 types / 197 blocks, React + Tailwind, shadcn registry | The first witness. Marketing-only; **no commerce at all** |
-| Relume | 1k+ components, wireframe styling | Breadth, and **the only known witness with an Ecommerce set** — Product List Sections, Product Headers, Category Filters. Also carries an Application UI set |
-| daisyUI | 211 page architectures matched by intent | Cited in `36` §2 as an exemplar benchmark; open |
-| Tailwind UI | Marketing + ecommerce + application catalogues | Open enough to read markup |
-| `adobe/aem-block-collection` | hero, cards, columns, carousel, FAQ | Open source, and the **membership rule** worth adopting |
+| Relume | 1k+ components, wireframe styling | Breadth, and the **Ecommerce set** — Product List Sections, Product Headers, Category Filters — plus an Application UI set |
+| Tailwind Plus | Marketing ~180 across 23 groups; **Ecommerce 14 component groups + 7 page-example groups**; Application UI | **The highest-value witness per unit of effort** — see below |
+| daisyUI (free) | ~68 CSS-class components; hero has **5** variants | A *component* library, not a section library. Thin for this purpose — included for its skill architecture, not its layouts |
+| daisyUI Blueprint | **211 page architectures**, paid MCP | Not readable, and not a layout gallery — see below. Matters as evidence about the *artifact shape*, not as corpus |
+| `adobe/aem-block-collection` | ~19 blocks: hero, columns, cards, header, footer, embed, fragment, table, video, accordion, breadcrumbs, carousel, modal, quote, search, tabs | **Page mechanics, not marketing sections** — no pricing, testimonial, logo wall, stats or CTA. Its value is the **membership rule** and real accessible source, not layout variants |
+
+**Tailwind Plus is the highest-value witness and the cheapest, because it names its variants.**
+*"Simple centered"*, *"Split with screenshot"*, *"Split with bordered screenshot"*, *"Split with code
+example"*, *"Simple centered with background image"* — each paired light/dark. **The vendor has already
+done the classification**, so the axes can be read straight off the catalogue with no markup and no
+screenshots. The names alone resolved two of §2's holes and added a `media kind` value. Its markup *is*
+paywalled beyond the first variant, but for axis derivation the markup is not the part we needed.
+
+**The daisyUI figure `36` §2 cites is real, and it is not what it sounds like.** The *"211 page
+architectures"* live inside **`daisyui-blueprint`**, a licensed MCP server (LICENSE + EMAIL env vars),
+not the free library — whose public surface is ~68 CSS-class components with a 5-variant hero. So daisyUI
+is **not** a layout corpus we can read. But the report's own description of what those 211 entries
+contain is the most useful sentence in this file's sources: *"purpose, sections, content order, actions,
+navigation, responsive behavior, interaction states, edge cases."* **That is not a layout gallery — it is
+a page-level content model**, which is the second half §4 says a block definition needs and which no
+screenshot can supply. Someone has built the artifact this file is describing, and sells it. Treat that
+as validation of the shape and as a commercial datapoint, not as something to read.
 
 **Commerce is not an append.** Initium's omission is invisible from a type list, and PDP work is
 the practice's most common surface — the engine's own regression brand is a shoe PDP. Relume's
@@ -91,13 +113,24 @@ priority is set.
 
 ## 4. What blocks the derivation, measured
 
-**Per-variant previews are not fetchable anonymously.** Relume's preview URLs — the pattern
+**Per-variant previews are not fetchable anonymously from the gated libraries.** Relume's preview URLs — the pattern
 `relume.ai/preview?cid=<category>/section_<name><n>&context=react` — return *"The component you
 were looking for could not be found"* both with and without the `context` parameter, tested
 2026-08-10. The **category index is** fetchable, so the taxonomy (categories, and the ecommerce
 split above) can be captured without a session; the individual layouts cannot. Initium's hero
 index is worse — it returns 22 entries named *"Hero Section 1–22"* with no layout description of
 any kind.
+
+**The measured access matrix, 2026-08-11.** Re-test before relying on any row; every one of these is
+a vendor's current business decision, not a property of the library.
+
+| Library | Taxonomy | Variant names | Markup |
+|---|---|---|---|
+| `adobe/aem-block-collection` | yes | yes | **full source** — `carousel.js` pulled with its ARIA handling intact |
+| daisyUI (free) | yes | yes | yes, per component page |
+| Tailwind Plus | yes, with counts | **yes, descriptive** | gated past the first variant |
+| Relume | yes, incl. Ecommerce | no | no — session-gated |
+| Initium | screenshot only | numbered only (*"Hero Section 1–22"*) | no |
 
 So the capture divides cleanly, and the division is the plan:
 
