@@ -1,0 +1,10 @@
+{
+  "library": "relume",
+  "family": "category-filters",
+  "selector": null,
+  "variants": [
+    { "slug": "filters1", "url": "https://www.relume.ai/preview?cid=category-filters/section_filters1&context=react" },
+    { "slug": "filters2", "url": "https://www.relume.ai/preview?cid=category-filters/section_filters2&context=react" },
+    { "slug": "filters3", "url": "https://www.relume.ai/preview?cid=category-filters/section_filters3&context=react" }
+  ]
+}
