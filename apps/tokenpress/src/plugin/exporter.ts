@@ -914,9 +914,26 @@ export class TokenExporter {
             return this.formatDimensionValue(value, 'px');
           }
         }
-        // If this is an opacity variable, round to 3 decimal places for diff stability
+        // OPACITY — PERCENT (0–100) LEAVING FIGMA, FRACTION (0–1) ARRIVING IN DTCG (#709).
+        //
+        // Figma interprets an OPACITY-scoped FLOAT as a percent, so `5` in the file means 5%.
+        // DTCG `number` opacity is a 0–1 fraction, so emitting `5` is out of range by 100× and a
+        // consumer applying it gets FULL opacity where 5% was authored. This is the boundary where
+        // the percent convention is being LEFT, so it is where the conversion belongs.
+        //
+        // The divide comes BEFORE the rounding, and the precision moves with it. Both halves matter:
+        // dividing by 100 INTRODUCES IEEE-754 noise (33.3 → 0.33299999999999996), so rounding after
+        // is what keeps the output clean — while rounding first, as this line used to, leaves the
+        // noise in whatever the divide creates. And the precision shifts two places because the
+        // value did: at DECIMAL_3 the fraction would truncate exactly the digits the divide moved
+        // right, collapsing 5.001% to 0.05 and 0.05% to 0.001. DECIMAL_5 preserves what DECIMAL_3
+        // preserved on the percent scale — no more and no less.
+        //
+        // NOT a magnitude heuristic. `v > 1 ? v / 100 : v` reads plausibly and is wrong: 0.5 is a
+        // legitimate half-percent, which that rule would emit as 0.5 (full opacity) instead of 0.005.
+        // Every OPACITY-scoped value is a percent, so every one is divided.
         if (scopes && scopes.includes('OPACITY') && typeof value === 'number') {
-          return roundToPrecision(value, PRECISION.DECIMAL_3);
+          return roundToPrecision(value / 100, PRECISION.DECIMAL_5);
         }
         return typeof value === 'number' ? roundToPrecision(value) : 0;
       case 'STRING':

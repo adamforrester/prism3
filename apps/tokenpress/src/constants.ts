@@ -61,6 +61,13 @@ export const PRECISION = {
   /** Multiplier for 4 decimal places (0.0001) — strips IEEE-754 noise from
    *  small dimension values like letter-spacing where 3 decimals is too coarse. */
   DECIMAL_4: 10000,
+  /** Multiplier for 5 decimal places (0.00001) — for a value that has just been
+   *  DIVIDED by 100, where 3 decimals of the original scale become 5 of the new
+   *  one. Used by the OPACITY percent→fraction conversion (#709): rounding the
+   *  fraction at DECIMAL_3 would truncate the two digits the divide just shifted
+   *  right, turning 5.001% into 0.05 and 0.05% into 0.001. Not a "more precise
+   *  DECIMAL_3" — it is DECIMAL_3 expressed on a scale 100× smaller. */
+  DECIMAL_5: 100000,
   /** Multiplier for 1 decimal place percentage (0.1) */
   PERCENT_1: 10,
 } as const;
