@@ -21,6 +21,7 @@ import type { BrandInput } from '@prism3/engine/theme';
 import { applyVarCollectionPlan } from './src/write-figma';
 import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
+import type { VarCollectionApplyResult as VarApplyResult } from './src/write-figma';
 import { preloadFonts, facesToPreload } from './src/preload-fonts';
 import type { FontPreloadApi } from './src/preload-fonts';
 import { nbTheme } from '@prism3/engine/nb-fixture';
@@ -40,6 +41,26 @@ const pinned = (cond: boolean, issue: string, label: string): void => {
   if (cond) console.log(`  ⊗ ${issue} PINNED (defect still present, as expected): ${label}`);
   else { failed++; console.error(`  ✗ ${issue} is FIXED — flip this pin to a positive assertion: ${label}`); }
 };
+
+/**
+ * A CRASHING ASSERTION IS NOT A FAILING ONE (docs/34) — the reason this helper exists.
+ *
+ * Every "survives a refusal" fixture below calls the executor inside a `try` precisely because the
+ * behavior under test is *not throwing*, so a broken executor leaves the result `undefined`. Reading
+ * `result!.refused` then throws a TypeError that aborts the whole FILE, taking every later assertion
+ * with it — so the mutation that breaks the fix the most reports the FEWEST failures, and the run
+ * cannot be told apart from a broken build. #710 fixed one instance of this (an indexed label) and
+ * shipped three more of the identical shape; that is what makes it worth a helper rather than a
+ * comment.
+ *
+ * The substitute is chosen so that EVERY assertion reading it fails: no collections (so any created/
+ * bound count compares against 0), no refusals (so `refused.length > 0` is false), and one miss (so
+ * `misses.length === 0` is false). A sentinel that satisfied even one dependent assertion would be
+ * worse than the crash it replaces, because it would be silent.
+ */
+const orFailed = (
+  result: VarApplyResult | undefined,
+): VarApplyResult => result ?? { collections: [], bound: 0, misses: ['THE APPLY THREW — no result'], refused: [] };
 
 // ---- the in-memory figma.variables shim (STRING-capable) -----------------------------------
 type Val = { type: 'VARIABLE_ALIAS'; id: string } | number | string;
@@ -365,16 +386,16 @@ try { wroteResult = await applyVarCollectionPlan(auroraVarPlan, auroraShim as an
 // must keep its colors, dimensions and effects anyway.
 ok(wroteThrew === '' && wroteResult !== undefined,
   `#680 a host refusal no longer aborts the apply — the writer returns a result instead of throwing (was: "in setValueForMode: unloaded font …", which main.ts turned into one "write failed" and nothing else written)`);
-// Indexing `refused[0]` in the LABEL would crash rather than fail when the mutation under test is
-// "swallow the refusal silently" — and a crashed run cannot be told from a broken build, which is the
-// failure mode docs/34 is about. So the label reads the array defensively and the assertion carries the
-// claim.
-ok(wroteResult!.refused.length > 0 && wroteResult!.refused.every((x) => x.reason.indexOf('unloaded font') >= 0),
-  `#680 ...and REPORTS what the host refused (${wroteResult!.refused.length} writes, e.g. ${wroteResult!.refused[0]?.name ?? 'NONE RECORDED'}) in Figma's own words, rather than swallowing it`);
+// Both the DEREF and the INDEX are defensive here, for the same reason: the mutation under test is one
+// that makes the executor throw, so `wroteResult` is exactly then `undefined` and `refused` exactly then
+// empty. Either read raw would abort the file instead of failing three assertions (see `orFailed`).
+const wrote = orFailed(wroteResult);
+ok(wrote.refused.length > 0 && wrote.refused.every((x) => x.reason.indexOf('unloaded font') >= 0),
+  `#680 ...and REPORTS what the host refused (${wrote.refused.length} writes, e.g. ${wrote.refused[0]?.name ?? 'NONE RECORDED'}) in Figma's own words, rather than swallowing it`);
 // The refusal is per VALUE, not per apply: everything the host did accept is still written. Without this
 // the "survives" assertion above would also be satisfied by a writer that gave up after the first throw.
 const auroraFontVarRows = auroraVarPlan.flatMap((c) => c.rows).length;
-ok(wroteResult!.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
+ok(wrote.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
   `#680 every one of aurora's ${auroraFontVarRows} font variables is still CREATED despite the refusals — the write steps over the refused value, it does not stop`);
 // `bound` must not count a binding the host rejected — a summary claiming bindings the file does not
 // carry is worse than one reporting fewer. The refusals above land on `font/family/*` rows, which carry no
@@ -387,9 +408,16 @@ const aliasSession = new FontSession();
 // Every weight-role bound to a face nothing loaded — the pass-B write is refused, not the pass-A one.
 aliasSession.dependents = new Map(aliasedRows.map((r) => [r.name, { family: 'Clash Display', style: 'Bold' }] as const));
 const aliasShim = new VariablesShim(aliasSession);
+// Wrapped for the same reason as the fixtures above, and it is the SUBTLER instance of the shape: this
+// call is not merely allowed to be refused, it is BUILT to be — so a `setSurviving` that rethrows aborts
+// the run HERE, one layer out from the deref. An unwrapped call whose fixture is armed to fail is the
+// same crash hazard as an unguarded deref, and greps for `!.` do not find it.
+let aliasThrew = '';
+let aliasResult: VarApplyResult | undefined;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
-const aliasRes = await applyVarCollectionPlan(auroraVarPlan, aliasShim as any);
-ok(aliasRes.bound === 0 && aliasRes.refused.length >= aliasedRows.length && harborRes.bound > 0,
+try { aliasResult = await applyVarCollectionPlan(auroraVarPlan, aliasShim as any); } catch (e) { aliasThrew = (e as Error).message; }
+const aliasRes = orFailed(aliasResult);
+ok(aliasThrew === '' && aliasRes.bound === 0 && aliasRes.refused.length >= aliasedRows.length && harborRes.bound > 0,
   `#680 an alias write the host refuses is NOT counted as bound (${aliasRes.bound} bound against ${aliasRes.refused.length} refusals; the same plan binds ${harborRes.bound} when accepted) — the count reports the file, not the attempt`);
 // #680's stated posture is `write-text-styles`': report what was skipped, write everything else. The
 // contrast is available as a positive fact — the sibling lane already degrades, on the shim built above.
@@ -496,7 +524,8 @@ let e2eResult: Awaited<ReturnType<typeof applyVarCollectionPlan>> | undefined;
 try { e2eResult = await applyVarCollectionPlan(auroraVarPlan, e2eShim as any); } catch (e) { e2eThrew = (e as Error).message; }
 ok(e2eThrew === '' && e2eResult !== undefined && e2eResult.refused.length === 0,
   `#680 FIXED: with the preload in front, aurora's variable write completes with ZERO refusals — the apply the live run lost`);
-ok(e2eResult!.misses.length === 0 && e2eResult!.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
+const e2e = orFailed(e2eResult);
+ok(e2e.misses.length === 0 && e2e.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
   `#680 ...and writes all ${auroraFontVarRows} font variables with 0 misses`);
 // THE DISCRIMINATING PAIR: the same write, same session, same registry — only the preload removed. Without
 // it the refusals come back. This is the assertion that separates the fix from a shim that cannot fail.
@@ -504,9 +533,13 @@ const noPreSession = new FontSession();
 noPreSession.dependents = e2eSession.dependents;
 for (const f of harborFaces) noPreSession.loaded.add(fontKey(f));
 const noPreShim = new VariablesShim(noPreSession);
+// Armed to be refused, so wrapped — same shape as the alias fixture above.
+let noPreThrew = '';
+let noPreRaw: VarApplyResult | undefined;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
-const noPreResult = await applyVarCollectionPlan(auroraVarPlan, noPreShim as any);
-ok(noPreResult.refused.length > 0 && noPreSession.loads.length === 0,
+try { noPreRaw = await applyVarCollectionPlan(auroraVarPlan, noPreShim as any); } catch (e) { noPreThrew = (e as Error).message; }
+const noPreResult = orFailed(noPreRaw);
+ok(noPreThrew === '' && noPreResult.refused.length > 0 && noPreSession.loads.length === 0,
   `#680 and the SAME write without the preload is refused ${noPreResult.refused.length} times (0 loads) — the difference is the preload, not the fixture`);
 
 // ---- A TYPEFACE THIS FIGMA GENUINELY LACKS: reported, and everything else still applies ----------
@@ -526,8 +559,9 @@ let poorThrew = '';
 let poorResult: Awaited<ReturnType<typeof applyVarCollectionPlan>> | undefined;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 try { poorResult = await applyVarCollectionPlan(auroraVarPlan, poorShim as any); } catch (e) { poorThrew = (e as Error).message; }
-ok(poorThrew === '' && poorResult !== undefined && poorResult.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
-  `#680 ...and the brand STILL APPLIES on a Figma missing its typeface — all ${auroraFontVarRows} font vars written, ${poorResult!.refused.length} refusals reported, nothing thrown`);
+const poorApplied = orFailed(poorResult);
+ok(poorThrew === '' && poorResult !== undefined && poorApplied.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
+  `#680 ...and the brand STILL APPLIES on a Figma missing its typeface — all ${auroraFontVarRows} font vars written, ${poorApplied.refused.length} refusals reported, nothing thrown`);
 
 // ---- DEGRADATION OF THE PRELOAD'S OWN DEPENDENCIES ----------------------------------------------
 // A host with no font list must be no worse than one with a list — it attempts every candidate instead

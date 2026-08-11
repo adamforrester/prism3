@@ -49,27 +49,37 @@ write — a summary claiming bindings the file does not carry is worse than one 
 `type-sets` — exactly that executor's collections. Wrapping the colour and FLOAT writers too would defend
 against a mechanism that cannot reach them.
 
-**Six mutations, each confirmed failing by name (docs/34):**
+**Six mutations, each confirmed failing by name (docs/34), re-measured after review** — the counts below
+are the corrected ones, with the executed-assertion count recorded beside each so a truncated run cannot
+be mistaken for a clean failure again (all six now execute the full **59**):
 
-| mutation | caught by |
-|---|---|
-| no cross product (theme ∪ file only) | 6 assertions incl. the exact reported pair |
-| preload computes the set but never loads | the host-side load count, the end-to-end, the no-list degradation |
-| `setSurviving` rethrows (no floor) | the survives-a-refusal assertion, **and nothing else** |
-| refusal swallowed, not recorded | 3 assertions incl. the without-preload discriminator |
-| `bound` counts a refused alias write | the alias-refusal assertion |
-| **file's styles ignored — #680's own "derive from the theme" option** | the end-to-end + the crossed count |
+| mutation | caught by | first reported |
+|---|---|---|
+| no cross product (theme ∪ file only) | 6 assertions incl. the exact reported pair | 6 ✓ |
+| preload computes the set but never loads | the host-side load count, the end-to-end, the no-list degradation | 3 ✓ |
+| `setSurviving` rethrows (no floor) | **6** — the survives-a-refusal, the report-what-was-refused, the created-anyway, the alias-not-bound, the without-preload discriminator, the missing-typeface apply | **1, "and nothing else"** — wrong, see below |
+| refusal swallowed, not recorded | 3 assertions incl. the without-preload discriminator | 3 ✓ |
+| `bound` counts a refused alias write | the alias-refusal assertion | 1 ✓ |
+| **file's styles ignored — #680's own "derive from the theme" option** | **6** — the four cross-product assertions plus the end-to-end and the crossed count | **2** — wrong, and *not* for the crash reason |
 
 **Plugin typography suite 39 → 59 assertions**, baseline measured by running `origin/main`'s copy of the
 test rather than counted from the diff — a grep of `ok(` call sites gives 38, which is not the number that
 executes.
 
-**Three traps worth carrying forward:**
+**Four traps worth carrying forward:**
 
-- **A crashing assertion is not a failing one.** M4 (swallow the refusal) first made the run die with
-  `TypeError: Cannot read properties of undefined` because the *label* indexed `refused[0]`. A crashed run
-  cannot be told from a broken build — the exact thing docs/34 is about — so the label now reads
-  defensively and the assertion carries the claim. **The label is part of the gate.**
+- **A crashing assertion is not a failing one — and finding one instance is not finding the trap.** M4
+  (swallow the refusal) first made the run die with `TypeError: Cannot read properties of undefined`
+  because the *label* indexed `refused[0]`. That was diagnosed, fixed, and written up here — and then
+  **three more of the identical shape shipped in the same file**, caught in review. The mechanism is worse
+  than one bad row: a crash aborts the file, so **the mutation that breaks the fix hardest reports the
+  fewest failures**, which is how M3 read as 1 when it is 6. Two of the three siblings were not derefs at
+  all but unguarded `await applyVarCollectionPlan(...)` calls on fixtures *armed to be refused*, so no grep
+  for `!.` could find them — the sweep has to be by mechanism, not by syntax. Now: an `orFailed()` helper
+  whose substitute is built so every dependent assertion *fails* rather than passes, and a re-run of all
+  six mutations recording `exec=59` alongside the failure count. **The label is part of the gate; so is the
+  count of assertions that got to run.** Generalized into docs/34 as the `sweep` shape, with the two
+  register rows this produced.
 - **An assertion that passes by coincidence.** The first `bound` check compared aurora's 5 against
   harbor's 5 and passed on equality while exercising nothing: the refusals land on `font/family/*` rows,
   which carry no alias, so pass B was never reached. The aliased rows are the `font/weight-role/*` ones,
