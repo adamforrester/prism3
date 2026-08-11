@@ -24,6 +24,7 @@ import type { UiToMain } from './messages';
 import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-figma';
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
+import { preloadFonts } from './preload-fonts';
 import { applyComponentPlan } from './write-components';
 import type { ComponentProgress } from './write-components';
 import { chunkLine, summaryLines, settlePoint } from './build-telemetry';
@@ -82,6 +83,18 @@ void (async (): Promise<void> => {
 const applyTheme = async (input: BrandInput): Promise<void> => {
   try {
     const theme = brandTheme(input);
+    // FONTS FIRST (#680), before ANY variable write. Writing a `font/family/*` variable makes Figma
+    // re-resolve every text style bound to it, and re-resolution throws `unloaded font` — which used to
+    // abort the whole apply from inside a writer that touches no text. The face needed is the CROSS
+    // PRODUCT of the incoming theme and what the file already has (the live failure was aurora's family
+    // with harbor's style name, a pair in neither plan), so this reads the file's styles as well as the
+    // plan. It never throws: a typeface this Figma genuinely lacks is reported, not fatal.
+    const textPlan = buildTextStylePlan(theme);
+    const pf = await preloadFonts(textPlan, {
+      getLocalTextStylesAsync: figma.getLocalTextStylesAsync.bind(figma),
+      loadFontAsync: figma.loadFontAsync.bind(figma),
+      listAvailableFontsAsync: figma.listAvailableFontsAsync.bind(figma),
+    });
     // Colour axis (#108): core-palette + color, per-mode alias-bound.
     const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables);
     // FLOAT axes (#146): core-dimension/space/radius/size/border-width/focus/opacity + layout.
@@ -101,7 +114,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       // style-name guess against what each family actually spells it.
       listAvailableFontsAsync: figma.listAvailableFontsAsync.bind(figma),
     };
-    const ts = await applyTextStylePlan(buildTextStylePlan(theme), textApi);
+    const ts = await applyTextStylePlan(textPlan, textApi);
     // Persist the exact knobs alongside the variables (#131) — so re-opening this file rehydrates
     // the UI to THIS brand, not the default. Only after a real materialisation (inside the try).
     persistInput(figma.root, input);
@@ -110,7 +123,12 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const fontVarTotal = tv.collections.reduce((n, c) => n + c.total, 0);
     // `s.misses` joins the tally with #236: a gradient stop naming a palette variable this file does
     // not have is the same class of failure as a dangling variable alias, and was previously invisible.
-    const misses = r.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length;
+    // `tv.refused` joins it for the same reason (#680): a per-value write the host refused is a variable
+    // the file does not now carry, which is precisely what a miss means here. Deliberately counted as a
+    // miss rather than as a soft skip — a skipped TEXT STYLE leaves the token layer intact, while a
+    // refused VARIABLE write leaves a hole in it, so this one should flip `ok` and the other should not.
+    const misses =
+      r.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length + tv.refused.length;
     // Orphan report (#479): variables in a collection the plan owns that the plan does not contain.
     // The write path is create-or-update-by-name, so it cannot see a rename — the new name is created
     // and the old one is never touched again. Reported, never deleted: this cannot distinguish a stale
@@ -134,12 +152,23 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const skippedNote = ts.skipped.length
       ? `, ⚠️ ${ts.skipped.length} text styles skipped (font unavailable: ${ts.skipped.slice(0, 3).map((x) => x.name).join(', ')}${ts.skipped.length > 3 ? '…' : ''})`
       : '';
+    // #680: the fonts loaded ahead of the write, and any face that would not load. Only NAMED faces are
+    // listed — a crossed pair that does not exist is the ordinary case (most family × style combinations
+    // are not real), and listing those would bury the reportable ones. `refused` should be empty on every
+    // healthy apply: it means the preload missed something and the write survived it.
+    const fontNote = pf.unavailable.length
+      ? `, ⚠️ ${pf.unavailable.length} typeface${pf.unavailable.length === 1 ? '' : 's'} unavailable (${pf.unavailable.slice(0, 3).map((x) => x.face).join(', ')}${pf.unavailable.length > 3 ? '…' : ''})`
+      : '';
+    const refusedNote = tv.refused.length
+      ? `, ⚠️ ${tv.refused.length} variable writes refused by Figma (${tv.refused[0].name}: ${tv.refused[0].reason.slice(0, 60)})`
+      : '';
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
-      `type ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
-      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') + orphanNote + resolvedNote + skippedNote;
+      `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
+      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
+      orphanNote + resolvedNote + skippedNote + fontNote + refusedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
     // prose above is edited whenever an axis is added, and re-parsing it would make its wording

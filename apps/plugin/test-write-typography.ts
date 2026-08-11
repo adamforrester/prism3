@@ -21,6 +21,9 @@ import type { BrandInput } from '@prism3/engine/theme';
 import { applyVarCollectionPlan } from './src/write-figma';
 import { applyTextStylePlan, resolveFontStyle, normStyle } from './src/write-text-styles';
 import type { FontName } from './src/write-text-styles';
+import type { VarCollectionApplyResult as VarApplyResult } from './src/write-figma';
+import { preloadFonts, facesToPreload } from './src/preload-fonts';
+import type { FontPreloadApi } from './src/preload-fonts';
 import { nbTheme } from '@prism3/engine/nb-fixture';
 
 let failed = 0;
@@ -38,6 +41,26 @@ const pinned = (cond: boolean, issue: string, label: string): void => {
   if (cond) console.log(`  ⊗ ${issue} PINNED (defect still present, as expected): ${label}`);
   else { failed++; console.error(`  ✗ ${issue} is FIXED — flip this pin to a positive assertion: ${label}`); }
 };
+
+/**
+ * A CRASHING ASSERTION IS NOT A FAILING ONE (docs/34) — the reason this helper exists.
+ *
+ * Every "survives a refusal" fixture below calls the executor inside a `try` precisely because the
+ * behavior under test is *not throwing*, so a broken executor leaves the result `undefined`. Reading
+ * `result!.refused` then throws a TypeError that aborts the whole FILE, taking every later assertion
+ * with it — so the mutation that breaks the fix the most reports the FEWEST failures, and the run
+ * cannot be told apart from a broken build. #710 fixed one instance of this (an indexed label) and
+ * shipped three more of the identical shape; that is what makes it worth a helper rather than a
+ * comment.
+ *
+ * The substitute is chosen so that EVERY assertion reading it fails: no collections (so any created/
+ * bound count compares against 0), no refusals (so `refused.length > 0` is false), and one miss (so
+ * `misses.length === 0` is false). A sentinel that satisfied even one dependent assertion would be
+ * worse than the crash it replaces, because it would be silent.
+ */
+const orFailed = (
+  result: VarApplyResult | undefined,
+): VarApplyResult => result ?? { collections: [], bound: 0, misses: ['THE APPLY THREW — no result'], refused: [] };
 
 // ---- the in-memory figma.variables shim (STRING-capable) -----------------------------------
 type Val = { type: 'VARIABLE_ALIAS'; id: string } | number | string;
@@ -346,9 +369,9 @@ const harborRes = await applyVarCollectionPlan(harborVarPlan, harborShim as any)
 ok(harborRes.misses.length === 0 && harborRes.collections.reduce((n, c) => n + c.created, 0) > 0,
   `#680 harbor applies cleanly (+${harborRes.collections.reduce((n, c) => n + c.created, 0)} vars, 0 misses) — the writer is not simply broken, which is what makes the aurora result a finding`);
 
-// ---- AURORA, the reproduction: the whole write is lost -----------------------------------------
+// ---- AURORA, the reproduction: without a preload the write loses its font variables -------------
 // The SAME session state — every face harbor needed is loaded, nothing else is. Aurora's display face is
-// not among them, and no one loads it.
+// not among them. Nothing here calls the preload, which is exactly the pre-#680 condition.
 const session = new FontSession();
 session.dependents = auroraDeps;
 for (const f of harborFaces) session.loaded.add(fontKey(f));
@@ -358,18 +381,211 @@ let wroteResult: Awaited<ReturnType<typeof applyVarCollectionPlan>> | undefined;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 try { wroteResult = await applyVarCollectionPlan(auroraVarPlan, auroraShim as any); } catch (e) { wroteThrew = (e as Error).message; }
 
-pinned(wroteThrew.indexOf('unloaded font') >= 0, '#680',
-  `aurora's variable write THROWS on a face nothing loaded, and the whole theme apply is lost — main.ts turns this into one "write failed" and nothing else is written (${wroteThrew.slice(0, 66)}…)`);
-// THE CODE FACT, independent of the throw: not one font was loaded before the write. A fix that merely
-// CAUGHT the error would satisfy the pin above and still fail here, which is the point of asserting both.
-pinned(session.loads.length === 0, '#680',
-  `the variable writer called loadFontAsync ZERO times before mutating (${session.loads.length} loads) — write-figma.ts has no loadFontAsync in the file at all`);
-pinned(wroteResult === undefined, '#680',
-  'nothing is reported: there is no result to read misses from, so the brand loses its colors, dimensions and everything else along with its type');
+// THE FLOOR (#680): the host's refusal no longer propagates. This is the half of the fix that survives a
+// face nobody can load — a typeface that is genuinely not installed will still be refused, and the brand
+// must keep its colors, dimensions and effects anyway.
+ok(wroteThrew === '' && wroteResult !== undefined,
+  `#680 a host refusal no longer aborts the apply — the writer returns a result instead of throwing (was: "in setValueForMode: unloaded font …", which main.ts turned into one "write failed" and nothing else written)`);
+// Both the DEREF and the INDEX are defensive here, for the same reason: the mutation under test is one
+// that makes the executor throw, so `wroteResult` is exactly then `undefined` and `refused` exactly then
+// empty. Either read raw would abort the file instead of failing three assertions (see `orFailed`).
+const wrote = orFailed(wroteResult);
+ok(wrote.refused.length > 0 && wrote.refused.every((x) => x.reason.indexOf('unloaded font') >= 0),
+  `#680 ...and REPORTS what the host refused (${wrote.refused.length} writes, e.g. ${wrote.refused[0]?.name ?? 'NONE RECORDED'}) in Figma's own words, rather than swallowing it`);
+// The refusal is per VALUE, not per apply: everything the host did accept is still written. Without this
+// the "survives" assertion above would also be satisfied by a writer that gave up after the first throw.
+const auroraFontVarRows = auroraVarPlan.flatMap((c) => c.rows).length;
+ok(wrote.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
+  `#680 every one of aurora's ${auroraFontVarRows} font variables is still CREATED despite the refusals — the write steps over the refused value, it does not stop`);
+// `bound` must not count a binding the host rejected — a summary claiming bindings the file does not
+// carry is worse than one reporting fewer. The refusals above land on `font/family/*` rows, which carry no
+// alias, so this needs its OWN fixture: text styles bind `fontWeight` to `font/weight-role/*`, and those
+// are exactly the aliased rows. Keyed there, the refusal reaches pass B.
+const aliasedRows = auroraVarPlan.flatMap((c) => c.rows).filter((r) => r.aliasByMode.some(Boolean));
+ok(aliasedRows.length > 0 && aliasedRows.every((r) => r.name.startsWith('font/weight-role/')),
+  `#680 reachable: the ${aliasedRows.length} aliased rows are the weight-roles a text style's fontWeight binds to — so a refusal CAN land on an alias write, which is what the next assertion needs`);
+const aliasSession = new FontSession();
+// Every weight-role bound to a face nothing loaded — the pass-B write is refused, not the pass-A one.
+aliasSession.dependents = new Map(aliasedRows.map((r) => [r.name, { family: 'Clash Display', style: 'Bold' }] as const));
+const aliasShim = new VariablesShim(aliasSession);
+// Wrapped for the same reason as the fixtures above, and it is the SUBTLER instance of the shape: this
+// call is not merely allowed to be refused, it is BUILT to be — so a `setSurviving` that rethrows aborts
+// the run HERE, one layer out from the deref. An unwrapped call whose fixture is armed to fail is the
+// same crash hazard as an unguarded deref, and greps for `!.` do not find it.
+let aliasThrew = '';
+let aliasResult: VarApplyResult | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+try { aliasResult = await applyVarCollectionPlan(auroraVarPlan, aliasShim as any); } catch (e) { aliasThrew = (e as Error).message; }
+const aliasRes = orFailed(aliasResult);
+ok(aliasThrew === '' && aliasRes.bound === 0 && aliasRes.refused.length >= aliasedRows.length && harborRes.bound > 0,
+  `#680 an alias write the host refuses is NOT counted as bound (${aliasRes.bound} bound against ${aliasRes.refused.length} refusals; the same plan binds ${harborRes.bound} when accepted) — the count reports the file, not the attempt`);
 // #680's stated posture is `write-text-styles`': report what was skipped, write everything else. The
 // contrast is available as a positive fact — the sibling lane already degrades, on the shim built above.
 ok(sr.skipped.length >= 1 && sr.created > 0,
   `#680 (contrast) the TEXT STYLE lane already degrades on an unavailable font — ${sr.created} written, ${sr.skipped.length} skipped-with-reason, nothing thrown. That is the posture the variable lane needs.`);
+
+// =============================================================================================
+// #680 — THE PRELOAD: THE FACE NEEDED IS A CROSS PRODUCT, WHICH IS WHY THE LIVE ERROR NAMED A PAIR
+// IN NEITHER BRAND'S PLAN.
+// =============================================================================================
+// The live message was `unloaded font "Clash Display Semi Bold"`. `Clash Display` is the family AURORA
+// writes; `Semi Bold` is a style only HARBOR names. The pair is in no plan — Figma re-resolves the file's
+// existing style against the INCOMING family while keeping its OWN style name. So the theme-derived set
+// misses it and the file-derived set misses it, and #680's two candidate designs are both insufficient
+// alone. That is asserted below rather than asserted about, because it is the reason the code has the
+// shape it has.
+
+/** The file, as harbor left it: text styles carrying harbor's faces. What `getLocalTextStylesAsync`
+ *  returns to the preload, and the second half of the cross product. */
+const harborFileStyles = buildTextStylePlan(harborTheme).map((r) => ({
+  name: r.name,
+  fontName: { family: r.fontFamilyPrimary, style: r.fontStyle },
+}));
+
+const auroraTextPlan = buildTextStylePlan(auroraTheme);
+const candidates = facesToPreload(auroraTextPlan, harborFileStyles);
+const candidateKeys = new Set(candidates.map((c) => fontKey(c.face)));
+
+// The two halves, derived from the two plans INDEPENDENTLY of `facesToPreload` — the point is that the
+// pair it must produce is computable without asking it.
+const incomingFamilies = new Set(auroraTextPlan.map((r) => r.fontFamilyPrimary));
+const existingStyles = new Set(harborFileStyles.map((s) => s.fontName.style));
+const crossedPairs = [...incomingFamilies].flatMap((family) =>
+  [...existingStyles].map((style) => ({ family, style })),
+).filter((p) =>
+  !auroraTextPlan.some((r) => r.fontFamilyPrimary === p.family && r.fontStyle === p.style) &&
+  !harborFileStyles.some((s) => s.fontName.family === p.family && s.fontName.style === p.style));
+ok(crossedPairs.length > 0,
+  `#680 reachable: ${crossedPairs.length} face(s) are in NEITHER plan yet reachable by re-resolution — ${crossedPairs.slice(0, 3).map(fontKey).join(', ')}. The live failure was one of these`);
+ok(crossedPairs.every((p) => candidateKeys.has(fontKey(p))),
+  `#680 the preload candidate set contains every crossed pair (${crossedPairs.length}/${crossedPairs.length}) — a theme-only or file-only load would miss all of them`);
+// And the specific reported pair, spelled out. It survives a change of example brand because it is built
+// from the two plans, but naming it is what ties this test to the bug report.
+const reported = { family: [...incomingFamilies].find((f) => f !== 'Inter' && f !== 'JetBrains Mono')!, style: 'Semi Bold' };
+ok(existingStyles.has('Semi Bold') && candidateKeys.has(fontKey(reported)),
+  `#680 the exact reported shape is covered: ${fontKey(reported)} — aurora's family with harbor's style, which is what the live run failed on`);
+// The mirror direction too: the file's family with the incoming brand's style (a brand that changes a
+// weight while the family survives).
+ok(candidates.some((c) => c.origin === 'crossed' && harborFileStyles.some((s) => s.fontName.family === c.face.family)),
+  '#680 the mirror direction is covered too — an existing FAMILY with an incoming STYLE');
+// Origins are what decide whether a failed load is reportable, so assert all three are populated rather
+// than trusting that a set with the right size has the right labels.
+const origins = candidates.reduce((acc: Record<string, number>, c) => ({ ...acc, [c.origin]: (acc[c.origin] ?? 0) + 1 }), {});
+ok((origins.theme ?? 0) > 0 && (origins.file ?? 0) > 0 && (origins.crossed ?? 0) > 0,
+  `#680 all three origins are populated (theme ${origins.theme}, file ${origins.file}, crossed ${origins.crossed}) — the label decides whether a failed load is reported, so an empty class would silence a whole category`);
+ok(candidateKeys.size === candidates.length,
+  `#680 candidates are deduped (${candidates.length} unique) — a face named by both the theme and the file is loaded once`);
+
+/** A preload host: `available` is the fake font registry, and a successful load marks the shared
+ *  `FontSession` loaded — so the guard that threw above actually stops throwing. That shared state is
+ *  what makes the end-to-end below a real test rather than two independent ones. */
+const preloadHost = (available: Set<string>, s: FontSession, offerList = true): FontPreloadApi => ({
+  async getLocalTextStylesAsync() { return harborFileStyles; },
+  async loadFontAsync(fn: FontName) {
+    if (!available.has(fontKey(fn))) throw new Error(`font not available: ${fontKey(fn)}`);
+    s.loads.push(fn);
+    s.loaded.add(fontKey(fn));
+  },
+  ...(offerList ? { async listAvailableFontsAsync() { return [...available].map((k) => { const [family, style] = k.split('|'); return { fontName: { family, style } }; }); } } : {}),
+});
+
+// ---- END TO END: the apply that failed live, now with the preload in front of it ----------------
+// Registry = every face either brand names PLUS the crossed pairs, i.e. a Figma that has Clash Display in
+// the weights the re-resolution will ask for. The session starts with only harbor's faces loaded, exactly
+// as the live run did.
+const fullRegistry = new Set<string>([
+  ...auroraFaces.map(fontKey), ...harborFaces.map(fontKey), ...crossedPairs.map(fontKey),
+]);
+const e2eSession = new FontSession();
+// The dependents map is the CROSS PRODUCT, not aurora's own faces — the file's style keeps its style name
+// and picks up the incoming family. This is the mechanism the live error described, and the earlier
+// `auroraDeps` fixture (var → aurora's own face) is the weaker version of it.
+e2eSession.dependents = new Map(
+  buildTextStylePlan(harborTheme).map((r) => {
+    const incoming = auroraTextPlan.find((a) => a.fontFamilyVar === r.fontFamilyVar);
+    return [r.fontFamilyVar, { family: incoming?.fontFamilyPrimary ?? r.fontFamilyPrimary, style: r.fontStyle }] as const;
+  }),
+);
+for (const f of harborFaces) e2eSession.loaded.add(fontKey(f));
+// Reachability: this fixture must actually be armed, or the clean apply below proves nothing.
+const armedDeps = [...e2eSession.dependents.values()].filter((f) => !e2eSession.loaded.has(fontKey(f)));
+ok(armedDeps.length > 0,
+  `#680 reachable: ${armedDeps.length} of the file's styles would re-resolve to a face that is NOT loaded (${armedDeps.slice(0, 2).map(fontKey).join(', ')}) — the write below would throw without the preload`);
+
+const pre = await preloadFonts(auroraTextPlan, preloadHost(fullRegistry, e2eSession));
+ok(pre.loaded > 0 && pre.unavailable.length === 0,
+  `#680 the preload loads ${pre.loaded} faces and reports none unavailable against a Figma that has them`);
+ok(e2eSession.loads.length === pre.loaded,
+  `#680 ...and it really called loadFontAsync (${e2eSession.loads.length} calls) — the count is the host's, not the preload's own bookkeeping`);
+const e2eShim = new VariablesShim(e2eSession);
+let e2eThrew = '';
+let e2eResult: Awaited<ReturnType<typeof applyVarCollectionPlan>> | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+try { e2eResult = await applyVarCollectionPlan(auroraVarPlan, e2eShim as any); } catch (e) { e2eThrew = (e as Error).message; }
+ok(e2eThrew === '' && e2eResult !== undefined && e2eResult.refused.length === 0,
+  `#680 FIXED: with the preload in front, aurora's variable write completes with ZERO refusals — the apply the live run lost`);
+const e2e = orFailed(e2eResult);
+ok(e2e.misses.length === 0 && e2e.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
+  `#680 ...and writes all ${auroraFontVarRows} font variables with 0 misses`);
+// THE DISCRIMINATING PAIR: the same write, same session, same registry — only the preload removed. Without
+// it the refusals come back. This is the assertion that separates the fix from a shim that cannot fail.
+const noPreSession = new FontSession();
+noPreSession.dependents = e2eSession.dependents;
+for (const f of harborFaces) noPreSession.loaded.add(fontKey(f));
+const noPreShim = new VariablesShim(noPreSession);
+// Armed to be refused, so wrapped — same shape as the alias fixture above.
+let noPreThrew = '';
+let noPreRaw: VarApplyResult | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+try { noPreRaw = await applyVarCollectionPlan(auroraVarPlan, noPreShim as any); } catch (e) { noPreThrew = (e as Error).message; }
+const noPreResult = orFailed(noPreRaw);
+ok(noPreThrew === '' && noPreResult.refused.length > 0 && noPreSession.loads.length === 0,
+  `#680 and the SAME write without the preload is refused ${noPreResult.refused.length} times (0 loads) — the difference is the preload, not the fixture`);
+
+// ---- A TYPEFACE THIS FIGMA GENUINELY LACKS: reported, and everything else still applies ----------
+// The other half of the posture. A registry with harbor's faces only is a Figma with no Clash Display at
+// all, which no amount of loading can fix.
+const poorSession = new FontSession();
+poorSession.dependents = e2eSession.dependents;
+for (const f of harborFaces) poorSession.loaded.add(fontKey(f));
+const poorRegistry = new Set(harborFaces.map(fontKey));
+const poor = await preloadFonts(auroraTextPlan, preloadHost(poorRegistry, poorSession));
+ok(poor.unavailable.length > 0 && poor.unavailable.every((u) => u.origin !== 'crossed'),
+  `#680 a typeface this Figma lacks is REPORTED (${poor.unavailable.length}: ${poor.unavailable.slice(0, 2).map((u) => u.face).join(', ')}) — and only named faces are listed, never the crossed pairs`);
+ok(poor.crossedMisses > 0,
+  `#680 ...while the ${poor.crossedMisses} crossed pairs that do not exist are COUNTED, not listed — most family × style combinations are not real, and listing them would bury the reportable ones`);
+const poorShim = new VariablesShim(poorSession);
+let poorThrew = '';
+let poorResult: Awaited<ReturnType<typeof applyVarCollectionPlan>> | undefined;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+try { poorResult = await applyVarCollectionPlan(auroraVarPlan, poorShim as any); } catch (e) { poorThrew = (e as Error).message; }
+const poorApplied = orFailed(poorResult);
+ok(poorThrew === '' && poorResult !== undefined && poorApplied.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
+  `#680 ...and the brand STILL APPLIES on a Figma missing its typeface — all ${auroraFontVarRows} font vars written, ${poorApplied.refused.length} refusals reported, nothing thrown`);
+
+// ---- DEGRADATION OF THE PRELOAD'S OWN DEPENDENCIES ----------------------------------------------
+// A host with no font list must be no worse than one with a list — it attempts every candidate instead
+// of consulting the list, so a missing capability costs work rather than coverage (the #499 lesson).
+const noListSession = new FontSession();
+const noList = await preloadFonts(auroraTextPlan, preloadHost(fullRegistry, noListSession, false));
+ok(noList.loaded === pre.loaded && noList.attempted >= pre.attempted,
+  `#680 a host offering no font list loads the same ${noList.loaded} faces by attempting more (${noList.attempted} vs ${pre.attempted}) — a missing capability costs work, not coverage`);
+// An unreadable style list must not be fatal: this runs before a write that still has to happen.
+const blindSession = new FontSession();
+const blind = await preloadFonts(auroraTextPlan, {
+  async getLocalTextStylesAsync() { throw new Error('styles unreadable'); },
+  async loadFontAsync(fn: FontName) { blindSession.loads.push(fn); blindSession.loaded.add(fontKey(fn)); },
+});
+ok(blind.loaded >= auroraFaces.length && blind.byOrigin.file === 0 && blind.byOrigin.crossed === 0,
+  `#680 a file whose styles cannot be read still loads the theme's own ${blind.loaded} faces (file 0, crossed 0) — strictly better than loading nothing, and never fatal`);
+// An empty file (the issue's decisive live test, offline): no existing styles means no cross product, and
+// the theme's own faces are the whole set.
+const fresh = await preloadFonts(auroraTextPlan, {
+  async getLocalTextStylesAsync() { return []; },
+  async loadFontAsync() { /* every load succeeds */ },
+});
+ok(fresh.byOrigin.crossed === 0 && fresh.byOrigin.file === 0 && fresh.loaded === auroraFaces.length,
+  `#680 a FRESH file has no cross product at all — ${fresh.loaded} faces, all from the theme. That is why aurora applied to an empty file and failed on a themed one`);
 
 console.log(`\nplugin TYPOGRAPHY write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

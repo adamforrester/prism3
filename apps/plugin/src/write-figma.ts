@@ -17,6 +17,11 @@
  * change without cleanup). Uses the async getters required under `documentAccess:"dynamic-page"`
  * (`getLocalVariableCollectionsAsync` / `getLocalVariablesAsync`).
  *
+ * A `setValueForMode` CAN FAIL FOR A REASON THAT IS NOT ABOUT THE VALUE (#680): writing a
+ * `font/family/*` variable makes Figma re-resolve the text styles bound to it, which throws if the
+ * resulting face is not loaded this session. `applyVarCollectionPlan` records such refusals and keeps
+ * going (see `setSurviving`); `preload-fonts.ts` removes the cause before the write starts.
+ *
  * Compiled under `tsconfig.main.json` — has `figma.*`, NO `document`. The `VariablesApi` port is
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
@@ -283,6 +288,44 @@ export type VarCollectionApplyResult = {
   collections: { name: string; total: number; created: number; orphans: string[] }[];
   bound: number;      // weight-role → font/weight/N aliases written
   misses: string[];
+  /** Per-value writes the HOST refused (#680) — recorded and stepped over, never thrown. Empty on every
+   *  healthy apply. The reason is Figma's own message, because the only useful thing to say about a host
+   *  refusal is what the host said. */
+  refused: { name: string; mode: string; reason: string }[];
+};
+
+/**
+ * Set one mode's value, surviving a HOST REFUSAL (#680).
+ *
+ * `setValueForMode` can throw for a reason that has nothing to do with the value: writing a
+ * `font/family/*` variable makes Figma re-resolve every text style bound to it, and re-resolution
+ * throws `unloaded font` if the resulting face is not loaded this session. One such throw used to
+ * abort the entire apply — `main.ts` caught it at the top and the brand lost its colors, dimensions,
+ * effects and everything else along with its type.
+ *
+ * `preloadFonts` is the FIX for that cause and this is the floor underneath it: a face that genuinely
+ * is not installed cannot be loaded by anyone, and a brand naming one should still get every other
+ * token it asked for. Same posture as `write-text-styles`' skip-with-warning — the difference between
+ * "this brand lost 3 text styles" and "this brand did not apply".
+ *
+ * Scoped to THIS executor deliberately. Every variable a text style can bind (`fontFamily` →
+ * `font/family/*`, `fontSize` → `font/size/*`, `fontWeight` → `font/weight-role/*`) lives in
+ * `core-font` or `type-sets`, which are exactly the collections this function's callers write. The
+ * colour and FLOAT executors have no such dependency, so wrapping them too would be defending against
+ * a mechanism that cannot reach them.
+ */
+const setSurviving = (
+  v: Variable,
+  modeId: string,
+  mode: string,
+  value: Rgba | VariableAlias | number | string,
+  refused: VarCollectionApplyResult['refused'],
+): void => {
+  try {
+    v.setValueForMode(modeId, value);
+  } catch (e) {
+    refused.push({ name: v.name, mode, reason: (e as Error)?.message ?? 'setValueForMode refused the write' });
+  }
 };
 
 /**
@@ -301,6 +344,8 @@ export const applyVarCollectionPlan = async (
   const collections: VarCollectionApplyResult['collections'] = [];
   const modeIdsByCollection = new Map<string, Record<string, string>>();
   const byNameGlobal = new Map<string, Variable>();
+  // Host refusals (#680) — collected across both passes, reported rather than thrown.
+  const refused: VarCollectionApplyResult['refused'] = [];
 
   // ---- pass A: create/update every var (STRING or FLOAT) with its literal per-mode value ----
   for (const p of plans) {
@@ -324,7 +369,7 @@ export const applyVarCollectionPlan = async (
       v.scopes = row.scopes;
       v.description = row.description;
       v.hiddenFromPublishing = row.hidden;
-      p.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
+      p.modes.forEach((m, i) => setSurviving(v!, modeIds[m], m, row.valuesByMode[i], refused));
     }
     collections.push({ name: p.name, total: p.rows.length, created, orphans: orphansOf(preExisting, p.rows.map((r) => r.name)) });
     for (const [name, v] of byName) byNameGlobal.set(name, v);
@@ -343,11 +388,14 @@ export const applyVarCollectionPlan = async (
         if (!target) return; // literal-only for this mode
         const tv = byNameGlobal.get(target);
         if (!tv) { misses.push(`${row.name} @${m} -> ${target}`); return; }
-        v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
-        bound++;
+        // Counted as bound only if the host accepted it — `bound` is a report of what is in the file,
+        // and incrementing past a refusal would make the summary claim a binding that is not there.
+        const before = refused.length;
+        setSurviving(v, modeIds[m], m, vars.createVariableAlias(tv), refused);
+        if (refused.length === before) bound++;
       });
     }
   }
 
-  return { collections, bound, misses };
+  return { collections, bound, misses, refused };
 };

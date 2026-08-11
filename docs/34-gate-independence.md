@@ -487,6 +487,21 @@ more.** A compensating defect is invisible by construction until its partner is 
 that follows a detector fix is evidence about the past, not damage from the change. Scoping the prose
 test to the body turned 7 pre-existing holes red at once.
 
+**Finding an instance of a trap is not finding the trap — the discovery obliges you to sweep the same
+change for siblings.** #680 hit "a crashing assertion is not a failing one" while writing its
+mutations, fixed the instance, wrote the lesson into the file it happened in, and then shipped **three
+more of the identical shape** in the same test — caught in review, not by the author who had the trap
+in hand minutes earlier. The mechanism generalizes even when the fix does not: a crash aborts the file,
+so the assertions after it never run, so **the mutation that breaks the fix hardest reports the fewest
+failures** — and a mutation table read off those runs under-counts exactly where the code is most
+broken. Two things follow. Recording the lesson is not the response; **grepping for the shape is** — and
+the grep must be by *mechanism*, not by syntax, because two of #680's three siblings were unguarded
+`await` calls on fixtures armed to be refused, which no search for `!.` can see. And **a mutation is
+only measured if the whole suite still ran**: capture the executed-assertion count next to the failure
+count, because equal-to-baseline is what distinguishes a clean failure from a truncated one. Re-run
+under that instrument, #680's six mutations came back 6/3/**6**/3/1/**6** against a shipped table
+reading 6/3/**1**/3/1/**2** — and only one of the two wrong rows was wrong because of the crash.
+
 ## The register, so the count is auditable
 
 Newest first. Shape numbers refer to the sections above. Every row was found by hand, none by a gate —
@@ -495,10 +510,13 @@ one**; the table is the count, and the prose above deliberately stops naming a n
 written in prose is a landmark that goes stale, and this one went stale within a day of being written).
 
 `scope` and `decl` in the shape column are the two **adjacent** modes from the section above, not
-independence failures — counted because they are the same silence from a different cause.
+independence failures — counted because they are the same silence from a different cause. `sweep` is
+the third: a trap correctly diagnosed, fixed in one place, and left standing in its siblings.
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-11 | `test-write-typography.ts` mutation counts (#680 review) | sweep | a shipped mutation table reading **1** where the mutation fails **6** — three unguarded reads crashed the run, so the worst mutation reported the fewest failures |
+| 2026-08-11 | `test-write-typography.ts` M6 row (#680 review) | 4 | **2** claimed against **6** actual, with no crash involved — the table was read off the assertions the author expected, not the ones that fired |
 | 2026-08-09 | `typecheck-components.ts` own self-check (#657) | 4 | two output-parser guards deleted in turn, suite green both times — one unreachable, one with a sample that could not reach it |
 | 2026-08-09 | `typecheck-components.ts` fixture/floor coupling (#657) | 2 | a `DEFS_DIR` repointed at an empty directory failing on a fixture mismatch instead of at the floor built for it |
 | 2026-08-08 | `docs/**` layout descriptions (#670) | scope | **three PRs in a row** describing a repo that did not exist — and `docs/**` was in no gate's scope at all, so nothing reported anything |
@@ -535,7 +553,7 @@ vacuous assertion was caught *before* it shipped: `#464`'s plural hole in the US
 
 ## In practice
 
-When you write or review a gate, four questions:
+When you write or review a gate, five questions:
 
 1. **What two things does this compare, and where does each come from?** If the answer names one
    source, there is no gate.
@@ -545,6 +563,9 @@ When you write or review a gate, four questions:
 4. **Does it name the world in a string?** If the detector holds a path, prefix or regex over one, ask
    what happens when that name moves — and whether anything would say so. Question 2 does not cover
    this: the rename *is* the break, and the gate answers by going green (shape 9).
+5. **Did the whole suite run under the mutation?** Compare the executed-assertion count against the
+   unmutated baseline. Fewer means the run was truncated by a crash, and every count from it — including
+   the "caught by" column you are about to write — is a floor, not a measurement.
 
 And when a gate's duplication looks like something to tidy up, the comment beside it should already
 say why it isn't. If it doesn't, add that before the cleanup finds it.

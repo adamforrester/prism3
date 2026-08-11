@@ -8,6 +8,97 @@
 ---
 
 
+## (2026-08-10) — #680 the variable writer loads its fonts, and the face it needs is a cross product
+
+**STATUS: shipped (PR TBD). Not yet verified live** — the decisive test #680 names is a real Figma run,
+and what is below is the offline reproduction going green plus six mutations.
+
+**The pins were already there.** #692 built the #680 reproduction and deliberately fixed nothing: three
+`pinned()` assertions stating the *wrong* behavior, so they go RED the day it is fixed. That made the
+spec unambiguous — the fix is whatever flips exactly those three — and it is the second time that
+pattern has paid for itself. Worth keeping as a habit for a defect that only a live run can find.
+
+**The reported face is in NEITHER brand's plan, and that is the whole finding.** The live error was
+`unloaded font "Clash Display Semi Bold"`. Probing the two brands from that run:
+
+| | faces its text plan names |
+|---|---|
+| aurora (failed) | `Clash Display\|Bold`, `Clash Display\|Medium`, `Inter\|{Regular,Bold,Medium}`, `JetBrains Mono\|Regular` |
+| harbor (applied cleanly) | `Inter\|{Regular,Bold,Semi Bold}`, `JetBrains Mono\|Regular` |
+
+`Clash Display` is the family **aurora** writes. `Semi Bold` is a style only **harbor** names. The pair is
+in no plan at all: Figma re-resolves the file's existing style against the **incoming** family value while
+keeping its **own** style name. So #680 offered two ways to choose the font set — derive from the theme, or
+read the file — and the reported failure is evidence that **neither alone is enough**. The set is the
+product of the two. A theme-only load additionally misses `Inter|Semi Bold`, a face the file needs and the
+incoming brand never mentions. Mutation M6 is exactly the theme-only design, and it fails.
+
+**Two halves, and the pins decompose onto them exactly.** `preload-fonts.ts` removes the *cause*: before
+the first variable write, load every face the write could force a re-resolution of — theme faces, the
+file's current faces, and the crossed pairs. `setSurviving` in `write-figma.ts` is the *floor* underneath
+it: a typeface that genuinely is not installed cannot be loaded by anyone, and a brand naming one should
+still get its colors, dimensions and effects. One `setValueForMode` throw used to abort the entire apply.
+
+**A refusal counts as a miss, not as a soft skip.** A skipped *text style* leaves the token layer intact;
+a refused *variable* write leaves a hole in it. So `refused` joins the miss tally and flips `ok`, while
+`ts.skipped` deliberately still does not. And `bound` is only incremented when the host accepted the
+write — a summary claiming bindings the file does not carry is worse than one reporting fewer.
+
+**Scoped to `applyVarCollectionPlan` on purpose.** Every variable a text style can bind (`fontFamily` →
+`font/family/*`, `fontSize` → `font/size/*`, `fontWeight` → `font/weight-role/*`) lives in `core-font` or
+`type-sets` — exactly that executor's collections. Wrapping the colour and FLOAT writers too would defend
+against a mechanism that cannot reach them.
+
+**Six mutations, each confirmed failing by name (docs/34), re-measured after review** — the counts below
+are the corrected ones, with the executed-assertion count recorded beside each so a truncated run cannot
+be mistaken for a clean failure again (all six now execute the full **59**):
+
+| mutation | caught by | first reported |
+|---|---|---|
+| no cross product (theme ∪ file only) | 6 assertions incl. the exact reported pair | 6 ✓ |
+| preload computes the set but never loads | the host-side load count, the end-to-end, the no-list degradation | 3 ✓ |
+| `setSurviving` rethrows (no floor) | **6** — the survives-a-refusal, the report-what-was-refused, the created-anyway, the alias-not-bound, the without-preload discriminator, the missing-typeface apply | **1, "and nothing else"** — wrong, see below |
+| refusal swallowed, not recorded | 3 assertions incl. the without-preload discriminator | 3 ✓ |
+| `bound` counts a refused alias write | the alias-refusal assertion | 1 ✓ |
+| **file's styles ignored — #680's own "derive from the theme" option** | **6** — the four cross-product assertions plus the end-to-end and the crossed count | **2** — wrong, and *not* for the crash reason |
+
+**Plugin typography suite 39 → 59 assertions**, baseline measured by running `origin/main`'s copy of the
+test rather than counted from the diff — a grep of `ok(` call sites gives 38, which is not the number that
+executes.
+
+**Four traps worth carrying forward:**
+
+- **A crashing assertion is not a failing one — and finding one instance is not finding the trap.** M4
+  (swallow the refusal) first made the run die with `TypeError: Cannot read properties of undefined`
+  because the *label* indexed `refused[0]`. That was diagnosed, fixed, and written up here — and then
+  **three more of the identical shape shipped in the same file**, caught in review. The mechanism is worse
+  than one bad row: a crash aborts the file, so **the mutation that breaks the fix hardest reports the
+  fewest failures**, which is how M3 read as 1 when it is 6. Two of the three siblings were not derefs at
+  all but unguarded `await applyVarCollectionPlan(...)` calls on fixtures *armed to be refused*, so no grep
+  for `!.` could find them — the sweep has to be by mechanism, not by syntax. Now: an `orFailed()` helper
+  whose substitute is built so every dependent assertion *fails* rather than passes, and a re-run of all
+  six mutations recording `exec=59` alongside the failure count. **The label is part of the gate; so is the
+  count of assertions that got to run.** Generalized into docs/34 as the `sweep` shape, with the two
+  register rows this produced.
+- **An assertion that passes by coincidence.** The first `bound` check compared aurora's 5 against
+  harbor's 5 and passed on equality while exercising nothing: the refusals land on `font/family/*` rows,
+  which carry no alias, so pass B was never reached. The aliased rows are the `font/weight-role/*` ones,
+  and keying a fixture there made it real (0 bound against 10 refusals).
+- **The reported face has already moved.** The live error said `Clash Display Semi Bold`; aurora's plan
+  today names `Bold` and `Medium`. The *class* is unchanged and the crossed set still contains
+  `Clash Display|Semi Bold` exactly — but quoting the live string as though the plan still emits it would
+  be wrong. The fixtures derive both brands' faces from their plans so the test cannot go stale silently.
+
+**Open, not claimed.** No live run. #680's decisive test — aurora into a *completely fresh* file — is
+covered offline only as far as the shim can go: a fresh file has no cross product, so the theme's own six
+faces are the whole set, which is why aurora applied to an empty file and failed on a themed one. Whether
+Figma's real trigger is dependent-style re-resolution rather than something else still needs the file. Two
+further unknowns the shim cannot reach: whether ~11 `loadFontAsync` calls add measurable time to an apply
+(each is a host round-trip, and #684 measured how expensive those are), and whether a large real font
+library makes the crossed product bigger than the handful seen here.
+
+---
+
 ## (2026-08-10) — Block layout axes: one witness classified, and the corpus named (docs/37, new)
 
 **STATUS: docs only.** New `37-block-layout-axes.md`. No engine change, no emitted artifact, no gate
@@ -61,7 +152,6 @@ line. Nothing in it is a field finding yet, and the axis table will move once a 
 it is a vocabulary to argue with, not a baseline to build against.
 
 ---
-
 ## (2026-08-10) — the two exporters measured against each other for the first time (`tools/exporter-comparison/`)
 
 **STATUS: shipped. Neither exporter modified, no rewrite started.** #697's Verify section asks for a comparison
