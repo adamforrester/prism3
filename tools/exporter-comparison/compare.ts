@@ -560,7 +560,14 @@ const RENAME_RULES: {
  *  conforming DTCG reader looks at (#609). So this pairing is deliberately made against the canonical
  *  extension and LABELED as such: the token exists in prism3's output, but not in the projection a
  *  stock consumer reads. TokenPress, coming from Figma styles that have no modes at all, gets it as a
- *  peer group and so does expose it. */
+ *  peer group and so does expose it.
+ *
+ *  That gap is a SHIPPING DEFECT, not a representational difference — filed as #708. A conforming
+ *  consumer reading `base` + `dark.overlay` renders light-mode shadows in dark mode, in all four
+ *  brands. Root cause is `emit-dtcg-overlay.ts:159`: the modes extension has two shapes (color wraps
+ *  its per-mode value in `$value`, shadow is the bare array) and the projector's guard reads only the
+ *  first. Do not read the pairing below as "the Figma path is more complete" — it is this harness
+ *  detecting a bug in ours. */
 const explainViaCanonicalModes = (onlyTP: string[], canonical: unknown): PathExplanation => {
   const root = canonical && typeof canonical === 'object'
     ? (canonical as Record<string, unknown>)[
@@ -960,8 +967,8 @@ const VERDICTS: Verdict[] = [
     category: 1,
     verdict: 'SURPRISING',
     claim:
-      'prism3 keeps per-mode SHADOW values only in `$extensions.prism3.modes.dark` on the canonical tree — the dark overlay carries `color` and nothing else — so a conforming reader never sees a dark shadow at all, while TokenPress (from Figma styles, which have no modes) exposes all 7 as real `shadow-dark.*` tokens. The Figma path is the MORE complete one here',
-    source: 'not predicted; #609 described the projection but not this hole in it',
+      'A SHIPPING DEFECT (#708): every mode-varying shadow is silently dropped from every overlay, so a conforming consumer reading `base` + `dark.overlay` gets LIGHT-MODE shadows in dark mode. Confirmed in all four brands. Root cause `emit-dtcg-overlay.ts:159` — the modes extension has two shapes (color wraps in `$value`, shadow is the bare array) and the projector reads one. Visible here because TokenPress, coming from Figma styles that have no modes, exposes all 7 as real `shadow-dark.*` tokens',
+    source: 'not predicted by #609/#696/#697/#703 — filed as #708',
     when: (r) => explainedCount(r, 'appearance axis crosses as a NAME') > 0,
   },
   {
@@ -1011,8 +1018,8 @@ const VERDICTS: Verdict[] = [
     category: 3,
     verdict: 'EXPECTED',
     claim:
-      'the float32 cleanup #703 called "a silent lossy rewrite when applied to a source that never had the artifact" DOES fire here and is NOT lossy: every float32-attributable difference still names the authored 8-bit value, and exhaustively all 256 channels survive fround-then-4dp. The predicted defect does not exist on this input',
-    source: '#703 raised it as an open risk; this closes it as measured-safe for 8-bit-authored color',
+      'the float32 cleanup #703 called "a silent lossy rewrite when applied to a source that never had the artifact" DOES fire here and is NOT LOSSY FOR 8-BIT-AUTHORED COLORS, VERIFIED EXHAUSTIVELY: every float32-attributable difference still names the authored 8-bit value, and all 256 channels survive fround-then-4dp. That boundary is the claim — outside it the cleanup CAN quantize, and aurora\'s hex-alpha finding below is that boundary appearing on real input',
+    source: '#703 raised it as an open risk; this narrows it to measured-safe for 8-bit-authored color, which is what was actually proved',
     when: (r) => r.values.some((v) => v.float32) && !r.values.some((v) => v.float32 === 'leak'),
   },
   {
@@ -1027,7 +1034,7 @@ const VERDICTS: Verdict[] = [
     category: 3,
     verdict: 'SURPRISING',
     claim:
-      'OPACITY disagrees by 100× — prism3 says `0.05`, TokenPress says `5`. prism3\'s emission writes Figma\'s OPACITY percent convention, and TokenPress passes it through as a number, so the round-trip changes the magnitude of a value a consumer would apply directly. The only difference here that would visibly break a UI',
+      'OPACITY disagrees by 100× — prism3 says `0.05`, TokenPress says `5`. Owned and filed as #709 (TokenPress side): prism3\'s `emit-figma-dims.ts:255` applies the ×100 deliberately because a Figma OPACITY-scoped FLOAT is a PERCENT (live-verified: 0.9 renders as 0.9%), and TokenPress reads that file, types it `number` correctly, then passes the value through unconverted — so it lands 100× outside DTCG\'s 0–1 range. The only difference here that would visibly break a UI',
     source: 'not predicted by any of #696/#697/#703 — the most consequential finding in this report',
     when: (r) => countKind(r, 'scale') > 0,
   },
@@ -1095,7 +1102,7 @@ const VERDICTS: Verdict[] = [
     category: 5,
     verdict: 'SURPRISING',
     claim:
-      'the scopes-gated handling never opens its gate: NO variable in either brand carries `LINE_HEIGHT`, so `lineHeightOutput` has no input, and the 12 `OPACITY`-scoped variables agree on TYPE (the 100× disagreement is in the VALUE, which this gate does not touch). prism3\'s emission does not populate the scopes TokenPress keys on',
+      'the scopes-gated handling never opens its gate: NO variable in either brand carries `LINE_HEIGHT`, so `lineHeightOutput` has no input, and the 12 `OPACITY`-scoped variables agree on TYPE (the 100x disagreement is in the VALUE, which this gate does not touch). THIS IS AN ARTIFACT OF THE INPUT, NOT A PROPERTY OF THE SETTING: the measurement cannot determine whether these settings are destructive in general, only that they are INERT AGAINST THIS INPUT. The reason is not missing scope metadata — every one of the 994 nb / 1049 aurora adapted variables carries scopes. It is that prism3 emits no line-height variable for the gate to reach at all: line-height and letter-spacing exist only inside text styles, the same root cause as the unpaired-path findings in category 1',
     source: 'not predicted — #703 assumed the gates would fire and reasoned about their behavior',
     when: (r) => bucket(r, 'lineHeightOutput')?.verdict === 'inert',
   },

@@ -32,7 +32,9 @@ standing there as a stale assertion; the mutation check is in the entry below.
 | float32-attributable / of those lossy | 100 / **0** | 152 / **0** |
 | **unpaired paths, both directions** | **0 / 0** | **2 / 0** (the gradients) |
 
-**The float32 question #703 raised is answered: the cleanup fires and is not lossy.** #703 flagged
+**The float32 question #703 raised is answered: the cleanup fires and is not lossy *for 8-bit-authored colors*,
+verified exhaustively.** That boundary is the claim, not a hedge on it — outside 8-bit authorship the cleanup can
+still quantize, and aurora's hex-alpha finding below is exactly that boundary appearing on real input. #703 flagged
 `roundToPrecision` as "a silent lossy rewrite when applied to a source that never had the artifact", and this was
 the first chance to see it. It fires — 118 nb / 160 aurora adapted variables carry a genuine float32 artifact,
 because `emit-figma-color.ts` applies `Math.fround` deliberately — and **every** attributable difference still
@@ -47,17 +49,30 @@ explains nothing. Worse, the composed test **overlaps** the hex-byte quantizatio
 of nb's differences to the wrong exporter *with no other visible change in the output*. That ordering is
 load-bearing and says so in the file.
 
-**Four SURPRISING findings, and one of them would break a UI:**
+**Four SURPRISING findings. The first is a shipping defect in our own emitter, and it is the strongest
+justification the harness has — it is the only thing that has ever caught it:**
 
-- **Opacity disagrees by 100×.** prism3 says `0.05`, TokenPress says `5`. The emission writes Figma's OPACITY
-  percent convention; TokenPress passes the number through. 11 tokens on each brand, and the only difference in
-  the whole report that changes a value a consumer applies directly. Not predicted by #696, #697 or #703.
-- **prism3's dark shadows are invisible to a conforming reader.** They live only at
-  `shadow.<x>.$extensions.prism3.modes.dark` on the canonical tree — the dark overlay carries `color` and nothing
-  else. TokenPress, coming from Figma styles (which have no modes), exposes all 7 as real `shadow-dark.*` tokens.
-  **The Figma path is the more complete one here**, which is not the direction anyone expected. Found by a
-  hypothesis being *wrong*: pairing them against the dark overlay was the obvious guess, and measuring it
-  disproved it.
+- **Every mode-varying shadow is silently dropped from every overlay — filed as #708.** A conforming consumer
+  reading `base` + `dark.overlay` gets **light-mode shadows in dark mode**, in all four brands. Root cause is
+  `emit-dtcg-overlay.ts:159`: the modes extension has **two shapes** — color wraps its per-mode value in `$value`,
+  shadow is the bare array — and the projector's guard (`if (!m || !('$value' in m)) return undefined;`) reads only
+  the first, so every shadow silently returns `undefined`. nb has 7 mode-varying shadows, all with values that
+  differ between modes (`shadow.inset` 0.08→0.3, `shadow.xs` 0.1→0.03, `shadow.md` 0.12→0.06), and **0** reach the
+  overlay. Every existing gate passes it, because the base+overlay cascade leaves every token "present in every
+  mode" — the values are just the wrong ones. Visible here only because TokenPress, coming from Figma styles that
+  have no modes, exposes all 7 as real `shadow-dark.*` tokens. This is **not** "the Figma path is more complete";
+  it is a comparison against a second implementation surfacing a bug in ours. Found by a hypothesis being *wrong*:
+  pairing the `shadow-dark.*` names against the dark overlay was the obvious guess, and measuring it disproved it.
+- **Opacity disagrees by 100× — filed as #709, on TokenPress's side.** prism3 says `0.05`, TokenPress says `5`.
+  11 tokens on each brand, and the only difference in the whole report that changes a value a consumer applies
+  directly. Not predicted by #696, #697 or #703. Ownership was measured rather than assumed, and it is a
+  *convention collision*, not a bug in one file: prism3's `emit-figma-dims.ts:255` multiplies by 100 **deliberately**
+  because a Figma `OPACITY`-scoped FLOAT is a percent (0–100) — commented "Verified live: passing 0.9 renders as
+  0.9%", and pinned by `test.ts:866` + `test.ts:4573`. TokenPress types the scope `number` correctly
+  (`exporter.ts:727`) and then passes the value through unconverted (`:915` rounds for diff stability, never
+  divides — probed: `5→5`, `90→90`). So each side is right about its own target and the round-trip is wrong; the
+  conversion belongs where the Figma convention is being *left*. It also explains why nothing caught it —
+  TokenPress's only opacity test asserts the **type** and never the **range**.
 - **TokenPress emits 11 composites twice** — `typography.*` from the text styles and `font-fluid.*` from the
   type-sets variables — because prism3 emits the same typography down both channels and TokenPress reads both. A
   consumer gets two spellings of one token with nothing marking them the same.
@@ -71,7 +86,11 @@ the breakpoint regex `/^\d+$/` is **INERT** — it reaches 214/253 numeric-taile
 because every one is a dimension on both sides anyway. The scopes-gated handling is **INERT for a reason nobody
 predicted**: no variable in either brand carries `LINE_HEIGHT` at all, so `lineHeightOutput` has no input, and the
 12 `OPACITY`-scoped variables agree on *type* (the 100× problem is in the value, which that gate does not touch).
-prism3's emission does not populate the scopes TokenPress keys on at all. Motion-duration and easing detection are
+**That is an artifact of this input, not a property of the settings** — the measurement cannot determine whether
+they are destructive in general, only that they are inert against what prism3 emits. And the reason is not missing
+scope metadata: **every** adapted variable carries scopes (994 nb / 1049 aurora, 0 without). It is that no
+line-height or letter-spacing *variable* is emitted for the gate to reach — those reach Figma only inside text
+styles, the same root cause as the unpaired-path findings. Motion-duration and easing detection are
 inert with 0 matches, because no motion collection is emitted. **`hasMultiMode` FIRES**, and it is the single
 highest-impact setting in the comparison: one computed boolean produces the entire directory layout.
 
@@ -110,10 +129,14 @@ The recommendation is to gate exactly those two once the harness runs on more th
 categories 3–5 reporting until #697's byte-for-byte question is actually decided. Recorded in the harness README
 so the next person does not have to re-derive the distinction.
 
-**One correction to #703's own numbers**, found while building this: `exporter.ts` makes **zero** runtime
-`figma.*` calls — line 631 is a property on TokenPress's own output object, not an API call — so all 24 live in
-`code.ts` + `scanner.ts`. That makes the exporter *more* portable than #703 reported, and it is why W5 needs only
-a four-method stub.
+**One narrow correction to #703's own numbers**, found while building this — and it is smaller than it may read.
+#703 reported 24 runtime `figma.*` calls repo-wide with **exactly one** in `exporter.ts`. That one, `:631`, is
+`token.$extensions.figma.codeSyntax = variable.codeSyntax` — a property on TokenPress's own *output* object, in
+prism3's emitted namespace, not a Figma API call. So the correction is **1 → 0 in `exporter.ts`**, not 24 → 0; the
+other 23 are real, and they all live in `code.ts` + `scanner.ts` where #703 put them. **The portability conclusion
+is unchanged**: it rested on the *types* (124 references across 13 files — measured again here at 138 with a wider
+type list, same 13 files), never on the runtime calls. "Rewrite, not refactor" stands exactly as #703 argued it.
+What the correction does buy is the reason W5 needs only a four-method stub.
 
 
 ## (2026-08-10) — TokenPress ported in as `apps/tokenpress/`, and the separability question answered against real code

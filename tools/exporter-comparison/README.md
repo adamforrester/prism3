@@ -27,6 +27,15 @@ No arguments beyond a brand name, no fixtures to refresh: it reads the committed
 
 **Neither exporter is modified.** Both are imported and run as they ship.
 
+## What it has found so far
+
+Two of the differences it reports are defects with owners, not representational disagreements:
+
+- **#708** — every mode-varying shadow is dropped from every overlay, so a conforming consumer reading
+  `base` + `dark.overlay` gets light-mode shadows in dark mode, in all four brands. Ours. This harness is
+  the only thing that has caught it; every existing gate passes it.
+- **#709** — `OPACITY` variables come back 100× outside DTCG's 0–1 range. TokenPress's.
+
 ## Reading the output
 
 Five categories, and for each one a verdict: `EXPECTED` (a consequence of a decision already recorded
