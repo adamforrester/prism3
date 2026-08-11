@@ -8,6 +8,60 @@
 ---
 
 
+## (2026-08-10) — Block layout axes: one witness classified, and the corpus named (docs/37, new)
+
+**STATUS: docs only.** New `37-block-layout-axes.md`. No engine change, no emitted artifact, no gate
+touched. #693 rewritten as a phased capture-and-derive task.
+
+**What this is.** `13` §8 logged blocks as the tier above components and argued the artifact worth
+building is the **axes** each family varies along, not a catalogue. This is the first real attempt at
+those axes, seeded from 22 hero variants the owner supplied as screenshots — which is also the first
+time this lane has had any layout data at all.
+
+**The classification came out about as expected. The correction rate did not, and it is the finding.**
+Against the going-in hypothesis (media placement, alignment, container, action count, social-proof slot):
+**one axis was invented that does not exist** (background media — not one of the 22 sets text over
+full-bleed media), **one needed splitting** (social proof is *two* slots — a rating/avatar cluster and a
+logo strip, different positions and different jobs), and **three were missed entirely** (media *kind*, so
+a video slot is not an image slot with a play button; **surface** — light/dark/two-tone band; and the
+split-header arrangement, headline in one column and body plus actions in the other). Five of six axes
+wrong in some way, from a genre I would have said I knew. **That is the argument for #693 being a survey
+rather than a writing task**, and it should recalibrate how much any later family can be assumed.
+
+**The empty cells carry more than the filled ones.** 22 variants populate maybe a third of what the axes
+describe: no background media, no dark surface *with* media (both darks are media-free — and from outside
+you cannot tell whether that is a constraint or an unfilled cell), no form in the hero, no true 50/50
+edge-to-edge split, no carousel, and nothing commerce-shaped. **Documenting the library would have encoded
+one vendor's enumeration as the genre's grammar**, which is why `37` records the vendor as a witness and
+the holes as open questions rather than writing up the 22.
+
+**Two fetchability facts, measured today, that decide who can do which half.** Relume's per-variant
+preview URLs (`relume.ai/preview?cid=<category>/section_<name><n>&context=react`) return *"component not
+found"* anonymously, with and without the `context` parameter — session-gated. Its **category index is**
+readable, and confirms the thing Initium lacks: an **Ecommerce set** (Product List Sections, Product
+Headers, Category Filters) plus an Application UI set, across 1k+ components. So taxonomy is agent-side,
+per-variant layouts are human-side for the gated libraries, and markup — the only route to **landmark
+structure and a content model** — comes only from the open ones (daisyUI, Tailwind UI,
+`adobe/aem-block-collection`).
+
+**Recorded as a limit rather than left implicit: a screenshot answers the layout axes and nothing else.**
+Not spacing, not token usage, not breakpoint behavior, not DOM landmarks, not the content model — and two
+of those are in scope for this tier. Any family derived from screenshots alone carries those halves
+unanswered, so `37` §4 says to mark it per family instead of letting the gap go unrecorded.
+
+**Method reuses what exists rather than inventing a second convention.** The KB already runs dual-agent
+research (`_research/README.md` — one identical prompt, two agents, raw outputs preserved, synthesis
+separate, promotion into a numbered file), and `28` is the component-tier precedent for deriving from a
+field survey and recording the decisions it closed. `37` §5 states the per-family loop in those terms.
+**Order families by our demand, not the vendors' depth** — hero and feature run deepest in commercial
+libraries because they sell, which is a fact about their market.
+
+**Trap for whoever picks this up:** `37` §2 is **one witness, hero only**, and says so in its own status
+line. Nothing in it is a field finding yet, and the axis table will move once a second library is read —
+it is a vocabulary to argue with, not a baseline to build against.
+
+---
+
 ## (2026-08-10) — the two exporters measured against each other for the first time (`tools/exporter-comparison/`)
 
 **STATUS: shipped. Neither exporter modified, no rewrite started.** #697's Verify section asks for a comparison
