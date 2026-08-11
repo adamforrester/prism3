@@ -163,10 +163,25 @@ export const resolvePreview = (theme: Theme, spec: PreviewSpec = previewSpec): R
   for (const ref of [...allShadowRefs].sort()) {
     const node = at(data, ref);
     const base = Array.isArray(node?.$value) ? (node!.$value as Array<Record<string, any>>) : [];
-    const mo = node?.$extensions?.prism3?.modes as Record<string, Array<Record<string, any>>> | undefined;
+    const mo = node?.$extensions?.prism3?.modes as Record<string, { $value?: unknown }> | undefined;
     const byMode: Partial<Record<ModeName, string>> = {};
     for (const m of modes) {
-      const layers = mo && Array.isArray(mo[m.mode]) ? mo[m.mode] : base;
+      // Every mode entry wraps its value (#708), so unwrap `$value` — this read used to be
+      // `Array.isArray(mo[m.mode]) ? mo[m.mode] : base`, testing for the bare shape and FALLING BACK
+      // TO BASE when it did not find one. That is #708's exact failure mode in miniature: a shape the
+      // reader cannot parse silently becomes "no override", and the preview renders light shadows in
+      // dark. So this throws on an entry it cannot read rather than falling back.
+      const entry = mo?.[m.mode];
+      let layers = base;
+      if (entry !== undefined) {
+        if (!Array.isArray(entry?.$value)) {
+          throw new Error(
+            `resolve-preview: shadow mode entry '${m.mode}' on '${ref}' is not the wrapped ` +
+            `{ $value: [...] } shape (got ${Array.isArray(entry) ? 'a bare array — the #708 shape' : typeof entry}).`,
+          );
+        }
+        layers = entry.$value as Array<Record<string, any>>;
+      }
       if (layers.length) byMode[m.mode] = cssBoxShadow(layers);
     }
     shadows[ref] = byMode;

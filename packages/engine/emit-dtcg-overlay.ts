@@ -137,6 +137,15 @@ export const buildBase = (tree: unknown): unknown => {
   return strip(tree) ?? {};
 };
 
+/** The diagnostic for a mode entry the projector cannot read. Its own function so the message is one
+ *  string rather than assembled at a throw site, and so a test can assert on it. */
+const unreadableMode = (mode: string, m: unknown): string =>
+  `emit-dtcg-overlay: mode entry '${mode}' exists but carries no $value ` +
+  `(got ${Array.isArray(m) ? 'a bare array — this is the #708 shape' : m === null ? 'null' : typeof m}). ` +
+  `Every mode entry must wrap its value: { $value: … }. An unreadable entry is a DEFECT, never an ` +
+  `absence — returning undefined here is what silently dropped every mode-varying shadow from every ` +
+  `overlay in all four brands. Normalize the producer (see tree.ts shadowLeaf); do not widen this guard.`;
+
 /**
  * One mode's OVERLAY: only the leaves whose value differs from base, with empty groups pruned.
  *
@@ -144,6 +153,16 @@ export const buildBase = (tree: unknown): unknown => {
  * emits those (a mode can re-derive a value and land on the same one), and including them would make
  * every overlay look larger than the change it represents. Comparing values rather than trusting the
  * extension's presence is what keeps the overlay honest about what actually moves.
+ *
+ * THE #708 DIAGNOSIS, because it is the part a diff cannot show. This walk used to begin
+ * `if (!m || !('$value' in m)) return undefined;` — a guard that was **correct about its own condition
+ * and wrong about its assumption.** It really did test whether the entry wraps a `$value`; what it
+ * assumed was that every entry does. Color entries wrap (`{ $value, contrast, … }`); shadow entries
+ * were the bare layer array, so every mode-varying shadow failed the test and returned "no override."
+ * All four brands shipped light-mode shadows in dark mode, and nothing anywhere reported it, because
+ * `undefined` conflated two states needing opposite handling: "does not vary" (normal) and "cannot be
+ * read" (a defect). The producer is normalized now, so the throw below should be unreachable — it stays
+ * because unreachable-by-construction is exactly what this guard believed about itself before.
  */
 export const buildOverlay = (tree: unknown, mode: string): unknown => {
   const walk = (n: unknown): unknown => {
@@ -155,8 +174,13 @@ export const buildOverlay = (tree: unknown, mode: string): unknown => {
       // reach a conforming consumer through the overlay while being correctly absent from the base.
       if (!isConformingLeaf(n)) return undefined;
       const p3 = ((n.$extensions as Node | undefined)?.prism3) as Node | undefined;
-      const m = (p3?.modes as Node | undefined)?.[mode] as Node | undefined;
-      if (!m || !('$value' in m)) return undefined;
+      const modes = p3?.modes as Node | undefined;
+      // ABSENT means "this leaf does not vary in this mode" — the normal case, and the ONLY thing that
+      // may return undefined here. Everything below is a shape question, and a shape we cannot read is
+      // a defect rather than an absence (#708).
+      if (!modes || !(mode in modes)) return undefined;
+      const m = modes[mode] as Node | undefined;
+      if (!m || typeof m !== 'object' || !('$value' in m)) throw new Error(unreadableMode(mode, m));
       if (JSON.stringify(m.$value) === JSON.stringify((n as Node).$value)) return undefined;
       // The leaf as the mode sees it — the mode's `$value`, and the base leaf's descriptive fields
       // so the overlay is a valid standalone DTCG token rather than a bare value.

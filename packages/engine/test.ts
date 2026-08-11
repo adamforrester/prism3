@@ -1882,12 +1882,13 @@ for (const b of brands) {
     'D-shadow(a): dark shadow override re-derives modes.dark (crisper) — differs from the baseline reduction');
   ok(JSON.stringify(pmTree.shadow.md.$value) === JSON.stringify(baseTree.shadow.md.$value),
     'D-shadow(a): light canonical shadow.md $value is unchanged by the dark override');
-  // the crisper softness (0.5) halves the blur — md ambient blur 12 → 6.
-  ok(pmTree.shadow.md.$extensions.prism3.modes.dark[1].blur === '6px', `D-shadow(a): dark md ambient blur halved to 6px at softness 0.5 (got ${pmTree.shadow.md.$extensions.prism3.modes.dark[1].blur})`);
+  // the crisper softness (0.5) halves the blur — md ambient blur 12 → 6. Read through `$value`: every
+  // mode entry wraps its value (#708), shadow included.
+  ok(pmTree.shadow.md.$extensions.prism3.modes.dark.$value[1].blur === '6px', `D-shadow(a): dark md ambient blur halved to 6px at softness 0.5 (got ${pmTree.shadow.md.$extensions.prism3.modes.dark.$value[1].blur})`);
 
   // (b) a LIGHT-based custom mode gets modes.marketing with the FULL (light-appearance) layers at its
   //     override — soft blur (softness 2 → doubled) + a warmer tinted colour (amount 0.6, not the global).
-  const mkt = pmTree.shadow.md.$extensions.prism3.modes.marketing;
+  const mkt = pmTree.shadow.md.$extensions.prism3.modes.marketing?.$value;
   ok(!!mkt && mkt.length === 2 && mkt[1].blur === '24px', `D-shadow(b): marketing (light-based) md ambient blur doubled to 24px at softness 2 (got ${mkt?.[1]?.blur})`);
   ok(mkt[0].color !== baseTree.shadow.md.$value[0].color, `D-shadow(b): marketing shadow colour reflects the tint override (differs from the global-tint colour)`);
 

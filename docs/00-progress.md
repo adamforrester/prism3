@@ -8,6 +8,96 @@
 ---
 
 
+## (2026-08-11) — #708 fixed: mode-varying shadows reach their overlays, and a gate now asserts overlay completeness
+
+**STATUS: shipped.** #708 — every mode-varying shadow silently dropped from every overlay — is fixed in both
+halves, and `lint-overlay-completeness.ts` is the gate that would have caught it. `regen --check` reports
+**104**; overlays gained leaves, no artifact was added. 28 shadow leaves now reach the `dark` overlay across
+the four brands (7 each), and `hc-light`/`hc-dark` correctly gain none.
+
+**THE DIAGNOSIS, which is the part the diff cannot show: the guard was correct about its own condition and
+wrong about its assumption.** `emit-dtcg-overlay.ts` read `if (!m || !('$value' in m)) return undefined;`. That
+condition is not a bug — it really does test whether a mode entry wraps a `$value`. What was wrong was the
+*assumption underneath it*: that every entry does. Color entries wrapped (`{ $value, against, contrast }`),
+shadow entries were the bare layer array, so every mode-varying shadow failed a true test and took the
+"no override for this mode" branch. Reading the guard, nothing looks wrong; the defect lives in a premise that
+was never written down anywhere. **Two shapes for one concept was the defect. The guard was only where it
+surfaced** — which is why the fix normalizes the producer rather than teaching the projector both shapes.
+
+**`undefined` was doing two jobs that need opposite handling.** "This leaf does not vary in this mode" is the
+normal case and must be silent. "I could not read this entry" is a defect and must be loud. Conflating them is
+what let this run undetected across four brands. So the projector now separates them: absence returns
+`undefined`, an unreadable shape **throws**. The producer is normalized, so that throw should be unreachable —
+it stays precisely because *unreachable-by-construction is what the old guard believed about itself.*
+
+**The fix had a hidden third and fourth site, and one of them was the same bug in miniature.** Normalizing
+`tree.ts` alone breaks every consumer reading the entry *as* the array. `emit-figma-styles.ts` was the one
+found by inspection; `resolve-preview.ts` was found by `test.ts` failing, and its read was
+`Array.isArray(mo[m.mode]) ? mo[m.mode] : base` — **testing for the bare shape and falling back to base when it
+did not find one.** That is #708's exact failure mode: an unparseable shape silently becomes "no override," and
+the preview renders light shadows in dark. Both now unwrap `$value` and **throw** on the old shape rather than
+falling back. That matters beyond correctness: while the Figma emitter kept working on the bare array, nothing
+made the divergence visible — one reader succeeding is what hid the other reader failing.
+
+**Why every existing gate passed a defect this size, which generalizes past shadows.** A consumer reads
+`base + overlay`, so base supplies every token and each one *is* present in every mode. Coverage, presence and
+alias assertions were all legitimately green: the projection was complete, consistent, and wrong. A dropped
+override does not resolve to nothing — **it resolves to a real value, just the wrong one.** Nothing anywhere
+held an independent answer to *which* tokens ought to differ per mode. That was the gap; no single assertion
+was at fault.
+
+**The gate, and the circularity it has to sidestep.** `lint-overlay-completeness.ts` asserts, per brand and per
+mode, that the overlay's leaf set equals the set of leaves whose canonical `modes[mode]` differs from base.
+Overlays are *built* from that extension, so this looks circular — and is not, because EXPECTED is derived from
+the projector's **input** by the gate's own traversal and its own value comparison, while ACTUAL is read from
+the projector's **output**. Input and output are two different things. What would make it circular is deriving
+EXPECTED by calling `buildOverlay`, or by reading the overlays — the bug would then be reproduced identically
+on both sides and reported as a pass. **The duplicated "does this leaf vary?" walk therefore IS the gate**, and
+the header says so at length, because the obvious "simplification" is the one that deletes it (`docs/34`).
+
+Four arms, and the reverse direction was as unchecked as the forward one: **A** a varying leaf missing from its
+overlay (#708); **B** a leaf present that does *not* vary — nothing checked this either, and a too-eager
+projector's extra values are real values, so nothing downstream could tell; **C** a leaf in both with the wrong
+value; **D** an unwrapped canonical entry, the cause one step upstream of A–C. Arm D deliberately **reports and
+reads on** rather than throwing: in the #708 tree every shadow entry is bare, so a gate that died on the first
+would report "unreadable shape" and never reach the finding that matters — *28 shadows are missing and
+consumers are rendering the wrong ones.* Tolerating a shape in a report is not tolerating it in a producer.
+
+**Scope is by rule, not by list.** The gate contains no `$type` check and no shadow special case; it walks every
+conforming leaf and asks whether its mode entry differs. `shadow` is the only composite carrying modes today,
+and the gate does not know that — `typography`, `border`, `transition` and `gradient` hit the identical trap the
+day one gains a mode entry, and a shadow-shaped gate would leave it armed.
+
+**Mutation-tested, each failing by name** (`docs/34` — the check is not "does the suite go red"):
+
+| mutation | result |
+|---|---|
+| revert both halves of the fix, regen | **56 failures** — 28 arm-D unwrapped entries + 28 arm-A missing shadows, every one named by path |
+| delete `nbds.shadow.inset` from `nb.dark.overlay` | **1 failure**, naming that leaf |
+| inject `nbds.palette.white` (no dark entry) into `nb.dark.overlay` | arm B fires, naming it EXTRANEOUS |
+| **negative control** — `nbds.palette.white` left where it belongs | **not reported**; gate clean, exit 0 |
+
+The control is load-bearing: without it, a gate firing on everything looks identical to a gate that works.
+Arm C was mutation-checked too, and its first message was **useless** — both sides truncated to the same
+300-character prefix, printing two identical strings. A composite's diff is one channel deep, so the message
+now windows on the first divergence. A failure message that cannot name the difference only proves the gate is
+unhappy.
+
+**The consumability pin held at 2, for a measured reason rather than by luck.** 28 new shadow leaves went
+through a stock Style Dictionary for the first time, and CONSUMER_GAP did not move: SD *has* a shadow handler,
+so all 28 serialize — verified by reading the projected CSS, 7 shadow vars in every brand's `dark.css`, 0
+unserializable values in any overlay except aurora's, whose 2 are still the gradients they always were. The
+payoff is visible in that CSS: `--nbds-shadow-inset` is now `rgba(0,0,0,0.3)` in dark against `0.08` in base,
+where before dark inherited `0.08`.
+
+**Trap for whoever re-verifies this.** The four bare-shape readers were not findable by one search — one is a
+static property access (`modes.dark[1].blur` in `test.ts`), one a dynamic index, one an `Array.isArray` branch.
+If you touch the mode-entry shape again, `test.ts` and `regen --check` are what will tell you; grepping for
+`modes` will not.
+
+---
+
+
 ## (2026-08-10) — #680 the variable writer loads its fonts, and the face it needs is a cross product
 
 **STATUS: shipped (PR TBD). Not yet verified live** — the decisive test #680 names is a real Figma run,

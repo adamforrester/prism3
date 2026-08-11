@@ -81,8 +81,28 @@
  * stroke. `spring` is a real part of the motion vocabulary and stays in the tree that is ours.
  * Nothing here decides springs' future — if the motion vocabulary ever becomes standard, `spring`
  * joins `DTCG_TYPES` and the projection gains those tokens back with no other change. (#642)
+ *
+ * 0.7.0: mode-varying shadows reach their overlays. Two things move, and they are worth separating.
+ * (1) The emitted `$extensions.prism3.modes` entry for a shadow is now the WRAPPED `{ $value: [...] }`
+ * shape every other mode entry already used, instead of the bare layer array — one shape for one
+ * concept. (2) Because the projector's guard tested for that wrapper, 28 mode-varying shadows (7 per
+ * brand × 4 brands) were silently absent from every `<brand>.dark.overlay.tokens.json`, and now
+ * appear. A conforming consumer sourcing `base + dark.overlay` was rendering LIGHT shadows in dark
+ * mode; it now renders the dark ones. (#708)
+ *
+ * A minor rather than a patch for the same reason 0.6.0 was: the artifact CONTENT changed in a way a
+ * consumer can observe — there, the projection lost three tokens; here, each dark overlay gains seven.
+ * Overlay membership is the whole point of the projection, so a change to it is compatibility-relevant
+ * even though it is a change from wrong to right. The canonical tree's mode-entry SHAPE moving is the
+ * second reason: anything reading `$extensions.prism3.modes` directly (ours today, but the extension
+ * is emitted) sees a different shape for shadow than it did at 0.6.0.
+ *
+ * No token name and no `$type` moved — every leaf involved already existed in both the base and the
+ * canonical tree — so `CONTRACT_VERSION` stands, and `token-contract.ts --check` confirms that rather
+ * than this comment asserting it. Worth stating plainly, because a change that alters which values a
+ * consumer resolves while moving no name is precisely the case the two-version split exists for.
  */
-export const ENGINE_VERSION = '0.6.0';
+export const ENGINE_VERSION = '0.7.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
