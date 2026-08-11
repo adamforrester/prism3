@@ -15,6 +15,7 @@ An npm-workspace monorepo for the **Prism3 design-token engine** and its surface
 | `docs/` | The **design record** — the numbered design docs plus `superpowers/` working notes. |
 | `skills/` | The **product skills** — `prism3-theme` (authoring a brand) and `prism3-consume` (building UI from generated tokens), addressed to an agent working *with* Prism3. Shipped prose that makes factual claims about the engine, so `lint-skills.ts` gates them. Per-brand *payload* skills, addressed to an agent in a client's ejected repo, are emitted by the engine (#668) and do not live here. |
 | `reference/` | The **legacy hand-built token JSON** — Prism2 + New Balance. Read-only in practice: it is the engine's regression target, not a place to author. |
+| `tools/` | **Measurement harnesses** — runnable and committed, deliberately *not* in CI. `tools/exporter-comparison/` runs prism3's DTCG emitter and TokenPress's over the same brand and classifies every difference (#697's Verify bullet). A tool here answers a question; a gate asserts an answer. Don't add one to `ci.yml` without deciding which of its categories is a *defect* rather than a documented disagreement. |
 
 Within `reference/` only, the old description still holds — every file is JSON, nothing to build:
 
