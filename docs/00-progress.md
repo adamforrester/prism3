@@ -7,6 +7,72 @@
 
 ---
 
+## (2026-08-11) — TokenPress typechecks against real Figma typings: 266 → 35, and the wiring was the whole gate (#706)
+
+**STATUS: PR open. No CI step yet — deliberately.** `apps/tokenpress/tsconfig.json` rewired; 86 real errors
+cut to **35**. `regen --check` unchanged at **104**; all 23 existing gates green; TokenPress's **263
+assertions still pass file-by-file** and its build still asserts its four properties.
+
+**The wiring was the whole story, and the recorded numbers were right.** `typeRoots` pointed at
+`node_modules/@types` and `node_modules/@figma/plugin-typings` — relative to `apps/tokenpress/`, where no
+`node_modules` exists (deps hoist to the root), and aimed at the *package* rather than the scope directory
+that contains it. No `types` entry at all. `apps/plugin/tsconfig.main.json` already had the correct form
+and was copied: scope directory in `typeRoots`, package name in `types`.
+
+**A measurement trap worth recording.** The first run reported **266** errors, not the 232 on #706 — and
+the discrepancy was this container, not the issue. `jszip` was declared but not installed, so
+`Cannot find module 'jszip'` cascaded. After `npm install` the count was **86**, matching #706 exactly.
+*A baseline taken against an incomplete `node_modules` is not a baseline.* Both numbers were re-measured
+before anything was claimed.
+
+**Two errors were real defects, not annotation gaps.**
+
+- **`DTCGTokenType` was wrong in both directions.** It omitted `strokeStyle` and `gradient` — both
+  standard DTCG types the validator already `switch`es on at runtime — and included `string`, which is not
+  a DTCG type and was never used as a `$type`. Checked against `packages/tokens/check-consumability.mjs`'s
+  `DTCG_TYPES`, the authoritative list already in this tree and already gated. **One repo held a wrong
+  list and a gated-correct list; only the gated one was right.**
+- **`timeoutPromise(promise: Promise<any>)`** erased the return type of every Figma getter it raced, so
+  `collections` and `variables` arrived as `any[]` and **thirteen** downstream callbacks were implicitly
+  `any`. One type parameter fixed all thirteen. A `Promise<any>` in a utility is a type hole with a
+  blast radius, not a local shortcut.
+
+**Every other fix is type-only and preserves behavior exactly.** Where a guard already existed at runtime,
+the type was widened or narrowed to match it — never the reverse:
+
+| symptom | why the code was already right |
+|---|---|
+| `color.a` on `RGB` | guarded by `color.a !== undefined`, but `a` does not exist on `RGB` **at all**, so an undefined-check cannot narrow. `'a' in color` narrows and yields the identical result |
+| `effect.color/offset/radius` on `Effect` | the caller already narrows to `DROP_SHADOW \| INNER_SHADOW`; the parameter widened it straight back |
+| `value.type`/`.id` on `RGB \| RGBA \| VariableAlias` | twelve sites open-coded the same alias test inline |
+| `fileCount`/`options` private | `MultiFormatTokenExporter` **extends** the class and reads both — `private` made the `extends` clause itself invalid |
+
+**The guard already existed in the codebase.** `raw-figma-exporter.ts:161` carried a correct
+`isVariableAlias` type guard, `private` to one class, while twelve other sites could not narrow. Lifted
+verbatim to `types/figma-guards.ts` — its reach changed, its behavior did not. **The fix for a repeated
+defect was already written; nothing had made it reachable.**
+
+**`VariableCollectionMode` does not exist in plugin-typings** — `modes` is an inline anonymous array type.
+Replaced with the indexed access `VariableCollection['modes'][number]`, which is exact and cannot go
+stale against a name that was never exported.
+
+**Why `$extensions` broke the group type.** DTCG mixes `$`-prefixed METADATA with CHILD keys in one
+object, and TypeScript cannot express "every key except `$*`". Declared under a narrower index signature,
+`$extensions` violated the very index type it sat under. The index signature now admits both — recorded in
+the type, because the next person will read the widening as sloppiness rather than as the spec's shape.
+
+**Why there is still no CI step, and why that is not a deferral.** 35 errors remain, concentrated in
+`exporter.ts` (19) and `css-exporter.ts` (10). Adding the step now would **pin 35 as the expected state**,
+which is the trap #706 exists to avoid — a characterization number is only worth having when it is a fact
+about the subject, and 35 is a fact about unfinished work. The step lands with the last error, not before.
+
+**Trap for whoever finishes it.** Some of the remainder are genuine model questions rather than
+annotations — a `duration` shape missing from the `DTCGValue` union, and `'ms'` being assigned to a
+dimension-unit union it does not belong in (`ms` is a duration unit; the model has conflated the two).
+Those are findings to decide, not errors to silence. **Reaching zero by widening a union to accept
+whatever is passed would leave the gate weaker than no gate at all.**
+
+---
 
 ## (2026-08-11) — Three of five block libraries are readable, and a second witness corrected the first (docs/37, 36)
 

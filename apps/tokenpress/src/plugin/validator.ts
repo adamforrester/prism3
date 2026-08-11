@@ -1,5 +1,6 @@
 // Validation logic per PRD error tolerance strategy
 import { ValidationIssue } from '../types/plugin';
+import { isVariableAlias } from '../types/figma-guards';
 
 interface ValidationData {
   collections: VariableCollection[];
@@ -56,7 +57,7 @@ export class TokenValidator {
       const dependencies = new Set<string>();
 
       Object.values(variable.valuesByMode).forEach(value => {
-        if (typeof value === 'object' && value.type === 'VARIABLE_ALIAS') {
+        if (isVariableAlias(value)) {
           dependencies.add(value.id);
         }
       });
@@ -70,7 +71,7 @@ export class TokenValidator {
   private validateAliasTargets(variables: Variable[], variableMap: Map<string, Variable>): void {
     variables.forEach(variable => {
       Object.entries(variable.valuesByMode).forEach(([modeId, value]) => {
-        if (typeof value === 'object' && value.type === 'VARIABLE_ALIAS') {
+        if (isVariableAlias(value)) {
           if (!variableMap.has(value.id)) {
             const collection = this.collectionMap.get(variable.variableCollectionId);
             const collectionName = collection ? collection.name : 'Unknown Collection';
@@ -138,7 +139,7 @@ export class TokenValidator {
   ): void {
     variables.forEach(variable => {
       Object.entries(variable.valuesByMode).forEach(([modeId, value]) => {
-        if (typeof value === 'object' && value.type === 'VARIABLE_ALIAS') {
+        if (isVariableAlias(value)) {
           const targetVariable = variableMap.get(value.id);
           if (targetVariable && targetVariable.resolvedType !== variable.resolvedType) {
             const collection = this.collectionMap.get(variable.variableCollectionId);

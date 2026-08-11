@@ -130,10 +130,12 @@ async function handleScan(): Promise<void> {
     const validator = new TokenValidator();
 
     // Enumerate all local resources using async APIs with timeout protection
-    const timeoutPromise = (promise: Promise<any>, name: string) => {
+    // Generic, not `Promise<any>`: the race erased every Figma getter's return type, so `collections`
+    // and `variables` arrived as `any[]` and eleven downstream callbacks were implicitly `any`.
+    const timeoutPromise = <T,>(promise: Promise<T>, name: string): Promise<T> => {
       return Promise.race([
         promise,
-        new Promise((_, reject) =>
+        new Promise<never>((_, reject) =>
           setTimeout(
             () => reject(new Error(`${name} API call timed out after ${API_CONFIG.TIMEOUT_MS}ms`)),
             API_CONFIG.TIMEOUT_MS

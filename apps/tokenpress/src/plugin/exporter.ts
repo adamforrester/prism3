@@ -34,6 +34,7 @@ import { ShadowConverter } from './converters/shadow-converter';
 import { TypographyConverter } from './converters/typography-converter';
 import { TokenScanner } from './scanner';
 import { TokenTypeDetector } from './type-detection';
+import { isVariableAlias, hasAlpha } from '../types/figma-guards';
 
 /**
  * Exports Figma design tokens to a ZIP archive containing DTCG-compliant JSON files.
@@ -47,7 +48,9 @@ export class TokenExporter {
   private dimensionConverter: DimensionConverter;
   private typographyConverter: TypographyConverter;
   private shadowConverter: ShadowConverter;
-  private fileCount = 0;
+  // `protected`, not `private`: MultiFormatTokenExporter extends this class and reads both.
+  // Declared private, the subclass could not compile and TS reported the extends clause itself as bad.
+  protected fileCount = 0;
   private skippedBlurStyles: string[] = [];
 
   /**
@@ -66,7 +69,7 @@ export class TokenExporter {
    */
   private activeNamespace = '';
 
-  constructor(private options: ExportOptions) {
+  constructor(protected options: ExportOptions) {
     this.scanner = new TokenScanner();
     this.typeDetector = new TokenTypeDetector();
     this.cacheManager = new VariableCacheManager();
@@ -541,7 +544,7 @@ export class TokenExporter {
 
   private buildDTCGFile(
     collection: VariableCollection,
-    mode: VariableCollectionMode,
+    mode: VariableCollection['modes'][number],
     variables: Variable[],
     allVariables: Variable[]
   ): DTCGFile {
@@ -646,7 +649,7 @@ export class TokenExporter {
     variableMap: Map<string, Variable>,
     fallback: VariableScope[]
   ): VariableScope[] {
-    if (typeof value !== 'object' || value === null || value.type !== 'VARIABLE_ALIAS') {
+    if (!isVariableAlias(value)) {
       return fallback;
     }
 
@@ -819,7 +822,7 @@ export class TokenExporter {
     scopes?: VariableScope[],
     variableName?: string
   ): VariableConversionValue {
-    if (typeof value === 'object' && value.type === 'VARIABLE_ALIAS') {
+    if (isVariableAlias(value)) {
       const targetVariable = variableMap.get(value.id);
       if (!targetVariable) {
         // Unresolvable target — emit the raw id so the validator reports it as a
@@ -969,7 +972,7 @@ export class TokenExporter {
 
   private convertColor(color: RGB): DTCGColor {
     const alpha =
-      color.a !== undefined ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1;
+      hasAlpha(color) ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1;
 
     if (this.options.colorSpace === 'hsl') {
       const [h, s, l] = this.rgbToHSL(color.r, color.g, color.b);
@@ -1024,7 +1027,7 @@ export class TokenExporter {
     const g = Math.round(color.g * 255);
     const b = Math.round(color.b * 255);
     const a =
-      color.a !== undefined ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1;
+      hasAlpha(color) ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1;
 
     if (a < 1) {
       return `rgba(${r}, ${g}, ${b}, ${a})`;
@@ -1258,7 +1261,7 @@ export class TokenExporter {
 
   private getVariableFileName(
     collection: VariableCollection,
-    mode: VariableCollectionMode,
+    mode: VariableCollection['modes'][number],
     hasMultiMode: boolean
   ): string {
     const baseName = this.sanitizeFileName(collection.name);
