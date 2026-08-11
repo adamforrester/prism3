@@ -1,0 +1,15 @@
+{
+  "name": "token-press-sd-v3-parser-example",
+  "version": "1.0.0",
+  "description": "Style Dictionary 3.x configs with DTCG parser shim for Token Press per-mode output.",
+  "private": true,
+  "scripts": {
+    "build:dark": "node build.js dark",
+    "build:light": "node build.js light",
+    "build:wireframe": "node build.js wireframe",
+    "build:all": "npm run build:dark && npm run build:light && npm run build:wireframe"
+  },
+  "devDependencies": {
+    "style-dictionary": "^3.9.0"
+  }
+}

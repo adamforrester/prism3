@@ -1,0 +1,922 @@
+{
+  "nbds": {
+    "shadow": {
+      "xs": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.1
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.06
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 3,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient) — light mode",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:3ede3150659283524c27a9c2491e8ad8a9387c62,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "sm": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.1
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.07
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient) — light mode",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:e95e9474049c8643cb4f3d56f8281bda0c326ef8,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "md": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.12
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 4,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -2,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.08
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow md — elevation 3 of 6, 2-layer (key+ambient) — light mode",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:c5150a053541dc99fe0879f802af36c33861b867,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "lg": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.12
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 3,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.08
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 8,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 20,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -5,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient) — light mode",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:04cdb742e4194d4249e6adc3ff86baa3c16e05a8,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "xl": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.14
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 8,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -4,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.1
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 14,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 32,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -8,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient) — light mode",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:9c138b8d10778c7d65978e95f3e32542718884aa,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "2xl": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.14
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 6,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -6,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.12
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 22,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 52,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -12,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient) — light mode",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:ad9f0d2b17c6ca80fc97325bb575fc6614804bff,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "inset": {
+        "$type": "shadow",
+        "$value": {
+          "color": {
+            "colorSpace": "srgb",
+            "components": [
+              0,
+              0,
+              0
+            ],
+            "alpha": 0.08
+          },
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 2,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 4,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 0,
+            "unit": "px"
+          },
+          "inset": true
+        },
+        "$description": "shadow inset — inner shadow for wells / pressed states / inputs — light mode",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:36f5b72d29d54c1f42719e98e892b3a993f6fc4c,",
+            "effectTypes": [
+              "INNER_SHADOW"
+            ]
+          }
+        }
+      }
+    },
+    "shadow-dark": {
+      "xs": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.03
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.02
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 3,
+              "unit": "px"
+            },
+            "spread": {
+              "value": 0,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow xs — elevation 1 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:25e5839ca03b2366a6799eb8fd86eca80aceb940,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "sm": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.04
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 1,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 2,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.03
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -1,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow sm — elevation 2 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:4ba524635072565996a65a234b601925e4fa746d,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "md": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.06
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 2,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 4,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -2,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.04
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow md — elevation 3 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:d503633a2309cd0324ce0cd733fae11f339351e5,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "lg": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.07
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 3,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 6,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -3,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.05
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 8,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 20,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -5,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow lg — elevation 4 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:5ce038af044055feffbf21ed04cc904d84554339,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "xl": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.09
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 4,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 8,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -4,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.07
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 14,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 32,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -8,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow xl — elevation 5 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:524c5f759af7afea5514b9ddfa8e6f86dd0195b1,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "2xl": {
+        "$type": "shadow",
+        "$value": [
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.11
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 6,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 12,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -6,
+              "unit": "px"
+            }
+          },
+          {
+            "color": {
+              "colorSpace": "srgb",
+              "components": [
+                0,
+                0,
+                0
+              ],
+              "alpha": 0.09
+            },
+            "offsetX": {
+              "value": 0,
+              "unit": "px"
+            },
+            "offsetY": {
+              "value": 22,
+              "unit": "px"
+            },
+            "blur": {
+              "value": 52,
+              "unit": "px"
+            },
+            "spread": {
+              "value": -12,
+              "unit": "px"
+            }
+          }
+        ],
+        "$description": "shadow 2xl — elevation 6 of 6, 2-layer (key+ambient) — dark mode (reduced; surface-lift pattern)",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:85087aba19589573e951c9d4d79d53024857eb43,",
+            "effectTypes": [
+              "DROP_SHADOW",
+              "DROP_SHADOW"
+            ]
+          }
+        }
+      },
+      "inset": {
+        "$type": "shadow",
+        "$value": {
+          "color": {
+            "colorSpace": "srgb",
+            "components": [
+              0,
+              0,
+              0
+            ],
+            "alpha": 0.3
+          },
+          "offsetX": {
+            "value": 0,
+            "unit": "px"
+          },
+          "offsetY": {
+            "value": 2,
+            "unit": "px"
+          },
+          "blur": {
+            "value": 4,
+            "unit": "px"
+          },
+          "spread": {
+            "value": 0,
+            "unit": "px"
+          },
+          "inset": true
+        },
+        "$description": "shadow inset — inner shadow for wells / pressed states / inputs — dark mode (reduced; surface-lift pattern)",
+        "$extensions": {
+          "figma": {
+            "styleId": "S:dc734369d2b7e471f0775f4cf72332e68439ba2f,",
+            "effectTypes": [
+              "INNER_SHADOW"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$extensions": {
+    "generator": {
+      "name": "Token Press",
+      "version": "3.0.0"
+    }
+  }
+}

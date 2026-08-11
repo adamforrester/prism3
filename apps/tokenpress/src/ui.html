@@ -1,0 +1,2318 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Token Press - DTCG Exporter</title>
+    <!-- Geist Mono for technical labels (setting cards, collection titles).
+         display=swap so the UI paints with the ui-monospace fallback if the
+         fetch is slow or CSP-blocked — Figma plugin iframes have a strict
+         default CSP and fonts.googleapis.com is not always reachable. The
+         CSS uses a layered family stack so a blocked fetch is invisible. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* Figma-blue accent + spacing scale on top of Figma's themed surface vars */
+        :root {
+            --tp-brand: #0D99FF;
+            --tp-brand-strong: #3AAEFF;
+            --tp-brand-soft: rgba(13, 153, 255, 0.12);
+            --tp-brand-ring: rgba(13, 153, 255, 0.35);
+
+            --tp-r-sm: 6px;
+            --tp-r-md: 10px;
+            --tp-r-lg: 14px;
+
+            --tp-space-1: 4px;
+            --tp-space-2: 8px;
+            --tp-space-3: 12px;
+            --tp-space-4: 16px;
+            --tp-space-5: 20px;
+            --tp-space-6: 24px;
+
+            /* Mono stack for technical labels — Geist Mono first, with
+               ui-monospace ladder so a blocked Google Fonts fetch falls back
+               to system mono invisibly. */
+            --tp-font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, 'Cascadia Code', Consolas, monospace;
+        }
+
+        /* Cool-shift dark theme — overrides only when the OS reports dark mode.
+           Pure CSS, no JS observer (a MutationObserver on <html> hung the
+           Figma iframe in some files). For design-system workflows OS-dark
+           and Figma-dark line up in practice. We override only the neutral
+           surface/border/text vars; status colors (brand, warning, danger,
+           success) stay Figma-native so the plugin still reads as a Figma
+           surface. ≈1–1.5 ticks darker than #2C2C2C with a +5° hue rotation
+           toward blue. Contrast: text/bg ≈ 13:1, brand/bg ≈ 5.5:1, both AA+. */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --figma-color-bg: #1D2025;
+                --figma-color-bg-secondary: #232830;
+                --figma-color-bg-tertiary: #2C323B;
+                --figma-color-bg-hover: #2C323B;
+                --figma-color-bg-disabled: #232830;
+                --figma-color-border: #353A44;
+                --figma-color-border-strong: #404653;
+                --figma-color-text: #E6E8EC;
+                --figma-color-text-secondary: #9BA2AD;
+                --figma-color-text-tertiary: #6C7280;
+                --figma-color-text-disabled: #4D525A;
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 13px;
+            line-height: 1.45;
+            background: var(--figma-color-bg);
+            color: var(--figma-color-text);
+            overflow: hidden;
+        }
+
+        /* Window grid: 64px topbar + 1fr body. Topbar hosts the stepper. */
+        .window {
+            display: grid;
+            grid-template-rows: 64px 1fr;
+            height: 100%;
+        }
+
+        /* ───────── Top bar ───────── */
+        .topbar {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: var(--tp-space-4);
+            padding: var(--tp-space-3) var(--tp-space-4);
+            background: var(--figma-color-bg);
+            border-bottom: 1px solid var(--figma-color-border);
+        }
+
+        .topbar .topbar-spacer {
+            justify-self: end;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-3);
+        }
+
+        .brand .name {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--figma-color-text);
+        }
+
+        .brand .version {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--figma-color-text-tertiary, var(--figma-color-text-secondary));
+            margin-left: 6px;
+        }
+
+        .brand .tag {
+            font-size: 11px;
+            color: var(--figma-color-text-tertiary, var(--figma-color-text-secondary));
+            margin-left: 4px;
+        }
+
+        /* ───────── Body grid ───────── */
+        .body {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .rail {
+            background: var(--figma-color-bg-secondary);
+            border-right: 1px solid var(--figma-color-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+
+        .rail-section {
+            padding: var(--tp-space-4);
+            border-bottom: 1px solid var(--figma-color-border);
+        }
+
+        .rail-section:last-child {
+            border-bottom: none;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .rail-title {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--figma-color-text-secondary);
+            margin-bottom: var(--tp-space-3);
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .panel {
+            padding: var(--tp-space-4);
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .panel.hidden {
+            display: none;
+        }
+
+        /* Phase 1: rail hosts the scan panel; main hosts the export panel.
+           Both are visible simultaneously — no tabs. */
+        #scan-panel {
+            padding: 0;
+            overflow: visible;
+        }
+
+        /* Align the Rescan button with the right panel's stepper.
+           The button has its own 16px default top margin from .button —
+           reset so it sits flush with the rail-section padding. */
+        #scan-panel #scan-button {
+            margin-top: 0;
+        }
+
+        #export-panel {
+            flex: 1;
+            min-height: 0;
+        }
+        
+        .button {
+            background: var(--figma-color-bg-brand);
+            color: var(--figma-color-text-onbrand);
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+            width: 100%;
+            margin-top: 16px;
+        }
+        
+        .button:hover {
+            background: var(--figma-color-bg-brand-hover);
+        }
+        
+        .button:disabled {
+            background: var(--figma-color-bg-disabled);
+            color: var(--figma-color-text-disabled);
+            cursor: not-allowed;
+        }
+
+        .button:focus-visible {
+            outline: 2px solid var(--tp-brand);
+            outline-offset: 2px;
+        }
+        
+        .button.secondary {
+            background: transparent;
+            color: var(--tp-brand);
+            border: 1px solid var(--tp-brand);
+        }
+
+        .button.secondary:hover {
+            background: var(--tp-brand-soft);
+        }
+
+        .button.compact {
+            width: auto;
+            margin-top: 0;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .issues {
+            margin-top: var(--tp-space-4);
+        }
+
+        .issue {
+            padding: var(--tp-space-3);
+            border-radius: var(--tp-r-sm);
+            margin-bottom: var(--tp-space-2);
+            font-size: 12px;
+        }
+
+        .issue.error {
+            background: var(--figma-color-bg-danger);
+            border: 1px solid var(--figma-color-border-danger);
+        }
+
+        .issue.warning {
+            background: var(--figma-color-bg-warning);
+            border: 1px solid var(--figma-color-border-warning);
+        }
+
+        /* ───────── Phase 2: settings cards / toggles / chips ───────── */
+
+        .main-header {
+            margin-bottom: var(--tp-space-5);
+        }
+
+        .main-header h2 {
+            margin: 0 0 var(--tp-space-1) 0;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .main-header p {
+            margin: 0;
+            color: var(--figma-color-text-secondary);
+            font-size: 13px;
+        }
+
+        /* ───────── Progress stepper (lives in the topbar) ───────── */
+        .stepper {
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            padding: 6px 14px;
+            background: var(--figma-color-bg-secondary);
+            border: 1px solid var(--figma-color-border);
+            border-radius: 999px;
+            font-size: 12px;
+            justify-self: center;
+        }
+
+        .stepper-step {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            color: var(--figma-color-text-secondary);
+            white-space: nowrap;
+        }
+
+        .stepper-marker {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: var(--figma-color-bg);
+            border: 1px solid var(--figma-color-border);
+            color: var(--figma-color-text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .stepper-marker svg { width: 12px; height: 12px; }
+
+        .stepper-step.done .stepper-marker {
+            background: var(--figma-color-bg-success, #16a34a);
+            border-color: var(--figma-color-bg-success, #16a34a);
+            color: #fff;
+        }
+
+        .stepper-step.done .stepper-label {
+            color: var(--figma-color-text);
+        }
+
+        .stepper-step.active .stepper-marker {
+            background: var(--tp-brand);
+            border-color: var(--tp-brand);
+            color: var(--figma-color-text-onbrand, #fff);
+        }
+
+        .stepper-step.active .stepper-label {
+            color: var(--figma-color-text);
+            font-weight: 500;
+        }
+
+        .stepper-divider {
+            flex: 0 0 24px;
+            height: 1px;
+            background: var(--figma-color-border);
+        }
+
+        /* ───────── Sticky bottom bar ───────── */
+        .main-body {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: var(--tp-space-4);
+        }
+
+        .footer-bar {
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-3);
+            padding: var(--tp-space-3) var(--tp-space-4);
+            border-top: 1px solid var(--figma-color-border);
+            background: var(--figma-color-bg);
+            flex-shrink: 0;
+        }
+
+        /* Progress bar lives flush above the footer-bar during export. */
+        #export-progress {
+            margin: 0;
+            border-radius: 0;
+            border-top: 1px solid var(--figma-color-border);
+            flex-shrink: 0;
+        }
+
+        .footer-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            font-size: 13px;
+            color: var(--figma-color-text-secondary);
+            flex: 1;
+            min-width: 0;
+        }
+
+        .footer-summary strong {
+            color: var(--figma-color-text);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .footer-summary .footer-divider {
+            color: var(--figma-color-text-tertiary, var(--figma-color-text-secondary));
+        }
+
+        .footer-bar .button {
+            width: auto;
+            margin-top: 0;
+            padding: 9px 18px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-bar .button .button-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .preset-row {
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            margin-bottom: var(--tp-space-5);
+            flex-wrap: wrap;
+        }
+
+        .preset-row .preset-label {
+            font-size: 12px;
+            color: var(--figma-color-text-secondary);
+            margin-right: var(--tp-space-1);
+        }
+
+        /* Preset chips are a single-select group: exactly one of DTCG / SD /
+           Custom reads as selected at any time. Selected uses the format-chip
+           vocabulary (blue border, soft brand fill, brand text). Unselected
+           drops to the resting border + secondary text. The Custom chip is
+           passive — it's only ever selected when the user's option mix
+           diverges from both presets, and it isn't clickable. */
+        .preset-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--figma-color-border);
+            border-radius: var(--tp-r-sm);
+            color: var(--figma-color-text-secondary);
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .preset-chip:hover:not(.selected):not([disabled]) {
+            border-color: var(--figma-color-text-tertiary);
+            color: var(--figma-color-text);
+        }
+
+        .preset-chip.selected {
+            background: var(--tp-brand-soft);
+            border-color: var(--tp-brand);
+            color: var(--tp-brand);
+        }
+
+        .preset-chip:focus-visible {
+            outline: 2px solid var(--tp-brand);
+            outline-offset: 2px;
+        }
+
+        /* Custom chip is render-only: not focusable, no hover. It signals
+           "you're off-preset" without inviting a click. */
+        .preset-chip.preset-custom {
+            cursor: default;
+        }
+
+        .preset-chip.preset-custom:not(.selected) {
+            opacity: 0.55;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--figma-color-text-secondary);
+            margin: var(--tp-space-5) 0 var(--tp-space-3);
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-3);
+            white-space: nowrap;
+        }
+
+        /* Trailing divider line that fills the remaining row width.
+           Matches the heading color at low opacity so it reads as a
+           soft section separator, not a hard rule. */
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--figma-color-border);
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--tp-space-3);
+        }
+
+        .setting-card {
+            background: var(--figma-color-bg-secondary);
+            border: 1px solid var(--figma-color-border);
+            border-radius: var(--tp-r-md);
+            padding: 14px var(--tp-space-4);
+            transition: border-color 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            gap: var(--tp-space-1);
+        }
+
+        .setting-card:hover {
+            border-color: var(--figma-color-text-tertiary, var(--figma-color-text-secondary));
+        }
+
+        .setting-card.disabled {
+            opacity: 0.5;
+        }
+
+        .setting-card.disabled select,
+        .setting-card.disabled input[type="text"] {
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .setting-card.disabled:hover {
+            border-color: var(--figma-color-border);
+        }
+
+        .setting-card .label {
+            /* Mono signals "technical config field" vs body copy. 13 → 12px
+               because mono fonts at the same size optically read ~1px larger
+               than the sans body. */
+            font-family: var(--tp-font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: var(--figma-color-text);
+            cursor: pointer;
+        }
+
+        .setting-card .hint {
+            font-size: 11px;
+            color: var(--figma-color-text-tertiary, var(--figma-color-text-secondary));
+            margin-bottom: var(--tp-space-2);
+            line-height: 1.4;
+        }
+
+        .setting-card select,
+        .setting-card input[type="text"] {
+            width: 100%;
+            padding: 9px var(--tp-space-3);
+            margin-top: auto;
+            background: var(--figma-color-bg);
+            border: 1px solid var(--figma-color-border);
+            border-radius: var(--tp-r-sm);
+            color: var(--figma-color-text);
+            font-family: inherit;
+            font-size: 13px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .setting-card select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            padding-right: 36px;
+            background-image: url("data:image/svg+xml;utf8,<svg width='12' height='8' xmlns='http://www.w3.org/2000/svg'><path d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
+
+        .setting-card select:hover,
+        .setting-card input[type="text"]:hover {
+            border-color: var(--figma-color-border-strong, var(--figma-color-border));
+        }
+
+        .setting-card select:focus,
+        .setting-card input[type="text"]:focus {
+            outline: none;
+            border-color: var(--tp-brand);
+            box-shadow: 0 0 0 3px var(--tp-brand-ring);
+        }
+
+        /* Toggle rows */
+        .toggle-row {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--tp-space-4);
+            padding: var(--tp-space-3) var(--tp-space-4);
+            background: var(--figma-color-bg-secondary);
+            border: 1px solid var(--figma-color-border);
+            border-radius: var(--tp-r-md);
+            cursor: pointer;
+            user-select: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .toggle-row:hover {
+            border-color: var(--figma-color-text-tertiary, var(--figma-color-text-secondary));
+        }
+
+        .toggle-row + .toggle-row {
+            margin-top: var(--tp-space-2);
+        }
+
+        .toggle-row .copy { flex: 1; min-width: 0; }
+
+        .toggle-row .toggle-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--figma-color-text);
+            display: block;
+        }
+
+        .toggle-row .toggle-hint {
+            font-size: 11px;
+            color: var(--figma-color-text-secondary);
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        .toggle-row input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+
+        .toggle-row:focus-within .switch {
+            box-shadow: 0 0 0 3px var(--tp-brand-ring);
+        }
+
+        .switch {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            background: var(--figma-color-bg-tertiary, var(--figma-color-bg-disabled));
+            border: 1px solid var(--figma-color-border);
+            border-radius: 999px;
+            flex-shrink: 0;
+            transition: background 0.15s ease, border-color 0.15s ease;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            background: var(--figma-color-text-secondary);
+            border-radius: 50%;
+            transition: all 0.18s ease;
+        }
+
+        .switch.on {
+            background: var(--tp-brand);
+            border-color: var(--tp-brand);
+        }
+
+        .switch.on::after {
+            left: 18px;
+            background: #fff;
+        }
+
+        /* Format chips */
+        .chips-intro {
+            font-size: 12px;
+            color: var(--figma-color-text-secondary);
+            margin-bottom: var(--tp-space-3);
+        }
+
+        .format-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--tp-space-2);
+        }
+
+        .chip {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            padding: 8px 14px;
+            background: var(--figma-color-bg-secondary);
+            border: 1px solid var(--figma-color-border);
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--figma-color-text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .chip:hover {
+            background: var(--figma-color-bg-hover);
+            color: var(--figma-color-text);
+            border-color: var(--figma-color-border-strong, var(--figma-color-border));
+        }
+
+        .chip.on {
+            background: var(--tp-brand-soft);
+            border-color: var(--tp-brand);
+            color: var(--tp-brand);
+        }
+
+        .chip.locked {
+            cursor: default;
+            background: var(--tp-brand-soft);
+            border-color: var(--tp-brand);
+            color: var(--tp-brand);
+        }
+
+        .chip.disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .chip input[type="checkbox"] {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+
+        /* Route the hidden checkbox's :focus state up to the chip parent so
+           keyboard users see a focus ring. */
+        .chip:focus-within {
+            outline: 2px solid var(--tp-brand);
+            outline-offset: 2px;
+        }
+
+        .chip .chip-check {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1.5px solid var(--figma-color-border-strong, var(--figma-color-border));
+            background: var(--figma-color-bg);
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+            transition: all 0.15s ease;
+            font-size: 9px;
+            color: #fff;
+        }
+
+        .chip.on .chip-check,
+        .chip.locked .chip-check {
+            background: var(--tp-brand);
+            border-color: var(--tp-brand);
+        }
+
+        .chip:not(.on):not(.locked) .chip-check::after { content: ''; }
+        .chip.on .chip-check::after,
+        .chip.locked .chip-check::after { content: '✓'; }
+
+        .chip-tag {
+            color: var(--figma-color-text-tertiary, var(--figma-color-text-secondary));
+            font-size: 11px;
+            margin-left: 2px;
+        }
+
+        .progress {
+            width: 100%;
+            height: 4px;
+            background: var(--figma-color-bg-secondary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        /* Rail-top variant: full-bleed across the left pane, no margin,
+           sits between the topbar border and the first rail-section. */
+        .progress.rail-progress {
+            margin: 0;
+            border-radius: 0;
+            background: transparent;
+            flex-shrink: 0;
+        }
+
+        .progress.rail-progress.hidden {
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--figma-color-bg-brand);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .status {
+            font-size: 12px;
+            color: var(--figma-color-text-secondary);
+            margin-top: 8px;
+        }
+
+        .status.hidden {
+            display: none;
+        }
+
+        /* ───────── Rail: scan stats ───────── */
+        .scan-stats {
+            margin-top: var(--tp-space-2);
+            background: var(--figma-color-bg);
+            border: 1px solid var(--figma-color-border);
+            border-radius: var(--tp-r-sm);
+            padding: 2px var(--tp-space-3);
+        }
+
+        .scan-stats.hidden {
+            display: none;
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-3);
+            padding: 6px 0;
+            font-size: 11px;
+            color: var(--figma-color-text);
+        }
+
+        .stat-row + .stat-row {
+            border-top: 1px solid var(--figma-color-border);
+        }
+
+        .stat-row .stat-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            color: var(--figma-color-text-secondary);
+        }
+
+        .stat-row .stat-label {
+            flex: 1;
+            color: var(--figma-color-text-secondary);
+        }
+
+        .stat-row .stat-value {
+            font-family: var(--tp-font-mono);
+            font-weight: 400;
+            color: var(--figma-color-text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ───────── Rail: validation chip ───────── */
+        .validation {
+            margin-top: var(--tp-space-3);
+        }
+
+        .validation.hidden {
+            display: none;
+        }
+
+        .validation-chip {
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            width: 100%;
+            padding: 10px var(--tp-space-3);
+            border-radius: var(--tp-r-sm);
+            border: 1px solid transparent;
+            font-size: 12px;
+            font-weight: 500;
+            background: transparent;
+            color: inherit;
+            font-family: inherit;
+            text-align: left;
+            cursor: default;
+            user-select: none;
+        }
+
+        .validation-chip.expandable {
+            cursor: pointer;
+        }
+
+        .validation-chip:focus-visible {
+            outline: 2px solid var(--tp-brand);
+            outline-offset: 2px;
+        }
+
+        .validation-chip .vc-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .validation-chip .vc-text {
+            flex: 1;
+            color: var(--figma-color-text);
+        }
+
+        .validation-chip .vc-text .vc-suffix {
+            color: var(--figma-color-text-secondary);
+            font-weight: 400;
+        }
+
+        .validation-chip .vc-caret {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            opacity: 0.6;
+            transform: rotate(-90deg);
+            transition: transform 0.2s ease;
+        }
+
+        .validation-chip:not(.expandable) .vc-caret {
+            display: none;
+        }
+
+        .validation.expanded .vc-caret {
+            transform: rotate(0deg);
+        }
+
+        .validation-chip.clean {
+            background: rgba(31, 178, 90, 0.10);
+            border-color: rgba(31, 178, 90, 0.30);
+        }
+        .validation-chip.clean .vc-icon { color: #1FB25A; }
+
+        .validation-chip.warning {
+            background: rgba(255, 162, 31, 0.10);
+            border-color: rgba(255, 162, 31, 0.4);
+        }
+        .validation-chip.warning .vc-icon { color: #FFA21F; }
+
+        .validation-chip.error {
+            background: rgba(242, 72, 34, 0.10);
+            border-color: rgba(242, 72, 34, 0.4);
+        }
+        .validation-chip.error .vc-icon { color: #F24822; }
+
+        /* Validation detail panel (expanded chip) */
+        .validation-detail {
+            display: none;
+            margin-top: var(--tp-space-2);
+            padding: var(--tp-space-3);
+            background: var(--figma-color-bg);
+            border: 1px solid var(--figma-color-border);
+            border-radius: var(--tp-r-sm);
+        }
+
+        .validation.expanded .validation-detail {
+            display: block;
+        }
+
+        .vd-group + .vd-group {
+            margin-top: var(--tp-space-3);
+        }
+
+        .vd-group-heading {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--figma-color-text-secondary);
+            margin-bottom: var(--tp-space-2);
+        }
+
+        .vd-collection-name {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--figma-color-text-secondary);
+            margin: var(--tp-space-2) 0 4px 0;
+        }
+
+        .vd-issue {
+            font-size: 11px;
+            line-height: 1.45;
+            color: var(--figma-color-text);
+            padding: 4px 0 4px 10px;
+            border-left: 2px solid transparent;
+        }
+
+        .vd-issue.error {
+            border-left-color: #F24822;
+        }
+
+        .vd-issue.warning {
+            border-left-color: #FFA21F;
+        }
+
+        /* ───────── Rail: collection list ───────── */
+        .collections-section {
+            margin-top: var(--tp-space-4);
+        }
+
+        .collections-section.hidden {
+            display: none;
+        }
+
+        .collections-heading {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--figma-color-text-secondary);
+            margin-bottom: var(--tp-space-2);
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+        }
+
+        /* Count pill anchors directly to the right of the label so it stays
+           put when the reset link appears/disappears. The reset link uses
+           margin-left: auto to flush itself to the row's right edge. */
+        .collections-heading .col-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            padding: 2px var(--tp-space-2);
+            font-family: var(--tp-font-mono);
+            font-size: 11px;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            line-height: 1.4;
+            color: var(--figma-color-text);
+            background: var(--figma-color-bg);
+            border: 1px solid var(--figma-color-border);
+            border-radius: 999px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .collections-heading .col-count.hidden {
+            display: none;
+        }
+
+        .collections-heading .col-reset {
+            margin-left: auto;
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: 0;
+            color: var(--tp-brand);
+            cursor: pointer;
+        }
+
+        .collections-heading .col-reset:hover {
+            text-decoration: underline;
+        }
+
+        .collections-heading .col-reset:focus-visible {
+            outline: 2px solid var(--tp-brand);
+            outline-offset: 2px;
+            border-radius: 2px;
+        }
+
+        .collections-heading .col-reset.hidden {
+            display: none;
+        }
+
+        .collection-card {
+            position: relative;
+            background: var(--tp-brand-soft);
+            border: 1px solid var(--tp-brand);
+            border-radius: var(--tp-r-sm);
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: var(--tp-space-2);
+            cursor: pointer;
+            transition: background 120ms, border-color 120ms, color 120ms;
+        }
+
+        .collection-card + .collection-card {
+            margin-top: 4px;
+        }
+
+        .collection-card.excluded {
+            background: var(--figma-color-bg-secondary);
+            border-color: var(--figma-color-border);
+        }
+
+        .collection-card.excluded:hover {
+            border-color: var(--figma-color-border-strong, var(--figma-color-border));
+        }
+
+        .collection-card:focus-within {
+            outline: 2px solid var(--tp-brand);
+            outline-offset: 2px;
+        }
+
+        .collection-card .col-checkbox {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .collection-card .col-check {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            border: 1.5px solid var(--figma-color-border-strong, var(--figma-color-border));
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--figma-color-bg);
+            color: transparent;
+            transition: background 120ms, border-color 120ms, color 120ms;
+        }
+
+        .collection-card:not(.excluded) .col-check {
+            background: var(--tp-brand);
+            border-color: var(--tp-brand);
+            color: #fff;
+        }
+
+        .collection-card .col-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .collection-card .col-name {
+            /* Mono reads as "identifier" — fits how teams actually name
+               collections (color/, spacing/, typography/) in Figma files. */
+            font-family: var(--tp-font-mono);
+            font-size: 12px;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+            color: var(--figma-color-text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .collection-card .col-meta {
+            font-size: 11px;
+            color: var(--figma-color-text-secondary);
+        }
+    </style>
+</head>
+<body>
+<div class="window">
+    <div class="topbar">
+        <div class="brand">
+            <div class="name">Token Press <span class="version">v2.2.2</span> <span class="tag">DTCG Exporter</span></div>
+        </div>
+
+        <div class="stepper" id="stepper" role="list" aria-label="Export progress">
+            <div class="stepper-step active" id="step-scan" data-step="scan" role="listitem">
+                <span class="stepper-marker"><span class="stepper-num">1</span></span>
+                <span class="stepper-label">Scan</span>
+            </div>
+            <div class="stepper-divider" aria-hidden="true"></div>
+            <div class="stepper-step" id="step-validate" data-step="validate" role="listitem">
+                <span class="stepper-marker"><span class="stepper-num">2</span></span>
+                <span class="stepper-label">Validate</span>
+            </div>
+            <div class="stepper-divider" aria-hidden="true"></div>
+            <div class="stepper-step" id="step-configure" data-step="configure" role="listitem">
+                <span class="stepper-marker"><span class="stepper-num">3</span></span>
+                <span class="stepper-label">Configure</span>
+            </div>
+            <div class="stepper-divider" aria-hidden="true"></div>
+            <div class="stepper-step" id="step-export" data-step="export" role="listitem">
+                <span class="stepper-marker"><span class="stepper-num">4</span></span>
+                <span class="stepper-label">Export</span>
+            </div>
+        </div>
+
+        <div class="topbar-spacer" aria-hidden="true"></div>
+    </div>
+
+    <div class="body">
+        <aside class="rail">
+            <div class="progress rail-progress hidden" id="progress">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="rail-section">
+                <div class="panel" id="scan-panel">
+                    <button class="button" id="scan-button">Scan &amp; Validate</button>
+
+                    <div class="status hidden" id="status"></div>
+
+                    <div class="scan-stats hidden" id="scan-stats">
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M7.3 9.49857L12.5 6.49779L17.7 9.49857V15.4988L12.5 18.4996L7.3 15.4988V9.49857ZM12.5 5L19 8.75032V16.2497L12.5 20L6 16.2497V8.74903L12.5 5ZM13.8 12.4955C13.8 13.2138 13.2176 13.7945 12.5 13.7945C11.7824 13.7945 11.2 13.2138 11.2 12.4955C11.2 11.7784 11.7824 11.1964 12.5 11.1964C13.2176 11.1964 13.8 11.7784 13.8 12.4955Z" fill="currentColor"/>
+                            </svg>
+                            <span class="stat-label">Variables</span>
+                            <span class="stat-value" id="stat-variables">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M17.6838 6.34646C18.9661 7.62444 19.7757 9.3003 19.98 11.099C20.2091 13.1031 18.4225 14.3056 16.8535 14.3056H15.4506C15.1469 14.3056 14.8556 14.4262 14.6408 14.641C14.426 14.8558 14.3054 15.1471 14.3054 15.4508V16.8537C14.3054 18.4226 13.1029 20.2091 11.0987 19.98C9.82777 19.8336 8.61034 19.385 7.54816 18.6719C6.48597 17.9588 5.60989 17.0019 4.99312 15.8811C4.37634 14.7602 4.03679 13.5081 4.00283 12.2292C3.96886 10.9503 4.24148 9.6819 4.7979 8.52992C5.35432 7.37793 6.17838 6.37584 7.20121 5.60738C8.22405 4.83891 9.41596 4.3264 10.6773 4.11267C11.9387 3.89894 13.2329 3.99019 14.4519 4.3788C15.6708 4.7674 16.779 5.44209 17.6838 6.34646ZM18.8405 11.2296C18.9688 12.3404 17.9713 13.1604 16.8535 13.1604H15.4506C14.8432 13.1604 14.2606 13.4017 13.831 13.8312C13.4015 14.2608 13.1601 14.8433 13.1601 15.4508V16.8537C13.1601 17.9714 12.3413 18.9688 11.2293 18.8417C9.94568 18.6939 8.72976 18.1873 7.72106 17.3798C6.71236 16.5724 5.95176 15.497 5.52654 14.2769C5.10133 13.0569 5.02873 11.7416 5.31708 10.4822C5.60543 9.22275 6.24304 8.07013 7.15674 7.1566C8.07045 6.24306 9.22321 5.60565 10.4827 5.3175C11.7423 5.02935 13.0575 5.10214 14.2776 5.52753C15.4976 5.95291 16.573 6.71365 17.3803 7.72243C18.1876 8.73122 18.6941 9.94717 18.8417 11.2307M13.1601 7.4344C13.1601 7.73813 13.0395 8.02941 12.8247 8.24418C12.6099 8.45895 12.3186 8.5796 12.0149 8.5796C11.7112 8.5796 11.4199 8.45895 11.2051 8.24418C10.9903 8.02941 10.8697 7.73813 10.8697 7.4344C10.8697 7.13068 10.9903 6.83939 11.2051 6.62462C11.4199 6.40986 11.7112 6.2892 12.0149 6.2892C12.3186 6.2892 12.6099 6.40986 12.8247 6.62462C13.0395 6.83939 13.1601 7.13068 13.1601 7.4344ZM9.57096 10.2974C9.64735 10.1671 9.69721 10.023 9.71767 9.87336C9.73813 9.72372 9.72879 9.57152 9.69018 9.42551C9.65158 9.27949 9.58447 9.14256 9.49273 9.02259C9.40099 8.90261 9.28642 8.80197 9.15562 8.72646C9.02482 8.65094 8.88037 8.60204 8.7306 8.58257C8.58083 8.56311 8.42868 8.57346 8.28292 8.61303C8.13716 8.6526 8.00067 8.72061 7.88131 8.81314C7.76194 8.90568 7.66206 9.02091 7.58741 9.1522C7.43794 9.41509 7.39852 9.72643 7.47775 10.0183C7.55699 10.3101 7.74845 10.5588 8.01035 10.71C8.27225 10.8612 8.58334 10.9027 8.87571 10.8254C9.16809 10.7481 9.41802 10.5583 9.57096 10.2974ZM16.0232 10.7165C15.893 10.7929 15.7488 10.8428 15.5992 10.8632C15.4496 10.8837 15.2973 10.8744 15.1513 10.8358C15.0053 10.7972 14.8684 10.73 14.7484 10.6383C14.6284 10.5466 14.5278 10.432 14.4522 10.3012C14.3767 10.1704 14.3278 10.026 14.3084 9.87621C14.2889 9.72644 14.2992 9.5743 14.3388 9.42854C14.3784 9.28279 14.4464 9.14631 14.5389 9.02694C14.6315 8.90758 14.7467 8.8077 14.878 8.73306C15.1409 8.58359 15.4523 8.54417 15.7441 8.62341C16.036 8.70264 16.2846 8.89409 16.4358 9.15598C16.5871 9.41788 16.6285 9.72895 16.5512 10.0213C16.4739 10.3137 16.2841 10.5636 16.0232 10.7165ZM7.58741 14.8782C7.66206 15.0095 7.76194 15.1247 7.88131 15.2172C8.00067 15.3098 8.13716 15.3778 8.28292 15.4174C8.42868 15.4569 8.58083 15.4673 8.7306 15.4478C8.88037 15.4283 9.02482 15.3794 9.15562 15.3039C9.28642 15.2284 9.40099 15.1278 9.49273 15.0078C9.58447 14.8878 9.65158 14.7509 9.69018 14.6049C9.72879 14.4589 9.73813 14.3067 9.71767 14.157C9.69721 14.0074 9.64735 13.8633 9.57096 13.733C9.41802 13.4721 9.16809 13.2823 8.87571 13.205C8.58334 13.1277 8.27225 13.1692 8.01035 13.3204C7.74845 13.4716 7.55699 13.7203 7.47775 14.0121C7.39852 14.304 7.43794 14.6153 7.58741 14.8782Z" fill="currentColor"/>
+                            </svg>
+                            <span class="stat-label">Colors</span>
+                            <span class="stat-value" id="stat-color">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M8.5 9.08333C8.5 8.92862 8.56146 8.78025 8.67085 8.67085C8.78025 8.56146 8.92862 8.5 9.08333 8.5H14.9167C15.0714 8.5 15.2197 8.56146 15.3291 8.67085C15.4385 8.78025 15.5 8.92862 15.5 9.08333C15.5 9.23804 15.4385 9.38641 15.3291 9.49581C15.2197 9.60521 15.0714 9.66667 14.9167 9.66667H12.5833V14.9167C12.5833 15.0714 12.5219 15.2197 12.4125 15.3291C12.3031 15.4385 12.1547 15.5 12 15.5C11.8453 15.5 11.6969 15.4385 11.5875 15.3291C11.4781 15.2197 11.4167 15.0714 11.4167 14.9167V9.66667H9.08333C8.92862 9.66667 8.78025 9.60521 8.67085 9.49581C8.56146 9.38641 8.5 9.23804 8.5 9.08333Z" fill="currentColor"/>
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M7.33333 5C6.71449 5 6.121 5.24583 5.68342 5.68342C5.24583 6.121 5 6.71449 5 7.33333V16.6667C5 17.2855 5.24583 17.879 5.68342 18.3166C6.121 18.7542 6.71449 19 7.33333 19H16.6667C17.2855 19 17.879 18.7542 18.3166 18.3166C18.7542 17.879 19 17.2855 19 16.6667V7.33333C19 6.71449 18.7542 6.121 18.3166 5.68342C17.879 5.24583 17.2855 5 16.6667 5H7.33333ZM6.16667 7.33333C6.16667 7.02391 6.28958 6.72717 6.50838 6.50838C6.72717 6.28958 7.02391 6.16667 7.33333 6.16667H16.6667C16.9761 6.16667 17.2728 6.28958 17.4916 6.50838C17.7104 6.72717 17.8333 7.02391 17.8333 7.33333V16.6667C17.8333 16.9761 17.7104 17.2728 17.4916 17.4916C17.2728 17.7104 16.9761 17.8333 16.6667 17.8333H7.33333C7.02391 17.8333 6.72717 17.7104 6.50838 17.4916C6.28958 17.2728 6.16667 16.9761 6.16667 16.6667V7.33333Z" fill="currentColor"/>
+                            </svg>
+                            <span class="stat-label">Strings</span>
+                            <span class="stat-value" id="stat-string">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M11.4143 9.14167C11.4298 8.98773 11.3835 8.83395 11.2856 8.71416C11.1877 8.59438 11.0462 8.51839 10.8922 8.50292C10.7383 8.48744 10.5845 8.53376 10.4647 8.63167C10.345 8.72958 10.269 8.87106 10.2535 9.025L10.1882 9.66667H9.08333C8.92862 9.66667 8.78025 9.72812 8.67085 9.83752C8.56146 9.94692 8.5 10.0953 8.5 10.25C8.5 10.4047 8.56146 10.5531 8.67085 10.6625C8.78025 10.7719 8.92862 10.8333 9.08333 10.8333H10.0727L9.83933 13.1667H9.08333C8.92862 13.1667 8.78025 13.2281 8.67085 13.3375C8.56146 13.4469 8.5 13.5953 8.5 13.75C8.5 13.9047 8.56146 14.0531 8.67085 14.1625C8.78025 14.2719 8.92862 14.3333 9.08333 14.3333H9.7215L9.669 14.8583C9.65353 15.0123 9.69984 15.166 9.79775 15.2858C9.89566 15.4056 10.0371 15.4816 10.1911 15.4971C10.345 15.5126 10.4988 15.4662 10.6186 15.3683C10.7384 15.2704 10.8144 15.1289 10.8298 14.975L10.8952 14.3333H12.6382L12.5857 14.8583C12.578 14.9346 12.5854 15.0115 12.6075 15.0849C12.6296 15.1582 12.6659 15.2265 12.7144 15.2858C12.7629 15.3451 12.8226 15.3943 12.8901 15.4306C12.9576 15.4668 13.0315 15.4894 13.1077 15.4971C13.184 15.5047 13.261 15.4973 13.3343 15.4752C13.4077 15.4531 13.4759 15.4168 13.5353 15.3683C13.5946 15.3198 13.6437 15.2602 13.68 15.1927C13.7162 15.1252 13.7388 15.0512 13.7465 14.975L13.8118 14.3333H14.9167C15.0714 14.3333 15.2197 14.2719 15.3291 14.1625C15.4385 14.0531 15.5 13.9047 15.5 13.75C15.5 13.5953 15.4385 13.4469 15.3291 13.3375C15.2197 13.2281 15.0714 13.1667 14.9167 13.1667H13.9273L14.1607 10.8333H14.9167C15.0714 10.8333 15.2197 10.7719 15.3291 10.6625C15.4385 10.5531 15.5 10.4047 15.5 10.25C15.5 10.0953 15.4385 9.94692 15.3291 9.83752C15.2197 9.72812 15.0714 9.66667 14.9167 9.66667H14.2785L14.331 9.14167C14.3387 9.06544 14.3312 8.98846 14.3091 8.91511C14.2871 8.84176 14.2507 8.77348 14.2022 8.71416C14.1538 8.65485 14.0941 8.60567 14.0266 8.56942C13.9591 8.53318 13.8851 8.51058 13.8089 8.50292C13.7327 8.49526 13.6557 8.50268 13.5824 8.52477C13.509 8.54687 13.4407 8.58319 13.3814 8.63167C13.3221 8.68015 13.2729 8.73984 13.2367 8.80732C13.2004 8.87481 13.1778 8.94878 13.1702 9.025L13.1048 9.66667H11.3618L11.4143 9.14167ZM11.0118 13.1667L11.2452 10.8333H12.9893L12.756 13.1667H11.0118Z" fill="currentColor"/>
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M7.33333 5C6.71449 5 6.121 5.24583 5.68342 5.68342C5.24583 6.121 5 6.71449 5 7.33333V16.6667C5 17.2855 5.24583 17.879 5.68342 18.3166C6.121 18.7542 6.71449 19 7.33333 19H16.6667C17.2855 19 17.879 18.7542 18.3166 18.3166C18.7542 17.879 19 17.2855 19 16.6667V7.33333C19 6.71449 18.7542 6.121 18.3166 5.68342C17.879 5.24583 17.2855 5 16.6667 5H7.33333ZM6.16667 7.33333C6.16667 7.02391 6.28958 6.72717 6.50838 6.50838C6.72717 6.28958 7.02391 6.16667 7.33333 6.16667H16.6667C16.9761 6.16667 17.2728 6.28958 17.4916 6.50838C17.7104 6.72717 17.8333 7.02391 17.8333 7.33333V16.6667C17.8333 16.9761 17.7104 17.2728 17.4916 17.4916C17.2728 17.7104 16.9761 17.8333 16.6667 17.8333H7.33333C7.02391 17.8333 6.72717 17.7104 6.50838 17.4916C6.28958 17.2728 6.16667 16.9761 6.16667 16.6667V7.33333Z" fill="currentColor"/>
+                            </svg>
+                            <span class="stat-label">Dimensions</span>
+                            <span class="stat-value" id="stat-dimension">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M10.7701 7.46203V15.5401C10.7701 16.1522 10.5269 16.7393 10.094 17.1721C9.66121 17.605 9.07416 17.8481 8.46203 17.8481C7.84991 17.8481 7.26285 17.605 6.83001 17.1721C6.39718 16.7393 6.15401 16.1522 6.15401 15.5401V7.46203C6.15401 6.84991 6.39718 6.26285 6.83001 5.83001C7.26285 5.39718 7.84991 5.15401 8.46203 5.15401C9.07416 5.15401 9.66121 5.39718 10.094 5.83001C10.5269 6.26285 10.7701 6.84991 10.7701 7.46203ZM5 7.46203C5 6.54384 5.36475 5.66326 6.01401 5.01401C6.66326 4.36475 7.54384 4 8.46203 4C9.38022 4 10.2608 4.36475 10.9101 5.01401C11.5593 5.66326 11.9241 6.54384 11.9241 7.46203V15.5401C11.9241 16.4264 11.5906 17.2365 11.0424 17.8481H16.5401C17.1522 17.8481 17.7393 17.605 18.1721 17.1721C18.605 16.7393 18.8481 16.1522 18.8481 15.5401C18.8481 14.928 18.605 14.3409 18.1721 13.9081C17.7393 13.4753 17.1522 13.2321 16.5401 13.2321H15.6665L11.5155 17.3819C11.4132 17.4858 11.3055 17.5812 11.1924 17.6681C11.6665 17.06 11.9239 16.3111 11.9241 15.5401V15.3428L16.4132 10.8537C16.8459 10.4206 17.0889 9.83333 17.0887 9.22108C17.0885 8.60883 16.8451 8.02174 16.412 7.58897C15.9789 7.1562 15.3917 6.91319 14.7794 6.91341C14.1672 6.91363 13.5801 7.15705 13.1473 7.59013L11.9241 8.81338V7.46203C11.9241 7.37125 11.9206 7.28162 11.9137 7.19315L12.3326 6.77424C12.6531 6.4485 13.035 6.18945 13.4562 6.01204C13.8773 5.83462 14.3295 5.74235 14.7865 5.74054C15.2435 5.73873 15.6963 5.82743 16.1189 6.00151C16.5415 6.17559 16.9254 6.43161 17.2485 6.75481C17.5716 7.078 17.8275 7.46197 18.0015 7.88457C18.1755 8.30717 18.2641 8.76004 18.2622 9.21705C18.2603 9.67406 18.1679 10.1262 17.9904 10.5473C17.8129 10.9684 17.5537 11.3502 17.2279 11.6707L16.8101 12.0885C17.6999 12.1612 18.5271 12.5748 19.1191 13.243C19.7111 13.9111 20.0222 14.7821 19.9874 15.6741C19.9525 16.5661 19.5745 17.4102 18.9321 18.0301C18.2898 18.65 17.4328 18.9979 16.5401 19.001H8.49896L8.46203 19.0021C7.54384 19.0021 6.66326 18.6374 6.01401 17.9881C5.36475 17.3389 5 16.4583 5 15.5401V7.46203ZM8.46203 16.6941C8.76809 16.6941 9.06162 16.5725 9.27804 16.3561C9.49446 16.1397 9.61604 15.8462 9.61604 15.5401C9.61604 15.234 9.49446 14.9405 9.27804 14.7241C9.06162 14.5077 8.76809 14.3861 8.46203 14.3861C8.15597 14.3861 7.86244 14.5077 7.64602 14.7241C7.4296 14.9405 7.30802 15.234 7.30802 15.5401C7.30802 15.8462 7.4296 16.1397 7.64602 16.3561C7.86244 16.5725 8.15597 16.6941 8.46203 16.6941Z" fill="currentColor"/>
+                            </svg>
+                            <span class="stat-label">Modes</span>
+                            <span class="stat-value" id="stat-modes">0</span>
+                        </div>
+                    </div>
+
+                    <div class="validation hidden" id="validation">
+                        <button type="button" class="validation-chip" id="validation-chip" aria-expanded="false" aria-controls="validation-detail">
+                            <svg class="vc-icon" id="validation-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"></svg>
+                            <span class="vc-text" id="validation-chip-text"></span>
+                            <svg class="vc-caret" viewBox="0 0 12 8" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M1 1l5 5 5-5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <div class="validation-detail" id="validation-detail"></div>
+                    </div>
+
+                    <div class="collections-section hidden" id="collections-section">
+                        <div class="collections-heading">
+                            <span id="collections-title">Collections</span>
+                            <span class="col-count hidden" id="collections-count"></span>
+                            <button type="button" class="col-reset hidden" id="collections-reset">Select all</button>
+                        </div>
+                        <div id="collections-list" role="group" aria-label="Collections to include in export"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main">
+            <div class="main-body" id="export-panel">
+        <div class="main-header">
+            <h2>Configure your export</h2>
+            <p>DTCG-spec emits standards-conformant tokens. Style Dictionary tweaks the shape for SD v4 with <code>usesDtcg: true</code>. Settings are remembered between sessions.</p>
+        </div>
+
+        <div class="preset-row" role="radiogroup" aria-label="Output preset">
+            <span class="preset-label">Quick presets:</span>
+            <button type="button" class="preset-chip selected" id="dtcg-reset-preset" role="radio" aria-checked="true" data-preset="dtcg">DTCG-spec</button>
+            <button type="button" class="preset-chip" id="sd-compat-preset" role="radio" aria-checked="false" data-preset="sd">Style Dictionary</button>
+            <span class="preset-chip preset-custom" id="custom-preset-chip" role="radio" aria-checked="false" aria-disabled="true" tabindex="-1" data-preset="custom" title="One or more options emit non-DTCG-spec output">Off-spec</span>
+        </div>
+
+        <div class="section-title">Output format</div>
+        <div class="settings-grid">
+            <div class="setting-card">
+                <label class="label" for="color-format">Color Format</label>
+                <span class="hint">DTCG object form per the W3C spec, or CSS strings for tooling friendliness.</span>
+                <select id="color-format">
+                    <option value="dtcg">DTCG Spec (object)</option>
+                    <option value="css">CSS String (rgb/rgba)</option>
+                </select>
+            </div>
+
+            <div class="setting-card" id="color-space-group">
+                <label class="label" for="color-space">Color Space</label>
+                <span class="hint">sRGB has the widest tooling support; HSL is human-readable.</span>
+                <select id="color-space">
+                    <option value="srgb">sRGB</option>
+                    <option value="hsl">HSL</option>
+                </select>
+            </div>
+
+            <div class="setting-card">
+                <label class="label" for="units">Units</label>
+                <span class="hint">Default unit applied to dimension tokens with no explicit unit.</span>
+                <select id="units">
+                    <option value="px">Pixels (px)</option>
+                    <option value="rem">Root em (rem)</option>
+                </select>
+            </div>
+
+            <div class="setting-card">
+                <label class="label" for="namespace">Namespace / prefix <span class="chip-tag">(optional)</span></label>
+                <span class="hint">Prepended to every token path, e.g. <code>pds.color.primary</code>.</span>
+                <input type="text" id="namespace" placeholder="e.g., pds">
+            </div>
+        </div>
+
+        <div class="section-title">Dimension &amp; typography shape</div>
+        <div class="settings-grid">
+            <div class="setting-card">
+                <label class="label" for="dimension-format">Dimension Format</label>
+                <span class="hint">DTCG-spec object, or string for Style Dictionary compatibility.</span>
+                <select id="dimension-format">
+                    <option value="object">Object — { value, unit } (DTCG spec)</option>
+                    <option value="string">String — "16px" (Style Dictionary)</option>
+                </select>
+            </div>
+
+            <div class="setting-card">
+                <label class="label" for="letter-spacing-format">Letter Spacing Format</label>
+                <span class="hint">Percent values are always strings regardless of this setting.</span>
+                <select id="letter-spacing-format">
+                    <option value="object">Object — { value, unit } (DTCG spec)</option>
+                    <option value="string">String — "0.5px" (Style Dictionary)</option>
+                </select>
+            </div>
+
+            <div class="setting-card">
+                <label class="label" for="duration-format">Motion Duration Format</label>
+                <span class="hint">DTCG-spec object, or string for Style Dictionary compatibility.</span>
+                <select id="duration-format">
+                    <option value="object">Object — { value, unit } (DTCG spec)</option>
+                    <option value="string">String — "50ms" (Style Dictionary)</option>
+                </select>
+            </div>
+
+            <div class="setting-card">
+                <label class="label" for="token-name-case">Token Name Case</label>
+                <span class="hint">Preserve keeps your Figma casing (DTCG names are case-sensitive). Kebab splits camelCase humps.</span>
+                <select id="token-name-case">
+                    <option value="preserve">Preserve — onSuccessContainer (DTCG spec)</option>
+                    <option value="kebab">Kebab — on-success-container</option>
+                    <option value="lower">Lowercase — onsuccesscontainer (pre-3.0 legacy)</option>
+                </select>
+            </div>
+
+            <div class="setting-card">
+                <label class="label" for="letter-spacing-units">Letter Spacing Units</label>
+                <span class="hint">Pixels (CSS-friendly) or percent (typography-friendly).</span>
+                <select id="letter-spacing-units">
+                    <option value="px">Pixels (px)</option>
+                    <option value="percent">Percent (%)</option>
+                </select>
+            </div>
+
+            <div class="setting-card">
+                <label class="label" for="line-height-output">Line Height Output</label>
+                <span class="hint">Ratio is unitless and scales with font-size.</span>
+                <select id="line-height-output">
+                    <option value="ratio">Ratio (unitless)</option>
+                    <option value="dimension">Dimension (px/rem)</option>
+                    <option value="percentage">Percentage (%)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="section-title">Behavior</div>
+
+        <label class="toggle-row" for="include-figma-extensions">
+            <div class="copy">
+                <span class="toggle-label">Include <code>$extensions.figma</code> metadata</span>
+                <span class="toggle-hint">Adds Figma-specific metadata (variable IDs, scopes, etc.) under <code>$extensions</code>.</span>
+            </div>
+            <input type="checkbox" id="include-figma-extensions" checked>
+            <span class="switch" data-switch-for="include-figma-extensions"></span>
+        </label>
+
+        <div class="section-title">Additional export formats</div>
+        <div class="chips-intro">JSON is always exported — the shape matches your selected preset.</div>
+        <div class="format-chips">
+            <span class="chip locked" title="Always included" id="format-json-chip">
+                <span class="chip-check"></span>
+                <span id="format-json-label">DTCG JSON</span>
+                <span class="chip-tag">(always on)</span>
+            </span>
+
+            <label class="chip" for="format-css">
+                <input type="checkbox" id="format-css">
+                <span class="chip-check"></span>
+                CSS Custom Properties
+            </label>
+
+            <span class="chip disabled" title="Coming soon">
+                <span class="chip-check"></span>
+                SCSS variables
+                <span class="chip-tag">(coming soon)</span>
+            </span>
+
+            <label class="chip" for="format-raw-figma">
+                <input type="checkbox" id="format-raw-figma">
+                <span class="chip-check"></span>
+                Raw Figma JSON
+            </label>
+
+            <label class="chip" for="format-dot-notation">
+                <input type="checkbox" id="format-dot-notation">
+                <span class="chip-check"></span>
+                Dot-notation .txt
+            </label>
+        </div>
+
+            </div>
+
+            <div class="progress hidden" id="export-progress">
+                <div class="progress-bar" id="export-progress-bar"></div>
+            </div>
+
+            <div class="footer-bar">
+                <div class="footer-summary" id="footer-summary" role="status" aria-live="polite" aria-atomic="true">
+                    <span id="footer-status">Scan a file to get started</span>
+                </div>
+                <button class="button" id="export-button" disabled>
+                    <svg class="button-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M8 2v8M4 7l4 4 4-4M3 13h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Export Tokens
+                </button>
+            </div>
+        </main>
+    </div>
+</div>
+
+    <script>
+// UI logic - All UI code is contained in this inline script
+// This is the source of truth for the plugin UI
+class TokenPressUI {
+  constructor() {
+    this.scanResult = null;
+    this.exportOptions = null;
+    // Names of collections the user has excluded from export. Persisted via
+    // clientStorage on each toggle, restored after every reload, and pruned
+    // on each scan to drop names that no longer exist in the file.
+    this.excludedCollections = new Set();
+    this.init();
+  }
+  init() {
+    this.setupTabs();
+    this.setupEventListeners();
+    this.syncToggleVisuals();
+    this.loadOptions();
+  }
+  setupTabs() {
+    const tabs = document.querySelectorAll(".tab");
+    const panels = document.querySelectorAll(".panel");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((t) => t.classList.remove("active"));
+        panels.forEach((p) => p.classList.add("hidden"));
+        tab.classList.add("active");
+        const panelId = `${tab.dataset.tab}-panel`;
+        document.getElementById(panelId).classList.remove("hidden");
+      });
+    });
+  }
+  setupEventListeners() {
+    document.getElementById("scan-button").addEventListener("click", () => {
+      this.startScan();
+    });
+    document.getElementById("export-button").addEventListener("click", () => {
+      this.startExport();
+    });
+    const optionElements = [
+      "units",
+      "color-format",
+      "color-space",
+      "line-height-output",
+      "letter-spacing-units",
+      "dimension-format",
+      "letter-spacing-format",
+      "duration-format",
+      "token-name-case",
+      "namespace",
+      "include-figma-extensions",
+      "format-css",
+      "format-raw-figma",
+      "format-dot-notation"
+    ];
+    optionElements.forEach((id) => {
+      const element = document.getElementById(id);
+      element.addEventListener("change", () => {
+        this.syncToggleVisuals();
+        this.saveOptions();
+        this.updateFooterSummary();
+      });
+    });
+
+    // Toggle color space visibility when color format changes
+    document.getElementById("color-format").addEventListener("change", () => {
+      this.toggleColorSpaceVisibility();
+    });
+
+    // Preset chips are single-select. Clicking an already-selected chip is a
+    // no-op; clicking the unselected one stamps that preset's values into the
+    // controls and the chip group recomputes its active state from the new
+    // option values (not from the click target).
+    document.getElementById("sd-compat-preset").addEventListener("click", () => {
+      if (this.detectActivePreset() === "sd") return;
+      this.applySDCompatPreset();
+    });
+    document.getElementById("dtcg-reset-preset").addEventListener("click", () => {
+      if (this.detectActivePreset() === "dtcg") return;
+      this.applyDTCGDefaults();
+    });
+
+    // Validation chip: toggle accordion when there are issues to show
+    document.getElementById("validation-chip").addEventListener("click", () => {
+      this.toggleValidationDetail();
+    });
+
+    // Collection-reset: re-include every collection in the current scan
+    document.getElementById("collections-reset").addEventListener("click", () => {
+      this.excludedCollections.clear();
+      this.renderCollectionCards(this._collectionDetails || []);
+      this.updateScanStats(this.scanResult);
+      this.updateFooterSummary();
+      this.refreshExportGate();
+      this.saveOptions();
+    });
+  }
+  toggleValidationDetail() {
+    const wrap = document.getElementById("validation");
+    const chip = document.getElementById("validation-chip");
+    if (!chip.classList.contains("expandable")) return;
+    const expanded = wrap.classList.toggle("expanded");
+    chip.setAttribute("aria-expanded", expanded ? "true" : "false");
+  }
+  syncToggleVisuals() {
+    // Mirror <input type="checkbox">.checked into the visual .switch / .chip
+    // classes. The native input still fires change events; this just keeps the
+    // styled affordance in sync.
+    const switches = document.querySelectorAll(".switch[data-switch-for]");
+    switches.forEach((sw) => {
+      const targetId = sw.getAttribute("data-switch-for");
+      const input = document.getElementById(targetId);
+      if (input && input.checked) {
+        sw.classList.add("on");
+      } else {
+        sw.classList.remove("on");
+      }
+    });
+    const chipInputs = document.querySelectorAll(".chip > input[type=\"checkbox\"]");
+    chipInputs.forEach((input) => {
+      const chip = input.parentElement;
+      if (!chip) return;
+      if (input.checked) {
+        chip.classList.add("on");
+      } else {
+        chip.classList.remove("on");
+      }
+    });
+  }
+  applySDCompatPreset() {
+    document.getElementById("dimension-format").value = "string";
+    document.getElementById("letter-spacing-format").value = "string";
+    document.getElementById("duration-format").value = "string";
+    document.getElementById("letter-spacing-units").value = "px";
+    document.getElementById("line-height-output").value = "ratio";
+    document.getElementById("units").value = "px";
+    document.getElementById("color-format").value = "css";
+    this.toggleColorSpaceVisibility();
+    this.saveOptions();
+  }
+  applyDTCGDefaults() {
+    // Mirrors DEFAULT_OPTIONS in src/code.ts for the fields the SD preset touches.
+    document.getElementById("dimension-format").value = "object";
+    document.getElementById("letter-spacing-format").value = "object";
+    document.getElementById("duration-format").value = "object";
+    document.getElementById("letter-spacing-units").value = "px";
+    document.getElementById("line-height-output").value = "ratio";
+    document.getElementById("units").value = "px";
+    document.getElementById("color-format").value = "dtcg";
+    document.getElementById("color-space").value = "srgb";
+    this.toggleColorSpaceVisibility();
+    this.saveOptions();
+  }
+  // The fields the presets touch — kept in sync with applyDTCGDefaults /
+  // applySDCompatPreset above. If a preset gains a new field, add it here too
+  // or detectActivePreset will report off-spec for what should be a clean match.
+  //
+  // tokenNameCase is deliberately absent: all three of its values are
+  // DTCG-conformant (the spec allows mixed case and calls names
+  // case-sensitive), and Style Dictionary handles all three too — its stock
+  // name/cti/kebab transform splits camelCase humps. So casing is an
+  // orthogonal naming preference, like units and letterSpacingUnits, not a
+  // spec-gated or SD-recipe field.
+  presetFingerprint() {
+    return {
+      dimensionFormat: document.getElementById("dimension-format").value,
+      letterSpacingFormat: document.getElementById("letter-spacing-format").value,
+      durationFormat: document.getElementById("duration-format").value,
+      letterSpacingUnits: document.getElementById("letter-spacing-units").value,
+      lineHeightOutput: document.getElementById("line-height-output").value,
+      units: document.getElementById("units").value,
+      colorFormat: document.getElementById("color-format").value,
+      colorSpace: document.getElementById("color-space").value
+    };
+  }
+  // Spec-gated options: an option is "spec-gated" when one of its values
+  // produces non-DTCG-spec output. Options omitted here (units, lineHeight,
+  // letterSpacingUnits) accept any value as DTCG-spec-conformant — the spec
+  // allows multiple units and both ratio/percentage line-heights.
+  isSpecConformant(cur) {
+    if (cur.dimensionFormat !== "object") return false;     // string is plugin convenience, not spec
+    if (cur.letterSpacingFormat !== "object") return false; // same
+    if (cur.durationFormat !== "object") return false;      // same — DTCG 2024-12+ moved to object form
+    if (cur.colorFormat !== "dtcg") return false;           // F1 — css string is plugin opinion
+    if (cur.colorSpace !== "srgb") return false;            // F3 — hsl is non-standard for DTCG
+    return true;
+  }
+  detectActivePreset() {
+    const cur = this.presetFingerprint();
+    // SD recipe stays an exact match — it's a named consumer recipe, not a
+    // spec category. Check before spec-conformance because SD is by definition
+    // off-spec on dimensionFormat/letterSpacingFormat/colorFormat.
+    const sd = { dimensionFormat: "string", letterSpacingFormat: "string", durationFormat: "string", letterSpacingUnits: "px", lineHeightOutput: "ratio", units: "px", colorFormat: "css" };
+    const matchesSD = Object.keys(sd).every((k) => cur[k] === sd[k]);
+    if (matchesSD) return "sd";
+    if (this.isSpecConformant(cur)) return "dtcg";
+    return "custom";
+  }
+  updatePresetChips() {
+    const active = this.detectActivePreset();
+    const chips = document.querySelectorAll(".preset-chip[data-preset]");
+    chips.forEach((chip) => {
+      const isActive = chip.getAttribute("data-preset") === active;
+      if (isActive) {
+        chip.classList.add("selected");
+        chip.setAttribute("aria-checked", "true");
+      } else {
+        chip.classList.remove("selected");
+        chip.setAttribute("aria-checked", "false");
+      }
+    });
+    // Mirror the active preset into the locked JSON chip's label so it
+    // honestly describes the shape the user is about to export. The chip is
+    // always emitted; its name just tracks what's actually in the file.
+    const jsonLabel = document.getElementById("format-json-label");
+    if (jsonLabel) {
+      const map = { dtcg: "DTCG JSON", sd: "Style Dictionary JSON", custom: "Off-spec JSON" };
+      jsonLabel.textContent = map[active] || "JSON";
+    }
+  }
+  async loadOptions() {
+    parent.postMessage({ pluginMessage: { type: "get-options" } }, "*");
+  }
+  toggleColorSpaceVisibility() {
+    const colorFormat = document.getElementById("color-format").value;
+    const colorSpaceGroup = document.getElementById("color-space-group");
+    const colorSpaceSelect = document.getElementById("color-space");
+    const isDtcg = colorFormat === 'dtcg';
+    if (isDtcg) {
+      colorSpaceGroup.classList.remove("disabled");
+      colorSpaceSelect.disabled = false;
+    } else {
+      colorSpaceGroup.classList.add("disabled");
+      colorSpaceSelect.disabled = true;
+    }
+  }
+  saveOptions() {
+    const options = {
+      units: document.getElementById("units").value,
+      colorFormat: document.getElementById("color-format").value,
+      colorSpace: document.getElementById("color-space").value,
+      lineHeightOutput: document.getElementById("line-height-output").value,
+      letterSpacingUnits: document.getElementById("letter-spacing-units").value,
+      dimensionFormat: document.getElementById("dimension-format").value,
+      letterSpacingFormat: document.getElementById("letter-spacing-format").value,
+      durationFormat: document.getElementById("duration-format").value,
+      tokenNameCase: document.getElementById("token-name-case").value,
+      namespace: document.getElementById("namespace").value || undefined,
+      includeFigmaExtensions: document.getElementById("include-figma-extensions").checked,
+      formatCss: document.getElementById("format-css").checked,
+      formatRawFigma: document.getElementById("format-raw-figma").checked,
+      formatDotNotation: document.getElementById("format-dot-notation").checked,
+      excludedCollections: Array.from(this.excludedCollections)
+    };
+    this.exportOptions = options;
+    this.updatePresetChips();
+    parent.postMessage({ pluginMessage: { type: "set-options", data: options } }, "*");
+  }
+  updateOptionsUI(options) {
+    document.getElementById("units").value = options.units;
+    document.getElementById("color-format").value = options.colorFormat || 'dtcg';
+    document.getElementById("color-space").value = options.colorSpace || 'srgb';
+    this.toggleColorSpaceVisibility();
+    document.getElementById("line-height-output").value = options.lineHeightOutput;
+    document.getElementById("letter-spacing-units").value = options.letterSpacingUnits;
+    document.getElementById("dimension-format").value = options.dimensionFormat || 'object';
+    document.getElementById("letter-spacing-format").value = options.letterSpacingFormat || 'object';
+    document.getElementById("duration-format").value = options.durationFormat || 'object';
+    document.getElementById("token-name-case").value = options.tokenNameCase || 'preserve';
+    document.getElementById("namespace").value = options.namespace || "";
+    document.getElementById("include-figma-extensions").checked = options.includeFigmaExtensions;
+    document.getElementById("format-css").checked = options.formatCss || false;
+    document.getElementById("format-raw-figma").checked = options.formatRawFigma || false;
+    document.getElementById("format-dot-notation").checked = options.formatDotNotation || false;
+    this.excludedCollections = new Set(options.excludedCollections || []);
+    this.syncToggleVisuals();
+    this.updatePresetChips();
+    this.exportOptions = options;
+  }
+  startScan() {
+    const scanButton = document.getElementById("scan-button");
+    const progress = document.getElementById("progress");
+    const progressBar = document.getElementById("progress-bar");
+    const status = document.getElementById("status");
+    scanButton.disabled = true;
+    scanButton.textContent = "Scanning...";
+    progress.classList.remove("hidden");
+    progressBar.style.width = "20%";
+    status.classList.remove("hidden");
+    status.textContent = "Enumerating variables, text styles, and effect styles...";
+    this.setStepperState("scanning");
+    this.setFooterStatus("Scanning…");
+    parent.postMessage({ pluginMessage: { type: "scan" } }, "*");
+  }
+  handleScanResult(result) {
+    this.scanResult = result;
+    // Prune persisted exclusions to drop names that no longer exist in the
+    // file — so a renamed/removed collection doesn't silently keep filtering
+    // a same-named one in a future file.
+    const presentNames = new Set((result.collectionDetails || []).map((c) => c.name));
+    let pruned = false;
+    this.excludedCollections.forEach((name) => {
+      if (!presentNames.has(name)) {
+        this.excludedCollections.delete(name);
+        pruned = true;
+      }
+    });
+    if (pruned) this.saveOptions();
+
+    const scanButton = document.getElementById("scan-button");
+    const progress = document.getElementById("progress");
+    const progressBar = document.getElementById("progress-bar");
+    const status = document.getElementById("status");
+    progressBar.style.width = "100%";
+    status.textContent = "";
+    status.classList.add("hidden");
+    scanButton.disabled = false;
+    scanButton.textContent = "Rescan";
+    scanButton.classList.add("secondary");
+    setTimeout(() => {
+      progress.classList.add("hidden");
+      progressBar.style.width = "0%";
+    }, 1000);
+    this.renderCollectionCards(result.collectionDetails || []);
+    this.updateScanStats(result);
+    this.updateValidation();
+    this.refreshExportGate();
+    this.updateFooterSummary();
+  }
+  /**
+   * Computes "alias into excluded collection" warnings from the current
+   * exclusion set + scanned alias edges. Emits one warning per
+   * excluded-target collection that has incoming aliases from a still-included
+   * collection. Returns ValidationIssue-shaped objects so they can flow
+   * through the same accordion as scan-time issues.
+   */
+  computeAliasExclusionWarnings() {
+    if (!this.scanResult) return [];
+    const edges = this.scanResult.aliasEdges || [];
+    if (edges.length === 0) return [];
+    const excluded = this.excludedCollections;
+    if (excluded.size === 0) return [];
+    // Group affected edges by the excluded target collection. We surface one
+    // aggregated warning per excluded collection rather than one per edge.
+    const byTarget = {};
+    edges.forEach((edge) => {
+      const targetExcluded = excluded.has(edge.targetCollectionName);
+      const sourceIncluded = !excluded.has(edge.sourceCollectionName);
+      if (!targetExcluded || !sourceIncluded) return;
+      const key = edge.targetCollectionName;
+      if (!byTarget[key]) {
+        byTarget[key] = { aliases: [], sourceCollections: new Set() };
+      }
+      byTarget[key].aliases.push(edge);
+      byTarget[key].sourceCollections.add(edge.sourceCollectionName);
+    });
+    const warnings = [];
+    Object.keys(byTarget).sort().forEach((targetName) => {
+      const info = byTarget[targetName];
+      const aliasCount = info.aliases.length;
+      const sourceList = Array.from(info.sourceCollections).sort().join(", ");
+      const aliasWord = aliasCount === 1 ? "alias" : "aliases";
+      const message =
+        aliasCount + " " + aliasWord + " in " + sourceList +
+        " resolve to \"" + targetName + "\" (excluded). " +
+        "Their values won't resolve in the export.";
+      warnings.push({
+        type: "warning",
+        message,
+        source: "alias-excluded-" + targetName,
+        details: {
+          // collectionName drives the existing accordion grouping. We tag
+          // these under the excluded target so they cluster together.
+          collectionName: targetName,
+          aliasCount,
+          sourceCollections: Array.from(info.sourceCollections),
+        },
+      });
+    });
+    return warnings;
+  }
+  /**
+   * Returns the merged list of scan-time issues + reactive alias-excluded
+   * warnings. Single source of truth for the validation chip + accordion.
+   */
+  getEffectiveIssues() {
+    const base = (this.scanResult && this.scanResult.issues) || [];
+    const aliasWarnings = this.computeAliasExclusionWarnings();
+    return base.concat(aliasWarnings);
+  }
+  /**
+   * Returns `result` totals minus any excluded collections' contributions.
+   * Lets the rail + footer reflect toggles without a fresh scan.
+   */
+  getEffectiveStats() {
+    const result = this.scanResult;
+    if (!result) return null;
+    const details = result.collectionDetails || [];
+    let variables = result.variables || 0;
+    let colors = result.colorVariables || 0;
+    let strings = result.stringVariables || 0;
+    let dimensions = result.dimensionVariables || 0;
+    let modes = result.modes || 0;
+    details.forEach((c) => {
+      if (this.excludedCollections.has(c.name)) {
+        variables -= c.variableCount || 0;
+        colors -= c.colorCount || 0;
+        strings -= c.stringCount || 0;
+        dimensions -= c.dimensionCount || 0;
+        modes -= c.modeCount || 0;
+      }
+    });
+    return { variables, colors, strings, dimensions, modes };
+  }
+  /**
+   * Sets export-button disabled state from current scan + exclusion state.
+   * Disabled when: no scan yet, scan has errors, or all collections excluded.
+   */
+  refreshExportGate() {
+    const exportButton = document.getElementById("export-button");
+    if (!this.scanResult) {
+      exportButton.disabled = true;
+      return;
+    }
+    const issues = this.getEffectiveIssues();
+    const hasErrors = issues.some((i) => i.type === "error");
+    const eff = this.getEffectiveStats();
+    const allExcluded = eff && eff.variables <= 0;
+    exportButton.disabled = hasErrors || allExcluded;
+    // Stepper: scan + validate complete; if errors, validate stays "active"
+    // (warning state); otherwise advance into Configure.
+    this.setStepperState(hasErrors ? "validate-error" : "configured");
+  }
+  updateScanStats(_result) {
+    const stats = document.getElementById("scan-stats");
+    const eff = this.getEffectiveStats();
+    if (!eff) return;
+    document.getElementById("stat-variables").textContent = String(eff.variables);
+    document.getElementById("stat-color").textContent = String(eff.colors);
+    document.getElementById("stat-string").textContent = String(eff.strings);
+    document.getElementById("stat-dimension").textContent = String(eff.dimensions);
+    document.getElementById("stat-modes").textContent = String(eff.modes);
+    stats.classList.remove("hidden");
+  }
+  updateValidation() {
+    const wrap = document.getElementById("validation");
+    const chip = document.getElementById("validation-chip");
+    const text = document.getElementById("validation-chip-text");
+    const icon = document.getElementById("validation-icon");
+    const detail = document.getElementById("validation-detail");
+    const issues = this.getEffectiveIssues();
+    const errors = this.countErrors(issues);
+    const warnings = this.countWarnings(issues);
+    wrap.classList.remove("hidden");
+    chip.classList.remove("clean", "warning", "error", "expandable");
+    const hasIssues = errors > 0 || warnings > 0;
+    if (errors > 0) {
+      chip.classList.add("error");
+      const label = errors === 1 ? "1 error" : errors + " errors";
+      text.innerHTML = "<strong>" + label + "</strong> <span class=\"vc-suffix\">— export blocked</span>";
+      icon.innerHTML = this.iconError();
+    } else if (warnings > 0) {
+      chip.classList.add("warning");
+      const label = warnings === 1 ? "1 warning" : warnings + " warnings";
+      text.innerHTML = "<strong>" + label + "</strong> <span class=\"vc-suffix\">— review before export</span>";
+      icon.innerHTML = this.iconWarning();
+    } else {
+      chip.classList.add("clean");
+      text.innerHTML = "<strong>All clear</strong>";
+      icon.innerHTML = this.iconCheck();
+    }
+    if (hasIssues) {
+      chip.classList.add("expandable");
+      chip.setAttribute("aria-expanded", "false");
+      this.renderValidationDetail(detail, issues);
+    } else {
+      chip.removeAttribute("aria-expanded");
+      detail.innerHTML = "";
+    }
+    wrap.classList.remove("expanded");
+  }
+  iconWarning() {
+    return '<path d="M8 2.5l6.2 11.2H1.8L8 2.5z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/><path d="M8 7v3M8 12.2v0.1" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>';
+  }
+  iconError() {
+    return '<circle cx="8" cy="8" r="5.75" stroke="currentColor" stroke-width="1.25"/><path d="M8 5v3.5M8 10.5v0.1" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>';
+  }
+  iconCheck() {
+    return '<circle cx="8" cy="8" r="5.75" stroke="currentColor" stroke-width="1.25"/><path d="M5.5 8.2l1.8 1.8 3.4-3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';
+  }
+  renderValidationDetail(container, issues) {
+    container.innerHTML = "";
+    const errors = issues.filter((i) => i.type === "error");
+    const warnings = issues.filter((i) => i.type === "warning");
+    if (errors.length > 0) {
+      container.appendChild(this.buildIssueGroup("Errors — export blocked", errors, "error"));
+    }
+    if (warnings.length > 0) {
+      container.appendChild(this.buildIssueGroup("Warnings", warnings, "warning"));
+    }
+  }
+  buildIssueGroup(heading, issues, issueType) {
+    const group = document.createElement("div");
+    group.className = "vd-group";
+    const h = document.createElement("div");
+    h.className = "vd-group-heading";
+    h.textContent = heading + " (" + issues.length + ")";
+    group.appendChild(h);
+    const grouped = {};
+    const ungrouped = [];
+    issues.forEach((issue) => {
+      const collectionName = issue.details && issue.details.collectionName;
+      if (collectionName) {
+        if (!grouped[collectionName]) grouped[collectionName] = [];
+        grouped[collectionName].push(issue);
+      } else {
+        ungrouped.push(issue);
+      }
+    });
+    Object.keys(grouped).sort().forEach((name) => {
+      const label = document.createElement("div");
+      label.className = "vd-collection-name";
+      label.textContent = name;
+      group.appendChild(label);
+      grouped[name].forEach((issue) => {
+        const row = document.createElement("div");
+        row.className = "vd-issue " + issueType;
+        row.textContent = issue.message;
+        group.appendChild(row);
+      });
+    });
+    ungrouped.forEach((issue) => {
+      const row = document.createElement("div");
+      row.className = "vd-issue " + issueType;
+      row.textContent = issue.message;
+      group.appendChild(row);
+    });
+    return group;
+  }
+  renderCollectionCards(details) {
+    const section = document.getElementById("collections-section");
+    const list = document.getElementById("collections-list");
+    list.innerHTML = "";
+    if (!details || details.length === 0) {
+      section.classList.add("hidden");
+      return;
+    }
+    this._collectionDetails = details;
+    details.forEach((c) => {
+      const card = document.createElement("label");
+      card.className = "collection-card";
+      const isExcluded = this.excludedCollections.has(c.name);
+      if (isExcluded) card.classList.add("excluded");
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "col-checkbox";
+      checkbox.checked = !isExcluded;
+      checkbox.setAttribute("aria-label", "Include " + c.name + " in export");
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) {
+          this.excludedCollections.delete(c.name);
+          card.classList.remove("excluded");
+        } else {
+          this.excludedCollections.add(c.name);
+          card.classList.add("excluded");
+        }
+        this.onCollectionToggle();
+      });
+
+      const check = document.createElement("span");
+      check.className = "col-check";
+      check.setAttribute("aria-hidden", "true");
+      check.innerHTML = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 5l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+      const body = document.createElement("div");
+      body.className = "col-body";
+
+      const name = document.createElement("div");
+      name.className = "col-name";
+      name.textContent = c.name;
+      name.title = c.name;
+
+      const meta = document.createElement("div");
+      meta.className = "col-meta";
+      const modeWord = c.modeCount === 1 ? "mode" : "modes";
+      const varWord = c.variableCount === 1 ? "variable" : "variables";
+      meta.textContent = c.modeCount + " " + modeWord + " · " + c.variableCount + " " + varWord;
+
+      body.appendChild(name);
+      body.appendChild(meta);
+      card.appendChild(checkbox);
+      card.appendChild(body);
+      card.appendChild(check);
+      list.appendChild(card);
+    });
+    this.updateCollectionsHeader();
+    section.classList.remove("hidden");
+  }
+  updateCollectionsHeader() {
+    const details = this._collectionDetails || [];
+    const total = details.length;
+    const selected = details.filter((c) => !this.excludedCollections.has(c.name)).length;
+    const count = document.getElementById("collections-count");
+    const reset = document.getElementById("collections-reset");
+    if (!count || !reset) return;
+    count.textContent = selected + " of " + total;
+    count.setAttribute("aria-label", selected + " of " + total + " collections selected");
+    if (total > 0) {
+      count.classList.remove("hidden");
+    } else {
+      count.classList.add("hidden");
+    }
+    if (selected < total) {
+      reset.classList.remove("hidden");
+    } else {
+      reset.classList.add("hidden");
+    }
+  }
+  onCollectionToggle() {
+    this.updateCollectionsHeader();
+    this.updateScanStats(this.scanResult);
+    this.updateValidation();
+    this.updateFooterSummary();
+    this.refreshExportGate();
+    this.saveOptions();
+  }
+  countErrors(issues) {
+    return issues.filter((issue) => issue.type === "error").length;
+  }
+  countWarnings(issues) {
+    return issues.filter((issue) => issue.type === "warning").length;
+  }
+  startExport() {
+    if (!this.exportOptions) {
+      this.saveOptions();
+    }
+    const exportButton = document.getElementById("export-button");
+    const progress = document.getElementById("export-progress");
+    const progressBar = document.getElementById("export-progress-bar");
+    exportButton.disabled = true;
+    progress.classList.remove("hidden");
+    progressBar.style.width = "5%";
+    this.setStepperState("exporting");
+    this.setFooterStatus("Starting export…");
+    parent.postMessage({
+      pluginMessage: {
+        type: "export",
+        data: this.exportOptions
+      }
+    }, "*");
+  }
+  handleExportProgress(progressData) {
+    const progressBar = document.getElementById("export-progress-bar");
+    if (progressData.progress !== undefined) {
+      progressBar.style.width = `${Math.min(95, Math.max(5, progressData.progress))}%`;
+    }
+    if (progressData.message) {
+      this.setFooterStatus(progressData.message);
+    }
+  }
+
+  handleExportResult(result) {
+    const exportButton = document.getElementById("export-button");
+    const progress = document.getElementById("export-progress");
+    const progressBar = document.getElementById("export-progress-bar");
+
+    try {
+      progressBar.style.width = "100%";
+      exportButton.disabled = false;
+
+      if (result.success) {
+        const skipped = Array.isArray(result.skippedBlurStyles) ? result.skippedBlurStyles : [];
+        if (skipped.length > 0) {
+          // DTCG shadow type cannot represent BACKGROUND_BLUR / LAYER_BLUR;
+          // surface skipped names so the author can re-author them as real
+          // shadows or remove them from the file.
+          const list = skipped.join(", ");
+          this.setFooterStatus(
+            `Exported ${result.fileCount} file(s). Skipped ${skipped.length} blur-only effect style(s): ${list}`
+          );
+          console.warn(
+            `[Token Press] Skipped ${skipped.length} blur-only effect style(s) — DTCG shadow cannot represent background/layer blur:`,
+            skipped
+          );
+        } else {
+          this.setFooterStatus(`Exported ${result.fileCount} file(s) successfully`);
+        }
+        this.setStepperState("exported");
+
+        setTimeout(() => {
+          try {
+            this.downloadZip(result.zipData, "tokens.zip");
+          } catch (downloadError) {
+            console.error('Download error:', downloadError);
+            this.setFooterStatus(`Download failed: ${downloadError.message}`);
+          }
+        }, 100);
+
+        // Restore the live token/file summary after the success message
+        // has had time to register. Hold the warning longer so the user has
+        // time to read the skipped-style names.
+        const summaryDelay = skipped.length > 0 ? 10000 : 4000;
+        setTimeout(() => this.updateFooterSummary(), summaryDelay);
+      } else {
+        this.setFooterStatus(`Export failed: ${result.error}`);
+      }
+
+      setTimeout(() => {
+        try {
+          progress.classList.add("hidden");
+          progressBar.style.width = "0%";
+        } catch (cleanupError) {
+          console.error('Progress cleanup error:', cleanupError);
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Export result handling error:', error);
+      this.setFooterStatus(`Result handling failed: ${error.message}`);
+      exportButton.disabled = false;
+    }
+  }
+  downloadZip(zipData, filename) {
+    try {
+      const uint8Array = new Uint8Array(zipData);
+      const blob = new Blob([uint8Array], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.style.display = "none";
+      
+      document.body.appendChild(a);
+      
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        a.click();
+        
+        // Clean up after a short delay
+        setTimeout(() => {
+          try {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          } catch (cleanupError) {
+            console.error('Download cleanup error:', cleanupError);
+          }
+        }, 100);
+      });
+      
+    } catch (error) {
+      console.error('Download creation error:', error);
+      throw error;
+    }
+  }
+  /**
+   * Drive the 4-step Scan / Validate / Configure / Export indicator.
+   * States:
+   *   "initial"        — Configure active (default before scan)
+   *   "scanning"       — Scan active
+   *   "validate-error" — Scan done, Validate active (errors block export)
+   *   "configured"     — Scan + Validate done, Configure active (clean scan)
+   *   "exporting"      — Scan + Validate done, Export active
+   *   "exported"       — All four done
+   */
+  setStepperState(state) {
+    const ids = ["step-scan", "step-validate", "step-configure", "step-export"];
+    const map = {
+      "initial":        ["active", "", "", ""],
+      "scanning":       ["done", "active", "", ""],
+      "validate-error": ["done", "active", "", ""],
+      "configured":     ["done", "done", "active", ""],
+      "exporting":      ["done", "done", "done", "active"],
+      "exported":       ["done", "done", "done", "done"]
+    };
+    const states = map[state] || map["initial"];
+    const labels = ["Scan", "Validate", "Configure", "Export"];
+    ids.forEach((id, i) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove("active", "done");
+      if (states[i]) el.classList.add(states[i]);
+      // ARIA: mark the active step for AT users; announce status on every step
+      if (states[i] === "active") {
+        el.setAttribute("aria-current", "step");
+      } else {
+        el.removeAttribute("aria-current");
+      }
+      const stateWord = states[i] === "done" ? "completed" : (states[i] === "active" ? "current step" : "upcoming");
+      el.setAttribute("aria-label", labels[i] + " — " + stateWord);
+      const marker = el.querySelector(".stepper-marker");
+      if (!marker) return;
+      // Swap numeric marker for a checkmark when "done"
+      if (states[i] === "done") {
+        marker.innerHTML = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3.5 8.5l3 3 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      } else {
+        marker.innerHTML = '<span class="stepper-num">' + (i + 1) + '</span>';
+      }
+    });
+  }
+  setFooterStatus(text) {
+    const summary = document.getElementById("footer-summary");
+    summary.innerHTML = '<span id="footer-status"></span>';
+    document.getElementById("footer-status").textContent = text;
+  }
+  updateFooterSummary() {
+    if (!this.scanResult) {
+      this.setFooterStatus("Scan a file to get started");
+      return;
+    }
+    const eff = this.getEffectiveStats();
+    // Token count is the rail's "Variables" total — same definition.
+    const tokens = eff ? eff.variables : 0;
+    if (tokens <= 0) {
+      this.setFooterStatus("Select at least one collection to export");
+      return;
+    }
+    // File count = DTCG (always) + each enabled additional format.
+    // Only surface the count when more than one format is selected — the
+    // baseline DTCG-only case is implicit and the badge is just noise.
+    let files = 1;
+    if (document.getElementById("format-css").checked) files++;
+    if (document.getElementById("format-raw-figma").checked) files++;
+    if (document.getElementById("format-dot-notation").checked) files++;
+    const summary = document.getElementById("footer-summary");
+    const tokenWord = tokens === 1 ? "token" : "tokens";
+    let html = '<strong>' + tokens + '</strong>&nbsp;' + tokenWord + ' ready';
+    if (files > 1) {
+      html +=
+        ' <span class="footer-divider">·</span> ' +
+        '<strong>' + files + '</strong>&nbsp;files';
+    }
+    summary.innerHTML = html;
+  }
+  handleError(error) {
+    console.error("Plugin error:", error);
+    const status = document.getElementById("status");
+    const progress = document.getElementById("progress");
+    const exportProgress = document.getElementById("export-progress");
+    const progressBar = document.getElementById("progress-bar");
+    const exportProgressBar = document.getElementById("export-progress-bar");
+
+    status.classList.remove("hidden");
+    status.textContent = `Error: ${error.message}`;
+    this.setFooterStatus(`Error: ${error.message}`);
+
+    // Reset UI state
+    document.getElementById("scan-button").disabled = false;
+    document.getElementById("export-button").disabled = false;
+    document.getElementById("scan-button").textContent = "Scan & Validate";
+    document.getElementById("scan-button").classList.remove("secondary");
+
+    // Hide progress bars
+    progress.classList.add("hidden");
+    exportProgress.classList.add("hidden");
+    progressBar.style.width = "0%";
+    exportProgressBar.style.width = "0%";
+  }
+}
+const ui = new TokenPressUI();
+window.onmessage = (event) => {
+  const message = event.data.pluginMessage;
+  switch (message.type) {
+    case "scan-result":
+      ui.handleScanResult(message.data);
+      break;
+    case "export-progress":
+      ui.handleExportProgress(message.data);
+      break;
+    case "export-result":
+      ui.handleExportResult(message.data);
+      break;
+    case "options":
+      ui.updateOptionsUI(message.data);
+      break;
+    case "error":
+      ui.handleError(message.data);
+      break;
+    default:
+      console.warn("Unknown message type:", message.type);
+  }
+};
+    </script>
+</body>
+</html>

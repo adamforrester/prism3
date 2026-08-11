@@ -1,0 +1,52 @@
+{
+  "typography": {
+    "body": {
+      "medium": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.primary}",
+          "fontSize": {
+            "value": 16,
+            "unit": "px"
+          },
+          "fontWeight": 400,
+          "letterSpacing": {
+            "value": 0,
+            "unit": "px"
+          },
+          "lineHeight": 1.5
+        },
+        "$extensions": {
+          "figma": {
+            "styleId": "S:123",
+            "paragraphSpacing": 8
+          }
+        }
+      }
+    },
+    "heading": {
+      "large": {
+        "$type": "typography",
+        "$value": {
+          "fontFamily": "{font.family.primary}",
+          "fontSize": {
+            "value": 32,
+            "unit": "px"
+          },
+          "fontWeight": 700,
+          "letterSpacing": {
+            "value": -0.5,
+            "unit": "px"
+          },
+          "lineHeight": 1.2
+        }
+      }
+    }
+  },
+  "$extensions": {
+    "generator": {
+      "name": "Token Forge",
+      "version": "1.0.0"
+    }
+  }
+}

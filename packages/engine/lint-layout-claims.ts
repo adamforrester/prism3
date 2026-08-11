@@ -202,6 +202,15 @@ export const resolveWithin = (baseDir: string, ref: string): string | null => {
 
 export type Claim = { line: number; ref: string; resolved: string };
 
+/** Strip a Markdown fragment / query from a link target: `./a/README.md#anchor` claims the FILE
+ *  `./a/README.md`, and `#anchor` is a position inside it. Resolving the whole token asks git for a
+ *  file literally named `README.md#anchor`, which cannot exist — so an anchored link to a real file
+ *  reported as untracked, with nothing the doc could do to satisfy it. Found by apps/tokenpress/,
+ *  whose docs are the first in this repo to use anchored relative links: 6 refs, all 6 targets
+ *  tracked, all 6 flagged. Whether the ANCHOR resolves is deliberately not checked — that needs a
+ *  heading slugifier per Markdown renderer, and this gate is about paths. */
+export const stripFragment = (ref: string): string => ref.replace(/[#?].*$/, '');
+
 /** ARM A — explicitly relative refs outside fenced blocks. */
 export const relativeClaims = (text: string, docDir: string): Claim[] => {
   const out: Claim[] = [];
@@ -212,7 +221,10 @@ export const relativeClaims = (text: string, docDir: string): Claim[] => {
     for (const tok of tokensIn(line)) {
       if (!(tok.startsWith('../') || tok.startsWith('./'))) continue;
       if (!isPathClaim(tok)) continue;
-      const r = resolveWithin(docDir, tok);
+      const path = stripFragment(tok);
+      if (!path.includes('/')) continue; // the token was a bare fragment, not a path claim
+      const r = resolveWithin(docDir, path);
+      // `ref` keeps the anchor so the message quotes what the doc actually wrote.
       if (r !== null) out.push({ line: i + 1, ref: tok, resolved: r });
     }
   });

@@ -93,6 +93,25 @@ npm run lint:classes  -w @prism3/studio     # no unreviewed class-name collision
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins
+npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
+                                          # vitest it arrived with. The runner asserts a PER-FILE census
+                                          # against the pre-port vitest baseline, so a test quietly
+                                          # vanishing in a refactor fails here too — a total alone would
+                                          # let one file lose a test and another gain one
+npm run build     -w @prism3/tokenpress  # not just a build: build.mjs asserts four properties of what it
+                                          # WROTE — the __PLUGIN_VERSION__ stamp substituted (it is a bare
+                                          # identifier with no runtime declaration, so an absent define
+                                          # ships a plugin that throws on first export), the iife wrapper,
+                                          # 0 `node:` builtins, jszip's setImmediate shim. dist/ is
+                                          # gitignored, so a regression there is invisible to lint and to
+                                          # every source grep.
+                                          # There is deliberately NO typecheck step: TokenPress arrived
+                                          # without one and its tsconfig.json mis-wires
+                                          # @figma/plugin-typings via typeRoots, so tsc reports 232
+                                          # errors, almost all `Cannot find name 'figma'`. Identical
+                                          # count in the source repo — pre-existing, out of scope for the
+                                          # port. Don't add the step until the tsconfig is fixed, or you
+                                          # are only pinning 232 errors
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
                                           # characterization gate: pins each brand's mode collapse
                                           # (permanent, #609); asserts as a RULE that the conforming

@@ -1,0 +1,10 @@
+{
+  "source": ["tokens/shared/**/*.json", "tokens/wireframe/**/*.json"],
+  "platforms": {
+    "css": {
+      "transformGroup": "css",
+      "buildPath": "build/wireframe/",
+      "files": [{ "destination": "variables.css", "format": "css/variables" }]
+    }
+  }
+}

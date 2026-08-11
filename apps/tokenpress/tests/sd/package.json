@@ -1,0 +1,11 @@
+{
+  "name": "token-press-sd-test",
+  "version": "1.0.0",
+  "description": "Style Dictionary test for Token Press output",
+  "scripts": {
+    "build": "style-dictionary build"
+  },
+  "devDependencies": {
+    "style-dictionary": "^3.9.0"
+  }
+}

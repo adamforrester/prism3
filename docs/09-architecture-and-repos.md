@@ -68,7 +68,8 @@ prism3/                            (this repo — grows into the monorepo)
 │   └── tokens/                    the consumability gate (@prism3/tokens)
 ├── apps/
 │   ├── studio/                    the dashboard adapter (DOM/CSS host)
-│   └── plugin/                    the plugin adapter (Figma sandbox host)
+│   ├── plugin/                    the plugin adapter (Figma sandbox host)
+│   └── tokenpress/                the Figma -> DTCG exporter, ported in (@prism3/tokenpress)
 ├── docs/                          the numbered design record + superpowers/
 └── skills/                        shipped product skills (prism3-theme, prism3-consume)
 
@@ -77,9 +78,11 @@ knowledge-base/    own repo — the practice POV / reference    [reference]
 ```
 
 **Build boundary.** The "no build, run via `tsx`" invariant applies to the **core's dev
-loop** and stays intact. The **adapters** (`apps/studio/`, `apps/plugin/`) get a bundler for the
-first time — a browser/Figma bundle is a packaging step, not a port (`08 §2`). Keep the
-bundler at the adapter layer; the core is imported as source, never pre-built.
+loop** and stays intact. The **adapters** (`apps/studio/`, `apps/plugin/`, `apps/tokenpress/`) get a
+bundler for the first time — a browser/Figma bundle is a packaging step, not a port (`08 §2`). Keep
+the bundler at the adapter layer; the core is imported as source, never pre-built. **One** bundler,
+esbuild: `apps/tokenpress/` arrived with vite and was swapped on port, because two bundlers means two
+sets of target/define/shim behavior to keep in your head.
 
 ## 4. The owner's other tools: absorb / downstream / leave alone
 
@@ -91,7 +94,7 @@ they split by role:
 | **Theming plugin** (Figma) | themes a duplicated file's variables | **Absorb** into the new Prism3 plugin (B2) | when B2 reaches variable-theming parity |
 | **Text-style plugin** (Figma) | binds variables into text styles | **Absorb** into B2 | when B2 binds text styles |
 | **Style-guide generator** (Figma) | lays out **all tokens as frames on the Figma canvas** — canvas documentation, *not* HTML | **Absorb as a B2 feature** (a distinct canvas-render capability; the `visualize.ts` HTML preview does **not** cover it) — filed as **#259** (`lane:plugin` — the "absorb" language here means plugin code, not manual canvas craft) | when B2 can render token frames to canvas — **unblocked**, B2's write-executor machinery already ships |
-| **Token Press** (Figma; private, **different org**) | Figma → Style Dictionary / DTCG export | **Downstream, contract-connected** — consumes engine DTCG output; never shared code | after materialization works (Figma-MCP import unblocks testing it) |
+| **TokenPress** (Figma) | Figma → Style Dictionary / DTCG export | **Ported in** as `apps/tokenpress/` (`@prism3/tokenpress`) — superseding the "downstream, never shared code" call below; see the note after this table | done (the port); the shared-core question stays open |
 | **CLI templating system** | dupes component library, drops tokens/fonts → SD → Storybook | **Downstream consumer** via DTCG/SD | Layer-D component-library stage |
 
 Two principles behind the split:
@@ -100,9 +103,22 @@ Two principles behind the split:
   pulling their source in re-creates the drift we're eliminating. Rebuild their capability
   on the shared core inside B2. The consolidation is real: **three Figma plugins collapse
   into one** (`07 §5`).
-- **Connect downstream tools through the interchange contract, not the codebase.** Token
-  Press (different org) and the CLI templating system sit at the export/consume ends; they
-  read the engine's DTCG output. Integration = format conformance, not a merge.
+- **Connect downstream tools through the interchange contract, not the codebase.** The CLI
+  templating system sits at the consume end; it reads the engine's DTCG output. Integration =
+  format conformance, not a merge.
+
+**TokenPress is the exception, and it is worth saying why it does not break the rule above.**
+It was classified downstream on the assumption it lived in a different org. It does not — the
+same owner owns both, so the reason for keeping it at arm's length was never the reason stated.
+It is now `apps/tokenpress/`, ported in whole: copied unmodified first, then adapted only where
+it fought the monorepo (workspace name, one bundler, one test runner).
+
+What has *not* happened is the merge the principle warns about. TokenPress still has its own
+brain — its own DTCG emitter, its own alias resolution, its own mode handling, none of it shared
+with `packages/engine`. Living in the same repo has not made them one system; it has only made
+the duplication visible and measurable. Whether a shared export core is worth extracting is
+open, and answering it is the point of the portability measurement in the port PR. Being in the
+same tree is what makes that answerable; it is not itself the answer.
 
 ## 5. Sequencing & triggers
 

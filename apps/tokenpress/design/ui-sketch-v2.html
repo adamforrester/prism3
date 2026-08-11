@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Token Press — UI Sketch v2</title>
+<style>
+  :root {
+    /* Surfaces */
+    --bg-canvas: #0e0f12;
+    --bg-app: #15171c;
+    --bg-panel: #1b1e25;
+    --bg-panel-2: #20242c;
+    --bg-elevated: #262b35;
+    --bg-hover: #2c313c;
+
+    /* Borders */
+    --border-subtle: #262a33;
+    --border: #2f343f;
+    --border-strong: #3a4050;
+
+    /* Text */
+    --text: #e7eaf0;
+    --text-muted: #9aa1ad;
+    --text-faint: #6b7280;
+
+    /* Accent — Figma blue */
+    --brand: #0d99ff;
+    --brand-strong: #3aaeff;
+    --brand-soft: rgba(13, 153, 255, 0.12);
+    --brand-ring: rgba(13, 153, 255, 0.35);
+
+    /* Status */
+    --success: #4ade80;
+    --warn: #fbbf24;
+    --error: #f87171;
+    --info: #60a5fa;
+
+    /* Radii */
+    --r-sm: 6px;
+    --r-md: 10px;
+    --r-lg: 14px;
+
+    /* Typography */
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-canvas);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  .sketch-shell {
+    max-width: 1080px;
+    margin: 32px auto;
+    padding: 24px;
+  }
+  .sketch-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 16px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .sketch-meta strong { color: var(--text); font-size: 14px; }
+  .sketch-meta .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .sketch-meta .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+
+  .window {
+    width: 1080px;
+    height: 720px;
+    background: var(--bg-app);
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.04) inset,
+      0 30px 60px rgba(0,0,0,0.45),
+      0 12px 24px rgba(0,0,0,0.3);
+    display: grid;
+    grid-template-rows: 56px 1fr 56px;
+  }
+
+  /* ───────── Top bar ───────── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: var(--bg-app);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand .logo {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #0d99ff 0%, #0066cc 100%);
+    display: grid; place-items: center;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: 0 2px 12px rgba(13, 153, 255, 0.35);
+  }
+  .brand .name {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .brand .tag {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-left: 4px;
+  }
+
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .icon-btn {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .icon-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .step-tracker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .step .step-num {
+    width: 18px; height: 18px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: var(--bg-elevated);
+    color: var(--text-faint);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .step.done { color: var(--text); }
+  .step.done .step-num { background: var(--success); color: #0a2616; }
+  .step.active { color: var(--text); background: var(--brand-soft); }
+  .step.active .step-num { background: var(--brand); color: white; }
+  .step-divider { width: 18px; height: 1px; background: var(--border); }
+
+  /* ───────── Body ───────── */
+  .body {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    overflow: hidden;
+  }
+
+  .rail {
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .rail-section {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .rail-section:last-child { border-bottom: none; flex: 1; overflow-y: auto; }
+
+  .rail-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .rail-title h3 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .rail-title .count {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  .primary-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, var(--brand) 0%, #0a7ad1 100%);
+    color: white;
+    border: none;
+    border-radius: var(--r-md);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(13, 153, 255, 0.3);
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  .primary-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(13, 153, 255, 0.4);
+  }
+  .primary-action svg { width: 14px; height: 14px; }
+
+  .primary-action.success {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.3);
+  }
+
+  .collection-list { display: flex; flex-direction: column; gap: 6px; }
+  .collection {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .collection:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border);
+  }
+  .collection.selected {
+    background: var(--brand-soft);
+    border-color: var(--brand);
+  }
+  .collection .col-info { flex: 1; min-width: 0; }
+  .collection .col-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .collection .col-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 8px;
+  }
+  .collection .col-check {
+    width: 18px; height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--bg-app);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .collection.selected .col-check {
+    background: var(--brand);
+    border-color: var(--brand);
+  }
+  .collection.selected .col-check svg { width: 12px; height: 12px; color: white; }
+  .collection:not(.selected) .col-check svg { display: none; }
+
+  .scan-status {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+  }
+  .scan-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 12px;
+  }
+  .scan-stat + .scan-stat { border-top: 1px dashed var(--border-subtle); }
+  .scan-stat .label { color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .scan-stat .value { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+  .scan-stat .value.success { color: var(--success); }
+  .scan-stat .value.warn { color: var(--warn); }
+
+  .validation-inline {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: var(--r-sm);
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .validation-inline:hover { background: rgba(251, 191, 36, 0.14); }
+  .validation-inline svg { color: var(--warn); flex-shrink: 0; }
+  .validation-inline .arrow { margin-left: auto; color: var(--text-muted); }
+
+  /* ───────── Main panel ───────── */
+  .main {
+    overflow-y: auto;
+    padding: 24px 28px;
+    background: var(--bg-app);
+  }
+
+  .main-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .main-header .titles h2 {
+    margin: 0 0 6px 0;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .main-header .titles p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .preset-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    margin-bottom: 24px;
+  }
+  .preset-row .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-right: 6px;
+  }
+  .preset-btn {
+    padding: 7px 14px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .preset-btn:hover {
+    background: var(--bg-elevated);
+    border-color: var(--border-strong);
+  }
+  .preset-btn.primary-soft {
+    background: var(--brand-soft);
+    border-color: var(--brand-ring);
+    color: var(--brand-strong);
+  }
+  .preset-btn.primary-soft:hover {
+    background: rgba(13, 153, 255, 0.18);
+  }
+  .preset-feedback {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--success);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .preset-feedback.visible { opacity: 1; }
+
+  /* Settings */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .setting-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    transition: border-color 0.15s ease;
+  }
+  .setting-card:hover { border-color: var(--border); }
+  .setting-card .label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .setting-card .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .setting-card .hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .setting-card .control { width: 100%; }
+
+  .select-wrap { position: relative; }
+  select, .text-input {
+    appearance: none;
+    width: 100%;
+    padding: 9px 12px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  select { padding-right: 32px; }
+  .text-input { cursor: text; font-family: var(--mono); font-size: 12px; }
+  .text-input::placeholder { color: var(--text-faint); font-family: var(--mono); }
+  select:hover, .text-input:hover { border-color: var(--border-strong); }
+  select:focus, .text-input:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--brand-ring);
+  }
+  .select-wrap::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    width: 8px; height: 8px;
+    border-right: 1.5px solid var(--text-muted);
+    border-bottom: 1.5px solid var(--text-muted);
+    transform: translateY(-65%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 16px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--r-md);
+    cursor: pointer;
+  }
+  .toggle-row + .toggle-row { margin-top: 8px; }
+  .toggle-row .copy { flex: 1; }
+  .toggle-row .toggle-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    display: block;
+  }
+  .toggle-row .toggle-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+  .switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    transition: all 0.18s ease;
+  }
+  .switch.on { background: var(--brand); border-color: var(--brand); }
+  .switch.on::after { left: 18px; background: white; }
+
+  /* Format chips (multi-select for additional formats) */
+  .format-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .chip:hover { background: var(--bg-elevated); color: var(--text); border-color: var(--border-strong); }
+  .chip.on {
+    background: var(--brand-soft);
+    border-color: var(--brand);
+    color: var(--brand-strong);
+  }
+  .chip .chip-check {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1.5px solid var(--border-strong);
+    background: var(--bg-app);
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+  .chip.on .chip-check { background: var(--brand); border-color: var(--brand); }
+  .chip:not(.on) .chip-check svg { display: none; }
+  .chip .chip-check svg { width: 9px; height: 9px; color: white; }
+  .chip .chip-locked {
+    width: 14px; height: 14px;
+    color: var(--text-faint);
+  }
+
+  /* Section headings */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 24px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-faint);
+  }
+
+  /* Footer */
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: var(--bg-app);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .footer-stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .footer-stats .stat { display: flex; align-items: center; gap: 6px; }
+  .footer-stats .stat strong { color: var(--text); font-weight: 600; }
+
+  .footer-actions { display: flex; align-items: center; gap: 8px; }
+
+  .btn-export {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: linear-gradient(135deg, var(--brand) 0%, #0a7ad1 100%);
+    border: none;
+    border-radius: var(--r-sm);
+    color: white;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(13, 153, 255, 0.3);
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+  }
+  .btn-export:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(13, 153, 255, 0.4);
+  }
+  .btn-export svg { width: 14px; height: 14px; }
+
+  .notes {
+    margin: 32px auto 64px;
+    max-width: 1080px;
+    padding: 24px 28px;
+    background: var(--bg-app);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+  }
+  .notes h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; }
+  .notes ul { margin: 0; padding-left: 18px; color: var(--text-muted); font-size: 13px; }
+  .notes ul li { margin-bottom: 6px; }
+  .notes code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--bg-panel);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+<div class="sketch-shell">
+  <div class="sketch-meta">
+    <div>
+      <strong>Token Press — UI Sketch v2</strong>
+      <span style="margin-left:10px">1080 × 720 · Figma blue · trimmed to current feature set</span>
+    </div>
+    <div class="pill"><span class="dot"></span>Mockup only · no functionality wired</div>
+  </div>
+
+  <div class="window">
+
+    <!-- ───────── TOP BAR ───────── -->
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">⌘</div>
+        <div>
+          <div class="name">Token Press <span class="tag">v1.7</span></div>
+        </div>
+      </div>
+
+      <div class="step-tracker">
+        <div class="step done">
+          <div class="step-num">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          Scan
+        </div>
+        <div class="step-divider"></div>
+        <div class="step done">
+          <div class="step-num">
+            <svg width="10" height="10" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          Validate
+        </div>
+        <div class="step-divider"></div>
+        <div class="step active">
+          <div class="step-num">3</div>
+          Configure
+        </div>
+        <div class="step-divider"></div>
+        <div class="step">
+          <div class="step-num">4</div>
+          Export
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="icon-btn" title="Help">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ───────── BODY ───────── -->
+    <div class="body">
+
+      <!-- LEFT RAIL -->
+      <div class="rail">
+
+        <div class="rail-section">
+          <div class="rail-title">
+            <h3>Source</h3>
+          </div>
+          <button class="primary-action success" id="scan-btn">
+            <svg viewBox="0 0 16 16" fill="none">
+              <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Re-scan file
+          </button>
+
+          <div class="scan-status">
+            <div class="scan-stat">
+              <span class="label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM12 8v8M8 12h8"/></svg>
+                Variables
+              </span>
+              <span class="value">847</span>
+            </div>
+            <div class="scan-stat">
+              <span class="label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7l8-5 8 5v10l-8 5-8-5V7z"/></svg>
+                Text styles
+              </span>
+              <span class="value">42</span>
+            </div>
+            <div class="scan-stat">
+              <span class="label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+                Effect styles
+              </span>
+              <span class="value">12</span>
+            </div>
+          </div>
+
+          <div class="validation-inline">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span><strong>3 warnings</strong> — review before export</span>
+            <svg class="arrow" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l4 4-4 4"/></svg>
+          </div>
+        </div>
+
+        <div class="rail-section">
+          <div class="rail-title">
+            <h3>Collections</h3>
+            <span class="count">5 of 6</span>
+          </div>
+
+          <div class="collection-list">
+            <div class="collection selected">
+              <div class="col-info">
+                <div class="col-name">Primitives</div>
+                <div class="col-meta"><span>312 vars</span></div>
+              </div>
+              <div class="col-check">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+
+            <div class="collection selected">
+              <div class="col-info">
+                <div class="col-name">Brand Theme</div>
+                <div class="col-meta"><span>184 vars</span></div>
+              </div>
+              <div class="col-check">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+
+            <div class="collection selected">
+              <div class="col-info">
+                <div class="col-name">Spacing &amp; Sizing</div>
+                <div class="col-meta"><span>96 vars</span></div>
+              </div>
+              <div class="col-check">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+
+            <div class="collection selected">
+              <div class="col-info">
+                <div class="col-name">Typography</div>
+                <div class="col-meta"><span>74 vars</span></div>
+              </div>
+              <div class="col-check">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+
+            <div class="collection selected">
+              <div class="col-info">
+                <div class="col-name">Motion</div>
+                <div class="col-meta"><span>32 vars</span></div>
+              </div>
+              <div class="col-check">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+
+            <div class="collection">
+              <div class="col-info">
+                <div class="col-name">Legacy (deprecated)</div>
+                <div class="col-meta"><span>149 vars</span></div>
+              </div>
+              <div class="col-check">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN PANEL -->
+      <div class="main">
+
+        <div class="main-header">
+          <div class="titles">
+            <h2>Configure your export</h2>
+            <p>Choose a preset or fine-tune individual options. Settings are remembered between sessions.</p>
+          </div>
+        </div>
+
+        <!-- Preset row -->
+        <div class="preset-row">
+          <span class="label">Quick presets:</span>
+          <button class="preset-btn primary-soft" id="dtcg-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 8l3.5 3.5L13 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            DTCG defaults
+          </button>
+          <button class="preset-btn" id="sd-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6"/></svg>
+            Style Dictionary
+          </button>
+          <span class="preset-feedback" id="preset-feedback">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 8l3.5 3.5L13 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="fb-text">Applied</span>
+          </span>
+        </div>
+
+        <!-- Format section -->
+        <div class="section-title">Output format</div>
+        <div class="settings-grid">
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Color format</span></div>
+            <div class="hint">Object form follows the DTCG spec; hex/rgba are friendlier for tooling.</div>
+            <div class="control select-wrap">
+              <select>
+                <option>DTCG object — { colorSpace, components }</option>
+                <option>Hex (#rrggbb)</option>
+                <option>rgba()</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Color space</span></div>
+            <div class="hint">sRGB is widest support; HSL is human-readable.</div>
+            <div class="control select-wrap">
+              <select>
+                <option>sRGB</option>
+                <option>HSL</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Units</span></div>
+            <div class="hint">Default unit for unitless dimensions in Figma.</div>
+            <div class="control select-wrap">
+              <select>
+                <option>Pixels (px)</option>
+                <option>Root em (rem)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Namespace / prefix <span style="color:var(--text-faint);font-weight:400">(optional)</span></span></div>
+            <div class="hint">Prefix every token path, e.g. <code style="background:var(--bg-panel-2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">pds.color.primary</code>.</div>
+            <div class="control">
+              <input type="text" class="text-input" placeholder="e.g. pds" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Dimension shape -->
+        <div class="section-title">Dimension &amp; typography shape</div>
+        <div class="settings-grid">
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Dimension format</span></div>
+            <div class="hint">DTCG spec object form, or string for Style Dictionary compatibility.</div>
+            <div class="control select-wrap">
+              <select>
+                <option>Object — { value: 16, unit: "px" } (DTCG)</option>
+                <option>String — "16px" (Style Dictionary)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Letter spacing format</span></div>
+            <div class="hint">Percent values are always strings regardless of this setting.</div>
+            <div class="control select-wrap">
+              <select>
+                <option>Object — { value, unit }</option>
+                <option>String — "0.5px"</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Letter spacing units</span></div>
+            <div class="hint">Pixels (CSS-friendly) or em (typography-friendly).</div>
+            <div class="control select-wrap">
+              <select>
+                <option>Pixels (px)</option>
+                <option>Em</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <div class="label-row"><span class="label">Line height output</span></div>
+            <div class="hint">Ratio is unitless and scales with font-size.</div>
+            <div class="control select-wrap">
+              <select>
+                <option>Ratio (unitless)</option>
+                <option>Pixels (px)</option>
+                <option>Percent</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Behavior toggles -->
+        <div class="section-title">Behavior</div>
+
+        <div class="toggle-row" data-toggle>
+          <div class="copy">
+            <span class="toggle-label">Emit DTCG keys (<code style="background:var(--bg-panel-2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$type</code>, <code style="background:var(--bg-panel-2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$value</code>)</span>
+            <span class="toggle-hint">Required for DTCG-spec compliance. Turn off only if your tooling expects a flatter shape.</span>
+          </div>
+          <div class="switch on"></div>
+        </div>
+
+        <div class="toggle-row" data-toggle>
+          <div class="copy">
+            <span class="toggle-label">Include <code style="background:var(--bg-panel-2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$extensions.figma</code> metadata</span>
+            <span class="toggle-hint">Adds Figma-specific metadata (variable IDs, scopes, etc.) under <code style="background:var(--bg-panel-2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px">$extensions</code>.</span>
+          </div>
+          <div class="switch on"></div>
+        </div>
+
+        <!-- Additional formats -->
+        <div class="section-title">Additional export formats</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">
+          DTCG JSON is always exported. Add other formats alongside it.
+        </div>
+        <div class="format-chips">
+          <div class="chip on" style="cursor:default">
+            <svg class="chip-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            DTCG JSON <span style="color:var(--text-faint);font-size:11px;margin-left:2px">(always on)</span>
+          </div>
+          <div class="chip on" data-chip>
+            <div class="chip-check"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            CSS custom properties
+          </div>
+          <div class="chip" data-chip>
+            <div class="chip-check"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            SCSS variables <span style="color:var(--text-faint);font-size:11px;margin-left:2px">(coming soon)</span>
+          </div>
+          <div class="chip" data-chip>
+            <div class="chip-check"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            Raw Figma JSON
+          </div>
+          <div class="chip" data-chip>
+            <div class="chip-check"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8l3.5 3.5L13 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            Dot-notation .txt
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ───────── FOOTER ───────── -->
+    <div class="footer">
+      <div class="footer-stats">
+        <span class="stat"><strong>698</strong> tokens ready</span>
+        <span style="color:var(--text-faint)">·</span>
+        <span class="stat"><strong>4</strong> files</span>
+      </div>
+      <div class="footer-actions">
+        <button class="btn-export">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export tokens
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sketch annotations -->
+<div class="notes">
+  <h3>Changes from v1 sketch</h3>
+  <ul>
+    <li><strong>Accent shifted to Figma blue</strong> (<code>#0D99FF</code>) — buttons, toggles-on, focus rings, active step.</li>
+    <li><strong>Removed:</strong> Live JSON preview pane, "Copy to clipboard" button, top-right Settings cog (no global settings yet), "Compile composite tokens" toggle (always on, not user-configurable), "Resolve aliases to raw values" toggle (not yet a feature).</li>
+    <li><strong>Added:</strong> Namespace / prefix text input (was missing in v1), additional-format chips for CSS / raw / dot-notation (these are additive, not mutually exclusive).</li>
+    <li><strong>Validation</strong> moved from inline strip in the main panel to a smaller chip in the left rail — out of the way, still discoverable.</li>
+    <li><strong>Mode counts</strong> dropped from collection meta to keep cards tidier.</li>
+  </ul>
+  <h3 style="margin-top:20px">Maps to current options 1:1</h3>
+  <ul>
+    <li>Color format / color space / units / line height output / letter spacing units / dimension format / letter spacing format → setting cards</li>
+    <li>Namespace → text input</li>
+    <li>Include <code>$extensions.figma</code>, Emit DTCG keys → toggles</li>
+    <li>CSS / raw / dot-notation → format chips (DTCG always on)</li>
+    <li>SD / DTCG presets → Quick presets row (current button pair, just visually refreshed)</li>
+  </ul>
+</div>
+
+<script>
+  document.querySelectorAll('[data-toggle]').forEach(row => {
+    row.addEventListener('click', () => {
+      row.querySelector('.switch').classList.toggle('on');
+    });
+  });
+
+  document.querySelectorAll('[data-chip]').forEach(c => {
+    c.addEventListener('click', () => c.classList.toggle('on'));
+  });
+
+  document.querySelectorAll('.collection').forEach(c => {
+    c.addEventListener('click', () => c.classList.toggle('selected'));
+  });
+
+  function flashFeedback(text) {
+    const fb = document.getElementById('preset-feedback');
+    fb.querySelector('.fb-text').textContent = text;
+    fb.classList.add('visible');
+    clearTimeout(window._fb);
+    window._fb = setTimeout(() => fb.classList.remove('visible'), 1500);
+  }
+  document.getElementById('sd-btn').addEventListener('click', () => flashFeedback('SD preset applied'));
+  document.getElementById('dtcg-btn').addEventListener('click', () => flashFeedback('DTCG defaults restored'));
+</script>
+
+</body>
+</html>

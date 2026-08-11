@@ -5,4 +5,5 @@ node_modules/
 apps/studio/dist/
 apps/studio/public/
 apps/plugin/dist/
+apps/tokenpress/dist/
 packages/tokens/build/

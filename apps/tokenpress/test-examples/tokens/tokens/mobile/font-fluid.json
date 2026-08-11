@@ -1,0 +1,214 @@
+{
+  "nbds": {
+    "font-fluid": {
+      "display": {
+        "sm": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 36,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:42",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "md": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 40,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:43",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "lg": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 40,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:44",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "xl": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 48,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:45",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "2xl": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 48,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:46",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "3xl": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 48,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:47",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        }
+      },
+      "title": {
+        "md": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 20,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:48",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "lg": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 24,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:49",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "xl": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 28,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:50",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        },
+        "2xl": {
+          "strong": {
+            "$type": "dimension",
+            "$value": {
+              "value": 36,
+              "unit": "px"
+            },
+            "$extensions": {
+              "figma": {
+                "variableId": "VariableID:6:51",
+                "collection": "VariableCollectionId:6:41",
+                "scopes": [
+                  "FONT_SIZE"
+                ],
+                "codeSyntax": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$extensions": {
+    "generator": {
+      "name": "Token Press",
+      "version": "3.0.0"
+    },
+    "figma": {
+      "collection": {
+        "id": "VariableCollectionId:6:41",
+        "name": "font-fluid",
+        "defaultModeId": "6:1"
+      },
+      "mode": "mobile"
+    }
+  }
+}

@@ -1,0 +1,797 @@
+{
+  "nbds": {
+    "dimension": {
+      "0": {
+        "$type": "dimension",
+        "$value": {
+          "value": 0,
+          "unit": "px"
+        },
+        "$description": "0px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:73",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "1": {
+        "$type": "dimension",
+        "$value": {
+          "value": 1,
+          "unit": "px"
+        },
+        "$description": "1px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:74",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "2": {
+        "$type": "dimension",
+        "$value": {
+          "value": 2,
+          "unit": "px"
+        },
+        "$description": "2px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:75",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "4": {
+        "$type": "dimension",
+        "$value": {
+          "value": 4,
+          "unit": "px"
+        },
+        "$description": "4px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:76",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "6": {
+        "$type": "dimension",
+        "$value": {
+          "value": 6,
+          "unit": "px"
+        },
+        "$description": "6px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:77",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "8": {
+        "$type": "dimension",
+        "$value": {
+          "value": 8,
+          "unit": "px"
+        },
+        "$description": "8px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:78",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "12": {
+        "$type": "dimension",
+        "$value": {
+          "value": 12,
+          "unit": "px"
+        },
+        "$description": "12px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:79",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "16": {
+        "$type": "dimension",
+        "$value": {
+          "value": 16,
+          "unit": "px"
+        },
+        "$description": "16px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:80",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "20": {
+        "$type": "dimension",
+        "$value": {
+          "value": 20,
+          "unit": "px"
+        },
+        "$description": "20px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:81",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "24": {
+        "$type": "dimension",
+        "$value": {
+          "value": 24,
+          "unit": "px"
+        },
+        "$description": "24px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:82",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "28": {
+        "$type": "dimension",
+        "$value": {
+          "value": 28,
+          "unit": "px"
+        },
+        "$description": "28px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:83",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "32": {
+        "$type": "dimension",
+        "$value": {
+          "value": 32,
+          "unit": "px"
+        },
+        "$description": "32px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:84",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "36": {
+        "$type": "dimension",
+        "$value": {
+          "value": 36,
+          "unit": "px"
+        },
+        "$description": "36px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:85",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "40": {
+        "$type": "dimension",
+        "$value": {
+          "value": 40,
+          "unit": "px"
+        },
+        "$description": "40px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:86",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "44": {
+        "$type": "dimension",
+        "$value": {
+          "value": 44,
+          "unit": "px"
+        },
+        "$description": "44px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:87",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "48": {
+        "$type": "dimension",
+        "$value": {
+          "value": 48,
+          "unit": "px"
+        },
+        "$description": "48px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:88",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "52": {
+        "$type": "dimension",
+        "$value": {
+          "value": 52,
+          "unit": "px"
+        },
+        "$description": "52px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:89",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "56": {
+        "$type": "dimension",
+        "$value": {
+          "value": 56,
+          "unit": "px"
+        },
+        "$description": "56px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:90",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "60": {
+        "$type": "dimension",
+        "$value": {
+          "value": 60,
+          "unit": "px"
+        },
+        "$description": "60px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:91",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "64": {
+        "$type": "dimension",
+        "$value": {
+          "value": 64,
+          "unit": "px"
+        },
+        "$description": "64px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:92",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "68": {
+        "$type": "dimension",
+        "$value": {
+          "value": 68,
+          "unit": "px"
+        },
+        "$description": "68px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:93",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "72": {
+        "$type": "dimension",
+        "$value": {
+          "value": 72,
+          "unit": "px"
+        },
+        "$description": "72px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:94",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "76": {
+        "$type": "dimension",
+        "$value": {
+          "value": 76,
+          "unit": "px"
+        },
+        "$description": "76px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:95",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "80": {
+        "$type": "dimension",
+        "$value": {
+          "value": 80,
+          "unit": "px"
+        },
+        "$description": "80px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:96",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "84": {
+        "$type": "dimension",
+        "$value": {
+          "value": 84,
+          "unit": "px"
+        },
+        "$description": "84px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:97",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "88": {
+        "$type": "dimension",
+        "$value": {
+          "value": 88,
+          "unit": "px"
+        },
+        "$description": "88px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:98",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "92": {
+        "$type": "dimension",
+        "$value": {
+          "value": 92,
+          "unit": "px"
+        },
+        "$description": "92px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:99",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "96": {
+        "$type": "dimension",
+        "$value": {
+          "value": 96,
+          "unit": "px"
+        },
+        "$description": "96px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:100",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "100": {
+        "$type": "dimension",
+        "$value": {
+          "value": 100,
+          "unit": "px"
+        },
+        "$description": "100px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:101",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "104": {
+        "$type": "dimension",
+        "$value": {
+          "value": 104,
+          "unit": "px"
+        },
+        "$description": "104px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:102",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "108": {
+        "$type": "dimension",
+        "$value": {
+          "value": 108,
+          "unit": "px"
+        },
+        "$description": "108px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:103",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "112": {
+        "$type": "dimension",
+        "$value": {
+          "value": 112,
+          "unit": "px"
+        },
+        "$description": "112px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:104",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "116": {
+        "$type": "dimension",
+        "$value": {
+          "value": 116,
+          "unit": "px"
+        },
+        "$description": "116px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:105",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "120": {
+        "$type": "dimension",
+        "$value": {
+          "value": 120,
+          "unit": "px"
+        },
+        "$description": "120px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:106",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "124": {
+        "$type": "dimension",
+        "$value": {
+          "value": 124,
+          "unit": "px"
+        },
+        "$description": "124px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:107",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "128": {
+        "$type": "dimension",
+        "$value": {
+          "value": 128,
+          "unit": "px"
+        },
+        "$description": "128px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:108",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      },
+      "720": {
+        "$type": "dimension",
+        "$value": {
+          "value": 720,
+          "unit": "px"
+        },
+        "$description": "720px — dimension primitive",
+        "$extensions": {
+          "figma": {
+            "variableId": "VariableID:20:109",
+            "collection": "VariableCollectionId:20:72",
+            "scopes": [
+              "CORNER_RADIUS",
+              "WIDTH_HEIGHT",
+              "GAP",
+              "STROKE_FLOAT"
+            ],
+            "codeSyntax": {}
+          }
+        }
+      }
+    }
+  },
+  "$extensions": {
+    "generator": {
+      "name": "Token Press",
+      "version": "3.0.0"
+    },
+    "figma": {
+      "collection": {
+        "id": "VariableCollectionId:20:72",
+        "name": "dimension",
+        "defaultModeId": "20:0"
+      },
+      "mode": "Default"
+    }
+  }
+}
