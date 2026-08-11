@@ -7,6 +7,70 @@
 
 ---
 
+## (2026-08-11) — A capture harness for the block corpus, and two defects its own fixtures caught
+
+**STATUS: shipped.** New `tools/block-capture/` — `capture.ts`, two fixtures, a `--self-check`, a
+README. No engine change, no emitted artifact, no gate touched, not wired into CI (it is a `tools/`
+harness: it answers a question, it does not assert an answer).
+
+**Why it exists.** `37` §4 records two limits on the block corpus: the gated libraries render
+client-side so an anonymous fetch lands on an error state, and **a screenshot is layout-only by
+construction** — no landmark structure, no slot inventory. A live DOM lifts both. So the capture
+output is one JSON row per variant (geometry, surface luminance, heading levels, landmark list,
+media kind and position, action counts, list count, alignment) plus a screenshot for the visual read.
+
+**Playwright does not work in this container and that is worth knowing before someone retries it.**
+Chromium is preinstalled, the version pin needs an `executablePath` override, and then every external
+navigation fails `ERR_CONNECTION_RESET` — with the agent proxy, without it, and with `--no-sandbox` —
+while `curl` to the same URL returns 200. **The related trap: WebFetch is server-side, so its
+successes say nothing about this container's network.** I had been treating "I can read daisyUI" and
+"a browser here can read daisyUI" as one claim. They were never the same claim. The harness therefore
+runs on a workstation, which is where the sessions are anyway.
+
+**The structure-only record is a property of the tool, not a rule to remember.** It captures counts,
+geometry, roles and heading *levels*, and never touches `innerHTML` or `textContent`, so its output
+**cannot** become a copy of a licensed component library. Two of these libraries are paid products;
+the taxonomy we derive by observing them is ours, their source is not. `out/` is gitignored for the
+same reason. If someone extends this file, that is the line to keep.
+
+**Verified against fixtures, and the fixtures immediately earned themselves — twice.** Running is not
+evidence: the probe's failure mode is **a plausible number about the wrong thing**, which produces a
+corpus worse than no corpus. Two defects, neither visible by reading the output:
+
+1. **`querySelectorAll` never returns the element it is called on**, so the section under test — the
+   one that actually carries the landmark — was excluded from its own landmark count. A named
+   `<section>` reported **0**, in the field whose entire purpose is the don't-over-landmark contract.
+   Undercounting by exactly one per section is the worst available error there.
+2. **`rgba(0, 0, 0, 0)` parses to three zeros and reads as black**, so luminance distance from a white
+   surface was maximal and *every transparent (ghost) action counted as filled*. Fixture A reported
+   `filled: 2` where one action has a background.
+
+**Both mutation-confirmed by name**, per `34`: revert the landmark fix → `landmarks: got 0, expected 1`
+on both fixtures plus `named: got false`; revert the alpha fix → `filled: got 2, expected 1`. Restored,
+green.
+
+**The fixtures are deliberately ours rather than captured pages**, and that is the whole design. A
+captured page holds no independent answer for what it *ought* to classify as, so checking the probe
+against one would compare it with itself and report that as a pass — `34`'s shape exactly. The README
+says to add a fixture whenever a measurement is added.
+
+**One tsx-specific trap, documented in the file because the error points at the wrong thing.** tsx
+compiles with esbuild's keep-names, which wraps functions in a `__name` helper that does not exist in
+the browser — so a probe sent through `page.evaluate` dies with `ReferenceError: __name is not
+defined`, which reads as a page problem rather than a build one. Fixed with an `addInitScript` passed
+as a **raw string**, so tsx never compiles that line either.
+
+**Also sharpened from real use:** the first failure message blamed headless blocking for everything.
+When all rows fail it now distinguishes a navigation failure (site or network) from a post-navigation
+one (*"the probe is broken, not the site — fix that before re-running fifty URLs"*), because those
+look identical from the outside and only one is worth retrying with `--headed`.
+
+**Trap for whoever runs this:** without a `selector` the probe takes the largest `<section>`/`<main>`
+child. **Check one row before trusting a run of fifty** — a wrong root produces confident numbers about
+the wrong element, and nothing in the output looks unusual.
+
+---
+
 ## (2026-08-11) — TokenPress typechecks against real Figma typings: 266 → 35, and the wiring was the whole gate (#706)
 
 **STATUS: PR open. No CI step yet — deliberately.** `apps/tokenpress/tsconfig.json` rewired; 86 real errors
