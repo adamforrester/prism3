@@ -131,6 +131,30 @@ type ShimOpts = {
    *  while handing control away — which is the very thing being distinguished. Opt-in per run, so only
    *  the one block below pays for it. */
   burn?: { setup?: number; combine?: number };
+  /**
+   * A CALL COUNTER ON THE HOST BOUNDARY — every subtree `findOne` a node actually receives (#701).
+   *
+   * THE ORACLE FOR `refsSearched`, and it has to be observed out here rather than read off the result,
+   * for the reason `docs/34` names and `yieldCalls` below already demonstrates: a counter incremented by
+   * the code under test is not an independent witness of that code's behavior. `refsRetained` /
+   * `refsKnownAbsent` / `refsSearched` are bookkeeping on WHICH BRANCH THE EXECUTOR BELIEVES IT TOOK; this
+   * is a record of WHAT THE HOST WAS ACTUALLY ASKED. They coincide in correct code and nothing structural
+   * forces them to — the increment and the lookup are two independent statements inside one `if`.
+   *
+   * MEASURED, not hypothesized. Changing only `node = kept` to `node = member.findOne(...)` INSIDE the
+   * `builtFor` branch — leaving every increment untouched, so the map still populates and still decides
+   * which counter moves — passed all 133 assertions of this suite including `r1.refsSearched === 0`, while
+   * the wire loop hit the scenegraph on every one of its 63 lookups. Host calls on the first run: 42
+   * clean, 105 mutated. The fix was completely inert, at full cold cost, and the counters actively vouched
+   * for it — a worse failure mode than an honest miss.
+   *
+   * SCOPE: `mkNode`'s `findOne`, which is the descendant search the ~24ms cost was measured on and the only
+   * population the #701 claim is about. `currentPage.findOne` (the once-per-run lookup for the set itself)
+   * is a different closure and deliberately outside this count — it is one call, not 63.
+   *
+   * Opt-in per run, so only the block that asserts on it pays the increment.
+   */
+  hostSearches?: { n: number };
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -257,7 +281,14 @@ const makeShim = (opts: ShimOpts = {}) => {
         walk(node);
         return pred ? all.filter(pred) : all;
       },
-      findOne(pred: (n: unknown) => boolean) { return (node.findAll as (p?: unknown) => Node[])(pred)[0] ?? null; },
+      // COUNTED AT THE HOST BOUNDARY, and that is the whole point of the counter rather than a
+      // convenience (#701). The executor reports `refsSearched` from the branch it *believes* it took;
+      // this records the calls Figma *actually received*. Two independent facts, so an assertion can hold
+      // them against each other — see `hostSearches` in `ShimOpts` for the mutation that made it necessary.
+      findOne(pred: (n: unknown) => boolean) {
+        if (opts.hostSearches) opts.hostSearches.n++;
+        return (node.findAll as (p?: unknown) => Node[])(pred)[0] ?? null;
+      },
     };
     return node;
   };
@@ -515,7 +546,18 @@ ok(planSetProperties(grid).length > 0, `the plans derive component properties ($
 const page: Page = { children: [] };
 let r1Threw = '';
 let r1!: Awaited<ReturnType<typeof run>>;
-try { r1 = await run(grid, { ...full(), page }); } catch (e) { r1Threw = (e as Error).message; }
+// The host-boundary counter for #701's route assertions. ONE counter across both runs, read by snapshot,
+// and that is forced rather than chosen: the second run appends into the set the FIRST run built, so its
+// members are nodes `r1`'s shim created and their `findOne` closes over `r1`'s counter. A fresh counter
+// handed to the second run would sit at 0 no matter what that run did — vacuous, and it would read as
+// "zero searches" precisely when the searching route is the one under test. Measured: 0 while the executor
+// reported 63. So it is installed once, before the run it first measures, and each phase takes a delta.
+const hostFinds = { n: 0 };
+try { r1 = await run(grid, { ...full(), page, hostSearches: hostFinds }); } catch (e) { r1Threw = (e as Error).message; }
+// SNAPSHOT IMMEDIATELY, before any assertion helper walks the tree: `partOf` below uses `findAll`, not
+// `findOne`, so it does not perturb this — but a later helper that reached for `findOne` would silently
+// inflate the figure, and the delta would be attributed to the executor.
+const hostAfterR1 = hostFinds.n;
 ok(r1Threw === '', `the fully-resolved run COMPLETES rather than throwing${r1Threw ? ` — ${r1Threw.slice(0, 110)}` : ''}`);
 if (r1Threw) {
   console.error('\n  (every assertion below depends on that run, so the suite stops here)');
@@ -638,7 +680,8 @@ const positions = new Set(members.map((m) => `${m.x},${m.y}`));
 ok(positions.size === members.length, `no two members share a position (${positions.size}/${members.length} distinct)`);
 
 // ---- IDEMPOTENCY: a designer presses the button twice ---------------------------------------
-const r2 = await run(grid, { ...full(), page });
+const r2 = await run(grid, { ...full(), page, hostSearches: hostFinds });
+const hostInR2 = hostFinds.n - hostAfterR1;   // the second run's own host calls, by delta
 ok(page.children.length === 1, `a second run appends into the SAME set rather than combining a second one beside it (${page.children.length} node on the page)`);
 ok(r2.variants === 21 && r2.added === 0, `second run adds 0 and leaves 21 (added=${r2.added}, variants=${r2.variants})`);
 ok(r2.misses.length === 21 && r2.misses.every((m) => m.includes('ALREADY PRESENT')),
@@ -752,6 +795,41 @@ ok(r2.refs === r1.refs && r2.wiredMembers === r1.wiredMembers,
 // A retained-reference read-back would assert our own variable and pass regardless.
 ok(r1.misses.length === 0 && r2.misses.filter((m) => !m.includes('ALREADY PRESENT')).length === 0,
   'the independent read-back agrees with every retained-path write — no DISCARDED reference on either run');
+
+// ---- THE HOST BOUNDARY: what Figma was ACTUALLY asked, not what the executor believes it asked -------
+// EVERY ASSERTION ABOVE READS COUNTERS THE SUBJECT INCREMENTS ITSELF, and that is not enough. The three
+// counters and the lookup are two independent statements inside one `if`:
+//
+//     if (builtFor) { node = kept;                 if (kept) refsRetained++; else refsKnownAbsent++; }
+//     else          { node = member.findOne(...);  refsSearched++; }
+//
+// so they are free to drift apart. Changing ONLY `node = kept` to `node = member.findOne(...)` — inside the
+// `builtFor` branch, every increment untouched, the map still populated and still deciding which counter
+// moves — is a version of this fix that is completely INERT: it pays the full ~46s cold cost, reports
+// "ZERO searches" in the live `[prism3 #701]` line, and passed every one of the 133 assertions above.
+// Verified as a mutation. That is worse than an honest miss, because the counters actively vouch for a fix
+// that is not happening. `docs/34`: an oracle sharing its subject cannot disagree with it.
+//
+// So this counts calls the HOST received. The two numbers now have independent sources — one from the
+// branch the code took, one from the shim's own `findOne` — and are asserted to agree.
+//
+// THE READ-BACK LOOP SEARCHES BY DESIGN (deliberately, see above), so a bare total proves nothing: it
+// would be satisfied by a wire loop that searched everything and a read-back that searched nothing. The
+// expected figure is therefore decomposed by loop, and each term is derived from the plans rather than from
+// the result: the read-back re-finds exactly the references it WROTE (`r1.refs`), and the wire loop must
+// add nothing on a cold run.
+ok(hostAfterR1 === r1.refs + r1.refsSearched,
+  `the host received exactly ${r1.refs} subtree searches on the cold run — one per reference the read-back verifies, and NOT ONE from the wire loop (${hostAfterR1} actual vs ${r1.refs} read-back + ${r1.refsSearched} reported wire)`);
+// AND THE CONVERSE RUN, which is what makes the assertion above falsifiable rather than a coincidence of
+// small numbers: the re-run has no map, so its wire loop really does search all 63, and the host must see
+// those 63 ON TOP of the read-back's. A `refsSearched` that under-reported would fail here, not above.
+ok(hostInR2 === r2.refs + r2.refsSearched && r2.refsSearched === wantLookups,
+  `and the searching run's ${r2.refsSearched} wire lookups all reach the host too — ${hostInR2} calls = ${r2.refs} read-back + ${r2.refsSearched} wire, so the counter tracks reality in BOTH directions`);
+// THE COUNTER IS NOT DEAD, stated separately because the two assertions above are equalities and an
+// always-zero counter satisfies neither honestly but a reader cannot tell at a glance. If `hostSearches`
+// were never threaded through `mkNode`, both sides would read 0 and the assertions would be vacuous.
+ok(hostAfterR1 > 0 && hostInR2 > hostAfterR1,
+  `the boundary counter is live and discriminating — ${hostAfterR1} calls on the retained run, ${hostInR2} on the searching one`);
 
 // THE MAP'S REACH MUST EQUAL `findOne`'S REACH, and this is the assertion that makes that claim more than a
 // comment. `build` registers each child from inside its PARENT's append loop, deliberately, because Figma's

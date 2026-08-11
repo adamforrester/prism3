@@ -428,8 +428,10 @@ it is a vocabulary to argue with, not a baseline to build against.
 ## (2026-08-10) — #701 the cold wire pass stops searching a scenegraph it already walked
 
 **STATUS: shipped, and NOT YET MEASURED LIVE.** `regen --check` unchanged at **104**; all 21 gates green;
-plugin component suite **123 → 133**, baseline measured by stashing this diff and re-running rather than
-carried forward. The speedup is the one claim in this entry with no number behind it yet — see *Open*.
+plugin suite **357 `✓`** with the component block at **136** (was 123 before this diff, measured by stashing
+it and re-running rather than carried forward). The speedup is the one claim in this entry with no number
+behind it yet — see *Open*. **Review found the central gate did not work; the last three assertions of that
+136 are the fix, and the section below is what it cost to learn.**
 
 **What #684's calibration found, and what this does about it.** The cold wire pass cost **46,375ms of a
 ~151s run** against **557ms** warm for identical work over identical members — 83×, and the largest single
@@ -465,8 +467,10 @@ one is worse: the fix is **invisible to the entire offline suite**. Every correc
 way (the same references get wired), and the harness has no scenegraph, so `findOne` is a cheap array walk
 and the clock sees nothing. **A version whose map silently never populated would ship green and unchanged.**
 Hence `refsRetained` / `refsKnownAbsent` / `refsSearched`: three exhaustive routes summing to one lookup per
-(member × reference), so "the search was avoided" is checkable **by value, offline**, without a stopwatch.
-They also reach the console, so the live run reports its own hit rate instead of leaving it to be inferred.
+(member × reference). They also reach the console, so the live run reports its own hit rate instead of leaving
+it to be inferred. **But they are not the check** — that was this entry's original error, corrected in the
+mutation section below. A count reported by the code under test cannot answer "was the search avoided"; only
+the host-boundary counter can, and the counters' value is diagnosis and console output, not verification.
 
 **The read-backs keep searching, deliberately.** Reusing the retained reference in the verification loop is
 the faster code and a strictly weaker check — it would read the property back off the object the setter just
@@ -482,14 +486,39 @@ and only a read-back that re-finds by name can see it.
 
 | mutation | caught by |
 |---|---|
-| the map never populates | 4 assertions incl. the ORPHAN misses and `wiredMembers 0/21` |
-| **map populates, wire loop searches anyway** (the silent no-fix) | the ZERO-searches assertion, **and nothing else** |
+| the map never populates | 3 assertions incl. the ORPHAN misses and the boundary counter's liveness |
+| **map populates, wire loop searches anyway** (the silent no-fix) | the two HOST-BOUNDARY assertions — and **nothing at all** until review caught it, see below |
 | registered at the top of `build` (root leaks into the map) | the two root-reference assertions |
-| `kept ?? findOne` (keyed off the node, not the map) | ZERO-searches + the known-absent split |
+| `kept ?? findOne` (keyed off the node, not the map) | the boundary count + the known-absent split |
 | one map shared across the set instead of per member | the independent read-back, as 60 `DISCARDED` misses |
 
-The second row is the one worth remembering: **exactly one assertion stands between this fix and shipping as
-a no-op.** The suite's other 132 are indifferent to whether it works.
+**Row 2 shipped claiming an assertion that did not exist, and that is the entry's real lesson.** The first
+version of this table read "the ZERO-searches assertion, and nothing else" — a sentence written from reading
+the code rather than from running the mutation. Review ran it. Changing only `node = kept` to
+`node = member.findOne(...)` **inside** the `builtFor` branch — leaving every increment untouched, so the map
+still populates and still decides which counter moves — **passed all 133 assertions including
+`r1.refsSearched === 0`**, while the wire loop hit the scenegraph on every one of its 63 lookups. Host calls
+on the cold run: **42 clean, 105 mutated.** The fix was completely inert, at full cold price, and the suite
+called it green.
+
+The counters were never a witness. `refsRetained` / `refsKnownAbsent` / `refsSearched` are **bookkeeping on
+which branch the executor believes it took**, not a record of which route the node came from — the increment
+and the lookup are two independent statements inside one `if`, free to drift the moment anyone edits between
+them. That is `docs/34`'s oracle-shares-a-dependency-with-its-subject shape, and this file already carries the
+precedent: `yieldCalls` vs `progress` in `instrumented()`, where for one commit `yields` was pushed from
+inside `onProgress` and deleting `await yieldTo()` left the suite fully green. **Same defect, same suite, one
+section apart — reading that comment was not enough to avoid repeating it.** Worse than an honest miss, too:
+a `refsSearched: 0` printed by the code under test *actively vouches* for a fix that is not happening.
+
+The fix is a **call counter on the host boundary** — `mkNode`'s `findOne` increments an opt-in counter the
+harness owns, and the assertions hold the executor's report against what Figma was actually asked:
+`hostAfterR1 === r1.refs + r1.refsSearched` (42 = 42 read-back + 0 wire). Decomposed per loop on purpose: a
+bare total is satisfiable by a wire loop that searches everything and a read-back that searches nothing, so
+each term is derived from the plans rather than from the result. **One counter across both runs, read by
+delta**, which is forced rather than chosen — the second run appends into the set the first built, so its
+members are nodes r1's shim created and their `findOne` closes over r1's counter. A per-run counter measured
+**0 while the executor reported 63**: vacuous exactly when the searching route is the one under test. Found
+by measuring, not by reasoning, which is the only reason it is not still in there.
 
 **Traps recorded at their sites.** The shim's `createComponentFromNode` is `(n) => n`, so the harness can
 **never** test whether that call preserves child references — noted where the fast path depends on it. The
