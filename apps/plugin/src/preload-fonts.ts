@@ -95,6 +95,22 @@ export const facesToPreload = (
   // ...then the product that produced the reported failure: an existing style keeps its own style name
   // and picks up the incoming family (and the mirror case, for a file whose family survives while the
   // brand changes a weight). `seen` means anything already named is not re-added as crossed.
+  //
+  // BLANKET, NOT PER-STYLE — and why that is still a superset of the pairs that can actually resolve.
+  // The precise set is "for each existing style, cross its baked style with the NEW value of the
+  // font/family/<category> variable it binds" — but that needs knowing which category each style binds,
+  // which this function does not have. Crossing every theme family with every file style (and back) is
+  // coarser: it also produces pairs no existing style will ever resolve to (e.g. a family this file's
+  // styles never used, paired with a style that family's own category never had) — expected noise,
+  // counted in `crossedMisses` rather than reported. It is a superset of the precise set, and specifically
+  // ONLY because the incoming write sets every font/family/* category the file's existing styles bind —
+  // so every (category, new-family) pair a re-resolving style needs is somewhere in `themeFamilies`, and
+  // every baked style still in the file is somewhere in `fileStyles`. That is a property of today's plan
+  // shape (every brand's TextStylePlan covers the full category set), not a guarantee this function
+  // enforces — a theme plan that wrote only SOME categories could leave a real pair uncrossed while this
+  // function reports the (wrong) blanket set as complete. If plans ever become partial, this needs
+  // either a per-category cross (using each style's actual bound category) or an assertion here that
+  // `themeFamilies`' categories are a superset of whatever categories `existing` binds.
   const themeFamilies = [...new Set(plan.map((r) => r.fontFamilyPrimary))].filter(Boolean);
   const themeStyles = [...new Set(plan.map((r) => r.fontStyle))].filter(Boolean);
   const fileFamilies = [...new Set(existing.map((s) => s.fontName.family))].filter(Boolean);
