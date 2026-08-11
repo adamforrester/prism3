@@ -59,7 +59,10 @@ export class ShadowConverter {
    * Converts a single shadow effect to a shadow layer.
    */
   private convertEffect(
-    effect: Effect,
+    // The caller already narrows to these two before calling (`effect.type === 'DROP_SHADOW' ||
+    // 'INNER_SHADOW'`). Declaring the bare `Effect` union threw that away and made every
+    // `color`/`offset`/`radius`/`spread` read an error — a blur effect carries none of them.
+    effect: DropShadowEffect | InnerShadowEffect,
     useRem: boolean,
     baseFontSize: number,
     dimensionFormat: 'object' | 'string',

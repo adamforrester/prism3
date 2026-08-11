@@ -9,11 +9,12 @@ export type DTCGTokenType =
   | 'duration'
   | 'cubicBezier'
   | 'number'
-  | 'string'
+  | 'strokeStyle'
   | 'typography'
   | 'shadow'
   | 'border'
-  | 'transition';
+  | 'transition'
+  | 'gradient';
 
 export interface DTCGColor {
   colorSpace: 'srgb' | 'hsl' | 'hwb' | 'lab' | 'lch' | 'oklch' | 'oklab';
@@ -82,9 +83,16 @@ export type JsonObject = Record<string, unknown>;
 // Type for unknown input that needs runtime validation
 export type UnknownValue = unknown;
 
+/** `$extensions` payload — DTCG leaves its contents to the producer. */
+export type DTCGExtensions = Record<string, unknown>;
+
 export interface DTCGTokenGroup {
-  [key: string]: DTCGToken | DTCGTokenGroup;
-  $extensions?: Record<string, unknown>;
+  // DTCG mixes `$`-prefixed METADATA with CHILD keys in the same object, and TypeScript cannot
+  // express "every key except `$*`". So the index signature has to admit both — declared narrower,
+  // `$extensions` was in violation of the very index type it sat under (TS2411) and every group
+  // built as a plain object failed to satisfy `DTCGFile` (TS2741).
+  [key: string]: DTCGToken | DTCGTokenGroup | DTCGExtensions | undefined;
+  $extensions?: DTCGExtensions;
 }
 
 export interface DTCGFile extends DTCGTokenGroup {

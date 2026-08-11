@@ -55,7 +55,9 @@ export class ColorConverter extends BaseConverter<DTCGColor | string> {
    * @param color RGB color from Figma
    * @returns DTCG color object
    */
-  convertToDTCG(color: RGB): DTCGColor {
+  // RGB | RGBA: Figma hands both, and the alpha read below is already guarded for the RGB case.
+  // Typed as bare RGB the guard was unreachable code the compiler rejected.
+  convertToDTCG(color: RGB | RGBA): DTCGColor {
     return {
       colorSpace: 'srgb',
       components: [
@@ -63,8 +65,10 @@ export class ColorConverter extends BaseConverter<DTCGColor | string> {
         Math.round(color.g * 10000) / 10000,
         Math.round(color.b * 10000) / 10000,
       ],
+      // `'a' in color`, not `color.a !== undefined`: RGB has no `a` at all, so the undefined-check
+      // could not narrow the union. Same runtime result — absent alpha still falls through to 1.
       alpha:
-        color.a !== undefined ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1,
+        'a' in color ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1,
     };
   }
 
@@ -75,12 +79,12 @@ export class ColorConverter extends BaseConverter<DTCGColor | string> {
    * @param color RGB color from Figma
    * @returns CSS color string (rgb or rgba)
    */
-  convertToCSS(color: RGB): string {
+  convertToCSS(color: RGB | RGBA): string {
     const r = Math.round(color.r * 255);
     const g = Math.round(color.g * 255);
     const b = Math.round(color.b * 255);
     const a =
-      color.a !== undefined ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1;
+      'a' in color ? Math.round(color.a * PRECISION.DECIMAL_3) / PRECISION.DECIMAL_3 : 1;
 
     if (a < 1) {
       return `rgba(${r}, ${g}, ${b}, ${a})`;
