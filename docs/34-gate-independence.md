@@ -444,6 +444,38 @@ comment forbidding their rewrite as a call to the layout function. The parity ga
 was: it is a real gate on everything downstream of the layout, and the fix is a second gate, not a
 replacement.
 
+### 12. The REACHABILITY PROBE reads the code it is probing
+
+Every shape above is about the gate versus its subject. This one is a level further in: the **probe** —
+the small assertion whose only job is to prove the gate's fixture is in the state the gate assumes —
+versus the code that fixture is fed to. A probe is what makes the difference between a gate and a hope,
+which is exactly why one that cannot fail is worse than none: it is a *certificate* of reachability, and
+the assertions downstream of it are then read as exercised when they may never have run.
+
+`#681` is the instance. Set resolution made a def's variant coordinate optional, so the four existing
+"what did the miss find" cases had to be driven by a payload emitted **without** one — and the probe on
+that, the one asserting the strip really stripped, was `js.includes('nestVariant')` over the whole
+emitted payload. It reported the stripped payload as *still carrying a coordinate*. The payload is a
+40KB string holding both the serialized plan **and the executor's own source**, and the executor reads
+`n.nestVariant` — so the probe was matching the resolution code, which is in every payload by
+construction. It answered *"does this payload contain the feature"* (always yes) where the question was
+*"did this plan declare a coordinate"*. The tell that it was self-reading rather than merely wrong: the
+assertion was **inverted** and still could not fail, because the substring is unconditionally present.
+
+The generalization worth holding: **a probe over a haystack that contains its own needle is not a
+probe.** Emitted payloads, bundled JS, generated docs and serialized plans all carry the code or the
+schema alongside the data, so any `includes`/`grep` over the whole artifact is ambiguous between the
+two — and the ambiguity resolves toward *pass*.
+
+**Tell:** the probe searches a whole artifact for a token that also appears in that artifact's code,
+schema, or comments. Ask what the artifact contains **besides** the data, then ask whether the probe can
+tell those apart. If inverting the probe would leave it green, it is reading itself. **Fix:** narrow the
+probe to the region that holds only data — `#681`'s reads the serialized `const PLAN=` line and nothing
+else — and assert the region is **non-empty** in the same breath, so narrowing to nothing cannot pass as
+narrowing to clean. Both directions, always: the positive half (*the real fixture DOES carry it*) is what
+gives the negative half its meaning, since a strip function that silently did nothing produces a green
+"stripped" probe and a table of vacuous passes behind it.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -515,6 +547,7 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-12 | `test.ts` coordinate-strip probe (#681/#750) | 12 | a `nestVariant` grep over the whole emitted payload matching the **executor's own** `n.nestVariant` reads — a stripped plan reported as still carrying a coordinate, and the assertion could not fail inverted either |
 | 2026-08-11 | `test-write-typography.ts` mutation counts (#680 review) | sweep | a shipped mutation table reading **1** where the mutation fails **6** — three unguarded reads crashed the run, so the worst mutation reported the fewest failures |
 | 2026-08-11 | `test-write-typography.ts` M6 row (#680 review) | 4 | **2** claimed against **6** actual, with no crash involved — the table was read off the assertions the author expected, not the ones that fired |
 | 2026-08-09 | `typecheck-components.ts` own self-check (#657) | 4 | two output-parser guards deleted in turn, suite green both times — one unreachable, one with a sample that could not reach it |
@@ -553,7 +586,8 @@ vacuous assertion was caught *before* it shipped: `#464`'s plural hole in the US
 
 ## In practice
 
-When you write or review a gate, five questions:
+When you write or review a gate, ask each of these — the list is the count, for the reason the register
+gives:
 
 1. **What two things does this compare, and where does each come from?** If the answer names one
    source, there is no gate.
@@ -566,6 +600,11 @@ When you write or review a gate, five questions:
 5. **Did the whole suite run under the mutation?** Compare the executed-assertion count against the
    unmutated baseline. Fewer means the run was truncated by a crash, and every count from it — including
    the "caught by" column you are about to write — is a floor, not a measurement.
+6. **What is the probe actually reading?** The little assertions that prove a fixture is in the state the
+   gate assumes get none of the scrutiny the gate gets, and they are what make it a gate rather than a
+   hope. If one searches a whole artifact, ask what that artifact holds besides the data — code, schema,
+   comments — and whether the search can tell them apart. Invert it: if it stays green, it is reading
+   itself (shape 12).
 
 And when a gate's duplication looks like something to tidy up, the comment beside it should already
 say why it isn't. If it doesn't, add that before the cleanup finds it.
