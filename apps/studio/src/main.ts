@@ -122,9 +122,9 @@ const MODE_LABEL: Record<string, string> = { light: 'Light', dark: 'Dark', 'hc-l
 // ---- stages ----------------------------------------------------------------
 // The rail is data (docs/23 §7): a flat list of focused destinations, each one page. A page's facets
 // are sections within it, not separate rail rows. `view:true` marks a non-authoring destination
-// (Preview) — it sits after a divider with no ordinal. Order is the sequence a theme composes in:
-// primitives → how they're applied (surfaces / interactive) → type → form (elevation/size/layout/motion)
-// → look at the whole (Preview).
+// (Preview, Components) — it sits after a divider with no ordinal. Order is the sequence a theme
+// composes in: primitives → how they're applied (surfaces / interactive) → type → form
+// (elevation/size/layout/motion) → look at the whole (Preview) → write something out (Components).
 const NAV = [
   { key: 'palettes', label: 'Palettes', sub: 'Brand hues & neutrals → ramps' },
   { key: 'surfaces', label: 'Surfaces & fills', sub: 'Backgrounds, text, gradients' },
@@ -135,9 +135,37 @@ const NAV = [
   { key: 'layout', label: 'Layout', sub: 'Breakpoints & containers' },
   { key: 'motion', label: 'Motion', sub: 'Tempo & easing' },
   { key: 'preview', label: 'Preview', sub: 'Components & contrast, all modes', view: true },
+  // #718 — the component write's destination, and A DEMOTION RATHER THAN A PROMOTION. The natural
+  // reading of "components get their own rail item" is that the capability graduated; here it is the
+  // reverse. The control is leaving a first-class slot beside Apply precisely because it is not
+  // first-class: it is the anatomy schema's materialization proof (docs/28, docs/14 §3.1), kept
+  // runnable so the schema has a consumer that can refute it, not a capability a client is offered.
+  //
+  // `figmaOnly` follows the rule docs/23 §7 already settled for the deferred Output group: a
+  // destination that only makes sense in the Figma channel is present in the plugin host and omitted
+  // from the web rail, rather than rendered inert there. Both NAV consumers read `railNav()`.
+  { key: 'components', label: 'Components', sub: 'Internal — build the Button set', view: true, figmaOnly: true },
 ] as const;
 type PageKey = (typeof NAV)[number]['key'];
 let page: PageKey = 'palettes';
+
+/** The destinations this HOST offers. `figmaOnly` entries are absent from the web rail, not disabled
+ *  in it — a grayed row still claims the destination exists and just will not open (the same call
+ *  `renderModeStrip` makes about hiding rather than disabling the mode bar).
+ *
+ *  Read by BOTH consumers — the sidebar and the narrow-width `Pages` menu. Filtering one and not the
+ *  other is the shape that would ship: the menu is the rail below 900px, so a Figma-only destination
+ *  left in it would be reachable on a phone-width web page and unreachable on a desktop one. */
+const railNav = (): readonly (typeof NAV)[number][] => NAV.filter((s) => !('figmaOnly' in s && s.figmaOnly) || commit.isFigma);
+
+/** Is `i` the first `view` destination in `nav`? — the one place the authoring/result divider goes.
+ *
+ *  Shared by the sidebar and the `Pages` menu, which is the point: this WAS `if ('view' in s && s.view)`
+ *  duplicated in both, correct only while there was exactly one view destination. Adding a second (this
+ *  ticket's Components, and later docs/23 §6's Output) would have drawn a rule between every pair. */
+const isView = (s: (typeof NAV)[number]): boolean => 'view' in s && s.view === true;
+const isFirstView = (nav: readonly (typeof NAV)[number][], i: number): boolean =>
+  isView(nav[i]) && !nav.slice(0, i).some(isView);
 
 // Which page a lever belongs to. The manifest groups levers under a few axes; the focused pages slice
 // finer. Palette colour primitives get a bespoke UI, so they're excluded from the generic knob render.
@@ -1820,6 +1848,10 @@ const PAGE_COPY: Record<PageKey, [string, string]> = {
   layout: ['Layout.', 'Breakpoints, grid columns, and container widths — the responsive frame the system lays out within.'],
   motion: ['Motion.', 'Tempo (the duration ramp) and the expressive easing curve. Reduce-motion is derived.'],
   preview: ['Preview your system.', 'The style guide, the full contrast-contract table, and every resolved token — through the mode picked above. Switch modes to preview them; this is the one place the whole system renders together.'],
+  // #718. The lede states the role rather than the feature, because that is the fact this page exists
+  // to convey: the write is how the anatomy schema is proven to materialize, not a component library
+  // the brand ships. Naming the one def and the member count keeps it from reading as a catalogue.
+  components: ['Components.', 'Internal — the Button set, written onto the Figma canvas from the component definition. One definition carries the anatomy this needs, so one component builds: 648 variants across intent, appearance, size, state, and the two icon slots. This is how the definition format is proven to materialize, not a component library the brand ships.'],
 };
 
 // Status-color control (docs/21 + status.*). Lives INLINE on each status ramp (primitives
@@ -3796,6 +3828,85 @@ const renderPreviewPage = (host: HTMLElement): void => {
     else renderPreviewTokens(pv);
   };
   paintVolatile();
+};
+
+/**
+ * The Components page (#718) — the new home of the component write, moved off the primary action bar.
+ *
+ * THE MOVE IS A DEMOTION. The control sat beside **Apply to Figma**, which is the terminal action of
+ * the theme flow and the thing a designer runs after every knob change. A build takes tens of seconds
+ * at ~162ms per member (#700) and materializes one component out of five, so a slot next to Apply
+ * claimed a parity that does not exist. Rail item, marked internal, is where a materialization proof
+ * belongs — see `NAV` for the framing and docs/28 / docs/14 §3.1 for why it is kept runnable at all.
+ *
+ * The three internal/experimental statements are deliberately different rather than one repeated
+ * label, because each answers a different question a designer would actually ask here: the rail sub
+ * says WHAT it is, the notice says WHY it is not offered as a feature and what it costs to run, and
+ * the button's `title` says the ORDER — the one fact a build's result cannot recover, since the set
+ * binds variables by name and a build into an unthemed file misses every binding.
+ *
+ * Reached only in the plugin: `railNav()` omits it on web, and `PAGE_RENDERERS` never fires for a page
+ * that has no rail row. `commit.isFigma` is re-checked here regardless — this function is exported into
+ * the map by name, so a future caller reaching it directly would otherwise render a control whose
+ * `postComponents` is inert.
+ */
+const renderComponentsPage = (host: HTMLElement): void => {
+  const [title, lede] = PAGE_COPY.components;
+  host.append(hero(title, lede));
+  // Every other page renderer assigns `paintVolatile`, and it is MODULE state — so a page that skips
+  // the assignment leaves the previous page's closure live, and the next `apply()` paints specimens
+  // into nodes this render already detached. Nothing here varies with a lever (the def and its variant
+  // count are brand-invariant), so the correct value is a no-op — but it has to be assigned to BE one.
+  paintVolatile = () => {};
+  if (!commit.isFigma) return;
+
+  const sec = palSection('Build the Button set', 'Writes the component set onto the current Figma page.');
+
+  // The internal notice. States the mechanism and the two numbers, per the voice standard: what it is
+  // for, what it costs, and what it does not do — so a designer who runs it is not surprised, and one
+  // who skips it is not missing a feature.
+  const note = el('p', 'cw-note');
+  note.append(
+    el('b', undefined, 'Internal — experimental. '),
+    document.createTextNode(
+      'This exists to prove the component definition format can materialize, so it is not a supported '
+      + 'way to get components into a file. A full run writes 648 variants at about 162ms each — '
+      + 'roughly 105 seconds, in short bursts that leave Figma stuttering rather than frozen. Figma '
+      + 'then reconciles the new nodes after the result lands: that settle was measured at 1m10s on a '
+      + 'full run, and it is not something this plugin can shorten. Known limits are tracked on #718.',
+    ),
+  );
+  sec.append(note);
+
+  const row = el('div', 'cw-row');
+  if (componentState) row.append(renderApplyStatus(componentState, 'components'));
+  const cPending = componentState === 'pending';
+  // NAMED FOR BUTTON, not "components" — unchanged from the action bar and for the same reason.
+  // `anatomy` is what makes a def materializable and Button is the only def of the five that has one,
+  // so a control saying "Build components" would promise four components it cannot build. It gets
+  // renamed when a second def earns an anatomy block, not before.
+  const compBtn = el('button', 'barbtn', cPending ? '⋯ Building…' : '⊞ Build Button set') as HTMLButtonElement;
+  compBtn.disabled = cPending;
+  // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
+  // designer cannot recover from the result: the set binds variables by name, so a build into an
+  // unthemed file misses every binding.
+  compBtn.title = 'Builds the Button set on this page. Apply to Figma first — it binds those variables.';
+  // `componentProgress` clears here as well as on the result (#684) — belt and braces on purpose. The
+  // result handler is the normal path, but a build that THROWS in the main thread before the executor
+  // returns posts a failed result, and one that never answers at all posts nothing; without this line a
+  // fraction from the abandoned run would be the first thing the next build's pill shows.
+  //
+  // `renderBar()` still runs even though the control is no longer IN the bar: the bar hosts the boot
+  // read-back pill and the theme write's own status, and `openDetail` is cleared here — the shared
+  // detail row is chrome, so the bar has to be told the row it was showing is gone.
+  compBtn.onclick = () => {
+    componentState = 'pending'; componentProgress = null; openDetail = null;
+    renderBar(); syncApplyDetail(); renderWorkspace();
+    commit.postComponents();
+  };
+  row.append(compBtn);
+  sec.append(row);
+  host.append(sec);
 };
 
 // #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
@@ -6319,10 +6430,20 @@ let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
  *  `preview` is a fourth, conditional case: it fails outside the style-guide view, where every mode is
  *  already rendered as its own column (see the per-view measurement in the function body).
  *
- *  Stated as a POSITIVE list of the pages that have the axis, not `!== 'layout'`: the negative form
- *  silently grants the switcher to any page added later, which is how Preview would have got one. */
+ *  IT IS A NEGATIVE LIST, whatever this comment claimed before #718 ("stated as a POSITIVE list of the
+ *  pages that have the axis, not `!== 'layout'`"). The body has always been four `return false` cases
+ *  over a `return true` default, so a page added later is GRANTED the switcher rather than asked for
+ *  it. Corrected rather than restructured: the claim was the load-bearing part, and it was wrong about
+ *  the code directly beneath it. #718's `components` page is the case it predicted — a page with no
+ *  mode axis at all, which arrived and inherited a bar it has nothing to drive. */
 const pageHasModeVaryingControl = (): boolean => {
   if (page === 'layout') return false;
+  // #718 — the component build takes no mode input. `build-components` carries no payload (the def is
+  // compiled into the plugin) and the write binds variables BY NAME, so every mode resolves from the
+  // variables already in the file rather than from anything this page could scope. Nothing on the page
+  // reads `currentMode`, so a switcher here would change no rendered value — the Palettes case exactly,
+  // reached without needing to measure it, because there is no per-mode value to measure.
+  if (page === 'components') return false;
   // Palettes has NO mode-varying value at all — a ramp is mode-invariant, and choosing which STEP a
   // mode lands on is a Surfaces concern. Measured rather than argued: the workspace markup is
   // byte-identical between Light and Dark (34555 chars both), so the switcher changed nothing and
@@ -6381,6 +6502,7 @@ const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
   layout: renderLayoutPage,
   motion: renderMotionPage,
   preview: renderPreviewPage,
+  components: renderComponentsPage,
 };
 /** Attach the mode badge to every section on the page, in ONE post-render pass.
  *
@@ -7018,28 +7140,17 @@ function renderBar(): void {
     applyBtn.onclick = () => { applyState = 'pending'; openDetail = null; renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
     actions.append(applyBtn);
 
-    // Build Button set (#483) — the component tier's trigger, a SECOND action beside Apply rather than
-    // part of it: Apply writes variables and is run after every knob change, this writes hundreds of
-    // nodes onto the canvas (#652). Secondary weight for the same reason — Apply stays the terminal
-    // action of the theme flow, and the ordering says the set is built from a theme that already landed.
+    // The component write's trigger USED TO SIT HERE (#483), a second action beside Apply. #718 moved it
+    // to the Components rail page, and the move is a demotion — see `renderComponentsPage`. Apply is the
+    // only write that belongs in the primary bar: it is the terminal action of the theme flow, runs after
+    // every knob change, and answers in well under a second.
     //
-    // NAMED FOR BUTTON, not "components". `anatomy` is what makes a def materialisable and Button is the
-    // only def in the catalogue that has one, so a control saying "Build components" would promise four
-    // components it cannot build. It gets renamed when a second def earns it, not before.
+    // What did NOT move is the build's STATUS. `componentState` still renders through the shared
+    // `renderApplyStatus` pill into the shared `openDetail` row, both of which live in the chrome (#483),
+    // so a build's verdict stays legible after navigating away from the page that started it. A status
+    // that vanished with its control would be worse than the control's old placement: a 648-member build
+    // runs ~105s cold (#700), and nobody watches a rail page for that long.
     if (componentState) actions.append(renderApplyStatus(componentState, 'components'));
-    const cPending = componentState === 'pending';
-    const compBtn = el('button', 'barbtn', cPending ? '⋯ Building…' : '⊞ Build Button set') as HTMLButtonElement;
-    compBtn.disabled = cPending;
-    // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
-    // designer cannot recover from the result: the set binds variables by name, so a build into an
-    // unthemed file misses every binding.
-    compBtn.title = 'Builds the Button set on this page. Apply to Figma first — it binds those variables.';
-    // `componentProgress` clears here as well as on the result (#684) — belt and braces on purpose. The
-    // result handler is the normal path, but a build that THROWS in the main thread before the executor
-    // returns posts a failed result, and one that never answers at all posts nothing; without this line a
-    // fraction from the abandoned run would be the first thing the next build's pill shows.
-    compBtn.onclick = () => { componentState = 'pending'; componentProgress = null; openDetail = null; renderBar(); syncApplyDetail(); commit.postComponents(); };
-    actions.append(compBtn);
   }
 
   barHost.append(actions);
@@ -7058,16 +7169,23 @@ function renderBar(): void {
 }
 
 /** The rail's destinations as a dropdown, for the widths where the rail is not a sidebar. Renders
- *  from the same `NAV` data and reuses the rail's own `.stage-t` title+subtitle block, so the
+ *  from the same `railNav()` data and reuses the rail's own `.stage-t` title+subtitle block, so the
  *  subtitles survive the move — they are doing real work ("Surfaces & fills / Backgrounds, text,
  *  gradients" teaches what the page is) and a bare label list would drop them. The divider before
- *  the `view` destination and the ordering note both come across too, so nothing the sidebar shows
+ *  the `view` destinations and the ordering note both come across too, so nothing the sidebar shows
  *  is silently lost on the way into the menu. */
 const renderNavMenu = (): HTMLElement => {
   const menu = el('div', 'brandmenu navmenu');
   menu.append(el('div', 'bm-cap', 'Pages'));
-  NAV.forEach((s) => {
-    if ('view' in s && s.view) menu.append(el('div', 'bm-div'));
+  const nav = railNav();
+  nav.forEach((s, i) => {
+    // ONE divider before the FIRST view destination, not one before each. It marks the boundary between
+    // authoring the theme and looking at / writing out the result — a second rule between Preview and
+    // Components would separate two things on the same side of that boundary. Written as "the first
+    // view entry" rather than a hardcoded index so the rule survives another `view` destination
+    // (docs/23 §6's deferred Output group is exactly that) and survives `figmaOnly` filtering, which
+    // changes which index the boundary lands on between the two hosts.
+    if (isFirstView(nav, i)) menu.append(el('div', 'bm-div'));
     const it = el('button', 'nav-item' + (s.key === page ? ' cur' : '')) as HTMLButtonElement;
     const t = el('span', 'stage-t');
     t.append(el('b', undefined, s.label), el('small', undefined, s.sub));
@@ -7216,9 +7334,11 @@ const build = (): void => {
   const shell = el('div', 'shell');
   const rail = el('nav', 'rail');
   // Rail-as-data (docs/23 §7): a flat list of focused destinations, no ordinals — top-to-bottom order
-  // carries the compose sequence. A `view` destination (Preview) sits after a divider.
-  NAV.forEach((s) => {
-    if ('view' in s && s.view) rail.append(el('div', 'rail-div'));
+  // carries the compose sequence. The `view` destinations (Preview, then Components in the plugin) sit
+  // after a single divider — `isFirstView` places it; `railNav` decides which of them this host has.
+  const nav = railNav();
+  nav.forEach((s, i) => {
+    if (isFirstView(nav, i)) rail.append(el('div', 'rail-div'));
     const it = el('button', 'stage' + (s.key === page ? ' active' : '')) as HTMLButtonElement;
     const t = el('span', 'stage-t');
     t.append(el('b', undefined, s.label), el('small', undefined, s.sub));
@@ -7394,6 +7514,18 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    instead, so it cannot overlap anything at any width and needs no z-index. Same reasoning and same
    home as .errbar-global (#388), and unlike that one it does carry its own rules. */
 .applystat-detail{background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:16px;font-size:12px;line-height:1.55;color:var(--ink2)}
+/* #718 — the Components page's internal notice and its control row.
+   --muted on --paper, NOT --faint: at 13px this is a paragraph to read rather than a caption to
+   glance at, and lint:contrast holds --muted on --paper (the worse of the two grounds) to 4.5:1.
+   Modelled on .sl-note / .tf-note, which are the same shape — an inset explanatory block inside a
+   .psec — so this adds a rule and not a third pattern. The bold lifts only the "Internal —
+   experimental." lead-in to --ink2, which lint:contrast also holds at 4.5:1 on both grounds. */
+.cw-note{font-size:13px;color:var(--muted);background:var(--paper);border:1px solid var(--line);border-radius:var(--r-sm);padding:11px 13px;line-height:1.55;margin:14px 0 0}
+.cw-note b{color:var(--ink2);font-weight:640}
+/* The status pill and the button on one line. align-items:center rather than baseline: the pill is a
+   999px capsule with its own padding, so its text baseline sits above the button's and aligning on
+   that baseline would push the capsule visibly high. */
+.cw-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 0}
 /* max-height + scroll: the menu had neither, which was survivable while it was short. Folding the
    mode set in (#432) pushed it to ~716px, and at a 700px-tall window it ran 89px past the bottom
    of the viewport with the last items simply unreachable. Bounded to the space below the header. */

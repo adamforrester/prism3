@@ -7,6 +7,81 @@
 
 ---
 
+## (2026-08-12) — #718's UI half: the component write moves to a rail leaf, and the move is a demotion
+
+**STATUS: shipped.** `apps/studio/src/main.ts` (the rail entry, the new page, the action-bar removal,
+two rail-mechanics helpers) + `docs/23-dashboard-ia-and-component-system.md` §9. Completes #718's
+Do-list items 1 and 2, after #730 did item 4.
+
+**The reference #718 pointed at does not exist as an issue.** Its Do-list says *"Move the control per
+the existing left-rail task, with the demotion recorded in that task's description."* Searched the
+tracker for `left-rail` / `left rail` (only #718, #333, #720, #439 — none a match), for
+`Build Button set` (#718, #655, #700), and every open `lane:web` issue. **The "existing left-rail task"
+is `docs/23` §7's rail plan, not a ticket** — so the demotion is recorded in `docs/23` §9, which is the
+thing that plays the role the instruction meant: the place a future reader will look for what the rail
+is and why. Stated plainly rather than guessed at, because #718 has already published one list that was
+wrong on the day, and a silently-substituted referent is the same failure.
+
+**Why the demotion framing needed to be in the code as well as the doc.** The natural reading of
+"components get their own rail item" is that the capability graduated. It is the reverse: the control
+left a first-class slot beside **Apply to Figma** *because* it is not first-class. Apply writes
+variables and answers in well under a second; this writes 648 variants at ~162ms each (#700), holds one
+def out of five, and is the anatomy schema's materialization proof rather than a capability a client is
+offered. So the framing sits at `NAV`, at `renderComponentsPage`, and at the action-bar site the control
+left — three places someone editing this will actually be standing.
+
+**The status did NOT move with the control.** `componentState` still renders through the shared
+`renderApplyStatus` pill into the shared `openDetail` row, both of which live in the chrome (#483). A
+status that vanished with its control would be worse than the old placement: a cold run is ~105s, and
+nobody watches a rail page for that long. The build's `onclick` therefore still calls `renderBar()` and
+`syncApplyDetail()` even though the button is no longer in the bar — the row it clears is chrome.
+
+**Two rail-mechanics defects the second `view` destination exposed**, both latent since Phase 3b and both
+waiting for whatever destination arrived next (§6's deferred Output group was the other candidate):
+
+- **The divider rule was `if ('view' in s && s.view)` — one rule before EVERY view entry.** Correct only
+  while there was exactly one. Measured on the NAV literal by reproducing both rules: the old one gives
+  **2** dividers in the plugin host, the new `isFirstView` gives **1** in both hosts. The divider marks
+  the authoring/result boundary, and Preview and Components are on the same side of it.
+- **`figmaOnly` had to be read by BOTH NAV consumers.** The sidebar and the narrow-width `Pages` menu
+  both render from NAV, and below 900px the menu *is* the rail. Filtering one would have made a
+  Figma-only destination reachable on a phone-width web page and unreachable on a desktop one — a bug
+  that only appears at one breakpoint on one host. `railNav()` is the single filter both call.
+
+**A comment that was wrong about the code directly beneath it.** `pageHasModeVaryingControl`'s doc
+claimed *"stated as a POSITIVE list of the pages that have the axis, not `!== 'layout'`: the negative
+form silently grants the switcher to any page added later."* The body has always been four `return
+false` cases over `return true` — a negative list, doing exactly what the comment warned against. This
+page is the case it predicted: no mode axis at all (`build-components` carries no payload, and the write
+binds variables by name, so nothing on the page reads `currentMode`), and it inherited a mode bar
+regardless. Corrected the claim rather than restructuring the function — the claim was the load-bearing
+part and it was false.
+
+**`paintVolatile` is module state, so a page that skips assigning it inherits the previous page's
+closure.** Every other renderer assigns it; nothing enforces that. Left unassigned here, the next
+`apply()` would paint specimens into nodes this render had already detached. Nothing on this page varies
+with a lever, so the right value is a no-op — but it has to be *assigned* to be one.
+
+**Copy grounded in re-measured numbers, not the issue's prose.** A first draft said "around two minutes,
+during which Figma is unresponsive." Both halves were wrong: 648 × 162ms is ~105s, and `CHUNK = 4`
+yields between chunks, so the file stutters rather than freezing. The 1m10s post-completion settle is a
+separate measured fact (#684) and is now stated as such, along with the fact that the plugin cannot
+shorten it. Voice standard: name the mechanism and the number, and never a guarantee the engine does not
+verify.
+
+**Gates:** all 25 green, run as the whole list. `lint:classes` admitted the two new classes with no
+`ALLOWED` entry needed (neither `cw-note` nor `cw-row` is minted beside another rule-owning class);
+`lint:contrast` covers the notice's `--muted`-on-`--paper` and `--ink2`-on-`--paper` pairings already.
+Two en-GB slips caught by hand in `apps/studio/src` comments, which the gate cannot see but the rule
+still binds: "greyed" and "materialisable".
+
+**Not done here:** #718's Do-list item 3 (mark every open component-write defect deferred, with this
+issue as the reason) is issue hygiene rather than a code change — and its instruction to *"use the label
+as the source of truth"* does not resolve either: **there is no `deferred` label in the repo.** The two
+issues carrying `[deferred]` do so in their titles only. Raised rather than invented.
+
+---
+
 ## (2026-08-12) — #718's load-bearing half: the component write's role recorded where the tier is described
 
 **STATUS: shipped.** `docs/28-component-anatomy-schema.md` (new §"The projection's standing role") and
