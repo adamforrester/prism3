@@ -29,12 +29,32 @@ No arguments beyond a brand name, no fixtures to refresh: it reads the committed
 
 ## What it has found so far
 
-Two of the differences it reports are defects with owners, not representational disagreements:
+Two of the differences it reported were defects with owners, not representational disagreements. **Both
+are now fixed**, and each verdict has been rewritten as the regression alarm for its own fix — so if
+either prints again, it is news rather than history:
 
-- **#708** — every mode-varying shadow is dropped from every overlay, so a conforming consumer reading
-  `base` + `dark.overlay` gets light-mode shadows in dark mode, in all four brands. Ours. This harness is
-  the only thing that has caught it; every existing gate passes it.
-- **#709** — `OPACITY` variables come back 100× outside DTCG's 0–1 range. TokenPress's.
+- **#708** — every mode-varying shadow was dropped from every overlay, so a conforming consumer reading
+  `base` + `dark.overlay` got light-mode shadows in dark mode, in all four brands. Ours. This harness was
+  the only thing that caught it; every existing gate passed it. Fixed in **#710**, which also added
+  `packages/engine/lint-overlay-completeness.ts` — that gate now owns the invariant, and should go red
+  before this harness does.
+- **#709** — `OPACITY` variables came back 100× outside DTCG's 0–1 range. TokenPress's. Fixed in **#719**;
+  `apps/tokenpress/tests/unit/opacity-percent-to-fraction.test.ts` is its regression test.
+
+### And one the harness found in itself
+
+The #708 verdict went on printing **"A SHIPPING DEFECT"** for weeks after #710 fixed it, because its
+guard tested the wrong artifact: it asked whether the canonical tree still carried
+`$extensions.prism3.modes.dark` — the projector's **input**, true whether or not the projector emits
+anything — while the claim it gated asserted something about the projector's **output**, the overlay.
+A predicate like that is true in both worlds, so the verdict could not have stopped on its own.
+
+Auditing the rest for the same shape found two more: the axis verdict tested `tokenpressDirs.length > 3`
+while claiming *three different kinds* of axis are peers (one axis with four values satisfies the count),
+and the collision verdict counted all 184 multi-file paths while claiming they had *different values*
+(11 of nb's are identical in every file). All three now read the artifact their claim names. The #709
+verdict needed no change and is left as the worked contrast — `kind: 'scale'` is computed from the
+measured values, so the fix made it false and it stopped printing by itself.
 
 ## Reading the output
 
@@ -80,3 +100,10 @@ One thing to know before making it a gate: the verdicts in category 1 are pairin
 paths are the same token. A rule that stops matching silently moves paths from "paired" to "unpaired",
 which is the right direction for a gate — but a rule written too loosely pairs things that are not
 the same, and no gate here would notice. Read each rule's `reason` before trusting a 0.
+
+And a second thing, learned the hard way above: **a verdict's `when` must read the artifact its `claim`
+names.** The mechanism gives no warning when the two come apart — a predicate that is true for a reason
+the claim does not name prints forever, and prints confidently. If the honest predicate is awkward to
+compute, compute it anyway; a cheap proxy does not weaken the check, it removes it and leaves prose that
+looks measured. This matters more if these verdicts are ever pinned as a gate, because pinning one that
+rests on a proxy bakes in a statement nobody is checking.

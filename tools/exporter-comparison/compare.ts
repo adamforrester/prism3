@@ -122,7 +122,10 @@ const BASE_EQUIVALENT_MODES = new Set(['light', 'desktop', 'shared']);
 const unionTokenPress = (out: TokenPressOutput) => {
   const union = new Map<string, Leaf>();
   const perFile = new Map<string, Map<string, Leaf>>();
-  const collisions: { path: string; files: string[] }[] = [];
+  /** `divergent` distinguishes a real resolution hazard (the files disagree, so merge order decides
+   *  the value) from harmless redundancy (every file agrees). Both are collisions; only the first is
+   *  what the category-4 verdict claims. */
+  const collisions: { path: string; files: string[]; divergent: boolean }[] = [];
   const owner = new Map<string, string[]>();
 
   const dirOf = (p: string) => (p.includes('/') ? p.split('/')[0] : 'shared');
@@ -141,7 +144,11 @@ const unionTokenPress = (out: TokenPressOutput) => {
       if (!union.has(p)) union.set(p, leaf);
     }
   }
-  for (const [p, files] of owner) if (files.length > 1) collisions.push({ path: p, files });
+  for (const [p, files] of owner) {
+    if (files.length <= 1) continue;
+    const seen = new Set(files.map((f) => canon(perFile.get(f)?.get(p)?.value)));
+    collisions.push({ path: p, files, divergent: seen.size > 1 });
+  }
   return { union, perFile, collisions };
 };
 
@@ -551,30 +558,41 @@ const RENAME_RULES: {
   },
 ];
 
-/** Pairs a TokenPress-only path against the prism3 token that carries the same value in
- *  `$extensions.prism3.modes` of the CANONICAL tree.
+/** Pairs a TokenPress-only `shadow-dark.*` path against the prism3 token that carries the same
+ *  decision — reading the DARK OVERLAY, which is the projection this harness claims to compare
+ *  (#609), and reporting separately when the overlay does not carry it.
  *
- *  The obvious hypothesis — that `shadow-dark.xs` pairs with `shadow.xs` in the DARK OVERLAY — is
- *  false, and testing it is what found the finding: the dark overlay contains only `color`. prism3's
- *  dark shadows live solely in `$extensions.prism3.modes.dark` on the canonical tree, which no
- *  conforming DTCG reader looks at (#609). So this pairing is deliberately made against the canonical
- *  extension and LABELED as such: the token exists in prism3's output, but not in the projection a
- *  stock consumer reads. TokenPress, coming from Figma styles that have no modes at all, gets it as a
- *  peer group and so does expose it.
+ *  ── WHY THIS READS THE OVERLAY AND NOT THE CANONICAL EXTENSION ─────────────────────────────────
  *
- *  That gap is a SHIPPING DEFECT, not a representational difference — filed as #708. A conforming
- *  consumer reading `base` + `dark.overlay` renders light-mode shadows in dark mode, in all four
- *  brands. Root cause is `emit-dtcg-overlay.ts:159`: the modes extension has two shapes (color wraps
- *  its per-mode value in `$value`, shadow is the bare array) and the projector's guard reads only the
- *  first. Do not read the pairing below as "the Figma path is more complete" — it is this harness
- *  detecting a bug in ours. */
-const explainViaCanonicalModes = (onlyTP: string[], canonical: unknown): PathExplanation => {
+ *  It used to read `$extensions.prism3.modes.dark` on the canonical tree, with a comment explaining
+ *  that the obvious hypothesis — `shadow-dark.xs` pairs with `shadow.xs` in the dark overlay — was
+ *  false because the overlay carried only `color`. That WAS true, and it is how this harness found
+ *  #708. It is no longer true: #708 shipped the fix and `lint-overlay-completeness.ts` now asserts
+ *  each overlay carries exactly the leaves that vary in its mode. Measured on current `main`, all
+ *  four brands: `dark` overlay = 156 leaves on nb / 147 on aurora, of which 7 are `shadow.*`.
+ *
+ *  The pairing had to move with the fix, and NOT because the old one stopped matching — that is the
+ *  trap. The canonical extension is the SOURCE the overlay is projected FROM, so it carries the dark
+ *  shadows whether or not the projector emits them. A predicate reading it is true in both worlds,
+ *  which is exactly why the #708 verdict below went on printing "a SHIPPING DEFECT" for a defect
+ *  that had been fixed. The overlay is the OUTPUT, so reading it can distinguish the two.
+ *
+ *  So this returns TWO explanations, and the split is the whole point (docs/34): `paired` is derived
+ *  from the overlay and `regressed` from the disagreement between the extension and the overlay.
+ *  Neither is derived from the other, and they cannot both be non-empty for one leaf. The #708
+ *  verdict is now guarded on `regressed`, so it prints if and only if the defect is actually back. */
+const explainViaModeOverlay = (
+  onlyTP: string[],
+  overlays: Map<string, Map<string, Leaf>>,
+  canonical: unknown
+): { paired: PathExplanation; regressed: PathExplanation } => {
   const root = canonical && typeof canonical === 'object'
     ? (canonical as Record<string, unknown>)[
         Object.keys(canonical as Record<string, unknown>).filter((k) => !k.startsWith('$'))[0] ?? ''
       ]
     : undefined;
-  const modeValue = (path: string, mode: string): boolean => {
+  /** Does the CANONICAL tree carry a per-mode value for this leaf — i.e. the projector's input? */
+  const hasModeExtension = (path: string, mode: string): boolean => {
     let cur: unknown = root;
     for (const seg of path.split('.')) {
       if (!cur || typeof cur !== 'object') return false;
@@ -585,18 +603,35 @@ const explainViaCanonicalModes = (onlyTP: string[], canonical: unknown): PathExp
   };
 
   const pairs: PathExplanation['pairs'] = [];
+  const regressed: PathExplanation['pairs'] = [];
   for (const p of onlyTP) {
     const m = /^shadow-dark\.(.+)$/.exec(p);
-    if (m && modeValue(`shadow.${m[1]}`, 'dark')) {
-      pairs.push({ prism3: `shadow.${m[1]} $extensions.prism3.modes.dark`, tokenpress: p });
+    if (!m) continue;
+    const target = `shadow.${m[1]}`;
+    if (overlays.get('dark')?.has(target)) {
+      pairs.push({ prism3: `${target} (dark overlay)`, tokenpress: p });
+    } else if (hasModeExtension(target, 'dark')) {
+      // The canonical tree says this leaf varies in dark; the overlay a conforming reader consumes
+      // does not carry it. That is #708, and only this comparison can see it.
+      regressed.push({ prism3: `${target} $extensions.prism3.modes.dark, ABSENT from dark overlay`, tokenpress: p });
     }
   }
   return {
-    reason:
-      'appearance axis crosses as a NAME, not a mode — AND prism3 exposes it only in an extension: ' +
-      'prism3 keeps dark shadows in `$extensions.prism3.modes.dark` (NOT in the dark overlay, which carries only `color`), ' +
-      'so a conforming reader never sees them; Figma styles have no modes, so the emission prefixes them `shadow-dark/*` and tokenpress exposes them as real tokens',
-    pairs,
+    paired: {
+      reason:
+        'appearance axis crosses as a NAME, not a mode: prism3 carries the dark shadow as a MODE ' +
+        '(`shadow.*` in the `dark` overlay, per #609/#708); Figma styles have no modes, so the emission ' +
+        'prefixes them `shadow-dark/*` and tokenpress exposes them as peer tokens. Same decision, ' +
+        'different axis — and a conforming reader now sees it on both sides',
+      pairs,
+    },
+    regressed: {
+      reason:
+        'REGRESSION OF #708 — the canonical tree carries a per-mode dark value for these shadows and ' +
+        'the `dark` overlay does not, so a conforming consumer reading `base` + `dark.overlay` renders ' +
+        'LIGHT-MODE shadows in dark mode',
+      pairs: regressed,
+    },
   };
 };
 
@@ -618,7 +653,12 @@ const NOT_IN_EMISSION = [
   },
 ];
 
-const explainPaths = (onlyP3: string[], onlyTP: string[], canonical: unknown) => {
+const explainPaths = (
+  onlyP3: string[],
+  onlyTP: string[],
+  canonical: unknown,
+  overlays: Map<string, Map<string, Leaf>>
+) => {
   const tpSet = new Set(onlyTP);
   const claimedTP = new Set<string>();
   const claimedP3 = new Set<string>();
@@ -649,11 +689,21 @@ const explainPaths = (onlyP3: string[], onlyTP: string[], canonical: unknown) =>
   const accounted = new Set(notInEmission.flatMap((e) => e.pairs.map((p) => p.prism3)));
 
   const remainingTP = onlyTP.filter((p) => !claimedTP.has(p));
-  const overlayPaired = explainViaCanonicalModes(remainingTP, canonical);
-  const overlayClaimed = new Set(overlayPaired.pairs.map((p) => p.tokenpress));
+  const { paired: overlayPaired, regressed } = explainViaModeOverlay(remainingTP, overlays, canonical);
+  // A leaf claimed by EITHER explanation is accounted for. `regressed` is a pairing too — the token
+  // exists on both sides; what is wrong is which prism3 artifact carries it — so leaving it out of
+  // `overlayClaimed` would double-report it as an unpaired TokenPress path as well.
+  const overlayClaimed = new Set(
+    [...overlayPaired.pairs, ...regressed.pairs].map((p) => p.tokenpress)
+  );
 
   return {
-    explained: [...explained, ...notInEmission, ...(overlayPaired.pairs.length ? [overlayPaired] : [])],
+    explained: [
+      ...explained,
+      ...notInEmission,
+      ...(overlayPaired.pairs.length ? [overlayPaired] : []),
+      ...(regressed.pairs.length ? [regressed] : []),
+    ],
     unpairedPrism3: stillUnpaired.filter((p) => !accounted.has(p)),
     unpairedTokenPress: remainingTP.filter((p) => !overlayClaimed.has(p)),
   };
@@ -834,7 +884,7 @@ type BrandReport = {
     prism3Files: string[];
     tokenpressFiles: string[];
     tokenpressDirs: string[];
-    axisCollisions: { path: string; files: string[] }[];
+    axisCollisions: { path: string; files: string[]; divergent: boolean }[];
   };
   bucketC: BucketCFinding[];
   complaints: string[];
@@ -887,7 +937,7 @@ const analyze = async (brand: string): Promise<BrandReport> => {
       onlyPrism3,
       onlyTokenPress,
       shared: shared.length,
-      ...explainPaths(onlyPrism3, onlyTokenPress, p3.canonical),
+      ...explainPaths(onlyPrism3, onlyTokenPress, p3.canonical, p3.overlays),
     },
     types,
     values,
@@ -921,6 +971,26 @@ const analyze = async (brand: string): Promise<BrandReport> => {
  *  it no longer describes. `source` is the issue/doc that predicted it; a SURPRISING verdict has none
  *  by definition, and `source` says where it should be recorded instead.
  *
+ *  ── THE PREDICATE MUST TEST THE CLAIM, NOT SOMETHING CORRELATED WITH IT ────────────────────────
+ *
+ *  That guarantee is only as good as the match between `when` and `claim`, and the mechanism above
+ *  gives no warning when they come apart: a predicate that is true for a reason the claim does not
+ *  name goes on printing forever, and it prints CONFIDENTLY. Three of the verdicts below were wrong
+ *  this way at once, all found by hand (docs/34's "not one instance was ever caught by a gate"):
+ *
+ *    · #708's shadow verdict tested the projector's INPUT (`$extensions.prism3.modes.dark` on the
+ *      canonical tree) while claiming something about its OUTPUT (the dark overlay). The input is
+ *      the source the output is projected FROM, so the predicate was true both before and after
+ *      #710 fixed the bug — it reported a fixed defect as shipping and could not have stopped.
+ *    · the axis verdict tested `tokenpressDirs.length > 3` while claiming THREE DIFFERENT KINDS of
+ *      axis are peers. One axis with four values satisfies the count and refutes the claim.
+ *    · the collision verdict counted every multi-file path while claiming they had DIFFERENT
+ *      values. 11 of nb's 184 are identical in every file, so the number overstated the hazard.
+ *
+ *  So when writing one: name the artifact the claim is about, and read THAT. If the honest predicate
+ *  is expensive or awkward to compute, compute it anyway — a cheap proxy here does not weaken the
+ *  check, it removes it, and leaves prose that looks measured.
+ *
  *  This is a judgement layer and it is the only authored-prose part of the report. It is honest about
  *  that: nothing here computes a verdict, it selects one that a measurement has made applicable. */
 type Verdict = {
@@ -936,6 +1006,23 @@ const countKind = (r: BrandReport, kind: ValueDiff['kind']) =>
 const explainedCount = (r: BrandReport, needle: string) =>
   r.paths.explained.find((e) => e.reason.includes(needle))?.pairs.length ?? 0;
 const bucket = (r: BrandReport, needle: string) => r.bucketC.find((b) => b.setting.includes(needle));
+
+/** The three mode axes the category-4 verdict NAMES, so its predicate can test the thing it claims.
+ *
+ *  `tokenpressDirs.length > 3` was the old test, and it is a proxy: 12 directories satisfy it whether
+ *  they are three axes as peers or one axis with twelve values. The claim is specifically that
+ *  DIFFERENT KINDS of axis sit side by side with nothing distinguishing them, so the predicate counts
+ *  how many DISTINCT axes are represented. Names, not counts, for the same reason — a renamed
+ *  breakpoint moves the directory out of `BREAKPOINT` and the axis stops being represented, which is
+ *  the honest answer rather than a count that happens to stay above 3. */
+const AXES: Record<string, Set<string>> = {
+  appearance: new Set(['light', 'dark', 'hc-light', 'hc-dark']),
+  breakpoint: new Set(['xs', 'sm', 'md', 'lg', 'xl', '2xl']),
+  viewport: new Set(['desktop', 'mobile', 'shared']),
+};
+const axesRepresented = (r: BrandReport): number =>
+  Object.values(AXES).filter((members) => r.structure.tokenpressDirs.some((d) => members.has(d)))
+    .length;
 
 const VERDICTS: Verdict[] = [
   // ---- 1. PATHS ----
@@ -967,8 +1054,16 @@ const VERDICTS: Verdict[] = [
     category: 1,
     verdict: 'SURPRISING',
     claim:
-      'A SHIPPING DEFECT (#708): every mode-varying shadow is silently dropped from every overlay, so a conforming consumer reading `base` + `dark.overlay` gets LIGHT-MODE shadows in dark mode. Confirmed in all four brands. Root cause `emit-dtcg-overlay.ts:159` — the modes extension has two shapes (color wraps in `$value`, shadow is the bare array) and the projector reads one. Visible here because TokenPress, coming from Figma styles that have no modes, exposes all 7 as real `shadow-dark.*` tokens',
-    source: 'not predicted by #609/#696/#697/#703 — filed as #708',
+      'A SHIPPING DEFECT, #708 IS BACK: mode-varying shadows are missing from the `dark` overlay again, so a conforming consumer reading `base` + `dark.overlay` gets LIGHT-MODE shadows in dark mode. Root cause the first time was `emit-dtcg-overlay.ts` — the modes extension has two shapes (color wraps its value in `$value`, shadow is the bare array) and the projector\'s guard read one. Visible here because TokenPress, coming from Figma styles that have no modes, exposes all 7 as real `shadow-dark.*` tokens. `lint-overlay-completeness.ts` should have caught this first; if it is green and this is red, one of the two is wrong',
+    source: 'originally found by this harness and filed as #708; fixed in #710 and now gated by lint-overlay-completeness.ts',
+    when: (r) => explainedCount(r, 'REGRESSION OF #708') > 0,
+  },
+  {
+    category: 1,
+    verdict: 'EXPECTED',
+    claim:
+      'the dark shadows pair through the `dark` OVERLAY, which is what #708 fixed. This claim is the one that was wrong for longest, and how it was wrong is the useful part: its predicate asked whether the CANONICAL tree still carried `$extensions.prism3.modes.dark` — the projector\'s INPUT, true whether or not the projector emits anything — while the claim it gated asserted something about the projector\'s OUTPUT. So it went on printing "a SHIPPING DEFECT" after #710 fixed it, and could not have stopped. A verdict guarded on a proxy for its own claim is not guarded (docs/34)',
+    source: '#708 (found here) → #710 (fixed) → this verdict repointed at the overlay it is about',
     when: (r) => explainedCount(r, 'appearance axis crosses as a NAME') > 0,
   },
   {
@@ -1034,8 +1129,11 @@ const VERDICTS: Verdict[] = [
     category: 3,
     verdict: 'SURPRISING',
     claim:
-      'OPACITY disagrees by 100× — prism3 says `0.05`, TokenPress says `5`. Owned and filed as #709 (TokenPress side): prism3\'s `emit-figma-dims.ts:255` applies the ×100 deliberately because a Figma OPACITY-scoped FLOAT is a PERCENT (live-verified: 0.9 renders as 0.9%), and TokenPress reads that file, types it `number` correctly, then passes the value through unconverted — so it lands 100× outside DTCG\'s 0–1 range. The only difference here that would visibly break a UI',
-    source: 'not predicted by any of #696/#697/#703 — the most consequential finding in this report',
+      'OPACITY disagrees by 100× AGAIN — prism3 says `0.05`, TokenPress says `5`. This was #709 and it is fixed: prism3\'s `emit-figma-dims.ts` applies the ×100 deliberately because a Figma OPACITY-scoped FLOAT is a PERCENT (live-verified: 0.9 renders as 0.9%), and TokenPress now divides it back at `exporter.ts`\'s `convertVariableValue`. If this prints, that conversion has been lost — the value lands 100× outside DTCG\'s 0–1 range, and it is the one difference in this report that visibly breaks a UI. `apps/tokenpress/tests/unit/opacity-percent-to-fraction.test.ts` should fail first',
+    source: 'found here, filed as #709, fixed in #719 — this verdict is now its regression alarm',
+    // This predicate was ALREADY honest and is left as it was: `kind: 'scale'` is computed from the
+    // measured values, so the fix made it false and the claim stopped printing on its own. Contrast
+    // the #708 verdict above, which had to be repointed. Kept as the worked example of the difference.
     when: (r) => countKind(r, 'scale') > 0,
   },
   {
@@ -1078,15 +1176,19 @@ const VERDICTS: Verdict[] = [
     claim:
       'THE THREE AXES LAND AS PEER DIRECTORIES, with nothing distinguishing them. `dark`/`hc-dark`/`hc-light`/`light` (appearance), `sm`…`2xl` (breakpoint) and `desktop`/`mobile`/`shared` (viewport) sit side by side at the top level. #697 posed this as a design question; the answer is that the current output does not encode the distinction anywhere, and the harness had to be TOLD which modes correspond to prism3\'s base (`BASE_EQUIVALENT_MODES`) because the emission carries no default-mode marker at all',
     source: '#697 asked; this is the observation, and the hand-supplied constant is the proof',
-    when: (r) => r.structure.tokenpressDirs.length > 3,
+    // Not `tokenpressDirs.length > 3` — that is satisfied by ONE axis with four values, which is not
+    // what the claim says. The claim is that three DIFFERENT KINDS of axis are peers.
+    when: (r) => axesRepresented(r) === 3,
   },
   {
     category: 4,
     verdict: 'SURPRISING',
     claim:
-      'because the axes are peers, ~185 paths appear in MORE THAN ONE file with different values. Any consumer that merges the ZIP naively resolves them by file order — i.e. by accident',
+      'because the axes are peers, 171–173 paths appear in MORE THAN ONE file WITH DIFFERENT VALUES. Any consumer that merges the ZIP naively resolves them by file order — i.e. by accident. A further 11 (nb) / 14 (aurora) collide with the SAME value in every file, which is harmless and is counted separately: the old predicate counted all 184/185 together while the claim said "different values", so it asserted more than it had measured',
     source: 'not predicted; the consumer-facing consequence of the axis question',
-    when: (r) => r.structure.axisCollisions.length > 50,
+    // Counts the collisions that actually DISAGREE, which is what the claim is about. A same-value
+    // collision is redundancy, not a resolution hazard, and folding the two together overstates it.
+    when: (r) => r.structure.axisCollisions.filter((c) => c.divergent).length > 50,
   },
 
   // ---- 5. BUCKET (C) ----
@@ -1102,7 +1204,7 @@ const VERDICTS: Verdict[] = [
     category: 5,
     verdict: 'SURPRISING',
     claim:
-      'the scopes-gated handling never opens its gate: NO variable in either brand carries `LINE_HEIGHT`, so `lineHeightOutput` has no input, and the 12 `OPACITY`-scoped variables agree on TYPE (the 100x disagreement is in the VALUE, which this gate does not touch). THIS IS AN ARTIFACT OF THE INPUT, NOT A PROPERTY OF THE SETTING: the measurement cannot determine whether these settings are destructive in general, only that they are INERT AGAINST THIS INPUT. The reason is not missing scope metadata — every one of the 994 nb / 1049 aurora adapted variables carries scopes. It is that prism3 emits no line-height variable for the gate to reach at all: line-height and letter-spacing exist only inside text styles, the same root cause as the unpaired-path findings in category 1',
+      'the scopes-gated handling never opens its gate: NO variable in either brand carries `LINE_HEIGHT`, so `lineHeightOutput` has no input, and the 12 `OPACITY`-scoped variables agree on TYPE — as they always did, since #709 was a VALUE disagreement and this gate does not touch values (it is now fixed, and the VALUES section no longer reports it). THIS IS AN ARTIFACT OF THE INPUT, NOT A PROPERTY OF THE SETTING: the measurement cannot determine whether these settings are destructive in general, only that they are INERT AGAINST THIS INPUT. The reason is not missing scope metadata — every one of the 994 nb / 1049 aurora adapted variables carries scopes. It is that prism3 emits no line-height variable for the gate to reach at all: line-height and letter-spacing exist only inside text styles, the same root cause as the unpaired-path findings in category 1',
     source: 'not predicted — #703 assumed the gates would fire and reasoned about their behavior',
     when: (r) => bucket(r, 'lineHeightOutput')?.verdict === 'inert',
   },
@@ -1257,8 +1359,13 @@ const printReport = (r: BrandReport): void => {
   console.log(`  tokenpress files (${r.structure.tokenpressFiles.length}), directories = ${r.structure.tokenpressDirs.length}:`);
   for (const f of r.structure.tokenpressFiles) console.log(`     ${f}`);
   console.log(`  THE AXIS QUESTION — tokenpress top-level directories: ${r.structure.tokenpressDirs.join(', ')}`);
-  console.log(`  same-path-in-multiple-files (a consumer merging the ZIP hits these): ${r.structure.axisCollisions.length}`);
-  for (const c of r.structure.axisCollisions.slice(0, 4)) {
+  const divergent = r.structure.axisCollisions.filter((c) => c.divergent);
+  console.log(
+    `  same-path-in-multiple-files (a consumer merging the ZIP hits these): ${r.structure.axisCollisions.length}` +
+      ` — ${divergent.length} with DIFFERENT values (merge order decides), ` +
+      `${r.structure.axisCollisions.length - divergent.length} identical in every file (harmless)`
+  );
+  for (const c of divergent.slice(0, 4)) {
     console.log(`     ${c.path}  <- ${c.files.join(', ')}`);
   }
   printVerdicts(r, 4);

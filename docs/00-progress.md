@@ -7,6 +7,84 @@
 
 ---
 
+## (2026-08-12) — Three verdicts that could not stop printing: the comparison harness reported a fixed defect as shipping
+
+**STATUS: shipped.** `tools/exporter-comparison/compare.ts` + its README. Harness only — neither
+exporter touched, no emitted artifact changed, `regen --check` still 104.
+
+**The finding.** The harness printed `!! SURPRISING — A SHIPPING DEFECT (#708): every mode-varying
+shadow is silently dropped from every overlay` on every run, including after #710 fixed exactly that.
+Not a stale comment — a **live wrong statement** in a tool whose output is meant to be read as
+measurement.
+
+**Why it could not stop, which is the transferable part.** Each verdict is guarded by a predicate over
+the measured report, and the file's own header promises that a claim disappears when the condition
+stops holding. That promise is only as good as the match between `when` and `claim`, and this one was
+mismatched in the specific way that is invisible:
+
+```
+claim  : the dark OVERLAY drops mode-varying shadows        ← about the projector's OUTPUT
+when   : the CANONICAL tree carries modes.dark for them     ← about the projector's INPUT
+```
+
+The canonical extension is the **source the overlay is projected from**, so it carries the dark
+shadows whether or not the projector emits them. The predicate was true before #710 and true after —
+**verified by running the pre-fix predicate against both trees, where it printed identically.** So it
+was never a guard at all; it was prose with a `when` attached. This is docs/34's family again, in a
+new sub-shape: not a gate derived from its subject, but a *proxy predicate* — a condition that
+correlates with the claim in the world where it was written and comes apart later, silently.
+
+**The audit found two more, so it was a class and not an incident.** Both had the same signature — the
+predicate asserted less than the claim did:
+
+| verdict | claimed | tested | why it was wrong |
+|---|---|---|---|
+| #708 shadows | the overlay drops them | the canonical tree has them | input vs output; true in both worlds |
+| three axes are peers | three **kinds** of axis coexist | `tokenpressDirs.length > 3` | one axis with four values satisfies it |
+| ~185 collisions | multi-file **with different values** | every multi-file path | 11 of nb's 184 are identical in every file |
+
+Measured while fixing the third: nb has **173 divergent / 11 identical**, aurora **171 / 14**. The
+claim had been overstating the hazard by counting harmless redundancy as a resolution conflict.
+
+**The fix, and the one verdict deliberately left alone.** All three now read the artifact their claim
+names — the #708 pairing reads the `dark` overlay and reports `REGRESSION OF #708` separately when the
+canonical tree and the overlay disagree; the axis predicate counts distinct axes by name; the collision
+predicate counts only divergent ones. **#709's verdict was already honest and is untouched on purpose**:
+its `kind: 'scale'` is computed from the measured values, so #719's fix made it false and it stopped
+printing by itself. It stays in the file as the worked contrast between a predicate that discriminates
+and one that cannot — the difference is not care, it is *which artifact you read*.
+
+Both #708 and #709 verdicts were also rewritten from findings into **regression alarms** ("#708 IS
+BACK", "disagrees by 100× AGAIN"), each naming the gate that should fail first. A verdict for a fixed
+defect either becomes its alarm or it is deleted; leaving it phrased in the present tense is how this
+started.
+
+**Mutation-verified, and M1 is the instructive one.** Reverting the #710 guard alone did **not**
+reproduce #708 — #710 fixed it by normalizing the modes-extension *shape*, so the two-shape condition
+the guard tripped on no longer exists. The faithful mutation had to recreate the pre-#710 world: unwrap
+the shadow mode entry in `tree.ts` **and** revert the guard. Then the dark overlay lost its `shadow`
+group and both the new predicate and `lint-overlay-completeness.ts` went red. Worth knowing before
+anyone re-verifies this: **a mutation that fails to reproduce may mean the fix was structural, not that
+the gate works.** Also note `tree.ts` has *two* writers of shadow mode entries (line ~128 for the
+derived dark reduction, ~135 for per-mode overrides); nb's dark shadows come from the first, so
+mutating only the second changes nothing and looks like a passing control.
+
+| # | mutation | expected | result |
+|---|---|---|---|
+| M1 | unwrap shadow modes entry + revert #710 guard | new predicate fires, `lint-overlay-completeness` red | ✅ both |
+| M1′ | old predicate vs **both** trees | prints identically → was constant | ✅ 1 and 1 |
+| M2 | only one axis represented | axis verdict vanishes | ✅ 0 (old predicate: still true) |
+| M3 | no divergent collisions | collision verdict vanishes | ✅ 0 |
+| M4 | cosmetic (rule width) — negative control | no verdict moves | ✅ 0 lines differ |
+
+**Left open, deliberately.** The duplicate-composite collision (11 composites emitted twice as
+`typography.*` and `font-fluid.*`) is still SURPRISING and still unfiled — #707 flagged it as belonging
+in #697 as a named collision. And this unblocks #697's gate graduation on the trust question: the
+verdicts can now be pinned without pinning a statement nobody is checking. Pin the *divergent* count,
+not the raw one.
+
+---
+
 ## (2026-08-12) — #722: one provenance model replaces three features, and its own test's first draft could not fail
 
 **STATUS: shipped.** `apps/studio/src/provenance.ts` (new, pure), `apps/studio/test-provenance.ts`
