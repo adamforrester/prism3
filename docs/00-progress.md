@@ -7,6 +7,153 @@
 
 ---
 
+## (2026-08-12) — Three live 648-member runs: #701 confirmed, 0 misses on a complete build, and two figures the runs falsified
+
+**STATUS: shipped** (figure corrections + this entry). Filed: **#724** (yield overhead). Closed: **#701**,
+**#725** (both by measurement). Updated: **#700** (now 146.3ms).
+
+**Three runs, and it took all three.** Runs 1–2 are the cold/warm pair #701 was left open pending: aurora
+into an empty file, then Build Button set twice in one sitting without undoing. Run 3 is the complete build —
+a fresh page with the two FPO components present, reporting **zero misses**. Runs 1–2 are below; run 3 has
+its own section, because **its numbers supersede run 1's for anything describing what a Button build costs.**
+
+Every one of the three reconciles to the plan exactly, which is what makes the arithmetic worth trusting
+over the timings.
+
+**These two ran against a file missing both FPO components**, so they built 1,944 placeholder frames instead
+of instances and wrote 648 of 1,350 refs. The `#701` counters are unaffected by that (they count parts, not
+writes) and are the reason these runs are here. **The timings are not the cost of a Button build** — see run
+3, and the note under it on why re-measuring did not save this.
+
+| | cold (run 1) | warm (run 2) |
+|---|---|---|
+| `[prism3 #701]` retained / known-absent / **searched** | 1350 / 1242 / **0** | 0 / 0 / **2592** |
+| build total · per member · worst chunk | 77,767ms · 120.0ms† · 885ms | **1ms** · 0.0ms · 1ms |
+| wire total · per member · worst chunk | 25,427ms · 39.2ms† · 168ms | 185ms · 0.3ms · 4ms |
+| settle | 61ms | 16ms |
+
+† partial-work figures; superseded by 146.3ms / 78.2ms below.
+
+Against #699's baseline: wire total −45%, wire per member −46%, wire worst chunk −91%, worst chunk overall
+−82%, settle −87%. Wire's distribution collapsed to a flat **146–168ms**, and that flatness is the actual
+evidence — variable-cost searches are gone and what is left is fixed per-chunk work. The owner's read of the
+warm run: *"it was really fast, and had I not had the console open I probably wouldn't have noticed much"*,
+which is the outcome #684 was filed for.
+
+**The live run falsified two numbers this repo had been citing as a derivation, and one of them was mine.**
+
+1. **1,944 → 2,592.** The stated derivation was "648 members × 3 deduped reference parts". There are
+   **four**: `leadingVisual`, `label`, `trailingVisual` and **`spinner`** — which shares the `leadingVisual`
+   *property* but is its own *part*, so it is its own lookup. 648 × 4 = 2,592, exactly what the console
+   reported. The **gate is safe** (it derives from `planSetLayout`, not from the prose), so nothing was
+   green that should have been red; the prose was simply wrong in six places, cited each time as if it were
+   the independent check. Corrected here.
+2. **`~24ms per lookup` was a divisor error, and `~24ms per lookup on a cold build` is the real claim.**
+   46,375/1,944 = 23.9; 46,375/2,592 = **17.9**. Normalized to `~18ms`. More importantly the constant is
+   **not a property of searching**: the warm run searched all 2,592 in **185ms total**, ~0.07ms each — 250×
+   cheaper. So the price belongs to searching a scenegraph *mid-reconciliation*. The specific false sentence
+   was the live console line's *"only the last group pays the ~24ms cold scenegraph search"* — the warm run
+   **is** that group and pays nothing. Rewritten at `main.ts` with the reason, not just the number.
+
+**Worth naming as a pattern, because it is the third dress of the same thing.** Both figures were derived
+once, written into prose, and then *quoted* by later work as though the quotation were a second
+measurement. Nothing was checking them; the code that could have (the gate) derives from the plan and never
+consulted the sentence. That is `docs/34`'s shape with the direction reversed — not a gate built from its
+subject, but a **claim with no gate at all, reading as verified because it was specific**. A number in prose
+that six places cite is load-bearing, and nothing in this repo gates one (cf. #690).
+
+**All 1,514 cold misses are two components that were not in the file — #725.** Counted straight off the 648
+plans: `leadingVisual` 270 + `trailingVisual` 324 + `spinner` 108 = 702 `swapTarget` misses, the same 702
+again as `descendantFills`, plus 108 `focusRing.nestTarget`, plus the 2 `INSTANCE_SWAP` properties that
+cannot be created without a target. **702 + 702 + 108 + 2 = 1,514.** One absent component cascades into four
+miss lines per node: no swap target → the part is built as a placeholder `FRAME` → no `INSTANCE`, so no
+`VECTOR` inside to ink → and with no target, the set-level property is never created.
+
+The two components are **`FPO-default-icon`** (1,406) and **`focus-ring`** (108). This entry's own file at
+`:9511` records that an earlier test file had both hand-authored. **The run sheet I wrote for this pass named
+neither, and that omission is the finding** — a run sheet that yields 1,514 misses from a correctly-working
+executor teaches its reader to discount misses. Predicted count with both present was **0**; run 3 measured
+**0**. So the prediction was made from the plan before the run, and the run confirmed it — which is the only
+reason this counts as understood rather than merely explained. 1,514 measured the file.
+
+**The warm run's 650 reconciles just as cleanly, and the pill was right:** 648 `ALREADY PRESENT` + the same 2
+properties. The pill read **⚠ 2 misses** because `componentHeadline` takes `misses.length - skipped` rather
+than re-reading the prose — the reason `skipped` is a number and not a miss string, working as intended on
+real data for the first time.
+
+**Reachable vs unreachable, marked rather than left to be inferred.** `focus-ring` was **absent**, so the run
+exercised `nestMissAdvice('ABSENT')` and **not** the `COMPONENT_SET` branch — the one whose old wording said
+the false *"not in this file"* of a node the designer had just made (`:968`). A passing run does not cover it,
+and saying so is the point; the next run with a set of that name in the file does.
+
+**The new dominant cost is the yield, and nothing had priced it — #724.** `elapsedMs − Σ chunkMs` is the
+yield cost, since `chunkMs` excludes it by construction. Warm build: **836ms of 837ms elapsed is
+`setTimeout(0)`, to break up 1ms of work** — 99.9%. Cold: ~25s of ~128s (16% of build, 29% of wire). With
+`CHUNK = 4` that is 162 yields per phase at ~5.2ms warm and ~88.7ms cold apiece. This is **not** a regression
+in #699 — 16% to convert a 1:10 hang into an interactive build is a good trade — the defect is that a fixed
+constant cannot tell a 0ms chunk from a 500ms one. Absolute warm cost is ~1.9s of overhead on ~190ms of work:
+a correctness-of-model problem, not a stall. Shape of the fix is adaptive `CHUNK` driven by the per-chunk
+telemetry that already exists, with two traps recorded on the issue — the yield must stay a **macrotask**
+(the harness injects a microtask deliberately and structurally cannot gate this), and the adaptive threshold
+must not be derived from the telemetry the gate reads.
+
+**#700 re-measured — and then re-measured again, which is the point of the next section.** The cold run
+above reported **120.0ms** per member against #699's ~162, and the obvious reading was "a #701 side effect:
+fewer searches during build makes each member's reconciliation cheaper too." **That reading was wrong, and
+the third run below falsifies it.** 120.0ms was measured on a build that was skipping most of its work.
+
+### The third run: 0 misses, and the honest cost of a COMPLETE build
+
+**STATUS: #725 closed by measurement.** A fresh **page** in the same file, with `FPO-default-icon` and
+`focus-ring` present. Both scopes behaved as the port documents: the set is found by `api.currentPage`
+(`write-components.ts:681`), so the 648-member set on the other page was invisible and this was a genuine
+cold build; swap and nest targets resolve through `api.root` (`:461`, `:488`), so the two FPO components did
+not need copying onto the new page. **Result: `✓ built 648 variants`, zero misses.** The 1,514 were the
+file, exactly as predicted from the plan.
+
+And the complete build costs **more** than either earlier run, in both phases, because it is finally doing
+all the work:
+
+| | run 1 (1,514 misses) | run 3 (clean) | |
+|---|---|---|---|
+| refs written | 648 | **1,350** | ×2.083 |
+| wire total | 25,427ms | **50,670ms** | **×1.993** |
+| build per member | 120.0ms | **146.3ms** | +22% |
+| worst chunk | 885ms (55.3 frames) | **1,046ms (65.4 frames)** | |
+| `UNREACHABLE` at `CHUNK=1` | ~7.5 frames | **~9.1 frames** | |
+| settle | 61ms | 70ms | |
+
+**Wire cost is linear in refs WRITTEN, and the two ratios agreeing to three significant figures is the
+evidence.** Run 1 could only write the 648 `label` refs: both `INSTANCE_SWAP` properties failed to create,
+so all 702 icon refs fell out at `if (!id) continue` (`:888`) without ever touching a node. This run creates
+both properties and writes all 1,350 — `648 label + 270 leading + 324 trailing + 108 spinner`, matching
+`refsRetained` exactly. So the phase is dominated by `componentPropertyReferences` writes (~37.5ms each),
+not by per-member overhead. Build rose for the same reason one layer down: each member now builds three real
+`INSTANCE` nodes rather than three placeholder `FRAME`s.
+
+**So `#700`'s number is 146.3ms, and its finding got stronger.** `⚠ UNREACHABLE by CHUNK alone` now reports
+**9.1 frames** at `CHUNK = 1`. Total wall-clock **~3 minutes** (177,112ms), of which **31,649ms (17.9%) is
+yields** — #724 confirmed at full scale.
+
+**And this is the same defect class this entry is about, caught one iteration later.** 120.0ms was honestly
+measured and correctly transcribed; what made it wrong was the *inference attached to it* — attributing a
+drop to #701 when the real cause was 702 unwritten refs and 1,944 placeholder frames. A partial run's cost
+is not a cheaper version of a complete run's cost; it is a different quantity wearing the same label. The
+`1,944` figure earlier in this entry failed by being quoted without re-derivation. This one would have
+failed by being **re-derived from a run that did not do the thing being priced** — which no amount of
+re-measurement fixes, because the instrument was fine. Worth holding onto: *"I measured it"* is not the
+same claim as *"I measured the thing I am reporting."*
+
+**#701 unaffected and still exact:** `1350 retained, 1242 known-absent, 0 searched (2592 total)`. The
+retained/known-absent split is identical across all three cold runs, which is right — it counts parts
+*present*, not refs *written*.
+
+**Left open.** Nothing on Button's build path. `#700` (per-member floor, now 146.3ms) and `#724` (yield
+overhead) both stand, and ~3 minutes for a full set is a real number for a designer even with the file
+responsive 70ms after the executor returns.
+
+---
+
 ## (2026-08-12) — `npm ci` is the whole worktree setup, and the loop it replaces did not fail the way the review said
 
 **STATUS: shipped.** `CLAUDE.md` + `.claude/commands/review-pr.md`. Docs only, no code.
@@ -617,8 +764,8 @@ behind it yet — see *Open*. **Review found the central gate did not work; the 
 **What #684's calibration found, and what this does about it.** The cold wire pass cost **46,375ms of a
 ~151s run** against **557ms** warm for identical work over identical members — 83×, and the largest single
 lever in that data. The diagnosis came from probing the actual shape rather than from the timing: the Button
-set is **648 members × 3 deduped reference parts = 1,944 `findOne` calls**, over subtrees of **4 nodes at
-depth 1**. That is **~24ms to find one node among four**. No search algorithm costs that. The cost is not
+set is **648 members × 4 deduped reference parts = 2,592 `findOne` calls**, over subtrees of **4 nodes at
+depth 1**. That is **~18ms to find one node among four**. No search algorithm costs that. The cost is not
 the traversal — it is crossing into a scenegraph Figma is still reconciling after 648
 `createComponentFromNode` calls and a `combineAsVariants`. So the fix is not a faster search: it is **not
 searching**. The build pass already holds every node the wire pass re-finds (`build` returns each child and
@@ -638,7 +785,7 @@ assertion above it so the gate cannot be vacuous.
 set, so every member is checked for every part *any* member declares — but the parts are not uniform per
 member: `leadingVisual` is absent on `state=pending` and `spinner` is absent on the other six states. **63
 lookups, 42 hits, 21 legitimate misses** on the 21-member fixture. The first version written here was
-`kept ?? findOne(...)`, which sends all 21 back to the host at the full ~24ms cold price — the most
+`kept ?? findOne(...)`, which sends all 21 back to the host at the full ~18ms cold price — the most
 expensive way to learn nothing. Keying off **whether the member has a map** rather than whether the *part*
 is in it takes the cold pass to **zero** searches. Kept as its own reported category (`refsKnownAbsent`)
 rather than folded into the hits, because the two answer different questions.
@@ -704,7 +851,7 @@ by measuring, not by reasoning, which is the only reason it is not still in ther
 **Traps recorded at their sites.** The shim's `createComponentFromNode` is `(n) => n`, so the harness can
 **never** test whether that call preserves child references — noted where the fast path depends on it. The
 map is per member because part names are unique *within* a member and identical across all 648. And the
-read-back loop's own 1,944 `findOne` calls fall **outside both phases' timers**, so there is unmeasured cost
+read-back loop's own 2,592 `findOne` calls fall **outside both phases' timers**, so there is unmeasured cost
 the wire figure never included; left alone here (one concern per PR) but it means the ~46s is a floor, not a
 ceiling.
 

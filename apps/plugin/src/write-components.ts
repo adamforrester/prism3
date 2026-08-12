@@ -246,7 +246,9 @@ export type ComponentApplyResult = {
    *                      across the set, so every member is checked for every part ANY member declares,
    *                      and on the Button `spinner` exists only on `state=pending`.
    *   `refsSearched`     no map for this member (the build pass skipped it — an idempotent re-run), so the
-   *                      scenegraph was searched. The ~24ms-per-lookup cold path.
+   *                      scenegraph was searched. Expensive ONLY on a cold build (~18ms per lookup, while
+   *                      Figma is still reconciling); on a warm re-run the same search costs ~0.07ms, which
+   *                      is why a high count here is not by itself a cost. See the header note.
    *
    * They exist because the fix they measure is invisible to everything else. Every correctness assertion
    * passes either way (the same references get wired), and the harness's clock cannot see it (no scenegraph
@@ -404,8 +406,11 @@ const boundPaint = (arr: unknown): boolean => {
  *    `combineAsVariants` REWRITES the ids of anything declared before it.
  *  - `componentPropertyReferences` do not propagate: wiring one member leaves the others inert.
  *  - Appending does NOT grow the set's frame, hence the explicit `resize`.
- *  - A subtree search on a scenegraph Figma is still reconciling costs ~24ms to find one node among four
+ *  - A subtree search on a scenegraph Figma is still RECONCILING costs ~18ms to find one node among four
  *    (measured, #701), so the wire pass reuses the nodes the build pass built rather than re-finding them.
+ *    The emphasis is load-bearing: the same 2,592 searches cost ~0.07ms each on a warm re-run (185ms total,
+ *    live), so the price is reconciliation, not search. Only the cold build — the one case that matters —
+ *    pays it.
  */
 export const applyComponentPlan = async (
   plans: AnatomyPlan[],
@@ -865,7 +870,7 @@ export const applyComponentPlan = async (
       //
       // For a member THIS RUN BUILT, absent-from-the-map means absent-from-the-member — the registration
       // site is the append loop, so the map's membership is exactly `findOne`'s reach by construction.
-      // Searching anyway would be a guaranteed-null host round-trip at the ~24ms cold price, which is the
+      // Searching anyway would be a guaranteed-null host round-trip at the ~18ms cold price, which is the
       // most expensive way to learn nothing. So a built member skips the search on both outcomes and the
       // cold pass reaches zero searches, not two-thirds of zero.
       //

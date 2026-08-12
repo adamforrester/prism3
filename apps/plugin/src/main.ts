@@ -306,7 +306,12 @@ const buildComponents = async (): Promise<void> => {
     console.log(
       `[prism3 #701] wire lookups: ${r.refsRetained} retained, ${r.refsKnownAbsent} known-absent, ` +
         `${r.refsSearched} searched (${r.refsRetained + r.refsKnownAbsent + r.refsSearched} total; ` +
-        'only the last group pays the ~24ms cold scenegraph search)',
+        // This line used to end "only the last group pays the ~24ms cold scenegraph search", which the live
+        // run falsified twice over. The live warm run searched all 2,592 in 185ms — ~0.07ms
+        // apiece — so the cold price is a property of searching a scenegraph MID-RECONCILIATION, not of
+        // searching. A warm re-run is all-searched and cheap; a cold build that reports any searches is
+        // the expensive case. Which is why the counter is worth printing: the number alone is not a cost.
+        'searches are only expensive during a cold build, when the scenegraph is still reconciling)',
     );
     // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
     // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
