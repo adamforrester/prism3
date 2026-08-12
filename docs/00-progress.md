@@ -7,6 +7,82 @@
 
 ---
 
+## (2026-08-12) — The export dialog: two artifacts, four settings, and applicability as a declaration rather than a spot check
+
+**STATUS: shipped.** #723 replaces the two-item Export dropdown with a dialog implementing #720's export
+model. New `apps/studio/src/export-settings.ts` (the pure model) and `test-export-settings.ts` (150
+assertions, run by `npm run -w @prism3/studio test` alongside #722's provenance suite); `main.ts` swaps
+`renderExportMenu()` for `renderExportDialog()`; `lint-classes.mjs` gains the two reviewed segmented-control
+pairings and loses the now-dead `brandmenu exportmenu`.
+
+**Pure module, for the same reason #722 needed one.** `src/main.ts` touches `document` at import time and
+cannot load under `tsx`, so anything living inside it is assertable only by hand in a browser. Putting the
+model beside it is what makes #720's "a setting with no declaration fails the build" a *build* claim.
+
+**The old applicability check could not fail.** #720 asks that a setting declare which sources it applies
+to. A spot check — "exporting a generated tree exposes no Figma control" — passes today for a reason that
+has nothing to do with the rule: there is no Figma-source setting in existence to leak. So `sources` is a
+**required field** on `SettingDef`, the surface derives visibility from it (`visibleSettings` filters ONE
+list; two lists would be two places for the answer to differ), and both halves are gated because neither
+subsumes the other: omitting `sources` fails `typecheck` (TS2741, naming the setting), while `sources: []`
+type-checks perfectly and means *visible nowhere* — that one is caught by `declarationDefects()`, which
+also catches a setting no available source declares. Measured both ways; each mutant names `tokenNameCase`.
+
+**`admits` is a closed union, because one generic round-trip would trivially pass.** Each setting claims a
+*kind* of difference — `renaming`, `nesting`, `file-count`, `serialization` — and `admissionDefects`
+dispatches to the check that claim implies. A single "re-read it and compare" would be satisfied by three of
+the four without touching what makes them admissible under #720's second rule.
+
+**Four settings, and the fifth was measured out rather than argued out.** camelCase is *not* information-
+preserving over the real corpus: `padding-x-visual → paddingXVisual → padding-xvisual`, which no
+digit-aware inverse recovers. snake round-trips with 0 collisions across all 250 distinct segments in the
+four brands. The counter-measurement is executable and lives in the suite, so the option's absence has a
+reason on file instead of a decision no one can re-derive.
+
+**`design.md` has NO settings, and that is a finding.** Each of the three candidates #720 named fails on
+inspection: there is no standard-dialect *writer* to select; the `x-prism3` block is itself a
+standard-dialect construct; and the studio holds no prose to include (`parseDesignMd` returns
+`{input, prose}` and the import path keeps only `.input`). Recording it as an empty list with the reasons
+attached is only expressible because the model is two-level — artifact, then its settings. A flat control
+list would have needed one of the three invented to fill the space.
+
+### Three defects the real artifacts produced, none of which reasoning found
+
+**One: `$extensions` is a SIBLING of the root, not inside any leaf.** A leaf-walking transform drops the
+generator stamp and the `decisions` log while every token count still matches. `metaOf()` carries the
+top-level entries through every projection; the losslessness section asserts them by name.
+
+**Two: an assertion that was wrong rather than merely strict.** `aliasDefects` first resolved every alias
+*within its own file*, and the per-group split failed 3440 times. Aliasing across files is how a split is
+*meant* to work — `packages/tokens/sd.consumer.mjs` proves Style Dictionary merges a `source` array before
+resolving, the same composition `base` + `<mode>.overlay` relies on (#609). Per-file would have forced the
+palette duplicated into all 18 files. Now scoped to the file SET, with why written down.
+
+**Three: the preview must not be tidier than the download.** Every emitted leaf carries `$extensions`, so a
+6-token sample renders ~125 lines. Trimming them would make the preview lie about the bytes; instead
+`sampleLeaves` picks the **smallest** leaf matching each of four criteria (dashed name, alias value, deep
+path, composite), and the assertion is a ratio — 0.8% of aurora's 15891-line export — rather than a
+line-count pin.
+
+**And two the browser produced, which no gate here could have.** The single-column layout put the preview
+below the fold and clipped the fourth setting; the fix was measured (`scrollHeight` 634 against
+`clientHeight` 524), not guessed, and the flex `gap` turned out to be a second spacing system stacked on the
+children's own margins. Separately, the split preview joined its file texts with a newline — three JSON
+documents reading as one invalid file. It now renders one `pre` per file with the name as chrome, never
+injected into the text, since the text has to stay the bytes.
+
+**Export state is deliberately NOT persisted.** #721's dirty check would read "compact" as an unsaved brand
+edit. And `renderImportBox()` is extracted so the dialog and the brand menu render the SAME control — a
+second copy is a second place for the confirm condition to be wrong, where the failure silently overwrites
+the brand in hand.
+
+**Deliberately out of scope:** Style-Dictionary-native as a third artifact (#635's thesis is that stock SD
+reads our DTCG with no custom code — an SD-specific emitter would contradict a gate that runs every CI run),
+and the doc 26 rescope plus the voice-standard §4 cross-reference, which are lane:web bookkeeping that
+should follow rather than ride here.
+
+---
+
 ## (2026-08-12) — `lint-doc-gates.ts` looked in the whole file for a promise about one section (#704 + #728)
 
 **STATUS: shipped.** `lint-doc-gates.ts` gains three **declared gate regions** with a stated membership

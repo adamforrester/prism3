@@ -9,7 +9,7 @@
     "build": "esbuild src/main.ts --bundle --format=esm --outdir=dist --define:PRISM3_HOST=\"'web'\" --define:PRISM3_BUILD=\"'local'\" --sourcemap",
     "build:site": "node build-site.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx test-provenance.ts",
+    "test": "npx tsx test-provenance.ts && npx tsx test-export-settings.ts",
     "audit:modes": "node mode-audit.mjs",
     "lint:contrast": "node lint-contrast.mjs",
     "lint:classes": "node lint-classes.mjs",

@@ -39,6 +39,10 @@ import {
   provenanceOf, noOrigin, needsOverwriteConfirm, isUnrecoverable, joinSeed, withRecovered,
   type Origin, type Provenance, type SeedOutcome,
 } from './provenance';
+import {
+  ARTIFACTS, defaultSettings, visibleSettings, projectDtcg, fileNames, previewFiles, availableImportSlots,
+  type ArtifactId, type SettingsState, type ExportSource,
+} from './export-settings';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 
 type Mode = ResolvedPreview['modes'][number];
@@ -6629,6 +6633,15 @@ let barHost: HTMLElement;
 let brandMenuOpen = false;
 let exportMenuOpen = false;
 let navMenuOpen = false;
+// #723: which artifact the export dialog is on, and the shape settings for it. The settings persist
+// across opens within a session — a designer who wants underscores wants them for the next export too
+// — but deliberately NOT into `persist-local`: they describe an output, not the brand, and #721's
+// dirty check compares the brand against its baseline. Putting an export preference in that object
+// would make choosing "compact" read as an unsaved brand edit.
+let exportArtifact: ArtifactId = 'dtcg';
+let exportSettings: SettingsState = defaultSettings();
+// The only source that exists (#584 unbuilt). Not derived from PRISM3_HOST — see `export-settings.ts`.
+const exportSource: ExportSource = 'generated';
 let importOpen = false;
 let importErr: string | null = null;
 let importText = '';            // M-17: survives re-renders so a failed paste isn't wiped
@@ -6692,10 +6705,22 @@ const slug = (): string => String(lastGoodInput.id || 'brand').trim().replace(/\
 /** Export the last-good brand as design.md — round-trips straight back into Import. */
 const exportDesignMd = (): void => download(`${slug()}.design.md`, toDesignMd(lastGoodInput), 'text/markdown');
 
-/** Export the resolved DTCG token tree (buildTree) of the last-good theme, namespaced under `root`. */
+/** Export the resolved DTCG token tree (buildTree) of the last-good theme, namespaced under `root`,
+ *  shaped by the dialog's settings (#723).
+ *
+ *  The SAME `projectDtcg` the preview renders — one function, so the file the user gets cannot differ
+ *  from the sample they were shown. With every setting at its default the output is byte-identical to
+ *  what this wrote before #723 (`JSON.stringify(tree, null, 2)` + a trailing newline), which is the
+ *  point: the settings are additive, and someone who ignores the dialog gets the export they had.
+ *
+ *  A split writes several files, which browsers deliver as several downloads. Not zipped: a zip needs
+ *  a dependency (the engine is dependency-free, and jszip lives in TokenPress for reasons of its own),
+ *  and the file list in the dialog is what makes the count expected rather than surprising. */
 const exportTokens = (): void => {
   const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
-  download(`${slug()}.tokens.json`, JSON.stringify(tree, null, 2), 'application/json');
+  for (const file of projectDtcg(tree, slug(), exportSettings)) {
+    download(file.name, file.text, 'application/json');
+  }
 };
 
 // design.md import (#160) — one validation path shared by the start-screen upload card and the
@@ -6859,68 +6884,231 @@ const renderBrandMenu = (): HTMLElement => {
   imp.onclick = () => { importOpen = !importOpen; importErr = null; importPending = null; renderBar(); };
   menu.append(imp);
 
-  if (importOpen) {
-    const box = el('div', 'bm-import');
-    if (importPending) {
-      // Validated already — confirm before overwriting the working brand (#160). Reaching here now
-      // MEANS there are edits to lose (`stageImport` loads straight through when there are not), so
-      // the sentence can name what they are edits *to* instead of asserting they exist (#722).
-      box.append(el('p', 'bm-confirm', `Replace the current brand with “${importPending.id}”? Your edits to ${originLabel(provenance.origin)} are not saved anywhere else.`));
-      const row = el('div', 'bm-confirm-row');
-      const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
-      rep.onclick = () => {
-        const inp = importPending!; importPending = null;
-        loadBrand(inp, { kind: 'import', label: String(inp.id ?? 'design.md') });
-      };
-      const can = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
-      can.onclick = () => { importPending = null; renderBar(); };
-      row.append(rep, can);
-      box.append(row);
-    } else {
-      const ta = el('textarea', 'bm-ta') as HTMLTextAreaElement;
-      ta.placeholder = 'Paste a design.md — --- YAML frontmatter --- then prose…';
-      ta.spellcheck = false;
-      ta.value = importText;                                   // M-17: restore across re-renders
-      ta.oninput = () => { importText = ta.value; };           // a mode-toggle mid-paste won't lose it
-      box.append(ta);
-      if (importErr) box.append(el('p', 'bm-err', importErr));
-      const row = el('div', 'bm-import-row');
-      const up = el('label', 'bm-upload');
-      const fi = el('input', 'bm-file') as HTMLInputElement;
-      fi.type = 'file'; fi.accept = IMPORT_ACCEPT;
-      fi.onchange = async () => {
-        const f = fi.files?.[0]; if (!f) return;
-        const read = await readDesignMdFile(f);
-        if ('error' in read) { importErr = read.error; importPending = null; renderBar(); return; }
-        stageImport(read.text);
-      };
-      up.append(el('span', undefined, '↑ Upload .md'), fi);
-      const load = el('button', 'bm-load', 'Load') as HTMLButtonElement;
-      load.onclick = () => stageImport(ta.value);
-      row.append(up, load);
-      box.append(row);
-    }
-    menu.append(box);
-  }
+  if (importOpen) menu.append(renderImportBox());
 
   // Export + Apply-to-Figma moved OUT of this dropdown (#159) — they're their own bar affordances
   // now (Export is an artifact output, not a brand source; Apply is the plugin's primary CTA).
   return menu;
 };
 
-/** Export dropdown (#159) — the two download artifacts. design.md round-trips back into Import;
- *  tokens.json is the resolved DTCG tree. A pure output menu, split from the brand switcher. */
-const renderExportMenu = (): HTMLElement => {
-  const menu = el('div', 'brandmenu exportmenu');
-  menu.append(el('div', 'bm-cap', 'Export'));
-  const closeThen = (fn: () => void) => () => { exportMenuOpen = false; renderBar(); fn(); };
-  const expMd = el('button', 'bm-item', '↓ design.md') as HTMLButtonElement;
-  expMd.onclick = closeThen(exportDesignMd);
-  const expTok = el('button', 'bm-item', '↓ tokens.json — DTCG') as HTMLButtonElement;
-  expTok.onclick = closeThen(exportTokens);
-  menu.append(expMd, expTok);
-  menu.append(el('p', 'bm-hint', 'design.md re-imports here; tokens.json is the resolved tree.'));
-  return menu;
+/** The design.md import control — paste-or-upload, then the conditional confirm (#160, #722).
+ *
+ *  Extracted from `renderBrandMenu` by #723 so the export dialog's import slot and the brand menu
+ *  render the SAME control rather than two that look alike. Worth being explicit about why it is one
+ *  function: this is the path that validates by engine acceptance and stages an overwrite, and a
+ *  second copy would be a second place for the confirm condition to be got wrong — where the failure
+ *  mode is silently overwriting someone's edits. All state stays in the module-level `import*`
+ *  variables, so an in-progress paste survives being reached from either surface. */
+const renderImportBox = (): HTMLElement => {
+  const box = el('div', 'bm-import');
+  if (importPending) {
+    // Validated already — confirm before overwriting the working brand (#160). Reaching here now
+    // MEANS there are edits to lose (`stageImport` loads straight through when there are not), so
+    // the sentence can name what they are edits *to* instead of asserting they exist (#722).
+    box.append(el('p', 'bm-confirm', `Replace the current brand with “${importPending.id}”? Your edits to ${originLabel(provenance.origin)} are not saved anywhere else.`));
+    const row = el('div', 'bm-confirm-row');
+    const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
+    rep.onclick = () => {
+      const inp = importPending!; importPending = null;
+      loadBrand(inp, { kind: 'import', label: String(inp.id ?? 'design.md') });
+    };
+    const can = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
+    can.onclick = () => { importPending = null; renderBar(); };
+    row.append(rep, can);
+    box.append(row);
+    return box;
+  }
+  const ta = el('textarea', 'bm-ta') as HTMLTextAreaElement;
+  ta.placeholder = 'Paste a design.md — --- YAML frontmatter --- then prose…';
+  ta.spellcheck = false;
+  ta.value = importText;                                   // M-17: restore across re-renders
+  ta.oninput = () => { importText = ta.value; };           // a mode-toggle mid-paste won't lose it
+  box.append(ta);
+  if (importErr) box.append(el('p', 'bm-err', importErr));
+  const row = el('div', 'bm-import-row');
+  const up = el('label', 'bm-upload');
+  const fi = el('input', 'bm-file') as HTMLInputElement;
+  fi.type = 'file'; fi.accept = IMPORT_ACCEPT;
+  fi.onchange = async () => {
+    const f = fi.files?.[0]; if (!f) return;
+    const read = await readDesignMdFile(f);
+    if ('error' in read) { importErr = read.error; importPending = null; renderBar(); return; }
+    stageImport(read.text);
+  };
+  up.append(el('span', undefined, '↑ Upload .md'), fi);
+  const load = el('button', 'bm-load', 'Load') as HTMLButtonElement;
+  load.onclick = () => stageImport(ta.value);
+  row.append(up, load);
+  box.append(row);
+  return box;
+};
+
+/** The export dialog (#723, implementing #720) — replacing the two-item dropdown #159 introduced.
+ *
+ *  WHY A DIALOG AND NOT A LONGER MENU. The dropdown's two items were each a whole decision compressed
+ *  into one click, which worked precisely because there was nothing to decide. #720 establishes that
+ *  the DTCG export has four admissible shape settings, and a dropdown has nowhere to put a setting, a
+ *  preview of what it does, or the list of files you are about to get. Widening the menu would have
+ *  produced a menu with controls in it — the form fighting the content.
+ *
+ *  The structure is TWO LEVELS, artifact then settings, and that is load-bearing rather than tidy: it
+ *  is what let `design.md` end up with no settings at all as a legible answer (each candidate #720
+ *  named turned out to describe an emitter that does not exist — see `export-settings.ts`). A flat
+ *  list of controls would have needed one of them invented to fill the space.
+ *
+ *  Everything about WHAT the settings are lives in `src/export-settings.ts`, which is pure and tested
+ *  under tsx (`test-export-settings.ts`, 150 assertions over the four emitted brands). This function
+ *  renders that model and nothing more — in particular the preview is the REAL `projectDtcg` over a
+ *  six-token sample, not a second renderer that could drift from what the download writes. */
+const renderExportDialog = (): HTMLElement => {
+  const wrap = el('div', 'exdlg-scrim');
+  const dlg = el('div', 'exdlg');
+  dlg.setAttribute('role', 'dialog');
+  dlg.setAttribute('aria-modal', 'true');
+  dlg.setAttribute('aria-label', 'Export');
+
+  const head = el('div', 'exdlg-head');
+  head.append(el('h2', 'exdlg-t', 'Export'));
+  const close = el('button', 'exdlg-x', '✕') as HTMLButtonElement;
+  close.setAttribute('aria-label', 'Close');
+  close.onclick = () => { exportMenuOpen = false; renderBar(); };
+  head.append(close);
+  dlg.append(head);
+
+  // TWO COLUMNS: the settings on the left, what they produce on the right.
+  //
+  // Not a layout preference. Built as one column first and the preview landed entirely below the fold —
+  // four settings with a description each is ~470px before the preview starts. A preview you have to
+  // scroll to is not a preview: the whole reason it is here is to answer "what does this control do?"
+  // in the moment the control is clicked, and #720's verify item ("a control whose effect is invisible
+  // in the preview is either mis-chosen or the sample is wrong") is not satisfiable if the effect is
+  // merely *present* somewhere in a scroll region. Side by side, clicking a setting changes something
+  // you are already looking at. Collapses to one column below 720px, where two would be too narrow to
+  // read either — there the preview follows the settings, which is the honest degradation.
+  const body = el('div', 'exdlg-body');
+  const left = el('div', 'exdlg-col');
+  const right = el('div', 'exdlg-out');
+
+  // ---- level 1: which artifact ------------------------------------------------------------
+  // A segmented control, not a select: two mutually-exclusive options is doc 26's binary case, and
+  // both labels are short enough to sit side by side at this width.
+  const seg = el('div', 'seg exdlg-seg');
+  for (const a of ARTIFACTS) {
+    const b = el('button', 'seg-b' + (a.id === exportArtifact ? ' on' : ''), a.label) as HTMLButtonElement;
+    b.setAttribute('aria-pressed', String(a.id === exportArtifact));
+    b.onclick = () => { exportArtifact = a.id; renderBar(); };
+    seg.append(b);
+  }
+  left.append(seg);
+  const artifact = ARTIFACTS.find((a) => a.id === exportArtifact)!;
+  left.append(el('p', 'exdlg-desc', artifact.desc));
+
+  // ---- level 2: its shape settings, DERIVED from the declaration ---------------------------
+  // `visibleSettings` filters the ONE list by artifact and source (#720). Never a per-source list:
+  // two lists drift, and the drift shows up as a control reaching an export it corrupts.
+  const settings = visibleSettings(exportArtifact, exportSource);
+  if (settings.length) {
+    left.append(el('div', 'exdlg-div'));
+    for (const s of settings) {
+      const row = el('div', 'exdlg-set');
+      row.append(el('div', 'exdlg-lab', s.label));
+      const sseg = el('div', 'seg exdlg-oseg');
+      for (const o of s.options) {
+        const on = exportSettings[s.key] === o.value;
+        const b = el('button', 'seg-b' + (on ? ' on' : ''), o.label) as HTMLButtonElement;
+        b.setAttribute('aria-pressed', String(on));
+        b.setAttribute('aria-label', `${s.label}: ${o.label}`);
+        b.onclick = () => { exportSettings = { ...exportSettings, [s.key]: o.value }; renderBar(); };
+        sseg.append(b);
+      }
+      row.append(sseg);
+      row.append(el('p', 'exdlg-sdesc', s.desc));
+      left.append(row);
+    }
+  } else {
+    // Said out loud rather than left as an empty area. An artifact with nothing to configure is a
+    // fact about the artifact, and silence here reads as a loading state or a bug.
+    left.append(el('p', 'exdlg-none', 'Nothing to set — the brief is written one way.'));
+  }
+  body.append(left);
+
+  // ---- the right column: the file list, then the preview -----------------------------------
+  if (exportArtifact === 'dtcg') {
+    const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
+    const files = fileNames(tree, slug(), exportSettings);
+    right.append(el('div', 'exdlg-cap', files.length === 1 ? 'You get 1 file' : `You get ${files.length} files`));
+    const list = el('p', 'exdlg-files');
+    // Every name, up to a point, then a count — an 18-group split is a legitimate setting and its file
+    // list is longer than this column. The count is what makes the elision honest, and `title` keeps
+    // the full list one hover away rather than lost.
+    list.textContent = files.length <= 4 ? files.join('\n') : `${files.slice(0, 3).join('\n')}\n+${files.length - 3} more`;
+    list.title = files.join('\n');
+    right.append(list);
+    right.append(el('div', 'exdlg-cap', 'A few tokens, shaped by these settings'));
+    // One block PER FILE, with the name above it — not the file texts concatenated. The split setting
+    // makes the sample several documents (3 for the 6-token sample), and joined with a newline they read
+    // as one file containing `}` `{` in the middle, which is not valid JSON and not what downloads. The
+    // name is chrome (an element), never injected into the text: the text has to stay the bytes.
+    const prev = previewFiles(tree, slug(), exportSettings);
+    const box = el('div', 'exdlg-prevs');
+    for (const f of prev) {
+      if (prev.length > 1) box.append(el('div', 'exdlg-pname', f.name));
+      const pre = el('pre', 'exdlg-pre');
+      pre.textContent = f.text;
+      box.append(pre);
+    }
+    right.append(box);
+  } else {
+    // The brief has no settings, so there is nothing for a preview to demonstrate — and an empty right
+    // column would read as something that failed to load. One sentence about what the file is for.
+    right.append(el('div', 'exdlg-cap', 'You get 1 file'));
+    right.append(el('p', 'exdlg-files', `${slug()}.design.md`));
+    right.append(el('p', 'exdlg-sdesc', 'A handful of anchors — the color, the type, the few decisions this brand is built from. The engine regrows the rest.'));
+  }
+  body.append(right);
+
+  dlg.append(body);
+
+  // ---- the action -------------------------------------------------------------------------
+  const foot = el('div', 'exdlg-foot');
+  const go = el('button', 'exdlg-go') as HTMLButtonElement;
+  go.textContent = exportArtifact === 'design-md' ? '↓ Download brief' : '↓ Download tokens';
+  go.onclick = () => {
+    exportMenuOpen = false; renderBar();
+    if (exportArtifact === 'design-md') exportDesignMd(); else exportTokens();
+  };
+  const cancel = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
+  cancel.onclick = () => { exportMenuOpen = false; renderBar(); };
+  foot.append(cancel, go);
+  dlg.append(foot);
+
+  // ---- import: a SLOT, not a control ------------------------------------------------------
+  // #723 puts import in this dialog because it is the same conversation as export — the brief that
+  // comes out here is the one that goes back in. The Figma-file path (#677) is deliberately absent
+  // rather than disabled: `availableImportSlots()` narrows to the copy-bearing variant of the union,
+  // so there is no string to render for a path whose behavior is undecided, and a disabled control
+  // would promise one anyway. See `export-settings.ts`.
+  const slots = availableImportSlots();
+  if (slots.length) {
+    const imp = el('div', 'exdlg-import');
+    imp.append(el('div', 'exdlg-div'));
+    imp.append(el('div', 'exdlg-cap', 'Import'));
+    for (const slot of slots) {
+      const b = el('button', 'bm-item', `↑ ${slot.label}…`) as HTMLButtonElement;
+      b.onclick = () => { importOpen = !importOpen; importErr = null; importPending = null; renderBar(); };
+      imp.append(b);
+      imp.append(el('p', 'exdlg-sdesc', slot.desc));
+    }
+    if (importOpen) imp.append(renderImportBox());
+    dlg.append(imp);
+  }
+
+  // Click the scrim to dismiss, but not a click inside the panel — the scrim IS the outside.
+  wrap.onmousedown = (e) => {
+    if (e.target === wrap) { exportMenuOpen = false; renderBar(); }
+  };
+  wrap.append(dlg);
+  return wrap;
 };
 
 /** The Apply-to-Figma status pill — reached only in the plugin, via the `commit.isFigma` branch.
@@ -7073,19 +7261,24 @@ function renderBar(): void {
   if (brandMenuOpen) bWrap.append(renderBrandMenu());
   actions.append(bWrap);
 
-  // Export — the download artifacts.
+  // Export — opens the export dialog (#723, replacing #159's dropdown). The affordance is unchanged:
+  // same `.barbtn`, same icon-only behavior at narrow widths, same accessible name. What changed is
+  // what it opens. The CARET IS GONE, and that is the one deliberate difference — a caret says "a menu
+  // drops from here", and this now opens a centered dialog. Keeping it would have been a small lie
+  // about where to look next.
   const eWrap = el('div', 'barmenu-wrap');
   const exp = el('button', 'barbtn' + (exportMenuOpen ? ' open' : '')) as HTMLButtonElement;
   // The word is its own span so the narrow bar can drop to icon-only (the arrow alone) without
-  // touching the arrow or the caret. Nested inside one span with the space INSIDE the label, so
-  // wide layout renders "↓ Export" exactly as before — no extra flex gap appears between them.
+  // touching the arrow. Nested inside one span with the space INSIDE the label, so wide layout renders
+  // "↓ Export" exactly as before — no extra flex gap appears between them.
   const expText = el('span');
   expText.append(document.createTextNode('↓'), el('span', 'barbtn-lab', ' Export'));
-  exp.append(expText, el('span', 'caret', '▾'));
+  exp.append(expText);
   exp.setAttribute('aria-label', 'Export');   // stable accessible name once the word is hidden
+  exp.setAttribute('aria-haspopup', 'dialog');
+  exp.setAttribute('aria-expanded', String(exportMenuOpen));
   exp.onclick = (e) => { e.stopPropagation(); exportMenuOpen = !exportMenuOpen; brandMenuOpen = false; importOpen = false; renderBar(); };
   eWrap.append(exp);
-  if (exportMenuOpen) eWrap.append(renderExportMenu());
   actions.append(eWrap);
 
   // Pages — the rail as a menu. Below 900 the rail stops being a sidebar (see the stylesheet); left
@@ -7155,14 +7348,31 @@ function renderBar(): void {
 
   barHost.append(actions);
 
+  // The export dialog is appended to the BAR HOST, not inside `.barmenu-wrap` (#723). Two reasons, both
+  // concrete: the wrap is `position:relative` for the dropdowns that hang off it, which would trap a
+  // fixed-position scrim in its stacking context; and the outside-click handler below dismisses anything
+  // outside a `.barmenu-wrap`, so a dialog inside one would be dismissed by its own scrim click on the
+  // way to the scrim's own handler. Ordering the two would have been the bug; not overlapping them is
+  // the fix. `renderBar()` clears `barHost` on every call, so the dialog's lifetime is still one flag.
+  if (exportMenuOpen) barHost.append(renderExportDialog());
+
   if (!outsideBound) {
     document.addEventListener('mousedown', (e) => {
       // The apply detail is NOT dismissed here, deliberately: it is a row in the chrome rather than an
       // overlay, so it obscures nothing and a click elsewhere is not a request to close it. Auto-closing
       // it would also lose a miss report the moment the designer clicked the control they came to fix.
-      if ((brandMenuOpen || exportMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
-        brandMenuOpen = false; exportMenuOpen = false; navMenuOpen = false; importOpen = false; addModeOpen = false; addModeName = ''; renderBar();
+      //
+      // `exportMenuOpen` is no longer in this condition (#723): the export dialog is modal, and its own
+      // scrim decides what "outside" means for it. Left here, this handler would close the dialog on the
+      // first click that landed on a setting — every control in it is outside `.barmenu-wrap`.
+      if ((brandMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
+        brandMenuOpen = false; navMenuOpen = false; importOpen = false; addModeOpen = false; addModeName = ''; renderBar();
       }
+    });
+    // Escape closes the dialog. Bound once, alongside the click dismissal, for the same reason: the bar
+    // re-renders constantly and a per-render listener would accumulate one per render.
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && exportMenuOpen) { exportMenuOpen = false; importOpen = false; renderBar(); }
     });
     outsideBound = true;
   }
@@ -7530,7 +7740,84 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    mode set in (#432) pushed it to ~716px, and at a 700px-tall window it ran 89px past the bottom
    of the viewport with the last items simply unreachable. Bounded to the space below the header. */
 .brandmenu{position:absolute;top:calc(100% + 8px);right:0;width:288px;max-height:calc(100vh - var(--chrome-h, 120px) - 24px);overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);padding:12px;z-index:20;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px -8px rgba(24,24,27,.20),0 4px 12px -4px rgba(24,24,27,.12)}
-.exportmenu{width:232px}
+
+/* The export dialog (#723), replacing .exportmenu's 232px dropdown. Not a <dialog>: the app uses no
+   native dialogs (same call as the color pickers and the confirm rows), so this is the app's own
+   pattern rather than a second one. z-index sits above .brandmenu's 20 — the two are mutually
+   exclusive in practice, but a modal that could render UNDER a dropdown is a bug waiting for the one
+   state that allows both. --scrim is not used: this is chrome, and the token is the brand's. */
+/* Vertically centered, NOT hung below the bar. The dropdowns are anchored to their triggers because
+   they belong to them; a modal does not, and top-aligning this one under the chrome cost ~110px that
+   the settings column needed — measured, not guessed: the left column wants 634px and was given 524,
+   which clipped the fourth setting's label mid-word. */
+.exdlg-scrim{position:fixed;inset:0;z-index:40;background:rgba(24,24,27,.34);display:flex;align-items:center;justify-content:center;padding:20px}
+/* Bounded height with the BODY scrolling, not the panel: the head keeps the title and the close button
+   reachable, and the footer keeps the download button reachable, however long the preview runs. That is
+   the same failure .brandmenu's max-height fixed (#432) — here it would have put the primary action
+   below the fold on a 700px window. */
+.exdlg{width:min(880px,100%);max-height:calc(100vh - 40px);display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r);box-shadow:0 24px 64px -12px rgba(24,24,27,.30),0 8px 20px -8px rgba(24,24,27,.16)}
+.exdlg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 12px;border-bottom:1px solid var(--line)}
+.exdlg-t{margin:0;font-size:15px;font-weight:600;color:var(--ink)}
+.exdlg-x{border:0;background:none;font:inherit;font-size:14px;color:var(--faint);cursor:pointer;padding:4px 6px;border-radius:var(--r-xs);line-height:1}
+.exdlg-x:hover{background:var(--paper);color:var(--ink)}
+/* Settings left, output right. The columns scroll INDEPENDENTLY (each is its own overflow region): a
+   single scroller would move the settings out of view while reading the preview, which is the pairing
+   the two-column layout exists to hold together. */
+.exdlg-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;min-height:0;overflow:hidden}
+/* gap:0 on purpose — every child here carries its own margin, and a flex gap on top of that is a second
+   spacing system for the same axis. It also cost real room: gap+margin together overflowed the column by
+   33px at an 869px viewport, clipping the fourth setting's description mid-line. The column still scrolls
+   (it must — #720 can add settings, and no fixed height survives that), but the default four now fit. */
+.exdlg-col{padding:14px 18px 12px;overflow-y:auto;display:flex;flex-direction:column;gap:0;min-width:0}
+/* The output column is the quieter surface — it reports rather than accepts input, and the tint is what
+   says so without a heading announcing it. */
+.exdlg-out{padding:16px 18px;overflow-y:auto;background:var(--paper);border-left:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+/* Below 720 two columns are each too narrow to read: the preview is mono at 11px and the descriptions
+   are full sentences. One column, settings first, preview after — the same order the single-column
+   build had, which is the right degradation rather than a compromise. */
+@media (max-width:720px){
+  .exdlg-body{grid-template-columns:minmax(0,1fr);overflow-y:auto}
+  .exdlg-col,.exdlg-out{overflow:visible}
+  .exdlg-out{border-left:0;border-top:1px solid var(--line)}
+}
+.exdlg-seg{align-self:flex-start}
+.exdlg-desc{margin:9px 2px 0;font-size:12.5px;line-height:1.55;color:var(--ink2)}
+.exdlg-div{height:1px;background:var(--line);margin:13px 0 12px}
+/* A setting is label / control / description stacked, not label-beside-control: the descriptions are a
+   full line each (#618 allows them to carry real vocabulary, which costs width), and four rows of
+   right-aligned controls with prose underneath reads as two competing columns. */
+.exdlg-set{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+.exdlg-set:last-child{margin-bottom:0}
+.exdlg-lab{font-size:12.5px;font-weight:560;color:var(--ink)}
+.exdlg-oseg{align-self:flex-start;max-width:100%;flex-wrap:wrap}
+/* The option labels are token names on purpose (color.on-fill) — the control demonstrating itself
+   rather than describing itself. Mono is what makes that read as a name rather than as prose. */
+.exdlg-oseg .seg-b{font-family:var(--mono);font-size:12px}
+.exdlg-sdesc{margin:0 2px;font-size:11.5px;line-height:1.55;color:var(--muted)}
+.exdlg-none{margin:2px;font-size:12.5px;color:var(--muted)}
+.exdlg-cap{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:2px 2px 6px}
+/* pre-line, not nowrap: the file list is one name per line and a long brand id should wrap rather than
+   push the column wider or clip. */
+.exdlg-files{margin:0 2px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--ink2);word-break:break-all;white-space:pre-line}
+/* The preview is the real projection, so it is as tall as the tokens are — scrollable rather than
+   trimmed, because trimming would show something the download does not contain.
+   One pre per file. With a split there are several, so THIS is the scroll region and each pre keeps its
+   natural height; with one file the lone pre takes the remaining height itself (:only-child), so a
+   single document still fills the panel instead of sitting in a short box with dead space under it. */
+.exdlg-prevs{flex:1;min-height:0;display:flex;flex-direction:column;gap:3px;overflow:auto}
+.exdlg-pname{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin:5px 2px 1px;word-break:break-all}
+.exdlg-pname:first-child{margin-top:0}
+.exdlg-pre{margin:0;flex:none;overflow:auto;padding:11px 12px;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r-xs);font-family:var(--mono);font-size:11px;line-height:1.55;color:var(--ink2);white-space:pre}
+.exdlg-pre:only-child{flex:1;min-height:120px}
+@media (max-width:720px){ .exdlg-prevs{flex:none;max-height:300px} }
+.exdlg-foot{display:flex;align-items:center;justify-content:flex-end;gap:9px;padding:12px 18px 16px;border-top:1px solid var(--line)}
+.exdlg-go{border:1px solid var(--ink);background:var(--ink);color:#fff;border-radius:var(--r-xs);padding:8px 17px;font:inherit;font-size:13px;font-weight:560;cursor:pointer}
+/* Import sits BELOW the footer — outside the export conversation but in the same dialog, which is the
+   relationship: the brief that comes out here is the one that goes back in. Its own surface tint keeps
+   it from reading as a third export option. */
+.exdlg-import{padding:0 18px 16px;background:var(--paper);border-top:1px solid var(--line);border-radius:0 0 var(--r) var(--r)}
+.exdlg-import .exdlg-div{margin-top:0}
+.exdlg-import .bm-ta{height:96px}
 .bm-cap{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600;margin:4px 2px 6px}
 .bm-field{display:flex;align-items:center;gap:10px;padding:4px 2px}
 .bm-lab{font-size:12.5px;color:var(--ink2);width:78px;flex:none}

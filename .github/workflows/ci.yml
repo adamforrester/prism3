@@ -78,6 +78,12 @@ jobs:
       # loaded under tsx, so anything inside it is assertable only by hand in a browser. Note what
       # `typecheck` above does NOT cover — `apps/studio/tsconfig.json` includes `src` only, so the
       # test file itself is never compiled and this step is the only thing that runs it.
+      #
+      # Two suites now: the provenance model (#722) and the export-settings model (#723). The second is
+      # also what enforces #720's "a setting with no declaration fails the build" — half at typecheck
+      # (`sources` is a required field), half here (`sources: []` type-checks and means "visible
+      # nowhere"). Neither half subsumes the other, and its section 8 mutates each check to confirm it
+      # goes red on the defect it exists for.
       - name: Studio unit tests
         run: npm run -w @prism3/studio test
 
