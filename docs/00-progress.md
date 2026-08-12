@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-08-12) — `27` Idea 2's AEM Phase 1 aims at the path Adobe stopped recommending (docs/27, 13)
+
+**STATUS: docs only.** Two annotations. No engine change, no emitted artifact, no gate. `regen
+--check` still 104.
+
+**The fact, verified twice.** Adobe's Core Components *Introduction* (last updated 7 August 2026)
+now opens: *"You can continue using the methods described in this document for existing projects.
+However for new projects, Adobe recommends leveraging Edge Delivery Services."* Surfaced by the
+research pass on #252 (knowledge-base PR #12) and re-fetched independently before anything was
+written here, because a finding that invalidates a committed plan is the exact class this repo
+has already shipped one fabrication in.
+
+**Why it matters more than a stale link.** `27` Idea 2's Phase 1 is a tokens clientlib plus a
+Prism3 skin over AEM Core Components — correct for the installed base, one generation behind for
+new work. The owner confirmed the same day that **Prism3 targets new engagements**, which is
+precisely the population Adobe's sentence addresses. The residue only the practice can settle: a
+*new engagement* on an *existing* AEM installation is still classic AEM, so both paths stay live
+and the split is unknown. That unknown is what decides whether EDS blocks or classic HTL ranks
+third among the projections.
+
+**The shape of the error, which is the transferable part.** `27` Idea 2's own guardrail paragraph
+already says "SPA Editor deprecated Jan 2025 — no new investment." The section then built a phase
+on the authoring model Adobe had *also* stopped recommending, because the deprecation it knew
+about and the recommendation it missed arrived two years apart. **A guardrail against building
+toward a vendor's abandoned model does not re-run itself when the vendor moves again.** Worth a
+standing habit: re-fetch the vendor's own "what should new projects use" page before scoping any
+phase that names a platform's authoring model.
+
+**Deliberately NOT done here.** The research pass also ranks the projections and concludes
+web-components-primary does not survive — which would invert `19` §3 and re-cut `38` Arc 4. That
+ranking is one model's judgment awaiting a second-model validation run, so only the **verified
+quoted facts** landed in the docs; the reordering they imply did not. Both annotations say so
+explicitly. Splitting fact from judgment at the doc boundary is what lets the correction ship
+today without pre-committing the decision. Tracked as #745.
+
+**Trap.** The Drupal half of the same pass (KB 10 is stale; Drupal Canvas shipped stable 1.10.0 on
+2026-08-07, formerly "Experience Builder") is **not** in this change. Its version and date are
+confirmed; the claim that Canvas's native unit is a React/JSX code component with SDC as a
+registration bridge is **not** — the project page mentions JSX but does not describe the component
+architecture. Do not carry that half into a doc until it has its own source.
+
+---
+
 ## (2026-08-12) — `nest-fixed` resolves to a member: the coordinate the def named, the two executors that read it, and the fifth miss
 
 **STATUS: shipped.** #734 added `PartDef.nesting` and documented it (docs/28 §4.1); this is the **consumer**

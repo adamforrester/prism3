@@ -90,6 +90,36 @@ independently deployable package so a token-only change doesn't ride a full Clou
 Manager pipeline; expect the CMS-side wrapping at 30–50% of build hours in the
 traditional shape.
 
+**Correction, 2026-08-12 — Phase 1 targets the path Adobe steers new projects away
+from.** Adobe's Core Components documentation (*Introduction*, last updated 7 August
+2026, `experienceleague.adobe.com/en/docs/experience-manager-core-components/using/introduction`,
+fetched 2026-08-12) now opens with: *"You can continue using the methods described in
+this document for existing projects. However for new projects, Adobe recommends
+leveraging Edge Delivery Services."*
+
+Phase 1 above is a tokens clientlib plus a Core Components skin. That is **correct for
+the installed base and one generation behind for new work** — and the owner's stated
+position (2026-08-12) is that **Prism3 targets new engagements, not existing ones**,
+which is exactly the population Adobe's sentence addresses. The unresolved half, which
+only the practice can answer: a *new engagement* on an *existing* AEM installation is
+still classic AEM, so both paths stay live and the split between them is unknown.
+
+Note the shape of the error rather than only the fact — it is the same one the
+guardrail directly above already encodes for the SPA Editor: **building toward the
+authoring model a vendor has just stopped recommending.** The guardrail caught it once
+and this section reproduced it anyway, because the deprecation it names and the
+recommendation it missed arrived two years apart.
+
+What Edge Delivery consumes is the part that makes this actionable rather than merely
+awkward: a global stylesheet, per-block CSS and an ESM function — **no framework and no
+npm dependency in the delivered front end.** If that holds, it moves a token/CSS
+projection *up* the priority order and web components *down*, which is close to the
+inverse of `19` §3's stated lean. **Do not re-scope this idea on that basis yet.** It
+comes from a single research pass (knowledge-base PR #12) whose ranking is awaiting a
+second-model validation run; the two sentences quoted and dated above are verified
+fact, the reordering they imply is not yet. Tracked as #745, with the arcs consequence
+in `38` §3.
+
 ---
 
 ## Idea 3 — The Prism3 skills portfolio

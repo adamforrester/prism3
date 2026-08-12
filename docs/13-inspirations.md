@@ -471,6 +471,13 @@ AEM lane (Phase 1: token clientlib + skinned Core Components, no custom componen
 via clientlib once the code library exists). **Blocks are the missing Phase 3**, and naming them as such is
 what keeps Phase 2 from being mistaken for the whole story.
 
+**Read that phasing with `27` Idea 2's 2026-08-12 correction.** Adobe's Core Components documentation now
+recommends Edge Delivery Services *for new projects* and positions Core Components as *"continue using … for
+existing projects"* — so Phase 1's skinned-Core-Components target is right for the installed base and a
+generation behind for new work, which is the population Prism3 serves. The paragraph above is unaffected in
+its argument: blocks are still the tier, and EDS is still where Adobe put the word. What moves is which phase
+comes first, and that is parked pending validation (#745).
+
 **The path is projection, not conversion.** Building blocks as React or Web Components and then porting them
 to AEM is a one-way lossy translation that immediately drifts — the same failure `14` §1 rejects at the
 component tier. If the block is **defined as data**, then React, Web Components, an AEM component and an EDS
