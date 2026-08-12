@@ -25,11 +25,18 @@
  *
  * ── WHAT THIS IS NOT ────────────────────────────────────────────────────────────────────────────
  *
- * NOT A GATE, and deliberately not wired into CI. A gate asserts a difference is WRONG; every
- * category here is currently a difference that is RIGHT for its host (#697: "the two representations
- * disagree by design, and each is right for its host"). Turning this into a gate requires first
- * answering #697's byte-for-byte question — until then a red build would be reporting a decision
- * nobody has made. See the PR body for where it should end up if that answer is "yes".
+ * NOT A GATE — THIS FILE REPORTS AND ALWAYS EXITS 0. A gate asserts a difference is WRONG; most
+ * categories here are a difference that is RIGHT for its host (#697: "the two representations
+ * disagree by design, and each is right for its host"), so failing a build on the whole report would
+ * be reporting a decision nobody has made.
+ *
+ * The assertable SUBSET is now a gate, and it lives next door in `gate.ts` — types, unpaired paths,
+ * float32 leaks and the opacity scale, i.e. the arms where a disagreement means one exporter is
+ * wrong rather than different. `gate.ts` imports `analyze` from here, so there is ONE measurement
+ * path and the gate cannot drift from what this prints. What it deliberately does not import is
+ * `VERDICTS`: those are authored prose selected by a predicate, and three of them were silently
+ * wrong for weeks (#729) — a gate keyed on a verdict printing would inherit every proxy in them.
+ * Categories 3–5 stay reporting-only until #697's byte-for-byte question is answered.
  *
  * NOT A COMPARISON OF EQUALS ON PATHS. prism3's root is a brand namespace (`nbds`, `prism`);
  * TokenPress's is whatever `options.namespace` says, and the default is none. So paths are compared
@@ -39,7 +46,8 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { adaptBrand, assertAdaptable, type Adapted } from './adapt-figma-emission.ts';
 import { runTokenPress, DEFAULT_DTCG_OPTIONS, type TokenPressOutput } from './run-tokenpress.ts';
 
@@ -201,7 +209,7 @@ const numbersIn = (v: unknown, acc: number[] = []): number[] => {
 
 const canon = (v: unknown): string => JSON.stringify(v);
 
-type ValueDiff = {
+export type ValueDiff = {
   path: string;
   type: string;
   prism3: unknown;
@@ -857,7 +865,7 @@ const observeBucketC = (
 
 // ---- the report --------------------------------------------------------------------------------
 
-type BrandReport = {
+export type BrandReport = {
   brand: string;
   adapted: Adapted['notes'];
   counts: {
@@ -891,7 +899,7 @@ type BrandReport = {
   skippedBlurStyles: string[];
 };
 
-const analyze = async (brand: string): Promise<BrandReport> => {
+export const analyze = async (brand: string): Promise<BrandReport> => {
   const a = adaptBrand(brand, join(OUT, 'figma', brand));
   assertAdaptable(a);
   const out = await runTokenPress(a);
@@ -981,7 +989,7 @@ const analyze = async (brand: string): Promise<BrandReport> => {
  *    · #708's shadow verdict tested the projector's INPUT (`$extensions.prism3.modes.dark` on the
  *      canonical tree) while claiming something about its OUTPUT (the dark overlay). The input is
  *      the source the output is projected FROM, so the predicate was true both before and after
- *      #710 fixed the bug — it reported a fixed defect as shipping and could not have stopped.
+ *      #713 fixed the bug — it reported a fixed defect as shipping and could not have stopped.
  *    · the axis verdict tested `tokenpressDirs.length > 3` while claiming THREE DIFFERENT KINDS of
  *      axis are peers. One axis with four values satisfies the count and refutes the claim.
  *    · the collision verdict counted every multi-file path while claiming they had DIFFERENT
@@ -1055,15 +1063,15 @@ const VERDICTS: Verdict[] = [
     verdict: 'SURPRISING',
     claim:
       'A SHIPPING DEFECT, #708 IS BACK: mode-varying shadows are missing from the `dark` overlay again, so a conforming consumer reading `base` + `dark.overlay` gets LIGHT-MODE shadows in dark mode. Root cause the first time was `emit-dtcg-overlay.ts` — the modes extension has two shapes (color wraps its value in `$value`, shadow is the bare array) and the projector\'s guard read one. Visible here because TokenPress, coming from Figma styles that have no modes, exposes all 7 as real `shadow-dark.*` tokens. `lint-overlay-completeness.ts` should have caught this first; if it is green and this is red, one of the two is wrong',
-    source: 'originally found by this harness and filed as #708; fixed in #710 and now gated by lint-overlay-completeness.ts',
+    source: 'originally found by this harness and filed as #708; fixed in #713 and now gated by lint-overlay-completeness.ts',
     when: (r) => explainedCount(r, 'REGRESSION OF #708') > 0,
   },
   {
     category: 1,
     verdict: 'EXPECTED',
     claim:
-      'the dark shadows pair through the `dark` OVERLAY, which is what #708 fixed. This claim is the one that was wrong for longest, and how it was wrong is the useful part: its predicate asked whether the CANONICAL tree still carried `$extensions.prism3.modes.dark` — the projector\'s INPUT, true whether or not the projector emits anything — while the claim it gated asserted something about the projector\'s OUTPUT. So it went on printing "a SHIPPING DEFECT" after #710 fixed it, and could not have stopped. A verdict guarded on a proxy for its own claim is not guarded (docs/34)',
-    source: '#708 (found here) → #710 (fixed) → this verdict repointed at the overlay it is about',
+      'the dark shadows pair through the `dark` OVERLAY, which is what #708 fixed. This claim is the one that was wrong for longest, and how it was wrong is the useful part: its predicate asked whether the CANONICAL tree still carried `$extensions.prism3.modes.dark` — the projector\'s INPUT, true whether or not the projector emits anything — while the claim it gated asserted something about the projector\'s OUTPUT. So it went on printing "a SHIPPING DEFECT" after #713 fixed it, and could not have stopped. A verdict guarded on a proxy for its own claim is not guarded (docs/34)',
+    source: '#708 (found here) → #713 (fixed) → this verdict repointed at the overlay it is about',
     when: (r) => explainedCount(r, 'appearance axis crosses as a NAME') > 0,
   },
   {
@@ -1420,12 +1428,20 @@ const main = async (): Promise<void> => {
     );
   }
   console.log(
-    '\n  This is a MEASUREMENT, not a gate: every category above is currently a difference that is\n' +
-      '  correct for its host (#697). It reports; it does not fail.'
+    '\n  This is a MEASUREMENT: most of what it reports is a difference that is correct for its host\n' +
+      '  (#697), so it never fails. The assertable subset — types, unpaired paths, float32 leaks and\n' +
+      '  the opacity scale — IS a gate, and it runs in CI: `npx tsx tools/exporter-comparison/gate.ts`.'
   );
 };
 
-main().catch((e) => {
-  console.error(`comparison failed: ${e instanceof Error ? e.message : String(e)}`);
-  process.exit(1);
-});
+/** Only run the report when invoked directly. `gate.ts` imports `analyze` from this file, and without
+ *  this guard that import would print the entire five-category report as a side effect of the gate
+ *  starting up — the repo's established convention for a module that is both a library and a CLI
+ *  (`emit-dtcg.ts`, `mcp.ts`, `regen.ts`, `token-contract.ts` all take this shape). */
+const isMain = process.argv[1] ? resolve(process.argv[1]) === fileURLToPath(import.meta.url) : false;
+if (isMain) {
+  main().catch((e) => {
+    console.error(`comparison failed: ${e instanceof Error ? e.message : String(e)}`);
+    process.exit(1);
+  });
+}
