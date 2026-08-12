@@ -507,6 +507,46 @@ bug, and the work is to make the boundary someone's rather than to leave it desc
 
 ---
 
+## (2026-08-13) — `docs/38`'s five arcs get tracking issues, and two corrections surface verifying them
+
+**STATUS: issues filed, one doc correction pushed.** Per `docs/38` §5's own lane assignment
+("issues manager | files Arc 1's schema decisions and Arc 5's implementation tickets"), filed one
+tracking issue per arc — #740 (Arc 1), #741 (Arc 2), #742 (Arc 3), #743 (Arc 4), #744 (Arc 5) — each
+linking `docs/38` §3 for scope rather than restating it, labelled by lane per §5 (Arc 1/2/3
+`lane:engine`, Arc 4 `lane:code-library`, Arc 5 `lane:plugin`). Arc 1 additionally got five sub-issues
+for `docs/28` §5's open questions — #735 (gap scale), #736 (`align`), #737 (`trailingVisual` split),
+#738 (`padding-x` migration), #739 (anatomy nesting) — each `type:decision`, each asking for a
+decision or a recorded deferral, none decided here.
+
+**Every cited issue number was verified against live GitHub before being linked, per `docs/38`'s own
+header disclaimer that this had never been done.** 13 of 16 held. Three didn't, and the correction
+went to `docs/38` itself rather than being silently absorbed into the new issues:
+
+- **#680, #701 closed** (completed, merged #710/#705) — Arc 5's "live-run debt" list dropped them
+  rather than filing against closed work.
+- **The bigger one: Arc 5's "implementation tickets for #720 and #721" instruction was already
+  stale.** Both exist — #722 (implements #721's do-now model, closed, merged #727) and #723
+  (implements #720's dialog, open, sequenced after #722). Neither was known when `docs/38` was
+  written on 2026-08-12; both were filed and one already shipped by the time this pass ran a day
+  later. Filing new tickets per the doc's literal instruction would have duplicated real, in-flight
+  work — caught by checking before writing, not by the instruction itself.
+- **#681 needed the deeper check, and turned out correct.** Its own issue *body* says nothing about
+  "nesting kinds — swap, nest-fixed, nest-exposed," which first read as a wrong citation. The
+  decision is real: recorded in a comment added 2026-08-12, *after* the issue had already closed
+  (bug fixed 2026-08-10, decision comment added two days later on the same thread). Verifying a
+  citation against an issue's *body* alone would have produced a false correction here — the
+  comment thread was the part that mattered.
+
+`docs/38-arcs.md` itself carries both the corrected Arc 5 paragraph and a note on its own header
+that this verification pass happened, so a future reader doesn't re-run it against the same stale
+assumption the header used to license.
+
+**Left alone, deliberately:** Arc 4's tracking issue (#743) is a stub — "blocked on #252" and
+nothing more. #252 has no lean recorded anywhere; scoping Arc 4 further now would mean inventing
+the answer `docs/38` §6 says is genuinely open.
+
+---
+
 ## (2026-08-12) — The arcs: what order the component tier gets built in, and why the primitives come first (docs/38, new)
 
 **STATUS: docs only.** New `38-arcs.md`. No engine change, no emitted artifact, no gate. `regen
