@@ -342,7 +342,10 @@ const seedFromFile = async (): Promise<void> => {
   try {
     const snap = await readFigmaVariables(figma.variables);
     if (snap.color.length === 0) {
-      postToUi({ type: 'seed-info', ok: true, summary: 'No existing Prism3 theme in this file — start from the knobs.' });
+      // `present: false` — #721's state 3. The UI needs this told apart from a themed file as a FLAG,
+      // not by parsing the sentence: it is what stops "no theme here" being reported as knobs that
+      // could not be recovered (#722).
+      postToUi({ type: 'seed-info', ok: true, present: false, summary: 'No existing Prism3 theme in this file — start from the knobs.' });
       return;
     }
     const v = verifyReadback(snap);
@@ -350,9 +353,13 @@ const seedFromFile = async (): Promise<void> => {
     const summary =
       `Existing theme: ${v.details.colorVars} colour vars, modes ${v.details.modes.join('/') || '—'}` +
       (v.ok ? ' — contract holds ✓' : ` — FAILED: ${failed.join(', ')}`);
-    postToUi({ type: 'seed-info', ok: v.ok, summary });
+    // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is
+    // a separate fact. Collapsing the two would make a contract failure look like an unthemed file.
+    postToUi({ type: 'seed-info', ok: v.ok, present: true, summary });
   } catch (e) {
-    postToUi({ type: 'seed-info', ok: false, summary: `read-back failed: ${(e as Error).message}` });
+    // The read itself failed, so presence is UNKNOWN — reported false, since the outcome is an error
+    // either way and claiming presence we could not establish would be worse than not claiming it.
+    postToUi({ type: 'seed-info', ok: false, present: false, summary: `read-back failed: ${(e as Error).message}` });
   }
 };
 

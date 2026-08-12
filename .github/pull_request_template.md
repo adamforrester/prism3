@@ -36,6 +36,7 @@
 - [ ] `npx tsx packages/engine/lint-overlay-completeness.ts` → clean — each mode's overlay carries exactly the leaves that vary in it, in both directions (#708); EXPECTED comes from the projector's input and ACTUAL from its output, so never re-derive it by running `buildOverlay` or by reading an overlay
 - [ ] `npx tsx packages/engine/typecheck-components.ts` → clean — `tsc --noEmit` over `packages/engine/tsconfig.json` (a check, not a build) AND every tracked component def represented in what tsc actually read (#657); a green typecheck over a subset of the defs is the defect itself
 - [ ] `npm run -w @prism3/studio typecheck` → clean
+- [ ] `npm run -w @prism3/studio test` → clean — the provenance model (#722); `typecheck` does not cover it (`tsconfig.json` includes `src` only, so the test file is never compiled)
 - [ ] `npm run -w @prism3/studio build` → succeeds
 - [ ] `npm run -w @prism3/studio check:ignore` → clean
 - [ ] `npm run -w @prism3/studio lint:contrast` → clean

@@ -73,6 +73,14 @@ jobs:
       - name: Typecheck web
         run: npm run -w @prism3/studio typecheck
 
+      # apps/studio's FIRST test step, and the reason it can exist is that #722 put the provenance
+      # model in its own pure module: `src/main.ts` touches `document` at import time and cannot be
+      # loaded under tsx, so anything inside it is assertable only by hand in a browser. Note what
+      # `typecheck` above does NOT cover — `apps/studio/tsconfig.json` includes `src` only, so the
+      # test file itself is never compiled and this step is the only thing that runs it.
+      - name: Studio unit tests
+        run: npm run -w @prism3/studio test
+
       - name: Build web
         run: npm run -w @prism3/studio build
 

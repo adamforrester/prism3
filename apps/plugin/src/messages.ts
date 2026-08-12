@@ -101,8 +101,17 @@ export type MainToUi =
    *  observed. See `CHUNK` in `write-components.ts`. */
   | { type: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
   /** Boot read-back (#109): whether an existing Prism3 theme in the file passes the contract, plus a
-   *  human summary. Informational — the actual knob-rehydration is `restore-input` below. */
-  | { type: 'seed-info'; ok: boolean; summary: string }
+   *  human summary. Informational — the actual knob-rehydration is `restore-input` below.
+   *
+   *  `present` is #722's addition, and it is a THIRD fact rather than a refinement of `ok`. #721's
+   *  three seed outcomes are "not a Prism3 file", "ours, and here is what is in it", and "the
+   *  read-back itself failed" — and `ok` alone cannot separate the first from the third, because an
+   *  empty file and a broken read both arrive as `ok: false`. The UI would then tell a designer
+   *  opening a blank file that something went wrong. Presence is known here (the read-back counted
+   *  the variables) and nowhere else, so it travels rather than being inferred from `summary`'s
+   *  prose downstream — which would make the wording load-bearing, the same trap the
+   *  headline/summary split above exists to avoid. */
+  | { type: 'seed-info'; ok: boolean; present: boolean; summary: string }
   /** Boot knob-rehydration (#131): the `BrandInput` persisted by the last apply, read back from the
    *  file's shared-data. The UI loads it wholesale so it opens on the persisted brand, not defaults.
    *  Sent only when a trusted blob exists (genuine absence → not sent → UI keeps defaults; a
