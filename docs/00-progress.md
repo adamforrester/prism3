@@ -337,7 +337,7 @@ not a second implementation — but **deliberately not `VERDICTS`**, whose autho
 three-of-four wrong until yesterday. A gate keyed on "did a verdict print" would inherit every proxy
 in them.
 
-### 5. The mutation that did *not* fail, and why it is in the header instead of the bin
+### 5. The mutation that did *not* fail, and why it is now #747 instead of a header comment
 
 Six mutations; five behaved. The sixth is the useful one.
 
@@ -351,16 +351,34 @@ Six mutations; five behaved. The sixth is the useful one.
 | M5 | point the scan at an empty directory | `SCOPE` failure, exit 1 ✓ |
 | M6 | a cosmetic edit | green (negative control) ✓ |
 
-M4 is not a flaw in the arm; it is the arm's **scope**, made visible. The types arm compares `$type`
-over the **shared** path set, and prism3's `grid.<breakpoint>.<prop>` versus TokenPress's `grid.<prop>`
-is an axis collapse — those paths never pair, so they never enter the set being compared. M4b confirmed
-the mechanism on a path that does pair.
+M4 is the arm's **scope**, made visible. The types arm compares `$type` over the **shared** path set,
+and prism3's `grid.<breakpoint>.<prop>` versus TokenPress's `grid.<prop>` is an axis collapse — those
+paths never pair, so they never enter the set being compared. M4b confirmed the mechanism on a path that
+does pair.
+
+**Then I measured the blind set instead of citing the one mutation**, because the grid case understates
+it by a factor of five. Every path a pairing rule explains is untyped by this arm, and that is **71 paths
+on nb, 73 on aurora, 71 on wendys — ~14% of each brand's paired surface — across all four rules**:
+
+| rule | paths | closable without #697? |
+|---|---|---|
+| rename `type.*` → `typography.*` | 38 | yes |
+| duplicate-emitted `font-fluid.*` composites | 11 | yes |
+| axis-collapsed `grid.<breakpoint>.<prop>` | 15 | no — this *is* #697's three-axes-into-one, in the paths |
+| `shadow-dark.*` crossing as a name | 7 | no — the appearance axis leaking into a path segment |
 
 So a green types arm does **not** mean "no type disagreements anywhere"; it means "none among the paths
-that pair", and the header now says exactly that in those words. Closing the hole needs the pairing
-rules to carry their counterpart's type, which is #697 work. **A mutation that does not fail is a
-finding about the gate**, and the finding here was a boundary worth writing down rather than a bug worth
-fixing — the alternative was shipping a green light that would be read as a stronger claim than it makes.
+that pair". **And a header comment is a memory, not a queue** — stating a hole documents it without
+scheduling it, and the next person to read the header is otherwise the person who discovers it still
+open. So it is filed as **#747**, with M4 as its acceptance test, and **#697 now carries "must close
+#747" in its own Verify list** — which is where it belongs precisely because two of the four rules exist
+only while the axis question is undecided. #747 also carries a guard against the cheap close: narrowing
+the header's claim would shut the ticket without moving the gate, and the pairing rules themselves are
+authored hypotheses nothing checks, so a type assertion laid over a *wrong* rule yields a false positive
+that someone may silence by loosening the rule.
+
+**A mutation that does not fail is a finding about the gate** — this one was a boundary rather than a
+bug, and the work is to make the boundary someone's rather than to leave it described.
 
 ### 6. Corrections and traps for whoever is next
 

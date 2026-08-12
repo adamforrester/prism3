@@ -74,20 +74,26 @@
  * no floor silently passes when the scan returns nothing, which is the same false pass one step
  * further back (`lint-overlay-completeness.ts` and `check-consumability.mjs` both take this shape).
  *
- * ── THE LIMIT, FOUND BY A MUTATION THAT DID *NOT* FAIL ──────────────────────────────────────────
+ * ── THE LIMIT, FOUND BY A MUTATION THAT DID *NOT* FAIL — TRACKED AS #747 ────────────────────────
  *
  * THE TYPES ARM ONLY SEES PATHS THAT PAIR. It compares `$type` over the SHARED path set, so a
- * retype on a path that is unpaired for some other reason is invisible to it. Measured: changing
- * TokenPress's grid branch from `dimension` to `number` (`exporter.ts:714`) left this gate GREEN,
- * because prism3's `grid.<breakpoint>.<prop>` and TokenPress's `grid.<prop>` are an axis collapse and
- * never enter the shared set. The same mutation on `FONT_SIZE` — which does pair — produced 66
- * failures.
+ * retype on a path that a pairing RULE explains is invisible to it. Measured: changing TokenPress's
+ * grid branch from `dimension` to `number` (`exporter.ts:714`) left this gate GREEN, because prism3's
+ * `grid.<breakpoint>.<prop>` and TokenPress's `grid.<prop>` are an axis collapse and never enter the
+ * shared set. The same mutation on `FONT_SIZE` — which does pair — produced 66 failures.
  *
- * That is a real hole and it is stated rather than papered over, because the alternative reading is
- * worse: a green run here would otherwise be read as "no type disagreements anywhere", when what it
- * means is "none among the paths that pair". Closing it needs the pairing rules to carry their
- * counterpart's type, which is #697 work, not this gate's. Until then: A GREEN TYPES ARM SAYS
- * NOTHING ABOUT AXIS-COLLAPSED OR RENAMED-AWAY PATHS.
+ * The blind set is wider than that one rule, and this is the number to hold: 71 paths on nb, 73 on
+ * aurora, 71 on wendys — roughly 14% of each brand's paired surface, across FOUR rules (38 renamed
+ * `type.*`/`typography.*`, 11 duplicate-emitted `font-fluid.*`, 15 axis-collapsed `grid.*`, 7
+ * `shadow-dark.*` crossing as a name). So a green types arm does not mean "no type disagreements";
+ * it means "none among the paths that pair".
+ *
+ * It is stated rather than papered over — but a header comment is a MEMORY, NOT A QUEUE, so the work
+ * is filed as **#747**, with the failing mutation as its acceptance test, and #697 carries "must
+ * close #747" in its own Verify list. Two of the four rules exist only because #697's axis question
+ * is undecided, which is why that is where it belongs. Do not close #747 by narrowing this paragraph:
+ * the prose is honest and the hole is real, and editing the description is the move that makes a gate
+ * look stronger without being stronger.
  */
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';

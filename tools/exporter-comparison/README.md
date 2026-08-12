@@ -129,11 +129,13 @@ number the decision is meant to move. If they are ever pinned it must be the **d
 the raw ~185: 11–14 are identical in every file and harmless, and conflating the two is the defect #729
 fixed.
 
-**What the green types arm does not tell you**, found by a mutation that failed to fail: it compares
-`$type` only over paths that **pair**. Retyping TokenPress's grid branch left the gate green, because
-`grid.<breakpoint>.<prop>` vs `grid.<prop>` is an axis collapse and never enters the shared set; the same
-mutation on `FONT_SIZE`, which does pair, produced 66 failures. Closing that needs the pairing rules to
-carry their counterpart's type — #697 work, not the gate's.
+**What the green types arm does not tell you** — found by a mutation that failed to fail, and tracked as
+**#747**: it compares `$type` only over paths that **pair**. Retyping TokenPress's grid branch left the
+gate green, because `grid.<breakpoint>.<prop>` vs `grid.<prop>` is an axis collapse and never enters the
+shared set; the same mutation on `FONT_SIZE`, which does pair, produced 66 failures. The blind set spans
+all four pairing rules — **71 paths on nb, 73 on aurora, 71 on wendys**, ~14% of each brand's paired
+surface. Closing it needs the pairing rules to carry their counterpart's type, which is why #747 hangs
+off #697: two of the four rules exist only because the axis question is undecided.
 
 One thing to know when reading it: the verdicts in category 1 are pairing RULES
 (`RENAME_RULES`, `NOT_IN_EMISSION`), and each one is an authored claim about why two differently-named
