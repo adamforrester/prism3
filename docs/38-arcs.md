@@ -58,20 +58,24 @@ predicted:
 
 ## 2. The measured starting position
 
-Everything in this section was read from the tree on 2026-08-12.
+The table is current as of 2026-08-12, re-verified against `main`. Three rows moved within a day
+of this file being written, and the **was** column keeps the position §4 reasons from — because
+what changed is itself the evidence §4 now rests on.
 
-| Claim | Evidence |
-|---|---|
-| Five component defs exist | `packages/engine/components/` — `button`, `icon-button`, `text-field`, `field-label`, `field-message` |
-| Only one is materializable | `button.ts` alone carries an `anatomy` block; `figmaAnatomyPlan` throws without one (`anatomy-figma.ts:235`). Already recorded in `32` as *"Only one of five defs is materializable"* |
-| There is no component registry | `test.ts:51-55` imports the five defs by name, one line each. Nothing iterates the set |
-| Dependency A has no defs | No `icon`, no `focus-ring`. `32` names the gap: *"The focus ring wants to be a shared nested component, and the schema cannot say so"* |
-| The mechanism A needs was decided, not built | #681's nesting kinds — swap, nest-fixed, nest-exposed — plus the fixed variant a nest declares |
-| Dependency B waits on one fork | `19` §7.2 — author-headless vs. wrap (#252), *"the one genuinely open fork, no lean recorded anywhere"* |
-| The schema has five undecided questions | `28` §5 — gap scale, `align` as a prop, the `trailingVisual` split, the `padding-x` migration, and whether `anatomy` nests |
+| Claim | Evidence | Was, when written |
+|---|---|---|
+| Five component defs exist | `packages/engine/components/` — `button`, `icon-button`, `text-field`, `field-label`, `field-message` | unchanged |
+| **Two of five are materializable** | `button.ts` and `icon-button.ts` carry `anatomy` blocks; `figmaAnatomyPlan` throws without one (`anatomy-figma.ts:235`) | **one** — `32`'s *"Only one of five defs is materializable"* was true until #734 |
+| There is no component registry | `test.ts:51-55` imports the five defs by name, one line each; `components/` holds no index. Nothing iterates the set | unchanged |
+| Dependency A has no defs | No `icon`, no `focus-ring` — still true, and now the sharpest gap in the file. `32`: *"The focus ring wants to be a shared nested component, and the schema cannot say so"* | unchanged |
+| **The mechanism A needs is built** | #734 added `PartDef.nesting` / `NestingRelation` (`component-schema.ts:134`); #750 added the consumer half (`nestVariant` resolution in both executors) | **decided, not built** |
+| ~~Dependency B waits on one fork~~ | **Superseded** — see the header. #252 no longer gates the critical path | `19` §7.2 |
+| The schema has five undecided questions | `28` §5, filed as #735–#739. All still open | unchanged |
 
 The last row is the one that constrains everything. Button was authored around all five open
-questions by one person holding them in context. A second anatomy block meets all five at once.
+questions by one person holding them in context. A second anatomy block meets all five at once —
+and #734 is exactly that, authored while they were still open, which is why #739 (does `anatomy`
+nest inside `ComponentDef`) now has two defs committing to an answer nobody stated.
 
 ---
 
@@ -82,6 +86,12 @@ questions by one person holding them in context. A second anatomy block meets al
 `component-schema.ts` gains #681's nesting field, and each of `28` §5's five open questions is
 either decided or deferred **with the reason recorded**. Deferral is an acceptable outcome; an
 open question is not, because it becomes a re-derivation for every author who follows.
+
+**Half done (2026-08-12).** The nesting field landed in #734 (`NestingRelation`, `docs/28` §4.1)
+and its consumer half in #750. The five questions are filed as #735–#739 and **all still open**,
+so #740's "done when" is not satisfied. #739 is the one that binds: two defs now carry nested
+`anatomy` blocks, so authoring a third commits to that answer by default — the inherit-instead-of-
+choose error #656 and #681 both turned on.
 
 `28` §6's stated next step — formalize Button's anatomy, then spike it into Figma — is complete.
 This arc is what replaces it.
@@ -94,8 +104,11 @@ Order is set by the dependency graph:
 2. **`focus-ring`** — the absolute sibling `32` describes, and the shared-nested case that
    motivated #681.
 3. **`field-label` and `field-message`** gain anatomy blocks.
-4. **`icon-button`** — the second composed component. It consumes `icon`, it is the first def to
-   exercise `inherits`, and Button proved the machinery so the run is cheap.
+4. ~~**`icon-button`**~~ — **already done, out of order, in #734.** It was taken before the
+   primitives on my instruction, and it succeeded for the reason §4 now records: its nested
+   references resolved against Figma content the Button build left behind, not against defs. That
+   makes items 1 and 2 more urgent rather than less — the mechanism is proven and the primitives it
+   resolves are still undefined.
 5. **The text-field family** — consumes all three primitives, and unblocks textarea, select,
    search and password.
 
@@ -146,23 +159,42 @@ was read again, all in the direction of *less remaining*, not more:
 ## 4. Why the ordering is forced
 
 The tempting second component is `icon-button`, because Button was just built and the two share an
-anatomy. The dependency graph says otherwise, and the reasoning generalizes past this one choice.
+anatomy. The conclusion — primitives first — holds. **The argument this section first gave for it
+was wrong, and events falsified it within a day.** The correction is kept rather than overwritten,
+because the replacement is a reason the prediction could not have surfaced.
 
-`icon-button` declares `{ name: 'icon', type: 'slot', required: true }` — a nested component that
-is not optional and is the whole content. Building it before `icon` exists means either
-materializing a placeholder, which validates nothing, or nominating a target that does not
-resolve, which `anatomy-figma.ts` reports as a miss rather than substituting for. Neither outcome
-answers the question a live run is being spent to answer.
+**What was predicted.** `icon-button` declares `{ name: 'icon', type: 'slot', required: true }` — a
+nested component that is not optional and is the whole content. Building it before `icon` exists
+would therefore mean either materializing a placeholder, which validates nothing, or nominating a
+target that does not resolve, which `anatomy-figma.ts` reports as a miss rather than substituting
+for.
 
-The same holds one tier up: the text-field family nests a label, a message and an icon, so it
-cannot be validated until all three are real. **The primitives are not preliminary work in front
-of the interesting components. They are the components whose absence makes the interesting ones
-unmeasurable.**
+**What happened.** #734 authored IconButton's anatomy and materialized it live — 162 members, every
+predicted number confirmed, no miss. #750 then built the `nest-fixed` resolution its `focusRing`
+part needs. Neither hit the failure predicted above.
 
-There is a second reason to take them first, from `28` §4's ceilings discipline. A primitive
-authored against the new schema field is the smallest possible test of whether that field can
-express what it claims. Discovering the field is wrong while authoring `icon` costs one def;
-discovering it while authoring the text-field family costs four.
+**Why it resolved, and why the conclusion survives.** Both nested references resolved against
+components the Button build had already left in the Figma file — an icon component and a
+focus-ring set **that no def describes**. So those runs validated the swap and nest-resolution
+*mechanism*, not the primitives. The Figma file is currently the source of truth for what an icon
+and a focus ring are, which is precisely the inversion `14` §1 exists to reject: a component
+defined by the artifact instead of the artifact projected from the definition.
+
+That is a stronger reason than the one it replaces, and a worse failure mode. **A def that resolves
+against hand-made canvas content passes every gate we have while proving nothing about the def.**
+The predicted failure was loud; the real one is silent and reads as a pass.
+
+The same holds one tier up, restated: the text-field family nests a label, a message and an icon.
+It will not fail to materialize if someone hand-makes those parts in Figma — it will *succeed*, and
+validate nothing. **The primitives are not preliminary work in front of the interesting components.
+They are the components whose absence lets the interesting ones pass without being measured.**
+
+There is a second reason to take them first, from `28` §4's ceilings discipline, and #734
+demonstrated it rather than leaving it hypothetical: a primitive authored against a new schema
+field is the smallest possible test of whether that field can express what it claims. #734's
+axis-parity gate caught two phantom single-valued variant properties that would have shipped —
+found on one def, at one def's cost. Discovering the same class of error while authoring the
+text-field family costs four.
 
 ---
 
