@@ -193,7 +193,8 @@ not the scalability win — and both are explicitly wanted. The foundation lands
 
 - **Output group (Style guides, Components)** — real, new surface area; its own
   discovery + plan, not part of this reorg. Channel-gated (Figma-only) and an active
-  canvas write — see §7 for the settled framing.
+  canvas write — see §7 for the settled framing. **Still deferred as of 2026-08-12**,
+  and §9 explains why the `Components` rail leaf that shipped that day is not it.
 - **Focus as an editable lever** and **border-width lever** — documented slots; ship
   only if a concrete need appears.
 - **Rail overflow for many modes** and the **rail accordion** — both deferred; the
@@ -298,3 +299,50 @@ abstraction. This tier feeds the Phase 5 goal of self-theming the dashboard from
 extract when a PR already touches that surface; don't do a standalone "refactor everything" pass.
 Revisit this list before the Phase 5 self-theming work, which will want these primitives themed
 from tokens.
+
+## 9. The `Components` rail leaf (shipped 2026-08-12, #718)
+
+**This section exists because a reader arriving at §2's group tree will see a deferred
+`Output → Components` and a shipped rail item called `Components`, and they are not the same
+thing.** Recording the difference here rather than only on the task, because the task closes
+and this doc does not.
+
+**What shipped.** One `view` destination in the rail, plugin-only, carrying the component
+write's trigger — the control that was previously a second button beside **Apply to Figma**.
+It builds the Button component set (648 variants) onto the current Figma page.
+
+**Why it moved, and what the move means.** #718 decided the component write is **internal
+testing rather than a product capability**: it is the anatomy schema's *materialization proof*
+(the argument is in `docs/28` and `docs/14` §3.1), kept runnable so `component-schema.ts` has a
+consumer that can refute it. So the move is a **demotion, not a promotion** — same edit,
+opposite intent from what "components get their own rail item" naturally suggests. The control
+left a first-class slot next to Apply precisely because it is not first-class: Apply writes
+variables and answers in well under a second, this writes 648 variants at ~162ms each (#700)
+and materializes one def out of five. A control that looks shipped and behaves like a spike is
+worse than no control.
+
+It is labelled internal in three places, each answering a different question: the rail
+subtitle says *what* it is, an in-page notice says *why* it is not offered as a feature and
+what a run costs, and the button's tooltip states the *order* (Apply first — the set binds
+those variables by name).
+
+**Why it is not the deferred `Output → Components` of §2/§6.** Output is *"generate/ship it"* —
+new surface area for a client, needing its own discovery, and in Style guides' case an active
+canvas write of a real artifact. This leaf ships nothing to a client and adds no surface area:
+it **relocates an existing internal control** and marks it as internal. When Output is designed
+(and #520 answers the broader "which surface should the component tier have?" question), this
+leaf is a candidate to be folded into it or removed — not a head start on it.
+
+**Two rail-mechanics decisions it settled**, both in `railNav()` / `isFirstView()`:
+
+- **`figmaOnly` is a NAV field, not a branch.** §7's rule for Output — *present in the Figma
+  plugin host, absent/hidden in the web host* — is now data on the entry, read by both NAV
+  consumers (the sidebar and the narrow-width `Pages` menu). Filtering one and not the other is
+  the shape that would ship silently: below 900px the menu *is* the rail, so a Figma-only
+  destination left in it would be reachable on a phone-width web page and unreachable on a
+  desktop one.
+- **One divider, before the FIRST `view` destination.** The old rule drew a rule before *every*
+  `view` entry, which was correct only while there was exactly one. With two it drew a second
+  line between Preview and Components — both on the same side of the authoring/result boundary
+  the divider marks. Measured on the NAV literal: the old rule gives 2 dividers in the plugin
+  host, the new one gives 1 in both. §6's deferred Output group would have hit this too.
