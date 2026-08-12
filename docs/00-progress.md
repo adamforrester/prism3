@@ -507,6 +507,126 @@ bug, and the work is to make the boundary someone's rather than to leave it desc
 
 ---
 
+## (2026-08-12) — A practice rule, from two independent number collisions on the same day
+
+**STATUS: docs only — a lesson, not a code change.** Two unrelated pieces of work hit the same
+failure shape within hours of each other on 2026-08-12, which is what makes it a rule rather than
+two anecdotes.
+
+**The rule: an issue number written before the issue is filed is unsafe, and a doc naming another
+issue's current state has a shelf life measured in hours at this repo's pace, not days.**
+
+**Instance 1 — a number guessed ahead of filing.** The TokenPress lane pre-wrote `#730` into five
+files before actually filing the issue it was reserving the number for. By the time it filed, an
+unrelated `#718` follow-up PR had already taken `#730`, and the real issue landed as `#731`
+instead. The number was correct right up until it wasn't — nothing about writing it early made it
+wrong at the time, and nothing about writing it early could have prevented the collision, because
+the numbering isn't reserved by writing it down.
+
+**Instance 2 — a doc's claim about another issue's state, stale before the doc was even committed.**
+Filing tracking issues for `docs/38`'s five arcs (next entry, below) turned up that Arc 5's
+instruction to "file implementation tickets for #720 and #721" was not just outdated by the time
+the filing pass reached it — it was already false at commit time. `#722` (implementing #721) was
+filed and **closed** over an hour before `docs/38` itself was committed; `#723` (implementing #720)
+was filed the same three minutes as #722. `docs/38`'s own header already carried a disclaimer that
+its issue numbers were an unverified snapshot — the disclaimer was right to exist, and still
+undersold the actual decay rate.
+
+**Why both matter as one rule and not two:** the first is about numbers that don't exist yet; the
+second is about numbers that exist but whose *state* a doc is asserting. Different failure, same
+cause — this repo's issue graph moves faster than any snapshot of it stays true, so a number is
+only trustworthy at the moment it's read live, never at the moment it was written down, however
+recently. The practical corollary: **verify a cited issue number's current state immediately before
+using it, every time** — not "verified when the doc was written," not "verified last session." A
+verification pass has the same shelf life as the thing it verified.
+
+---
+
+## (2026-08-12) — `docs/38`'s five arcs get tracking issues, and two corrections surface verifying them
+
+**STATUS: issues filed, one doc correction pushed.** Per `docs/38` §5's own lane assignment
+("issues manager | files Arc 1's schema decisions and Arc 5's implementation tickets"), filed one
+tracking issue per arc — #740 (Arc 1), #741 (Arc 2), #742 (Arc 3), #743 (Arc 4), #744 (Arc 5) — each
+linking `docs/38` §3 for scope rather than restating it, labelled by lane per §5 (Arc 1/2/3
+`lane:engine`, Arc 4 `lane:code-library`, Arc 5 `lane:plugin`). Arc 1 additionally got five sub-issues
+for `docs/28` §5's open questions — #735 (gap scale), #736 (`align`), #737 (`trailingVisual` split),
+#738 (`padding-x` migration), #739 (anatomy nesting) — each `type:decision`, each asking for a
+decision or a recorded deferral, none decided here.
+
+**Every cited issue number was verified against live GitHub before being linked, per `docs/38`'s own
+header disclaimer that this had never been done.** 13 of 16 held. Three didn't, and the correction
+went to `docs/38` itself rather than being silently absorbed into the new issues:
+
+- **#680, #701 closed** (completed, merged #710/#705) — Arc 5's "live-run debt" list dropped them
+  rather than filing against closed work.
+- **The bigger one: Arc 5's "implementation tickets for #720 and #721" instruction was stale the
+  moment it was committed, not just by the time this pass reached it.** #722 (implements #721's
+  do-now model) was filed at 15:06 UTC and already closed — merged as #727 — at 17:14 UTC. #723
+  (implements #720's dialog) was filed at 15:07 UTC and is open. `docs/38` itself was committed at
+  18:35 UTC, over an hour *after* #722 had already shipped. Filing new tickets per the doc's
+  literal instruction would have duplicated real, in-flight work — caught by checking live state
+  before writing, not by anything the instruction itself could have told me.
+- **#681 needed the deeper check, and turned out correct.** Its own issue *body* says nothing about
+  "nesting kinds — swap, nest-fixed, nest-exposed," which first read as a wrong citation. The
+  decision is real: recorded in a comment added 2026-08-12, *after* the issue had already closed
+  (bug fixed 2026-08-10, decision comment added two days later on the same thread). Verifying a
+  citation against an issue's *body* alone would have produced a false correction here — the
+  comment thread was the part that mattered.
+
+`docs/38-arcs.md` itself carries both the corrected Arc 5 paragraph and a note on its own header
+that this verification pass happened, so a future reader doesn't re-run it against the same stale
+assumption the header used to license.
+
+**Left alone, deliberately:** Arc 4's tracking issue (#743) is a stub — "blocked on #252" and
+nothing more. #252 has no lean recorded anywhere; scoping Arc 4 further now would mean inventing
+the answer `docs/38` §6 says is genuinely open.
+
+---
+
+## (2026-08-12) — The arcs: what order the component tier gets built in, and why the primitives come first (docs/38, new)
+
+**STATUS: docs only.** New `38-arcs.md`. No engine change, no emitted artifact, no gate. `regen
+--check` still 104.
+
+**Why this file exists.** `14` §6 sketched a build sequence and `19` §8 named a first slice, both
+written before anything had been materialized. Button is now built into a real Figma file
+end-to-end, which turns those sketches into a question neither can answer: with one working
+component and four defs that cannot be materialized at all, what order does the rest go in.
+
+**The measured starting position, because it was worse than the plans assumed.** Five defs exist;
+**only `button` carries an `anatomy` block**, and `figmaAnatomyPlan` throws without one
+(`anatomy-figma.ts:235`). `32` had already recorded this — *"Only one of five defs is
+materializable"* — but no plan had been re-sequenced around it. Two further gaps found while
+writing: there is **no component registry** (`test.ts:51-55` imports the five defs by name, one
+line each, and nothing iterates the set), and dependency A has **no defs at all** — no `icon`, no
+`focus-ring` — though `32` names the gap and #681 decided the mechanism.
+
+**The ordering, and the part worth carrying.** The tempting second component is `icon-button`,
+since Button was just built and the two share an anatomy. The dependency graph refuses it:
+`icon-button` declares `{ name: 'icon', type: 'slot', required: true }`, a nested component that
+is not optional and is the whole content. Build it before `icon` exists and you either materialize
+a placeholder, which validates nothing, or nominate a target that does not resolve, which
+`anatomy-figma.ts` reports as a miss rather than substituting for. **The primitives are not
+preliminary work in front of the interesting components — they are the components whose absence
+makes the interesting ones unmeasurable.** The same argument gives the second reason to take them
+first: a primitive is the smallest test of whether the new schema field can express what it
+claims, and discovering the field is wrong while authoring `icon` costs one def against four for
+the text-field family.
+
+**What it does not decide.** #252 (author-headless vs. wrap) still has no lean, and Arc 4 cannot
+be scoped without it. The file was filed rather than held for that, because Arcs 1–3 do not read
+it — but §6 records the coupling: #681 holds that exposure IS the component's public API, so if
+the behavior layer wraps an existing library, part of that surface belongs to the library and the
+def becomes a mapping rather than a one-to-one source.
+
+**Trap for whoever re-verifies this.** Every issue number in `38` is from `19` §8's 2026-07-28
+snapshot and was **not** re-verified — GitHub was rate-limited throughout. `19` §8's own status
+line is nearly three weeks old at the time of writing. Confirm state before acting on any of them.
+A plan asserting other issues' states has a shelf life of days at this pace, which #718's Do-list
+demonstrated within one.
+
+---
+
 ## (2026-08-12) — Three verdicts that could not stop printing: the comparison harness reported a fixed defect as shipping
 
 **STATUS: shipped.** `tools/exporter-comparison/compare.ts` + its README. Harness only — neither
