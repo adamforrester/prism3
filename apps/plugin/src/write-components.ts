@@ -54,7 +54,7 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
 
 /** A Figma variable as this lane needs it: a name to index by, an id nothing here reads, and the
@@ -79,6 +79,15 @@ export interface CompStyle { id: string; name: string; fontName?: { family: stri
 /** A component already in the file, resolved by NAME — the swap targets and the nested shared
  *  components a plan nominates. `id` because an `INSTANCE_SWAP` property's default must be a node id. */
 export interface CompRef { id: string; name: string; createInstance(): CompNode }
+
+/** A component SET already in the file, resolved by NAME — a `nest-fixed` part's target (#681).
+ *
+ *  `children` rather than `componentPropertyDefinitions`, and that is the whole of the resolution rule:
+ *  the members' NAMES are the coordinates, and matching against them is order-independent in a way that
+ *  matching against Figma's property order is not. `defaultVariant` is deliberately NOT in this port —
+ *  Figma offers it, and reading it is `#656`: its value is the set's first child, an artifact of creation
+ *  order. A port that cannot name it cannot accidentally fall back to it. */
+export interface CompSetRef { id: string; name: string; children?: readonly { name?: string }[] }
 
 /**
  * The node surface the executor writes.
@@ -177,16 +186,22 @@ export interface ComponentsApi {
    *  there is no port-side narrowing that a `PageNode`-carrying union satisfies. We ask for `COMPONENT`
    *  and cast once, next to the criteria that make the cast true.
    *
-   *  `types` is the LITERAL `'COMPONENT'[]` rather than `string[]` for the same variance reason: Figma
-   *  constrains this to its `NodeType` union, so a port asking for any `string` is not satisfied. This
-   *  lane only ever searches for components, so naming that is no loss.
+   *  `types` is the LITERAL union of the two node types this lane instantiates from rather than `string[]`,
+   *  for the same variance reason: Figma constrains this to its `NodeType` union, so a port asking for any
+   *  `string` is not satisfied.
    *
-   *  `findAll` is the DIAGNOSTIC half (#681), and it is a separate method rather than a widening of the
-   *  criteria above on purpose. The criteria search must keep returning components only — that is what
-   *  makes the `CompRef` cast at its call site true. This one is by NAME across every node type, is
-   *  called only on the failure path, and its results are read for `type` alone, never instantiated. */
+   *  TWO SEARCHES, not one widened search, and the reason is the cast each one licenses (#681). The
+   *  `COMPONENT` search's results are cast to `CompRef` and INSTANTIATED; the `COMPONENT_SET` search's are
+   *  cast to `CompSetRef` and read for their children's names. A single `types: ['COMPONENT',
+   *  'COMPONENT_SET']` call would return a union and put a `ComponentSetNode` — which has no
+   *  `createInstance` — inside the map the swap path instantiates from. One criteria list per cast keeps
+   *  each cast true at its own call site, which is the property the original comment here was making.
+   *
+   *  `findAll` is the DIAGNOSTIC half, and it is separate from both on purpose: it is by NAME across every
+   *  node type, is called only on the failure path, and its results are read for `type` alone, never
+   *  instantiated. */
   root: {
-    findAllWithCriteria(criteria: { types: 'COMPONENT'[] }): readonly unknown[];
+    findAllWithCriteria(criteria: { types: ('COMPONENT' | 'COMPONENT_SET')[] }): readonly unknown[];
     findAll(predicate: (node: { name: string; type: string }) => boolean): readonly { name: string; type: string }[];
   };
   createText(): CompNode;
@@ -459,6 +474,10 @@ export const applyComponentPlan = async (
   // The cast lives HERE, next to the criteria that make it true: `types: ['COMPONENT']` is what
   // guarantees every result is a `CompRef` (see the port's note on why the port itself cannot say so).
   const compByName = new Map((api.root.findAllWithCriteria({ types: ['COMPONENT'] }) as readonly CompRef[]).map((c) => [c.name, c] as const));
+  // The SET map (#681). A second criteria call rather than a widened one — see the port's note on why
+  // each cast needs its own criteria list. Sets only: a `nest-fixed` part resolves a MEMBER out of one,
+  // and this is the only lookup in this file whose results are never instantiated directly.
+  const setByName = new Map((api.root.findAllWithCriteria({ types: ['COMPONENT_SET'] }) as readonly CompSetRef[]).map((s) => [s.name, s] as const));
 
   /** Build one node and its subtree. Returns `null` for a NESTED_INSTANCE whose shared component is
    *  absent — no placeholder, deliberately: an unstroked frame in a focus ring's place is invisible and
@@ -478,13 +497,52 @@ export const applyComponentPlan = async (
       else if (!target) misses.push(`${n.name}.swapTarget -> ${n.swapTarget}`);
       node = wr(target ? target.createInstance() : api.createFrame());
     } else if (n.type === 'NESTED_INSTANCE') {
+      // A PLAIN COMPONENT FIRST, then a SET the def named a coordinate in (#681). Order matters and is
+      // not arbitrary: a file can hold both a component and a set under one name, and the plain component
+      // is the unambiguous one — it needs no coordinate to identify a member, so a def carrying a
+      // `nestVariant` against a file that has flattened its ring to a component still resolves rather
+      // than reporting a coordinate the file no longer has axes for.
       const nested = n.nestTarget ? compByName.get(n.nestTarget) : undefined;
-      if (!nested) {
+      const set = !nested && n.nestTarget && n.nestVariant ? setByName.get(n.nestTarget) : undefined;
+      if (set) {
+        // RESOLVE THE DEF'S COORDINATE against the members' own names. `nestVariantMatch` compares axis by
+        // axis and returns null on "no match" AND on "more than one match" — see its own note for why the
+        // second is refused rather than resolved by picking the first.
+        const members = (set.children ?? []).map((c) => c.name ?? '');
+        const hit = nestVariantMatch(n.nestVariant!, members);
+        if (!hit) {
+          // THE FIFTH MISS. A different sentence from the four below because it is a different mistake:
+          // those four are "the file does not hold what this needs", this is "the def asks for a member
+          // this set does not have". Nothing is nested — nesting the set's first child here would be
+          // #656 exactly, and a valid wrong ring looks like a success.
+          misses.push(`${n.name}.nestVariant -> ${n.nestTarget} (${nestVariantMissAdvice(n.nestVariant!, members)})`);
+          return null;
+        }
+        // The MEMBER is what gets instantiated, not the set — Figma has no "instance of a set", and the
+        // member is a plain COMPONENT, which is why the existing criteria search finds it under its
+        // variant coordinate. That is the same lookup whose blindness to the set's own name WAS #681: the
+        // members were always there, and nothing knew which one to ask for. Now the def says.
+        const member = compByName.get(hit);
+        if (!member) {
+          // Unreachable in a coherent file — `hit` came from this set's children, and a set's children ARE
+          // components, so the criteria search has them. Reported rather than asserted because the two
+          // lookups are independent reads of a live document, and a host that disagrees with itself should
+          // say so in the channel this build has rather than throw away 647 other members.
+          misses.push(`${n.name}.nestVariant -> ${n.nestTarget} (matched member ${hit} is not instantiable; nothing built — the COMPONENT_SET and COMPONENT searches disagree about this file)`);
+          return null;
+        }
+        node = wr(member.createInstance());
+      } else if (!nested) {
         // DIAGNOSE, then report (#681). The criteria lookup above cannot tell "absent" from "present at a
         // type this search does not match", so the miss it produced said "not in this file" of a node the
         // designer was looking at. A second search — by name, every type, only on this path — is what
         // lets the message name what is actually there. `nestMissAdvice` is shared with the paste path so
         // the two cannot drift in wording.
+        //
+        // STILL REACHED FOR A SET, and that is the case above's complement rather than a leftover: a set
+        // reaches here when the def named NO coordinate for it (`nest-exposed`, whose coordinate is the
+        // consumer's), and the `COMPONENT_SET` sentence now says exactly that. A `nest-fixed` part with a
+        // resolvable set never arrives here at all.
         const other = n.nestTarget ? api.root.findAll((x) => x.name === n.nestTarget)[0] : undefined;
         const found = !other ? 'ABSENT'
           : other.type === 'COMPONENT_SET' ? 'COMPONENT_SET'
@@ -492,8 +550,9 @@ export const applyComponentPlan = async (
           : 'OTHER';
         misses.push(`${n.name}.nestTarget -> ${n.nestTarget} (${nestMissAdvice(found)})`);
         return null;
+      } else {
+        node = wr(nested.createInstance());
       }
-      node = wr(nested.createInstance());
     } else {
       node = wr(api.createFrame());
       node.clipsContent = false;

@@ -7,6 +7,93 @@
 
 ---
 
+## (2026-08-12) — `nest-fixed` resolves to a member: the coordinate the def named, the two executors that read it, and the fifth miss
+
+**STATUS: shipped.** #734 added `PartDef.nesting` and documented it (docs/28 §4.1); this is the **consumer**
+half. `anatomy-figma.ts` gains `FigmaNodePlan.nestVariant`, its `nest-fixed`-only projection, two shared
+helpers (`nestVariantMatch`, `nestVariantMissAdvice`) and the set-resolution branch in `PAYLOAD_BUILD`;
+`write-components.ts` gains `CompSetRef`, a second criteria search and the same branch; `docs/28` gains
+§4.1.1. `test.ts` 2123 → 2134 assertions.
+
+**A set was never unreadable — nothing knew which member to ask for.** The COMPONENT criteria search has
+always returned every member of every set, under its full variant coordinate. That was #681's whole
+diagnosis: the set's *own* name never entered the map, so a `focus-ring` sitting in the file was reported
+absent 108 times. Once the def names a coordinate, resolution is a lookup in a map that already held the
+answer. The fix is small because the field #734 added is where the missing information was.
+
+**The trap this had to be written around, twice: a partial coordinate.** `{color: 'default'}` against a
+`color × size` set matches two members, and every rule for choosing between them reduces to creation
+order — **#656 one layer further in**, the exact error `nesting` exists to stop. So `nestVariantMatch`
+returns `null` on >1 match as readily as on 0. It refuses even when the set holds a **single** matching
+member, which is the part worth carrying: the ambiguity there is *latent*, not absent, and it becomes real
+the day someone adds a second size — at which point the def that changed meaning is not the file that
+changed. A first draft of the plan-field doc argued the opposite ("leaving the other axis to the set's
+default is the correct claim to carry") before noticing that a set's default **is** creation order.
+
+**Axis-by-axis comparison, because Figma owns axis order.** `color=default, size=md` and `size=md,
+color=default` are the same member, and only one equals a def-built string. Equality would have failed
+*invisibly* — as a fifth miss about a def that is correct. Gated at unit level rather than through a run,
+since the def names one axis and order is only observable across two.
+
+**Two criteria searches, not one widened one.** `types:['COMPONENT']`'s results are cast to `CompRef` and
+*instantiated*; a `ComponentSetNode` has no `createInstance`. A single `['COMPONENT','COMPONENT_SET']` call
+would poison the map the swap path instantiates from. One criteria list per cast keeps each cast true at
+its own call site. `defaultVariant` is deliberately absent from the port for the #656 reason above: a port
+that cannot name it cannot accidentally fall back to it.
+
+**The fifth miss diagnoses the DEF, where the other four diagnose the FILE** — and it is the one that
+arrives silently. The four are reached by a lookup returning nothing, which is loud; this one is reached by
+a lookup returning a set **full of valid members**, none of them the one requested. It names the
+coordinate *and* lists the members, because a rename in the file and a typo in the def produce the same
+lookup failure and opposite fixes.
+
+**The `COMPONENT_SET` message changed meaning without changing its key.** It was the 108-miss case; a
+`nest-fixed` part never reaches it now. Its only remaining case is a def that named **no** coordinate
+(`nest-exposed`), which still needs an exposed nested property this write does not create — deferred on
+#681 pending the property-count measurement (Button already writes 1,350 refs across 648 members).
+
+### Three findings the gates produced, each worth more than the fix
+
+**One: the four-way message table had become unreachable through the real plans, and would have gone on
+passing.** `button`'s ring part names `color=default`, so once the coordinate projects, a file holding a
+set *resolves* — the "found a COMPONENT_SET" row is now reachable only for a def that named nothing. Both
+suites' tables are therefore driven by plans with `nestVariant` **stripped**, stripped from the plan before
+emitting rather than string-edited out of the payload, and each suite asserts in both directions that the
+strip really stripped. Without those two probes the whole table would have been four vacuous passes.
+
+**Two: a reachability probe that read its own instrument.** The first version grepped the whole payload for
+`nestVariant` and reported the *stripped* payload as still carrying one — it was matching the executor's own
+`n.nestVariant` reads, which are in every payload by construction. It answers "does this payload contain the
+resolution code" (always yes) instead of "did this plan declare a coordinate". Now read off the serialized
+`const PLAN=` line only.
+
+**Three: the shim had to model the set before any assertion could fire.** `test.ts`'s stub ignored its
+criteria entirely and `test-write-components.ts`'s handed back a set with no `children`. Mutation-tested:
+with children removed, the wrong-coordinate and under-specified assertions still **passed** — against a set
+that had no right answer to give. docs/34's shape exactly, and the reason the shim change came first.
+
+**Mutation-checked, not assumed** (docs/34): first-hit-instead-of-refuse, partial-coordinates-allowed and
+string-equality-instead-of-axis-by-axis each fail a *named* assertion; dropping the plugin's set path fails
+four; and hand-writing the plugin's wording instead of importing the helper fails the new parity assertion
+with both strings printed. That parity case needed adding — the existing starved run holds `focus-ring` as a
+plain component, so the set path never ran and the two executors' new messages were compared nowhere. It is
+the only check that the payload's `toString`-shipped copy of the helper actually runs.
+
+**A cost to know about: the payload shell grew 14,070 → 15,741 bytes** (a second criteria call, a set map,
+two interpolated helper sources), and **every chunk pays it**. IconButton went 5 → 6 chunks and Button 34 →
+36; no chunk ever breached the budget, which is the byte-budget design working as intended. The pin moved
+to 6 with the cause recorded, because the count is what makes shell growth visible at all — the
+under-budget check stays true by construction and cannot report it.
+
+**And a constraint of shipping a helper as source:** `nestVariantMissAdvice` may contain no backtick. The
+strip pass deletes any `//`-leading line, which is safe only while no payload holds a multi-line template
+literal, and `test.ts` enforces that with a blunt whole-payload backtick ban. A one-line interpolation
+spelling `axis=value` tripped it. Written with `+` concatenation rather than teaching the gate to tell safe
+backticks from unsafe ones — that lexer is precisely what the gate says to build *before* relying on the
+distinction.
+
+---
+
 ## (2026-08-12) — IconButton's anatomy, `nesting` as a declared field, and the two phantom variant properties the axis-parity gate caught
 
 **STATUS: shipped.** `components/icon-button.ts` gains an `anatomy` block (the second of five defs to have

@@ -100,6 +100,30 @@ export type FigmaNodePlan = {
    *  miss and builds nothing at all. **A missing shared component is the expected failure of this kind**
    *  — it is the first kind that can fail because of what is absent from the FILE rather than the plan. */
   nestTarget?: string;
+  /** For a `NESTED_INSTANCE`: WHICH VARIANT of `nestTarget` to nest, when `nestTarget` names a component
+   *  SET rather than a plain component (#681). Figma's `InstanceNode.setProperties` shape exactly —
+   *  `{ axis: value }` — which is why `PartDef.nesting`'s `variant` is a `Record` and not a string.
+   *
+   *  ABSENT when the def declares `nest-exposed`, and that absence is meaningful rather than a gap: an
+   *  exposed nest is one whose coordinate the CONSUMER drives from the parent, so the def has no variant
+   *  to name and this projection must not invent one. Present means `nest-fixed`, i.e. the def chose.
+   *
+   *  A RECORD RATHER THAN A MEMBER NAME, even though the executors resolve it to one, because the name
+   *  is not the def's to write: a set's members are named by their full coordinate in FIGMA'S chosen
+   *  order (`color=default, size=md` or the reverse), so a def spelling a name would be asserting an
+   *  order it cannot see. The executors compare axis-by-axis instead, which is order-independent.
+   *
+   *  THE COORDINATE MUST IDENTIFY EXACTLY ONE MEMBER — every axis of the set named, no partial claims.
+   *  A partial coordinate looks reasonable and is the trap: `{color:'default'}` against a color×size set
+   *  matches two members, and something then has to choose between them. Every available rule for that
+   *  choice is creation order wearing a different hat, which is `#656` — the exact error `nesting` exists
+   *  to stop, one layer further in. So an under-specified coordinate is refused with the same fifth miss
+   *  as a wrong one, and the message lists the members so the missing axis is visible.
+   *
+   *  Deliberately NOT in `bound` and not a variable name: a variant coordinate is neither. It is the
+   *  same argument `textStyle`, `effectStyle` and `absoluteInset` each got their own field for — one
+   *  field per API shape, so the plan cannot imply a call that does not exist. */
+  nestVariant?: Record<string, string>;
   /** For a `NESTED_INSTANCE`: taken out of the auto-layout flow, sized to its parent's bounds grown by
    *  the `inset` variable's value on every side.
    *
@@ -513,6 +537,11 @@ export const figmaAnatomyPlan = (
       name,
       type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : p.kind === 'absolute' ? 'NESTED_INSTANCE' : 'INSTANCE_SWAP',
       ...(p.kind === 'absolute' && p.nests ? { nestTarget: p.nests } : {}),
+      // The def's chosen coordinate, projected only for `nest-fixed` (#681). `nest-exposed` is the
+      // consumer's to drive and `swap` has no variants at all, so neither writes a coordinate here —
+      // and the executors read the field's ABSENCE as "do not select", which is the only reading that
+      // keeps an exposed nest from being silently pinned by its own projection.
+      ...(p.kind === 'absolute' && p.nesting?.kind === 'nest-fixed' ? { nestVariant: p.nesting.variant } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       // The out-of-flow half of the #612 fix, on the two nodes it concerns: the overlay is centered
       // absolutely, and the part it covers holds its cell at zero opacity. Both are keyed off
@@ -792,11 +821,16 @@ export const planComponentName = (plan: AnatomyPlan): string =>
  * their variant coordinates. Three distinct file states and a genuinely absent node all produced one
  * string, and the one piece of advice it gave was wrong for three of the four.
  *
- * This is DIAGNOSIS ONLY, and the boundary is deliberate: it names what is in the file and what to do
- * about it, and it does NOT nest anything. Which variant of a set to nest — and whether that is exposed
- * per instance — is a policy decision with real design consequences, flagged on #681 for the owner. A
- * message that guessed would be worse than one that explains, because a wrong ring that builds looks
- * like success.
+ * WHAT CHANGED WHEN THE SET BECAME RESOLVABLE (#681's policy, 2026-08-12). A `COMPONENT_SET` is no
+ * longer a dead end: a part declaring `nesting: nest-fixed` names a coordinate, and the executors nest
+ * the member carrying it. So the `COMPONENT_SET` row below is no longer "this writer cannot read a set"
+ * — it is now reached ONLY when the def named no coordinate for it, and its advice says so. The row that
+ * used to be the 108-miss case is now a diagnosis of the DEF rather than of the file, which is why its
+ * wording moved even though its `found` key did not.
+ *
+ * DIAGNOSIS ONLY REMAINS THE BOUNDARY for everything the def did not choose. What the executors resolve
+ * is the coordinate a def states; what they still refuse to do is pick one for it. A message that
+ * guessed would be worse than one that explains, because a wrong ring that builds looks like success.
  *
  * SHARED BY BOTH EXECUTORS, and it has to be a function rather than a constant because the paste path is
  * an emitted STRING that cannot import: the plugin calls this directly, and `PAYLOAD_BUILD` interpolates
@@ -806,8 +840,13 @@ export const planComponentName = (plan: AnatomyPlan): string =>
 export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT'): string => {
   switch (found) {
     case 'COMPONENT_SET':
-      // The 108-miss case. Says what is there and what to do, and stops short of choosing a variant.
-      return 'found a COMPONENT_SET of that name, not a component; nothing built — nest a specific variant, or publish one as its own component';
+      // WAS the 108-miss case; now the case where the file holds a set and the DEF did not say which
+      // member to nest — i.e. a part declaring `nest-exposed`, whose coordinate is the consumer's to
+      // drive and which needs an exposed nested property this write does not yet create (#681 defers
+      // exposure pending the property-count measurement). A `nest-fixed` part never reaches this row,
+      // because its coordinate is resolved against the set; if the coordinate matches nothing it gets
+      // `nestVariantMissAdvice` instead, which is a different sentence about a different mistake.
+      return 'found a COMPONENT_SET of that name and the def names no variant for it; nothing built — an exposed nest needs a nested property this write does not create yet, so declare nest-fixed with a coordinate, or publish one variant as its own component';
     case 'INSTANCE':
       // Called out separately because duplicating a variant out of a set is the obvious workaround for
       // the case above, and it lands here — where the old message said "not in this file" of a node the
@@ -820,6 +859,117 @@ export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | '
       return 'not in this file; nothing built — publish the shared component first';
   }
 };
+
+/**
+ * THE FIFTH MISS (#681): the named set is in the file and resolvable, the def named a coordinate, and
+ * no member carries it.
+ *
+ * A DISTINCT FILE STATE from the four `nestMissAdvice` covers, and the reason it needs its own sentence
+ * is that it is the only one of the five that is a defect in the DEF rather than in the file. The other
+ * four all say "what you have is not what this needs"; this one says "what this def asks for does not
+ * exist here", and the remedy is the opposite direction — edit the def, or add the variant.
+ *
+ * It is also the one that arrives silently. The four above are reached by a lookup returning nothing,
+ * which is loud. This is reached by a lookup returning a SET FULL OF VALID MEMBERS, none of them the
+ * requested one — and the tempting behavior at that point is to nest the set's first child, which is
+ * `#656` exactly (`nesting`'s own reason for existing) and would look like success. So: nothing built,
+ * and the message lists what IS there.
+ *
+ * NAMES THE COORDINATE AND THE MEMBERS, both, because either alone is unactionable. The coordinate
+ * alone ("no member matches color=inverse") does not say what to write instead; the member list alone
+ * does not say what was asked for, and a designer reading a list of four valid ring variants has no way
+ * to tell which axis the def got wrong. A rename in the file and a typo in the def produce the same
+ * lookup failure and different fixes.
+ *
+ * It covers TWO mistakes in one sentence — a coordinate that matches nothing, and one that matches more
+ * than one member because it under-specifies the set's axes. Deliberately not split: both are "the def's
+ * coordinate does not identify a member of this set", both are fixed by editing the same line, and the
+ * member list is what distinguishes them on sight (a `{color:'default'}` against `color=default, size=md`
+ * and `color=default, size=lg` shows its own missing axis).
+ *
+ * `wanted` is rendered in FIGMA'S OWN `axis=value` spelling rather than as JSON, so it can be compared
+ * character-for-character against the member names printed beside it. That is the whole point of
+ * printing them together: the difference is meant to be visible without translation.
+ *
+ * Shared by both executors for the same reason `nestMissAdvice` is — the paste path interpolates it at
+ * emit time and cannot import. Unlike that one it takes RUNTIME arguments, so the payload cannot bake
+ * the string: it interpolates this function's SOURCE and calls it in the file. Which is why this is
+ * written as a self-contained expression with no closure over anything in this module (see
+ * `nestVariantMissAdviceSrc`).
+ *
+ * NO TEMPLATE LITERAL IN THE BODY, and that is a constraint of shipping the source rather than a style
+ * choice. `stripPayloadComments` deletes any line whose first non-space characters are `//`, which is
+ * safe only while no payload contains a multi-line template literal — a `//` line inside one would be
+ * data. `test.ts` asserts that precondition by refusing a backtick ANYWHERE in the emitted payload, so
+ * the one-line interpolation this first used to spell an `axis=value` pair tripped it — a helper with no
+ * multi-line literal in it, failing a check about multi-line literals. Written with `+` concatenation
+ * instead, rather than teaching the gate to tell the two apart: a whole-payload backtick ban is blunt,
+ * cheap and impossible to satisfy by accident, and the lexer that would distinguish a safe backtick from
+ * an unsafe one is the exact thing that gate says to write BEFORE anything relies on the distinction.
+ * A helper shipped as source inherits its host's constraints — that is the price of one definition.
+ */
+export const nestVariantMissAdvice = (wanted: Record<string, string>, members: readonly string[]): string =>
+  'found a COMPONENT_SET of that name, and no member matching '
+  + Object.entries(wanted).map(([k, v]) => k + '=' + v).join(', ')
+  + '; nothing built — the def asks for a variant this set does not have. Members: '
+  + (members.length ? members.join(' | ') : '(none)')
+  + '. Fix the coordinate in the def, or add the variant to the set — nothing is nested by guess, because a valid wrong ring looks like a success';
+
+/**
+ * `nestVariantMissAdvice` AS SOURCE, for the paste payload to call in the file.
+ *
+ * The four fixed sentences are interpolated as pre-computed STRINGS (`JSON.stringify(nestMissAdvice(…))`)
+ * because they take no arguments. This one does, so there is nothing to pre-compute — the coordinate and
+ * the member list are only known in the live file. Shipping the source and calling it there is what keeps
+ * ONE definition of the wording across two executors, which is the property #710 established and the
+ * whole reason `nestMissAdvice` is a function.
+ *
+ * `Function.prototype.toString` rather than a hand-copied string literal, deliberately: a copy is a
+ * second definition, and the two would drift exactly as the original two call sites did. The cost is
+ * that this function must be a pure expression closing over NOTHING in this module — no imports, no
+ * module constants, no helpers — because the payload has none of them. Asserted by the gate rather than
+ * remembered: a body that references anything out of scope throws at paste time and nowhere earlier.
+ */
+export const nestVariantMissAdviceSrc = (): string => nestVariantMissAdvice.toString();
+
+/**
+ * WHICH MEMBER OF A SET A `nest-fixed` COORDINATE IDENTIFIES, or `null` (#681).
+ *
+ * Compares AXIS BY AXIS against each member's parsed name, never by string equality against a
+ * reassembled name: Figma writes the axes in its own order, so `color=default, size=md` and
+ * `size=md, color=default` are the same member and only one of them equals a def-built string. That
+ * comparison would fail on a set whose axis order is not the order the def happens to list, and it
+ * would fail INVISIBLY — as the fifth miss, which is a message about a def that is actually correct.
+ *
+ * RETURNS null WHEN MORE THAN ONE MEMBER MATCHES, not the first of them. A partial coordinate against a
+ * multi-axis set is the shape that arrives by accident (`{color:'default'}` on color×size), and every
+ * rule for choosing among the matches reduces to creation order — `#656`, one layer in from where
+ * `nesting` was added to stop it. So an ambiguous coordinate is refused exactly like a wrong one, and
+ * the caller's message lists the members, which is what makes the missing axis visible.
+ *
+ * A member name Figma cannot parse as coordinates (no `=`) contributes an empty coordinate set and so
+ * matches nothing — the honest answer for a member somebody renamed by hand.
+ *
+ * SHARED BY BOTH EXECUTORS as SOURCE (`nestVariantMatchSrc`), same mechanism and same constraint as
+ * `nestVariantMissAdvice`: a pure expression closing over nothing in this module, because the payload
+ * has none of this module.
+ */
+export const nestVariantMatch = (wanted: Record<string, string>, members: readonly string[]): string | null => {
+  const hits = members.filter((m) => {
+    const coord: Record<string, string> = {};
+    for (const kv of m.split(', ')) { const i = kv.indexOf('='); if (i > 0) coord[kv.slice(0, i)] = kv.slice(i + 1); }
+    const keys = Object.keys(coord);
+    // EVERY axis of the member accounted for, not merely every axis the def named. `keys.length` is the
+    // ambiguity guard stated positively: a coordinate naming fewer axes than the member has cannot
+    // identify it, so the two lengths must agree before the values are compared at all.
+    return keys.length === Object.keys(wanted).length && keys.every((k) => coord[k] === wanted[k]);
+  });
+  return hits.length === 1 ? hits[0] : null;
+};
+
+/** `nestVariantMatch` as source, for the paste payload. See `nestVariantMissAdviceSrc` for why a
+ *  hand-copied literal is not an option here. */
+export const nestVariantMatchSrc = (): string => nestVariantMatch.toString();
 
 /**
  * The SHELL: plan → plugin JS for `figma_execute`. Mirrors `materialise-to-figma.ts` — the
@@ -924,6 +1074,16 @@ const effectByName=new Map(effects.map(s=>[s.name,s]));
 await figma.loadAllPagesAsync();
 const comps=figma.root.findAllWithCriteria({types:['COMPONENT']});
 const compByName=new Map(comps.map(c=>[c.name,c]));
+// A SECOND criteria call, sets only (#681). Two calls rather than one widened call for the reason the
+// executor's port states: the COMPONENT map is instantiated from and a ComponentSetNode has no
+// createInstance, so one map per node type keeps each read honest about what it holds.
+const compSets=figma.root.findAllWithCriteria({types:['COMPONENT_SET']});
+const setByName=new Map(compSets.map(s=>[s.name,s]));
+// The two shared miss helpers, shipped as SOURCE rather than as baked strings: both take runtime
+// arguments (the coordinate, the member list) that only exist in the live file. One definition, in
+// anatomy-figma.ts, called by both executors — which is what stops the wording drifting.
+const nestVariantMatch=${nestVariantMatchSrc()};
+const nestVariantMissAdvice=${nestVariantMissAdviceSrc()};
 const misses=[];`;
 
 /**
@@ -950,14 +1110,36 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // unstroked frame in a focus ring's place is invisible and reads as a ring that built fine; a slot's
     // placeholder is a box a designer can still fill. So a missing ring builds NOTHING and says so.
     const nested=compByName.get(n.nestTarget);
-    if(!nested){
+    // A SET the def named a coordinate in (#681). Checked only when the plain-component lookup missed:
+    // a component and a set can share a name, and the component needs no coordinate to be unambiguous.
+    const set=!nested&&n.nestVariant?setByName.get(n.nestTarget):undefined;
+    if(set){
+      // Resolve the def's coordinate against the MEMBERS' own names, axis by axis. \`nestVariantMatch\`
+      // returns null for no match AND for more than one — an under-specified coordinate is refused, not
+      // resolved by taking the first, because every rule for choosing is creation order (#656).
+      const members=(set.children||[]).map(c=>c.name);
+      const hit=nestVariantMatch(n.nestVariant,members);
+      // THE FIFTH MISS: the file has the set, the def named a coordinate, no member carries it. Nothing
+      // is built — nesting the first child here is the #656 error \`nesting\` exists to stop, and a valid
+      // wrong ring looks like a success.
+      if(!hit){misses.push(n.name+'.nestVariant -> '+n.nestTarget+' ('+nestVariantMissAdvice(n.nestVariant,members)+')');return null;}
+      // The MEMBER is instantiated, never the set — Figma has no instance-of-a-set. The member is a plain
+      // component, which is why the COMPONENT search above already holds it under its variant coordinate:
+      // the members were always findable, and nothing knew which to ask for until the def said.
+      const member=compByName.get(hit);
+      if(!member){misses.push(n.name+'.nestVariant -> '+n.nestTarget+' (matched member '+hit+' is not instantiable; nothing built — the COMPONENT_SET and COMPONENT searches disagree about this file)');return null;}
+      node=member.createInstance();
+    }
+    else if(!nested){
       // DIAGNOSE before reporting (#681): a second search, by name across every node type, so the miss
       // can say what is actually in the file. Only on the failure path — the happy path pays nothing.
+      // A SET still reaches here when the def named no coordinate for it (\`nest-exposed\`), which is what
+      // the COMPONENT_SET sentence now says.
       const other=figma.root.findAll(x=>x.name===n.nestTarget)[0];
       const found=!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))};
       misses.push(n.name+'.nestTarget -> '+n.nestTarget+' ('+found+')');return null;
     }
-    node=nested.createInstance();
+    else{node=nested.createInstance();}
   }
   else{node=figma.createFrame();node.clipsContent=false;}
   node.name=n.name;

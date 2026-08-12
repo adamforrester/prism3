@@ -227,6 +227,58 @@ exists to stop. `overlay` is in the required set, which is read off the projecti
 the kind's prose: `anatomy-figma.ts` types an overlay `INSTANCE_SWAP` and hands it the same
 `swapTarget` a slot gets, because a spinner is a glyph standing in a glyph's cell.
 
+#### 4.1.1 How the coordinate is resolved, and the fifth miss (#681)
+
+§4.1 is the *def's* half — the field, and who owns the fact it carries. This is the **consumer's**
+half: what the plan projects, how the two executors turn a coordinate into a node, and what they
+say when they cannot. The two were built in that order deliberately, and the field is useless
+without this: a def can declare `nest-fixed` all it likes, and until something resolves the
+coordinate the write drops the part and reports a miss.
+
+**The plan carries the coordinate in its own field, not in `bound`.** `nestVariant?:
+Record<string, string>` sits beside `nestTarget` on a `NESTED_INSTANCE` node — the shape
+`InstanceNode.setProperties` takes, which is why `nesting.variant` is a record and not a string.
+It is projected **only for `nest-fixed`**. A `nest-exposed` part projects nothing, and that
+absence is meaningful rather than a gap: an exposed nest's coordinate is the consumer's to drive
+per instance, so a projection that invented one would pin exactly what the def declined to fix.
+`swap` has no variants at all. One field per API shape, the same argument `textStyle`,
+`effectStyle` and `absoluteInset` each got their own for.
+
+**The coordinate must identify exactly one member — every axis named.** A partial coordinate is
+the trap, because it looks reasonable: `{color: 'default'}` against a `color × size` set matches
+two members, and something then has to choose. Every available rule for that choice is creation
+order wearing a different hat, which is **#656 one layer further in** — the exact error `nesting`
+exists to stop. So an under-specified coordinate is **refused**, with the same message a wrong one
+gets. It is refused even when the set happens to hold a single matching member: the ambiguity
+there is *latent* rather than absent, and it becomes real the day someone adds a second size — at
+which point the def that changed meaning is not the file that changed.
+
+**Members are matched axis by axis, never by string equality against a reassembled name.** Figma
+writes a member's axes in the order *it* chose, so `color=default, size=md` and `size=md,
+color=default` are the same member and only one of them equals a def-built string. Equality would
+fail **invisibly** — as a miss about a def that is correct.
+
+**A member is what gets instantiated, never the set.** Figma has no "instance of a set", and
+`ComponentSetNode` has no `createInstance`. This is also why each executor runs **two** criteria
+searches rather than one widened one: the `COMPONENT` results are cast and instantiated, and a
+single `types: ['COMPONENT', 'COMPONENT_SET']` call would poison that map with nodes that cannot
+be instantiated. One criteria list per cast keeps each cast true at its own call site.
+
+**The fifth miss.** #681's four messages diagnose the *file* — absent, a set, an instance, some
+other node. This one diagnoses the **def**: the set is there, the coordinate was named, and no
+member carries it. It names the coordinate **and** lists the members, because either alone is
+unactionable — a rename in the file and a typo in the def produce the same lookup failure and
+opposite fixes. It arrives silently, too: the other four are reached by a lookup returning
+nothing, while this one is reached by a lookup returning a set **full of valid members**, none of
+them the one asked for. Nothing is built, because a valid wrong ring looks like a success.
+
+**And the `COMPONENT_SET` message changed meaning without changing its key.** It used to be the
+108-miss case — "this writer cannot read a set". A `nest-fixed` part never reaches it now. Its
+only remaining case is a def that named **no** coordinate, i.e. `nest-exposed`, which needs an
+exposed nested property this write does not create yet (#681 defers exposure pending the
+property-count measurement: Button already writes 1,350 references across 648 members). So the
+row that used to describe a limit of the writer now describes a limit of the def.
+
 ### 4.2 Square parts: one binding key, both axes
 
 `size` — until now "a slot's square glyph artboard" — is also how a **`box`** declares itself
