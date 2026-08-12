@@ -477,6 +477,33 @@ export class DTCGValidator {
 
     if (typeof value !== 'number') {
       this.addError(path, 'INVALID_NUMBER_VALUE', 'Number token value must be a number');
+      return;
+    }
+
+    // Opacity range (#709). The type check above is all this method used to do, which is exactly
+    // how a value 100× out of range shipped: `5` is a perfectly good number, and nothing here
+    // asked what it MEANT. An opacity is a 0–1 fraction, so a value outside that band is either
+    // an unconverted Figma percent or a genuine authoring error, and both are worth saying.
+    //
+    // SCOPED BY NAME, AND ONLY A WARNING — both halves are deliberate.
+    //
+    // Not a blanket 0–1 rule on `$type: number`: measured against the emitted brands, 98 of 250
+    // number tokens are legitimately outside 0–1 (every line-height, every grid column count), so
+    // a general rule would fire on almost 40% of our own correct output. `number` carries no unit
+    // and no semantics — the NAME is the only signal available at this layer, since the Figma
+    // OPACITY scope that drove the conversion is long gone by the time a DTCG file is validated.
+    //
+    // And a warning, not an error, because that name match is a heuristic: this validator runs
+    // over arbitrary third-party files, where `opacity` could plausibly name something else. On
+    // the two corpora we can check, all 112 opacity-named number tokens are inside 0–1, so the
+    // false-positive rate is currently zero — but a heuristic that hard-failed someone else's
+    // export on a naming coincidence would be worse than the bug it guards.
+    if (/(^|[.\-_/])opacit/i.test(path) && (value < 0 || value > 1)) {
+      this.addWarning(
+        path,
+        'OPACITY_OUT_OF_RANGE',
+        `Opacity value ${value} is outside the 0–1 range; a Figma percent (0–100) may not have been converted`
+      );
     }
   }
 

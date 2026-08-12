@@ -72,9 +72,20 @@ export class DimensionConverter extends BaseConverter<string | number | DTCGDime
       };
     }
 
-    // Opacity values (unitless, 3 decimal precision)
+    // Opacity — percent (0–100) leaving Figma, fraction (0–1) arriving in DTCG (#709).
+    // Same conversion and same reasoning as `convertVariableValue` in exporter.ts; that comment
+    // carries the full argument for the divide-then-round order and the DECIMAL_5 precision.
+    //
+    // THIS SITE IS UNREACHABLE TODAY, and is fixed anyway. `DimensionConverter` is constructed in
+    // the exporter's constructor but `convert()` has no caller — the converter extraction is
+    // half-finished, and `ColorConverter` is in the same state. So this copy of #709 was dormant:
+    // it could not affect an export, and it also could not be caught by any test of one. Left
+    // as-is, it would have come back the moment someone wired the class up, with the live site
+    // already fixed and nothing to suggest a second one existed. #708 is the precedent — there
+    // were four readers of one shape, one of them kept working, and its success is what hid the
+    // others failing.
     if (scopes.includes('OPACITY')) {
-      return roundToPrecision(numericValue, PRECISION.DECIMAL_3);
+      return roundToPrecision(numericValue / 100, PRECISION.DECIMAL_5);
     }
 
     // Dimension tokens with units

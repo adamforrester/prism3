@@ -68,6 +68,25 @@ const EXPECTED: Record<string, number> = {
   'tests/unit/typography-weight-regression.test.ts': 4,
 };
 
+/**
+ * Test files added to this suite AFTER the port, kept in a separate census from `EXPECTED` above.
+ *
+ * The split is the point, and it is not bookkeeping tidiness. `EXPECTED` is a hand-transcribed
+ * memory of an independent measurement — 263 assertions from real vitest on the pristine copy — and
+ * its whole value is that it was written down before this harness existed and has not moved since.
+ * Adding a new file's count into it would silently redefine the number the port is checked against,
+ * so "the port preserved behavior" and "we have since added tests" would become one unfalsifiable
+ * figure. A baseline that grows is not a baseline.
+ *
+ * So new work lands here, `EXPECTED` stays at 263 forever, and both are asserted per file. The
+ * runner reports the two sums separately for the same reason.
+ */
+const ADDED: Record<string, number> = {
+  // #709 — OPACITY-scoped values exported 100× out of DTCG range. The pre-existing coverage
+  // asserted the `$type` and never the value, which is how a 100× range error passed a green suite.
+  'tests/unit/opacity-percent-to-fraction.test.ts': 11,
+};
+
 // ---- the harness checks itself first -------------------------------------------------------
 // A harness that reports a pass because it cannot tell the difference is worse than no harness, so
 // the comparison function and the loud-failure guard are asserted before any ported test runs.
@@ -169,18 +188,21 @@ const report = (): void => {
   const { total, failed } = summary();
   const problems: string[] = [];
 
-  for (const [file, want] of Object.entries(EXPECTED)) {
+  const census = { ...EXPECTED, ...ADDED };
+  for (const [file, want] of Object.entries(census)) {
     const got = perFile[file];
     if (got === undefined) problems.push(`${file}: MISSING — expected ${want} assertion(s), file did not run`);
     else if (got !== want) problems.push(`${file}: ran ${got}, expected ${want}`);
   }
   for (const file of Object.keys(perFile)) {
-    if (!(file in EXPECTED)) {
-      problems.push(`${file}: ran ${perFile[file]} assertion(s) but is not in EXPECTED — add it deliberately`);
+    if (!(file in census)) {
+      problems.push(`${file}: ran ${perFile[file]} assertion(s) but is in neither EXPECTED nor ADDED — add it deliberately`);
     }
   }
 
-  const wantTotal = Object.values(EXPECTED).reduce((a, b) => a + b, 0);
+  const portTotal = Object.values(EXPECTED).reduce((a, b) => a + b, 0);
+  const addedTotal = Object.values(ADDED).reduce((a, b) => a + b, 0);
+  const wantTotal = portTotal + addedTotal;
 
   console.log(`\n${'─'.repeat(72)}`);
   if (problems.length) {
@@ -191,8 +213,8 @@ const report = (): void => {
 
   if (failed === 0 && problems.length === 0) {
     console.log(
-      `✓ TokenPress: ${total} assertions passed across ${files.length} files — matches the ` +
-        `pre-rewrite vitest baseline (${wantTotal}) file by file.`,
+      `✓ TokenPress: ${total} assertions passed across ${files.length} files — the ported ` +
+        `${portTotal} match the pre-rewrite vitest baseline file by file, plus ${addedTotal} added since.`,
     );
     process.exit(0);
   }

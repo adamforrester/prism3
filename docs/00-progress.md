@@ -7,6 +7,95 @@
 
 ---
 
+## (2026-08-11) — #709: an opacity 100× out of range, its dormant twin, and the validator that agreed with the bug
+
+**STATUS: shipped.** `apps/tokenpress` — the OPACITY percent→fraction conversion, a range rule in
+`dtcg-validator.ts`, 11 new tests, and a second census (`ADDED`) in `test.ts`. No engine change, no
+emitted artifact, `regen --check` still 104.
+
+**What #707's comparison actually found.** Running both DTCG exporters over the same brand turned up
+one difference that changes a value a consumer applies directly: 11 tokens on each of nb and aurora
+where TokenPress read `opacity.5` back as `5` instead of `0.05`. Figma interprets an OPACITY-scoped
+FLOAT as a **percent** (0–100); DTCG `number` opacity is a **0–1 fraction**. Neither exporter was
+internally wrong — prism3's `emit-figma-dims.ts` multiplies by 100 on the way out and says so
+(*"Verified live: passing 0.9 renders as 0.9% (nearly invisible), not 90%"*) — **the round-trip was**.
+So the conversion belongs at the boundary where the percent convention is being *left*, which is
+`convertVariableValue`. A consumer applying `5` gets full opacity where 5% was authored.
+
+**Two traps found by measuring rather than reasoning**, both now pinned by a named test:
+
+1. **Dividing by 100 *introduces* IEEE-754 noise.** `33.3 / 100` is `0.33299999999999996`; `1.1 / 100`
+   is `0.011000000000000001`. The line already rounded — but rounded *before*, which leaves the noise
+   in whatever the divide then creates. Divide first, round second.
+2. **The precision has to shift with the divide.** At `DECIMAL_3` the fraction truncates exactly the
+   two digits the divide moved right: `5.001%` → `0.05`, `0.05%` → `0.001`. `DECIMAL_5` is not "more
+   precise than `DECIMAL_3`" — it *is* `DECIMAL_3`, expressed on a scale 100× smaller.
+
+**The fix a future reader will reach for, and why it is wrong.** `v > 1 ? v / 100 : v` reads
+plausibly and breaks sub-percent opacity: `0.5` is a legitimate half-percent, which that rule emits
+as `0.5` — full opacity. Every OPACITY-scoped value is a percent, so every one is divided. Named in
+the code comment and asserted, because the heuristic is the attractive mistake here.
+
+**There were two readers of the convention, and the issue only named one.** `dimension-converter.ts`
+carries the same rounding line. It is **dormant** — `DimensionConverter` is constructed in the
+exporter's constructor but `convert()` has no caller, and `ColorConverter` is in the same
+half-finished state — so this copy could not affect an export **and equally could not be caught by
+any test of one**. Fixed anyway, and asserted anyway. Left alone it comes back the day someone wires
+the class up, with the live site already correct and nothing suggesting a second site ever existed.
+**This is #708's shape exactly**: several readers of one convention, one of them still working, and
+its success is what hides the others failing.
+
+**The validator agreed with the bug for the whole life of the code, which is the more useful finding.**
+The only pre-existing opacity coverage was one assertion in `scope-dimension-detection.test.ts`:
+
+```ts
+expect(mapType(['OPACITY'], 'opacity-50')).toBe('number')
+```
+
+It asserts the `$type` and never the value. And `validateNumberToken` did the same thing —
+`typeof value !== 'number'` and nothing else. `5` **is** a number, so a value 100× out of bounds
+passed a green suite and a passing validator simultaneously. **A type check cannot see a range error.**
+
+**So the range rule is scoped by name and warns rather than errors — both halves measured, not
+guessed.** A blanket 0–1 rule on `$type: number` was the obvious reading of the issue and is wrong:
+against the emitted brands, **98 of 250** number tokens are legitimately outside 0–1 (every
+line-height, every grid column count), so it would fire on ~40% of our own correct output. `number`
+carries no unit and no semantics, and the Figma OPACITY scope that drove the conversion is long gone
+by the time a DTCG file is validated — the **name** is the only signal left at that layer. And a
+warning, not an error, because that match is a heuristic and this validator reads arbitrary
+third-party files: all **112** opacity-named number tokens across `out/` and `reference/` are inside
+0–1 today, so the false-positive rate is currently zero, but hard-failing someone else's export on a
+naming coincidence would be worse than the bug being guarded.
+
+**`EXPECTED` did not grow, and that is deliberate.** The census gate fired on the new file
+(*"ran 11 assertion(s) but is not in EXPECTED"*) — working as designed. `EXPECTED` is a
+hand-transcribed memory of an independent pre-port vitest measurement (263 across 21 files), and its
+whole value is that it was written down before the harness existed and has not moved. Folding new
+tests into it would merge *"the port preserved behavior"* and *"we have since added tests"* into one
+unfalsifiable number. **A baseline that grows is not a baseline.** New work lands in a separate
+`ADDED` record, both are asserted per file, and the runner reports the two sums separately. Anything
+in neither is an error, so a file cannot join the suite by accident.
+
+**Ten mutations, each failing by name.** M1 revert the conversion → 5; M2 round-before-divide → 2;
+M3 `DECIMAL_3` instead of `DECIMAL_5` → 1, exactly the assertion written for it; M4 the magnitude
+heuristic → 2; M5 divide *every* FLOAT (the negative control) → 1 alone; M6 revert the dormant twin
+only → 1; M7 **delete a test** → `270 run, baseline 271`, exit 1 with nothing asserting wrong, which
+is the census doing its job; M8 remove the range rule → 1; M9 drop the name scope → the line-height
+control fires; M10 warning→error → 1.
+
+**The census gate caught my own arithmetic.** I first declared 14 for the new file; it runs 11. The
+harness counts **test cases**, not `expect()` calls — inherited vitest vocabulary where `total++`
+sits in `run()`, one per queued body. Worth knowing before transcribing a count by hand.
+
+**Trap for whoever re-verifies this:** `npm run -w @prism3/tokenpress lint` exits 1 on `main` — 6
+pre-existing errors (2 in `exporter.ts`, 3 in `base-converter.ts`/`code.ts`, plus 2 parse errors on
+the two root-level harness files that are outside `tsconfig`). Verified pre-existing by running
+eslint against the `HEAD` copy of each file: same 2 errors in `exporter.ts`, and `dtcg-validator.ts`
+is 81 warnings before *and* after. `lint` is not in `ci.yml`, so this is not a regression — but it
+will look like one if you run it expecting green.
+
+---
+
 ## (2026-08-11) — A runbook for the capture harness, and the gap it deliberately does not close
 
 **STATUS: shipped.** `tools/block-capture/README.md` gains an *"If you are an agent picking this up"*
