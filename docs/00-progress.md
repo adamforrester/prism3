@@ -507,6 +507,50 @@ bug, and the work is to make the boundary someone's rather than to leave it desc
 
 ---
 
+## (2026-08-12) — The arcs: what order the component tier gets built in, and why the primitives come first (docs/38, new)
+
+**STATUS: docs only.** New `38-arcs.md`. No engine change, no emitted artifact, no gate. `regen
+--check` still 104.
+
+**Why this file exists.** `14` §6 sketched a build sequence and `19` §8 named a first slice, both
+written before anything had been materialized. Button is now built into a real Figma file
+end-to-end, which turns those sketches into a question neither can answer: with one working
+component and four defs that cannot be materialized at all, what order does the rest go in.
+
+**The measured starting position, because it was worse than the plans assumed.** Five defs exist;
+**only `button` carries an `anatomy` block**, and `figmaAnatomyPlan` throws without one
+(`anatomy-figma.ts:235`). `32` had already recorded this — *"Only one of five defs is
+materializable"* — but no plan had been re-sequenced around it. Two further gaps found while
+writing: there is **no component registry** (`test.ts:51-55` imports the five defs by name, one
+line each, and nothing iterates the set), and dependency A has **no defs at all** — no `icon`, no
+`focus-ring` — though `32` names the gap and #681 decided the mechanism.
+
+**The ordering, and the part worth carrying.** The tempting second component is `icon-button`,
+since Button was just built and the two share an anatomy. The dependency graph refuses it:
+`icon-button` declares `{ name: 'icon', type: 'slot', required: true }`, a nested component that
+is not optional and is the whole content. Build it before `icon` exists and you either materialize
+a placeholder, which validates nothing, or nominate a target that does not resolve, which
+`anatomy-figma.ts` reports as a miss rather than substituting for. **The primitives are not
+preliminary work in front of the interesting components — they are the components whose absence
+makes the interesting ones unmeasurable.** The same argument gives the second reason to take them
+first: a primitive is the smallest test of whether the new schema field can express what it
+claims, and discovering the field is wrong while authoring `icon` costs one def against four for
+the text-field family.
+
+**What it does not decide.** #252 (author-headless vs. wrap) still has no lean, and Arc 4 cannot
+be scoped without it. The file was filed rather than held for that, because Arcs 1–3 do not read
+it — but §6 records the coupling: #681 holds that exposure IS the component's public API, so if
+the behavior layer wraps an existing library, part of that surface belongs to the library and the
+def becomes a mapping rather than a one-to-one source.
+
+**Trap for whoever re-verifies this.** Every issue number in `38` is from `19` §8's 2026-07-28
+snapshot and was **not** re-verified — GitHub was rate-limited throughout. `19` §8's own status
+line is nearly three weeks old at the time of writing. Confirm state before acting on any of them.
+A plan asserting other issues' states has a shelf life of days at this pace, which #718's Do-list
+demonstrated within one.
+
+---
+
 ## (2026-08-12) — Three verdicts that could not stop printing: the comparison harness reported a fixed defect as shipping
 
 **STATUS: shipped.** `tools/exporter-comparison/compare.ts` + its README. Harness only — neither
