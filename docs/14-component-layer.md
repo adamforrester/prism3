@@ -6,9 +6,14 @@
 > components as data and build them in Figma on the fly — the way we already write
 > Figma variables — without needing an LLM or MCP?* The answer is yes, and the
 > mechanism is the same one the token layer already proved: **data source →
-> deterministic emit → dumb materializer → extraction-diff regression**. Nothing here
-> is built; this is the contract the build follows, captured with the same intent as
-> `11` (survive context loss; every future thread aims at the same target).
+> deterministic emit → dumb materializer → extraction-diff regression**. This is the
+> contract the build follows, captured with the same intent as `11` (survive context
+> loss; every future thread aims at the same target).
+>
+> **Written when none of it existed — the original line here read "nothing here is
+> built" — and the write leg now does.** §3.1 records what it is *for*: the anatomy
+> schema's materialization proof, not a product capability (#718). Read that before
+> taking §3's plan as a statement of shipped scope.
 
 ---
 
@@ -128,6 +133,38 @@ existing template preserving IDs vs build from scratch). The artifact eventually
 needs a **keyed update strategy** (match by name/path, mutate in place, create only
 the genuinely new). Create-from-scratch is the correct v1; keyed update is the
 committed direction before real consumers exist.
+
+### 3.1 What the write leg is FOR, as of 2026-08-12 (#718)
+
+This section was written as a plan (*"Nothing here is built"*, above). The write leg has since been
+built and run live — and #718 then decided what it is **for**, which is not what a reader of §3
+alone would assume.
+
+**It is the anatomy schema's materialization proof, kept runnable for that purpose, and it is not
+presented as a product capability.** Whether a generated Figma component kit becomes a feature is
+deferred until a client asks with real requirements rather than inferred ones. Current defect status
+lives on #718 and the issue labels; do not read it from this doc.
+
+**What this does not change.** Components-as-data (§1) stands untouched. The philosophy is the
+*schema* — `component-schema.ts`, the anatomy block, `28`. The Figma component set is one
+**projection** of that data and the code outputs are another; deferring a projection is not a
+retreat from the model. The two currently feel like one thing only because `button.ts` is the sole
+def with an `anatomy` block.
+
+**Why keep it runnable rather than retire it.** It is the only thing that makes the schema
+falsifiable — see `28` §"The projection's standing role" for the full argument. §5's gates check
+that definitions are well-formed and that bindings resolve; none of them asks whether an anatomy
+block carries enough to build something real, and a shim answers only for the Figma it was written
+to model.
+
+**It is a tool, not a gate** (`CLAUDE.md`'s `tools/` distinction: *a tool answers a question; a gate
+asserts an answer*). Not in `ci.yml`, needs a human in Figma desktop, reports findings as issues
+rather than a red build — deliberately, because five of the first live run's six findings were
+invisible to the offline suite **by construction**.
+
+**Do not read a runnable write leg as a shipped feature.** The plugin control's move out of the
+primary action bar into the left rail is a **demotion, not a promotion** — same edit, opposite
+intent from what "components get their own tab" naturally suggests.
 
 ## 4. The verify leg: extraction diff — where Specs CLI actually fits
 

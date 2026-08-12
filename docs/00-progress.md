@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-12) — #718's load-bearing half: the component write's role recorded where the tier is described
+
+**STATUS: shipped.** `docs/28-component-anatomy-schema.md` (new §"The projection's standing role") and
+`docs/14-component-layer.md` (new §3.1, plus a correction to its own intro). Docs only, no code, no
+emitted artifact.
+
+**Why this was the half that mattered.** #718 decided the plugin's component write is internal testing
+rather than a product capability, and its Do-list carried four items. Three were mechanical. The fourth
+— *record the materialization-proof role wherever the component tier is described* — is the one that
+changes what a future reader concludes, because **without it, a runnable component write reads as a
+shipped feature.** The decision issue can say otherwise all it likes; nobody reaching `docs/14` to
+learn how the component tier works is reading the issue tracker first. Neither doc mentioned the role
+before this (grepped: no hit for `internal`, `not a product`, or `#718` in either).
+
+**The argument that had to be written down, not just the status.** Status goes stale — that is #718's
+own lesson, after it published a deferred list that was wrong on the day (see the 2026-08-11 entries).
+What does not go stale is *why the projection is kept runnable rather than retired*:
+
+- `typecheck-components.ts` checks the defs are **well-typed** against `component-schema.ts`. It says
+  nothing about whether an `anatomy` block carries enough to build something real.
+- `figmaAnatomyPlan` is pure and gated offline; `test.ts` drives the plugin executor against a shim for
+  parity. **A shim answers only for the Figma someone wrote it to model.**
+- Retire the live projection and the schema's only remaining consumers are tests written from the same
+  understanding that authored it — it drifts toward whatever is convenient to author and nothing
+  notices. The 648-member run is what makes the claim refutable.
+
+So both docs now frame it with `CLAUDE.md`'s `tools/` distinction — *a tool answers a question; a gate
+asserts an answer* — and say plainly that it is not in `ci.yml`, needs a human in Figma desktop, and
+reports findings as issues rather than a red build. **Deliberate, not a gap to close:** five of the six
+findings from the first live Button run were invisible to the offline suite *by construction* (the
+shims model no scenegraph, no font-loading state, no event loop, no component sets, no instances, and
+emit no deprecation warnings).
+
+**Status deliberately kept OUT of both docs.** Each says to read #718 and the issue labels for the
+current defect set. Inlining it is the exact failure #718 corrected in itself.
+
+**Facts verified rather than copied from the issue**, since the issue is a month of accumulated claims:
+`button.ts` is the only one of five defs with an `anatomy` block (grep), `apps/plugin/src/main.ts:251`
+still carries the *"a loop over five defs would throw on four of them"* comment, and no CI step
+materializes anything.
+
+**A contradiction the edit exposed in `docs/14`.** Its intro said *"Nothing here is built"* — true when
+written (2026-07-03), and now flatly false two screens above a section describing live 648-member runs.
+Corrected in place with the original wording preserved in the correction, so the doc's own history
+stays readable rather than being quietly rewritten. **This is what adding a "now" section to a "plan"
+doc costs**: the plan's tense claims become wrong, and they are not in the diff you are writing. Worth
+grepping for the next time a doc gains a shipped-state section.
+
+**Also recorded:** the left-rail control move is a **demotion, not a promotion** — same edit, opposite
+intent from what "components get their own tab" naturally suggests. It is in `docs/14` §3.1 as well as
+on the task, because the task will close and the doc will not.
+
+**Gates:** all 25 green, run as a whole list. `lint-layout-claims.ts` is the one with an actual opinion
+about these two files.
+
+---
+
 ## (2026-08-12) — The exporter comparison's assertable arms are now a CI gate, and the "unreachable" gradients were never unreachable
 
 **STATUS: shipped.** New `tools/exporter-comparison/gate.ts` + one `ci.yml` step; `compare.ts` gains three
