@@ -115,6 +115,26 @@ before the plan can be materialized, now in two halves rather than one:
 - *What the **schema** must express:* the `nesting` field — which is what this PR adds, and why the field
   could not wait on the consumer.
 
+**SCOPE CORRECTION, and it bounds what this entry above is evidence for. What #734 proved is the swap and
+nest MECHANISM, not the primitives.** Neither `icon` nor `focus-ring` exists as a def. There are five
+(`button`, `icon-button`, `field-label`, `field-message`, `text-field`) and neither is among them. Both
+nested references resolve **at paste time, against the live Figma file, by name, and against nothing else**:
+`PAYLOAD_PREAMBLE` builds `compByName` from `figma.root.findAllWithCriteria({types:['COMPONENT']})`
+(`anatomy-figma.ts:925-926`), the swap resolves `n.swapTarget` through it (`:941`), and
+`nests: 'focus-ring'` resolves `n.nestTarget` through the same map (`:952`). **No gate anywhere ties either
+name to a def** — `nests` has five validator rules and every one is about *field placement* (`absolute`
+must carry it, non-`absolute` must not); not one asserts the nominated component is defined.
+`planBindingErrors` takes variables, text styles and effect styles and has no component argument at all.
+
+So the live run resolved both **because the Button build had already pre-populated the file**, and the
+162-members/0-misses number must not be read as coverage of the primitives. Right now **the Figma file is
+the source of truth for what a focus ring and an icon are** — precisely the inversion `docs/14` §1 rejects
+("Figma component sets, code, Storybook and `.ai.json` are all outputs generated from it — Figma is one
+target among many, never the source"). This ran ahead of `docs/38` Arc 2 (now **#741**, `icon` and
+`focus-ring` as real defs) on an explicit instruction and got away with it only because of that
+pre-population. **The text-field family nests three primitives and will not get away with it** — which is
+the ordering argument for doing #741 next, not a nice-to-have.
+
 ---
 
 ## (2026-08-12) — #718's UI half: the component write moves to a rail leaf, and the move is a demotion
