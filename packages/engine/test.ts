@@ -7668,6 +7668,257 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       }
     }
 
+    // ---- ICONBUTTON: the second anatomy, and the SQUARE case (#712) ------------------------------
+    // WHY THIS BLOCK EXISTS AT ALL, stated because the shape of the work is easy to misread as a read
+    // rather than an authoring: `icon-button.ts` had NO anatomy block. Button was the only def of five
+    // that carried one, and `figmaAnatomyPlan` throws outright on a def without one — so there was no
+    // grid here to derive a cardinality from. Deriving the cardinality WAS authoring the anatomy.
+    //
+    // Everything below was derived OFFLINE before any of it ran in Figma, so the live paste confirms a
+    // prediction instead of reporting a measurement. That is the difference between a number in a report
+    // and a gate: a transcribed count agrees with whatever the code did.
+    {
+      const iba = iconButton.anatomy!;
+      const fp = iconButton.figmaProperties!;
+
+      // THE THREE DELTAS FROM BUTTON, asserted rather than left in the header comment. Each is a claim
+      // the def makes about being square-and-single-celled, and each would be satisfied by a copy of
+      // Button's anatomy that nobody noticed was a copy.
+      ok(iba.parts.container.children!.length === 2 && iba.parts.container.children!.includes('icon'),
+        `anatomy/icon-button: the container holds the icon and the ring — ONE content cell, where Button has three (${iba.parts.container.children!.join(', ')})`);
+      ok(!('label' in iba.parts) && !('leadingVisual' in iba.parts) && !('trailingVisual' in iba.parts),
+        'anatomy/icon-button: no label and no flanking visuals — the icon is the whole content, so there is nothing for a visual to flank');
+      // Absent, not symmetric-and-ignored. #326's finding is entirely about a VISUAL side insetting less
+      // than a LABEL side; with no label there is no side to compare against, so a `padding` here would
+      // be a second expression of geometry the bound square already fixes.
+      ok(!iba.parts.container.padding, 'anatomy/icon-button: the square binds NO padding — #326\'s asymmetry has no label side to be asymmetric against');
+      ok(!iba.parts.container.gap, 'anatomy/icon-button: and no gap — a gap is the space between two cells, and there is one cell');
+
+      // SQUARE, expressed as ONE binding key driving BOTH axes. The assertion that matters is not that
+      // the two axes are equal — it is that they are the SAME NAME, because two bindings that happen to
+      // agree can be rebound on one axis with nothing anywhere noticing (each stays individually valid).
+      // Read from the projection and compared against the def's TOKEN MAP, which are two different
+      // things: a projection that dropped one axis would satisfy an assertion derived from the def alone.
+      const ibPlan = (size: string, o: Record<string, unknown> = {}) =>
+        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', intent: 'neutral', appearance: 'text', state: 'rest', ...o });
+      const sq = ibPlan('medium');
+      const sideVar = figmaVarName(iconButton.tokens['size.medium.side']);
+      ok(sq.root.bound.width === sideVar && sq.root.bound.height === sideVar,
+        `anatomy/icon-button: width and height bind the SAME variable — square is one fact, not two bindings that must agree (${sq.root.bound.width} / ${sq.root.bound.height})`);
+      ok(sq.root.primaryAxisSizingMode === 'FIXED' && sq.root.counterAxisSizingMode === 'FIXED',
+        'anatomy/icon-button: both axes are FIXED — `hug` on either would let the glyph decide a dimension the token already decided');
+      // And it MOVES with size, which is what makes the binding a projection rather than a constant.
+      const perSizeIb = iconButton.variants.size.map((s) => planBoundVars(ibPlan(s).root).join('|'));
+      ok(new Set(perSizeIb).size === iconButton.variants.size.length,
+        `anatomy/icon-button: each size binds a distinct variable set (${new Set(perSizeIb).size}/${iconButton.variants.size.length})`);
+      // The glyph is on the SAME `icon.size.*` ladder Button's visuals use (#324's 1:1 rule), so a medium
+      // IconButton's icon matches a medium Button's leading visual. Compared against BUTTON's projection
+      // rather than against `icon.size.md` spelled out here, which is the version that can actually fail:
+      // a literal would keep passing after Button's ladder moved.
+      // THE ICON IS PRESENT WITHOUT BEING ASKED FOR, and this assertion comes first because it is the
+      // def's entire reason for existing (§10) and because every check below it would otherwise CRASH
+      // rather than fail. `figmaAnatomyPlan` materializes an optional slot only when the caller fills it,
+      // so marking the icon `optional` empties the box: `children.find('icon')` returns undefined and the
+      // next three assertions throw on a missing node instead of reporting a bare IconButton. A gate that
+      // dies is not a gate that fails — the suite stops, and which claim was violated is a stack trace.
+      // Mutation-found: `optional: true` on the icon produced exactly that.
+      const ibIconNode = sq.root.children.find((c) => c.name === 'icon');
+      ok(!!ibIconNode, 'anatomy/icon-button: the icon materializes with NO caller filling it — it is required, and an optional one would project an empty square (the "button, unlabelled" failure with the visual half missing too)');
+      const ibIcon = ibIconNode;
+      const btnIcon = figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }).root.children.find((c) => c.name === 'leadingVisual')!;
+      ok(!!ibIcon && ibIcon.bound.width === btnIcon.bound.width && ibIcon.bound.height === btnIcon.bound.height,
+        `anatomy/icon-button: the glyph artboard is the same rung Button's visual binds at the same size (${ibIcon?.bound.width} vs ${btnIcon.bound.width})`);
+      // The glyph is square too, and by the same mechanism — one key, both axes.
+      ok(!!ibIcon && ibIcon.bound.width === ibIcon.bound.height, `anatomy/icon-button: the glyph artboard is square (${ibIcon?.bound.width})`);
+
+      // THE CEILINGS. `codeOnly` is non-empty for every anatomy (asserted generally above), so the claim
+      // worth making here is the one that is specific to a square icon-only control: its optical box is
+      // at or below the 44×44 target-size floor at `size=small` in every brand, and Figma cannot express
+      // a hit area larger than a frame. A designer measuring the emitted small square is reading the
+      // wrong box, and that has to be written down where they will look.
+      ok(iba.codeOnly.some((c) => /^touch-target-expansion/.test(c)),
+        'anatomy/icon-button: touch-target expansion leads a codeOnly entry — the ONE component where the optical box is smaller than the required hit box at every brand');
+      // The pending spinner is the one ceiling genuinely WORSE here than on Button, and the admission has
+      // to say so rather than reuse Button's wording: Button swaps its leading visual and keeps the label,
+      // where an IconButton has one cell and it IS the icon. Asserted as a leading `pending` entry for the
+      // same reason `figmaPropertyErrors` requires it — a state dropped from the axis needs an admission
+      // that leads with the state, not a sentence elsewhere that happens to mention it.
+      ok(iba.codeOnly.some((c) => /^pending —/.test(c) && /one cell/.test(c)),
+        'anatomy/icon-button: the pending spinner is admitted as code-tier with ITS reason (one cell, and the cell is the icon) — not Button\'s reason reused');
+
+      // ---- the derivation, predicted offline then gated ------------------------------------------
+      // 162 = 3 intent × 3 appearance × 3 size × 6 state. The LITERAL, not `figmaVariantCount(iconButton)`,
+      // on the same grounds as Button's 648: both derive from the same declaration, so comparing them is a
+      // gate agreeing with itself. The 6 is the step to check — `states` declares SEVEN and the axis
+      // projects six, because `inactive` is code-only. Re-deriving from `states.length` gives 189.
+      const ibSet = figmaAnatomySet(iconButton, { swapTarget: 'FPO-default-icon' });
+      ok(ibSet.length === 162, `anatomy/icon-button: the set is 162 members — 3 intent × 3 appearance × 3 size × 6 state (${ibSet.length})`);
+      ok(new Set(ibSet.map(planComponentName)).size === 162,
+        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/162)`);
+      // FOUR axes, where Button has six — and read off a real emitted NAME rather than the declaration,
+      // which is the 189-vs-756 lesson: a count derived from a declaration cannot detect that the
+      // declaration is incomplete. This is also the assertion that would catch a slot axis appearing here
+      // by inheritance or by accident.
+      const ibEmitted = planComponentName(ibSet[0]).split(', ').map((kv) => kv.split('=')[0]);
+      ok(ibEmitted.slice().sort().join(',') === figmaAxisNames(iconButton).slice().sort().join(','),
+        `anatomy/icon-button: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(iconButton).join(', ')}] vs emitted [${ibEmitted.join(', ')}])`);
+      ok(figmaAxisNames(iconButton).length === 4, `anatomy/icon-button: four axes, where Button has six (${figmaAxisNames(iconButton).join(', ')})`);
+
+      // THE SLOT-FILL DIMENSION COLLAPSES TO 1, and this is the decision recorded as a gate rather than a
+      // comment. Button's `slotAxes` exists because presence changes GEOMETRY (#326: `paddingLeft` reads
+      // `leading`), and a Figma boolean drives one node's `visible` and can touch nothing above it.
+      // Neither half survives here — the icon is required so there is no `false` coordinate, and there is
+      // no padding to vary. Three assertions, because the collapse has three separate observable halves.
+      ok(!fp.slotAxes, 'anatomy/icon-button: no slotAxes declared — the icon is required, so presence is not a question');
+      // ENFORCED, not merely intended: the existing non-optional rule refuses one, so a future author who
+      // adds a slot axis here gets an error rather than a silently doubled grid.
+      const ibSlotAxis = figmaPropertyErrors({ ...iconButton, figmaProperties: { ...fp, slotAxes: [{ name: 'leading', part: 'icon' }] } } as ComponentDef);
+      ok(ibSlotAxis.some((x) => /is not optional/.test(x)),
+        `anatomy/icon-button: a slot axis over the REQUIRED icon is refused — the collapse is enforced by the validator, not left to intent${ibSlotAxis.length ? '' : ' — got no errors'}`);
+      // `AnatomyPlan.slots` needs no new SHAPE — with no slot axes declared, `figmaAnatomySet` iterates
+      // `[false]` on both, so the two coordinates are constants and `planSetLayout` gives a dimension only
+      // to axes that VARY. That much was the original decision and it stands.
+      ok(ibSet.every((p) => p.slots.leading === false && p.slots.trailing === false),
+        'anatomy/icon-button: both slot coordinates are constant false across all 162 members — the collapse, observed on the plans');
+      // WHAT THE ORIGINAL DECISION GOT WRONG, and the reason the emitter moved rather than this gate: a
+      // constant coordinate is free in the LAYOUT and is not free in the NAME. `combineAsVariants` derives
+      // a set's properties from its members' names, so `leading=false` on all 162 becomes a real
+      // single-valued property in the designer's panel — a def declaring FOUR axes projecting a set
+      // carrying SIX. It was recorded as "two vestigial name segments, the price of not refactoring a
+      // type", which understated it by a category: not cosmetic, a phantom API. The axis-parity assertion
+      // above is what surfaced it, which is that gate doing exactly its job in the mirror direction
+      // (#487 §5 caught an emitter carrying UNDECLARED axes; this caught it adding two).
+      ok(ibSet.every((p) => !/leading=|trailing=/.test(planComponentName(p))),
+        `anatomy/icon-button: and NEITHER is written into the member name — a component with no slot axes must not project two phantom single-valued properties (${planComponentName(ibSet[0])})`);
+      // The mirror, on Button, so the fix is not "stop emitting slot coordinates": where the slots ARE
+      // declared axes they must still reach the name, because #326 makes presence two genuinely different
+      // boxes and that is the whole reason they are variants rather than booleans.
+      ok(/leading=true, trailing=false$/.test(planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }))),
+        'anatomy/icon-button: Button still names both — the rule is "a coordinate iff the def declares the axis", not "no slot coordinates"');
+
+      // The GRID: 27 rows × 6 columns, `state` across. Hand-derived — 3 × 3 × 3 rows against 6 states —
+      // not read back from `planSetLayout`, which is the subject.
+      const ibLayout = planSetLayout(ibSet, 'icon-button');
+      ok(ibLayout.rows === 27 && ibLayout.cols === 6,
+        `anatomy/icon-button: the grid is 27 rows (3 intent × 3 appearance × 3 size) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
+      ok(ibLayout.colKey === 'state', `anatomy/icon-button: \`state\` is the column axis — DECLARED via gridAxis, not inherited from cardinality (${ibLayout.colKey})`);
+      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 162,
+        'anatomy/icon-button: every member gets its own cell — combineAsVariants preserves positions, so a shared one stacks them invisibly');
+      // Three footprint cohorts, one per size, and that is the whole point of the square: `state` and
+      // `appearance` must not move the box, and with no slot axes `size` is the only thing that may.
+      ok(new Set(ibLayout.cells.map((c) => c.group)).size === 3,
+        `anatomy/icon-button: three footprint cohorts, one per size — state and appearance must not change the measured box (${new Set(ibLayout.cells.map((c) => c.group)).size})`);
+
+      // ONE property, where Button has four ref parts. Derived from the nodes the plans BUILD, so this is
+      // also the assertion that the required icon still materializes a swap: a slot that stopped producing
+      // a node would leave the set with no properties at all and every other check here would pass.
+      ok(ibLayout.props.length === 1 && ibLayout.props[0].name === 'icon' && ibLayout.props[0].type === 'INSTANCE_SWAP',
+        `anatomy/icon-button: exactly one component property — the icon swap (${JSON.stringify(ibLayout.props)})`);
+      ok(ibLayout.refs.length === 1 && ibLayout.refs[0].part === 'icon',
+        `anatomy/icon-button: one part is wired to it (${JSON.stringify(ibLayout.refs)})`);
+
+      // The RING appears on exactly the focus-visible column and nowhere else — 27 of 162, which is
+      // 162/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
+      // into a neighbouring state as well as if it goes missing.
+      const ringMembers = ibSet.filter((p) => planPartNames(p.root).includes('focusRing'));
+      ok(ringMembers.length === 27 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
+        `anatomy/icon-button: the focus ring materializes on the 27 focus-visible members and only those (${ringMembers.length})`);
+
+      // Every member is SKINNED. A coordinate that resolved to no paints is the failure a name-only check
+      // cannot see: the set builds, the axes are clean, and 162 identical grey squares come back.
+      ok(ibSet.every((p) => planPaintVars(p.root).length > 0),
+        `anatomy/icon-button: every member carries at least one paint variable (${ibSet.filter((p) => planPaintVars(p.root).length === 0).length} bare)`);
+
+      // Every variable the set binds is EMITTED. Two emitters, so `tokens` resolving in the DTCG tree
+      // does not imply the Figma variable exists — the same cross-check Button gets, over the new
+      // `size/*/height`-as-a-square and `icon/size/*` bindings this def introduced.
+      const ibBindErrs = [...new Set(ibSet.flatMap((p) => planBindingErrors(p, emitted, emittedStyles, emittedEffects)))];
+      ok(ibBindErrs.length === 0, `anatomy/icon-button: every bound variable exists in the emitted Figma set${ibBindErrs.length ? ` — MISSING: ${ibBindErrs.slice(0, 4).join(', ')}` : ''}`);
+
+      // CHUNKING. 5 chunks, and every one inside the budget — asserted against `bytes`, the field the
+      // packer itself reports, because that is the string that ships. (Measured the other way first,
+      // with `JSON.stringify(chunk).length`, which reads ~7KB high per chunk and made a correct payload
+      // look 6KB over budget. The instrument was wrong, not the packer.)
+      const ibChunks = planSetChunks(ibSet);
+      ok(ibChunks.length === 5, `anatomy/icon-button: the set packs into 5 chunks (${ibChunks.length})`);
+      ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
+        `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
+      // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
+      // slice produces a set that is short by 33 variants with nothing reporting it.
+      const packed = ibChunks.flatMap((c) => c.variants);
+      ok(packed.length === 162 && new Set(packed).size === 162,
+        `anatomy/icon-button: the chunks partition all 162 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
+
+      // ---- the `nesting` relation (#681), and the SQUARE rules ------------------------------------
+      // The field is REQUIRED on every part that points at another component, so the first assertion is
+      // that the two shipped defs actually declare it — five parts across Button and IconButton. Read by
+      // KIND rather than by naming the parts, so a new pointing part on either def is covered the day it
+      // lands rather than the day someone remembers this block.
+      for (const [label, def] of [['Button', button], ['IconButton', iconButton]] as [string, ComponentDef][]) {
+        const points = Object.entries(def.anatomy!.parts).filter(([, p]) => p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'absolute');
+        ok(points.length > 0 && points.every(([, p]) => !!p.nesting),
+          `nesting: every ${label} part that points at another component declares its relation (${points.map(([n, p]) => `${n}:${p.nesting?.kind}`).join(', ')})`);
+      }
+      // The ring is `nest-fixed` and NAMES its variant, which is the whole reason the kind exists: Figma's
+      // default is the set's FIRST CHILD, an artifact of creation order, and inheriting it is #656's
+      // inherit-instead-of-choose error one layer out. Equally invisible, too — both variants are valid
+      // rings, so nothing downstream notices the wrong one was nested.
+      for (const [label, def] of [['Button', button], ['IconButton', iconButton]] as [string, ComponentDef][]) {
+        const ringNesting = def.anatomy!.parts.focusRing.nesting!;
+        ok(ringNesting.kind === 'nest-fixed' && Object.keys((ringNesting as { variant: Record<string, string> }).variant).length > 0,
+          `nesting: ${label}'s focus ring is nest-fixed and NAMES its variant — not the ring set's first child (${JSON.stringify(ringNesting)})`);
+      }
+      ok(iconButton.anatomy!.parts.icon.nesting!.kind === 'swap',
+        'nesting: IconButton\'s icon is a `swap` — the consumer picks a different component, not a different coordinate of this one');
+
+      // Every rule, mutated. Each patch below is an authoring mistake that would otherwise validate clean
+      // and project to something the def did not claim — which is the class of defect the whole field
+      // exists to close. Verified the way docs/34 requires: each rule was deleted from `anatomyErrors` in
+      // turn and the matching assertion here was confirmed to fail BY NAME, not merely to leave the suite
+      // red on somebody else's gate.
+      const ibBroke = (label: string, re: RegExp, def: ComponentDef) => {
+        const errs = validateComponentDef(def, nbTree, nbT.root).errors;
+        ok(errs.some((x) => re.test(x)), `nesting gate: ${label}${errs.some((x) => re.test(x)) ? '' : ` — got [${errs.join('; ')}]`}`);
+      };
+      const patched = (def: ComponentDef, part: string, patch: Record<string, unknown>): ComponentDef => {
+        const clone: AnatomyDef = JSON.parse(JSON.stringify(def.anatomy!));
+        return { ...def, anatomy: { ...clone, parts: { ...clone.parts, [part]: { ...clone.parts[part], ...patch } as AnatomyDef['parts'][string] } } };
+      };
+      // OMITTED, on all three kinds that require it. Three separate assertions rather than one, because
+      // the rule is a disjunction over kinds and a narrowing to any single kind passes the other two.
+      ibBroke('a `slot` with no nesting relation fails', /kind 'slot' but declares no 'nesting'/, patched(iconButton, 'icon', { nesting: undefined }));
+      ibBroke('an `absolute` with no nesting relation fails', /kind 'absolute' but declares no 'nesting'/, patched(iconButton, 'focusRing', { nesting: undefined }));
+      // `overlay` is in the required set, and that was read off the PROJECTION rather than the kind's
+      // prose: `anatomy-figma.ts` types an overlay INSTANCE_SWAP and gives it the same `swapTarget` a slot
+      // gets, because a spinner is a glyph standing in a glyph's cell. Deciding from the prose ("occupies
+      // another part's position") would have left the one already-swap-materialized part in Button's
+      // anatomy outside the field that describes swapping.
+      ibBroke('an `overlay` with no nesting relation fails too — it materializes as a swap, whatever its prose says', /kind 'overlay' but declares no 'nesting'/, patched(button, 'spinner', { nesting: undefined }));
+      // And the mirror: on a kind that points at nothing, the field is a claim the projection never reads.
+      ibBroke('a `box` declaring a nesting relation fails', /kind 'box' but declares a 'nesting'/, patched(iconButton, 'container', { nesting: { kind: 'swap' } }));
+      ibBroke('a `text` declaring one fails', /kind 'text' but declares a 'nesting'/, patched(button, 'label', { nesting: { kind: 'swap' } }));
+      // An EMPTY variant defeats the point of `fixed` — it is `nest-fixed` in the type and inherit-the-
+      // first-child in effect, which is the exact failure the kind was added to prevent.
+      ibBroke('`nest-fixed` with an empty variant fails', /empty variant/, patched(iconButton, 'focusRing', { nesting: { kind: 'nest-fixed', variant: {} } }));
+      // The two kind↔relation contradictions. An `absolute` materializes as an INSTANCE of what `nests`
+      // names, so it cannot be a caller-nominated swap; a `slot`/`overlay`'s content IS swappable (that is
+      // what the INSTANCE_SWAP property does), so it cannot claim its content is fixed.
+      ibBroke('an `absolute` claiming `swap` fails', /kind 'absolute' but declares nesting 'swap'/, patched(iconButton, 'focusRing', { nesting: { kind: 'swap' } }));
+      ibBroke('a `slot` claiming `nest-fixed` fails', /kind 'slot' but declares nesting 'nest-fixed'/, patched(iconButton, 'icon', { nesting: { kind: 'nest-fixed', variant: { color: 'default' } } }));
+      ibBroke('a `slot` claiming `nest-exposed` fails too — the same contradiction from the other side', /kind 'slot' but declares nesting 'nest-exposed'/, patched(iconButton, 'icon', { nesting: { kind: 'nest-exposed' } }));
+
+      // The SQUARE rules. `size` and `height` both drive the height axis, so a part binding both states
+      // its height twice and the projection keeps whichever branch ran last — silently, and only on one
+      // axis, which is the shape that reads as correct at one size and wrong at another.
+      ibBroke('a part binding both `size` and `height` fails', /binds both 'size' and 'height'/, patched(iconButton, 'container', { height: 'size.{size}.side' }));
+      // And both sizing axes, separately. A single assertion over one axis passes a rule narrowed to the
+      // other, and the two have different reasons: `hug` on the CROSS axis lets the glyph decide the
+      // height a bound variable is driving, while `hug` on the MAIN axis widens the box out of square.
+      const boxLayout = (sizing: { x: string; y: string }) => patched(iconButton, 'container', { layout: { direction: 'row', align: 'center', justify: 'center', sizing } });
+      ibBroke('a square box that HUGS on the cross axis fails', /cross-axis sizing is 'hug'/, boxLayout({ x: 'fixed', y: 'hug' }));
+      ibBroke('a square box that HUGS on the main axis fails', /main-axis sizing is 'hug'/, boxLayout({ x: 'hug', y: 'fixed' }));
+    }
+
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
     // The projection above is worthless if the variables it binds can't be got into a Figma file.
     // The plugin executor has written the float axes since #108, but the CLI paste path — the only
