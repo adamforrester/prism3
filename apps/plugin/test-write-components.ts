@@ -148,7 +148,7 @@ type ShimOpts = {
    * clean, 105 mutated. The fix was completely inert, at full cold cost, and the counters actively vouched
    * for it — a worse failure mode than an honest miss.
    *
-   * SCOPE: `mkNode`'s `findOne`, which is the descendant search the ~24ms cost was measured on and the only
+   * SCOPE: `mkNode`'s `findOne`, which is the descendant search the cold ~18ms cost was measured on and the only
    * population the #701 claim is about. `currentPage.findOne` (the once-per-run lookup for the set itself)
    * is a different closure and deliberately outside this count — it is one call, not 63.
    *
@@ -744,9 +744,14 @@ ok(withDup.properties.length === 0 && withDup.refs === 0,
   'and no properties are declared on a poisoned set, so the single cause is not buried under consequences');
 
 // ---- #701: the wire pass REUSES what the build pass built, instead of re-finding it ----------
-// The cold wire pass cost 46,375ms of a ~151s live run doing 1,944 `findOne` calls at ~24ms each, on a
+// The cold wire pass cost 46,375ms of a ~151s live run doing 2,592 `findOne` calls at ~18ms each, on a
 // scenegraph Figma was still reconciling. The fix is to not search: `build` registers each child it makes
 // and the wire loop reads that map.
+//
+// 2,592 = 648 members x 4 deduped ref parts. FOUR, not the three this comment said until the live run
+// reported the real figure: `spinner` shares the `leadingVisual` PROPERTY but is its own PART, so it is
+// its own lookup. And the ~18ms is a cold-build price only — the warm re-run searched all 2,592 in 185ms
+// (~0.07ms each), so what is expensive is reconciliation, not search.
 //
 // WHAT THIS SUITE CAN AND CANNOT GATE, stated because the gap is the whole reason these assertions are
 // counts rather than timings. It CANNOT gate the speedup: there is no scenegraph here, so `findOne` is a
