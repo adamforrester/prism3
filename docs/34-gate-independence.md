@@ -444,6 +444,42 @@ comment forbidding their rewrite as a call to the layout function. The parity ga
 was: it is a real gate on everything downstream of the layout, and the fix is a second gate, not a
 replacement.
 
+### 12. The scope is the whole document; the promise is one section
+
+Every shape above is about the two *sides* of a comparison. This one is about **where the detector
+looks**, and it is the reason it took a second pass to see: both halves are individually reasonable.
+Searching a file for a string is a legitimate technique. The document genuinely does contain the string.
+The mismatch is between the **scope of the search** and the **scope of the claim**, and nothing in a
+green run distinguishes them.
+
+`#704` is the instance, in `lint-doc-gates.ts` — a gate whose entire purpose is that a contributor
+following `CLAUDE.md` §4 exactly cannot ship broken. It matched each gate's tokens **anywhere in the
+file**. #703 added two CI steps; the gate correctly flagged `CONTRIBUTING.md` §3 and the PR template,
+and stayed **silent about `CLAUDE.md` §4, where the steps were also genuinely missing** — because the
+same PR had added an `apps/tokenpress` row to the layer table under "What this repo is", 80 lines above
+the checklist, and that row satisfied the search. The checklist went short while the gate reported green,
+restoring exactly the #601/#602 condition it was written to prevent.
+
+Note what this is *not*: the surface was represented and it was read, so the scope-silence rule below
+does not reach it. **The detector fired on the wrong part of a surface it did open.** A file-scoped
+search cannot answer a section-scoped question, and the gate declared neither.
+
+Its sibling `#728` is the same predicate failing on **proximity** rather than scope: tokens checked as
+independent bare substrings, so `["test", "@prism3/studio"]` was satisfied by the word `test` in one
+paragraph and the workspace name in another. Three CI steps were unverifiable that way. Worth pairing
+with #704 because *one line of code decided both*, and fixing either alone leaves a gate that can still
+be satisfied by text having nothing to do with the step.
+
+**Tell:** the gate's promise names a section, a region or a passage, and its predicate takes a whole
+file. Say the claim out loud with its scope attached — *"the §4 checklist is complete"* — then ask which
+characters the code actually read. **Fix:** declare the regions, and declare the **membership rule** for
+what counts as one, because an undeclared region is the thing that drifts next. `lint-layout-claims.ts`
+had already solved this with three declared layout regions and a stated rule; #704's fix adopts that
+pattern rather than inventing one, and adds the floor the pattern needs — **a region whose boundary stops
+matching must fail loudly**, since an empty region satisfies nothing and would otherwise blame the docs
+for a renamed heading. Keep the failure message naming the **document and the section**: "missing from
+`CLAUDE.md`" sends a reader to 25,000 characters, "missing from `CLAUDE.md` §4" sends them to the list.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -515,6 +551,8 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-12 | `lint-doc-gates.ts` document scope (#704) | 12 | the `CLAUDE.md` §4 checklist going **short** while the gate reported green — a layer-table row 80 lines above the list satisfied a file-wide search for the workspace name |
+| 2026-08-12 | `lint-doc-gates.ts` token proximity (#728) | 12 | `["test", "@prism3/plugin"]` satisfied by the word `test` in one paragraph and the workspace in another — 3 CI steps unverifiable, measured against `origin/main`'s predicate |
 | 2026-08-11 | `test-write-typography.ts` mutation counts (#680 review) | sweep | a shipped mutation table reading **1** where the mutation fails **6** — three unguarded reads crashed the run, so the worst mutation reported the fewest failures |
 | 2026-08-11 | `test-write-typography.ts` M6 row (#680 review) | 4 | **2** claimed against **6** actual, with no crash involved — the table was read off the assertions the author expected, not the ones that fired |
 | 2026-08-09 | `typecheck-components.ts` own self-check (#657) | 4 | two output-parser guards deleted in turn, suite green both times — one unreachable, one with a sample that could not reach it |
