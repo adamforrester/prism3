@@ -145,6 +145,22 @@ jobs:
       - name: Build TokenPress
         run: npm run -w @prism3/tokenpress build
 
+      # The two DTCG exporters — prism3's emitter and TokenPress's, separate codebases sharing no code
+      # — run over the same brand and compared. `tools/exporter-comparison/compare.ts` is a MEASUREMENT
+      # and always exits 0, because most of what it reports is a difference that is right for its host
+      # (#697); this is the assertable SUBSET, and it imports that measurement rather than restating it.
+      # Four arms, on every brand with a Figma emission (discovered by scanning out/figma/, count
+      # asserted at >= 3): a `$type` disagreement on a shared path, a path TokenPress emits that prism3
+      # does not, TokenPress's float32 cleanup rewriting a value instead of restoring it (#703's
+      # prediction), and #709's opacity 100× at the integration level. The prism3-only direction is a
+      # memory of specific paths WITH CAUSES (aurora's 2 gradients, #731) and fails in both directions,
+      # so a third unreachable path fails AND a gradient becoming reachable fails. Categories 3-5 stay
+      # reporting-only until #697's byte-for-byte question is answered. Runs after the TokenPress build
+      # because it executes TokenPress's real `TokenExporter` in memory. Known limit, stated in the
+      # file: the types arm only sees paths that PAIR.
+      - name: The two DTCG exporters agree where a difference would be a defect
+        run: npx --yes tsx@4 tools/exporter-comparison/gate.ts
+
       # Can a STRANGER consume what the engine emits? This runs Style Dictionary with a deliberately
       # naive config — no preprocessors, no custom transforms — because that is the only configuration
       # that answers the question. It is a CHARACTERIZATION gate: it pins the known #609 defect (three

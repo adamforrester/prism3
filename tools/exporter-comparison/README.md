@@ -7,7 +7,11 @@ same brand. #697's Verify section asks for exactly this and notes it does not ex
 npx tsx tools/exporter-comparison/compare.ts            # nb + aurora
 npx tsx tools/exporter-comparison/compare.ts nb          # one brand
 npx tsx tools/exporter-comparison/compare.ts --json      # machine-readable
+npx tsx tools/exporter-comparison/gate.ts                # the assertable subset, in CI
 ```
+
+`compare.ts` reports and always exits 0. `gate.ts` is the subset that fails a build — see
+[This is a measurement; the assertable subset is a gate](#this-is-a-measurement-the-assertable-subset-is-a-gate).
 
 No arguments beyond a brand name, no fixtures to refresh: it reads the committed
 `packages/engine/out/` and runs TokenPress's real `TokenExporter` in memory.
@@ -35,15 +39,29 @@ either prints again, it is news rather than history:
 
 - **#708** — every mode-varying shadow was dropped from every overlay, so a conforming consumer reading
   `base` + `dark.overlay` got light-mode shadows in dark mode, in all four brands. Ours. This harness was
-  the only thing that caught it; every existing gate passed it. Fixed in **#710**, which also added
+  the only thing that caught it; every existing gate passed it. Fixed in **#713**, which also added
   `packages/engine/lint-overlay-completeness.ts` — that gate now owns the invariant, and should go red
   before this harness does.
 - **#709** — `OPACITY` variables came back 100× outside DTCG's 0–1 range. TokenPress's. Fixed in **#719**;
   `apps/tokenpress/tests/unit/opacity-percent-to-fraction.test.ts` is its regression test.
 
+And a third, found while graduating the gate — the one that had been hiding behind a **true statement**:
+
+- **#731** — aurora's 2 gradients. Every previous run explained these as *unreachable*: "Figma paint
+  styles are neither variables nor effect styles and TokenPress's scanner has no call that returns
+  them." The second clause is true and the conclusion drawn from it was not.
+  `figma.getLocalPaintStylesAsync()` **exists** (`@figma/plugin-typings/plugin-api.d.ts:1481`);
+  TokenPress's scanner reads four channels and paint is simply not one of them
+  (`src/plugin/scanner.ts:17-20`), and it has no gradient converter at all — its own validator files
+  `gradient` under "experimental — just warn, don't validate" (`utils/dtcg-validator.ts:288`).
+  So this is a **capability gap in TokenPress's own lane**, the same shape as #709, and *not* a
+  property of Figma's model the way motion, line-height and the typeface tier genuinely are. Those
+  have no variable type to hold them; a gradient has a paint style sitting behind an uncalled API.
+  The distinction decides whether the unpaired arm carves this out forever or carries a ticket.
+
 ### And one the harness found in itself
 
-The #708 verdict went on printing **"A SHIPPING DEFECT"** for weeks after #710 fixed it, because its
+The #708 verdict went on printing **"A SHIPPING DEFECT"** after #713 fixed it, because its
 guard tested the wrong artifact: it asked whether the canonical tree still carried
 `$extensions.prism3.modes.dark` — the projector's **input**, true whether or not the projector emits
 anything — while the claim it gated asserted something about the projector's **output**, the overlay.
@@ -74,28 +92,50 @@ all. Each is a finding in its own right, not harness plumbing:
 
 - **W1** aliases are by NAME in the emission and by ID in TokenPress, so ids are minted here.
 - **W2** the mode axis has to be reassembled from filenames — #697's three-axis problem, executable.
-- **W3** three "collections" are Figma STYLES, not variable collections; **gradients have no channel
-  at all**, so aurora's 2 are unreachable by this exporter.
+- **W3** three "collections" are Figma STYLES, not variable collections; **TokenPress reads no paint
+  channel**, so aurora's 2 gradients do not come back (#731 — the channel exists, the call does not).
 - **W4** a bound text-style property has to be split into a resolved value plus a `boundVariables` entry.
 - **W5** `exportToZip()` constructs its own scanner, so there is no seam to pass tokens in at — the
   only way to feed it is to install a global `figma` stub. The host *is* the seam (#703).
 
-## This is a measurement, not a gate
+## This is a measurement; the assertable subset is a gate
 
-Deliberately **not wired into CI**, and the difference is not a matter of taste. A gate asserts a
-difference is *wrong*; almost every category here is a difference that is *right for its host*
-(#697: "the two representations disagree by design, and each is right for its host"). Turning the
-whole report red would be reporting a decision nobody has made.
+The split is not a matter of taste. A gate asserts a difference is *wrong*; most categories here are a
+difference that is *right for its host* (#697: "the two representations disagree by design, and each is
+right for its host"), so turning the whole report red would report a decision nobody has made.
 
-Two categories are the exception, and they are where this should end up. **Types** and **unpaired
-paths** both currently measure 0/0 on nb and 2/0 on aurora (the two gradients, with a known cause). A
-type disagreement or a newly-unpaired path is a consumer-visible break in either direction, so those
-two numbers are assertable *today* — the rest is not. The recommendation, stated in full in the PR
-body: gate those two categories at their measured values once the harness has a home that runs on
-more than the two brands here, and leave categories 3–5 reporting until #697's byte-for-byte question
-is actually answered.
+So `compare.ts` reports and **always exits 0**, and `gate.ts` — wired into CI — asserts the arms where
+a disagreement means one exporter is *wrong* rather than *different*. It runs on **every brand with a
+Figma emission**, discovered by scanning `out/figma/` with the count asserted at ≥ 3 (a discovered list
+with no floor passes when the scan returns nothing).
 
-One thing to know before making it a gate: the verdicts in category 1 are pairing RULES
+| arm | pinned as | at |
+|---|---|---|
+| **types** — same path, different `$type` | RULE | 0 |
+| **unpaired, tokenpress-only** | RULE | 0 |
+| **unpaired, prism3-only** | MEMORY, per path, with a cause and an issue | aurora's 2 gradients (#731) |
+| **float32 leak** — the cleanup changed a value | RULE | 0 |
+| **scale** — the #709 opacity 100× | RULE | 0 |
+
+The prism3-only arm is a memory rather than a count on purpose: a count says "2 are missing and that is
+fine", the memory says *which two and why*, so a third fails, **and a gradient becoming reachable also
+fails**. A carve-out that cannot notice its own obsolescence is how the #708 verdict kept printing.
+
+**Not pinned, deliberately:** category 3's value differences (202–261 per brand — the largest bucket is
+pure serialization, and both spellings are valid DTCG), category 4's structure, and category 5's
+bucket-C observations. The divergent axis collisions (171–173) are the tempting one and are left out
+because they are a hazard created by #697's *undecided* axis question — pinning the count would freeze a
+number the decision is meant to move. If they are ever pinned it must be the **divergent** count, not
+the raw ~185: 11–14 are identical in every file and harmless, and conflating the two is the defect #729
+fixed.
+
+**What the green types arm does not tell you**, found by a mutation that failed to fail: it compares
+`$type` only over paths that **pair**. Retyping TokenPress's grid branch left the gate green, because
+`grid.<breakpoint>.<prop>` vs `grid.<prop>` is an axis collapse and never enters the shared set; the same
+mutation on `FONT_SIZE`, which does pair, produced 66 failures. Closing that needs the pairing rules to
+carry their counterpart's type — #697 work, not the gate's.
+
+One thing to know when reading it: the verdicts in category 1 are pairing RULES
 (`RENAME_RULES`, `NOT_IN_EMISSION`), and each one is an authored claim about why two differently-named
 paths are the same token. A rule that stops matching silently moves paths from "paired" to "unpaired",
 which is the right direction for a gate — but a rule written too loosely pairs things that are not

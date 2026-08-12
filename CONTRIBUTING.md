@@ -132,6 +132,27 @@ npm run build     -w @prism3/tokenpress  # not just a build: build.mjs asserts f
                                           # count in the source repo — pre-existing, out of scope for the
                                           # port. Don't add the step until the tsconfig is fixed, or you
                                           # are only pinning 232 errors
+npx tsx tools/exporter-comparison/gate.ts # the two DTCG exporters agree where a difference would be a
+                                          # DEFECT (#697). Runs after the TokenPress build because it
+                                          # executes TokenPress's real TokenExporter in memory over
+                                          # prism3's own Figma emission — two separate codebases sharing
+                                          # no code, which is as independent as a comparison here gets.
+                                          # Four arms, on every brand with a Figma emission (discovered
+                                          # by scanning out/figma/, count asserted >= 3): a `$type`
+                                          # disagreement on a shared path, a path TokenPress emits that
+                                          # prism3 does not, the float32 cleanup REWRITING a value
+                                          # instead of restoring it (#703's prediction), and #709's
+                                          # opacity 100× at the integration level. Its sibling
+                                          # `compare.ts` is a MEASUREMENT and always exits 0 — most of
+                                          # what it reports is a difference that is right for its host,
+                                          # so categories 3-5 stay reporting-only until #697's
+                                          # byte-for-byte question is answered. The prism3-only arm is a
+                                          # MEMORY of paths WITH CAUSES, not a count, and fails in both
+                                          # directions: a third unreachable path fails, and a gradient
+                                          # becoming reachable fails too (aurora's 2, #731). Known
+                                          # limit, stated in the file: the types arm only sees paths
+                                          # that PAIR — a retype on an axis-collapsed path is invisible
+                                          # to it, measured
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
                                           # characterization gate: pins each brand's mode collapse
                                           # (permanent, #609); asserts as a RULE that the conforming

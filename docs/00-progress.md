@@ -7,13 +7,146 @@
 
 ---
 
+## (2026-08-12) — The exporter comparison's assertable arms are now a CI gate, and the "unreachable" gradients were never unreachable
+
+**STATUS: shipped.** New `tools/exporter-comparison/gate.ts` + one `ci.yml` step; `compare.ts` gains three
+exports and an `isMain` guard; four doc surfaces updated. Harness-and-docs only — neither exporter
+touched, no emitted artifact changed, `regen --check` still **104**.
+
+Closes the last bullet of #697's Verify section. Filed **#731** on the way.
+
+### 1. Re-measured first; #707's table was stale
+
+#713 added 28 shadow leaves to the overlays after #707's figures were taken, so nothing was pinned
+against the old numbers. Confirmed the 28 independently rather than trusting #713's own claim —
+diffed overlay leaf counts at `HEAD` against `0f0c26a~1` across 4 brands × 3 modes: **exactly 7 per
+brand, all in `dark`, 0 in every other mode** (nb 149→156, aurora 140→147, harbor 149→156,
+wendys 144→151). The fresh corpus:
+
+| brand | p3 base | tp union | shared | values | f32 | collisions (divergent of raw) |
+|---|---|---|---|---|---|---|
+| nb | 565 | 506 | 447 | 202 | 100 | 173 of 184 |
+| aurora | 611 | 545 | 487 | 242 | 152 | 171 of 185 |
+| wendys | 625 | 565 | 506 | 261 | 172 | 173 of 184 |
+
+#707 reported 213 base / 253 values for nb and aurora. Both moved. **wendys already had a Figma
+emission** — so #707's "once the harness runs on more than the two brands here" precondition was
+already met, and `MIN_BRANDS = 3` asserts that rather than assuming it.
+
+### 2. Aurora's 2 unpaired paths: a true sentence that supported a false conclusion
+
+The unpaired arm could not be asserted until someone said whether the 2 gradients were a real gap or
+a harness artifact. They are neither — they are a **defect in TokenPress's own lane**, the same shape
+as #709. The harness had been explaining them like this:
+
+> "Figma paint styles are neither variables nor effect styles and TokenPress's scanner has no call
+> that returns them."
+
+The first clause is true. The second is not, and the sentence reads as one continuous fact, which is
+why it went unchallenged. Checked against the API surface instead of the prose:
+
+- `figma.getLocalPaintStylesAsync()` **exists** — `@figma/plugin-typings/plugin-api.d.ts:1481`.
+- TokenPress's scanner calls **four** channels and paint is not one (`src/plugin/scanner.ts:17-20`;
+  `code.ts:149-154` is the same four).
+- It has **no gradient converter at all**, and its own validator files `gradient` under "experimental
+  — just warn, don't validate structure" (`src/utils/dtcg-validator.ts:288`).
+
+So the distinction that mattered: motion, line-height and the typeface tier are unreachable because
+Figma has **no variable type that can hold them**. A gradient has a paint style sitting behind an
+uncalled API. **That is what decides whether the arm carves this out forever or carries a ticket** —
+and it carries a ticket, so `KNOWN_UNREACHABLE` stores `path` + `why` + `owner` + `issue`, and fails
+in **both** directions: a third unreachable path fails, and a gradient *becoming reachable* fails as
+a `STALE MEMORY`. A carve-out that cannot notice its own obsolescence is precisely how the #708
+verdict kept printing (yesterday's entry).
+
+Filed as **#731** with the scope split — (a) report the skipped paint styles, (b) convert them —
+because (a) is worth having alone: TokenPress ships publicly, and a designer whose brand gradients
+are paint styles currently gets a bundle with them missing and **no warning**.
+
+### 3. #709 was already fixed, and the gate is now its integration-level test
+
+#719 fixed the opacity 100× (`exporter.ts:935`) with `tests/unit/opacity-percent-to-fraction.test.ts`
+as its unit regression. The gate's `kind: 'scale'` arm covers the same defect end-to-end, and the
+failure message names the layering: *"the unit test should have failed first."* Verified by reverting
+#719 — TokenPress's own test failed first with 5 assertions (`expected 0.05001, got 5.001`), then the
+gate reported 33 failures, 11 per brand × 3. The layering claim is measured, not asserted.
+
+### 4. What is gated, and what is deliberately not
+
+Four arms, on every brand discovered under `out/figma/`:
+
+| arm | pinned as | at |
+|---|---|---|
+| types (same path, different `$type`) | RULE | 0 |
+| unpaired, tokenpress-only | RULE | 0 |
+| unpaired, prism3-only | MEMORY, per path, with cause + issue | aurora's 2 (#731) |
+| float32 leak | RULE | 0 |
+| opacity scale | RULE | 0 |
+
+Left reporting-only: categories 3–5. The tempting one is the **divergent axis collisions** (171–173) —
+a genuine consumer hazard, a path in four files with four values that a naive ZIP merge resolves by
+file order — and it is out because that hazard is created by #697's *undecided* axis question. Pinning
+it would freeze a number the decision is supposed to move. Noted in the file: if it is ever pinned it
+must be the **divergent** count, not the raw ~185, since 11–14 are identical in every file — conflating
+those two is the exact defect #729 fixed.
+
+`compare.ts` keeps reporting and keeps exiting 0. The gate imports `analyze` — one measurement path,
+not a second implementation — but **deliberately not `VERDICTS`**, whose authored predicates were
+three-of-four wrong until yesterday. A gate keyed on "did a verdict print" would inherit every proxy
+in them.
+
+### 5. The mutation that did *not* fail, and why it is in the header instead of the bin
+
+Six mutations; five behaved. The sixth is the useful one.
+
+| # | mutation | result |
+|---|---|---|
+| M1 | delete aurora's `gradient.brand` memory entry | `NOT IN THE MEMORY`, exit 1 ✓ |
+| M2 | add a memory entry for a path that pairs | `STALE MEMORY`, exit 1 ✓ |
+| M3 | revert #719's opacity fix | 33 failures (11 × 3 brands), exit 1 ✓ |
+| M4 | retype TokenPress's grid branch `dimension` → `number` | **green, exit 0** ✗ |
+| M4b | the same retype on `FONT_SIZE` | 66 failures, exit 1 ✓ |
+| M5 | point the scan at an empty directory | `SCOPE` failure, exit 1 ✓ |
+| M6 | a cosmetic edit | green (negative control) ✓ |
+
+M4 is not a flaw in the arm; it is the arm's **scope**, made visible. The types arm compares `$type`
+over the **shared** path set, and prism3's `grid.<breakpoint>.<prop>` versus TokenPress's `grid.<prop>`
+is an axis collapse — those paths never pair, so they never enter the set being compared. M4b confirmed
+the mechanism on a path that does pair.
+
+So a green types arm does **not** mean "no type disagreements anywhere"; it means "none among the paths
+that pair", and the header now says exactly that in those words. Closing the hole needs the pairing
+rules to carry their counterpart's type, which is #697 work. **A mutation that does not fail is a
+finding about the gate**, and the finding here was a boundary worth writing down rather than a bug worth
+fixing — the alternative was shipping a green light that would be read as a stronger claim than it makes.
+
+### 6. Corrections and traps for whoever is next
+
+- **My #729 entry misattributed the #708 fix to #710.** #710 is the font-loading fix (#680); the actual
+  fix is **#713**, which also added `lint-overlay-completeness.ts`. Corrected in all 10 of my own
+  occurrences across three files. #722's unrelated `#710` further down this log was left alone — check
+  whose entry a number belongs to before sweeping one.
+- **I pre-wrote `#730` into five files before filing, and the issue landed as #731** — #730 had been
+  taken in the meantime by a `#718` follow-up in the web cluster. All 10 references renumbered. Don't
+  write an issue number you have not been given.
+- `compare.ts` ran `main()` at module load, so importing anything from it printed the whole 590-line
+  report. Now behind the repo-standard `isMain` guard (`emit-dtcg.ts:147`, `mcp.ts:570`, `regen.ts:155`,
+  `token-contract.ts:207`). Verified the direct-invocation output is **byte-identical** to before.
+- **`EXIT=0` from a piped run is the pipe's exit, not the gate's.** One mutation looked like it passed
+  for that reason. Redirect to `/dev/null` and read `$?`.
+- The gate reads `packages/engine/out/figma` relative to the cwd, matching `compare.ts`. Run it from the
+  repo root.
+- Whole harness runs in ~2.5s for two brands, so CI cost is not a consideration.
+
+---
+
 ## (2026-08-12) — Three verdicts that could not stop printing: the comparison harness reported a fixed defect as shipping
 
 **STATUS: shipped.** `tools/exporter-comparison/compare.ts` + its README. Harness only — neither
 exporter touched, no emitted artifact changed, `regen --check` still 104.
 
 **The finding.** The harness printed `!! SURPRISING — A SHIPPING DEFECT (#708): every mode-varying
-shadow is silently dropped from every overlay` on every run, including after #710 fixed exactly that.
+shadow is silently dropped from every overlay` on every run, including after #713 fixed exactly that.
 Not a stale comment — a **live wrong statement** in a tool whose output is meant to be read as
 measurement.
 
@@ -28,7 +161,7 @@ when   : the CANONICAL tree carries modes.dark for them     ← about the projec
 ```
 
 The canonical extension is the **source the overlay is projected from**, so it carries the dark
-shadows whether or not the projector emits them. The predicate was true before #710 and true after —
+shadows whether or not the projector emits them. The predicate was true before #713 and true after —
 **verified by running the pre-fix predicate against both trees, where it printed identically.** So it
 was never a guard at all; it was prose with a `when` attached. This is docs/34's family again, in a
 new sub-shape: not a gate derived from its subject, but a *proxy predicate* — a condition that
@@ -59,9 +192,9 @@ BACK", "disagrees by 100× AGAIN"), each naming the gate that should fail first.
 defect either becomes its alarm or it is deleted; leaving it phrased in the present tense is how this
 started.
 
-**Mutation-verified, and M1 is the instructive one.** Reverting the #710 guard alone did **not**
-reproduce #708 — #710 fixed it by normalizing the modes-extension *shape*, so the two-shape condition
-the guard tripped on no longer exists. The faithful mutation had to recreate the pre-#710 world: unwrap
+**Mutation-verified, and M1 is the instructive one.** Reverting the #713 guard alone did **not**
+reproduce #708 — #713 fixed it by normalizing the modes-extension *shape*, so the two-shape condition
+the guard tripped on no longer exists. The faithful mutation had to recreate the pre-#713 world: unwrap
 the shadow mode entry in `tree.ts` **and** revert the guard. Then the dark overlay lost its `shadow`
 group and both the new predicate and `lint-overlay-completeness.ts` went red. Worth knowing before
 anyone re-verifies this: **a mutation that fails to reproduce may mean the fix was structural, not that
@@ -71,7 +204,7 @@ mutating only the second changes nothing and looks like a passing control.
 
 | # | mutation | expected | result |
 |---|---|---|---|
-| M1 | unwrap shadow modes entry + revert #710 guard | new predicate fires, `lint-overlay-completeness` red | ✅ both |
+| M1 | unwrap shadow modes entry + revert #713 guard | new predicate fires, `lint-overlay-completeness` red | ✅ both |
 | M1′ | old predicate vs **both** trees | prints identically → was constant | ✅ 1 and 1 |
 | M2 | only one axis represented | axis verdict vanishes | ✅ 0 (old predicate: still true) |
 | M3 | no divergent collisions | collision verdict vanishes | ✅ 0 |
