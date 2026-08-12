@@ -12,7 +12,8 @@
 >
 > **Status: current plan, one open decision.** §6 names the single decision the plan waits on.
 > Issue numbers are from `19` §8's 2026-07-28 snapshot and were not re-verified when this was
-> written.
+> written. **Verified 2026-08-13** (filing the arc tracking issues): 13 of 16 cited numbers were
+> unchanged. §3 Arc 5 needed a real correction — see its 2026-08-13 note.
 
 ---
 
@@ -106,10 +107,21 @@ consumer one, because the consumer configuration's value is entirely conditional
 
 ### Arc 5 — Clear the in-flight debt
 
-#718's remainder, implementation tickets for #720 and #721, #533's status surface, #618's copy
-rule, and the live-run debt (#680's mechanism, #701's cold and warm pair). None of it is on the
-critical path. Two items block a lane: #721's model and #618's answer are both prerequisites for
-the plugin lane's next pick.
+#718's remainder, #533's status surface, #618's copy rule. None of it is on the critical path. Two
+items block a lane: #721's model and #618's answer are both prerequisites for the plugin lane's
+next pick.
+
+**Corrected 2026-08-13, verifying every issue number this doc cites (never done at time of
+writing — see the header note).** Three of the numbers above had already moved by the time this
+was read again, all in the direction of *less remaining*, not more:
+
+- **#680 and #701 are closed** (completed, merged as #710 and #705) — dropped from the debt list
+  rather than left as stale "to clear" items.
+- **The "implementation tickets for #720 and #721" line was already wrong when read.** Both exist:
+  **#722** (implements #721's do-now model) shipped and closed, merged as #727. **#723** (implements
+  #720's dialog) is open, sequenced after #722 by its own text. Filing new tickets here would have
+  duplicated both. #721's model still blocks the plugin lane's next pick per the sentence above —
+  that dependency is unchanged; only the "someone needs to file this" framing was stale.
 
 ---
 
