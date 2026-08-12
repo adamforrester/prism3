@@ -189,6 +189,38 @@ The `code-only` list is the component-tier version of the ceilings discipline `1
 for tokens: some anatomy provably will not survive the Figma leg, and the schema must say so
 **explicitly** rather than lose it silently.
 
+### The projection's standing role: this schema's materialization proof (2026-08-12, #718)
+
+**The Figma projection is kept runnable as the proof that this schema can materialize — not as a
+product capability.** #718 decided that the plugin's component write is internal testing until a
+client asks for a generated Figma kit with real requirements. Read the status from #718 and the
+issue labels, not from a list here.
+
+**Why it is kept rather than retired, which is the part worth writing down.** Nothing else makes
+this schema falsifiable. `typecheck-components.ts` checks the defs against `component-schema.ts` —
+that they are *well-typed*, not that an `anatomy` block carries enough to build something real.
+`figmaAnatomyPlan` is pure and gated offline, and `test.ts` drives the plugin executor against a
+shim for parity — but a shim models the Figma someone wrote it to model. Retire the live
+projection and this schema becomes data whose only consumers are tests written from the same
+understanding that authored it: it would drift toward whatever is convenient to author, and
+nothing would notice. The 648-member run is what makes the claim refutable.
+
+**So the projection is a tool, not a gate** — `CLAUDE.md`'s `tools/` distinction exactly: *a tool
+answers a question; a gate asserts an answer.* It is not in `ci.yml`, it needs a human in Figma
+desktop, and its findings arrive as issues rather than as a red build. That is the intended shape,
+not a gap to close: five of the six findings from the first live Button run were invisible to the
+offline suite **by construction** — the shims model no scenegraph, no font-loading state, no event
+loop, no component sets, no instances, and emit no deprecation warnings.
+
+**One def, and that is the cost.** `button.ts` is the only def of five with an `anatomy` block
+(`apps/plugin/src/main.ts`: *"A loop over five defs would throw on four of them"*). Each additional
+one means new anatomy authoring, its own variant space, and its own live-test cycle — which is the
+superlinear cost #718 turns on, and the reason "prove the schema" is a better description of this
+leg's job than "build the kit".
+
+**A reader arriving at a runnable component write should not read "still here" as "still a
+feature."** That inference is what this section exists to block.
+
 ---
 
 ## 5. Open decisions
