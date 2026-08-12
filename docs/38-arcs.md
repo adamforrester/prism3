@@ -12,8 +12,8 @@
 >
 > **Status: current plan, one open decision.** §6 names the single decision the plan waits on.
 > Issue numbers are from `19` §8's 2026-07-28 snapshot and were not re-verified when this was
-> written. **Verified 2026-08-13** (filing the arc tracking issues): 13 of 16 cited numbers were
-> unchanged. §3 Arc 5 needed a real correction — see its 2026-08-13 note.
+> written. **Verified 2026-08-12** (filing the arc tracking issues): 13 of 16 cited numbers were
+> unchanged. §3 Arc 5 needed a real correction — see its 2026-08-12 note.
 
 ---
 
@@ -111,7 +111,7 @@ consumer one, because the consumer configuration's value is entirely conditional
 items block a lane: #721's model and #618's answer are both prerequisites for the plugin lane's
 next pick.
 
-**Corrected 2026-08-13, verifying every issue number this doc cites (never done at time of
+**Corrected 2026-08-12, verifying every issue number this doc cites (never done at time of
 writing — see the header note).** Three of the numbers above had already moved by the time this
 was read again, all in the direction of *less remaining*, not more:
 

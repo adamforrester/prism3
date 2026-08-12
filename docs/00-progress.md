@@ -507,7 +507,42 @@ bug, and the work is to make the boundary someone's rather than to leave it desc
 
 ---
 
-## (2026-08-13) — `docs/38`'s five arcs get tracking issues, and two corrections surface verifying them
+## (2026-08-12) — A practice rule, from two independent number collisions on the same day
+
+**STATUS: docs only — a lesson, not a code change.** Two unrelated pieces of work hit the same
+failure shape within hours of each other on 2026-08-12, which is what makes it a rule rather than
+two anecdotes.
+
+**The rule: an issue number written before the issue is filed is unsafe, and a doc naming another
+issue's current state has a shelf life measured in hours at this repo's pace, not days.**
+
+**Instance 1 — a number guessed ahead of filing.** The TokenPress lane pre-wrote `#730` into five
+files before actually filing the issue it was reserving the number for. By the time it filed, an
+unrelated `#718` follow-up PR had already taken `#730`, and the real issue landed as `#731`
+instead. The number was correct right up until it wasn't — nothing about writing it early made it
+wrong at the time, and nothing about writing it early could have prevented the collision, because
+the numbering isn't reserved by writing it down.
+
+**Instance 2 — a doc's claim about another issue's state, stale before the doc was even committed.**
+Filing tracking issues for `docs/38`'s five arcs (next entry, below) turned up that Arc 5's
+instruction to "file implementation tickets for #720 and #721" was not just outdated by the time
+the filing pass reached it — it was already false at commit time. `#722` (implementing #721) was
+filed and **closed** over an hour before `docs/38` itself was committed; `#723` (implementing #720)
+was filed the same three minutes as #722. `docs/38`'s own header already carried a disclaimer that
+its issue numbers were an unverified snapshot — the disclaimer was right to exist, and still
+undersold the actual decay rate.
+
+**Why both matter as one rule and not two:** the first is about numbers that don't exist yet; the
+second is about numbers that exist but whose *state* a doc is asserting. Different failure, same
+cause — this repo's issue graph moves faster than any snapshot of it stays true, so a number is
+only trustworthy at the moment it's read live, never at the moment it was written down, however
+recently. The practical corollary: **verify a cited issue number's current state immediately before
+using it, every time** — not "verified when the doc was written," not "verified last session." A
+verification pass has the same shelf life as the thing it verified.
+
+---
+
+## (2026-08-12) — `docs/38`'s five arcs get tracking issues, and two corrections surface verifying them
 
 **STATUS: issues filed, one doc correction pushed.** Per `docs/38` §5's own lane assignment
 ("issues manager | files Arc 1's schema decisions and Arc 5's implementation tickets"), filed one
@@ -524,12 +559,13 @@ went to `docs/38` itself rather than being silently absorbed into the new issues
 
 - **#680, #701 closed** (completed, merged #710/#705) — Arc 5's "live-run debt" list dropped them
   rather than filing against closed work.
-- **The bigger one: Arc 5's "implementation tickets for #720 and #721" instruction was already
-  stale.** Both exist — #722 (implements #721's do-now model, closed, merged #727) and #723
-  (implements #720's dialog, open, sequenced after #722). Neither was known when `docs/38` was
-  written on 2026-08-12; both were filed and one already shipped by the time this pass ran a day
-  later. Filing new tickets per the doc's literal instruction would have duplicated real, in-flight
-  work — caught by checking before writing, not by the instruction itself.
+- **The bigger one: Arc 5's "implementation tickets for #720 and #721" instruction was stale the
+  moment it was committed, not just by the time this pass reached it.** #722 (implements #721's
+  do-now model) was filed at 15:06 UTC and already closed — merged as #727 — at 17:14 UTC. #723
+  (implements #720's dialog) was filed at 15:07 UTC and is open. `docs/38` itself was committed at
+  18:35 UTC, over an hour *after* #722 had already shipped. Filing new tickets per the doc's
+  literal instruction would have duplicated real, in-flight work — caught by checking live state
+  before writing, not by anything the instruction itself could have told me.
 - **#681 needed the deeper check, and turned out correct.** Its own issue *body* says nothing about
   "nesting kinds — swap, nest-fixed, nest-exposed," which first read as a wrong citation. The
   decision is real: recorded in a comment added 2026-08-12, *after* the issue had already closed
