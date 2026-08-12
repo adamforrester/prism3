@@ -161,11 +161,12 @@ anatomy:
       layout: { direction: row, align: center, justify: center, sizing: { x: hug, y: fixed } }
       padding: { block: size.*.padding-y, inline-label: size.*.padding-x, inline-visual: size.*.padding-visual }
       gap: size.*.gap
-    leadingVisual:  { kind: slot, optional: true, size: icon.size.* }
+    leadingVisual:  { kind: slot, optional: true, size: icon.size.*, nesting: { kind: swap } }
     label:          { kind: text,  required: true, type: size.*.type }
-    trailingVisual: { kind: slot, optional: true, size: icon.size.* }
+    trailingVisual: { kind: slot, optional: true, size: icon.size.*, nesting: { kind: swap } }
     trailingAction: { kind: slot, optional: true, note: "dropdown caret — distinct from trailingVisual" }
-    spinner:        { kind: overlay, replaces: leadingVisual, note: "width-preserved" }
+    spinner:        { kind: overlay, replaces: leadingVisual, nesting: { kind: swap }, note: "width-preserved" }
+    focusRing:      { kind: absolute, nests: focus-ring, nesting: { kind: nest-fixed, variant: { color: default } } }
   derived:
     min-width: "height × minWidthMultiplier"
   code-only:
@@ -189,6 +190,65 @@ The `code-only` list is the component-tier version of the ceilings discipline `1
 for tokens: some anatomy provably will not survive the Figma leg, and the schema must say so
 **explicitly** rather than lose it silently.
 
+### 4.1 `nesting` — how a part relates to the component it points at (#681)
+
+The schema above says *which* component a part points at (`nests`, or nothing at all for a
+`slot`, whose target the caller nominates per file per #513). It did not say **how** the part
+relates to it, and #681 landed the decision that it must. Three kinds:
+
+| Kind | Meaning | Example |
+|---|---|---|
+| `swap` | the whole component is replaced; variants do not enter into it | an icon in a slot |
+| `nest-fixed` | the nested component has variants, **the def picks one**, the consumer never changes it | a focus ring's `color` |
+| `nest-exposed` | the nested component has variants **the consumer drives from the parent** | a form label's sizes |
+
+**The split it encodes is identity vs. policy.** WHICH component fills a slot is a fact about
+the *file* — the file's icon might be called anything — so the **caller** nominates it. WHETHER
+that component's variants surface on the parent is a fact about the *design*, true across every
+file and brand, so the **def** declares it. Both belong to whoever holds the fact.
+
+**Why this is a def field and not a Figma implementation detail.** Per `19` §1 one definition
+set projects into every output, so an exposure declaration has to project into all of them:
+Figma gets an exposed nested-instance property, React/WC get a **prop**, `.ai.json` gets a
+documented option an agent can select, Storybook gets a control. A def that cannot express
+exposure cannot express its own public API.
+
+**Why `nest-fixed` must name its variant** rather than taking the nested set's default: Figma's
+default is its **first child**, an artifact of creation order — which is `#656` exactly one layer
+out. #656's finding was "an artifact of declaration order, not a layout decision," and its fix
+was to *choose* the axis instead of inheriting it. Inheriting a ring's first variant re-commits
+the same error, and would be equally invisible: both variants are valid rings, so nothing
+downstream notices the wrong one was nested.
+
+The field is **required on every part that points at a component, and rejected on the kinds that
+point at nothing** — no default, because the tempting default (`swap`, by far the commonest
+value) would silently make every nested set fixed-at-its-first-variant, i.e. the error the field
+exists to stop. `overlay` is in the required set, which is read off the projection rather than
+the kind's prose: `anatomy-figma.ts` types an overlay `INSTANCE_SWAP` and hands it the same
+`swapTarget` a slot gets, because a spinner is a glyph standing in a glyph's cell.
+
+### 4.2 Square parts: one binding key, both axes
+
+`size` — until now "a slot's square glyph artboard" — is also how a **`box`** declares itself
+square. IconButton is the first case ("height drives both dimensions"), and it is this field
+rather than a `width` beside `height` for a reason worth stating: **two bindings that must agree
+can drift; one key cannot drift from itself.** Rebind one axis and nothing anywhere notices,
+because each binding is individually valid. So "square" is expressible as a single fact instead
+of an invariant nobody checks. `size` is mutually exclusive with `height` and validated so, and
+a square box must be `fixed` on **both** sizing axes — `hug` on either lets the content decide a
+dimension the binding is trying to drive.
+
+### 4.3 What a square control does *not* have
+
+Two of the schema's fields drop out for a component whose whole content is one required glyph,
+and both drops are structural rather than a simplification:
+
+- **no `padding`** — §2.3's asymmetric slot-aware padding is entirely about a *label side* vs a
+  *visual side*. An icon-only control has no label side to compare against, so the finding that
+  motivated `padding-x-visual` has no subject here. The glyph is centred and the box is sized;
+  padding would be a second, redundant expression of the same geometry.
+- **no `gap`** — a gap is the space *between two cells*. There is one cell.
+
 ---
 
 ## 5. Open decisions
@@ -205,6 +265,17 @@ for tokens: some anatomy provably will not survive the Figma leg, and the schema
 5. **Schema syntax** — this shape is illustrative; the real decision is whether `anatomy`
    nests inside `ComponentDef` or is a sibling artifact (it is the part a *materializer*
    reads, and the code outputs read it too, so nesting is probably right).
+6. **`AnatomyPlan.slots` is Button-shaped, and the cost is now paid by others.** The type is
+   `{ leading, trailing }` — Button's two optional visuals flanking a label. IconButton's icon is
+   *required* and is the whole content, so its slot-fill dimension **collapses to 1** and needs no
+   new shape: with no slot axes declared, `figmaAnatomySet` iterates `[false]` on both and
+   `planSetLayout` gives a dimension only to axes that *vary*, so they contribute no rows and no
+   columns. That collapse is **enforced, not merely intended** — the validator already refuses a
+   `slotAxes` entry over a non-optional part. The price, named rather than hidden: every member's
+   name ends in two coordinates about slots the component does not have, which reads as vestigial
+   to a designer. The honest fix is a shape keyed by the def's own part names; it is a refactor of
+   a type three call sites read, and it was not put on the critical path of a component that does
+   not need it.
 
 ---
 

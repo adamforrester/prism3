@@ -227,11 +227,15 @@ export const button: ComponentDef = {
         height: 'size.{size}.height',
         radius: 'radius',
       },
-      leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', note: 'Icon / avatar / counter / spinner before the label.' },
+      // `nesting: swap` on all three swap-materialized parts (#681). A slot's target is nominated per
+      // FILE by the caller and its content is the designer's to change, so there is no variant for the
+      // def to fix — which is exactly what `swap` says.
+      leadingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / avatar / counter / spinner before the label.' },
       label: { kind: 'text', optional: false, type: 'size.{size}.type', note: 'Its own node so truncation, wrap and line-height are controllable independently of the row.' },
-      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', note: 'Icon / caret / indicator after the label. NOT split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
+      trailingVisual: { kind: 'slot', optional: true, size: 'size.{size}.icon', nesting: { kind: 'swap' }, note: 'Icon / caret / indicator after the label. NOT split into visual + action (docs/28 §5.3): the condition that split rested on — a pending state needing its own slot — is already carried by leadingVisual + isPending.' },
       spinner: {
         kind: 'overlay',
+        nesting: { kind: 'swap' },
         replaces: 'leadingVisual',
         overlaysWhenAbsent: 'label',
         when: 'pending',
@@ -243,6 +247,13 @@ export const button: ComponentDef = {
         when: 'focus-visible',
         nests: 'focus-ring',
         inset: 'ring-offset',
+        // `nest-fixed`, naming the variant (#681). The def picks the coordinate rather than inheriting
+        // the ring set's default, which is its FIRST CHILD and so an artifact of creation order —
+        // #656's inherit-instead-of-choose error one layer out. It would be equally invisible here:
+        // both `color=default` and `color=inverse` are valid rings, so nothing downstream notices the
+        // wrong one. `default` because this def cannot know the surface it will sit on, and a normal
+        // surface is the honest default; `inverse` is the designer's override on the instance.
+        nesting: { kind: 'nest-fixed', variant: { color: 'default' } },
         note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component. Takes no cell in the row, so no geometry moves, and has its OWN stroke — which is what dissolves the collision rather than trading a loss: a ring drawn on the target would compete with `appearance=outline`\'s border for the single stroke a Figma node has, at three different palette steps (550 ring / 500 border / 550 rest fill). Shared rather than authored per host because the ring is nobody\'s component — `focus.ring.*` and `color.border.focus` are top-level families and `focus.ring.offset-field` already emits separately.',
       },
     },

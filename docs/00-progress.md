@@ -7,6 +7,116 @@
 
 ---
 
+## (2026-08-12) — IconButton's anatomy, `nesting` as a declared field, and the two phantom variant properties the axis-parity gate caught
+
+**STATUS: shipped.** `components/icon-button.ts` gains an `anatomy` block (the second of five defs to have
+one); `component-schema.ts` gains `PartDef.nesting` (#681's decision) plus nine new validator rules;
+`anatomy-figma.ts` gains `AnatomyPlan.slotAxes` and a **defect fix**; `docs/28` gains §4.1–4.3 and a sixth
+open decision. `test.ts` 2122 → 2123 assertions.
+
+**The shape of this work is easy to misread, so state it first: the derivation was not a read.**
+`icon-button.ts` had **no anatomy block** — Button was the only def of five that carried one — and
+`figmaAnatomyPlan` throws outright on a def without one (`anatomy-figma.ts:235`). So there was no grid here
+to derive a cardinality *from*. **Deriving the cardinality was authoring the anatomy.** The offline
+prediction and the live confirmation are both real, but they bracket an authoring step, not a measurement.
+
+**The finding worth carrying forward: a def declaring FOUR axes was projecting a set carrying SIX.**
+`planComponentName` wrote `leading=…` and `trailing=…` into **every** member name unconditionally. That is
+correct for Button and wrong for IconButton, and the reason it is *wrong* rather than *untidy* is that
+**the member name is a wire format, not a label**: `combineAsVariants` derives a set's variant properties
+from its members' names, so a coordinate written into the name **becomes a property in the designer's
+panel** whether or not it varies. IconButton's set would have shipped two single-valued **phantom variant
+properties** for slots the component does not have.
+
+Three things about how this was found, each of which is the actual lesson:
+
+- **My own gate caught it, not inspection.** The axis-parity assertion — parse a real `planComponentName`
+  and compare the axes *it emits* against the def's *declared* ones — went red on its first run. This is
+  the 189-vs-756 shape from #487 §5 in the mirror direction: that one caught the emitter carrying axes the
+  declaration **lacked**; this one caught the emitter **adding two** the declaration lacked. Same gate,
+  same independence property (a count derived from a declaration cannot detect that the declaration is
+  incomplete), opposite sign.
+- **It corrected a decision I had already recorded.** Earlier in this task I had written the two name
+  segments off as "two vestigial name segments, the price of not refactoring a type." That understated it
+  **by a category** — a phantom public API, not cosmetics. The correction is written into both the code
+  comment on `slotAxes` and the test comment, because the wrong version is the more natural reading.
+- **The fix went in the emitter, not the gate.** `AnatomyPlan.slotAxes` is populated from
+  `def.figmaProperties.slotAxes`, because the **def** is the only thing that knows the difference between
+  *a slot that is empty on this member* (Button: `leading: false` is a real box, per #326) and *a slot the
+  component does not have* (IconButton). `slots` alone cannot tell those apart; emitting unconditionally
+  made them identical. `planSetLayout`'s footprint cohort still reads both slots deliberately — footprint
+  genuinely does vary with slot fill.
+
+**The four constraints this work was given, and how each was discharged:**
+
+1. **Don't resolve `inherits`.** Not touched. It is declared at `component-schema.ts:284` and **read by
+   nothing** in `anatomy-figma.ts` or the plugin — the only semantic use anywhere is one assertion at
+   `test.ts:5862`. IconButton's props/variants/tokens are already flat, so the anatomy is flat too.
+   Teaching the Figma path inheritance would be a new mechanism on the critical path buying this component
+   nothing.
+2. **The slot model, decided explicitly rather than forced.** `AnatomyPlan.slots` is `{leading, trailing}`
+   — Button-shaped. IconButton's icon is *required* and is the whole content, so **the slot-fill dimension
+   collapses to 1** and needs no new shape: with no slot axes declared, `figmaAnatomySet` iterates
+   `[false]` on both and `planSetLayout` gives a dimension only to axes that *vary*. The collapse is
+   **enforced, not merely intended** — the validator already refuses a `slotAxes` entry over a
+   non-optional part. Recorded as `docs/28` §5 decision 6 with the honest fix named (a shape keyed by the
+   def's own part names) and the reason it was not put on this component's path.
+3. **`nesting` added here, as engine.** `component-schema.ts` is engine, so this lane owns the field
+   rather than waiting on the plugin lane, which is the consumer. `NestingRelation` is
+   `swap | nest-fixed (+ named variant) | nest-exposed`, **required** on every part that points at a
+   component and rejected on the kinds that point at nothing. No default: the tempting default (`swap`)
+   would silently make every nested set fixed-at-its-first-variant, i.e. the exact error the field exists
+   to stop. `nest-fixed` must **name** its variant because Figma's default is its *first child* — an
+   artifact of creation order, which is #656 one layer out, and equally invisible here because both
+   variants are valid rings. `docs/28` §4.1 in the same PR, as required. Button's four pointing parts are
+   annotated too; IconButton is the field's first exercise.
+4. **The derivation as a prediction, then confirmed live.** Every predicted number matched: **162**
+   members (declared == emitted), axes `intent/appearance/size/state`, 27 rows × 6 cols with `colKey`
+   `state`, **1** property (`icon` `INSTANCE_SWAP` → `FPO-default-icon`), **1** ref part, 3 footprint
+   cohorts, 27 focus-visible ring members, 0 zero-paint plans, 5 chunks (41651/41383/41411/41244/38016
+   bytes), 3 distinct per-size binding sets. Contrast Button: 648 members, 4 ref parts, 34 chunks.
+
+**One subtlety inside the `nesting` rule set that reading the kind's prose gets wrong.** `overlay` is in
+the required set. That is read off **the projection, not the vocabulary**: `anatomy-figma.ts` types an
+overlay as `INSTANCE_SWAP` and hands it the same `swapTarget` a slot gets, because a spinner is a glyph
+standing in a glyph's cell. My first pass omitted `overlay` from `pointsAtComponent` for exactly the
+prose-reading reason; mutation M2 now fails by name if anyone repeats it.
+
+**Two square-geometry decisions, both stated in `docs/28` §4.2–4.3.** A square box binds `size` (one key,
+both axes) rather than `height` + a matching `width`, because **two bindings that must agree can drift; one
+key cannot drift from itself** — rebind one axis and nothing notices, since each binding is individually
+valid. `size` is mutually exclusive with `height`, and a square box must be `fixed` on **both** axes (`hug`
+on either lets content decide a dimension the binding is driving). And two schema fields drop out
+structurally, not as a simplification: **no `padding`** (§2.3's asymmetric slot-aware padding is entirely
+about a label side vs a visual side; an icon-only control has no label side, so the finding that motivated
+`padding-x-visual` has no subject) and **no `gap`** (a gap is between two cells; there is one cell).
+
+**16 mutations, every one failing by name** — nine validator rules (M1–M9), the square box binding (M10),
+the name fix and its revert (M11), the *overcorrection* (M12, never emit slot coordinates), `gridAxis`
+(M13), the required icon (M14), a dropped size (M15), the ring's relation kind (M16). Two of those were
+**my instrument being wrong, not the gate**, and both are worth knowing:
+
+- **M12 looked like it passed.** I read "0 failures" off a `grep -c ❌` over a run that had **crashed**.
+  Re-run, the overcorrection is caught — Button's members collide and the `gridAxis` gate reports two plans
+  sharing a component name. A pass counted from a crashed run is not a pass; count failures from a run that
+  finished.
+- **M14 crashed instead of failing by name, which is not the same thing.** `optional: true` on the icon
+  empties the box, `children.find('icon')` returned undefined, and three assertions threw a `TypeError`. **A
+  gate that dies is not a gate that fails** — it turns "which claim was violated" into a stack trace and
+  stops every later assertion. Fixed by asserting the icon materializes *first*, then making the downstream
+  reads null-safe. The first hardening attempt **still crashed**, because template strings in `ok(...)`
+  evaluate **eagerly**: a null-safe condition with an unguarded `${x.bound.width}` message crashes anyway.
+
+**Preconditions for the live Figma run**, in the same class as the FPO omission — what must already exist
+before the plan can be materialized, now in two halves rather than one:
+
+- *What the **file** must contain:* an `FPO-default-icon` **plain COMPONENT** and a `focus-ring` **plain
+  COMPONENT** — not a set, not an instance (#681's two traps).
+- *What the **schema** must express:* the `nesting` field — which is what this PR adds, and why the field
+  could not wait on the consumer.
+
+---
+
 ## (2026-08-12) — The exporter comparison's assertable arms are now a CI gate, and the "unreachable" gradients were never unreachable
 
 **STATUS: shipped.** New `tools/exporter-comparison/gate.ts` + one `ci.yml` step; `compare.ts` gains three
