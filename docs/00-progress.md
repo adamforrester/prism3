@@ -7,6 +7,114 @@
 
 ---
 
+## (2026-08-12) — #722: one provenance model replaces three features, and its own test's first draft could not fail
+
+**STATUS: shipped.** `apps/studio/src/provenance.ts` (new, pure), `apps/studio/test-provenance.ts`
+(new — studio's **first** test file, wired as `npm run -w @prism3/studio test` + a CI step), plus the
+`main.ts` / `write-adapter.ts` / plugin `messages.ts` + `main.ts` wiring. Implements the "do now" half
+of #721. No engine change, no emitted artifact; `regen --check` still 104.
+
+**Three asks, one model.** *Warn before an import overwrites*, *reset to what the file has*, and *get
+back to the start-screen options* looked like three features. Everything in the studio is a
+`BrandInput` — the knobs edit one, `design.md` import produces one, the host's `restore-input`
+supplies one, boot falls back to an example — and nothing recorded which of those four writers
+produced the current value. Given an `Origin` plus a dirty reading against a stored baseline, all
+three collapse: reset-to-origin is just the origin still being known, a confirmation can fire only
+when something would be lost, and the empty state is the *no-origin* case, so re-entry needs no path
+of its own.
+
+**The load-bearing part is the condition, not the prompt.** `renderBrandMenu` confirmed every import
+with *"This overwrites your current edits"* — including over a brand loaded a second earlier with
+nothing typed into it, where the sentence was simply false. A confirmation that fires unconditionally
+gets clicked through, at which point it protects nothing on the one occasion it matters. `isDirty` is
+what lets it keep its meaning. It reads the **live** `brandState`, not `lastGoodInput`: an edit that
+currently fails to resolve is still an edit someone would be upset to lose.
+
+**`firstRun` was a boolean beside the state; now it is a reading of it.** `const firstRun = () =>
+provenance.origin.kind === 'none'`. A flag beside the state can disagree with it; a case of the origin
+cannot. Watch the shape of the old bug when converting one: `!firstRun` on a bare function reference is
+always false and typechecks fine — all four call sites needed the parens.
+
+**`loadBrand(input, origin)` — the required parameter *is* the enforcement.** A fifth writer that
+forgets an origin fails `typecheck` at its own call site (verified by mutation: TS2554). Stronger than
+a lint script, because it is checked by construction over every call site with no scan to keep in
+scope. The failure it prevents is silent: a stale origin makes an edited state read as untouched, and
+the confirmation stops firing.
+
+**The two-state seed could not express #721's state 2, and shipped the wrong half.** `seedInfo` was
+`{ok, summary}`, so "this file holds Prism3 variables but its stored `BrandInput` did not come back"
+— a copied template, a hand-built file, one themed by an older schema — had to arrive as a success
+(silently wrong: the user believes the knobs are the file's, and they are the boot demo) or a failure
+(wrong the other way: nothing failed, and they can still theme and apply). It shipped as the success,
+so the plugin printed *"contract holds ✓"* over knobs with nothing to do with the file. `SeedOutcome`
+carries it as **a success with a limitation**, and it is not fixable by us — rebuilding a `BrandInput`
+from emitted tokens is the undetermined inverse #677 rules out.
+
+`present` had to travel on the wire (`messages.ts`) rather than be inferred: `ok` alone cannot
+separate "no theme here" from "the read-back threw", since both arrive `ok: false`, and the collapse
+would tell someone opening a blank file that something went wrong. Deriving it by parsing `summary`
+would make the host's prose load-bearing — the same trap the headline/summary split already exists to
+avoid.
+
+**A comment asserting an invariant, replaced by code that holds it.** The first version of the join
+read `inputRecovered` inline and explained in a comment that `restore-input` is posted first. True
+today, and for a reason that lives in the *other* context's scheduling: `restoreToUi` is synchronous
+while `seedFromFile` awaits. If `seed-info` ever lands first, `recovered` is false at join time and
+**stays** false — the pill then claims *"knobs not stored in this file"* over knobs restored a moment
+later. `joinSeed` + `withRecovered` moved the rule into the pure module and made order-independence an
+assertion instead of a paragraph. Finding it came from checking the claim rather than writing it.
+
+**Why the model is its own pure module.** `main.ts` touches `document` at import time and cannot be
+loaded under `tsx`, so anything living inside it is assertable only by hand in a browser. Splitting
+the model out is what made 33 assertions possible at all.
+
+**THREE OF EIGHT MUTATIONS SURVIVED THE FIRST DRAFT OF THE TEST — all the same defect class, in a
+file whose own comments cite docs/34.**
+
+- **M4/M5** (drop the `structuredClone` on store, or on hand-out) survived because the assertion was
+  `isDirty(originBaseline(p), p)` — that asks the baseline whether it equals *the baseline*. Remove
+  either clone and the two sides become the same object, so it is `x === x` and passes whether the
+  isolation holds or not. Fixed by capturing `expected` **before** any mutation: an independent record
+  beats a self-comparison, every time.
+- **M8** (`sortKeys` also sorting arrays, which would make a `modes` reorder invisible) survived
+  because the guard was `(remoded.modes ?? []).length < 2 || isDirty(...)` and the example brands
+  leave `modes` undefined — it short-circuited to `true` forever. Fixed by setting `modes` explicitly
+  on both sides. **A `?? []` guard in an assertion is a candidate short-circuit; check the fixture
+  actually has the field.**
+
+All thirteen mutations now fail, each at `exec=33` — `executed` is counted beside `failed` precisely
+so a crash cannot masquerade as a pass by truncating the run (#710).
+
+**Two claims checked instead of asserted, one of which was wrong.** The test's `default: never`
+switch was commented as failing at compile time for a sixth `Origin` kind. It does not: studio's
+`tsconfig.json` includes `src` only, and `tsx` strips types without checking them — confirmed with
+`tsc --listFiles`, which reads `src/provenance.ts` and never the test. The real gate is `originLabel`
+in `main.ts`, inside the include and switching over the same union with no default (TS2366, verified by
+mutation). The comment now says which of the two look-alikes is load-bearing.
+
+**A pre-existing hole in `lint-doc-gates.ts`, found by adding a gate to it.** The new `studio test`
+step passed the doc-sync gate *before any doc was edited*. `gateTokensOf` yields `["test",
+"@prism3/studio"]` and `missingTokens` checks each token as an independent bare substring — so any doc
+mentioning the word `test` anywhere satisfies it. It blinds `@prism3/plugin test` and
+`@prism3/tokenpress test` today too. Out of scope here (one concern per PR) and filed separately; the
+three checklist docs were updated by hand, and `studio test` is deliberately called out in each as
+**not** covered by `typecheck` — because `tsconfig.json` includes `src` only, the test file is never
+compiled and the CI step is the only thing that runs it.
+
+**Deliberately not in this PR.** No new UI surface: the three outcomes render through the same
+`.bar-seed` pill (nothing for `lint:classes` to admit), because where they are *properly* surfaced is
+#533's open decision, and #721 committed to no layout on purpose. The dialog is #723, blocked on this.
+And #506's half is a **different provenance** — this records where the *UI state* came from ("warn
+before overwriting edits?"); #506 needs the *Figma objects'* origin ("did we create this collection,
+is it safe to write here at all?"). Neither implies the other, and #506's is a live destructive-write
+path with its own urgency.
+
+**Gates:** all 25 green, run as a whole list rather than the subset the diff touched — including
+`plugin typecheck`, which failed on the first sweep and was the one thing that caught the wire type in
+`messages.ts` not having been widened alongside the adapter that reads it.
+
+---
+
 ## (2026-08-12) — Three live 648-member runs: #701 confirmed, 0 misses on a complete build, and two figures the runs falsified
 
 **STATUS: shipped** (figure corrections + this entry). Filed: **#724** (yield overhead). Closed: **#701**,

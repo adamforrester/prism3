@@ -101,6 +101,9 @@ silently broken because their Gates table stopped before reaching it — see `00
 
 ```bash
 npm run typecheck    -w @prism3/studio      # tsc --noEmit — esbuild does NOT typecheck
+npm run test         -w @prism3/studio      # the provenance model (#722). NOT covered by typecheck:
+                                            #   tsconfig.json includes `src` only, so the test file
+                                            #   itself is never compiled — this step is what runs it
 npm run build        -w @prism3/studio
 npm run check:ignore -w @prism3/studio      # Vercel ignore list still matches the real bundle
 npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contrast floors

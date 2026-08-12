@@ -136,7 +136,10 @@ export interface HostCommit {
         | { kind: 'apply-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-result'; ok: boolean; headline: string; summary: string }
         | { kind: 'component-progress'; phase: 'build' | 'wire'; done: number; total: number; chunkMs: number }
-        | { kind: 'seed-info'; ok: boolean; summary: string }
+        // `present` is the #722 addition: the summary string alone could not distinguish "no Prism3
+        // theme in this file" from "a theme is here", and #721's three outcomes need that told apart
+        // from `ok`. Deriving it by parsing `summary` would make the UI depend on the host's prose.
+        | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean }
         | { kind: 'restore-input'; input: unknown }
         | { kind: 'restore-input-error'; message: string }
         | { kind: 'font-list'; families: string[]; styles: number[] },
@@ -172,7 +175,7 @@ const figmaCommit = (): HostCommit => ({
     window.addEventListener('message', (e: MessageEvent) => {
       const m = (e.data && e.data.pluginMessage) as
         | {
-            type?: string; ok?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
+            type?: string; ok?: boolean; present?: boolean; headline?: string; summary?: string; input?: unknown; message?: string;
             families?: unknown; styles?: unknown; phase?: unknown; done?: unknown; total?: unknown; chunkMs?: unknown;
           }
         | undefined;
@@ -203,7 +206,11 @@ const figmaCommit = (): HostCommit => ({
           cb({ kind: 'component-progress', phase, done, total, chunkMs: n(m.chunkMs) ?? 0 });
         }
       } else if (m.type === 'seed-info') {
-        cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? '') });
+        // `present` defaults FALSE when a host omits it (an older plugin build against a newer UI):
+        // absent → #721's state 3, "not a Prism3 file". That is the safe default because state 3
+        // claims nothing about a stored input, whereas defaulting true would assert the file is ours
+        // and then report its knobs as unrecoverable — inventing a limitation from a missing field.
+        cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present });
       } else if (m.type === 'restore-input' && m.input) {
         cb({ kind: 'restore-input', input: m.input });
       } else if (m.type === 'restore-input-error') {

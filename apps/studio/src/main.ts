@@ -35,6 +35,10 @@ import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } fr
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
+import {
+  provenanceOf, noOrigin, needsOverwriteConfirm, isUnrecoverable, joinSeed, withRecovered,
+  type Origin, type Provenance, type SeedOutcome,
+} from './provenance';
 import exampleBrands from '@prism3/engine/schema/example-brands.json';
 
 type Mode = ResolvedPreview['modes'][number];
@@ -52,18 +56,46 @@ const BRANDS = exampleBrands as Record<string, BrandInput>;
 // `firstRun` gates the start screen (below), and brandState still holds the demo so the app is in a
 // valid state behind it. (Web only: the plugin never sets firstRun — it seeds via the host restore-input
 // message; a plugin fresh-file start moment is a later cross-lane follow-up.)
-let firstRun = false;
-const bootBrand = (): BrandInput => {
+//
+// #722: boot now also decides the ORIGIN, and `firstRun` is derived from it rather than tracked
+// beside it (see `firstRun` below).
+const bootBrand = (): { input: BrandInput; origin: Origin } => {
   if (PRISM3_HOST !== 'figma') {
     const restored = restoreInput(localStorage);
     // Validate the SHAPE (brandTheme must accept it) before booting on it — a stale blob from an older
     // build could deserialise past the version guard yet fail to resolve; on reject, fall back to the demo.
-    if (restored) { try { brandTheme(restored); return restored; } catch { /* stale/incompatible — fall through */ } }
-    firstRun = true;   // web, nothing valid stored → show the start screen instead of the silent demo
+    if (restored) {
+      // The persisted web brand is the state as the user last left it — its own origin, not an
+      // example. Which example it once descended from is not recoverable and not what reset means.
+      try { brandTheme(restored); return { input: restored, origin: { kind: 'file' } }; }
+      catch { /* stale/incompatible — fall through */ }
+    }
+    // Web, nothing valid stored → the EMPTY STATE. brandState still holds the demo so the app is in a
+    // valid state behind the start screen, but the origin is `none`: nothing has been chosen yet, so
+    // there is nothing to be dirty against and nothing an import could lose.
+    return { input: structuredClone(BRANDS.aurora), origin: { kind: 'none' } };
   }
-  return structuredClone(BRANDS.aurora);
+  // Plugin: boot on the demo and wait for the host. `restore-input` (#131) may replace this within
+  // milliseconds with the file's own brand — until it arrives, `example` is the honest answer, and a
+  // file with no stored blob correctly keeps it (that is #721's state 2).
+  return { input: structuredClone(BRANDS.aurora), origin: { kind: 'example', id: 'aurora' } };
 };
-let brandState: BrandInput = bootBrand();
+const boot = bootBrand();
+let brandState: BrandInput = boot.input;
+/** Where `brandState` came from, and the baseline it is measured against (#722 / #721). */
+let provenance: Provenance = provenanceOf(boot.origin, brandState);
+/**
+ * The start screen's gate — now a READING of the origin, not an independent boolean (#721).
+ *
+ * It was `let firstRun = false` set in two places. A flag beside the state can disagree with it; a
+ * reading cannot. It is also what makes *returning* to the empty state ordinary rather than a
+ * feature: "+ New brand" sets the origin to `none` and the start screen follows, so
+ * `preview an example → decide to start blank` is two origin changes instead of a wizard re-entered.
+ *
+ * Still web-only in effect, because only web ever sets a `none` origin — the plugin's fresh-file
+ * start moment is a deferred cross-lane follow-up (#506/#533) and this ticket does not surface it.
+ */
+const firstRun = (): boolean => provenance.origin.kind === 'none';
 
 // A minimal, known-good starting point for "New brand": one mid-indigo primary + a
 // derived neutral, action defaults to primary, namespace at the 'prism' placeholder.
@@ -324,7 +356,29 @@ const knob = (label: string, body: Node | Node[], desc: string): HTMLElement => 
 // On web it's inert (the export bar downloads); in the Figma plugin it posts the BrandInput to
 // the main thread (→ #108 applyWritePlan) and receives the #109 read-back seed summary on boot.
 const commit = hostCommit();
-let seedInfo: { ok: boolean; summary: string } | null = null;   // set by the host's boot read-back (#109)
+/**
+ * What opening this file yielded (#722, implementing #721) — `null` until the host's boot read-back
+ * answers, and always `null` on web (no file to read).
+ *
+ * WAS `{ok, summary}`, WHICH COULD NOT EXPRESS #721's STATE 2. A file holding Prism3 variables whose
+ * stored `BrandInput` did not come back — a copied template, a hand-built file, one themed by an
+ * older schema — had to arrive as either a success (silently wrong: the user believes the knobs are
+ * the file's, and they are the demo) or a failure (wrong the other way: nothing failed, and the
+ * user can still theme and apply). It shipped as the success, so the plugin says "contract holds ✓"
+ * over knobs that have nothing to do with the file.
+ *
+ * `SeedOutcome` carries the third case as a success with a limitation. Not fixable by us: rebuilding
+ * a `BrandInput` from emitted tokens is the undetermined inverse #677 rules out.
+ */
+let seedOutcome: SeedOutcome | null = null;
+/**
+ * Did the host restore the stored input (#131)? The OTHER half of the seed, and the reason it needs
+ * its own slot: `restore-input` and `seed-info` are independent messages on independent reads
+ * (`restoreToUi` and `seedFromFile` in the plugin's main thread do not gate each other), so neither
+ * can be derived from the other and EITHER MAY ARRIVE FIRST. Recorded here and read when `seed-info`
+ * lands, which is what joins the two mechanisms into one outcome without assuming an order.
+ */
+let inputRecovered = false;
 /** Set when the host REFUSED to rehydrate the knobs (#480): a `BrandInput` blob is stored in this
  *  file, but it's an old/foreign shape or a schema version this build doesn't recognize (the
  *  pre-#341/#415 shape is exactly this case). A separate slot from `seedInfo` for the same reason
@@ -387,7 +441,15 @@ commit.onHostMessage((m) => {
     // (e.g. `{}`) that clears the persist envelope but has no `primary` would otherwise crash the
     // boot render (renderBar reads `brandState.primary`); on reject we silently keep defaults.
     try { brandTheme(m.input as BrandInput); } catch { return; }
-    loadBrand(m.input as BrandInput);
+    // Origin `file`: this brand IS what the Figma file holds, so it is what a reset returns to and
+    // what dirtiness is measured against (#722). It also answers the other half of the seed — see
+    // `inputRecovered` below, which `seed-info` reads to tell #721's state 1 from state 2.
+    inputRecovered = true;
+    // REPAIR a seed outcome that was already joined without this. The two reads are independent, so
+    // this message can land after `seed-info`; without this line `recovered` would stay false and the
+    // pill would report restored knobs as "not stored in this file". See `withRecovered`.
+    if (seedOutcome) seedOutcome = withRecovered(seedOutcome, true);
+    loadBrand(m.input as BrandInput, { kind: 'file' });
     return;
   }
   if (m.kind === 'restore-input-error') {
@@ -444,7 +506,11 @@ commit.onHostMessage((m) => {
     return;
   }
   if (m.kind === 'seed-info') {
-    seedInfo = { ok: m.ok, summary: m.summary };
+    // #722: join the TWO independent boot reads into one outcome (#721) — the rule and its ordering
+    // hazard both live in `joinSeed`/`withRecovered`, where they are testable. Neither message's
+    // arrival order matters: this reads `inputRecovered` if it is already set, and the
+    // `restore-input` handler above repairs this outcome if it is not.
+    seedOutcome = joinSeed({ present: m.present, ok: m.ok, detail: m.summary }, inputRecovered);
     if (barHost) renderBar();
   }
 });
@@ -6291,7 +6357,7 @@ function renderModeStrip(): void {
   modeStripHost.innerHTML = '';
   // Hidden, never disabled: a greyed-out switcher still claims the page has modes and just won't let
   // you use them. `currentMode` is untouched, so leaving and returning restores the mode you were in.
-  if (!firstRun && pageHasModeVaryingControl()) modeStripHost.append(renderModeContext());
+  if (!firstRun() && pageHasModeVaryingControl()) modeStripHost.append(renderModeContext());
   // A page with no bar must not leave an empty sticky box holding its own padding.
   modeStripHost.style.display = modeStripHost.childElementCount ? '' : 'none';
   syncChromeHeight();
@@ -6447,9 +6513,21 @@ let importText = '';            // M-17: survives re-renders so a failed paste i
 let importPending: BrandInput | null = null;   // #160: validated import awaiting confirm-overwrite
 let outsideBound = false;
 
-/** Replace the working brand wholesale (switch / new / import) and re-render. */
-const loadBrand = (input: BrandInput): void => {
+/** Replace the working brand wholesale (switch / new / import / host restore) and re-render.
+ *
+ *  `origin` IS REQUIRED, AND THAT IS THE ENFORCEMENT (#722, implementing #721). A fifth writer
+ *  cannot assign the working brand without saying where it came from — it fails `typecheck` at the
+ *  call site rather than passing and leaving `provenance` describing the previous load. That matters
+ *  because the failure mode is silent: a stale origin makes a genuinely-edited state read as
+ *  untouched, and the confirmation this model exists to make meaningful stops firing.
+ *
+ *  A lint script could have checked the same thing by pattern; the required parameter checks it by
+ *  construction, over every call site, with no scan to keep in scope. */
+const loadBrand = (input: BrandInput, origin: Origin): void => {
   brandState = structuredClone(input);
+  // Set from the SAME value assigned above, before any edit can land — the baseline is what was
+  // loaded, not what the state happens to hold when someone next asks.
+  provenance = provenanceOf(origin, brandState);
   brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; importPending = null;
   page = 'palettes';
   rebuild();
@@ -6551,12 +6629,44 @@ const readDesignMdFile = (file: File): Promise<{ text: string } | { error: strin
 };
 
 /** Post-setup import: validate, then STAGE for confirm-overwrite — loadBrand replaces the working
- *  brand, so we never overwrite current edits without an explicit Replace (#160). */
+ *  brand, so we never overwrite current edits without an explicit Replace (#160).
+ *
+ *  #722: THE CONFIRM IS NOW CONDITIONAL, and that is the model earning its keep. #160 prompted every
+ *  time, including over a brand loaded seconds ago with nothing typed into it — and *"This overwrites
+ *  your current edits"* was then simply false. A confirmation that fires unconditionally gets clicked
+ *  through, at which point it protects nothing on the one occasion it matters (#721). With an origin
+ *  and a baseline we can ask whether anything would actually be lost, so the prompt only appears when
+ *  it is true, and #160's guarantee is strengthened rather than weakened: it still cannot overwrite
+ *  real edits silently. */
 const stageImport = (text: string): void => {
   importText = text;              // M-17: keep the paste so an error re-render doesn't wipe it
   const res = validateDesignMd(text);
   if ('error' in res) { importErr = res.error; importPending = null; renderBar(); return; }
-  importErr = null; importPending = res.input; renderBar();
+  importErr = null;
+  if (!needsOverwriteConfirm(brandState, provenance)) {
+    // Nothing to lose — load it. Note this reads `brandState`, the LIVE state, not `lastGoodInput`:
+    // an edit that currently fails to resolve is still an edit the user would be upset to lose.
+    loadBrand(res.input, { kind: 'import', label: String(res.input.id ?? 'design.md') });
+    return;
+  }
+  importPending = res.input; renderBar();
+};
+
+/** Name the origin for user-facing copy (#722).
+ *
+ *  Recognizable terms, no jargon — "origin", "provenance" and "baseline" are OUR words for this and
+ *  belong in the code, not the UI (voice-standard §4: recognizable terms in labels, and this is
+ *  label-register text). `none` is never reached from the one call site (the confirm only appears
+ *  when the origin is not `none`) but is answered rather than asserted away, so a later caller
+ *  cannot get `undefined` in a sentence. */
+const originLabel = (o: Origin): string => {
+  switch (o.kind) {
+    case 'none': return 'this brand';
+    case 'example': return `the ${o.id} example`;
+    case 'new': return 'this new brand';
+    case 'import': return `“${o.label}”`;
+    case 'file': return 'this file’s brand';
+  }
 };
 
 const renderBrandMenu = (): HTMLElement => {
@@ -6602,7 +6712,7 @@ const renderBrandMenu = (): HTMLElement => {
     const b = el('button', 'bm-item' + (name === brandState.id ? ' cur' : '')) as HTMLButtonElement;
     const d = el('span', 'bm-dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
     b.append(d, el('span', undefined, name));
-    b.onclick = () => loadBrand(BRANDS[name]);
+    b.onclick = () => loadBrand(BRANDS[name], { kind: 'example', id: name });
     menu.append(b);
   }
 
@@ -6613,7 +6723,14 @@ const renderBrandMenu = (): HTMLElement => {
   // plugin start moment is a deferred cross-lane follow-up, so it must not surface the web start screen.
   nb.onclick = () => {
     brandMenuOpen = false;
-    if (PRISM3_HOST !== 'figma') { firstRun = true; build(); } else loadBrand(NEW_BRAND());
+    if (PRISM3_HOST !== 'figma') {
+      // #722: returning to the start moment is now an ORIGIN CHANGE — clear the origin and the start
+      // screen follows, because `firstRun()` reads it. Previously this set a flag that `loadBrand`
+      // knew nothing about, which is why re-entry looked like it needed its own path. The working
+      // brand is deliberately left in place: it is what the app renders behind the start screen.
+      provenance = noOrigin(brandState);
+      build();
+    } else loadBrand(NEW_BRAND(), { kind: 'new' });
   };
   menu.append(nb);
   const imp = el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement;
@@ -6623,11 +6740,16 @@ const renderBrandMenu = (): HTMLElement => {
   if (importOpen) {
     const box = el('div', 'bm-import');
     if (importPending) {
-      // Validated already — confirm before overwriting the working brand (#160).
-      box.append(el('p', 'bm-confirm', `Replace the current brand with “${importPending.id}”? This overwrites your current edits.`));
+      // Validated already — confirm before overwriting the working brand (#160). Reaching here now
+      // MEANS there are edits to lose (`stageImport` loads straight through when there are not), so
+      // the sentence can name what they are edits *to* instead of asserting they exist (#722).
+      box.append(el('p', 'bm-confirm', `Replace the current brand with “${importPending.id}”? Your edits to ${originLabel(provenance.origin)} are not saved anywhere else.`));
       const row = el('div', 'bm-confirm-row');
       const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
-      rep.onclick = () => { const inp = importPending!; importPending = null; loadBrand(inp); };
+      rep.onclick = () => {
+        const inp = importPending!; importPending = null;
+        loadBrand(inp, { kind: 'import', label: String(inp.id ?? 'design.md') });
+      };
       const can = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
       can.onclick = () => { importPending = null; renderBar(); };
       row.append(rep, can);
@@ -6724,6 +6846,33 @@ const componentPendingText = (): string => {
  *  bar re-renders for another reason the reference is replaced, and if it is stale the text update simply
  *  lands on a detached node while the fresh one already renders the current fraction. */
 let componentPendingEl: HTMLElement | null = null;
+
+/**
+ * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedInfo`
+ * rendered — this ticket lands the model, and where the three outcomes are properly surfaced is
+ * #533's decision (#721 is its fifth client, and its first whose status is not the result of an
+ * action the user took). No new class, no new slot, nothing for `lint:classes` to admit.
+ *
+ * What DOES change is the copy, because state 2 previously had none. "Contract holds ✓" over knobs
+ * that are the boot demo is the defect: it is true about the file and false about what the user is
+ * looking at. So the unrecoverable case says both halves, and is styled as a plain pill rather than
+ * `.bad` — #721 requires it not read as a failure.
+ */
+function renderSeedPill(o: SeedOutcome): HTMLElement {
+  if (o.state === 'error') {
+    const pill = el('span', 'bar-seed bad', o.message);
+    pill.title = o.message;   // `.bar-seed` ellipsizes at 220px; the whole message is worth reading
+    return pill;
+  }
+  if (o.state === 'absent') return el('span', 'bar-seed', 'No existing Prism3 theme in this file — start from the knobs.');
+  // state 2 — the file is ours, its knobs are not recoverable. A success with a limitation.
+  const text = isUnrecoverable(o)
+    ? `${o.detail} — knobs not stored in this file, so these are defaults`
+    : o.detail;
+  const pill = el('span', 'bar-seed' + (o.contractOk ? '' : ' bad'), text);
+  pill.title = text;
+  return pill;
+}
 
 function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'apply' | 'components'): HTMLElement {
   const noun = which === 'apply' ? 'apply' : 'component build';
@@ -6857,7 +7006,7 @@ function renderBar(): void {
       actions.append(pill);
     }
     if (applyState) actions.append(renderApplyStatus(applyState, 'apply'));
-    else if (seedInfo) actions.append(el('span', 'bar-seed' + (seedInfo.ok ? '' : ' bad'), seedInfo.summary));
+    else if (seedOutcome) actions.append(renderSeedPill(seedOutcome));
     const pending = applyState === 'pending';
     // Pending is a real state, not a cosmetic one: the write is asynchronous and, on a large file, slow
     // enough that a button which neither moves nor disables reads as broken — and a second click posts a
@@ -6953,7 +7102,12 @@ const renderStartScreen = (): HTMLElement => {
   col.append(el('h1', 'start-h', 'Start a new brand.'));
   col.append(el('p', 'start-lede', 'One brand color is enough — the engine grows a full, contrast-checked system you can steer. Pick a starting point.'));
 
-  const enter = (input: BrandInput): void => { firstRun = false; loadBrand(input); };
+  // Leaving the start screen IS choosing an origin — there is no separate `firstRun = false` to
+  // forget, because the start screen renders on `origin.kind === 'none'` and every path below hands
+  // `loadBrand` a real one. The four paths are four different origins, and keeping them distinct is
+  // what makes a later reset mean something: "back to the file" and "back to the brand I imported"
+  // are not the same destination.
+  const enter = (input: BrandInput, origin: Origin): void => loadBrand(input, origin);
 
   // Path 1 — from your color (the hero path: a single primary bootstraps everything).
   const c1 = el('div', 'start-card start-hero');
@@ -6966,7 +7120,8 @@ const renderStartScreen = (): HTMLElement => {
   swatch.oninput = () => { hexIn.value = swatch.value; };
   hexIn.oninput = () => { if (HEX.test(hexIn.value)) swatch.value = hexIn.value; };
   const go = el('button', 'start-go', 'Create theme →') as HTMLButtonElement;
-  go.onclick = () => enter(seedFromColor(HEX.test(hexIn.value) ? hexIn.value : swatch.value));
+  // A color the user typed is a brand they authored here — `new`, not an example they picked.
+  go.onclick = () => enter(seedFromColor(HEX.test(hexIn.value) ? hexIn.value : swatch.value), { kind: 'new' });
   row.append(swatch, hexIn, go);
   c1.append(row);
   col.append(c1);
@@ -6976,7 +7131,7 @@ const renderStartScreen = (): HTMLElement => {
   const t2 = el('div', 'start-c2t');
   t2.append(el('h2', 'start-ct', 'Start with a neutral default'), el('p', 'start-cd', 'An unopinionated starting theme — jump in and set your color later.'));
   const b2 = el('button', 'start-alt', 'Start blank') as HTMLButtonElement;
-  b2.onclick = () => enter(NEW_BRAND());
+  b2.onclick = () => enter(NEW_BRAND(), { kind: 'new' });
   c2.append(t2, b2);
   col.append(c2);
 
@@ -6989,7 +7144,7 @@ const renderStartScreen = (): HTMLElement => {
     const chip = el('button', 'start-chip') as HTMLButtonElement;
     const d = el('span', 'dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
     chip.append(d, el('span', undefined, name));
-    chip.onclick = () => enter(BRANDS[name]);
+    chip.onclick = () => enter(BRANDS[name], { kind: 'example', id: name });
     chips.append(chip);
   }
   c3.append(chips);
@@ -7012,7 +7167,7 @@ const renderStartScreen = (): HTMLElement => {
     if ('error' in read) { err4.textContent = read.error; return; }
     const res = validateDesignMd(read.text);
     if ('error' in res) { err4.textContent = res.error; return; }
-    enter(res.input);
+    enter(res.input, { kind: 'import', label: String(res.input.id ?? f.name) });
   };
   up4.append(el('span', undefined, '↑ Upload…'), fi4);
   c4.append(t4, up4);
@@ -7024,7 +7179,7 @@ const renderStartScreen = (): HTMLElement => {
 
 const build = (): void => {
   app.innerHTML = '';
-  if (firstRun) { app.append(renderStartScreen()); return; }   // first run: the start moment stands in for the app
+  if (firstRun()) { app.append(renderStartScreen()); return; }   // no origin yet: the start moment stands in for the app
   // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
   // the persistent mode selector. Both sticky together so the mode context never scrolls away.
   const chrome = el('header', 'chrome');
