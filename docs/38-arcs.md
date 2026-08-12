@@ -10,10 +10,28 @@
 > not an architecture one — every architectural claim here is cited from `14`, `19` or `28`
 > rather than made here.
 >
-> **Status: current plan, one open decision.** §6 names the single decision the plan waits on.
-> Issue numbers are from `19` §8's 2026-07-28 snapshot and were not re-verified when this was
-> written. **Verified 2026-08-12** (filing the arc tracking issues): 13 of 16 cited numbers were
-> unchanged. §3 Arc 5 needed a real correction — see its 2026-08-12 note.
+> **Status: §§1–3 Arcs 1–3 current; Arc 4 and §6 SUPERSEDED, 2026-08-12.** Issue numbers are from
+> `19` §8's 2026-07-28 snapshot and were not re-verified when this was written. **Verified
+> 2026-08-12** (filing the arc tracking issues): 13 of 16 cited numbers were unchanged. §3 Arc 5
+> needed a real correction — see its 2026-08-12 note.
+>
+> **What is superseded, and by what.** This file's title, §1 step 3, Arc 4 and §6 all assume
+> `19` §3's lean that web components are the neutral primary output and React a thin wrapper over
+> it. Two independent research passes (knowledge-base PR #12 and a second-model validation run,
+> both 2026-08-12) retired that lean, on the named delivery platforms' own published guidance:
+> Adobe steers new AEM projects to Edge Delivery Services, whose FAQ states *"Web Components can
+> be used in Edge Delivery Services projects, but they are not the default recommendation"*
+> (`aem.live/docs/faq`, fetched 2026-08-12), and Drupal's component story runs through Single
+> Directory Components and Twig. The ranked projections are now: **token/CSS layer → class-based
+> skin over platform markup → platform metadata (AEM Universal Editor, Drupal SDC) → React → web
+> components → native.** So Arc 4 becomes *the class-based skin projection*, unblocked, and #252
+> drops off the critical path rather than gating it.
+>
+> **Arcs 1–3 are unaffected and remain the critical path.** They are the definition layer, and
+> every projection on that list reads them — which is the property `13`'s "projection, not
+> conversion" was supposed to buy, now tested by an actual reversal of the output strategy. The
+> re-cut of Arc 4, §1 step 3, §6 and the title lands in its own PR; it is stated here rather than
+> applied so this file is discoverable now — two lanes have already been blocked looking for it.
 
 ---
 
