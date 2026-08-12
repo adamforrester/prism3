@@ -96,6 +96,46 @@ export type PaddingDef = {
   inlineVisual?: string;
 };
 
+/**
+ * HOW A PART THAT POINTS AT ANOTHER COMPONENT RELATES TO IT (#681's landed decision).
+ *
+ * Three kinds, and the split they encode is identity-vs-policy. WHICH component fills a slot is a
+ * fact about the FILE — the file's icon might be called anything — so the caller nominates it
+ * (`figmaAnatomySet`'s `swapTarget`, per #513). WHETHER that component's own variants surface on the
+ * parent is a fact about the DESIGN, true across every file and brand, so the DEF declares it. The
+ * first version of this field had the caller nominating the variant too, following `swapTarget`'s
+ * precedent; that conflated the two rows above.
+ *
+ * WHY IT IS A DEF FIELD RATHER THAN A FIGMA DETAIL. Per docs/19 §1 one definition set projects into
+ * every output, so an exposure declaration has to project into all of them: Figma gets an exposed
+ * nested-instance property, React/Web Components get a PROP, `.ai.json` gets a documented option an
+ * agent can select, Storybook gets a control. A def that cannot express exposure cannot express its
+ * own public API — which is why this is not a deferrable nicety.
+ *
+ *  · `swap`        — the whole component is replaced (an icon). Variants do not enter into it: the
+ *                    consumer picks a different component, not a different coordinate of this one.
+ *  · `nest-fixed`  — the nested component HAS variants, the parent picks one, and the consumer never
+ *                    changes it (a focus ring: which ring a normal surface gets is a design decision).
+ *                    The variant is REQUIRED here — see below for why it cannot be inherited.
+ *  · `nest-exposed`— the nested component has variants the consumer controls FROM the parent (a
+ *                    helper/validation message, a form label's sizes, a block header's title sizes).
+ *
+ * WHY `nest-fixed` MUST NAME ITS VARIANT rather than taking the nested set's default: Figma's default
+ * is its FIRST CHILD, an artifact of creation order, and that is #656 exactly one layer out. #656's
+ * finding was "an artifact of declaration order, not a layout decision" and its fix was to CHOOSE the
+ * axis instead of inheriting it. Inheriting a ring's first variant re-commits the same error, and it
+ * would be equally invisible — both variants are valid rings, so nothing downstream notices the wrong
+ * one was nested.
+ *
+ * The coordinate is a `Record` rather than a string because a set can have more than one axis, and
+ * because this is the shape the consumer API takes: Figma's `InstanceNode.setProperties` accepts
+ * exactly `{ axis: value }`.
+ */
+export type NestingRelation =
+  | { kind: 'swap' }
+  | { kind: 'nest-fixed'; variant: Record<string, string> }
+  | { kind: 'nest-exposed' };
+
 export type PartDef = {
   kind: PartKind;
   /** `target` marks the single a11y/interaction target — the node that owns the hit area,
@@ -108,7 +148,18 @@ export type PartDef = {
   gap?: string;
   height?: string;
   radius?: string;
-  /** For `slot` parts: the binding key giving the slot's square artboard size. */
+  /** ONE binding key driving BOTH axes — a square. A slot's glyph artboard, and a `box` that is square
+   *  by declaration rather than by two bindings that happen to agree.
+   *
+   *  The `box` case arrived with IconButton, which is square by definition ("height drives both
+   *  dimensions"), and it is this field rather than a new `width` beside `height` for a reason worth
+   *  stating: two independent bindings can be rebound on ONE axis and nothing anywhere notices, because
+   *  each is individually valid. `size` cannot drift from itself. So "square" is expressible as a single
+   *  fact instead of an invariant nobody checks — and the field already means exactly this for a slot,
+   *  so nothing new is being taught, only a kind added to what reads it.
+   *
+   *  MUTUALLY EXCLUSIVE with `height`, and validated so: a part declaring both is stating its height
+   *  twice, and the projection would silently keep whichever branch ran last. */
   size?: string;
   /** For `text` parts: the binding key giving the composite type style. */
   type?: string;
@@ -159,6 +210,20 @@ export type PartDef = {
    *  "the ring is shared" rather than a gap. The DECISION this encodes is that N-way duplication is
    *  the worse cost; `absolute` without `nests` is left unsupported rather than half-supported. */
   nests?: string;
+  /** How this part relates to the component it points at (#681). REQUIRED on every part that points
+   *  at one — a `slot` (whose content is swapped) and an `absolute` (which materializes AS an
+   *  instance) — and rejected on the kinds that point at nothing.
+   *
+   *  Separate from `nests` because the two answer different questions and `nests` already has an
+   *  answer: `nests` names WHICH component, this names the RELATIONSHIP to it. A `slot` has no `nests`
+   *  at all (the caller nominates its target per file), and still needs this — which is what makes
+   *  folding the two impossible rather than merely awkward.
+   *
+   *  Required rather than defaulted, and the reason is the field's own subject: a default would be
+   *  Figma's default one indirection out. `swap` is by far the commonest value, so defaulting to it
+   *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
+   *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
+  nesting?: NestingRelation;
   /** For `absolute`: the binding key giving the amount this part is inset OUTWARD from its parent's
    *  bounds on every side. The focus ring's `focus.ring.offset` — a ring at offset 2 sits 2px outside
    *  the target on each side, so a materializer positions it at `-inset` and sizes it
@@ -788,6 +853,52 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'inset' — only an 'absolute' part sits outside the flow to be inset from it`);
     if (p.kind !== 'absolute' && p.nests !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' part materializes as an instance of another component`);
+    // ---- the nesting relation (#681) ----
+    // The three kinds that POINT AT another component must declare how they relate to it; the two
+    // that point at nothing must not. `slot` is in the required set even though it carries no
+    // `nests` — its target is nominated per file by the caller (#513), and the RELATIONSHIP to that
+    // target is still the def's to state.
+    //
+    // `overlay` IS in the set, and that is read off the projection rather than assumed from the name:
+    // `anatomy-figma.ts` types an overlay `INSTANCE_SWAP` and hands it the same `swapTarget` a slot
+    // gets, because a spinner is a glyph standing in a glyph's cell. Deciding this from the kind's
+    // PROSE ("occupies another part's position") would have left the one part in Button's anatomy that
+    // is already swap-materialized out of the field that describes swapping.
+    const pointsAtComponent = p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'absolute';
+    if (pointsAtComponent && !p.nesting)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares no 'nesting' relation — a part pointing at another component must say whether it is a 'swap', a 'nest-fixed' (naming the variant) or a 'nest-exposed' (#681). Omitted, the nested component's FIRST variant is nested by default, which is #656's inherit-instead-of-choose error one layer out and equally invisible`);
+    if (!pointsAtComponent && p.nesting)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares a 'nesting' relation — only a 'slot'/'overlay' (whose content is swapped) or an 'absolute' (which materializes as an instance) points at another component`);
+    // A `swap` REPLACES the whole component, so a variant coordinate on it has nothing to address: the
+    // consumer picks a different component rather than a different coordinate of this one. Rejecting it
+    // rather than ignoring it, for the same reason `absolute` rejects `size` — a def author who wrote
+    // one would reasonably believe it took effect.
+    if (p.nesting?.kind === 'nest-fixed' && !Object.keys(p.nesting.variant).length)
+      e.push(`anatomy part '${n}' declares nesting 'nest-fixed' with an empty variant — the whole point of 'fixed' is that the def picks the coordinate rather than inheriting the nested set's first child (#656)`);
+    // An `absolute` part cannot be a `swap`: it materializes as an INSTANCE of the component `nests`
+    // names, and a swap is the caller nominating a target per file. The two are different
+    // materialization paths, and `NESTED_INSTANCE` is the one this kind takes.
+    if (p.kind === 'absolute' && p.nesting?.kind === 'swap')
+      e.push(`anatomy part '${n}' is kind 'absolute' but declares nesting 'swap' — an absolute part materializes as an instance of the component 'nests' names, so its relation is 'nest-fixed' or 'nest-exposed'; 'swap' is for a slot whose target the caller nominates per file`);
+    // And the mirror: a `slot`/`overlay`'s content is swapped by definition — that IS the INSTANCE_SWAP
+    // property. One declaring a nest relation would be claiming its content is fixed while the property
+    // that drives it exists to let a designer change it.
+    if ((p.kind === 'slot' || p.kind === 'overlay') && p.nesting && p.nesting.kind !== 'swap')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares nesting '${p.nesting.kind}' — its content IS swappable (that is what the INSTANCE_SWAP property does), so its relation is 'swap'`);
+    // `size` and `height` both drive the height axis, so declaring both states it twice and the
+    // projection keeps whichever branch runs last. Checked for every kind, not just `box`: an
+    // `absolute` already rejects `size` outright above, and a `slot`/`overlay` has never had a
+    // `height` — so this is the rule those two are special cases of.
+    if (p.size && p.height)
+      e.push(`anatomy part '${n}' binds both 'size' and 'height' — both drive the height axis, so one of them is silently discarded; a square part declares 'size' alone`);
+    // A square box's height comes from a bound variable, so the cross axis must be FIXED for the same
+    // reason a fixed-height row's is — `hug` on that axis lets the content decide and the binding is
+    // then fighting the layout. Caught here rather than at paste: the symptom is a control that is
+    // square at one size and not at another, depending on what its glyph happens to measure.
+    if (p.kind === 'box' && p.size && p.layout && p.layout.sizing.y !== 'fixed')
+      e.push(`anatomy part '${n}' is a square box (binds 'size') but its cross-axis sizing is '${p.layout.sizing.y}' — a bound dimension needs 'fixed', or the content decides the height and the binding is overridden`);
+    if (p.kind === 'box' && p.size && p.layout && p.layout.sizing.x !== 'fixed')
+      e.push(`anatomy part '${n}' is a square box (binds 'size') but its main-axis sizing is '${p.layout.sizing.x}' — a square binds BOTH axes, so 'hug' on the main axis would let the content widen it out of square`);
     if (p.kind === 'box' && !p.layout && (p.children ?? []).length > 0)
       e.push(`anatomy part '${n}' is a box with children but no layout — a materializer has no direction to apply`);
     if (p.kind === 'text' && !p.type) e.push(`anatomy part '${n}' is text but binds no type style`);

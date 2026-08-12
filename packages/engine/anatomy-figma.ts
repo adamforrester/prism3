@@ -172,6 +172,23 @@ export type AnatomyPlan = {
   component: string;
   size: string;
   slots: { leading: boolean; trailing: boolean };
+  /** WHICH of the two slots are real Figma AXES — `figmaProperties.slotAxes` names, carried onto the
+   *  plan for the same reason `gridAxis` is (`planComponentName` and `planSetLayout` receive plans,
+   *  never the def).
+   *
+   *  It exists because the member NAME is a wire format, not a label: `combineAsVariants` derives a
+   *  set's properties from its members' names, so a coordinate in the name IS a property in the
+   *  designer's panel. `slots` alone cannot answer whether to write one — `leading: false` is both
+   *  "this member has no leading visual" (Button, where the two values are two real boxes per #326)
+   *  and "this component has no such slot at all" (IconButton, whose icon is required). Emitting it
+   *  unconditionally made those identical, and gave IconButton's set two single-valued phantom
+   *  properties: a def declaring FOUR axes projecting a set carrying SIX.
+   *
+   *  Found by the axis-parity gate (`figmaAxisNames` vs the axes a real name emits), which is the
+   *  189-vs-756 defect in the mirror direction — there the emitter carried axes the declaration did
+   *  not, here the declaration was right and the emitter added two. Same gate, both directions,
+   *  because it compares a declaration against a parsed name rather than against another count. */
+  slotAxes: string[];
   /** Where in the variant grid this plan sits — `{}` for a structure-only plan. Carried so the
    *  payload can name the component after its own coordinate, and so a gate can tell a plan that
    *  legitimately has no paints from one that dropped them. */
@@ -397,6 +414,12 @@ export const figmaAnatomyPlan = (
     if (p.kind === 'box') {
       if (p.gap) bound.itemSpacing = varOf(p.gap);
       if (p.height) bound.height = varOf(p.height);
+      // A SQUARE box binds one key to both axes (IconButton's control). The same two-axes-one-variable
+      // shape a slot's artboard uses, and legal for the same reason — the executor unlocks the node's
+      // aspect ratio before binding, so the second write does not displace the first. Mutually exclusive
+      // with `height` (the validator enforces it), so this is an else-if in effect rather than a second
+      // chance to set the same property.
+      if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
       if (p.radius) for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radius);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
@@ -522,6 +545,9 @@ export const figmaAnatomyPlan = (
     component: def.id,
     size,
     slots: { leading, trailing },
+    // Read off the DEF, which is the only thing that knows the difference between a slot that is
+    // absent on this member and a slot the component does not have. See `AnatomyPlan.slotAxes`.
+    slotAxes: (def.figmaProperties?.slotAxes ?? []).map((s) => s.name),
     coord,
     root: node(a.root, a.parts[a.root]),
     codeOnly: [...a.codeOnly],
@@ -736,6 +762,15 @@ export const planBindingErrors = (
  * Slot fill stays a BOOLEAN-ish axis (`leading=true`) because #326's asymmetric padding makes slot
  * presence a real variant rather than a toggle — #487 §4, and the reason a boolean property cannot
  * carry it.
+ *
+ * BUT ONLY FOR A COMPONENT THAT HAS THAT SLOT AS AN AXIS (#712). This used to write both coordinates
+ * unconditionally, on the reasoning that a constant coordinate is harmless — every member carries the
+ * same value, so it costs a name segment and no grid dimension. That reasoning holds for the LAYOUT
+ * and fails for the NAME, because the name is what `combineAsVariants` reads: a coordinate in it
+ * becomes a property in the designer's panel whether it varies or not. IconButton's icon is required,
+ * so it declares no slot axes at all — and its set came back with two single-valued phantom
+ * properties, a def declaring FOUR axes projecting a set carrying SIX. Caught by the axis-parity gate,
+ * which is #487 §5's 189-vs-756 shape running in the other direction.
  */
 export const planComponentName = (plan: AnatomyPlan): string =>
   [
@@ -743,8 +778,8 @@ export const planComponentName = (plan: AnatomyPlan): string =>
     ...(plan.coord.appearance ? [`appearance=${plan.coord.appearance}`] : []),
     `size=${plan.size}`,
     ...(plan.coord.state ? [`state=${plan.coord.state}`] : []),
-    `leading=${plan.slots.leading}`,
-    `trailing=${plan.slots.trailing}`,
+    ...(plan.slotAxes.includes('leading') ? [`leading=${plan.slots.leading}`] : []),
+    ...(plan.slotAxes.includes('trailing') ? [`trailing=${plan.slots.trailing}`] : []),
   ].join(', ');
 
 /**
