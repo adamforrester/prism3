@@ -7,6 +7,44 @@
 
 ---
 
+## (2026-08-12) — Three lanes lost the same race in one day, and none of them could see it (CLAUDE.md)
+
+**STATUS: docs only.** One paragraph in `CLAUDE.md`, beside the worktree hazards. No engine change,
+no emitted artifact, no gate. `regen --check` still 104.
+
+**The three, in the order they happened.** A `--force-with-lease` rejected as stale on
+`claude/706-tokenpress-typecheck` after another session had rebased and force-pushed it. The
+TokenPress lane's first push on #747's pointer work **recreated** a branch that had been
+squash-merged mid-task, instead of updating its open PR. And the emitter lane pushed a correction
+to #734 four minutes after it merged, where the merge had taken a rewritten copy of the earlier
+commit — so `5208b0e` was orphaned, the PR body carried the correction and `main` did not
+(`grep -c "SCOPE CORRECTION" origin/main:docs/00-progress.md` returned 0). Recovered as #749.
+
+**One mechanism under all three: squash-merge rewrites the SHA, so a merged branch is not
+recognizable as merged from its own history.** Every tool that answers "has this landed" by
+identity — `--force-with-lease`, an ancestry check, a tracking ref — is answering a question about
+bookkeeping while the contributor is asking a question about work. The lease is the sharpest case:
+it reads the *tracking ref*, which goes stale the moment the remote branch is deleted after merge,
+so it rejects loudly and proves nothing.
+
+**Why it is worth a CLAUDE.md paragraph rather than three progress entries.** Each lane diagnosed
+its own instance correctly and wrote a good local lesson. None could see it was the third, because
+nothing holds the cross-lane view — which is the same reason the repo's most-repeated gate defect
+went uncaught for so long. A hazard that recurs across independent agents in one day is a property
+of the workflow, not of the agents.
+
+**The two rules recorded.** Once a branch is up for review, land a correction as a **follow-up PR**
+rather than a push to it — the emitter lane's own conclusion, and it generalizes past their case.
+And before pushing to a branch untouched for an hour, **compare trees, never SHAs**:
+`git log --oneline origin/main..<branch>` plus `git diff origin/main <branch>`. If the work is
+already in, reset onto `origin/main` and start the follow-up there.
+
+**Trap for whoever reads this next.** The rule says compare *content*. Resist the instinct to
+replace it with an ancestry check or a `git branch --merged` — those are exactly the identity
+tests squash-merge defeats, and they will report a merged branch as unmerged with total confidence.
+
+---
+
 ## (2026-08-12) — `27` Idea 2's AEM Phase 1 aims at the path Adobe stopped recommending (docs/27, 13)
 
 **STATUS: docs only.** Two annotations. No engine change, no emitted artifact, no gate. `regen
