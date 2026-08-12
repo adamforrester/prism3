@@ -348,12 +348,17 @@ const makeShim = (opts: ShimOpts = {}) => {
           name, id: `73:${37 + i}`,
           createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; inst.findOne = () => null; return inst; },
         });
-        const found: { name: string; id: string; createInstance: () => Node }[] = [];
+        const found: { name: string; id: string; createInstance: () => Node; children?: { name: string }[] }[] = [];
         let seq = 0;
         for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mkRef(name, seq++));
         for (const fn of opts.fileNodes ?? []) {
           if (fn.type === 'COMPONENT_SET') {
-            if (types.includes('COMPONENT_SET')) found.push(mkRef(fn.name, seq++));
+            // The SET, carrying its `children` — which is the only thing a `nest-fixed` resolution reads,
+            // and was missing here until #681's consumer side. Without it the executor could FIND the set
+            // and then see an empty member list, so every coordinate reported the fifth miss and the
+            // success path was unreachable while looking exercised: the assertions about a wrong
+            // coordinate would all have passed against a shim that had no right answer to give.
+            if (types.includes('COMPONENT_SET')) found.push({ ...mkRef(fn.name, seq++), children: fn.variants.map((v) => ({ name: v })) });
             // The members, under their variant coordinates — the names a COMPONENT search really returns.
             if (types.includes('COMPONENT')) for (const v of fn.variants) found.push(mkRef(v, seq++));
           } else if (types.includes(fn.type)) found.push(mkRef(fn.name, seq++));
@@ -1110,13 +1115,44 @@ ok(Number.isInteger(CHUNK) && CHUNK > 1 && CHUNK < 200, `CHUNK is a plausible ch
 // PR could not leave this file claiming the old behavior. The executor now runs a second, name-based
 // search on the failure path only and reports through the shared `nestMissAdvice`.
 //
-// STILL DELIBERATELY NOT DECIDED: the set-resolution policy. Nothing here nests a variant of a set, and
-// the message stops at naming what it found and what to do — which variant, and whether that is exposed
-// per instance, is the owner's call, flagged on #681. A wrong ring that builds looks like success.
+// NOW DECIDED, and this is what changed under these assertions (#681's consumer side). A part declaring
+// `nesting: nest-fixed` names a variant COORDINATE, `component-schema.ts` carries it, the plan projects it
+// as `nestVariant`, and both executors resolve it to a MEMBER of the set and nest that. So a set is no
+// longer a dead end — which means the four-way table below no longer reaches its own COMPONENT_SET row
+// through these plans: `button`'s ring part names `color=default`, so a file holding a set gets RESOLVED
+// (or gets the fifth miss) and never the "found a COMPONENT_SET" sentence.
+//
+// The row is still reachable, and still worth gating, for the case that is now its only one: a def that
+// named NO coordinate — `nest-exposed`, whose coordinate is the consumer's to drive per instance and which
+// needs an exposed nested property this write does not create yet. So the table below is driven by plans
+// with the coordinate STRIPPED, and the resolution cases get their own block after it. Two blocks rather
+// than one widened one, because they are two different questions: what the message says when the def chose
+// nothing, and what gets built when it chose.
+//
+// WHAT DID NOT CHANGE: nothing is nested by guess. The fifth miss drops the ring exactly as these four do.
 
 const NEST = 'focus-ring';
 const withoutRing = full().comps!.filter((c) => c !== NEST);
-/** The three files, differing ONLY in what they hold under the name `focus-ring`. */
+
+/**
+ * The same plans with every `nestVariant` REMOVED — a `nest-exposed` part's projection.
+ *
+ * Derived from the real plans rather than hand-built for the reason `full()` derives its variables: a
+ * hand-built tree stops resembling the def the moment a part changes, and this block would keep passing
+ * against a shape the engine no longer emits. Stripping models the one difference that matters here —
+ * `figmaAnatomyPlan` omits `nestVariant` for anything that is not `nest-fixed`, so this is that omission
+ * applied to a tree whose every other field is exactly what the engine produced.
+ */
+const withoutCoordinate = (plans: AnatomyPlan[]): AnatomyPlan[] => {
+  const strip = (n: Record<string, unknown>): Record<string, unknown> => {
+    const { nestVariant: _dropped, ...rest } = n as { nestVariant?: unknown };
+    return { ...rest, children: ((n.children ?? []) as Record<string, unknown>[]).map(strip) };
+  };
+  return plans.map((p) => ({ ...p, root: strip(p.root as unknown as Record<string, unknown>) })) as unknown as AnatomyPlan[];
+};
+const gridNoCoord = withoutCoordinate(grid);
+
+/** The four files, differing ONLY in what they hold under the name `focus-ring`. */
 const nestCases: { label: string; opts: ShimOpts }[] = [
   { label: 'nothing of that name', opts: { ...full(), comps: withoutRing } },
   { label: 'a COMPONENT_SET', opts: { ...full(), comps: withoutRing, fileNodes: [{ name: NEST, type: 'COMPONENT_SET', variants: ['state=default', 'state=error'] }] } },
@@ -1144,11 +1180,23 @@ const setSearched = setApi.root.findAllWithCriteria({ types: ['COMPONENT'] }).ma
 ok(setSearched.includes('state=default') && setSearched.includes('state=error'),
   `#681 reachable: the set's MEMBERS come back under their variant coordinates (${setSearched.filter((n) => n.indexOf('state=') === 0).join(', ')})`);
 
+// And the STRIPPER really stripped — asserted in both directions, because a `withoutCoordinate` that
+// silently did nothing would drive this whole table with `nest-fixed` plans, resolve the set, and report
+// four vacuous passes. The positive half is what makes the negative half mean something: the real plans
+// DO carry a coordinate, so its absence below is this function's work and not the def's.
+const coordCount = (plans: AnatomyPlan[]): number => {
+  const walk = (n: Record<string, unknown>): number =>
+    (n.nestVariant ? 1 : 0) + ((n.children ?? []) as Record<string, unknown>[]).reduce((a, k) => a + walk(k), 0);
+  return plans.reduce((a, p) => a + walk(p.root as unknown as Record<string, unknown>), 0);
+};
+ok(coordCount(grid) > 0, `#681 reachable: the real plans DO project a nestVariant coordinate (${coordCount(grid)} parts)`);
+ok(coordCount(gridNoCoord) === 0, `#681 reachable: the stripped plans project NONE — the four-way table below is really driven by a nest-exposed shape (${coordCount(gridNoCoord)})`);
+
 // ---- the four runs, and the miss each one reports ---------------------------------------------
 const nestMiss = (misses: string[]): string | undefined => misses.find((m) => m.indexOf(`nestTarget -> ${NEST}`) >= 0);
 const nestResults: { label: string; miss: string | undefined; built: number }[] = [];
 for (const c of nestCases) {
-  const r = await run(grid, { ...c.opts, page: { children: [] } });
+  const r = await run(gridNoCoord, { ...c.opts, page: { children: [] } });
   nestResults.push({ label: c.label, miss: nestMiss(r.misses), built: r.variants });
 }
 // The ABSENT case was the one row of #681's table the old message got right, so it was a positive
@@ -1184,13 +1232,82 @@ ok(nestResults[2].miss !== nestResults[0].miss,
 // And the ADVICE differs, not merely the diagnosis: the set case points at nesting a variant, the instance
 // case at nesting the main. A message that named the type but gave one generic instruction would pass
 // every assertion above.
-ok(nestResults[1].miss!.indexOf('nest a specific variant') >= 0 && nestResults[2].miss!.indexOf('main component') >= 0,
-  '#681 each case carries the action for THAT case, not one generic instruction');
+// The SET's advice moved when resolution landed (#681): it used to say "nest a specific variant", which
+// was advice about a capability that did not exist. Reaching this row now means the def named no
+// coordinate, so the action is to name one — or to publish a single variant as its own component.
+ok(nestResults[1].miss!.indexOf('nest-fixed') >= 0 && nestResults[2].miss!.indexOf('main component') >= 0,
+  `#681 each case carries the action for THAT case, not one generic instruction — set: ${nestResults[1].miss}`);
 // THE POLICY BOUNDARY, asserted: diagnosis only. Every case still drops the ring rather than guessing a
 // variant to nest, because a wrong ring that builds looks like success. This is what must not change
 // without the owner's decision on #681.
 ok(nestResults.slice(1).every((r) => r.built === 21 && r.miss !== undefined),
   '#681 no case silently nests a substitute — each reports and drops the ring, which is the policy #681 leaves to the owner');
+
+// ---- #681 RESOLUTION: the def named a coordinate, so a MEMBER gets nested -----------------------
+// The other half of #681, and the half the four cases above cannot reach. `button`'s ring part declares
+// `nesting: { kind: 'nest-fixed', variant: { color: 'default' } }`, the plan projects that as
+// `nestVariant`, and this executor resolves it against the set's members instead of reporting.
+//
+// Driven by `grid` — the REAL plans, coordinate included — where the table above needed `gridNoCoord`.
+// Both fixtures exist for that reason: one file state means two different things depending on whether the
+// def chose, and one plan cannot exercise both readings.
+//
+// Gated here AND on the paste path in `packages/engine/test.ts` because the two executors reach the same
+// behavior by different mechanisms — this one imports `nestVariantMatch`, the payload interpolates its
+// SOURCE and calls it in the file. A single gate could pass while the other path was silently wrong.
+const ringSetRun = async (variants: string[]) => {
+  const page: Page = { children: [] };
+  const r = await run(grid, {
+    ...full(), comps: withoutRing,
+    fileNodes: [{ name: NEST, type: 'COMPONENT_SET', variants }], page,
+  });
+  return {
+    miss: r.misses.find((m) => m.indexOf('focusRing.nest') >= 0),
+    built: r.variants,
+    // Whether ring nodes exist in what was actually BUILT — the only evidence a member was instantiated.
+    // An empty `misses` proves nothing on its own: an executor that silently skipped the ring reports
+    // nothing either, which is exactly the difference between resolution and a quiet drop.
+    //
+    // Walked to full depth rather than one level down, because the page holds the SET, the set holds the
+    // members, and the ring is a child of a member — three levels. A one-level scan reads 0 on a correct
+    // run, and measured that way this assertion failed against a working executor.
+    rings: ((): number => {
+      const walk = (n: { name?: string; children?: unknown[] }): number =>
+        (n.name === 'focusRing' ? 1 : 0)
+        + ((n.children ?? []) as { name?: string; children?: unknown[] }[]).reduce((a, k) => a + walk(k), 0);
+      return (page.children as unknown as { name?: string; children?: unknown[] }[]).reduce((a, c) => a + walk(c), 0);
+    })(),
+  };
+};
+
+// THE SUCCESS CASE. The set carries `color=default`, so the member is nested and no miss is reported.
+const resolvedRun = await ringSetRun(['color=default', 'color=inverse']);
+ok(resolvedRun.miss === undefined && resolvedRun.rings > 0 && resolvedRun.built === 21,
+  `#681 a coordinate the set CARRIES resolves, and the member is nested — ${resolvedRun.rings} ring nodes built, no miss (${resolvedRun.miss ?? 'none'})`);
+
+// THE FIFTH MISS, wrong coordinate. Members exist and none carries `color=default`; the tempting behavior
+// is to nest the first child, which is #656. Nothing is built, and the message names the coordinate AND
+// the members — a rename in the file and a typo in the def produce the same lookup failure and different
+// fixes, so a message carrying only one of the two is unactionable.
+const wrongRun = await ringSetRun(['color=brand', 'color=inverse']);
+ok(wrongRun.miss !== undefined && wrongRun.miss.indexOf('no member matching color=default') >= 0
+  && wrongRun.miss.indexOf('color=brand') >= 0 && wrongRun.rings === 0 && wrongRun.built === 21,
+  `#681 a coordinate the set does NOT carry reports the fifth miss, names the coordinate and the members, and nests nothing (${wrongRun.miss})`);
+
+// THE FIFTH MISS, UNDER-SPECIFIED. `{color:'default'}` against a color×size set would match two members,
+// and every rule for choosing between them reduces to creation order — #656 one layer in from where
+// `nesting` was added to stop it. Refused rather than resolved, and the printed members are what show the
+// designer which axis the def forgot.
+const ambiguousRun = await ringSetRun(['color=default, size=md', 'color=default, size=lg']);
+ok(ambiguousRun.miss !== undefined && ambiguousRun.miss.indexOf('no member matching color=default') >= 0
+  && ambiguousRun.miss.indexOf('size=lg') >= 0 && ambiguousRun.rings === 0,
+  `#681 an UNDER-SPECIFIED coordinate is refused rather than resolved by creation order, and the members show the missing axis (${ambiguousRun.miss})`);
+
+// AND THE FIFTH MISS IS A DIFFERENT SENTENCE from the four above — it diagnoses the DEF where they
+// diagnose the FILE, and the remedy points the opposite way (edit the coordinate, not the document). One
+// message covering both would be the state #681 started in, at a different address.
+ok(wrongRun.miss !== nestResults[1].miss && (wrongRun.miss ?? '').indexOf('nestVariant ->') >= 0,
+  '#681 the fifth miss is distinguishable from the four file-state messages, and is reported against nestVariant rather than nestTarget');
 
 // =============================================================================================
 // #680 — FIGMA'S FONT-LOADED STATE, NOW MODELLED. The components lane already loads; it does not degrade.

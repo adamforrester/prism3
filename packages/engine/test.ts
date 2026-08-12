@@ -41,7 +41,7 @@ import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransform
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -6665,16 +6665,40 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // `id` as well as `name`, because an INSTANCE_SWAP property's default must be a node ID —
         // the component key, `''`, `null` and `undefined` are all refused by the live API.
         root: {
-          // The CRITERIA search: components only. A COMPONENT_SET contributes its CHILDREN under their
-          // variant coordinates and never its own name — which is #681 exactly, and why a `focus-ring`
-          // sitting in the file was reported absent.
-          findAllWithCriteria: () => [
-            ...(opts.comps ?? []),
-            ...(opts.fileNodes ?? []).flatMap((f) => (f.type === 'COMPONENT_SET' ? f.variants ?? [] : [])),
-          ].map((name, i) => ({
-            name, id: `73:${37 + i}`,
-            createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
-          })),
+          // The CRITERIA search, and it HONORS its criteria (#681's consumer side). It used to ignore
+          // them and return every entry as a bare component, which was adequate while one caller asked
+          // one question; now the payload asks twice — `['COMPONENT']` for what it instantiates and
+          // `['COMPONENT_SET']` for what it resolves a member out of — and a stub that answers both with
+          // the same list makes the two indistinguishable. Then the set-resolution path would read a map
+          // that already held the set under `types:['COMPONENT']`, i.e. it would pass against a Figma
+          // that does not exist, which is the defect this stub was corrected FOR in the first place.
+          //
+          // A COMPONENT_SET still contributes its CHILDREN under their variant coordinates to a COMPONENT
+          // search and never its own name — that asymmetry IS #681, and why a `focus-ring` sitting in the
+          // file was reported absent. Under a COMPONENT_SET search it contributes its own name, carrying
+          // `children`: the member names are what a `nest-fixed` coordinate is matched against, so a set
+          // without them can only ever report the fifth miss and the success path is unreachable.
+          //
+          // Mirrors `test-write-components.ts`'s shim deliberately, per the note on this function: the
+          // parity gate drives both executors against this one host model, so a stub modelling a
+          // different Figma from the plugin's would turn that comparison into a comparison of stubs.
+          findAllWithCriteria: (criteria?: { types?: string[] }) => {
+            const types = criteria?.types ?? ['COMPONENT'];
+            const mk = (name: string, i: number) => ({
+              name, id: `73:${37 + i}`,
+              createInstance: () => { const inst = mkNode('INSTANCE'); const vec = mkNode('VECTOR'); inst.findAll = () => [vec]; return inst; },
+            });
+            const found: Record<string, unknown>[] = [];
+            let seq = 0;
+            for (const name of opts.comps ?? []) if (types.includes('COMPONENT')) found.push(mk(name, seq++));
+            for (const f of opts.fileNodes ?? []) {
+              if (f.type === 'COMPONENT_SET') {
+                if (types.includes('COMPONENT_SET')) found.push({ ...mk(f.name, seq++), children: (f.variants ?? []).map((v) => ({ name: v })) });
+                if (types.includes('COMPONENT')) for (const v of f.variants ?? []) found.push(mk(v, seq++));
+              } else if (types.includes(f.type)) found.push(mk(f.name, seq++));
+            }
+            return found;
+          },
           // The NAME search, every type — what the payload's diagnostic pass asks on the failure path
           // (#681). A different question from the one above, and the whole reason the miss can now name
           // what it found, so the stub has to be able to answer both differently.
@@ -6910,8 +6934,38 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // different mechanisms — the plugin imports `nestMissAdvice`, the payload interpolates it at emit
       // time — so one gate could pass while the other path was silently wrong. The shared function is what
       // keeps the WORDING from drifting; these are what keep the BEHAVIOR from drifting.
+      // DRIVEN BY A COORDINATE-FREE PAYLOAD (#681's consumer side). Since the plan now projects
+      // `nestVariant` for a `nest-fixed` part and both executors RESOLVE it, a file holding a set no longer
+      // reaches the four-way table's COMPONENT_SET row through button's real plan — it resolves, or it
+      // reports the fifth miss. That row's only remaining case is a def that named NO coordinate
+      // (`nest-exposed`), so this table is built from a payload emitted with the coordinate stripped, and
+      // the resolution cases get their own block below. Two questions, two fixtures.
+      //
+      // Stripped from the PLAN before emitting, not string-edited out of the payload: `planToPluginJs`
+      // serializes the plan tree into the payload, so removing the field upstream produces exactly the
+      // payload a `nest-exposed` part would emit, rather than a payload with a hole cut in it.
+      const stripCoord = (n: Record<string, unknown>): Record<string, unknown> => {
+        const { nestVariant: _dropped, ...rest } = n as { nestVariant?: unknown };
+        return { ...rest, children: ((n.children ?? []) as Record<string, unknown>[]).map(stripCoord) };
+      };
+      const ringNoCoordJs = planToPluginJs({ ...ring, root: stripCoord(ring.root as unknown as Record<string, unknown>) } as unknown as typeof ring);
+      // The strip really stripped, both directions — a no-op `stripCoord` would drive this table with the
+      // resolving payload and report four vacuous passes. The positive half is what gives the negative one
+      // meaning: the real payload DOES carry the coordinate, so its absence here is this function's work.
+      //
+      // Read off the SERIALIZED PLAN LINE, not the whole payload. A whole-payload grep for `nestVariant`
+      // matches the executor's own `n.nestVariant` reads, which are present in every payload by
+      // construction — so it answers "does this payload contain the resolution code", a question whose
+      // answer is always yes, instead of "did this plan declare a coordinate". Measured: it reported the
+      // stripped payload as still carrying one, which is the assertion catching its own instrument.
+      const planLine = (js: string) => js.split('\n').find((l) => l.startsWith('const PLAN=')) ?? '';
+      ok(planLine(ringJs).indexOf('nestVariant') >= 0,
+        'anatomy/ring #681 reachable: the real plan projects a nestVariant coordinate into the payload');
+      ok(planLine(ringNoCoordJs).indexOf('nestVariant') < 0 && planLine(ringNoCoordJs).length > 0,
+        `anatomy/ring #681 reachable: the stripped plan projects none — the four-way table below is really driven by a nest-exposed shape (${planLine(ringNoCoordJs).length} B plan line)`);
+
       const ringFound = async (node: StubFileNode | undefined): Promise<string> => {
-        const r = await runPayload(ringJs, { ...ringOpts, comps: ['FPO-default-icon'], fileNodes: node ? [node] : [] });
+        const r = await runPayload(ringNoCoordJs, { ...ringOpts, comps: ['FPO-default-icon'], fileNodes: node ? [node] : [] });
         return r.misses.find((m) => m.indexOf('focusRing.nestTarget') >= 0) ?? '(no miss reported)';
       };
       const asSet = await ringFound({ name: 'focus-ring', type: 'COMPONENT_SET', variants: ['state=default', 'state=error'] });
@@ -6925,19 +6979,99 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `anatomy/ring #681 reachable: a COMPONENT search returns the set's MEMBERS and not the set (${JSON.stringify(criteriaNames)})`);
       ok(new Set([asSet, asInstance, asFrame, absent]).size === 4,
         `anatomy/ring #681: four file states, four DISTINCT messages — the miss names what was found rather than always claiming absence`);
-      ok(asSet.indexOf('COMPONENT_SET') >= 0 && asSet.indexOf('not in this file') < 0,
-        `anatomy/ring #681: a SET is named as one, not called absent (${asSet})`);
+      // The SET's wording moved with resolution (#681): it used to advise nesting a specific variant, which
+      // named a capability that did not exist. Reaching this row now means the def named no coordinate, so
+      // the action is to name one.
+      ok(asSet.indexOf('COMPONENT_SET') >= 0 && asSet.indexOf('not in this file') < 0 && asSet.indexOf('nest-fixed') >= 0,
+        `anatomy/ring #681: a SET is named as one, not called absent, and the advice is to name a coordinate (${asSet})`);
       ok(asInstance.indexOf('INSTANCE') >= 0 && asInstance.indexOf('main component') >= 0,
         `anatomy/ring #681: an INSTANCE — what duplicating a variant out of a set produces — is named, and pointed at the main (${asInstance})`);
       ok(asFrame.indexOf('not a component') >= 0, `anatomy/ring #681: a FRAME of that name is named as not-a-component (${asFrame})`);
       ok(absent.indexOf('not in this file') >= 0, `anatomy/ring #681: the genuinely absent case keeps its original message verbatim (${absent})`);
-      // And the payload still DROPS the ring in all four cases rather than nesting a guess. Diagnosis only:
-      // which variant of a set to nest is #681's open policy question, left to the owner.
+      // And the payload still DROPS the ring in all four cases rather than nesting a guess. Diagnosis only
+      // for a def that chose nothing — what a def that DID choose gets is the block after this one.
       const setPage: StubPage = { children: [] };
-      await runPayload(ringJs, { ...ringOpts, comps: ['FPO-default-icon'], fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants: ['state=default'] }], page: setPage });
+      await runPayload(ringNoCoordJs, { ...ringOpts, comps: ['FPO-default-icon'], fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants: ['state=default'] }], page: setPage });
       const setKids = ((setPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).map((c) => c.name);
       ok(!setKids.includes('focusRing') && setKids.includes('label'),
         `anatomy/ring #681: a SET of that name still builds NOTHING in the ring's place — the message diagnoses, it does not substitute a variant (${JSON.stringify(setKids)})`);
+
+      // ---- #681 RESOLUTION: the def named a coordinate, so the payload nests a MEMBER ------------
+      // The other half of #681, and the half the four cases above cannot reach: a `nest-fixed` part names a
+      // variant coordinate, and the executor resolves it against the set's members instead of reporting.
+      // `button`'s ring part names `{ color: 'default' }`, so a set whose members carry that coordinate is
+      // the success case and everything else is the fifth miss.
+      //
+      // Driven by `ringJs` — the REAL payload, coordinate included — where the block above needed the
+      // stripped one. Which is the reason both fixtures exist: the same file state means two different
+      // things depending on whether the def chose, and one payload cannot exercise both readings.
+      const ringSet = async (variants: string[], page?: StubPage): Promise<{ miss: string; kids: string[] }> => {
+        const p = page ?? { children: [] };
+        const r = await runPayload(ringJs, {
+          ...ringOpts, comps: ['FPO-default-icon'],
+          fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants }], page: p,
+        });
+        const root = p.children[0] as Record<string, unknown> | undefined;
+        return {
+          miss: r.misses.find((m) => m.indexOf('focusRing.nest') >= 0) ?? '(no miss reported)',
+          kids: (((root?.children as Record<string, unknown>[]) ?? [])).map((c) => c.name as string),
+        };
+      };
+
+      // THE SUCCESS CASE, and it is asserted on the BUILT TREE rather than on an empty `misses` — a payload
+      // that silently skipped the ring reports nothing either. The ring node being present is the only
+      // evidence that a member was instantiated.
+      const resolved = await ringSet(['color=default', 'color=inverse']);
+      ok(resolved.miss === '(no miss reported)' && resolved.kids.includes('focusRing'),
+        `anatomy/ring #681: a coordinate the set CARRIES resolves, and the member is nested — the ring node exists (${JSON.stringify(resolved.kids)}, miss: ${resolved.miss})`);
+
+      // THE FIFTH MISS, wrong coordinate: members exist, none carries `color=default`. The tempting
+      // behavior here is to nest the first child, which is #656 — so nothing is built, and the message
+      // names both the coordinate asked for and the members present, because either alone is unactionable.
+      const wrongCoord = await ringSet(['color=brand', 'color=inverse']);
+      ok(wrongCoord.miss.indexOf('no member matching color=default') >= 0
+        && wrongCoord.miss.indexOf('color=brand') >= 0 && !wrongCoord.kids.includes('focusRing'),
+        `anatomy/ring #681: a coordinate the set does NOT carry reports the fifth miss, naming the coordinate AND the members, and nests nothing (${wrongCoord.miss})`);
+
+      // THE FIFTH MISS, UNDER-SPECIFIED coordinate — the case that arrives by accident, and the reason
+      // `nestVariantMatch` refuses a partial claim rather than taking the first hit. `{color:'default'}`
+      // against a color×size set would match two members, and every rule for choosing between them reduces
+      // to creation order: #656 again, one layer in from where `nesting` was added to stop it. The member
+      // list in the message is what makes the missing axis visible on sight — `color=default, size=md`
+      // printed beside a request for `color=default` shows the designer which axis the def forgot.
+      const ambiguous = await ringSet(['color=default, size=md', 'color=default, size=lg']);
+      ok(ambiguous.miss.indexOf('no member matching color=default') >= 0
+        && ambiguous.miss.indexOf('size=md') >= 0 && ambiguous.miss.indexOf('size=lg') >= 0
+        && !ambiguous.kids.includes('focusRing'),
+        `anatomy/ring #681: an UNDER-SPECIFIED coordinate is refused rather than resolved by creation order, and the members it printed show the missing axis (${ambiguous.miss})`);
+      // A SINGLE MEMBER IS NOT AN EXCUSE. This set holds exactly one member, so the coordinate does pick out
+      // one node — and it is still refused, because it names one of the member's two axes. Stricter than
+      // `hits.length === 1` on purpose: the ambiguity here is LATENT rather than absent. `{color:'default'}`
+      // resolves cleanly against a one-member set and silently becomes ambiguous the day a second size is
+      // added, at which point the tie-break is creation order (#656) and the def that changed meaning is not
+      // the file that changed. Refusing now costs an edit; refusing later costs a wrong ring in a shipped
+      // library. This is the assertion that pins the choice, since a matcher relying on `hits.length` alone
+      // passes every other case in this block.
+      const oneMember = await ringSet(['color=default, size=md']);
+      ok(oneMember.miss.indexOf('no member matching color=default') >= 0 && !oneMember.kids.includes('focusRing'),
+        `anatomy/ring #681: a coordinate naming ONE of a member's two axes is refused even when the set holds a single member — under-specification is latent ambiguity, not a near miss (${oneMember.miss})`);
+
+      // AXIS ORDER IS FIGMA'S, not the def's — asserted on the matcher directly, because the def names one
+      // axis and order is only observable across two. Figma writes a member's axes in the order it chose, so
+      // `size=md, color=default` and `color=default, size=md` are the SAME member and only one of them equals
+      // a def-built string. String equality would fail here invisibly: as a fifth miss about a correct def.
+      ok(nestVariantMatch({ color: 'default', size: 'md' }, ['size=md, color=default']) === 'size=md, color=default',
+        'anatomy/ring #681: a member whose axes are spelled in the reverse order still matches — comparison is axis-by-axis, never string equality');
+      // NEGATIVE CONTROL, so the claim above is about the matcher rather than about two identical strings:
+      // the reversed member name genuinely differs from what a def-built name would be.
+      const naive = Object.entries({ color: 'default', size: 'md' }).map(([k, v]) => `${k}=${v}`).join(', ');
+      ok(naive !== 'size=md, color=default' && nestVariantMatch({ color: 'default', size: 'md' }, [naive]) === naive,
+        `anatomy/ring #681 reachable: the reversed spelling really is a different string from the def's own (${naive}) — so order-independence is tested, not assumed`);
+      // AND THE AMBIGUITY GUARD, at unit level: two members both satisfying a full coordinate is impossible
+      // in a real set, but `null` rather than `hits[0]` is what the executors rely on, and nothing else here
+      // can distinguish those two implementations.
+      ok(nestVariantMatch({ color: 'default' }, ['color=default', 'color=default']) === null,
+        'anatomy/ring #681: two members carrying the same coordinate resolve to NOTHING — the first hit is creation order wearing a different hat');
 
       // ---- #682: the payload's unlock is exercised, not just grepped ----------------------------
       // `unlockAt` above greps the emitted STRING; this asserts the RUN. The stub's nodes start
@@ -7514,6 +7648,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `parity: on a file with no variables both paths report the IDENTICAL causes, not merely the same count — plugin ${pluggedBare.misses.length}, paste ${pastedBare.misses.length}`
           + (sorted(pluggedBare.misses) === sorted(pastedBare.misses) ? '' : ` — only-plugin: ${JSON.stringify(pluggedBare.misses.filter((m) => !pastedBare.misses.includes(m)).slice(0, 3))}; only-paste: ${JSON.stringify(pastedBare.misses.filter((m) => !pluggedBare.misses.includes(m)).slice(0, 3))}`));
 
+        // THE FIFTH MISS, ACROSS BOTH PATHS (#681). The starved comparison above cannot reach it: its file
+        // holds `focus-ring` as a plain COMPONENT, so the ring resolves and the set path never runs. This
+        // hands both paths a file where the name is a component SET carrying the wrong coordinate — the one
+        // state that produces the new message — and requires the same string out of both.
+        //
+        // Worth its own case rather than folding into the starved run, because the two paths reach this
+        // wording by genuinely different mechanisms and that is the whole risk: the plugin IMPORTS
+        // `nestVariantMissAdvice`, the payload interpolates its SOURCE and calls it in the file. Those can
+        // diverge in ways the four fixed sentences cannot — a stale `toString`, a helper that closed over a
+        // module constant, an argument spelled differently at one call site — and none of it is visible to
+        // a grep. This is also the assertion that makes `nestVariantMatch` shipping as source falsifiable
+        // at all: if the payload's copy did not run, the paste path reports no miss and this fails.
+        const setFile: StubOpts = {
+          ...fullSet,
+          comps: (fullSet.comps ?? []).filter((c) => c !== 'focus-ring'),
+          fileNodes: [{ name: 'focus-ring', type: 'COMPONENT_SET', variants: ['color=brand', 'color=inverse'] }],
+        };
+        const pastedSet = await runPayload(planSetToPluginJs(grid), { ...setFile, page: { children: [] } });
+        const pluggedSet = await plugRun(grid, { ...setFile, page: { children: [] } });
+        const fifth = (ms: readonly string[]) => [...new Set(ms.filter((m) => m.indexOf('nestVariant ->') >= 0))];
+        ok(fifth(pastedSet.misses).length === 1 && fifth(pluggedSet.misses).length === 1,
+          `parity #681: both paths report the fifth miss on a set carrying the wrong coordinate — paste ${fifth(pastedSet.misses).length}, plugin ${fifth(pluggedSet.misses).length}`);
+        ok(sorted(fifth(pluggedSet.misses)) === sorted(fifth(pastedSet.misses)),
+          `parity #681: and it is the IDENTICAL string on both — the plugin imports the helper, the payload ships its source, so equality here is the only check that they agree\n    paste:  ${fifth(pastedSet.misses)[0]}\n    plugin: ${fifth(pluggedSet.misses)[0]}`);
+
         // PROOF OF LIFE, because every assertion above passes if the comparison is between two things
         // that cannot differ — which is exactly what the shared `planSetLayout` makes plausible here.
         // So DIVERGE the two paths on purpose, in the one place the comparison is supposed to be
@@ -7835,12 +7994,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ibBindErrs = [...new Set(ibSet.flatMap((p) => planBindingErrors(p, emitted, emittedStyles, emittedEffects)))];
       ok(ibBindErrs.length === 0, `anatomy/icon-button: every bound variable exists in the emitted Figma set${ibBindErrs.length ? ` — MISSING: ${ibBindErrs.slice(0, 4).join(', ')}` : ''}`);
 
-      // CHUNKING. 5 chunks, and every one inside the budget — asserted against `bytes`, the field the
+      // CHUNKING. 6 chunks, and every one inside the budget — asserted against `bytes`, the field the
       // packer itself reports, because that is the string that ships. (Measured the other way first,
       // with `JSON.stringify(chunk).length`, which reads ~7KB high per chunk and made a correct payload
       // look 6KB over budget. The instrument was wrong, not the packer.)
+      //
+      // WAS 5, AND MOVED TO 6 IN #681 — a pin doing its job rather than a regression, and worth recording
+      // because the cause is invisible from this line. Set resolution added a second criteria search, a
+      // set map and two shared helper SOURCES to `PAYLOAD_PREAMBLE`, which every chunk carries: the shell
+      // went 14,070 → 15,741 bytes (+1,671), so ~2 fewer members fit per chunk (34 → 32) and 162 members
+      // need one more. Button's 648 went 34 → 36 chunks the same way. The per-chunk BYTES did not breach
+      // the budget at any point — the packer absorbed the shell growth exactly as designed, which is the
+      // reason a byte budget replaced a variant count in the first place (see `SET_CHUNK_BYTES`).
+      //
+      // So the number to watch is not this one. A shell that grows without bound eventually costs a paste
+      // per feature, and the check below — every chunk under budget — is the one that stays true by
+      // construction while this one drifts. Re-pin it when a payload change moves it; do not delete it,
+      // because the count is what makes shell growth visible at all.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 5, `anatomy/icon-button: the set packs into 5 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 6, `anatomy/icon-button: the set packs into 6 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
