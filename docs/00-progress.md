@@ -7,6 +7,60 @@
 
 ---
 
+## (2026-08-12) — `npm ci` is the whole worktree setup, and the loop it replaces did not fail the way the review said
+
+**STATUS: shipped.** `CLAUDE.md` + `.claude/commands/review-pr.md`. Docs only, no code.
+
+**The review that held #711 was right to hold it, and wrong about the mechanism.** #711 added
+*"populate a worktree with `npm ci`, never a bare `npm install`"* to `CLAUDE.md` — and left
+`review-pr.md`, which the same paragraph calls "the exact loop", documenting an 8-line per-entry
+`ln -sfn` loop with **zero** mentions of `npm ci` or `npm install` (verified: 0 hits in 250 lines).
+Two correct-in-isolation instructions, and a session told to follow both.
+
+The review predicted the composition **overwrites** the freshly-locked packages with symlinks back to
+the main checkout, reintroducing the unlocked version #711 exists to prevent. **Reproduced it, and
+that is not what happens.** `ln -sfn DIR TARGET` where TARGET is a real **directory** creates the
+link *inside* it — `-n` suppresses dereferencing for *symlinks* to directories, not for real ones. So
+on a post-`npm ci` tree the loop leaves **86 real package directories each containing a stray
+self-named symlink** to the main checkout (plus one inside `.bin`), `require.resolve` still finds the
+worktree copy, and `regen --check` still reports 104. The hazard is litter in a tree whose
+cleanliness this protocol depends on — not a version swap.
+
+**Worth recording as a method note:** the review reasoned from what `ln -sfn` plausibly does and
+filed a real problem with a wrong cause. Had the fix been applied on that reasoning, the commit
+message would have described a version-swap hazard that does not exist. **A composition defect needs
+the composition run, not modeled** — the same lesson as the #705 counter and the #713 verdict
+predicate, in a third dress.
+
+**The fix is what the review suggested, once the claim behind it was checked.** `review-pr.md`'s setup
+block is now `npm ci` and nothing else, because `npm ci` turns out to do everything the loop did:
+measured in a fresh `--detach` worktree — 5s, 252 third-party packages, and **all five `@prism3/*`
+links built relative** (`engine -> ../../packages/engine`) resolving inside that worktree, which is
+precisely the property the loop existed to guarantee. Plus the thing the loop structurally could not
+do: honor the lockfile (`@figma/plugin-typings` → `1.131.0`, matching `package-lock.json`).
+End-to-end verified by running the gates in a worktree populated *only* by `npm ci`: `regen --check`
+104, studio `typecheck`, plugin `test`, tokenpress `test` (274), tokens `check:consumability` — all
+pass.
+
+**`tsx` is absent after `npm ci`, and that is not a regression.** It is undeclared in every
+`package.json` and absent from the shared checkout too, so `npx tsx` fetches it on demand either way.
+Checked because "complete, self-contained replacement" is the load-bearing claim here, and one absent
+binary would have falsified it.
+
+**Both gates refused to run before the web build, which is them working.** `lint-us-english` and
+`lint-voice` failed with *"the gate's SCOPE shrank — 1 promised surface absent: the built web bundle"*
+until `apps/studio` was built. A doc-only PR is exactly when someone skips the build and takes the
+green — and the gate does not let a missing surface read as silence.
+
+**Also found, unrelated and not fixed here: `@prism3/tokenpress` is missing from the *shared
+checkout*'s `node_modules/@prism3/`** (the other four are present and correct). Almost certainly a
+checkout that predates the TokenPress port and was never re-installed. Not this PR's concern and not
+touched — but it means a shared-checkout session would hit
+`ERR_MODULE_NOT_FOUND: Cannot find package '@prism3/tokenpress'`, which is the *loud* failure mode,
+and `npm ci` in the shared tree fixes it.
+
+---
+
 ## (2026-08-11) — #709: an opacity 100× out of range, its dormant twin, and the validator that agreed with the bug
 
 **STATUS: shipped.** `apps/tokenpress` — the OPACITY percent→fraction conversion, a range rule in
