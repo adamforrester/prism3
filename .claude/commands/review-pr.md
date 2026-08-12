@@ -33,18 +33,7 @@ you never touch the working tree someone else is editing:
 ```bash
 git fetch origin --quiet
 git worktree add /tmp/p3-review-<n> --detach origin/main   # or the PR's head ref
-WT=/tmp/p3-review-<n>; NM="$(git rev-parse --show-toplevel)/node_modules"
-
-# Link the third-party deps PER ENTRY, then build @prism3 to point INSIDE the worktree.
-# Do NOT `ln -s "$NM" "$WT/node_modules"` — see below.
-mkdir -p "$WT/node_modules/@prism3"
-for e in "$NM"/* "$NM/.bin"; do
-  b=$(basename "$e"); [ "$b" = "@prism3" ] && continue
-  ln -sfn "$e" "$WT/node_modules/$b"
-done
-for p in "$WT"/apps/* "$WT"/packages/*; do
-  ln -sfn "$p" "$WT/node_modules/@prism3/$(basename "$p")"
-done
+cd /tmp/p3-review-<n> && npm ci                            # ~5s; see below — do NOT also symlink
 
 # ... review entirely inside /tmp/p3-review-<n> ...
 git worktree remove /tmp/p3-review-<n> --force             # even if you bailed early
@@ -57,22 +46,46 @@ report **104** artifacts in a clean worktree (measured 2026-08-08; `ci.yml` asse
 that number) — the main checkout sometimes shows one more because of an untracked
 stray in `packages/engine/out/`, which is not drift.
 
-**Why per-entry and not one `ln -s` of the whole directory** — this is the review
-protocol's own false-pass hazard, and it appeared the moment the engine became a
-workspace package (#650 PR 1). Workspace links are *relative*: the main checkout's
-`node_modules/@prism3/engine` is `../../packages/engine`. Reached through a
-whole-directory symlink, that resolves relative to the **main checkout**, so every
-`@prism3/engine` import in your review worktree loads the engine from **the tree you
-are not reviewing**. Measured: two trees differing only in `ENGINE_VERSION`, and the
-worktree's `apps/studio` bundle carried the *other* tree's marker — `exit 0`, no
-warning. Gates go green having measured the wrong source. On pre-#650 `main` the same
-setup does not reproduce, because relative paths resolved inside the worktree.
+**`npm ci`, and nothing else.** It is the whole setup, and the reason to say so
+explicitly is that this file used to document a hand-rolled per-entry `ln -sfn` loop
+instead — 8 lines that predate anyone checking whether `npm ci` was sufficient.
+Measured in a fresh `--detach` worktree (2026-08-12): 5s, 252 third-party packages,
+and **all five `@prism3/*` links built relative and resolving inside the worktree**
+(`engine -> ../../packages/engine`, etc.), which is exactly the property the loop
+existed to guarantee. It also honors `package-lock.json`, which the loop could not:
+`@figma/plugin-typings` resolved to `1.131.0`, matching the lockfile, where a bare
+`npm install` on 2026-08-11 leaked an unlocked version into a review worktree.
 
-And do not "fix" it by symlinking the directory and then overwriting
+So **do not run both.** Composing them is not additive — measured on a
+post-`npm ci` tree, the loop leaves 86 real package directories each containing a
+stray self-named symlink pointing back at the main checkout, plus one inside `.bin`.
+Gates still pass and `require.resolve` still finds the worktree copy, because
+`ln -sfn DIR TARGET` where TARGET is a real **directory** creates the link *inside*
+it rather than replacing it (`-n` only suppresses dereferencing for *symlinks* to
+directories). That is worth knowing precisely, because the plausible reading is that
+the loop *overwrites* the freshly-locked packages with links to the main checkout —
+it does not, and a review that assumed it did would be reporting a hazard that is
+not there. The real cost is 86 pieces of confusing litter in a tree whose
+cleanliness is load-bearing for this protocol.
+
+**Why not one `ln -s` of the whole directory** — kept because it explains what
+`npm ci` is getting right, and it is this protocol's own false-pass hazard. It
+appeared the moment the engine became a workspace package (#650 PR 1). Workspace
+links are *relative*: `node_modules/@prism3/engine` is `../../packages/engine`.
+Reached through a whole-directory symlink, that resolves relative to the **main
+checkout**, so every `@prism3/engine` import in your review worktree loads the engine
+from **the tree you are not reviewing**. Measured: two trees differing only in
+`ENGINE_VERSION`, and the worktree's `apps/studio` bundle carried the *other* tree's
+marker — `exit 0`, no warning. Gates go green having measured the wrong source. On
+pre-#650 `main` the same setup does not reproduce, because relative paths resolved
+inside the worktree.
+
+And do not "fix" that by symlinking the directory and then overwriting
 `node_modules/@prism3/*` — writing through the symlink **mutates the main checkout's**
 `node_modules`, repointing another session's `@prism3/engine` at your throwaway
-worktree, which then dangles when you remove it. Also measured. The loop above never
-writes outside `$WT`.
+worktree, which then dangles when you remove it. Also measured. `npm ci` writes only
+inside the worktree; verified after the probe above that all four `@prism3/*` links in
+the shared checkout still resolved to the shared checkout.
 
 The loud version of this is harmless and worth recognizing: running an engine gate in
 a worktree whose `node_modules` came from a checkout *without* the link fails with
