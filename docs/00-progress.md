@@ -7,6 +7,92 @@
 
 ---
 
+## (2026-08-13) — The component registry, and the gate arm that keeps it honest (#742, `docs/38` Arc 3)
+
+**STATUS: shipped.** `packages/engine/components/index.ts` exports `componentDefs`; `test.ts` iterates
+it; `typecheck-components.ts` gains a **registry arm** in both directions. `docs/38` §2's row *"There
+is no component registry"* is now false and has been rewritten.
+
+**The registry is the easy half; the constraint is the whole task.** `docs/38` Arc 3 states it — *"the
+registry has to BE the thing the gate reads. A second list maintained beside it would restore the
+defect that gate was written for."* So the registry is the gate's **SUBJECT** and `git ls-files` stays
+its **ORACLE**. Replacing the `git ls-files` call with a read of the registry would have been `docs/34`
+shape 1 in its purest form: the gate confirming a list agrees with itself, which it always does.
+
+**The gap that had to be closed, and why it is not the obvious one.** `tsconfig.json`'s `include` is a
+glob over the whole defs directory, so a new def file is typechecked *whether or not anything imports
+it*. Both existing directions therefore went green over a def the registry had never heard of.
+**Measured, not argued**: a sixth def added to `components/` and left out of the registry passed
+`origin/main`'s gate at **exit 0** — and its output counted `index.ts` itself as a seventh def, which
+is the second thing the arm had to fix.
+
+**Design chosen: keep the glob, add the arm (option A) — and the rejected alternative is worth
+recording.** Option B was to narrow `include` to `components/index.ts`, so a def the registry does not
+import is genuinely never typechecked and the existing forward direction reports it with no new code at
+all. It is the more elegant shape — registry completeness becomes structurally identical to coverage —
+and it was rejected for two reasons. First, the `include` records a **measurement** (398 errors over the
+whole engine, 0 over the defs, 375 of them missing ambient Node types) and a scope decision that #657
+deliberately did not ride; narrowing it would rewrite that reasoning for a reason unrelated to why it
+was chosen. Second, it **couples two failures that should stay apart**: forgetting to register a def is
+bookkeeping, and under the narrow scope that one slip would *also* stop typechecking the def — one
+mistake, two losses, the second invisible. Kept apart, the def stays checked and the registry failure is
+reported on its own terms.
+
+**How the arm links a file to a registry entry: object identity, not names.** Each tracked def file is
+**imported** and its export values are tested with `Set.has` against `componentDefs`. Nothing depends on
+`button.ts` exporting a binding called `button`, or on a def's `id` matching its filename — conventions
+that hold today, and that a gate anchored on them would stop detecting the moment one moved (`docs/34`
+shape 9). Parsing `index.ts` for import statements was the alternative and is worse twice over: it
+reimplements module resolution inside the gate, and it goes green on a re-export line naming a def the
+file never actually puts in the set.
+
+**`index.ts` is not a def, and saying so took three separate decisions** — the subtlety that could
+silently have swallowed one. The forward and converse arms still run over the **full tracked set**,
+because the registry is a `.ts` file in the declared scope like any other: it must be typechecked, and
+it must not read as untracked residue. Only the **floor** and the **two registry directions** run over
+`defsOnly(tracked, REGISTRY)`, which removes exactly one literal path — otherwise a directory holding
+nothing but an empty registry would satisfy `defs.length >= 3` by itself, and the registry would be
+asked to export itself into its own list. And because that literal is a name its subject can move, the
+run now **asserts `REGISTRY` names a file git tracks**: a renamed registry fails there, loudly, instead
+of quietly re-entering the def set.
+
+**Mutations, all five run, exit codes recorded.**
+
+| mutation | gate | exit | what it printed |
+|---|---|---|---|
+| sixth def added, **not** registered | `origin/main`'s | **0** | `✓ … 7 tracked def(s)` — the gap, measured |
+| sixth def added, **not** registered | new | **1** | `1 tracked def(s) missing from the registry's componentDefs` → names `packages/engine/components/mutation-probe.ts` |
+| sixth def added **and** registered | new | **0** | `6 tracked def(s)` — `index.ts` correctly not counted, and not reported as a stray |
+| a def inline in the registry, exported by no def file | new | **1** | `1 registry entr(ies) exported by no tracked def file` → `inline-def` |
+| `REGISTRY` untracked | new | **1** | `… is not tracked by git — the registry is this gate's subject, so its absence is not a pass` |
+
+The **passing** mutation is not a formality: proving only the failing direction leaves you unable to
+distinguish a working gate from one that fails on everything, and this one also had to demonstrate that
+`index.ts` is excluded from the def count *without* being reported as residue.
+
+**The blind spot, named rather than implied.** The arm asserts each def file contributes **at least one**
+export to the set. A file defining two defs and registering one **passes** — the file contributed. So
+does a file that only re-exports a def defined elsewhere. Closing either means deciding which of a
+module's exports *are* defs, and the only classifier available is a shape test over the very type under
+test. One def per file is the convention; this arm does not enforce it, and that sentence is in the
+gate's header rather than left for a reader to discover.
+
+**`lint-payload-manifest.ts` was NOT a consumer — the issue's "Done when" was wrong about current
+state.** It maintains no def list. Its universe is *generated artifacts* (`out/**` walked, plus
+`ENGINE_ARTIFACTS` / `SCHEMA_ARTIFACTS` imported from `regen.ts`), and component defs are hand-authored
+source that is neither emitted nor committed as an artifact. Wiring the registry into it would have
+**invented** a coupling to satisfy the issue text rather than removed a second list. Reported instead,
+and `docs/38` Arc 3 corrected in the same PR, since that doc carried the same assumption.
+
+**One consequence in `test.ts` worth carrying.** Swapping a hand-written five-entry pair list for a loop
+over `componentDefs` makes the loop's reach depend on the set being live — a loop over an empty set
+asserts nothing and reports it as a clean suite. So a **floor** goes with the swap
+(`componentDefs.length >= 5`). Liveness only; completeness is the gate's job, because a completeness
+claim made inside `test.ts` would be the set checking itself. Assertion count moved 2134 → **2135**,
+exactly the floor, confirming nothing was lost in the swap.
+
+---
+
 ## (2026-08-12) — The nest-exposed cost measurement: the property count was never the constraint
 
 **STATUS: measured, not decided.** #681 shipped `swap` and `nest-fixed` and deferred `nest-exposed`

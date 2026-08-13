@@ -74,7 +74,14 @@ npx tsx packages/engine/typecheck-components.ts     # the component defs typeche
                                                     # tracked def must be REPRESENTED in what tsc
                                                     # actually read, because a passing typecheck says
                                                     # nothing about which files it opened — before this,
-                                                    # 1 of 5 defs was checked, via a plugin import
+                                                    # 1 of 5 defs was checked, via a plugin import.
+                                                    # And since #742 a REGISTRY arm, both directions:
+                                                    # every tracked def file contributes an export to
+                                                    # components/index.ts's `componentDefs`, and every
+                                                    # member of that set comes from a tracked def file.
+                                                    # git's index stays the ORACLE — the registry is
+                                                    # only ever the SUBJECT, or the gate would be
+                                                    # confirming a list agrees with itself
 npx tsx packages/engine/lint-overlay-completeness.ts # each mode's overlay carries EXACTLY the leaves that
                                                     # vary in it (#708). Both directions: a varying leaf
                                                     # missing, and a non-varying leaf present. The defect

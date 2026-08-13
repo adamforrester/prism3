@@ -58,6 +58,47 @@
  * because untracked rename residue was still on disk in one of them. A gate whose subject is "what
  * this repo contains" reads the index.
  *
+ * ── THE REGISTRY ARM (#742, `docs/38` Arc 3) ────────────────────────────────────────────────────
+ *
+ * `components/index.ts` now holds the def set. `docs/38` Arc 3 states the constraint it has to
+ * satisfy — *"the registry has to BE the thing the gate reads. A second list maintained beside it
+ * would restore the defect that gate was written for"* — so the registry is this gate's SUBJECT and
+ * git's index stays its ORACLE. Reading the registry to decide which defs to expect would be
+ * `docs/34` shape 1 in its purest form: the gate confirming a list agrees with itself.
+ *
+ * THE GAP THIS ARM CLOSES, because it is not the obvious one. Adding a def file already makes it
+ * typechecked — the `include` is a glob over the directory, so tsc reads it whether or not anything
+ * imports it. Both directions above therefore went green over a def the registry had never heard
+ * of, which is the *registry's* version of #657: a set that looks complete and silently is not.
+ * Measured, not argued (#742, on b3bc865): a sixth def added to the directory and left out of the
+ * registry passed this gate at exit 0 before this arm existed.
+ *
+ * WHY THE `include` WAS NOT NARROWED INSTEAD. Pointing `include` at `components/index.ts` would
+ * have made registry membership structurally identical to coverage, and the forward direction above
+ * would then report an unregistered def with no new code at all. It was rejected for two reasons.
+ * The `include` records a MEASUREMENT and a scope decision (398 errors wide, 0 narrow — see that
+ * file), which narrowing would rewrite for a reason unrelated to why it was chosen. And it couples
+ * two failures that should stay apart: a def missing from the registry is a bookkeeping slip, and
+ * under the narrow scope that slip would ALSO silently stop typechecking the def — one mistake
+ * causing two losses, the second of them invisible. Kept apart, the def stays checked and the
+ * registry failure is reported on its own terms.
+ *
+ * HOW THE ARM LINKS A FILE TO A REGISTRY ENTRY — by OBJECT IDENTITY, not by name. Each tracked def
+ * file is imported, and its exports are tested for membership in `componentDefs` with `Set.has`. So
+ * nothing here depends on `button.ts` exporting a binding called `button`, or on a def's `id`
+ * matching its filename — conventions that hold today, and that a gate anchored on them would stop
+ * detecting the moment one moved (`docs/34` shape 9). Both directions again: a tracked def file
+ * contributing nothing to the set, and a set member no tracked def file exports (a def written
+ * inline in the registry, or imported into it from outside the typechecked directory).
+ *
+ * WHAT THE REGISTRY ARM DOES NOT COVER, stated rather than implied. It asserts each def file
+ * contributes AT LEAST ONE export to the set. A file that defines two defs and registers one passes
+ * — the file contributes, so it is not reported. So does a file that only RE-EXPORTS a def defined
+ * elsewhere. Closing either means deciding which of a module's exports *are* defs, and the only
+ * classifier available is a shape test over the very type under test. One def per file is the
+ * convention; this arm does not enforce it. The unregistered second def in such a file is still
+ * typechecked by the arms above, and still invisible to every consumer that iterates the set.
+ *
  * NOT A BUILD. `--noEmit` produces no output, and the engine stays buildless — that invariant is not
  * moving. Two things hold it here rather than a comment claiming it: the gate asserts
  * `compilerOptions.noEmit` is true in tsc's OWN resolved view (`--showConfig`, not this file's parse
@@ -88,7 +129,7 @@ import { existsSync, readdirSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = realpathSync(resolve(here, '../..'));
@@ -101,6 +142,13 @@ const TSCONFIG = 'packages/engine/tsconfig.json';
 // with a non-empty floor and a converse check is one comparison away from being able to fail; a bare
 // literal is not.
 const DEFS_DIR = 'packages/engine/components';
+// The registry (#742). Tracked, typechecked and checked in BOTH directions above exactly like any
+// other file in the directory — it is set apart only where treating it as a def would be wrong: the
+// FLOOR counts defs (and must not be satisfiable by the registry alone), and the registry cannot be
+// asked to export itself into its own set. Same shape-9 question as `DEFS_DIR`, same answer: the run
+// below fails if this literal names a file git does not track, so a renamed or deleted registry
+// fails loudly instead of quietly widening the def set by one.
+const REGISTRY = `${DEFS_DIR}/index.ts`;
 
 /** Every `.ts` file git tracks under the defs directory, repo-relative. The oracle side: git's index,
  *  never the filesystem (#653 — untracked rename residue makes `existsSync` lie) and never the
@@ -166,6 +214,33 @@ export const strays = (defsDir: string, defs: string[], listed: string[]): strin
   const tracked = new Set(defs);
   return listed.filter((f) => f.startsWith(defsDir + '/') && f.endsWith('.ts') && !tracked.has(f));
 };
+
+/** The DEF files: every tracked `.ts` under the directory except the registry itself. Used only by
+ *  the floor and the two registry directions; the forward and converse arms above keep running over
+ *  the full tracked set, so the registry is typechecked and non-stray like everything else.
+ *
+ *  It removes exactly one path and nothing else, so it cannot swallow a real def — the self-check
+ *  below asserts both halves of that, and the run asserts the removed path is genuinely tracked. */
+export const defsOnly = (tracked: string[], registry: string): string[] =>
+  tracked.filter((f) => f !== registry);
+
+/** REGISTRY, FORWARD: which tracked def files contribute nothing to `componentDefs`. Membership is
+ *  `Set.has` over the imported module's own export VALUES, so the link is object identity — a
+ *  look-alike object with the same fields is not membership, and no filename/`id`/binding-name
+ *  convention is load-bearing. `exportsOf` is injected so the self-check drives this function rather
+ *  than a reimplementation of it (`docs/34` shape 2). */
+export const unregistered = (
+  defs: string[],
+  exportsOf: (file: string) => unknown[],
+  registry: ReadonlySet<unknown>,
+): string[] => defs.filter((f) => !exportsOf(f).some((v) => registry.has(v)));
+
+/** REGISTRY, CONVERSE: which members of `componentDefs` no tracked def file exports. Catches a def
+ *  written inline in the registry, or imported into it from outside the defs directory — either of
+ *  which puts a def in the iterated set that this gate's declared scope never typechecks, the
+ *  registry-shaped twin of the untracked-residue case `strays` covers. */
+export const unbacked = (registry: readonly unknown[], exported: ReadonlySet<unknown>): unknown[] =>
+  registry.filter((d) => !exported.has(d));
 
 // ---- SELF-CHECK: can the gate still see what it claims to, and can it still fail? ------------------
 // Every sample drives the exported functions above — the same ones the real run calls, never a
@@ -252,6 +327,51 @@ if (strays(SAMPLE_DEFS_DIR, sampleDefs, ['packages/engine/theme.ts']).length) {
   selfFails.push('the converse check flags an imported file outside the defs directory');
 }
 
+// 6. THE REGISTRY EXCLUSION. One path removed, and only that one — the two halves are separate
+//    assertions because they fail for opposite reasons: keeping the registry would let it satisfy
+//    the floor by itself, and removing anything else would silently shrink the def set.
+const SAMPLE_REGISTRY = `${SAMPLE_DEFS_DIR}/index.ts`;
+const sampleTracked = [...sampleDefs, SAMPLE_REGISTRY].sort();
+if (defsOnly(sampleTracked, SAMPLE_REGISTRY).includes(SAMPLE_REGISTRY)) {
+  selfFails.push('the registry file is counted as a component def — the floor could then be satisfied without a single def');
+}
+if (defsOnly(sampleTracked, SAMPLE_REGISTRY).length !== sampleDefs.length) {
+  selfFails.push('excluding the registry removed something else as well — a real def can be swallowed');
+}
+
+// 7. REGISTRY MEMBERSHIP, both directions and the identity property the whole arm rests on. The
+//    fixtures are plain objects: this function's contract is `Set.has` over export values, and
+//    nothing about it should depend on a def's shape.
+const alphaDef = { id: 'alpha' };
+const betaDef = { id: 'beta' };
+const gammaDef = { id: 'gamma' };
+const sampleExports = new Map<string, unknown[]>([
+  [`${SAMPLE_DEFS_DIR}/alpha.ts`, [alphaDef]],
+  [`${SAMPLE_DEFS_DIR}/beta.ts`, [betaDef]],
+  [`${SAMPLE_DEFS_DIR}/gamma.ts`, [gammaDef]], // tracked, exports a def, and the registry omits it
+]);
+const sampleLookup = (f: string): unknown[] => sampleExports.get(f) ?? [];
+const sampleRegistry = new Set<unknown>([alphaDef, betaDef]);
+const unreg = unregistered(sampleDefs, sampleLookup, sampleRegistry);
+if (!unreg.includes(`${SAMPLE_DEFS_DIR}/gamma.ts`)) {
+  selfFails.push('a tracked def the registry omits is NOT reported — the registry could go stale and stay green');
+}
+if (unreg.includes(`${SAMPLE_DEFS_DIR}/alpha.ts`)) {
+  selfFails.push('a def the registry DOES hold is wrongly reported (false positive)');
+}
+// The identity claim, which is the reason no name convention is load-bearing here. An export that
+// merely LOOKS like the registered def must not satisfy membership.
+if (!unregistered([`${SAMPLE_DEFS_DIR}/alpha.ts`], () => [{ id: 'alpha' }], sampleRegistry).length) {
+  selfFails.push('registry membership is satisfied by a look-alike object rather than the exported def itself');
+}
+// CONVERSE: a registry member no def file exports, and no false positive on one that is.
+if (!unbacked([alphaDef, gammaDef], new Set([alphaDef])).includes(gammaDef)) {
+  selfFails.push('a registry entry no tracked def file exports is NOT reported — a def can enter the set from outside the typechecked scope');
+}
+if (unbacked([alphaDef], new Set([alphaDef, betaDef])).length) {
+  selfFails.push('the registry converse check flags a member that IS exported by a def file (false positive)');
+}
+
 if (selfFails.length) {
   console.error("\n❌ the component-def typecheck gate's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -271,11 +391,25 @@ if (git.status !== 0) {
   console.error(git.stderr || git.stdout);
   process.exit(1);
 }
-const defs = parseTrackedDefs(git.stdout);
+// Every tracked `.ts` under the directory, the registry included — this is what the forward and
+// converse arms compare against, unchanged by #742.
+const tracked = parseTrackedDefs(git.stdout);
+// The REGISTRY literal must name a file git tracks. Without this the exclusion below could match
+// nothing after a rename and the registry would quietly re-enter the def set, where it would satisfy
+// the floor by itself and be asked to export itself into its own list (`docs/34` shape 9: a detector
+// that recognizes nothing must fail, not report clean).
+if (!tracked.includes(REGISTRY)) {
+  console.error(`\n❌ ${REGISTRY} is not tracked by git — the registry is this gate's subject, so its absence is not a pass.`);
+  console.error('   Either the registry moved (repoint REGISTRY above) or it was deleted, which un-does #742.');
+  process.exit(1);
+}
+const defs = defsOnly(tracked, REGISTRY);
 
 // FLOOR — did it look? A detector that recognizes nothing must fail, not report clean. This is the
 // specific mitigation for DEFS_DIR being a literal: #658's review found a gate printing
-// "0 engine files in the bundle … ✓ clean", a true statement about an empty set.
+// "0 engine files in the bundle … ✓ clean", a true statement about an empty set. It counts DEFS, not
+// tracked files, which is why the registry is excluded above — otherwise a directory holding nothing
+// but an empty registry would count as one.
 if (defs.length < 3) {
   console.error(`\n❌ only ${defs.length} component def(s) tracked under ${DEFS_DIR}/ — expected at least 3.`);
   console.error('   Either the defs moved (repoint DEFS_DIR above) or this gate is checking an empty set and');
@@ -338,12 +472,52 @@ const emitted = [engineDir, resolve(repo, DEFS_DIR)].flatMap((dir) =>
     .map((f) => `${dir.slice(repo.length + 1)}/${f}`),
 );
 
+// ---- the registry arm (#742) ---------------------------------------------------------------------
+// The modules are IMPORTED, not parsed. Reading `index.ts` as text and matching import statements
+// would be a second implementation of module resolution living inside the gate — and it would go
+// green on a `export { button } from './button'` line that names a def the file never actually puts
+// in `componentDefs`. Importing gets the real values, so membership is `Set.has` on the same objects
+// a consumer would iterate.
+//
+// Note what this does NOT gate on: the import runs under tsx, which TRANSPILES, so a def carrying a
+// type error still imports and this arm still reports on it. That is deliberate rather than an
+// oversight — the diagnostics arm above already owns type errors, and short-circuiting here would
+// mean one bad def hid every registry problem in the same run. The failures are collected together
+// and reported together.
+const exportsOf = new Map<string, unknown[]>();
+for (const file of defs) {
+  const mod = await import(pathToFileURL(resolve(repo, file)).href);
+  exportsOf.set(file, Object.values(mod));
+}
+const registryMod = await import(pathToFileURL(resolve(repo, REGISTRY)).href);
+const registryDefs: unknown = registryMod.componentDefs;
+
 const failures: string[] = [];
 if (diagnostics.length) failures.push(`${diagnostics.length} type error(s) in the component defs`);
-const missing = unrepresented(defs, listed);
+// Both arms below run over the FULL tracked set, registry included: it is a `.ts` file in the
+// declared scope like any other, so it must be typechecked and must not read as a stray.
+const missing = unrepresented(tracked, listed);
 if (missing.length) failures.push(`${missing.length} tracked def(s) absent from the typechecked set`);
-const residue = strays(DEFS_DIR, defs, listed);
+const residue = strays(DEFS_DIR, tracked, listed);
 if (residue.length) failures.push(`${residue.length} untracked file(s) inflating the typechecked set`);
+
+// The registry has to EXIST as a set before either direction over it means anything — an absent or
+// empty `componentDefs` would make `unregistered` report every def (loud, fine) but `unbacked`
+// report nothing at all, which is the true-statement-about-an-empty-set shape.
+let orphaned: string[] = [];
+let strandedLabels: string[] = [];
+if (!Array.isArray(registryDefs) || registryDefs.length < 3) {
+  failures.push(`${REGISTRY} does not export a \`componentDefs\` array of at least 3 defs — the set is the thing consumers iterate`);
+} else {
+  orphaned = unregistered(defs, (f) => exportsOf.get(f) ?? [], new Set(registryDefs));
+  if (orphaned.length) failures.push(`${orphaned.length} tracked def(s) missing from the registry's \`componentDefs\``);
+  const stranded = unbacked(registryDefs, new Set([...exportsOf.values()].flat()));
+  strandedLabels = stranded.map((d, i) => {
+    const id = (d as { id?: unknown } | null)?.id;
+    return typeof id === 'string' ? id : `(entry ${i + 1} of ${stranded.length}, no string \`id\` to name it by)`;
+  });
+  if (stranded.length) failures.push(`${stranded.length} registry entr(ies) exported by no tracked def file`);
+}
 if (noEmit !== true) failures.push(`${TSCONFIG} does not resolve to noEmit: true — the engine stays buildless`);
 if (emitted.length) failures.push(`${emitted.length} emitted file(s) in packages/engine/ — this gate must not build`);
 
@@ -367,8 +541,19 @@ if (failures.length) {
     console.error('\n  emitted into the engine — this gate runs a CHECK, not a build:');
     for (const e of emitted) console.error(`    ${e}`);
   }
+  if (orphaned.length) {
+    console.error(`\n  tracked and typechecked, but NOT in the registry — \`componentDefs\` is the set every`);
+    console.error(`  projection iterates, so a def missing from it exists and is invisible. Add it to ${REGISTRY}:`);
+    for (const o of orphaned) console.error(`    ${o}`);
+  }
+  if (strandedLabels.length) {
+    console.error(`\n  in the registry but exported by no tracked def file — a def reaching \`componentDefs\``);
+    console.error(`  from outside ${DEFS_DIR}/ is outside this gate's declared typecheck scope:`);
+    for (const s of strandedLabels) console.error(`    ${s}`);
+  }
   process.exit(1);
 }
 
 console.log(`✓ component defs typecheck clean — ${defs.length} tracked def(s), all present in the ${listed.length} file(s) tsc read (noEmit, nothing emitted).`);
 for (const d of defs) console.log(`    ${d}`);
+console.log(`  ✓ registry — all ${defs.length} tracked def(s) are in \`componentDefs\`, and all ${(registryDefs as unknown[]).length} entr(ies) come from a tracked def file (${REGISTRY}).`);
