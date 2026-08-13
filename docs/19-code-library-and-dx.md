@@ -79,7 +79,7 @@ framework elegance — the previous lean is what optimizing for elegance produce
 | 2 | **class-based skin over platform markup** | component | a projection of `anatomy` + `variants` to semantic classes. Both platforms augment server-generated HTML with classes |
 | 3 | **AEM Universal Editor block definitions** | **block** | `13`'s block tier, not this one — see the note below |
 | 4 | **Drupal SDC `component.yml`** | component | JSON Schema prop validation at render |
-| 5 | **React** | component | not for client site builds; the native authoring unit of Drupal Canvas, and useful for prototypes |
+| 5 | **React** | component | not for client site builds; the native authoring unit of Drupal Canvas, and useful for prototypes. **Rank 5 not 4:** reaching Twig from a Canvas code component runs through a *separate* bridge project, `drupal.org/project/code_component` ("Canvas Code Components as SDC"), at `1.0.0-alpha1` and outside Drupal's security advisory policy (fetched 2026-08-13). Do not confuse it with `drupal.org/project/canvas`, the page builder, which is stable and covered |
 | 6 | **web components** | component | secondary, interactive-tier, light-DOM-biased |
 | 7 | **native mobile** | — | deferred |
 
