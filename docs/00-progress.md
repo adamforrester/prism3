@@ -6,6 +6,162 @@
 > changes. Most recent entry first.
 
 ---
+
+## (2026-08-13) — The external studio review: what the line count hid, and the seams the defect record named (#765–#772)
+
+**STATUS: recorded, not built.** An outside design-system developer read the repo cold on 2026-08-13.
+Eight issues carry the owner's calls on what he raised — #765 and #766 (decisions), #767 and #768
+(`priority:now` tasks), #769–#772 (the four cleanup pieces). **This PR is docs only**: `docs/38` §7 for
+the arcs boundary, and this entry for the reasoning. No code moved, and nothing here closes an issue.
+
+**The review, in one line.** *"The site is neat, but the code is concerning. The site itself is nearly
+9k lines of code in a single typescript file. Definitely needs a cleanup, and an architectural plan."*
+He proposed a three-layer split: a token generation library, apps that implement it, and
+templates/presets.
+
+**He is right that it needs a plan. The line count is the wrong thing to plan against, and that
+correction changed the shape of the work** — which is why it is the first thing recorded here rather
+than a footnote in an issue.
+
+| | |
+|---|---|
+| total lines | **8,801** |
+| comment lines | **2,625** |
+| the CSS template literal | **~1,384** |
+| → actual logic | **~4,800** |
+| top-level declarations | 298 |
+| `render*` functions | 65 |
+
+So "9k lines of code" overstates by roughly double. **The comment density is doctrine, not bloat** —
+`CLAUDE.md` requires the reasoning to live beside the code, and that discipline is the reason ten agents
+worked inside this one file concurrently on 2026-08-07, across disjoint scopes, without colliding. A
+plan that treats the comments as the problem would delete the property that makes the file survivable.
+
+**Trap for whoever re-verifies these numbers.** They were measured against `main` at `0917f45` and were
+already one commit stale when #768 was filed: #723 (`aa66968`) landed the export dialog and took the
+file to **9,088** lines, with the CSS literal at **L7580–9041** rather than the L7370–8754 the issue
+records. The conclusion is untouched — the ratio barely moves — but a re-verifier running `wc -l` today
+gets a different number than the issue states, and would be right to. Re-measure before quoting; the
+argument is the ratio, never the absolute.
+
+**Why the plan cuts along defect-revealed seams rather than by line count.** Of ~17 defects fixed in and
+around this file on 2026-08-07, **almost none were "couldn't find the code" or "changed X, broke
+unrelated Y"** — the classic symptoms of a file that is merely too big. They were prose drift, contrast,
+target sizes, overflow. Three were genuinely architectural, and each names its own seam:
+
+| defect | root cause | seam |
+|---|---|---|
+| #485 — any select change jumped the page to the top | `workspace.innerHTML = ''` and a full rebuild on every commit | no update granularity (#771) |
+| #388 — engine throws were invisible outside one page | the error bar rendered only inside `renderPrimitives`' Color-page paint closure | no shared page chrome (#772) |
+| #464 / #515 — `.pfield.slider` picked up an unrelated `.slider{margin-top:16px}` 70 lines away | flat CSS namespace | scoped styles (#769 → #770) |
+
+The last row is the tell, and it is why the done-condition is what it is. `apps/studio/lint-classes.mjs`
+exists *because* the architecture makes the collision possible; the repo's response to a structural
+defect was to build a gate to police it. **Done is therefore not a line count — it is that
+`lint-classes.mjs` can be deleted** (#768). Scoped styles make cross-surface collisions impossible
+rather than reviewed-and-allowlisted, and retiring the gate is the proof the seam actually closed. The
+same logic supplies the other two done-conditions: no page can render an engine error invisibly, and no
+single control change re-renders the whole workspace. Anything beyond those three is scope creep on a
+refactor, which is the most expensive place to have it.
+
+**The gate-coupling trap, verified in the tree rather than assumed — and it is why this cannot be done
+in trivially small commits.** Four gates are coupled to `apps/studio/src/main.ts` **by path**, and two
+of them **fail closed** when they find nothing to scan:
+
+| gate | coupling |
+|---|---|
+| `apps/studio/lint-classes.mjs` | `readFile(resolve(root, 'src/main.ts'))`; exits 1 with *"no top-level CSS rules found in src/main.ts"* |
+| `apps/studio/lint-contrast.mjs` | the same read; exits 1 with *"no `:root{}` block found in src/main.ts"* |
+| `packages/engine/lint-layout-claims.ts` | carries `apps/studio/src/main.ts` in an explicit path list |
+| `packages/engine/lint-voice.ts` | its header documents a carve-out **specifically** about the CSS-in-template-literal living in this file — the one place a C-style comment survives esbuild into the shipped bundle, because it is string content |
+
+Move the CSS and the first two fire immediately, **correctly** — that is them working as designed, and
+it is the #502 lesson (prove you looked) doing its job. But it means the CSS extraction and the scoping
+each have to carry their gate migration *in the same PR*, and `lint-voice.ts`'s carve-out comment goes
+stale the moment the CSS moves. Per #646: a comment asserting a protection the adjacent code no longer
+provides is itself the defect. A reviewer who asks for these to be split into smaller commits is asking
+for a red main.
+
+**#767 is a hard prerequisite, and the reason is not caution.** Refactoring ~4,800 lines of interaction
+logic behind `tsc --noEmit` and three lint gates is how a working dashboard becomes subtly broken in a
+way nobody notices for weeks. **One correction to #767's own framing, worth carrying**: it says the
+studio has no `test` script, which was true when the reviewer's read was taken and is not true of
+`main` — `npm run -w @prism3/studio test` runs two pure-module suites (#722 provenance, #723 export
+settings, 150 assertions). The gap #767 names is real and unchanged, but it is *DOM and interaction*
+coverage, not the absence of tests: both existing suites live outside `main.ts` precisely because
+`main.ts` touches `document` at import time and cannot load under `tsx`. That constraint is itself
+evidence for the same seam the cleanup is cutting along.
+
+**The owner's calls, all six.**
+
+1. **#765 — the public library surface stays contract-checked** (lean, filed open for discussion). Layers
+   1 and 2 of the reviewer's split already exist: `packages/engine/` is the portable core and the two
+   apps are thin hosts over it (`docs/07`). What is missing is a *public surface* on it, which reframes
+   the ask from "build a library" to "export the one already there". The fork is whether that surface
+   lets a caller emit a set that fails its own contrast contracts. Option 1 (checked) is the lean;
+   option 3 (tiered, unchecked path clearly named) was considered and is the cheapest to build, and was
+   not taken because "clearly named" is doing all the work — a library with an easy unsafe path gets
+   used through it.
+2. **#766 Q1 — the studio stays a contract-enforcing studio**, not a generic token generator (lean).
+   Generic generation is commoditized; the contracts plus the mode system plus the Figma round-trip are
+   the differentiator. **The counter is recorded rather than dismissed**: a generic surface is a much
+   wider funnel, and if the funnel matters more than the differentiator this lean is wrong.
+3. **#766 Q2 — the tier-based IA proposal is wireframe-and-validate, explicitly not an approved build**,
+   and it is cross-referenced onto #267 and #328 rather than run as a separate direction, because it is
+   a concrete proposal for both of those already-open decisions.
+4. **#767 — headless smoke suite** (#333's option A, closing that question). Not jsdom units: the
+   defects this file produces are rendering and interaction defects (#330's stale label, #422's frozen
+   specimen, #485's scroll jump, #555's invisible text) and none of them is a shape bug.
+5. **#767's dependency call — take Playwright as a devDependency scoped to `apps/studio` only.** Every
+   drive to date went through the `PLAYWRIGHT_MODULE` escape hatch pointed at a global install, which is
+   the "reach that is an accident rather than a declared scope" shape `docs/34` names, and is
+   unacceptable for a CI gate. The engine core stays dependency-free and buildless; that invariant does
+   not move.
+6. **#767 lands advisory for one week, then gates.** A flaky browser suite that blocks every PR is the
+   fastest way to erode trust in gates generally, and this repo's gate discipline is an asset worth
+   protecting. The flip is filed as a follow-up rather than left to memory, because an ungated suite
+   rots.
+
+**Two deferrals, both deliberate.** **Presets/templates** — the reviewer's third layer, and by his read
+the one with the clearest commercial pull — is deferred behind #765 and **not filed as work**, recorded
+in #768 so the idea is not lost. It cannot be scoped until the library fork is decided: a "MUI preset"
+either satisfies the contract or proves presets may opt out, which *is* #765 arriving through the back
+door. And the **IA overhaul** stays at wireframe-and-validate, per call 3.
+
+**Sequencing, and the boundary that keeps it from over-reaching.** #767 first, then two parallel tracks:
+#769 → #770 (CSS extraction, then scoping), and #771 / #772 (render granularity, page chrome)
+independent of the CSS work. The owner accepted pausing other work for this. **`docs/38` §7 records the
+measured scope of that pause**, because "the cleanup takes priority" reads much wider than it is: the
+component arcs (`docs/38` Arcs 1–4) are engine-side and the cleanup is `apps/studio/`, so the overlap is
+near-zero and **the arcs do not pause**. What queues behind it is the other *studio* work — #388's Part
+B (already pending #377) and the #267/#328 IA decisions, which is where #766 parked the wireframe
+anyway. The timing argument is in §7 with the note that it expires: 2026-08-07 cleared the studio
+backlog and there are currently zero open studio PRs, so `main.ts` is at its least-contended point, and
+every week re-accumulates in-flight work to conflict with.
+
+**Placement note for §7.** It went in as a new section after §6 rather than into §6, and rather than
+into §2's table or an arc body. §6 is the doc's "what this plan waits on" section, so a boundary about
+what the plan does *not* wait on is its direct pair and a reader arriving there with the blocking
+question in hand meets it next. It could not go *inside* §6: the header marks §6 SUPERSEDED as of
+2026-08-12, and a current coordination boundary filed inside a superseded section reads as superseded
+too, which is why §7 opens by saying it is not. No arc definition and no existing section was touched.
+
+**Gates: all 28 of `ci.yml`'s gate steps green**, run in full per `CLAUDE.md` principle 4 rather than trimmed on the grounds that
+this is a docs change — four of the gates (`lint-us-english`, `lint-voice`, `lint-layout-claims`,
+`lint-doc-gates`) read prose, and `lint-layout-claims` polices exactly the kind of path claim §7 and this
+entry are full of. Engine `test.ts` 2135/2135 · `mcp-test.ts` 49/49 · `regen --check` 104 artifacts
+byte-matched · `nb-regression` exit 0 · `token-contract --check` unchanged ·
+`lint-skills`/`lint-doc-gates`/`lint-layout-claims`/`lint-payload-manifest`/`typecheck-components`/
+`lint-overlay-completeness` clean. Studio `typecheck`/`test` 150 assertions/`build`/`check:ignore`/
+`lint:contrast`/`lint:classes`. Plugin `typecheck`/`test`/`build` (0 `node:` builtins). TokenPress
+`test`/`build`. `exporter-comparison/gate.ts`. `check:consumability`. `lint-us-english` and `lint-voice`
+last, after the web build.
+
+**Next, and not in this PR:** #767. Nothing in the cleanup should start before it, and #768 says so in
+its own text — this entry exists so that ordering survives the context that produced it.
+
+---
+
 ## (2026-08-13) — The four-byte cliff was not a cliff: worst-chunk fullness is an artifact of greedy packing
 
 **STATUS: corrected.** A reviewer pushed back on #761's headline before the schema PR could quote it, and

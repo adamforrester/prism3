@@ -243,6 +243,37 @@ is ours.
 
 ---
 
+## 7. The studio cleanup, and the boundary it does not cross
+
+**Current as of 2026-08-13, and outside §6's supersession.** After an external review of the repo the
+owner called the `apps/studio/` cleanup (#768, blocked by #767) the priority, and accepted pausing other
+work for it if that is what it takes. The measured scope of that pause is much narrower than the
+sentence sounds, and the boundary belongs here rather than only in the issue, because this is the file a
+lane reads before picking up an arc.
+
+**Arcs 1 through 4 do not pause.** They are engine-side — `packages/engine/`, and the defs under
+`packages/engine/components/`. The cleanup is `apps/studio/`: four seams inside one file
+(`apps/studio/src/main.ts`) plus the gates coupled to it by path. The overlap is near-zero, so the
+priority call and §3's critical path are not in contention, and reading the call as "pause the arcs"
+would stop the definition layer for a refactor that never touches it.
+
+**What should queue behind the cleanup is the other studio work**, which is two pieces:
+
+- **#388's Part B** — the tier-reflecting UI, itself already pending #377, so queueing it costs nothing
+  it was not already waiting on.
+- **The #267 / #328 IA decisions.** Convenient rather than expensive: #766 parked the reviewer's
+  tier-based IA wireframe on exactly those two issues — as wireframe-and-validate, not an approved
+  build — so the queue behind the cleanup is where that proposal was already sitting. IA work landing
+  on a cleaned-up file rather than fighting one is the better order independently of the priority call.
+
+**The timing argument, recorded because it decays.** 2026-08-07 merged ~10 studio fixes and cleared that
+backlog; there are currently zero open studio PRs, so `main.ts` is at its least-contended point. Every
+week that passes re-accumulates in-flight work for a refactor of that file to collide with. So if this
+section is being read later with studio PRs open again, the cheapness half of the argument has expired,
+and the sequencing is worth re-deciding rather than inheriting.
+
+---
+
 *Cross-refs: `14` §6 (the build sequence this re-sequences), `19` §3/§7/§8 (output target, open
 decisions, first slice), `28` §4/§5/§6 (the anatomy schema, its open questions, its completed next
 step), `32` (the build learnings this reads its starting position from), `34` (gate independence,
