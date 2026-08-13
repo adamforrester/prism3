@@ -73,6 +73,20 @@ export const icon: ComponentDef = {
   // is absent from this map deliberately: `currentColor` is the absence of a pinned ink, not a token
   // whose value happens to be "inherit". A binding key for it would have to resolve to some real
   // path, and every candidate would be a lie about what the default does.
+
+  // THE PAINT GRAMMAR, and this def is why the field exists (#758). The ink axis leads with its own
+  // NAME and carries no `{slot}` segment at all — `tone.primary`, not `primary.icon` — because the
+  // component has one paintable surface, so a slot segment would be a constant repeated eight times.
+  // `field-message` keys the same axis name the OPPOSITE way (`default.text` — value first, slot
+  // second) over a disjoint value set, which is why the declaration is a template rather than an axis
+  // list: an axis list can express one of these two shipped conventions and would force a rekey of
+  // the other.
+  //
+  // `tone.inherit` is absent from `tokens` by the paragraph above, so a coordinate at `inherit`
+  // resolves no paint and the glyph keeps whatever ink it inherits — the correct projection of
+  // `currentColor`, not a dropped binding.
+  paintKeys: ['tone.{tone}'],
+
   tokens: {
     'size.xs': 'icon.size.xs',
     'size.sm': 'icon.size.sm',

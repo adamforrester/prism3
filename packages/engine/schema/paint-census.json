@@ -1,0 +1,41 @@
+{
+  "note": "AUTHORED BASELINE, not a regen artifact (see lint-paint.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-paint.ts --accept`, because a gate allowed to rewrite what it reads has no memory. A failure here means the projected paint changed — read the diff and decide whether the change was intended before accepting it. `set` is what the Figma projection builds; `grid` is every coordinate the def declares, which is wider (icon paints along `tone`, an axis the set does not enumerate).",
+  "defs": {
+    "icon": {
+      "set": {
+        "members": 4,
+        "assignments": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "grid": {
+        "members": 36,
+        "assignments": 32,
+        "sha256": "5d2bbc4d45acdbda05304cf91598c4f3eec3d29dc41ecf4869caf7a936e28a85"
+      }
+    },
+    "button": {
+      "set": {
+        "members": 648,
+        "assignments": 1926,
+        "sha256": "2731ec9f7990e67370f17eacda3e52c101a372257c370cdbe55b579e75d53bdd"
+      },
+      "grid": {
+        "members": 1134,
+        "assignments": 4374,
+        "sha256": "c5bff80021f61c9490d1f4d1232a6ac7701b52f8d76811fcb15996b58ee864da"
+      }
+    },
+    "icon-button": {
+      "set": {
+        "members": 162,
+        "assignments": 306,
+        "sha256": "c0d8e1fbf4ceab4dfa84eb0c708e383728a85ea49eaade658104bd0ea2a161a8"
+      },
+      "grid": {
+        "members": 189,
+        "assignments": 351,
+        "sha256": "6ebd3a5dd79bc90d288b722cf435f9307feca8f608d7046d85fba4e40be5ea42"
+      }
+    }
+  }
+}

@@ -73,6 +73,21 @@ export const button: ComponentDef = {
   // / overlay), so the matrix is uniform — no per-colour gaps. State-qualified slots carry a
   // dotted state suffix. accent is omitted from the base matrix (brand-conditional — it exists
   // only when the brand declares an accent palette). Keys structure the matrix; generators read them.
+
+  // HOW THOSE PAINT KEYS ARE SPELLED (#758). This is the grammar `paintOf` used to have hardcoded, so
+  // the two templates below are a transcription of existing behavior rather than a new decision —
+  // which is why the 648-member paint is byte-identical across that change by construction.
+  //
+  // The state-qualified template LEADS, and the order is the fallback: `primary.filled.fill.hover`
+  // wins where it exists, and a state that does not restyle a part falls through to the rest key (a
+  // `pending` button's fill is its rest fill). Reverse these two and every state paints its rest
+  // colour — 216 members silently identical to their rest sibling, which is #536 item 1's shape.
+  //
+  // `disabled.*` is deliberately NOT a template here: it switches token family rather than qualifying
+  // a key, and it is conditional on the appearance having that structure at rest. That is behavior,
+  // and it stays in the projector where it can be expressed.
+  paintKeys: ['{intent}.{appearance}.{slot}.{state}', '{intent}.{appearance}.{slot}'],
+
   tokens: {
     // base (variant-independent)
     'radius': 'radius.md',

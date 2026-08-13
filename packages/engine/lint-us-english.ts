@@ -183,6 +183,10 @@ const gated: string[] = [
   // moment, since the comment above promises coverage follows regen. It carries prose (`note`), so
   // it is listed by hand here; any future artifact kept out of regen needs the same line.
   join(repo, 'packages/engine/schema/token-contract.json'),
+  // The paint census (#758) — the second baseline kept out of `regen` for the identical reason, and so
+  // listed by hand for the identical reason: it carries prose (`note`) and inherits none of the regen
+  // list's coverage. This is the line the comment above predicted would be needed.
+  join(repo, 'packages/engine/schema/paint-census.json'),
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.

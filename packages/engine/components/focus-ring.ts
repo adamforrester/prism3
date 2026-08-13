@@ -87,6 +87,21 @@ export const focusRing: ComponentDef = {
   // `#AFC7F3` fills, radius 0, and a stroke weight bound to a REMOTE New Balance variable — all
   // placeholders, none of them the emitted token. These bindings are checked against every brand's
   // generated tree, so the ring is bound to a verified contract rather than to a file's contents.
+
+  // THE PAINT GRAMMAR (#758), and here ORDER is the whole declaration. The qualified template leads,
+  // so `color=inverse` finds `stroke.inverse` and `color=default` falls through to the bare `stroke`.
+  // Reverse the two and every ring paints the default colour — both variants are valid rings, so
+  // nothing downstream would notice, which is the same invisibility #656 turned on.
+  //
+  // The DEFAULT value is the one with no segment of its own. That is not an accident of authoring: the
+  // ring has one canonical colour and `inverse` is the exception, so the unqualified key IS the
+  // default. `paintKeys` can say that; the `{intent}.{appearance}.{slot}` template this replaces could
+  // not say it at all, which is wall 1 of the four this def's header lists.
+  //
+  // NOTE: this makes the ring's stroke COLOUR resolvable. It does not make the ring projectable — the
+  // three structural walls above are untouched, and `figmaProperties` stays absent for them.
+  paintKeys: ['{slot}.{color}', '{slot}'],
+
   tokens: {
     'stroke': 'color.border.focus',
     'stroke.inverse': 'color.border.focus-inverse',

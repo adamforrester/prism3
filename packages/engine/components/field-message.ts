@@ -46,6 +46,20 @@ export const fieldMessage: ComponentDef = {
   // on its semantic role. text.<role> clears the 4.5:1 body floor and icon.<role> its non-text
   // floor by construction (the engine gates them per mode), so a re-based role (roleColors) or a
   // new brand re-derives the whole set without a manual pass. The caption is caption-scale type.
+
+  // THE PAINT GRAMMAR (#758) — axis VALUE first, slot second, which is the opposite order to `icon`'s
+  // over an axis of the same name. Both ship, both are right for their component, and neither can be
+  // rekeyed to the other's shape without a lie: `icon`'s tone values are content roles (nine of them,
+  // defaulting to `inherit`), these four are validation states. That collision is the reason the field
+  // is a template list and not `paintAxes: ['tone']`.
+  //
+  // NOTE the slot vocabulary. `{slot}` is filled with the name the PROJECTOR asks (`label` for a text
+  // node, `icon` for a glyph), so this def's `text` keys are unreachable through it as spelled — the
+  // reachability check in `paintKeyErrors` catches exactly that. Renaming these keys is a def change
+  // this PR deliberately does not make: the def has no `anatomy` yet, so nothing projects it, and the
+  // rename belongs with the anatomy that gives it a text part (Arc 2 step 3).
+  paintKeys: ['{tone}.{slot}'],
+
   tokens: {
     'type': 'type.caption.md.default',
     'gap': 'space.075',
