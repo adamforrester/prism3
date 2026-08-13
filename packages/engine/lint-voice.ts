@@ -60,10 +60,20 @@
  *     what makes this gate usable at all, not a convenience. Mechanically: real TypeScript `//` and
  *     `/* *\/` comments never reach `apps/studio/dist/main.js` in the first place — esbuild strips them
  *     (confirmed by grepping the built bundle for known source-comment text and finding none). The
- *     ONE place a comment survives into the shipped bundle is C-style block comments written as
- *     literal STRING CONTENT — the CSS-in-template-literal stylesheet in `apps/studio/src/main.ts` — because
- *     esbuild does not parse the inside of a string, so whatever bytes are there ship unchanged. So
- *     the exemption has exactly one job: blank out `/* ... *\/` spans in `.js` bundle files before any
+ *     ONE place a comment survives into the shipped bundle is C-style block comments carried as
+ *     literal STRING CONTENT — the studio chrome stylesheet, whose ~1,460 lines of CSS comments ship
+ *     into `apps/studio/dist/main.js` verbatim because esbuild does not parse the inside of a string.
+ *     **#769 moved that stylesheet out of a template literal in `apps/studio/src/main.ts` into a real
+ *     `apps/studio/src/styles.css`, and the carve-out still applies unchanged — which is the point of
+ *     saying so here.** The CSS is imported through esbuild's `text` loader rather than emitted as a
+ *     separate asset (the plugin iframe ships `allowedDomains:["none"]` and cannot fetch a second
+ *     file), so those comments still arrive in the `.js` bundle as string content, still unparsed,
+ *     still the only surviving comments in it. What changed is where the bytes are AUTHORED, not
+ *     where they SHIP — and this gate reads what ships. Had the CSS become a separate
+ *     `dist/main.css` instead, this paragraph would be describing a stylesheet that no longer
+ *     reaches the scanned surface at all, and the scope line below would have had to grow a `.css`
+ *     entry to keep that prose gated. So the exemption still has exactly one job: blank out
+ *     `/* ... *\/` spans in `.js` bundle files before any
  *     rule runs, preserving length and newlines so line numbers on a REAL hit stay accurate. JSON and
  *     Markdown surfaces get no such stripping — they carry no code-comment convention to exempt, and
  *     blanking arbitrary substrings there would be pure risk (a `/* *\/`-shaped span inside real prose

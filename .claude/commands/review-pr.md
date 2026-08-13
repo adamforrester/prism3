@@ -135,9 +135,11 @@ mismatch with this file as the regression:
   --workspace @prism3/studio`): this gate scans `apps/studio/dist/main.js` — `build:site`
   writes to `apps/studio/public/dist` instead and will not satisfy this gate. Running
   against a stale or missing bundle is a false pass (fixed to fail closed in #502).
-  Note CSS-in-JS is NOT covered by the
-  "code comments are exempt" carve-out — text inside `/* */` in `apps/studio/src/main.ts`'s
-  CSS template literal ships verbatim into the bundle as string content.
+  Note the studio stylesheet is NOT covered by the
+  "code comments are exempt" carve-out — text inside `/* */` in `apps/studio/src/styles.css`
+  ships verbatim into the bundle as string content. #769 moved that file out of a template
+  literal in `main.ts`, and it is still imported as TEXT rather than emitted as a separate
+  `dist/main.css`, so the prose still lands on the surface this gate scans.
 - `npx tsx packages/engine/cli.ts <example> [--fidelity]` if the CLI/dialects changed.
 
 All of these also run in CI (`.github/workflows/ci.yml`) — run them locally anyway.

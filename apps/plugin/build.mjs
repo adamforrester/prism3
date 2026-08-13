@@ -44,6 +44,12 @@ const buildUiHtml = async () => {
     // bare identifier that throws at load. The plugin ships inside a versioned manifest rather than
     // from a URL that can go stale, so it has no commit to claim here.
     define: { PRISM3_HOST: '"figma"', PRISM3_BUILD: '"plugin"' },
+    // The studio chrome stylesheet is a real .css file since #769, imported by main.ts as TEXT.
+    // This loader is what keeps the UI a SINGLE self-contained document: esbuild's default `.css`
+    // loader emits a separate stylesheet, which an iframe shipping `allowedDomains:["none"]` has no
+    // way to fetch. Dropping it does not silently unstyle the panel — with `write: false` there is
+    // no output path, so esbuild refuses the CSS import and this build fails.
+    loader: { '.css': 'text' },
     write: false,
     logLevel: 'silent',
   });

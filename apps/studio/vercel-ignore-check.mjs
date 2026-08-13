@@ -31,10 +31,15 @@ if (!block) {
 }
 const excluded = new Set(block[1].split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#')));
 
+// `loader` mirrors the real build (#769 — `src/styles.css` arrives as TEXT). Its absence would not
+// misreport here, it would fail outright: esbuild refuses to import CSS into JS with no output path
+// configured, and `write: false` gives this build none. Kept in step with `package.json`'s `build`
+// so the metafile below describes the bundle that actually ships.
 const res = await build({
   entryPoints: [resolve(root, 'src/main.ts')],
   bundle: true,
   format: 'esm',
+  loader: { '.css': 'text' },
   write: false,
   metafile: true,
   logLevel: 'silent',
