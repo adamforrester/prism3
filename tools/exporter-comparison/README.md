@@ -154,7 +154,15 @@ Two findings from doing it are worth more than the arm itself:
   `fontWeight`. The rule now says `counterpart: { field: 'fontSize' }` and the expectation resolves
   through that field. Fixed by **tightening**, which is the only honest direction; the prose had been
   read several times without anyone noticing, and a check independent enough to contradict a claim its
-  own file makes is the strongest evidence available that it is not a tautology.
+  own file makes is the strongest evidence available that it is not a tautology. **How far that reaches,
+  measured rather than assumed:** the arm compares `$type`, so it falsifies a `reason` only when the
+  error *changes a type* — which font-fluid's did by luck. Probed on the shipped `grid.*` rule, pointing
+  `grid.<bp>.gutter` at `grid.margin` fails through the **unpaired** arm (it orphans the real
+  `grid.gutter`) with `paired types` still 0, and **swapping** `gutter`↔`margin` — no orphans, both sides
+  `dimension` — passes **fully green**, though nb's two values differ at 3 of its 5 breakpoints. So:
+  **the arm verifies that a rule's two sides agree on type, not that the rule paired the right two
+  things.** Closing that needs values compared across rule-paired pairs, which the report does not carry
+  for them today. Do not read a green `paired types` as "the pairings are correct".
 - **A mutation that changes nothing looks exactly like a blind spot.** Disabling the explicit
   `FONT_SIZE` check alone left the gate green — not a hole, but a *non-mutation*: it falls through to a
   defensive scope list further down, which that code's own comment says is there for this refactor.

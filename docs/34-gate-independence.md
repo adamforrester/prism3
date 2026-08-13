@@ -631,6 +631,23 @@ correspond is an unverified claim sitting inside a gate**, and the way to verify
 contradict it. Fixed by *tightening* the rule, which is the only honest direction — loosening it to
 absorb the disagreement would have restored the green and deleted the finding.
 
+**But measure how far that verification actually reaches, because the headline overstates it.** The arm
+checks the two sides' `$type`, so it can only falsify a `reason` whose error *changes a type* — which
+font-fluid's did, by luck rather than by design. Probed on the shipped rule: making
+`grid.<bp>.gutter` claim correspondence with `grid.margin` fails, but only through the **unpaired** arm,
+because it orphans the real `grid.gutter`; `paired types` stays 0. And **swapping** `gutter`↔`margin`,
+which orphans nothing and keeps both sides `dimension`, passes **fully green** — while nb's two values
+genuinely differ at 3 of its 5 breakpoints. So the honest statement of what shipped is: **the arm
+verifies that a rule's two sides agree on TYPE, not that the rule paired the right two things.** The
+remaining hole is real, narrower than the one closed, and named rather than implied. Closing it needs a
+value comparison across rule-paired pairs — the report carries no values for them today, which is itself
+worth knowing before anyone reads a green `paired types` as "the pairings are correct".
+
+**The generalizable form, which is this shape one turn deeper:** a check added to verify an authored
+correspondence is itself scoped, and *its* scope is as easy to overstate as the claim it verifies. Ask
+what the check compares — and what an error in the claim would have to change before that comparison
+notices.
+
 **One trap while mutation-testing this shape.** Disabling the explicit `FONT_SIZE` check alone left the
 gate green, which looked like a second blind spot. It was a **non-mutation**: the subject has a
 defensive scope list downstream that catches the same case, and that code's own comment says it is there
