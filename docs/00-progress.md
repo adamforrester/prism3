@@ -280,10 +280,15 @@ passes **fully green**, while nb's two values differ at 3 of its 5 breakpoints (
 200/300, `xl` 300/400). So the shipped claim is exactly: **the arm verifies a rule's two sides agree on
 TYPE, not that the rule paired the right two things.** Closing that needs values compared across
 rule-paired pairs, which the report carries for none of them today (the values category covers 0 of the
-15 grid pairs). Left open and named in `gate.ts`, `README.md` and `docs/34` rather than implied, because
-a green `paired types` reads as "the pairings are correct" and does not mean it. The generalizable form
-is this shape one turn deeper: **a check added to verify an authored correspondence is itself scoped, and
-its scope is as easy to overstate as the claim it verifies.**
+15 grid pairs). Left open and named in `gate.ts`, `README.md`, `docs/34`, `CLAUDE.md` §4 and
+`CONTRIBUTING.md` §3 rather than implied, because a green `paired types` reads as "the pairings are
+correct" and does not mean it. The generalizable form is this shape one turn deeper: **a check added to
+verify an authored correspondence is itself scoped, and its scope is as easy to overstate as the claim it
+verifies.** And the sweep needed a second pass to be complete: #788 carried the bound to four sites and
+left `CONTRIBUTING.md` §3 reading only "Now 0 and ASSERTED" — the *canonical* gate list, and the one
+phrasing a reader is most likely to take as "the pairings are verified." **A qualification has to reach
+every site the unqualified claim reached**, which is one more site than the claim itself had, because
+`CONTRIBUTING.md` had never said "four arms" in the sentence that needed fixing.
 
 **THE TRAP FOR WHOEVER RE-VERIFIES THIS.** Mutating the `FONT_SIZE` branch to check the duplicate-channel
 rule reported **EXIT 0**, which reads as a second blind spot. It was a **non-mutation**: disabling the
