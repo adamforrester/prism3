@@ -38,6 +38,7 @@
 - [ ] `npm run -w @prism3/studio typecheck` → clean
 - [ ] `npm run -w @prism3/studio test` → clean — the provenance model (#722); `typecheck` does not cover it (`tsconfig.json` includes `src` only, so the test file is never compiled)
 - [ ] `npm run -w @prism3/studio build` → succeeds
+- [ ] `npm run -w @prism3/studio test:smoke` → _N/N passed_ — the headless DOM/interaction suite (#767, deciding #333). Run it **after** `build`: it drives the built `dist/main.js` in Chromium over every page × mode × corpus brand, plus the mode switch, an override picker and an export. A **separate** script from `test` above on purpose — those are pure modules with no browser, and a flake here must not be able to take them down. **Advisory in CI until 2026-08-20, then gating (#775).** Needs `npx playwright install chromium` once; `playwright` is an `apps/studio` devDependency and the engine core stays dependency-free
 - [ ] `npm run -w @prism3/studio check:ignore` → clean
 - [ ] `npm run -w @prism3/studio lint:contrast` → clean
 - [ ] `npm run -w @prism3/studio lint:classes` → clean — a NEW class-name combination fails here until it's added to `ALLOWED` in `apps/studio/lint-classes.mjs`

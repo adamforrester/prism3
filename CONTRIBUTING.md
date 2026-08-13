@@ -112,8 +112,30 @@ npm run test         -w @prism3/studio      # the provenance model (#722). NOT c
                                             #   tsconfig.json includes `src` only, so the test file
                                             #   itself is never compiled — this step is what runs it
 npm run build        -w @prism3/studio
+npm run test:smoke   -w @prism3/studio      # the headless DOM/interaction suite (#767, deciding #333).
+                                            #   Run it AFTER build — it drives the built dist/main.js
+                                            #   in Chromium: every page in every mode across both
+                                            #   corpus brands (72 states), the mode switch, an override
+                                            #   picker and an export, asserting 0 console errors plus
+                                            #   DOM and RENDERED-contrast invariants. Deliberately a
+                                            #   SEPARATE script from `test` above: those are pure
+                                            #   modules with no browser, and a browser flake must not
+                                            #   be able to take them down. This is the only coverage
+                                            #   src/main.ts has or can have — it touches `document` at
+                                            #   import time, so no Node harness can load it at any
+                                            #   granularity, which is why both pure suites cover
+                                            #   modules EXTRACTED from it. In CI it is ADVISORY
+                                            #   (continue-on-error) until 2026-08-20, then gating —
+                                            #   #775. Needs a browser: `npx playwright install chromium`
+                                            #   once (playwright is an apps/studio devDependency; the
+                                            #   engine core stays dependency-free and buildless)
 npm run check:ignore -w @prism3/studio      # Vercel ignore list still matches the real bundle
-npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contrast floors
+npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contrast floors — STATIC, the
+                                            #   token VALUES. Its complement is test:smoke above, which
+                                            #   measures what RENDERS; neither subsumes the other (a
+                                            #   legal token faded through opacity is invisible to this
+                                            #   one, and a token used in a state no sweep visits is
+                                            #   invisible to that one)
 npm run lint:classes  -w @prism3/studio     # no unreviewed class-name collision — a NEW
                                           # combination fails here until you add it to
                                           # ALLOWED in apps/studio/lint-classes.mjs

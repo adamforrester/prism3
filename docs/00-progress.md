@@ -7,6 +7,149 @@
 
 ---
 
+## (2026-08-13) — The studio gets DOM/interaction coverage it could not have, and #333 closes (#767)
+
+**STATUS: shipped.** `apps/studio/test-smoke.mjs` — a committed headless suite over every page in every
+mode across both corpus brands, wired into `ci.yml` **advisory until 2026-08-20**, then gating (#775).
+This is the hard prerequisite for the studio cleanup (#768 and its four pieces), so it lands first and
+alone: no engine change, no `packages/engine/` change of any kind, and the component arcs running there
+concurrently are untouched.
+
+**The argument that actually justifies this, which #767's own framing understated.** `src/main.ts`
+touches `document` at import time, so it cannot be imported into a Node harness **at all**. Not
+awkwardly, not with a shim — the import throws. That means there is **no possible unit coverage of the
+~9,000 lines in that file at any granularity**, which is why both existing suites (#722's provenance
+model, #723's export settings) cover modules *extracted* from it. Testability was available only to the
+code that got moved out. So the gap was never "the studio has no tests"; it was "the studio's actual
+behavior has no reachable test seam", and a browser is the only harness that can see it run.
+
+That reframing is also **independent evidence the cleanup is real.** A file that cannot be imported
+without a DOM is a file whose logic cannot be unit tested at any size. #722/#723 are what testability
+looks like on the other side of that seam, and #768 is the work of moving it.
+
+**What was actually being relied on until now.** Every behavioral verification this repo has ever done
+on the studio — including all ten fixes merged 2026-08-07 — was a throwaway Playwright script, written
+for the PR and deleted afterward. Real verification, performed by a competent agent, and then thrown
+away. `ci.yml` said so in its own comment on the contrast gate: *"measuring what renders needs a browser
+and this repo does not depend on Playwright (#333), so a runtime check could not run here at all."*
+
+**The dependency decision, and its blast radius.** `playwright` is now a devDependency **of the
+`apps/studio` workspace only** — not the root, not the engine. The engine core stays dependency-free and
+buildless; nothing here touches that invariant. This replaces the `PLAYWRIGHT_MODULE`-pointed-at-a-global
+escape hatch **for this suite**: right for ad-hoc verification, wrong for a CI gate, because it makes CI
+depend on ambient global state on the runner — the "reach that is an accident rather than a declared
+scope" shape `docs/34` names. Three comments elsewhere asserted the old invariant and were rewritten
+rather than left standing: `ci.yml`'s contrast-gate paragraph, `lint-contrast.mjs`'s header, and
+`mode-audit.mjs`'s dynamic-import note (plus `tools/block-capture`, which the change also falsified). A
+comment describing a protection the code no longer provides is the thing that stops the next person
+looking.
+
+**Advisory first, then gating — and the follow-up is the point.** `continue-on-error: true` with a flip
+date of 2026-08-20, tracked as **#775**. A flaky browser suite that blocks every PR is the fastest way to
+erode trust in gates generally, and this repo's gate discipline is worth more than one week of coverage.
+The reason #775 exists at all is that **an ungated suite is a suite that rots**: `continue-on-error` with
+no scheduled removal is indistinguishable, six months on, from a suite nobody noticed going permanently
+red. #775's stated condition is deliberately narrow — if the week finds flakiness, *fix it*, do not
+extend the period, because a second extension is how advisory becomes forever.
+
+**And the advisory week nearly produced no evidence at all — found by proving the CI wiring, not by
+reading it.** With `continue-on-error`, GitHub reports the **step's own** `conclusion` as `success`
+when the command exits non-zero, not only the job's. So the deliberately red run this branch pushed
+came back green in every status check and in everything reading the API; the only trace was
+`##[error]` inside the step log. A week of not-blocking would have bought a week of *nothing*, and
+#775's flip would then have been made blind — the opposite of what an advisory period is for. Fixed
+here rather than deferred to #775: the suite writes to `$GITHUB_STEP_SUMMARY`, so a red run states
+itself on the run page with the count and the failing assertions (each already naming its page × mode
+× brand). **It writes on SUCCESS too, and that is the part worth defending**: a summary that appeared
+only on failure would make *absence* ambiguous between "it passed" and "the write is broken / the step
+never ran" — the exact shape `ci.yml` warns about elsewhere ("green starts meaning nothing ran"). One
+line on success makes silence mean one thing. Verified by a second deliberately red CI run, because a
+`$GITHUB_STEP_SUMMARY` write that never fires is precisely the failure this repo keeps catching.
+
+**Where the mode-outer finding lives, and why there rather than only in the test file.** That finding
+is what the next person writing *any* probe against the studio will hit, and they will not be reading
+this PR. The header comment in `test-smoke.mjs` reaches whoever is already editing that suite; it
+reaches nobody about to write a new one. So it also went into **`apps/studio/README.md`**, under a
+"Driving it headlessly — read this before writing a probe" section, stated as mechanism → symptom →
+rule. That file rather than `docs/23`: `docs/23` is the IA **plan**, read when changing the
+information architecture, and its §7 already records `currentMode`'s persistence as a *design
+decision* — which is the mechanism, not its consequence for a harness. The workspace README is what
+someone opens when they land in `apps/studio/` to build something against the app, it sits beside both
+drivers, and it already carries this exact genre (the stale-bundle trap, the inverted ignore-script
+exit codes). The new section cross-references `docs/23` §7 so the decision trail survives without
+being duplicated, and inherits the two smaller traps as well — the ephemeral port and the per-brand
+browser context.
+
+**What it covers, concretely.** 9 pages x 4 modes x 2 corpus brands = **72 states**, 15,638 text nodes,
+**517 assertions**, ~19s. Per state: zero console errors / uncaught exceptions / failed requests; a hero
+title renders; the page is not blank (controls, *or* the read-only note a derived mode legitimately
+shows instead); the global error bar is hidden; no horizontal overflow; the mode bar still marks the
+mode the state was set to; and every text node clears a rendered-contrast floor. Then three control
+drives per brand: the override picker round trip (#330), a select changed while scrolled (#485), and an
+export that downloads a file whose bytes parse.
+
+**Mode is the OUTER loop, and that was a real finding rather than a style choice.** Three of the nine
+pages render no mode bar (#268 — the bar appears only where a mode-varying control exists), but
+`currentMode` is module state that survives navigation, so those pages still render *through* the
+selected mode. The first version of this file looped pages outer and modes inner, and immediately
+reported Typography and Layout as blank: reached from a derived mode they drop their editors for the
+read-only note. That is the app being right, and a page-outer sweep would only ever have visited those
+three pages in whatever mode the previous page happened to leave behind. Picking the mode on a page that
+*has* the bar and then walking every page is what makes "every page in every mode" true rather than
+"every page that offers a mode bar".
+
+**The contrast floor is 2.0:1, and both numbers that set it are in the file.** Measured across the whole
+sweep, the lowest rendered ratio in the studio today is **3.04:1**, and everything in the 3.0-3.2 band is
+a specimen meeting its *own* engine contract — the disabled set at `disabledMin` (3), `-subtle` semantics
+at `secondaryMin`. Asserting AA over those would fail the suite on the engine working. #555's real
+defects sat at **1.00-1.61:1**. So 2.0 sits in the gap with roughly 1.5x margin on both sides, and every
+run prints the observed minimum so erosion is visible before it is a failure — the memory #355's hand-fix
+could not leave behind. This does **not** retire `lint:contrast`: that gate reads the token VALUES, so it
+fails wherever a pairing is used including states no sweep visits; this one reads the RENDER, so it
+catches a legal token faded through `opacity` (#555's `.mo-playnote`: 4.628 declared, 3.12 rendered).
+Neither subsumes the other, and both files now say so.
+
+**Verified by mutation, in both directions, because one direction proves nothing.**
+
+| Mutation | Result |
+|---|---|
+| `baselineStepOf` stops clearing the role's own override (#330) | exit 1 — *"the Auto label still names the true baseline with an override active — was `Auto · accent 500 · ✓ 4.5:1`, now `Auto · accent 025`"*, both brands |
+| `window.scrollTo(0, scrollY)` deleted from `renderWorkspace` (#485) | exit 1 — *"changing a surface select holds the scroll position (400 -> 0)"*, both brands |
+| **PASS** — that same line rewritten `window.scrollTo({ top: scrollY, left: 0 })` | exit 0, 517/517 |
+| **PASS** — the Motion page's lede copy rewritten | exit 0, 517/517 |
+
+The two passing mutations are not a formality. A suite that fails on everything is indistinguishable
+from a working one if only the failing direction is ever run, and this repo has been bitten by exactly
+that. The first pass-mutation is deliberately the *same line* the #485 mutation deletes.
+
+Worth noting what the #330 mutation did **not** trip: the second half of that check (selecting Auto
+returns the color the label named) stayed green, because the defect was only ever in the label. That is
+#330 exactly — a control whose label lies about its own behavior — and it is why the check asserts the
+label separately rather than inferring it from the resolved value.
+
+**Two traps met while building, recorded because both cost time.** The picker's step is chosen by
+*driving* until the resolved color moves, not by parsing the step name out of the `Auto · accent 500`
+label: the parse worked, and would have gone silently weak the day that punctuation changed, picking a
+step that happens to equal the baseline and passing the whole section on a defect. And the server binds
+an **ephemeral** port rather than a second fixed one — `mode-audit.mjs` holds 8899, and two harnesses on
+one port collide as `EADDRINUSE`, which reads exactly like a test failure and gets debugged as one.
+
+**Determinism is the whole design.** Not one arbitrary sleep in the file: every wait is a selector,
+`document.fonts.ready`, or a `waitForFunction` on the state the click was supposed to produce (the rail
+marking the destination active, the bar marking the mode selected). If one of those conditions stops
+holding the suite hangs and then fails loudly, which is correct; a sleep would measure the *previous*
+state and call it a pass. Three consecutive local runs: 517/517, identical minimum contrast, no variance.
+
+**It composes rather than replaces.** `npm run -w @prism3/studio test` still runs #722/#723's 150
+assertions untouched — `test:smoke` is a separate script and a separate CI step, on purpose, so a browser
+flake can never take the pure suites down with it.
+
+#333 closes with its scope decision recorded: **headless smoke, not jsdom/unit.** Unit coverage of
+`main.ts`'s logic is welcome *after* #768 makes extraction possible, and this does not block it — that is
+the same move #722/#723 already demonstrate.
+
+---
+
 ## (2026-08-13) — The arcs §7 placement note, re-justified on ground that survives #759
 
 **STATUS: shipped.** Docs only, and small: the justification prose in `docs/38` §7 and in this log's

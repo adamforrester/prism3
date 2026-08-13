@@ -113,9 +113,11 @@ Environment overrides, all optional: `PW_STORAGE` (a `storageState.json` for a s
 needs a session — Tailwind Plus does, Relume appears not to), `PW_CHROMIUM` (an explicit browser
 path when Playwright's pinned build isn't the one installed), `PW_PROXY`.
 
-**playwright is not a repo dependency.** This repo is dependency-free and buildless, and this harness
-runs on a workstation rather than in CI — like everything in `tools/`, it answers a question rather
-than asserting an answer, so it is deliberately not wired into `ci.yml`.
+**playwright is a devDependency of the `apps/studio` workspace** (#767, for the studio smoke suite),
+so a repo-root `npm ci` is enough to run this. It is still not wired into `ci.yml`, and that has
+nothing to do with the dependency: like everything in `tools/`, this harness answers a question rather
+than asserting an answer, and it runs on a workstation. The **engine** core stays dependency-free and
+buildless — unchanged.
 
 ## Known limits
 
