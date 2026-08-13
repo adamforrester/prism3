@@ -163,6 +163,32 @@ export type PartDef = {
   size?: string;
   /** For `text` parts: the binding key giving the composite type style. */
   type?: string;
+  /** For `text` parts: WHICH ink slot this part asks the paint grammar for. Defaults to `label`,
+   *  which is what every text part in the corpus but one wants (#796).
+   *
+   *  WHY THIS FIELD EXISTS AT ALL, and it is a corrected decision rather than a new idea. #784 renamed
+   *  `field-label`'s ink keys into the projector's slot vocabulary and kept `indicator.label` keyed
+   *  under the part, on the reasoning that the template list disambiguates the two text nodes
+   *  positionally. **That was reasoning about a mechanism nobody had measured, and it is wrong.**
+   *  `paintOf` takes a SLOT and never sees which part asked: the `kind === 'text'` branch calls
+   *  `paintOf('label')` for every text node in the tree. Probed with `field-label`'s two text parts,
+   *  both came back `color/text/primary` — so `indicator.label` → `color.text.secondary` was authored,
+   *  resolvable, reached at NO coordinate, and would have shipped the de-emphasised "(optional)" suffix
+   *  in full-strength primary ink. The rename produced a dead key, which is the #784 defect class
+   *  reappearing inside #784's own fix.
+   *
+   *  Nothing in the schema tier could catch it: `{slot}` does not match a two-segment key, so
+   *  `paintKeyErrors` correctly said nothing. `lint-paint.ts`'s arm 3 — the plan-derived oracle — is
+   *  what fails on it, which is the argument for that arm existing: it enumerates coordinates instead
+   *  of reading declarations, so it can see a key no declaration describes.
+   *
+   *  IT IS THE PART, NOT THE DEF, THAT DECLARES THIS, because two text nodes in ONE component is
+   *  exactly the case — a def-level answer would have to be per-part anyway. And a per-part *name*
+   *  never becomes the vocabulary: the part names a SLOT from `PAINT_SLOTS`, so the word still has to
+   *  be one the projector dispatches. See `PAINT_SLOTS` for what makes a new slot admissible — a
+   *  distinct ink ROLE, not a distinct part. `indicator` qualifies (a name and its de-emphasised
+   *  suffix are two roles); "this part happens to need its own colour" does not. */
+  paintSlot?: string;
   /** A slot that need not be present. `false`/absent means required. */
   optional?: boolean;
   /** For `overlay`: the part whose position it takes (width-preserving, per the brief). */
@@ -767,10 +793,32 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
 export const expandKey = (key: string, sizes: string[]): string[] =>
   key.includes('{size}') ? sizes.map((s) => key.replace('{size}', s)) : [key];
 
-/** The paint slots the projector asks for, chosen by part KIND rather than part name
- *  (`anatomy-figma.ts`'s paint dispatch). Exported so `paintKeyErrors` and the projector cannot
- *  disagree about the vocabulary — one list, two readers. */
-export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon'] as const;
+/**
+ * The paint slots the projector asks for (`anatomy-figma.ts`'s paint dispatch). Exported so
+ * `paintKeyErrors` and the projector cannot disagree about the vocabulary — one list, two readers.
+ *
+ * WHAT MAKES A NEW ENTRY ADMISSIBLE: **a distinct ink ROLE, not a distinct PART.** Every entry here is
+ * a different thing colour does — a ground (`fill`), a translucent ground (`overlay`), an edge
+ * (`border`), text ink (`label`), glyph ink (`icon`) — and the list is chosen by part KIND precisely so
+ * it stays that short: one entry serves every box, every text node, every glyph in the corpus.
+ *
+ * `indicator` (#796) is the ONE entry that names a part rather than a kind, and it is the exception the
+ * rule has to survive rather than the start of a pattern. It earns its place because the two text nodes
+ * in `field-label` carry genuinely different ink roles — the name and its de-emphasised suffix — and
+ * `field-label`'s own `{slot}` grammar had no way to reach the second: `paintOf` dispatches by slot and
+ * never sees which part asked, so both text parts took `paintOf('label')` and the muted "(optional)"
+ * rendered in primary ink. The measurement is in `PartDef.paintSlot`.
+ *
+ * **The failure mode to guard is this list reaching fifteen entries with half of them part names**, at
+ * which point it has stopped being a set of ink roles and become a per-part registry — and a
+ * vocabulary that names parts cannot be checked against anything, because every new part legitimises
+ * its own word. So the test for a candidate is not "does a part need its own colour" (a part can
+ * always be given one) but "is this a role no existing entry expresses". If the answer is a part name,
+ * the honest fix is usually a second part of a different KIND, or a def-tier decision that the two
+ * surfaces share ink. And the DO-NOT-WIDEN rule in `paintKeyErrors` still binds independently: an entry
+ * needs a real `paintOf('<slot>')` dispatch behind it before it may be added at all.
+ */
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indicator'] as const;
 
 /**
  * The paint slots a SLOT-FREE template is allowed to answer (#758).
@@ -788,8 +836,17 @@ export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon'] as con
  *
  * A def whose grammar DOES need to reach `border` or `overlay` says so by keying `{slot}`, which is
  * what every def with more than one paintable surface already does.
+ *
+ * `indicator` IS HERE (#796), and the reason is the rule above read literally rather than a second
+ * decision: it is what a text part's paint IS when that part declares `paintSlot: 'indicator'`, exactly
+ * as `label` is for a text part that declares nothing. Both are the primary paint of the same KIND, so
+ * excluding it would mean a slot-free grammar over an indicator part resolved nothing at all — a part
+ * that projects structurally and never paints, which is the #784 shape this pass exists to remove.
+ * No def in the corpus needs that combination today (`field-label` keys `{slot}`), so this is the
+ * consistent answer rather than a demonstrated one — stated so the next slot-free grammar does not
+ * inherit a silent hole.
  */
-export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon']);
+export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator']);
 
 /**
  * Bindings that name a component this def WILL nest, before it has the `anatomy` block that would
@@ -910,8 +967,10 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
    * failure vanish is to add the offending word to it — which converts a real defect into a silent
    * pass in one line, and moves nothing. `PAINT_SLOTS` may only grow when the projector ACTUALLY
    * DISPATCHES the new slot, which is checkable in `anatomy-figma.ts`: a `paintOf('<slot>')` call must
-   * exist in the paint branch for the part kind that owns it. Today there are exactly five such calls,
-   * one per slot (`overlay`, `fill`, `border`, `label`, `icon`). A slot in the list with no call
+   * exist in the paint branch for the part kind that owns it. Today there are exactly five such calls
+   * (`overlay`, `fill`, `border`, `icon`, and the text branch's `p.paintSlot ?? 'label'`), covering six
+   * slots — the text branch reaches both `label` and `indicator` because a text part may name its slot
+   * (#796), which is why this is five calls and not one per slot. A slot in the list with no call
    * behind it is a vocabulary entry no part can ever ask for, so it can never fail this rule and never
    * paint anything either.
    */
@@ -1318,6 +1377,16 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     if (p.kind === 'box' && !p.layout && (p.children ?? []).length > 0)
       e.push(`anatomy part '${n}' is a box with children but no layout — a materializer has no direction to apply`);
     if (p.kind === 'text' && !p.type) e.push(`anatomy part '${n}' is text but binds no type style`);
+    // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
+    // would validate clean and be silently ignored, which is this whole pass's defect class: a field an
+    // author reasonably believes took effect.
+    if (p.kind !== 'text' && p.paintSlot !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paintSlot' — only a 'text' part chooses which ink slot it asks for; every other kind's paint follows from its kind`);
+    // And the word must be one the projector DISPATCHES, checked against the same oracle `paintKeyErrors`
+    // uses. Without this, `paintSlot: 'indicatr'` resolves no paint and the part projects unpainted —
+    // the #784 shape arriving through the field that exists to prevent it.
+    if (p.kind === 'text' && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
+      e.push(`anatomy part '${n}': paintSlot '${p.paintSlot}' is not a slot the projector dispatches — it asks only for [${PAINT_SLOTS.join(', ')}]. A part naming a word outside that list resolves no paint and projects unpainted. Do NOT add it to PAINT_SLOTS to clear this: a new slot needs a distinct ink ROLE and a real dispatch behind it (see PAINT_SLOTS)`);
   }
 
   return e;

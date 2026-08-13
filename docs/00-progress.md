@@ -7,6 +7,112 @@
 
 ---
 
+## (2026-08-13) — Both field defs get their anatomy; only one of them can be projected (#796, Arc 2 step 3)
+
+**STATUS: shipped.** `field-label` and `field-message` both carry `anatomy` blocks. `field-label` projects —
+4 Figma members, 12 grid coordinates, **4 of 4** colour bindings reachable, now pinned in the paint census.
+`field-message` does **not**, deliberately, and that asymmetry is the entry.
+
+**AND THIS DOES NOT CLOSE ARC 2 STEP 2.** `focus-ring` still cannot project: `planComponentName` always writes
+a `size=` coordinate the ring has no axis for, and `PartDef` has no stroke field (#740). Nothing here touched
+either. Step 2 stays incomplete on purpose — read step 3's progress as step 3's.
+
+**THE FRAMING, and it is `docs/38` §2's, not a new one.** The task said *"both are paintable."* That is true
+of the **grammar** and false of the **projection**, and the phrasing for the gap already exists: **an `anatomy`
+block is necessary and not sufficient.** Both defs' paint keys now resolve. Only one has a `size` axis, and
+`figmaAnatomyPlan` requires one, so the other projects at no coordinate at all.
+
+**A THIRD INSTANCE OF #785's DEFECT CLASS, INSIDE #785's OWN FIX.** #785 rekeyed `field-label`'s
+`indicator.label` and claimed in a code comment that it *"resolves through the same `{slot}` template once the
+anatomy block names that part."* **Measured, and it does not.** `paintOf` takes a **slot** and has no part
+identity in scope, so the `kind === 'text'` branch called `paintOf('label')` for **every** text node. Both of
+`field-label`'s text parts came back `color/text/primary`: the de-emphasised "(optional)" suffix would have
+shipped in full-strength primary ink, and `indicator.label` was authored, resolvable, and reached at **no
+coordinate** — #785's exact defect, committed by #785. Found by probing rather than by reading the comment.
+
+**THE FIX: `PartDef.paintSlot`, and it is a CORRECTED DECISION rather than a new idea.** Two decisions ago the
+owner ruled *against* per-part slots, on the grounds that the template list disambiguates the two text nodes
+positionally, and I recommended it. That was reasoning about a mechanism nobody had measured, and it is wrong —
+the recommendation produced a dead key. A `text` part now names which ink slot it asks for
+(`paintSlot: 'indicator'`), defaulting to `label`, which is what keeps this from being a widening: a text part
+that declares nothing behaves exactly as before, verified by the census adding `field-label` and changing no
+other def's hashes.
+
+Rejected: **folding the indicator into `label`** (Figma renders two text nodes in two colors trivially, so a
+shared ink would be a real design loss recorded as a tooling ceiling) and **`codeOnly`** (same reason, plus it
+would put a projector limitation in a list that means *Figma ceiling*).
+
+**`PAINT_SLOTS` NOW STATES WHAT MAKES A NEW SLOT ADMISSIBLE**, because the DO-NOT-WIDEN rule was not enough on
+its own: this pass adds a slot, so the next person has a precedent for adding one. The test is a distinct ink
+**ROLE**, not a distinct **PART**. If the list reaches fifteen entries with half of them part names it has
+stopped being a set of ink roles and become a second copy of the anatomy, and the gate that reads it stops
+meaning anything. Both halves are now in the header, with the failure mode named.
+
+**`field-message` HAS AN ANATOMY BLOCK AND NO `figmaProperties`, WHICH IS `focus-ring`'s POSITION** and is
+recorded the same way — absence plus a reason in the header. Two things it is deliberately **not**:
+
+- **Not in `codeOnly`.** That list means *some anatomy provably will not survive the Figma leg* — a touch
+  target larger than its frame, an accessibility tree. A `size`-axis requirement in `figmaAnatomyPlan` is
+  **our own code**, which we wrote and can remove. Filing it as a Figma ceiling would make `codeOnly` mean two
+  things, and the day someone reads that list to answer *"what can Figma not do?"* they get a wrong answer.
+- **Not a fabricated `size` axis.** A caption has one scale, so `size: ['md','lg']` would emit Figma members
+  corresponding to nothing in the design — byte-identical variants per tone, projected to satisfy a coordinate.
+
+Verified rather than assumed: all **eight** of its colour bindings resolve at every tone (probed by substituting
+a size axis into a throwaway copy), so it projects with no further work on it the day the requirement is relaxed.
+
+**THE SIZE-AXIS WALL IS NOW ITS OWN ISSUE — #795**, not a per-def note. It blocks `focus-ring` and
+`field-message` for one reason; two instances is where a note becomes a defect. Acceptance: both defs project.
+It is an Arc 1 schema question, same family as #758 — and like #758 it was tempting to settle inside this PR,
+which is exactly why it was not.
+
+**WHAT THE GATES CAUGHT, AND WHAT ONLY ONE OF THEM COULD.** Mutation-tested by reverting `field-label` to its
+pre-#796 shape:
+
+- **Arm 3 of `lint-paint.ts` names both dead keys explicitly** — the plan-derived oracle that enumerates
+  coordinates instead of reading declarations. The only gate that can see a key no declaration describes.
+- **The census caught it too, and only because it hashes.** Both shapes produce the *same counts* — `set 4/8`,
+  `grid 12/24` — differing only in where the paint points. The failure message says so: *"the same count of
+  assignments, pointing somewhere else."* **A census that counted would have passed this**, which is the
+  clearest case yet for why the hash is the gate.
+- A pre-existing `paintKeys` rule independently caught `disabled.indicator.label` (the cross-cutting branch's
+  ground segment) but **not** the plain `indicator.label` — so `validateComponentDef` alone saw half of it.
+
+Both new validations were mutation-tested **by name** against a clean control: `paintSlot` on a non-`text` part,
+and `paintSlot` naming a word outside `PAINT_SLOTS` (whose message says *do not add it to `PAINT_SLOTS` to clear
+this*).
+
+**A CONTRADICTION FOUND IN PASSING, worth writing down because nothing in the corpus exercises it.**
+`present()` returns `!p.optional` for every part except the two slot names it hardcodes (`leadingVisual` /
+`trailingVisual`), so an optional part named anything else is built at **no** coordinate — it validates clean,
+reads as a considered absence, and never appears. This makes the tempting way to model an optional part
+(`optional: true` plus a Figma BOOLEAN) unbuildable in **both** directions, since `figmaProperties.booleans`
+*requires* `optional: true` and `present()` then drops the node the boolean would toggle. No def in the corpus
+uses `booleans` — both declare it stated-empty — which is why it has never surfaced. Recorded in both defs'
+notes rather than fixed; out of scope here.
+
+**AND #787 CALLED THIS PASS BY NAME, WHICH IS THE PART WORTH KEEPING.** Its entry (below) predicted that
+*"Arc 2 step 3 gives the three field defs anatomy and moves it again"* — so it fixed `main.ts:250` by stating
+the **property** and pointing at `componentDefs`, rather than writing a fresh count that this PR would rot.
+That held: the comment needed no edit here. `docs/38` §2's row did, and #787 had already corrected the
+self-contradiction in it (*"three of seven… two of those"* beside evidence citing four defs) hours earlier, from
+a live census. **I hit the same trap independently in this lane** — reading the row's headline and advancing the
+number in it — and caught it only because the branch was rebased and the two versions collided. The lesson is
+#787's, restated with a second data point: a count in prose has no gate, so **derive it from `componentDefs` at
+the moment of writing**, never by advancing the number already on the page. `lint-paint.ts`'s `censusable()`
+comment had the identical drift (*"Three of the seven"* while listing four) and now names the **reason per def**
+instead of a count.
+
+**A PROCESS NOTE, because it nearly shipped wrong numbers.** This lane's branch was cut from PR #785's
+*unsquashed* branch rather than from `main`, so it was four merged commits behind and every issue reference I
+wrote from memory was off by one PR — `#785` used throughout for *this* PR's work, when #785 was already merged
+as the slot-vocabulary PR and this one is #796. Verified against the API rather than assumed
+(`gh api repos/.../issues/<n>`, which distinguishes PR from issue and open from closed), and #784 turned out to
+be an unrelated CI issue. **Cite a number only after resolving it**, and cut a lane's branch from `origin/main`
+after fetching, not from the branch of the PR it follows.
+
+---
+
 ## (2026-08-13) — The smoke suite gets a non-empty floor, and the number that would catch a blank page is not the one that survives (#779 defect 1)
 
 **STATUS: shipped.** `apps/studio/test-smoke.mjs` only — three constants, one assertion inside the

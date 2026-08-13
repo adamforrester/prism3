@@ -36,6 +36,18 @@
         "assignments": 351,
         "sha256": "6ebd3a5dd79bc90d288b722cf435f9307feca8f608d7046d85fba4e40be5ea42"
       }
+    },
+    "field-label": {
+      "set": {
+        "members": 4,
+        "assignments": 8,
+        "sha256": "c6a7e925255661ad38995facf7e345a830b49098ea63dc3e22b662157eb903f4"
+      },
+      "grid": {
+        "members": 12,
+        "assignments": 24,
+        "sha256": "c410577975e571c3df9a3c0ef3b41da5b664d8ec00654b10a70288fb7f2e618f"
+      }
     }
   }
 }
