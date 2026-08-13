@@ -106,10 +106,31 @@ instead of a count.
 **A PROCESS NOTE, because it nearly shipped wrong numbers.** This lane's branch was cut from PR #785's
 *unsquashed* branch rather than from `main`, so it was four merged commits behind and every issue reference I
 wrote from memory was off by one PR — `#785` used throughout for *this* PR's work, when #785 was already merged
-as the slot-vocabulary PR and this one is #796. Verified against the API rather than assumed
-(`gh api repos/.../issues/<n>`, which distinguishes PR from issue and open from closed), and #784 turned out to
-be an unrelated CI issue. **Cite a number only after resolving it**, and cut a lane's branch from `origin/main`
-after fetching, not from the branch of the PR it follows.
+as the slot-vocabulary PR and this one is #796. **Fifteen references**, caught before pushing by resolving every
+number against the API rather than reading it back from the page (`gh api repos/.../issues/<n>`, which
+distinguishes PR from issue and open from closed — a plain URL guess cannot). **Cite a number only after
+resolving it**, and cut a lane's branch from `origin/main` after fetching, not from the branch of the PR it
+follows. **This is the fourth branch-state incident this week**, which makes the branch-cut half of that the
+part worth automating rather than remembering.
+
+**AND `#784` IS AN UNRELATED CI ISSUE** — *"[ci] Two actions still target Node 20 and are being force-run on
+Node 24"*, open, filed by someone else. It is cited **56 times across 12 tracked files** as though it were the
+slot-vocabulary work: 49 in code and docs (`component-schema.ts`, `anatomy-figma.ts`, `lint-paint.ts`,
+`test.ts`, five component defs, `docs/28` §5.1, `docs/38` §2) plus 7 in this log. The slot-vocabulary work has
+**no issue at all** — it was PR #785 against #758, and `#784` appears to have been written from the assumption
+that the PR's number was one less than its own.
+
+**Not corrected here, and the reason is a gate rather than a preference.** `test.ts:9648` asserts
+`/#758/.test(ringCeiling) && /#784/.test(ringCeiling)` over `button.ts`'s ring-ceiling prose — so the wrong
+number is *pinned by a passing test*, and renumbering means editing the def, the assertion and eleven other
+files in a PR whose subject is anatomy blocks. That is a one-concern change of its own, and doing it here would
+bury it. **What is cheap and done is this paragraph**: the next person to read `#784` in a comment about slot
+vocabulary now has somewhere that says it is the wrong number and what the right reference is (#758 → #785).
+
+Worth naming the shape, because it is this repo's favourite one wearing new clothes: a citation is a claim, and
+**56 of them agreeing with each other is not evidence** — they agree because they were copied, not because any
+of them was checked. Same structure as a gate built from its subject (`docs/34`), and the same tell: the only
+independent oracle is the issue tracker, and nothing consults it.
 
 ---
 
