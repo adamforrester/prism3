@@ -66,7 +66,7 @@ what changed is itself the evidence §4 now rests on.
 |---|---|---|
 | Five component defs exist | `packages/engine/components/` — `button`, `icon-button`, `text-field`, `field-label`, `field-message` | unchanged |
 | **Two of five are materializable** | `button.ts` and `icon-button.ts` carry `anatomy` blocks; `figmaAnatomyPlan` throws without one (`anatomy-figma.ts:235`) | **one** — `32`'s *"Only one of five defs is materializable"* was true until #734 |
-| There is no component registry | `test.ts:51-55` imports the five defs by name, one line each; `components/` holds no index. Nothing iterates the set | unchanged |
+| **The registry exists** | `packages/engine/components/index.ts` exports `componentDefs`; `test.ts` iterates it, and `typecheck-components.ts` asserts in both directions that it holds exactly the defs git tracks | **there is none** — `test.ts:51-55` imported the five defs by name, one line each, `components/` held no index and nothing iterated the set, until #742 |
 | Dependency A has no defs | No `icon`, no `focus-ring` — still true, and now the sharpest gap in the file. `32`: *"The focus ring wants to be a shared nested component, and the schema cannot say so"* | unchanged |
 | **The mechanism A needs is built** | #734 added `PartDef.nesting` / `NestingRelation` (`component-schema.ts:134`); #750 added the consumer half (`nestVariant` resolution in both executors) | **decided, not built** |
 | ~~Dependency B waits on one fork~~ | **Superseded** — see the header. #252 no longer gates the critical path | `19` §7.2 |
@@ -125,6 +125,16 @@ iteration over a set that does not currently exist.
 One constraint from the existing gate. `typecheck-components.ts` asserts every tracked def is
 represented in what tsc actually read, so the registry has to *be* the thing the gate reads. A
 second list maintained beside it would restore the defect that gate was written for.
+
+**Shipped 2026-08-13 (#742), with one claim above corrected.** `components/index.ts` exports
+`componentDefs`; `test.ts` iterates it instead of restating the five; and `typecheck-components.ts`
+gains a registry arm in both directions — every tracked def file must contribute an export to the
+set, and every set member must come from a tracked def file — with **git's index still the oracle**,
+the registry only ever its subject. **`lint-payload-manifest.ts` was not a consumer and is
+unchanged**: it maintains no def list at all. Its universe is *generated artifacts* (`out/**` plus
+`ENGINE_ARTIFACTS` / `SCHEMA_ARTIFACTS` imported from `regen.ts`), and the defs are hand-authored
+source, so wiring the registry into it would have invented a coupling rather than removed a second
+list. The line above listing it as a reader was written from the assumption, not from the file.
 
 ### Arc 4 — Dependency B, the library scaffold
 

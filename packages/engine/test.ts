@@ -48,11 +48,13 @@ import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties
 // global at runtime — so importing it into a Node harness costs nothing and needs no shim of its own.
 import { applyComponentPlan } from '../../apps/plugin/src/write-components';
 import type { AnatomyPlan } from './anatomy-figma';
-import { button } from './components/button';
-import { iconButton } from './components/icon-button';
-import { fieldLabel } from './components/field-label';
-import { fieldMessage } from './components/field-message';
-import { textField } from './components/text-field';
+// The component registry (#742, `docs/38` Arc 3). `componentDefs` is the set — the per-def loop below
+// iterates it instead of restating its members, so a sixth def is covered by that loop the moment it
+// is registered. The named bindings come from the same module and are for the assertions that are
+// ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
+// over the set would only make weaker. Completeness of the set is NOT asserted here — that is
+// `typecheck-components.ts`'s registry arm, whose oracle is git's index.
+import { componentDefs, button, iconButton, fieldLabel, fieldMessage, textField } from './components/index';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
@@ -5801,9 +5803,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const auroraT = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input);
   const auroraTree = buildTree(auroraT).tree;
 
-  // Both calibration defs: structurally valid, and every token binding resolves across TWO
+  // EVERY def in the registry: structurally valid, and every token binding resolves across TWO
   // brands (build-once / materialise-everywhere), binding only semantic roles (no primitive leak).
-  for (const [name, def] of [['Button', button], ['IconButton', iconButton], ['FieldLabel', fieldLabel], ['FieldMessage', fieldMessage], ['TextField', textField]] as [string, ComponentDef][]) {
+  //
+  // The loop reads `componentDefs` rather than restating the five, which is #742's whole point — the
+  // old hand-written pair list would have silently skipped a sixth def. A FLOOR guards the swap: a
+  // loop over an empty set asserts nothing and reports it as five thousand passes, so the set's
+  // liveness is checked before anything is concluded from it. Liveness only — that the set holds
+  // EVERY tracked def is `typecheck-components.ts`'s registry arm, which compares it against git's
+  // index; a completeness claim made here would be the set checking itself (`docs/34` shape 1).
+  ok(componentDefs.length >= 5, `component: the registry holds a live set (${componentDefs.length} defs) — a loop over an empty registry asserts nothing`);
+  for (const def of componentDefs) {
+    const name = def.name;
     const s = validateComponentDef(def);
     ok(s.errors.length === 0, `component: ${name} def is structurally valid${s.errors.length ? ' — ' + s.errors.join('; ') : ''}`);
     const vnb = validateComponentDef(def, nbTree, nbT.root);
