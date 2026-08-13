@@ -270,6 +270,21 @@ explaining why two things correspond is an unverified claim sitting inside a gat
 independent enough to contradict a claim its own file makes is the strongest evidence available that it is
 not a tautology. Recorded as `docs/34` shape 15.
 
+**AND THE HONEST BOUND ON THAT, PROBED AFTER THE FACT.** Every one of the harness's ten pairing rules
+carries an authored `reason`, and nothing had checked any of them until now — but the new arm compares
+`$type`, so it falsifies a `reason` only when the error *changes a type*. font-fluid's did, by luck
+rather than design. Two probes on the shipped `grid.*` rule: pointing `grid.<bp>.gutter` at
+`grid.margin` fails, but through the **unpaired** arm because it orphans the real `grid.gutter`, with
+`paired types` still 0; and **swapping** `gutter`↔`margin` — orphaning nothing, both sides `dimension` —
+passes **fully green**, while nb's two values differ at 3 of its 5 breakpoints (`2xl` space.400/600, `md`
+200/300, `xl` 300/400). So the shipped claim is exactly: **the arm verifies a rule's two sides agree on
+TYPE, not that the rule paired the right two things.** Closing that needs values compared across
+rule-paired pairs, which the report carries for none of them today (the values category covers 0 of the
+15 grid pairs). Left open and named in `gate.ts`, `README.md` and `docs/34` rather than implied, because
+a green `paired types` reads as "the pairings are correct" and does not mean it. The generalizable form
+is this shape one turn deeper: **a check added to verify an authored correspondence is itself scoped, and
+its scope is as easy to overstate as the claim it verifies.**
+
 **THE TRAP FOR WHOEVER RE-VERIFIES THIS.** Mutating the `FONT_SIZE` branch to check the duplicate-channel
 rule reported **EXIT 0**, which reads as a second blind spot. It was a **non-mutation**: disabling the
 explicit check falls through to a defensive `dimensionScopes` list further down, and that code's own

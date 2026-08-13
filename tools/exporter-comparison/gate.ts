@@ -141,6 +141,22 @@
  *   D2  delete `color` from `COLLECTION_AXIS`         → ARM 1d, 3 failures   (unclassified ≠ default)
  *   D3  declare a collection nothing emits            → ARM 1d, 3 failures   (stale declaration)
  *
+ * WHAT ARM 1b STILL DOES NOT VERIFY, probed after the fact rather than assumed. It compares the two
+ * sides' `$type`, so it falsifies a rule's authored `reason` only when the error CHANGES A TYPE —
+ * font-fluid's did, but by luck. Two probes on the shipped `grid.*` rule:
+ *
+ *   · point `grid.<bp>.gutter` at `grid.margin` → fails, but through ARM 2a (it orphans the real
+ *     `grid.gutter`), with `paired types` still 0.
+ *   · SWAP `gutter`↔`margin` → orphans nothing, both sides `dimension`, and the gate passes FULLY
+ *     GREEN — while nb's two values genuinely differ at 3 of its 5 breakpoints
+ *     (`2xl` space.400/600, `md` 200/300, `xl` 300/400).
+ *
+ * So state it exactly: **this arm verifies that a rule's two sides agree on TYPE, not that the rule
+ * paired the right two things.** Closing that needs a VALUE comparison across rule-paired pairs, which
+ * the report does not carry for them today (`typed` holds types only, and the values category covers 0
+ * of the 15 grid pairs). Left open deliberately, and named here rather than implied, because a green
+ * `paired types` reads as "the pairings are correct" and it does not mean that.
+ *
  * M6 IS THE ONE TO READ BEFORE TRUSTING A MUTATION TEST. Disabling the explicit `FONT_SIZE` check
  * alone changes NOTHING — it falls through to the defensive `dimensionScopes` list further down, which
  * that code's own comment says is there for exactly this refactor. So the first M6 attempt reported
