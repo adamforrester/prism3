@@ -37,11 +37,15 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-// Playwright is deliberately NOT a repo dependency. Whether this repo takes on a browser-test
-// dependency is #333's decision, and one audit script should not pre-empt it — so the import is
-// dynamic and the failure explains itself rather than reading as a broken script.
-// NOTE: NODE_PATH does not work here — Node ignores it for ESM bare specifiers, so "install it
-// globally" is not a usable escape hatch. PLAYWRIGHT_MODULE takes an explicit path for that case.
+// Playwright IS a dependency now — an `apps/studio` devDependency, taken by #767 when it settled
+// #333 so the smoke suite could gate in CI without depending on ambient global state on the runner.
+// (This comment used to say the opposite and defer the choice; the choice was made.) So the bare
+// `import('playwright')` below normally just resolves.
+//
+// The dynamic import and the PLAYWRIGHT_MODULE hatch stay, for the one case the devDependency does
+// not cover: pointing this audit at a DIFFERENT copy than the workspace's — a globally installed one,
+// or a version being compared. NOTE: NODE_PATH does not work for that; Node ignores it for ESM bare
+// specifiers, so an explicit path is the only usable form.
 let chromium;
 try {
   // `?? .default` because a CommonJS copy (the usual shape when PLAYWRIGHT_MODULE points at a global
@@ -50,10 +54,11 @@ try {
   chromium = mod.chromium ?? mod.default?.chromium;
   if (!chromium) throw new Error('no chromium export');
 } catch {
-  console.error('\nmode-audit needs Playwright, which this repo does NOT depend on (see #333).\n'
-    + '  as a dev dependency   npm i -D playwright        (a repo-level choice — see #333 first)\n'
-    + '  or point at a copy    PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js \\\n'
-    + '                          npm run -w @prism3/studio audit:modes\n');
+  console.error('\nmode-audit could not load Playwright. It is an apps/studio devDependency (#767), so\n'
+    + '  the usual cause is deps or browsers not installed yet:\n'
+    + '    npm ci  &&  npx playwright install chromium\n'
+    + '  or point at another copy   PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js \\\n'
+    + '                               npm run -w @prism3/studio audit:modes\n');
   process.exit(2);
 }
 

@@ -100,9 +100,14 @@ jobs:
 
       # The studio enforces contrast on every brand it GENERATES; this holds it to the same bar for
       # the chrome it renders those contracts in. #355 fixed a real failure there by hand and parked
-      # the ink tiers ON the AA floor, which is a correct decision with no memory. Static by design:
-      # measuring what renders needs a browser and this repo does not depend on Playwright (#333), so
-      # a runtime check could not run here at all. The token values are where the budget lives.
+      # the ink tiers ON the AA floor, which is a correct decision with no memory. STATIC — it reads
+      # the token VALUES out of the stylesheet, which is where the budget lives. It used to say a
+      # runtime check "could not run here at all" because the repo had no Playwright; #767 took that
+      # dependency and the smoke suite below now measures what RENDERS. The two are complements, not
+      # duplicates, and neither subsumes the other: this one catches a token lightened past AA
+      # anywhere it is used, including in states no sweep happens to visit; the smoke suite catches
+      # a legal token faded through `opacity` or inked onto a fixed ground (#555), which no value
+      # check can see.
       - name: Studio chrome clears its own contrast floors
         run: npm run -w @prism3/studio lint:contrast
 
@@ -267,3 +272,31 @@ jobs:
       # agreeing with itself. Covers every composite type by rule, not by a list naming `shadow`.
       - name: Overlays carry exactly the leaves that vary per mode
         run: npx --yes tsx@4 packages/engine/lint-overlay-completeness.ts
+
+      # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
+      # workflow that runs a browser. It loads every page in every mode across both corpus brands
+      # (72 states), drives the mode switch, an override picker and an export, and asserts zero
+      # console errors plus DOM and rendered-contrast invariants.
+      #
+      # WHY IT HAS TO BE A BROWSER: `apps/studio/src/main.ts` touches `document` at import time and
+      # cannot be loaded into a Node harness at all — which is why the "Studio unit tests" step above
+      # covers modules EXTRACTED from it (#722/#723) and nothing covers the ~9,000 lines inside it.
+      # There is no unit granularity available for that file until the seam moves (#768). Every
+      # behavioral verification the studio has ever had, including all ten fixes merged 2026-08-07,
+      # was a throwaway Playwright script deleted afterward. This is that driving, committed.
+      #
+      # ADVISORY UNTIL 2026-08-20, THEN GATING — tracked as #775, which is the only reason this
+      # flag can be trusted not to become permanent. A flaky browser suite that blocks every PR is
+      # the fastest way to erode trust in gates generally, and this repo's gate discipline is worth
+      # more than one week of coverage. One week of runs on the RUNNER (a noisier environment than
+      # any author's machine) is what earns the flip. If that week finds flakiness, #775's condition
+      # is to fix it — not to extend the period, which is how advisory becomes forever.
+      #
+      # `npx playwright install` is inside this step rather than beside it so `continue-on-error`
+      # covers the browser download too: an advisory step whose SETUP is gating would block merges
+      # on exactly the ambient-infrastructure failure this arrangement exists to keep out of the way.
+      - name: Studio headless smoke suite (advisory until 2026-08-20 — #775)
+        continue-on-error: true
+        run: |
+          npx playwright install --with-deps chromium
+          npm run -w @prism3/studio test:smoke

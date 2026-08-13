@@ -13,11 +13,20 @@
  * 5.135:1 to 4.628:1. The surviving margin is 0.128 on 9.5px uppercase text. That is the number this
  * gate exists to keep visible: the next token moved onto `--paper` has nothing left to spend.
  *
- * STATIC on purpose. Measuring what actually renders needs a browser, and this repo deliberately does
- * not depend on Playwright (#333) — so `mode-audit.mjs` cannot run in CI and a runtime check would be
- * a gate nobody runs. The token VALUES are where the budget lives: a pairing can only fail if either
- * the ink or the ground moved, and both are declared right here. Usage is checked by eye and by the
- * audit; the values are checked every push.
+ * STATIC on purpose — but no longer for the reason this comment used to give. It said measuring what
+ * renders needs a browser "and this repo deliberately does not depend on Playwright (#333)", so a
+ * runtime check would be a gate nobody runs. #767 settled #333 and took that dependency, and
+ * `test-smoke.mjs` now measures rendered pairings in CI. This file is not redundant, and the two are
+ * complements rather than duplicates:
+ *
+ *   - THIS gate reads the VALUES, so it fails the moment either the ink or the ground moves — for
+ *     every use of that pairing, including in states no sweep happens to visit.
+ *   - THE SMOKE SUITE reads the RENDER, so it catches what a value cannot express: a legal token faded
+ *     through `opacity` (#555's `.mo-playnote` — 4.628 declared, 3.12 rendered), or inked onto a
+ *     fixed-ground specimen the mode does not move with it.
+ *
+ * Neither subsumes the other, and the margin this file exists to keep visible — the 0.128 on `--faint`
+ * above — is a number only a value check has.
  *
  * Run: `npm run -w @prism3/studio lint:contrast`
  */

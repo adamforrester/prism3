@@ -20,8 +20,12 @@
  *   npx tsx tools/block-capture/capture.ts targets.json --out /tmp/cap --viewports desktop,mobile
  *   npx tsx tools/block-capture/capture.ts targets.json --headed        # when a site blocks headless
  *
- * playwright is NOT a repo dependency — this repo is dependency-free and buildless. Install it
- * where you run this: `npm i -D playwright && npx playwright install chromium`.
+ * playwright is a devDependency of the `apps/studio` WORKSPACE (#767, for the studio smoke suite), so
+ * a repo-root `npm ci` resolves the bare import below. This harness still declares nothing itself and
+ * is still not wired into `ci.yml` — like everything in `tools/`, it answers a question rather than
+ * asserting an answer, and it runs on a workstation. If the import fails, install where you run it:
+ * `npm i -D playwright && npx playwright install chromium`. The ENGINE core remains dependency-free
+ * and buildless; that invariant is untouched by any of this.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -82,8 +86,9 @@ let chromium: any;
 try {
   ({ chromium } = await import('playwright'));
 } catch {
-  console.error('playwright is not installed here — it is deliberately not a repo dependency.');
-  console.error('  npm i -D playwright && npx playwright install chromium');
+  console.error('playwright did not load. It is an apps/studio devDependency (#767), so from the repo');
+  console.error('  root this usually means deps are not installed:  npm ci');
+  console.error('  Elsewhere:  npm i -D playwright && npx playwright install chromium');
   process.exit(2);
 }
 
