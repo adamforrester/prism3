@@ -199,11 +199,14 @@ npx tsx tools/exporter-comparison/gate.ts # the two DTCG exporters agree where a
                                           # executes TokenPress's real TokenExporter in memory over
                                           # prism3's own Figma emission — two separate codebases sharing
                                           # no code, which is as independent as a comparison here gets.
-                                          # Four arms, on every brand with a Figma emission (discovered
+                                          # Seven arms, on every brand with a Figma emission (discovered
                                           # by scanning out/figma/, count asserted >= 3): a `$type`
-                                          # disagreement on a shared path, a path TokenPress emits that
-                                          # prism3 does not, the float32 cleanup REWRITING a value
-                                          # instead of restoring it (#703's prediction), and #709's
+                                          # disagreement on a shared path, the same on a path a pairing
+                                          # RULE relates (#747), a pairing that compares NO types at
+                                          # all, an emitted collection whose mode axis nobody DECLARED
+                                          # (#697), a path TokenPress emits that prism3 does not, the
+                                          # float32 cleanup REWRITING a value instead of restoring it
+                                          # (#703's prediction), and #709's
                                           # opacity 100× at the integration level. Its sibling
                                           # `compare.ts` is a MEASUREMENT and always exits 0 — most of
                                           # what it reports is a difference that is right for its host,
@@ -211,10 +214,15 @@ npx tsx tools/exporter-comparison/gate.ts # the two DTCG exporters agree where a
                                           # byte-for-byte question is answered. The prism3-only arm is a
                                           # MEMORY of paths WITH CAUSES, not a count, and fails in both
                                           # directions: a third unreachable path fails, and a gradient
-                                          # becoming reachable fails too (aurora's 2, #731). Known
-                                          # limit, stated in the file: the types arm only sees paths
-                                          # that PAIR — a retype on an axis-collapsed path is invisible
-                                          # to it, measured
+                                          # becoming reachable fails too (aurora's 2, #731). The three
+                                          # type arms are one claim at three widths: the original saw
+                                          # only paths appearing verbatim on BOTH sides, so retyping an
+                                          # axis-collapsed path left it green (#747, 71-73 blind per
+                                          # brand). Now 0 and ASSERTED — each rule declares a
+                                          # `counterpart` and the expectation is read from the CANONICAL
+                                          # TREE, never from the rule's own claim. Closing it needed
+                                          # #697's axis call, DECLARED in axes.ts: an unclassified
+                                          # collection fails rather than defaulting
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
                                           # characterization gate: pins each brand's mode collapse
                                           # (permanent, #609); asserts as a RULE that the conforming

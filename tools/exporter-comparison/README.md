@@ -112,6 +112,9 @@ with no floor passes when the scan returns nothing).
 | arm | pinned as | at |
 |---|---|---|
 | **types** — same path, different `$type` | RULE | 0 |
+| **paired types** — different paths a RULE pairs, different `$type` (#747) | RULE | 0 |
+| **type-blind pairs** — a pairing that compares no types at all (#747) | RULE | 0 |
+| **axes** — every emitted collection's axis is declared, and every declaration still emitted (#697) | RULE | 0 unclassified, 0 stale |
 | **unpaired, tokenpress-only** | RULE | 0 |
 | **unpaired, prism3-only** | MEMORY, per path, with a cause and an issue | aurora's 2 gradients (#731) |
 | **float32 leak** — the cleanup changed a value | RULE | 0 |
@@ -129,13 +132,40 @@ number the decision is meant to move. If they are ever pinned it must be the **d
 the raw ~185: 11–14 are identical in every file and harmless, and conflating the two is the defect #729
 fixed.
 
-**What the green types arm does not tell you** — found by a mutation that failed to fail, and tracked as
-**#747**: it compares `$type` only over paths that **pair**. Retyping TokenPress's grid branch left the
-gate green, because `grid.<breakpoint>.<prop>` vs `grid.<prop>` is an axis collapse and never enters the
-shared set; the same mutation on `FONT_SIZE`, which does pair, produced 66 failures. The blind set spans
-all four pairing rules — **71 paths on nb, 73 on aurora, 71 on wendys**, ~14% of each brand's paired
-surface. Closing it needs the pairing rules to carry their counterpart's type, which is why #747 hangs
-off #697: two of the four rules exist only because the axis question is undecided.
+**What the green types arm used to not tell you, and what closing it took** — the original arm compared
+`$type` only over paths that appear verbatim on **both** sides. Retyping TokenPress's grid branch left
+the gate green, because `grid.<breakpoint>.<prop>` vs `grid.<prop>` is an axis collapse and never enters
+that shared set; the same mutation on `FONT_SIZE`, which does pair verbatim, produced 66 failures. The
+blind set spanned all four pairing rules — **71 paths on nb, 73 on aurora, 71 on wendys**, ~14% of each
+brand's paired surface. Filed as **#747**, with that non-failing mutation as its acceptance test.
+
+Closed. Each rule now declares a **`counterpart`** — a whole token, or a named *field* of a composite —
+and the type expectation comes from the **canonical tree**, the emitter's input, never from the rule's
+own claim. Blind set is **0** on all three brands, asserted rather than printed. What remains is
+`againstAbsence` (65–67 per brand): pairs where one side has no leaf, so there is no second type to
+compare — a different thing, and deliberately not asserted.
+
+Two findings from doing it are worth more than the arm itself:
+
+- **The type arm falsified one of these rules on its first run.** The `font-fluid.*` rule's prose said
+  TokenPress emitted a *second copy* of the composite; the arm reported 11 disagreements per brand
+  (`typography` vs `dimension`). The exporters were right and the **rule was wrong**: `font-fluid.*` is
+  the composite's `fontSize` *referent*, not a copy of it — it carries no `fontFamily` and no
+  `fontWeight`. The rule now says `counterpart: { field: 'fontSize' }` and the expectation resolves
+  through that field. Fixed by **tightening**, which is the only honest direction; the prose had been
+  read several times without anyone noticing, and a check independent enough to contradict a claim its
+  own file makes is the strongest evidence available that it is not a tautology.
+- **A mutation that changes nothing looks exactly like a blind spot.** Disabling the explicit
+  `FONT_SIZE` check alone left the gate green — not a hole, but a *non-mutation*: it falls through to a
+  defensive scope list further down, which that code's own comment says is there for this refactor.
+  Both sites had to move before the behavior did. Check that what you mutated is what decides.
+
+Why this needed #697's decision rather than more effort: a Figma variable can vary a value only **by
+mode**, so prism3's non-appearance axes become modes going out and paths coming back. Carrying a type
+across that collapse requires knowing *which* collections' modes are an axis — and nothing in a Figma
+file records it. So it is **declared**, in `axes.ts`, and an unclassified collection fails rather than
+defaulting. The declaration is load-bearing, not decorative: relabeling `layout` from `breakpoint` to
+`none` produces 57 failures, because `grid.*` stops pairing at all.
 
 One thing to know when reading it: the verdicts in category 1 are pairing RULES
 (`RENAME_RULES`, `NOT_IN_EMISSION`), and each one is an authored claim about why two differently-named
