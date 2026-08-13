@@ -327,7 +327,6 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .msb.on .msb-v{color:var(--ink)}
 @media(max-width:720px){.psec-head{flex-direction:column;gap:8px}}
 .psec-d{margin:4px 0 0;color:var(--faint);font-size:13px;line-height:1.5}
-.psec .errbar{margin-top:16px}
 .prow{padding:20px 0 6px}
 .prow+.prow{border-top:1px solid var(--line);margin-top:4px}
 .phead{display:flex;align-items:center;gap:22px;margin-bottom:16px;flex-wrap:wrap}
@@ -1047,7 +1046,10 @@ input.toggle:disabled{opacity:.5;cursor:default}
    own. A full-bleed variant was written first and was silently inert: it sat above .errbar at equal
    specificity, so every declaration lost the source-order tiebreak. Rendered, the plain .errbar card
    matches the mode bar it sits under, so the right fix was to delete the override, not to reorder it.
-   (No backticks in this stylesheet — it is a template literal; see #366.) */
+   (No backticks in this stylesheet — it is a template literal; see #366.)
+   .errbar now has exactly ONE mint (#772): the Color page's own copy was folded into the declared
+   chrome, and `.psec .errbar{margin-top:16px}` went with it rather than being left as a rule reserved
+   against an element nothing renders. */
 .errbar{border:1px solid #f2c6c6;background:#fdecec;color:#a12;border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:16px}
 
 /* Style guide (Preview → Style guide) — specimen layout; shell/pill come from .psec/.sub-lab/.tpill */

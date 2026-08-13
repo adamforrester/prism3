@@ -7,6 +7,110 @@
 
 ---
 
+## (2026-08-13) — Page chrome is declared, and the floor becomes structural rather than advisory (#772)
+
+**STATUS: shipped.** The surfaces every studio view must render are now **declared once**, in
+`CHROME_SURFACES` in `apps/studio/src/main.ts`, and applied by iteration. Four entries —
+`brand-bar`, `error`, `apply-detail`, `mode-strip` — read by four consumers (`mountView` mounts the
+root-home ones, `renderWorkspace` mounts the workspace-home ones, `syncChrome` refreshes all of them,
+`chromedWorkspace` verifies them). Piece 4 of 4 under **#768**.
+
+**WHAT #389 ACTUALLY LEFT, which is the diagnosis that made this small.** #389 was not incomplete —
+it closed #388's instance correctly. What it left was the **shape**: three surfaces appended by hand
+in `build()`, and two of them refreshed by hand-listed calls (`renderModeStrip(); syncErrorBar();`) in
+two separate refresh paths. Every one of those hand lists is a place the *next* surface gets wired to
+one of its two obligations and not the other — which is exactly how the error bar came to be reachable
+from one page. So the fix was not to add a fourth careful append; it was to make "mount" and "refresh"
+both read the same array. Nothing is written twice, so nothing can be written once.
+
+**THE DISTINCTION THIS TICKET TURNS ON — advisory vs. structural — and how it is enforced.** A
+convention every page happens to follow is what already existed. Four mechanisms replace it, and each
+was falsified rather than asserted:
+
+| mechanism | what it stops | proved by |
+|---|---|---|
+| `PageHost`, a `unique symbol`-branded `HTMLElement`; `chromedWorkspace` is its only producer | a page renderer being invoked with an element that never went through the mounter | changing the call to `PAGE_RENDERERS[page](workspace)` → `error TS2345` |
+| `type PageHostIsUnforgeable = Assert<HTMLElement extends PageHost ? false : true>` | the brand being quietly removed later, downgrading the floor back to advisory | flattening `PageHost` to `HTMLElement` → `error TS2344: Type 'false' does not satisfy the constraint 'true'` |
+| `mountView` as the only writer of the app root, publishing `<html data-chrome-roster>` | a *root view* skipping the chrome — which is what the start screen was doing | the start screen now goes through it and carries the `error` surface |
+| `syncErrorBar` refusing to be silent: `if (!globalErrHost?.isConnected)` → `console.error` | an engine error being held with no surface rendering it, by ANY route | a deliberately rogue root view (`app.innerHTML=''`) reported it at the console with the engine's own message |
+
+The last row is the one that matters most and is worth stating plainly: **TypeScript cannot stop
+someone writing to the DOM**, so the compile-time gates close the supported path and the runtime
+invariant covers the rest. It is not a warning about hygiene — it is the literal statement of #388
+("an error exists and nothing is rendering it"), checked at the moment it becomes true. CI's
+zero-console-errors assertion (72 states) makes it fatal there.
+
+**DONE CONDITION 1 — #388's original path, driven.** Typography → Text styles, Compact shape plus the
+`titleFloor 16` toggle. Surfaces on both corpus brands, stays visible after navigating to Motion, and
+clears when the edit is undone. Now committed as smoke section **2d**, and **the click ORDER is
+load-bearing**: the shape cards trial-build before they enable, so with the floor already on, Compact
+is correctly *disabled* and no throw is reachable. Floor off → release pins → Compact → floor on. It
+also has to be brand-agnostic — aurora ships the floor on and pinned sizes, harbor does not — so a
+fixed click list would exercise one brand and silently no-op on the other. That trap cost two passes.
+
+**DONE CONDITION 2 — a genuinely new page cannot come up missing it.** Added a `scratch` page to
+`NAV`/`PAGE_RENDERERS` written the naive way (a hero and a button, by a developer who has read none of
+this), built, and drove it: roster `brand-bar error apply-detail mode-strip`, all four mounted, and an
+engine throw raised on Typography was **visible on the brand-new page**. Then removed. The page could
+not have omitted the surface, because it never had the opportunity — a page never mounts chrome.
+
+**THE COLOR-PAGE DUPLICATE IS GONE, and it was not a pure deletion.** #389 left `renderPrimitives`'
+local `errBar` as a harmless duplicate. It was harmless, and it was also the live example of the
+pattern this ticket retires, and a second copy of the message free to drift from the one every other
+page shows. Its one piece of extra information — that the ramps below are the last theme that
+*resolved* — moved into `syncErrorBar`, so every page now gets it. Without that clause the global copy
+said an edit failed and left open whether the screen was showing the failed state. `.psec .errbar`
+went with it rather than being left as a rule reserved against an element nothing renders.
+
+**SURVEYED AND DELIBERATELY LEFT PAGE-LOCAL.** The goal was a declared floor, not uniformity —
+over-generalizing chrome is how pages lose the ability to say something true about themselves.
+
+- **Mode-scope badges** (`attachModeBadges`/`SECTION_MODE_SCOPE`). Left alone. They are *already*
+  structural in the way this list is trying to be — a post-render pass over the workspace DOM, whose
+  own header defends it on these exact grounds. They carry no cross-render refresh, so there is no
+  forgettable second obligation to declare; declaring them would move working code for symmetry. Also
+  the real overlap with **#771**, which owns `mode-audit.mjs --check-badges`' logic coupling.
+- **Mode strip.** Declared, but **not moved**. Its refresh was hand-listed beside `syncErrorBar()` and
+  belongs in the shared sync; its *placement* stays in `renderWorkspace`, the only code that knows
+  where the page's hero (and, on Preview, its view switcher) ended up. #432 moved it out of the header
+  deliberately and this does not move it back.
+- **Seed / restore / apply pills** (#480, #722). Not folded in. They render *inside* `renderBar()`,
+  which **is** the `brand-bar` surface — already mounted once, structurally, by something on the list.
+  They are bar content; promoting content to a surface would put a plugin-only pill in the floor every
+  web view carries.
+- **The start screen's import validation.** Stays a field message on its own control. It reports a
+  **rejected input the app never adopted**; the chrome bar reports the opposite case, an engine throw
+  over state the app is already holding, which is why that one must be visible wherever you are.
+- **`brand-bar` has no `sync`, and the omission is a statement.** `renderBar()` rebuilds its host
+  wholesale and that host holds the open brand menu, Pages menu and export dialog — refreshing it on
+  every knob edit would close whatever the designer had open, mid-gesture. Hence `sync?:` optional.
+
+**TWO TRAPS FOR WHOEVER TOUCHES THIS NEXT.**
+
+1. **Sync after append, never during mount.** `syncErrorBar` now judges itself by `isConnected`, so
+   syncing a surface while its host is still detached reports a correct surface as the very defect the
+   check exists to find. `mountSurfaces` therefore mounts only; `mountView`/`renderWorkspace` call
+   `syncChrome()` once the host is in the document.
+2. **Every entry wraps its reference in an arrow.** `syncApplyDetail` and `APPLY_DETAIL_ID` are
+   declared *later* in the file; a bare value reference would be evaluated while the array literal is
+   built, at module init, inside their temporal dead zone. Uniform wrapping means moving a declaration
+   cannot arm that trap.
+
+**GATES.** Full `ci.yml` sequence green, plus `audit:modes`. `test:smoke` read directly rather than
+inferred from a status check (it is advisory until 2026-08-20 — #775): **745 assertions, all pass**,
+up from 517, with **15,638 text nodes across 72 states — exactly the #767 baseline**, which is the
+number that would have moved if a page had stopped rendering (#779's vacuous-contrast hole cannot tell
+you that, and is not fixed here). Two of the new sweep assertions exist specifically to close the
+*same* vacuity one line along: the old `errorBarShown` check read an **absent** `.errbar-global` as
+"hidden" and passed — indistinguishable from the defect — so the roster is now asserted non-empty and
+named before "hidden" is allowed to mean anything.
+
+**NOT DONE HERE, on purpose.** No `packages/engine/` change was needed. Scoped styles (#770) runs
+alone and last; `docs/34` shape numbering, the smoke-suite floor and the Node 24 runner bump (#784)
+are filed separately.
+
+---
+
 ## (2026-08-13) — A comment carrying a count has an expiry date, and `docs/38` §2 had already contradicted itself
 
 **STATUS: shipped.** `apps/plugin/src/main.ts` (the `buildComponents` header) + `docs/38` §2's census
@@ -193,6 +297,7 @@ control (a slot that *is* dispatched must not fire) and both stale directions of
 
 **NEXT.** Arc 2 step 3's actual deliverable — the `anatomy` blocks for `field-label` and `field-message`,
 both now paintable — ending in a live Figma run.
+
 
 ---
 
