@@ -588,6 +588,56 @@ raising it turns other surfaces red, those are findings: a rendered value diverg
 is the defect class the gate exists for, and tuning back to green is the move that ends the
 measurement.
 
+### 15. The comparison is correct; the set it walks excludes the hard cases
+
+Every shape above asks whether the *comparison* is sound. This one is sound — and still blind, because
+of how the **set of things compared** gets built. The tell is an intersection: a gate that compares two
+collections by walking `A ∩ B` compares only what already agrees on identity, and the cases that most
+need checking are exactly the ones that do not.
+
+`#747` is the instance. `gate.ts`'s types arm compares `$type` across prism3's DTCG emitter and
+TokenPress's, and the comparison is right: same path, different type, fail. But the path set was
+`prism3 ∩ tokenpress`, and the whole reason the harness exists is that the two exporters **name things
+differently** — a rename, an axis collapsed from a path into a mode, an axis spelled as a name prefix.
+Those are the paths the harness authors *pairing rules* for, and a rule-paired path never appears
+verbatim on both sides, so it never entered the set. Retyping TokenPress's grid branch left the gate
+green; the identical mutation on `FONT_SIZE`, which pairs verbatim, produced 66 failures. Measured hole:
+**71–73 paths per brand, ~14% of the paired surface, across all four rules.**
+
+**Why no other shape catches it.** The measurement moves (not 4). Both sides are independent codebases
+(not 2, 11). It measures the promised property, not a proxy (not 10). Its scope — *every brand with a
+Figma emission* — is declared and asserted with a floor (not 13). The threshold is 0 and correct (not
+14). Nothing was derived from the subject. **The gate is well-built and answers a narrower question
+than the one its name states**, and no amount of strengthening the comparison would have found it: the
+*path* was invisible, not the type check weak.
+
+**Tell:** ask *"which members of my subject does nothing compare?"* — and count them. Not "does the
+comparison work", which it does. A set built by intersection, `filter`, `Set` membership or a `?? continue`
+is where to look, and the count of excluded members is the number to print. Then **assert it at 0**: a
+count only printed goes stale, and this one had been printed in three places and read as background.
+
+**Fix:** relate the unmatched members explicitly rather than dropping them, and give each relation the
+data it needs to be checked — here, each pairing rule gained a `counterpart` (a whole token, or a named
+*field* of a composite) so the type expectation could come from the canonical tree, the emitter's own
+**input**, and not from the rule's claim about itself.
+
+**The corroborating detail, and the reason to prefer this fix over widening the intersection:** the new
+arm's first run *falsified one of the rules*. The `font-fluid.*` rule's authored prose said TokenPress
+emitted "a second copy" of the typography composite; the arm reported 11 disagreements per brand
+(`typography` vs `dimension`). The exporters were right and **the rule was wrong** — `font-fluid.*` is
+the composite's `fontSize` *referent*, carrying neither `fontFamily` nor `fontWeight`. That prose had
+been read several times without anyone noticing. So: **an authored `reason` explaining why two things
+correspond is an unverified claim sitting inside a gate**, and the way to verify it is a check that can
+contradict it. Fixed by *tightening* the rule, which is the only honest direction — loosening it to
+absorb the disagreement would have restored the green and deleted the finding.
+
+**One trap while mutation-testing this shape.** Disabling the explicit `FONT_SIZE` check alone left the
+gate green, which looked like a second blind spot. It was a **non-mutation**: the subject has a
+defensive scope list downstream that catches the same case, and that code's own comment says it is there
+for exactly this refactor. Behavior never moved, so the run proved nothing about the gate — and a
+non-mutation is indistinguishable from a blind spot until you read *why* it passed. **Confirm the thing
+you mutated is the thing that decides.**
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -659,6 +709,8 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-13 | `gate.ts` types arm path set (#747, under #697) | 15 | a retyped **axis-collapsed** path (`grid.<breakpoint>.<prop>` vs `grid.<prop>`) green, because the arm walked `prism3 ∩ tokenpress` and the paths the harness writes *pairing rules* for never appear verbatim on both sides — **71–73 per brand, ~14% of the paired surface**; the same mutation on a verbatim-pairing path fired 66 failures |
+| 2026-08-13 | `font-fluid.*` pairing rule prose (#747) | 15 | an authored `reason` claiming "a second copy of the composite" for what is the composite's `fontSize` **referent** — read several times, and only falsified once a check existed that could contradict it |
 | 2026-08-13 | `test-smoke.mjs` rendered-contrast floor (#779) | 14 | `.mo-playnote` at **3.12:1** — the exact #555 case the probe was built to composite the opacity chain for — clearing a **2.0:1** floor fitted to #555's other four families at 1.00–1.61 |
 | 2026-08-12 | `test.ts` coordinate-strip probe (#681/#750) | 12 | a `nestVariant` grep over the whole emitted payload matching the **executor's own** `n.nestVariant` reads — a stripped plan reported as still carrying a coordinate, and the assertion could not fail inverted either |
 | 2026-08-12 | `lint-doc-gates.ts` document scope (#704) | 13 | the `CLAUDE.md` §4 checklist going **short** while the gate reported green — a layer-table row 80 lines above the list satisfied a file-wide search for the workspace name |

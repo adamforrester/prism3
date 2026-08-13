@@ -19,7 +19,13 @@
  *   TYPES        asserted at 0, as a RULE. Same path, different `$type` is a break for every
  *                consumer in either direction — a `dimension` that arrives as a `number` fails a
  *                build, not a review. Nothing about this is corpus-specific, so it is 0 forever
- *                rather than 0-as-measured.
+ *                rather than 0-as-measured. THREE arms, because "same path" is the easy case:
+ *                · 1b PAIRED TYPES  — the same claim over paths that pair by a RULE (a rename, an
+ *                  axis collapse, an axis spelled as a name) and so never appear verbatim on both
+ *                  sides. Also 0 as a RULE. See #747 below for why this needed its own arm.
+ *                · 1c TYPE-BLIND PAIRS — 0 as a RULE, and the arm that keeps the other two honest:
+ *                  a pairing that resolves no type on one side is not a pass, it is an uncompared
+ *                  path. This is the assertion that stops the #747 hole from reopening quietly.
  *
  *   UNPAIRED     asserted per DIRECTION, and the two directions are NOT symmetric:
  *                · tokenpress-only  — a RULE at 0. A path TokenPress emits and prism3 does not
@@ -32,6 +38,12 @@
  *                8-bit-authored color (all 256 channels survive fround-then-4dp), which is what
  *                both exporters' corpora are. A leak is the prediction coming true, not a new
  *                convention.
+ *
+ *   AXES         asserted as DECLARED, per brand (#697). Every collection the emission carries must
+ *                appear in `axes.ts`'s table, and every table entry must still be emitted. Neither
+ *                direction is optional: an unclassified collection defaulting to `'none'` would be
+ *                right 13 times in 16 by accident, and a declaration that cannot notice its own
+ *                obsolescence is the shape #729 fixed in the verdicts.
  *
  *   OPACITY      asserted at 0 (`kind: 'scale'`), as a RULE, and it is #709's regression test at
  *                the integration level. TokenPress's own
@@ -67,6 +79,19 @@
  * until #729 — each one true for a reason its own claim did not name — and a gate that failed only
  * when a verdict printed would inherit every proxy in them. It reads the report's own numbers instead.
  *
+ * ARM 1b's independence needs its own sentence, because it is the one that could most easily have been
+ * built as a tautology. A pairing rule asserts "these two paths are the same token". The type
+ * expectation for that pair does NOT come from the rule — it comes from the CANONICAL TREE, the
+ * emitter's own input, which `compare.ts` authors nothing of. A rule that named its own expected type
+ * would pass by restating itself, and #747's header warned about exactly that shape before the work
+ * started. The same split holds for ARM 1d: the axis is DECLARED in `axes.ts` and its members are
+ * OBSERVED in the emission, and `classifyCollections` compares those two. Deriving the collection list
+ * from `COLLECTION_AXIS` would have made completeness a statement about the table's agreement with
+ * itself — complete by construction, and a new collection passing by never being asked about.
+ *
+ * The evidence for all of that is the mutation register at the bottom of this header, not this
+ * paragraph. A claim of independence is only as good as the failure that demonstrates it.
+ *
  * ── THE BRAND LIST IS DISCOVERED, NOT LISTED ────────────────────────────────────────────────────
  *
  * Brands come from scanning `out/figma/`, and the count is asserted at >= 3 rather than trusted.
@@ -74,26 +99,55 @@
  * no floor silently passes when the scan returns nothing, which is the same false pass one step
  * further back (`lint-overlay-completeness.ts` and `check-consumability.mjs` both take this shape).
  *
- * ── THE LIMIT, FOUND BY A MUTATION THAT DID *NOT* FAIL — TRACKED AS #747 ────────────────────────
+ * ── THE LIMIT THAT WAS, AND HOW IT CLOSED (#747, on #697's axis call) ───────────────────────────
  *
- * THE TYPES ARM ONLY SEES PATHS THAT PAIR. It compares `$type` over the SHARED path set, so a
- * retype on a path that a pairing RULE explains is invisible to it. Measured: changing TokenPress's
- * grid branch from `dimension` to `number` (`exporter.ts:714`) left this gate GREEN, because prism3's
- * `grid.<breakpoint>.<prop>` and TokenPress's `grid.<prop>` are an axis collapse and never enter the
- * shared set. The same mutation on `FONT_SIZE` — which does pair — produced 66 failures.
+ * This section used to record an open hole, found by a mutation that did NOT fail: the types arm
+ * compared `$type` over the SHARED path set only, so a retype on a path that a pairing RULE explains
+ * was invisible. Changing TokenPress's grid branch from `dimension` to `number` (`exporter.ts:714`)
+ * left this gate GREEN, because prism3's `grid.<breakpoint>.<prop>` and TokenPress's `grid.<prop>` are
+ * an axis collapse and never enter the shared set. Measured blind set: 71 paths on nb, 73 on aurora,
+ * 71 on wendys — roughly 14% of each brand's paired surface, across four rules.
  *
- * The blind set is wider than that one rule, and this is the number to hold: 71 paths on nb, 73 on
- * aurora, 71 on wendys — roughly 14% of each brand's paired surface, across FOUR rules (38 renamed
- * `type.*`/`typography.*`, 11 duplicate-emitted `font-fluid.*`, 15 axis-collapsed `grid.*`, 7
- * `shadow-dark.*` crossing as a name). So a green types arm does not mean "no type disagreements";
- * it means "none among the paths that pair".
+ * The mechanism is worth keeping, because it is a shape and not a bug: `analyze` built
+ * `shared = prism3 ∩ tokenpress` and type-compared over `shared`. The PATH was invisible, not the type
+ * check weak — so no amount of strengthening the comparison would have found it. Only asking "which
+ * paths does nothing compare?" does.
  *
- * It is stated rather than papered over — but a header comment is a MEMORY, NOT A QUEUE, so the work
- * is filed as **#747**, with the failing mutation as its acceptance test, and #697 carries "must
- * close #747" in its own Verify list. Two of the four rules exist only because #697's axis question
- * is undecided, which is why that is where it belongs. Do not close #747 by narrowing this paragraph:
- * the prose is honest and the hole is real, and editing the description is the move that makes a gate
- * look stronger without being stronger.
+ * It is closed. ARM 1b compares types across every pairing rule (each rule now declares its
+ * `counterpart` — a whole token, or a named FIELD of a composite), and ARM 1c asserts that NO paired
+ * path is left untyped, so the hole cannot silently reopen when a rule is added. Blind set is 0 on all
+ * three brands. The remaining `againstAbsence` count (65–67) is a different thing and deliberately not
+ * asserted: those are pairs where one side has no leaf at all, so there is no second type to compare.
+ *
+ * WHY THIS CLOSURE DEPENDED ON A DECISION, NOT EFFORT: two of the four rules exist only because a
+ * Figma variable can vary a value only BY MODE, so prism3's non-appearance axes (breakpoint, viewport)
+ * become modes on the way out and paths on the way back. Carrying a type across that collapse requires
+ * knowing which collections' modes ARE an axis — #697's question, answered in `axes.ts`. Nothing in a
+ * Figma file records it (measured: inference by "do the variables vary" does not separate them), so it
+ * is DECLARED, and ARM 1d fails on an unclassified or stale declaration rather than defaulting.
+ *
+ * ── THE MUTATION REGISTER (docs/34: a gate is only proven by watching it fail) ───────────────────
+ *
+ * Every arm added for #747/#697 was verified by mutating the subject and confirming THIS gate is named
+ * in the failure — not merely that the suite went red. Counts are per-run across all three brands:
+ *
+ *   M4  `exporter.ts:714` grid `dimension`→`number`   → ARM 1b, 32 failures  (was EXIT 0 — the
+ *                                                        acceptance criterion for #747)
+ *   M5  `$type: 'typography'`→`'number'`              → ARM 1b, 113 failures (rename rule)
+ *   M6  both `FONT_SIZE` dispatch sites → `number`    → ARM 1b, 7 failures   (duplicate-channel rule)
+ *   M7  `$type: 'shadow'`→`'number'`                  → ARM 1b, 21 failures  (axis-as-a-name rule)
+ *   D1  `axes.ts` layout `breakpoint`→`none`          → ARM 2a, 57 failures  (the axis is load-bearing,
+ *                                                        not decorative: grid.* stops pairing at all)
+ *   D2  delete `color` from `COLLECTION_AXIS`         → ARM 1d, 3 failures   (unclassified ≠ default)
+ *   D3  declare a collection nothing emits            → ARM 1d, 3 failures   (stale declaration)
+ *
+ * M6 IS THE ONE TO READ BEFORE TRUSTING A MUTATION TEST. Disabling the explicit `FONT_SIZE` check
+ * alone changes NOTHING — it falls through to the defensive `dimensionScopes` list further down, which
+ * that code's own comment says is there for exactly this refactor. So the first M6 attempt reported
+ * EXIT 0 and looked like a second blind spot. It was a NON-MUTATION: the subject had a redundant path
+ * and the behavior never moved. A mutation that does not change behavior proves nothing about the
+ * gate, and it is indistinguishable from a blind spot unless you go read why. Check that the thing you
+ * mutated is the thing that decides.
  */
 import { readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -198,6 +252,61 @@ const main = async (): Promise<void> => {
       }
     }
     lines.push(`types: ${r.types.length}`);
+
+    // ---- ARM 1b: types on RULE-PAIRED paths, a RULE at 0 (#747) --------------------------------
+    // The same claim as ARM 1, over the paths ARM 1 structurally cannot see: a path that pairs by a
+    // rename, an axis collapse or an axis-as-a-name never appears verbatim on both sides, so it never
+    // enters the shared set ARM 1 walks. Separate arm rather than merged into `r.types` so the readout
+    // says which arm found what — and so neither can go silent behind the other's zero.
+    for (const t of r.pairedTypes) {
+      failures.push(
+        `[${brand}] TYPE disagreement on a RULE-PAIRED path: ${t.prism3} says \`${t.prism3Type}\`, ` +
+          `${t.tokenpress} says \`${t.tokenpressType}\`. Paired by: ${t.rule.slice(0, 90)}. ` +
+          'Either the two exporters disagree on this token\'s type, or the pairing rule is wrong about ' +
+          'them being the same thing — read the rule\'s `counterpart` before assuming the first (#747).'
+      );
+    }
+    lines.push(`paired types: ${r.pairedTypes.length}`);
+
+    // ---- ARM 1c: NO paired path is left untyped, a RULE at 0 (#747's acceptance criterion) -----
+    // The arm that keeps ARMs 1 and 1b honest. Both report disagreements among the paths they COMPARE;
+    // neither can notice a path that nothing compares. That was the original defect: 71–73 paths per
+    // brand, ~14% of the paired surface, silently uncompared while the types arm printed 0.
+    //
+    // ASSERTED, NOT PRINTED, and #747 asked for exactly that — "a count that is only printed goes
+    // stale the way #707's figures did". A rule added later that pairs paths without resolving their
+    // types fails here rather than quietly widening the hole again.
+    if (r.typeBlindSpots.blind > 0) {
+      failures.push(
+        `[${brand}] TYPE-BLIND PAIRS: ${r.typeBlindSpots.blind} rule-paired path(s) have NO type ` +
+          'comparison — the pairing claims two paths are the same token and nothing checks their ' +
+          '`$type`. This is #747\'s original defect reappearing. Fix by resolving the counterpart\'s ' +
+          'type in the rule (see `PathExplanation.typed`), never by removing the pairing.'
+      );
+    }
+    lines.push(`type-blind pairs: ${r.typeBlindSpots.blind}`);
+
+    // ---- ARM 1d: every emitted collection's axis is DECLARED (#697) -----------------------------
+    // #697's Verify list: "Assert per-collection axis classification is declared, not inferred — and
+    // that an unclassified collection fails rather than defaulting. Same posture as the payload
+    // manifest (#674): membership-by-guess reports as a pass."
+    for (const u of r.axes.unclassified) {
+      failures.push(
+        `[${brand}] UNCLASSIFIED COLLECTION: \`${u.collection}\` (modes: ${u.modes.join(', ') || 'none'}) ` +
+          'is emitted but its axis is not declared in `tools/exporter-comparison/axes.ts`. Which axis a ' +
+          'collection\'s modes represent is human knowledge Figma does not record (#697), so there is ' +
+          'nothing to infer it from — classify it. Do NOT add a default: 13 of 16 entries are `none`, ' +
+          'so a default would be right 13 times and silently wrong on the 14th.'
+      );
+    }
+    for (const s of r.axes.stale) {
+      failures.push(
+        `[${brand}] STALE AXIS DECLARATION: \`${s}\` is declared in axes.ts but this brand's emission ` +
+          'no longer carries it. Either the collection was renamed or removed — update the declaration. ' +
+          'A declaration that cannot notice its own obsolescence is the shape #729 fixed.'
+      );
+    }
+    lines.push(`axes: ${r.axes.represented.join('+')}`);
 
     // ---- ARM 2a: tokenpress-only paths, a RULE at 0 ---------------------------------------------
     for (const p of r.paths.unpairedTokenPress) {
