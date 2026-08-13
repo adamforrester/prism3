@@ -41,8 +41,14 @@
  *     `['size=md']`, because the coordinate must account for every axis the member's name carries.
  *     So Button's declared coordinate is satisfiable only by a HAND-BUILT set — which is what it has
  *     been resolving against, and precisely what #749 corrected the record about.
- *  4. PAINT WOULD NOT BIND ANYWAY. `paintOf` keys every lookup as `{intent}.{appearance}.{slot}`
- *     (`anatomy-figma.ts`), so a def whose paint axis is `color` resolves no paint at all — #758.
+ *  4. PAINT WOULD NOT HAVE BOUND ANYWAY — LIFTED IN TWO STEPS, and worth reading as one wall that took
+ *     two passes rather than as one that was fixed. `paintOf` used to key every lookup as
+ *     `{intent}.{appearance}.{slot}` (`anatomy-figma.ts`), so a def whose paint axis is `color`
+ *     resolved no paint at all; #758 replaced that hardcoded template with this def's own `paintKeys`.
+ *     That was necessary and not sufficient: the keys #758 shipped here were spelled `stroke`, which
+ *     the projector never dispatches, so the ring's colour was still reachable at 0 of 2 coordinates.
+ *     #784 renamed them to `border`. The wall is now down — the ring's paint resolves — and walls 1-3
+ *     still stand, so this def remains unprojectable for structural reasons only.
  *
  * So this def is REAL and gate-checked — its bindings resolve against every emitted brand, and the
  * ring's colour, weight and style now live in the engine instead of in whatever a Figma file happens
@@ -89,7 +95,7 @@ export const focusRing: ComponentDef = {
   // generated tree, so the ring is bound to a verified contract rather than to a file's contents.
 
   // THE PAINT GRAMMAR (#758), and here ORDER is the whole declaration. The qualified template leads,
-  // so `color=inverse` finds `stroke.inverse` and `color=default` falls through to the bare `stroke`.
+  // so `color=inverse` finds `border.inverse` and `color=default` falls through to the bare `border`.
   // Reverse the two and every ring paints the default colour — both variants are valid rings, so
   // nothing downstream would notice, which is the same invisibility #656 turned on.
   //
@@ -98,13 +104,20 @@ export const focusRing: ComponentDef = {
   // default. `paintKeys` can say that; the `{intent}.{appearance}.{slot}` template this replaces could
   // not say it at all, which is wall 1 of the four this def's header lists.
   //
+  // THE SLOT VOCABULARY (#784). Until #784 these keys were spelled `stroke` / `stroke.inverse` — the
+  // word this file's own prose uses for the ring's substance, and a word the projector never asks for.
+  // `paintOf` dispatches `border` for a stroke, so BOTH colour bindings resolved at 0 of 2 coordinates:
+  // the grammar #758 shipped was correct in shape and painted nothing. Renamed to the dispatched slot.
+  // The surrounding prose still says "stroke", deliberately — that is the CSS/Figma property this def
+  // binds, and only the KEY has to match the projector.
+  //
   // NOTE: this makes the ring's stroke COLOUR resolvable. It does not make the ring projectable — the
   // three structural walls above are untouched, and `figmaProperties` stays absent for them.
   paintKeys: ['{slot}.{color}', '{slot}'],
 
   tokens: {
-    'stroke': 'color.border.focus',
-    'stroke.inverse': 'color.border.focus-inverse',
+    'border': 'color.border.focus',
+    'border.inverse': 'color.border.focus-inverse',
     'width': 'focus.ring.width',
     'style': 'focus.ring.style',
     'offset.control': 'focus.ring.offset',
@@ -143,7 +156,7 @@ export const focusRing: ComponentDef = {
       // be admitted by an entry that STARTS with it. Both axes are admitted, because neither
       // projects. (`figmaProperties` is absent, so that check does not currently run; the entries are
       // written to satisfy it anyway, so adding the block later cannot ship an unadmitted axis.)
-      'color — the surface axis, unprojectable for two independent reasons, either of which alone is sufficient. STRUCTURALLY: `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and throws rather than enumerating around it, and `planComponentName` always writes a `size=` coordinate this def has no axis for — so a projected member would be named `size=…` and could never match the `{color:\'default\'}` coordinate Button nests by (verified against `nestVariantMatch`, which requires the coordinate to account for every axis in the member name). PAINTWISE: `paintOf` keys paint as `{intent}.{appearance}.{slot}`, so the stroke colour would not bind even if the axis projected — #758.',
+      'color — the surface axis, unprojectable for two independent reasons, either of which alone is sufficient. STRUCTURALLY: `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and throws rather than enumerating around it, and `planComponentName` always writes a `size=` coordinate this def has no axis for — so a projected member would be named `size=…` and could never match the `{color:\'default\'}` coordinate Button nests by (verified against `nestVariantMatch`, which requires the coordinate to account for every axis in the member name). PAINTWISE this was once a third reason and is no longer one: `paintOf` used to key paint as `{intent}.{appearance}.{slot}`, so the stroke colour would not have bound even if the axis projected. #758 replaced that with this def\'s `paintKeys` and #784 corrected the keys to the slot vocabulary the projector dispatches, so the ring\'s colour now resolves. The axis remains unprojectable on the two structural grounds above alone.',
       'offset — the context parameter (`control` ≈2px / `field` 0), unprojectable for the same structural reason as `color` above, plus one specific to this axis: the offset is consumed by the HOST\'s `inset` binding, and Figma\'s `x`/`y` accept no variable binding, so the payload resolves the offset to a NUMBER at paste and writes it. An already-pasted ring therefore does not move when a brand changes `focus.ring.offset`, unlike every bound paint, which re-themes.',
       'stroke weight and stroke colour — the ring\'s entire visual substance, and `PartDef` has no field for either. Its geometry vocabulary is gap / height / radius / size / type / inset / padding; a stroke is not among them. So `tokens` binds `color.border.focus`, `focus.ring.width` and `focus.ring.style` and every one resolves against every emitted brand, while no PART can carry them and therefore no plan can bind them to a node. This is the wall Button\'s codeOnly entry used to describe as a deliberate trade — it is not; it is an unexamined schema gap, and expressing it needs a `PartDef` stroke field, which is a schema decision under #740.',
       'materialization — this def is deliberately NOT materializable: `figmaProperties` is absent because declaring `variantAxes: [\'color\']` would validate cleanly and then throw at projection, which is worse than admitting the gap. Until the three constraints above are lifted, a ring in a Figma file is a hand-built component and Button\'s `nests: \'focus-ring\'` resolves against the FILE by name (`compByName.get(n.nestTarget)`), not against this def. That is the inversion docs/14 §1 rejects, narrowed: what the file still owns is the ring\'s NODE, while its colour, weight, style and offsets now come from here.',

@@ -153,7 +153,6 @@ export const button: ComponentDef = {
     // authored, and would have hidden this gap instead of surfacing it. A missing key means "this
     // appearance does not paint that part in that state"; the bug was that `.text` does paint it.
     'primary.text.overlay.pressed': 'color.interactive.primary.overlay.pressed',
-    'primary.on-inverse.label': 'color.interactive.primary.on-inverse.text.rest',
 
     // neutral — no longer the default (2026-08-07), but still the full column. It carries
     // hover/pressed like every colour (the v1 gap, CLOSED), and that stays true independently of
@@ -175,7 +174,6 @@ export const button: ComponentDef = {
     'neutral.text.icon': 'color.interactive.neutral.text.rest',
     'neutral.text.overlay.hover': 'color.interactive.neutral.overlay.hover',
     'neutral.text.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
-    'neutral.on-inverse.label': 'color.interactive.neutral.on-inverse.text.rest',
 
     // destructive — interactive.destructive.* (full states)
     'destructive.filled.fill': 'color.interactive.destructive.fill.rest',
@@ -194,13 +192,21 @@ export const button: ComponentDef = {
     'destructive.text.icon': 'color.interactive.destructive.text.rest',
     'destructive.text.overlay.hover': 'color.interactive.destructive.overlay.hover',
     'destructive.text.overlay.pressed': 'color.interactive.destructive.overlay.pressed',
-    'destructive.on-inverse.label': 'color.interactive.destructive.on-inverse.text.rest',
 
-    // cross-cutting disabled (docs/20 §7) — ONE treatment, any intent/appearance
+    // cross-cutting disabled (docs/20 §7) — ONE treatment, any intent/appearance.
+    //
+    // INK IS KEYED TWICE, per ground (#784), and until #784 the second form was spelled
+    // `disabled.on-fill` — a slot segment the projector never dispatches, so it was bound, gated, and
+    // reached at no coordinate while every disabled appearance painted page ink. On `filled` that put
+    // `disabled.text` on `disabled.fill` at 2.14:1 (wendys) / 2.55:1 (harbor), against the 3.04-3.08:1
+    // contract `disabled.on-fill` already held. The `.on-fill` suffix now QUALIFIES the slot it paints
+    // rather than replacing it, so `label`/`icon` stay words `paintOf` asks for and the projector picks
+    // the form by whether the appearance actually has a disabled fill beneath the ink.
     'disabled.fill': 'color.disabled.fill',
-    'disabled.on-fill': 'color.disabled.on-fill',
     'disabled.label': 'color.disabled.text',
     'disabled.icon': 'color.disabled.icon',
+    'disabled.label.on-fill': 'color.disabled.on-fill',
+    'disabled.icon.on-fill': 'color.disabled.on-fill',
     'disabled.border': 'color.disabled.border',
   },
 
@@ -281,7 +287,7 @@ export const button: ComponentDef = {
     codeOnly: [
       'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame.',
       'focus-ring-offset — the ring GEOMETRY now projects (an absolute sibling nesting the shared `focus-ring`), but its offset is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` to a number and writes it. Every bound paint re-themes when a brand changes; an already-pasted ring does not move. The `:focus-visible` CONDITION remains unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
-      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens` and only `ring-offset` reaches a Figma node, so the engine verifies that a ring is nominated and where it sits, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry used to claim: the engine cannot gate the ring\'s own colour or weight because `paintOf` keys paint as `{intent}.{appearance}.{slot}` (`anatomy-figma.ts`), so a def whose axes are colour/tone projects unpainted — tracked as #758 — and because `PartDef` has no stroke field for a ring\'s weight or colour to be declared in at all, which needs a schema decision under #740. Two projector/schema gaps, neither of them a trade anybody made. `focus-ring` now exists as a real def (#741) and binds all three against every emitted brand; what it cannot yet do is project, for the four measured reasons its own `codeOnly` lists.',
+      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens` and only `ring-offset` reaches a Figma node, so the engine verifies that a ring is nominated and where it sits, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry used to claim: it is projector and schema gaps, neither of them a trade anybody made. The paint gap is now CLOSED — `paintOf` once keyed paint as `{intent}.{appearance}.{slot}`, so a def whose axes are colour/tone resolved nothing; #758 replaced that with each def\'s own `paintKeys` and #784 corrected the ring\'s keys to the slot vocabulary the projector dispatches, so the ring\'s colour resolves today. What remains is STRUCTURAL and unchanged by either: `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and `planComponentName` always writes a `size=` coordinate the ring has no axis for, so a ring member could never match the coordinate this def nests by; and `PartDef` still has no stroke field for a ring\'s weight or colour to be declared in at all, which needs a schema decision under #740. `focus-ring` now exists as a real def (#741) and binds all three against every emitted brand; what it cannot yet do is project, for the reasons its own `codeOnly` lists.',
       'min-width derivation — resolved to a literal at emit, so the Figma component holds a frozen number rather than the live height×multiplier relationship.',
       'width (auto | full) — declared as a variant axis but deliberately NOT projected into Figma (#487 §4). A designer resizes an auto-layout frame; a variant axis for it doubles the whole set to buy nothing a drag does not already do.',
       'modifiers (leading-visual | trailing-visual | pending) — not projected as-is. Slot CONTENT is an INSTANCE_SWAP property, and `pending` is already a value on the state axis, so projecting this axis would duplicate one and mis-model the other. Slot PRESENCE still needs its own variant axis before #326\'s split inline padding can survive the Figma leg — that axis does not exist in this def yet, so it is not claimed here.',
@@ -293,6 +299,7 @@ export const button: ComponentDef = {
       // entry about an axis-and-state INTERACTION needs the same care — lead with a compound, never the
       // bare axis name.
       'intent-at-disabled redundancy (#612) — all three intents render ONE row at `state=disabled`, so 36 groups of 3 are byte-identical. Accepted, not fixed: `disabled.*` is cross-cutting by design (docs/20 §7 — `color.disabled.fill` has no intent in the path), so one disabled skin serving every intent is the token tier being correct, and the projection reporting it faithfully is a feature. The coordinate stays MEANINGFUL — a designer selecting intent=destructive, state=disabled finds it where they look for it and gets the right pixels; they are merely the same pixels as the other two intents. Pruning the 72 redundant rows would make the set\'s shape depend on a per-coordinate measurement, which is a new class of thing to gate for a 11% row saving.',
+      'on-inverse (a button on a dark hero / inverse section) — NOT modelled by this def, and #784 is where that became explicit rather than half-true. Three keys used to bind `interactive.<intent>.on-inverse.text.rest` as though `on-inverse` were an APPEARANCE value; it is not one — `variants.appearance` is filled/outline/text, so the coordinate never occurred and all three were reached at no point in the 5184-coordinate grid. They were removed rather than renamed, because there is no value to rename them to: the surface a control sits on is a fourth axis this def does not declare, and inventing one would multiply the projected set by two to encode a context the HOST knows and the button does not. The token family is real, emitted, and gated per mode against `background.inverse.primary` independently of any def (`test.ts` (a)/(a2)), so nothing about the contract is lost — what is missing is a def that can ask for it, which needs a surface axis and is a design decision, not a rename. Until then a button on a dark band is a designer override on the instance, the same answer `focus-ring`\'s `color=inverse` gets from this def.',
       'inactive — a real state (isInactive), deliberately NOT a Figma variant. Its whole delta from `disabled` is behavioral: it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus. None of that is paint, so a variant has nothing to encode. At the TOKEN tier its intended visual is `disabled`\'s by an explicit decision (docs/03 item 3, resolved 2026-06-24: `disabledStrategy: \'accessible\'` IS the KB\'s contrast-preserving `inactive`; docs/06 defines `text.disabled` as "disabled / inactive ink"). The EMITTER does not implement that yet — `anatomy-figma.ts` special-cases `state === \'disabled\'` only, so `inactive` falls through to the `rest` paints, which is worse than a duplicate: the column would have read as a normal enabled button. Either way it is unprojectable, and the two facts fail it independently.',
     ],
   },

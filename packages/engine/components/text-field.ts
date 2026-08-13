@@ -78,31 +78,50 @@ export const textField: ComponentDef = {
   // geometry and `style` has one value. So the qualified template leads and the bare slot is the rest
   // value, the same fallback shape `focus-ring` uses over a colour axis instead of a state.
   //
-  // A LATENT DEFECT THIS DECLARATION SURFACES, recorded rather than fixed here. Two keys carry a
-  // suffix that is NOT one of the declared `states`: `border.focus` against state `focus-visible`, and
-  // `border.readonly` against state `read-only`. Under `{slot}.{state}` neither is ever reached — a
-  // focused field would paint its REST border. That is a def-side rename, and it belongs with the
-  // anatomy block this def still lacks (Arc 2 step 5), where a projection can prove the fix. Naming it
-  // here is the point of declaring the grammar: the mismatch was equally real before and nothing in
-  // the repo could see it.
+  // THE FOUR DEFECTS THIS DECLARATION SURFACED, all fixed in #784 — and the interesting part is that
+  // #758's comment here NAMED two of them and deferred both, which is how the other two survived. Six
+  // of twelve colour bindings were reachable at no coordinate at all:
+  //
+  //   `border.focus`    → `border.focus-visible`  the STATE segment named a state this def does not
+  //   `border.readonly` → `border.read-only`      declare, so `{slot}.{state}` never produced the key
+  //                                               and a focused field painted its REST border.
+  //   `text`            → `label`                 the SLOT segment named a slot the projector never
+  //   `placeholder`     → `label.empty`           dispatches, so the value ink never painted at all.
+  //
+  // The two halves are one defect wearing two hats: a segment filled with a word nothing supplies. #758
+  // could see the state half by eye and could not see the slot half, because `paintOf`'s vocabulary was
+  // not written down anywhere a def author could read it. `PAINT_SLOTS` is now that list and
+  // `paintKeyErrors` checks both segments against it — see its header for why widening the list is the
+  // wrong fix.
+  //
+  // `label.empty` is the placeholder, and keying it as a STATE of the value ink rather than as a slot of
+  // its own is the accurate model: a placeholder is the input's own text node rendered dim while the
+  // field holds no value, which is precisely what the `empty` state this def already declares means. One
+  // node, one slot, two states — so the bare `label` is the value ink in every other state.
   paintKeys: ['{slot}.{state}', '{slot}'],
 
   tokens: {
     'fill': 'color.field.fill',
-    'text': 'color.text.primary',
-    'placeholder': 'color.field.placeholder',
+    'label': 'color.text.primary',
+    'label.empty': 'color.field.placeholder',
     'border.rest': 'color.field.border.rest',
     'border.hover': 'color.field.border.hover',
-    'border.focus': 'color.border.focus',
+    'border.focus-visible': 'color.border.focus',
     'border.error': 'color.border.danger',
-    'border.readonly': 'color.border.secondary',
+    'border.read-only': 'color.border.secondary',
     // focus ring — field-specific offset so the ring hugs the inset field, not a button edge
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset-field',
-    // disabled skin (contrast-exempt) — the shared cross-cutting family
+    // disabled skin (contrast-exempt) — the shared cross-cutting family.
+    //
+    // `disabled.label.on-fill` was `disabled.text` until #784 — an unreachable slot segment, so the field
+    // painted its REST ink when disabled. Note this def's ref was already the ON-FILL one: a field always
+    // has a fill, so its disabled ink always sits on `disabled.fill`, and the pairing this key names was
+    // right while the key that named it could not be reached. There is no plain-ground form for the same
+    // reason — an input with no fill is not a state this def has.
     'disabled.fill': 'color.disabled.fill',
-    'disabled.text': 'color.disabled.on-fill',
+    'disabled.label.on-fill': 'color.disabled.on-fill',
     'disabled.border': 'color.disabled.border',
     // geometry
     'radius': 'radius.sm',

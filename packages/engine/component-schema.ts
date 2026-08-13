@@ -791,6 +791,24 @@ export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon'] as con
  */
 export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon']);
 
+/**
+ * Bindings that name a component this def WILL nest, before it has the `anatomy` block that would
+ * say so (#784).
+ *
+ * The segment-vocabulary rule exempts a nested component's own token by reading `anatomy.parts[*].nests`
+ * — derived, so it cannot go stale. A def with no `anatomy` yet has nowhere to state the relationship,
+ * and `text-field`'s `focus-ring` binding is the one such case in the corpus: it is Button's binding
+ * verbatim, gated per brand for the same reason, and the ring is in `composition.composesWith`.
+ *
+ * This map is deliberately the SMALLEST possible escape hatch, and it is self-retiring: the guard
+ * requires `!def.anatomy`, so the entry stops applying the moment the anatomy block lands and the
+ * derived path takes over. `paintKeyErrors` asserts both stale directions — an entry naming a key that
+ * does not exist, and an entry for a key the rule would not have flagged anyway.
+ */
+const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
+  'text-field': ['focus-ring'],
+};
+
 /** Every `{placeholder}` in a paint-key template, in order of appearance. */
 export const paintKeyPlaceholders = (template: string): string[] =>
   [...template.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
@@ -840,7 +858,7 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
     if (seen.has(template)) e.push(`paintKeys: '${template}' listed twice`);
     seen.add(template);
     const phs = paintKeyPlaceholders(template);
-    if (!phs.length) continue; // a literal key (`stroke`, `focus-ring`) — checked against `tokens` below
+    if (!phs.length) continue; // a literal key (`border`, `focus-ring`) — checked against `tokens` below
     for (const ph of phs) {
       if (ph === 'slot' || ph === 'state') continue;
       if (!axes.includes(ph))
@@ -863,11 +881,216 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
       e.push(`paintKeys: '${template}' matches no key in tokens — a template nothing binds projects unpainted and reports nothing`);
   }
 
+  /*
+   * THE SEGMENT VOCABULARY, and the reason the check above was not enough (#784).
+   *
+   * Reachability asks whether a template matches SOME key's shape. It says nothing about whether the
+   * VALUES filling a placeholder are values the projector ever supplies — and a template can be
+   * perfectly well-formed over a vocabulary nothing speaks. Measured on `main` after #758, by
+   * enumerating every coordinate `paintOf` can be called at and asking which colour bindings any of
+   * them reaches:
+   *
+   *     field-label     0/3 reachable   (text, indicator, disabled.text)
+   *     focus-ring      0/2 reachable   (stroke, stroke.inverse)
+   *     field-message   4/8 reachable   (default.text, error.text, warning.text, success.text)
+   *     text-field      6/12 reachable  (text, placeholder, border.focus, border.readonly, …)
+   *
+   * `field-label` is the sharp case: `paintKeys: ['{slot}']` passes every check #758 shipped, and the
+   * def paints NOTHING, because its bindings are spelled `text` and `indicator` while the projector
+   * asks for `label`. #758's own report claimed five of seven defs could now be painted; three could.
+   *
+   * WHY THIS IS INDEPENDENT AND NOT A RE-LISTING. The ORACLE is `PAINT_SLOTS` / `def.states` — the
+   * projector's own dispatch vocabulary, which `anatomy-figma.ts` reads to decide what to ask for. The
+   * SUBJECT is the def's binding keys. Two different artifacts, neither derived from the other, which
+   * is what `docs/34` requires. Deriving the expectation by asking `paintOf` what it resolves would
+   * reproduce any bug in `paintOf` on both sides and report it as a pass — the same trap #708's
+   * overlay gate had to route around.
+   *
+   * DO NOT WIDEN `PAINT_SLOTS` TO GO GREEN. Once this rule reads that list, the cheapest way to make a
+   * failure vanish is to add the offending word to it — which converts a real defect into a silent
+   * pass in one line, and moves nothing. `PAINT_SLOTS` may only grow when the projector ACTUALLY
+   * DISPATCHES the new slot, which is checkable in `anatomy-figma.ts`: a `paintOf('<slot>')` call must
+   * exist in the paint branch for the part kind that owns it. Today there are exactly five such calls,
+   * one per slot (`overlay`, `fill`, `border`, `label`, `icon`). A slot in the list with no call
+   * behind it is a vocabulary entry no part can ever ask for, so it can never fail this rule and never
+   * paint anything either.
+   */
+  /** Every PLACEHOLDER segment of `template`, paired with the value `key` fills it with. */
+  const segmentsOf = (template: string, key: string): { ph: string; value: string }[] => {
+    const parts = key.split('.');
+    return template
+      .split('.')
+      .flatMap((seg, i) => (seg.startsWith('{') && seg.endsWith('}') ? [{ ph: seg.slice(1, -1), value: parts[i] }] : []));
+  };
+  /**
+   * WHAT THE PROJECTOR CAN SUPPLY for one placeholder — the ORACLE side of the rule, and the reason
+   * this generalizes instead of being three checks. Every placeholder is filled from exactly one
+   * source, and each source is enumerable:
+   *
+   *   `{slot}`   — the ARGUMENT `paintOf` is called with. `PAINT_SLOTS` is that list.
+   *   `{state}`  — the coordinate's state, which can only be one this def DECLARES.
+   *   `{<axis>}` — a variant value, which can only be one that axis declares.
+   *
+   * So the question is one question asked three times, not three rules: is the value filling this
+   * segment a value anything ever supplies? A `no` means the key is authored, resolvable, and reached
+   * at no coordinate in the grid. Returning `undefined` for an unknown placeholder is deliberate —
+   * the check above already rejects a placeholder that names no axis, so there is nothing to say here.
+   */
+  const supplied = (ph: string): readonly string[] | undefined =>
+    ph === 'slot' ? PAINT_SLOTS : ph === 'state' ? (def.states ?? []) : def.variants?.[ph];
+  /*
+   * SCOPED TO COLOUR BINDINGS, and the scope is load-bearing rather than a convenience. `tokens` is one
+   * flat map holding two kinds of binding with two different resolvers: paint keys go through `paintOf`
+   * (this grammar), while GEOMETRY and TYPE keys — `size.medium.gap`, `size.large.height`, `offset.field`
+   * — are named by `anatomy` and go through `varOf`, which throws on a miss and needs no grammar at all.
+   * Unscoped, this rule reported 30 false positives on `main`: every one of Button's `size.*.padding-x`
+   * keys "fills {slot} with 'padding-x'", which is true and meaningless, because nothing ever asks
+   * `paintOf` for a padding. Read the REF, not the key shape — a colour ref is the thing paint resolves.
+   */
+  const isColourBinding = (key: string): boolean => {
+    const ref = def.tokens?.[key];
+    return typeof ref === 'string' && (ref.startsWith('color.') || ref.startsWith('{color.'));
+  };
+  /*
+   * ONE KIND OF COLOUR BINDING THAT THIS GRAMMAR DOES NOT GOVERN, read from the def rather than named
+   * in a list here — a list would be a second place for the answer to live.
+   *
+   *   A NESTED COMPONENT'S OWN TOKEN — Button and icon-button both bind `focus-ring`, and it is not a
+   *   slot on them at all: the ring is a separate def reached via `nests`, and this binding exists so
+   *   the host's contract can be gated per brand. Detected by asking whether the key names a part this
+   *   def NESTS. That is `anatomy.parts[*].nests`, so a def that stops nesting the ring stops being
+   *   exempt in the same edit.
+   *
+   * `disabled.*` IS NOT EXEMPT, and the first version of this rule wrongly made it so — which is worth
+   * recording, because the wrong exemption was the plausible one and it hid a live defect. Those keys
+   * are resolved by `paintOf`'s CROSS-CUTTING BRANCH (`anatomy-figma.ts`), which short-circuits before
+   * the template loop and looks up `disabled.<slot>` directly. From that it followed — I thought — that
+   * the templates do not govern them. False, and in the half that matters: the branch is exempt from the
+   * KEY SPELLING, not from the SLOT VOCABULARY. It concatenates `disabled.` with the slot it was ASKED
+   * for, so it can only ever find `disabled.<one of PAINT_SLOTS>` and a `disabled.*` key ending in
+   * anything else is exactly as unreachable as a template-keyed one. Measured: Button's
+   * `disabled.on-fill` and text-field's `disabled.text` are bound and reached at no coordinate, so a
+   * disabled FILLED button paints `disabled.text` on `disabled.fill` — 2.14:1 on wendys, 2.55:1 on
+   * harbor — while `disabled.on-fill`, the token that exists for that exact pairing and is gated at
+   * 3.04-3.08:1, is never asked for. So the exemption is only for the `disabled` LEAD segment, which is
+   * a literal the branch supplies itself and no axis declares.
+   */
+  const nestedIds = new Set(
+    Object.values(def.anatomy?.parts ?? {}).flatMap((p) => (p.nests ? [p.nests] : [])),
+  );
+  const governed = (key: string): boolean => {
+    if (nestedIds.has(key)) return false;
+    // The `disabled` LEAD only — see the note above. The branch supplies that segment itself, so a
+    // `disabled.*` key is not described by any template and must not be read through one: text-field's
+    // `{slot}.{state}` matches `disabled.fill` by shape and would report `{slot}='disabled'` and
+    // `{state}='fill'`, both true and both meaningless. Its slot segment is checked by the dedicated
+    // pass below, against the same oracle — exempt from the template, not from the vocabulary.
+    if (key.split('.')[0] === 'disabled' && (def.states ?? []).includes('disabled')) return false;
+    // A def that will nest the ring but has no `anatomy` yet cannot be detected by `nests`, so the
+    // exemption is NAMED — the same mechanism (and the same stale-exemption discipline) `lint-paint.ts`
+    // uses for its provenance exceptions. `text-field` is the only entry: its `focus-ring` binding is
+    // Button's exactly, and it becomes detectable — and this line removable — the moment the anatomy
+    // block lands (Arc 2 step 5). An entry here must name a key that EXISTS and is otherwise ungoverned,
+    // which the two directions below assert, so a rename does not leave a lie behind.
+    if (NESTED_WITHOUT_ANATOMY[def.id]?.includes(key) && !def.anatomy) return false;
+    return true;
+  };
+  for (const template of keys) {
+    if (typeof template !== 'string') continue;
+    for (const key of bound) {
+      if (!matcher(template).test(key) || !isColourBinding(key) || !governed(key)) continue;
+      for (const { ph, value } of segmentsOf(template, key)) {
+        const can = supplied(ph);
+        if (!can || value === undefined || can.includes(value)) continue;
+        e.push(
+          `paintKeys: '${key}' fills '${template}'\`s {${ph}} with '${value}', which nothing ever supplies ` +
+            `— ${ph === 'slot' ? `the projector dispatches only [${can.join(', ')}]` : `this def declares ${ph === 'state' ? 'states' : `variants.${ph}`} [${can.join(', ')}]`}. ` +
+            `The binding is authored, resolvable and reached at NO coordinate: it paints nothing, and the ` +
+            `slot silently falls through to whatever the next template answers. Rename it to a value that ` +
+            `is supplied.${ph === 'slot' ? ` Do NOT add '${value}' to PAINT_SLOTS to clear this — that only ` +
+            `widens the vocabulary past what anatomy-figma.ts actually dispatches; a slot belongs there ` +
+            `only once a paintOf('${value}') call exists in the branch for the part kind that owns it.` : ''}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * THE CROSS-CUTTING BRANCH'S OWN KEYS, checked against the same oracle for the reason above: the
+   * branch supplies the `disabled.` lead itself, so its keys match no template and the loop above never
+   * sees them. This is the one place where the SUBJECT is a key the templates do not describe, and
+   * skipping it is what let a 2.14:1 disabled pairing ship. Derived from `PAINT_SLOTS` and from the def's
+   * own `states`, identically to the rule above — one oracle, two subjects.
+   *
+   * `DISABLED_GROUNDS` is the branch's own qualifier vocabulary, and it exists for the same reason
+   * `PAINT_SLOTS` does: the branch may ask for `disabled.<slot>.<ground>` as well as `disabled.<slot>`,
+   * so a key carrying a qualifier the branch never appends is exactly as unreachable as a mis-spelled
+   * slot. The SLOT segment is still checked against `PAINT_SLOTS` either way — which is the property
+   * that keeps a qualifier from becoming a hiding place for an unreachable slot name.
+   */
+  const DISABLED_GROUNDS = ['on-fill'];
+  if ((def.states ?? []).includes('disabled'))
+    for (const key of bound) {
+      if (!key.startsWith('disabled.') || !isColourBinding(key)) continue;
+      const rest = key.slice('disabled.'.length).split('.');
+      const ground = rest.length > 1 ? rest[rest.length - 1] : undefined;
+      const slot = ground ? rest.slice(0, -1).join('.') : rest.join('.');
+      const slotOk = (PAINT_SLOTS as readonly string[]).includes(slot);
+      const groundOk = ground === undefined || DISABLED_GROUNDS.includes(ground);
+      if (slotOk && groundOk) continue;
+      e.push(
+        `paintKeys: '${key}' is a cross-cutting disabled binding, and ` +
+          (slotOk
+            ? `its ground segment is '${ground}', which that branch never appends — it asks only for [${DISABLED_GROUNDS.join(', ')}].`
+            : `its slot segment is '${slot}', which the projector never asks for — it dispatches only [${PAINT_SLOTS.join(', ')}].`) +
+          ` That branch builds its key from the slot it was ASKED for, so this one is reached at no coordinate ` +
+          `and the disabled treatment falls through to whichever 'disabled.<slot>' key does exist — which is how ` +
+          `a disabled filled control painted page ink on a fill at 2.14:1. Rename it to a dispatched slot.`,
+      );
+    }
+
+  /*
+   * THE EXEMPTION, IN BOTH DIRECTIONS. An escape hatch nobody re-reads is how a fixed defect comes back
+   * wearing a permission slip, so the map above has to fail when it stops being true — the discipline
+   * `lint-paint.ts`'s provenance exceptions already run on.
+   *
+   *   NOT-EXISTS — the entry names a key this def does not bind. Left unchecked, renaming or deleting
+   *   `focus-ring` leaves an exemption covering nothing, which reads as a live exception forever.
+   *
+   *   NOW-GOVERNED — the entry names a key the rule would not have flagged anyway (a slot the projector
+   *   does ask for, or a non-colour binding). Then the exemption is doing no work and its removal is
+   *   free, so keeping it only misinforms the next reader about what the rule catches.
+   *
+   * The `!def.anatomy` guard needs no third direction: it is the retirement condition itself, and it
+   * flips automatically when the anatomy block lands.
+   */
+  for (const key of NESTED_WITHOUT_ANATOMY[def.id] ?? []) {
+    if (!(key in (def.tokens ?? {}))) {
+      e.push(
+        `paintKeys: NESTED_WITHOUT_ANATOMY exempts '${key}', which this def does not bind — a stale exemption ` +
+          `covering nothing. Remove the entry.`,
+      );
+      continue;
+    }
+    const slotIsAsked = keys.some((t) =>
+      typeof t === 'string'
+      && segmentsOf(t, key).some(({ ph, value }) => {
+        const can = supplied(ph);
+        return !!can && value !== undefined && can.includes(value);
+      }),
+    );
+    if (!isColourBinding(key) || slotIsAsked)
+      e.push(
+        `paintKeys: NESTED_WITHOUT_ANATOMY exempts '${key}', but the rule would not flag it anyway — the ` +
+          `exemption does no work. Remove the entry.`,
+      );
+  }
+
   // ORDER IS THE DECLARATION, so an order that strands an AUTHORED BINDING is an error.
   //
   // The lookup returns on the first template whose filled key is bound, so listing the general
-  // `{slot}` before the specific `{slot}.{color}` means that for slot `stroke` the bare `stroke` key
-  // always answers and `stroke.inverse` — authored, resolvable, and passing the reachability check
+  // `{slot}` before the specific `{slot}.{color}` means that for slot `border` the bare `border` key
+  // always answers and `border.inverse` — authored, resolvable, and passing the reachability check
   // above, because the template that names it does match something — is never reached. Every focus
   // ring paints the default colour and the inverse ring is invisible on the surface it exists for.
   // That is #656's defect, reintroduced by a reordering no other check can see.

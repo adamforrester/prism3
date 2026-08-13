@@ -50,15 +50,24 @@ export const fieldLabel: ComponentDef = {
   // hardcoded `{intent}.{appearance}.{slot}` could not express and the reason this def was one of the
   // five that projected unpainted.
   //
-  // `disabled.text` is reached by the projector's cross-cutting `disabled.*` branch, not by a template
-  // here — same as Button's.
+  // THE KEYS ARE SPELLED IN THE PROJECTOR'S SLOT VOCABULARY (#784), and this def is why that rule
+  // exists. Until #784 these were `text` and `indicator` — a grammar that passed every check #758
+  // shipped while painting NOTHING, because `paintOf` is asked for `label` on a text node and never for
+  // a slot named `text`. Measured before the rename: 0 of 3 colour bindings reachable at any coordinate.
+  //
+  // `indicator.label` is the SECOND text part's ink, keyed under the part rather than as a slot of its
+  // own. It reads as a sub-key of the indicator and resolves through the same `{slot}` template once the
+  // anatomy block names that part (Arc 2 step 3, the next PR) — where `disabled.label` also becomes
+  // reachable via the projector's cross-cutting `disabled.*` branch, same as Button's.
   paintKeys: ['{slot}'],
 
   tokens: {
     'gap': 'space.050',
-    'text': 'color.text.primary',
-    'indicator': 'color.text.secondary',
-    'disabled.text': 'color.disabled.text',
+    'label': 'color.text.primary',
+    'indicator.label': 'color.text.secondary',
+    'disabled.label': 'color.disabled.text',
+    // NOT renamed: these bind TYPE, not colour, and are resolved by `anatomy`'s `type` field through
+    // `varOf` rather than by any paint template. #784 is a paint rule and this is not paint.
     'size.small.text': 'type.label.sm.emphasis',
     'size.medium.text': 'type.label.md.emphasis',
   },

@@ -1,5 +1,5 @@
 /**
- * PAINT GATE (#758) — two independent checks over the component tier's colour bindings.
+ * PAINT GATE (#758, #784) — three independent checks over the component tier's colour bindings.
  *
  *   npx tsx packages/engine/lint-paint.ts            # check
  *   npx tsx packages/engine/lint-paint.ts --accept    # rewrite the census baseline
@@ -93,6 +93,63 @@
  * the response is to read the diff and `--accept`. That is the same posture as the consumability
  * gate's pinned memories, and the reason arm 1 exists beside it: a rule can say "wrong", and a
  * characterization can only say "different".
+ *
+ * ── ARM 3: REACHABILITY (a rule, asserted at zero — #784) ───────────────────────────────────────
+ *
+ * Every colour binding a def declares must be RETURNED BY THE PROJECTOR at some coordinate. Neither
+ * arm above asks that. A binding whose key is spelled in a word `paintOf` never dispatches is
+ * authored, resolves to a real token, satisfies provenance, and paints nothing — so arm 1 passes it
+ * and the census cannot see it, because a row that was never produced leaves no row to compare.
+ *
+ * That is not hypothetical: it was HALF THE CORPUS. #758 moved the paint grammar into the def and
+ * moved the slot segment with it, which was never the def's to spell (the slot is the argument
+ * `paintOf` is CALLED with). Measured before #784 fixed it:
+ *
+ *   field-label     0 of 3 colour bindings reachable    (`text`, `indicator`, `disabled.text`)
+ *   focus-ring      0 of 2                              (`stroke`, `stroke.inverse`)
+ *   field-message   4 of 8                              (every tone painted its glyph, none its caption)
+ *   text-field      6 of 12                             (`text`, `placeholder`, `border.focus`, …)
+ *
+ * `component-schema.ts`'s `paintKeyErrors` is the FIRST oracle for this — it checks each key's
+ * placeholder segments against what the projector can supply (`PAINT_SLOTS` / `def.states` /
+ * `def.variants[axis]`). This arm is the SECOND, and it exists because the first one missed four
+ * bindings: it reads keys, so it cannot see a key the `disabled` branch builds by hand rather than
+ * from a template. `disabled.on-fill` was bound on `button` and `text-field`, gated per mode, and
+ * reached at no coordinate — a disabled FILLED button painted page ink on a fill at 2.13–2.55:1
+ * against a 3.06–3.08:1 contract. Only this arm could have found it.
+ *
+ * INDEPENDENCE (`docs/34`). The subject is the def's `tokens`. ACTUAL is read out of the EMITTED
+ * PLANS — walk every node of every coordinate and collect the variables actually assigned — so the
+ * two arms disagree by construction: one reads the key, the other reads the pixel. Deriving this by
+ * asking `paintOf` to resolve each key would reproduce any bug in `paintOf` on both sides and report
+ * it as a pass. Note that this makes arm 3 the one arm whose oracle IS the projector, which is
+ * correct *here* precisely because the subject is not: "did the projector ever return this binding"
+ * is a question only the projector can answer, and the binding list it is checked against is
+ * authored by hand in the def.
+ *
+ * EVERY KEY GETS A UNIQUE SENTINEL REF, AND THE FIRST VERSION DID NOT — a hole found by mutating this
+ * arm rather than by reading it. Matching a key by whether its REF appears among the assigned
+ * variables is wrong wherever two keys share a ref, because the reachable one vouches for the
+ * unreachable one. That is not an edge case in this corpus: `button` binds 13 refs from more than one
+ * key (`primary.filled.label` and `primary.filled.icon` are both `color.interactive.primary.on-fill`;
+ * all four of `primary.{outline,text}.{label,icon}` are one ink role), `icon-button` 9, `text-field` 1.
+ * Reintroducing #784's exact defect — rekeying `disabled.label.on-fill` back to the unreachable
+ * `disabled.on-fill` — left a ref-matching arm 3 GREEN, because `disabled.icon.on-fill` points at the
+ * same token and still reached. Only the census caught it, and a characterization cannot say *which*
+ * binding died.
+ *
+ * So the def is planned with **every colour ref replaced by a per-key sentinel** (`color.probe-<n>`),
+ * one enumeration per def, and each sentinel that comes back names exactly one key. The substitution
+ * cannot change what the projector decides: `paintOf` chooses a KEY (from the templates, `PAINT_SLOTS`
+ * and `restKey` — all of which read key presence, never ref content) and only then converts the ref it
+ * found to a variable name.
+ *
+ * ITS LIMIT, STATED SO NOBODY READS MORE COVERAGE INTO IT THAN IT HAS. A def with no `anatomy` cannot
+ * be planned at all, and `figmaAnatomyPlan` requires a `size` axis — so three defs (`field-label`,
+ * `field-message`, `text-field`) and `focus-ring` are UNCOVERED and reported as such rather than
+ * counted as passing. `UNREACHED_EXPLAINED` names the individual bindings that are legitimately
+ * unreached, each with a reason, checked in both directions like arm 1's exceptions: an entry that
+ * becomes reachable, or names a binding that no longer exists, is a stale memory and fails.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -112,14 +169,14 @@ const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
  * asserting something untrue about the def it names.
  */
 const PROVENANCE_EXCEPTIONS: Record<string, string> = {
-  'field-message|default.text':
+  'field-message|default.label':
     "tone `default` maps to the MUTED body role, not to a role named 'default' — the token tier has no `text.default`, and `secondary` is what a non-status message's ink is",
   'field-message|default.icon':
-    'same mapping as `default.text`, for the glyph beside it',
-  'field-message|error.text':
+    'same mapping as `default.label`, for the glyph beside it',
+  'field-message|error.label':
     "tone `error` maps to the `danger` ink role — the def's axis value is the validation state a consumer names, `danger` is the token tier's name for that colour; the two vocabularies are deliberately not merged",
   'field-message|error.icon':
-    'same mapping as `error.text`, for the status glyph',
+    'same mapping as `error.label`, for the status glyph',
 };
 
 type Tally = { members: number; assignments: number; sha256: string };
@@ -221,6 +278,87 @@ const provenanceFailures = (): { key: string; detail: string }[] => {
   return out;
 };
 
+/**
+ * Colour bindings that are legitimately never returned by the projector, each with the reason.
+ *
+ * Listed by exact key and checked in BOTH directions, same discipline as `PROVENANCE_EXCEPTIONS`: a
+ * binding that becomes reachable, or that no longer exists, fails — a stale exemption is this repo's
+ * most-repeated defect wearing a helpful face.
+ */
+const UNREACHED_EXPLAINED: Record<string, string> = {
+  'button|focus-ring':
+    'a NOMINATION, not a paint: it names which colour the nested `focus-ring` component draws, and the ring is a separate def with its own node. `PartDef` has no stroke field for a host to paint a ring with (#740), so no node in this plan can carry it.',
+  'icon-button|focus-ring':
+    'same as `button|focus-ring` — a nomination for the nested ring, not a paint on any node of this def.',
+};
+
+/**
+ * Arm 3. Every colour binding, against every variable the projector actually assigns anywhere in the
+ * plan tree, over the full cartesian product of the def's axes × states × both slot toggles.
+ *
+ * The traversal collects `fills`, `strokes` AND `descendantFills` — omitting the third would report
+ * every icon binding in the corpus as unreachable, since a glyph's colour is applied to descendants of
+ * the swap target rather than to a node this walk would otherwise visit.
+ */
+const reachability = (): { covered: { id: string; reached: number; total: number }[]; uncovered: string[]; fails: string[] } => {
+  const covered: { id: string; reached: number; total: number }[] = [];
+  const uncovered: string[] = [];
+  const fails: string[] = [];
+  const explained = new Set<string>();
+
+  for (const def of componentDefs) {
+    const colour = Object.entries(def.tokens ?? {}).filter(([, ref]) => typeof ref === 'string' && ref.startsWith('color.'));
+    if (!def.anatomy) { uncovered.push(`${def.id} (no anatomy — figmaAnatomyPlan cannot be called; ${colour.length} colour bindings)`); continue; }
+    if (!(def.variants?.size ?? []).length) { uncovered.push(`${def.id} (no size axis — figmaAnatomyPlan refuses every coordinate; ${colour.length} colour bindings)`); continue; }
+
+    // One sentinel per colour key, so a returned variable names exactly ONE key even where the real
+    // refs collide. See the header: matching by ref let #784's own defect pass this arm.
+    const sentinel = new Map<string, string>();
+    const tokens: Record<string, string> = { ...(def.tokens as Record<string, string>) };
+    colour.forEach(([key], i) => { sentinel.set(`color/probe-${i}`, key); tokens[key] = `color.probe-${i}`; });
+    const probed = { ...def, tokens } as ComponentDef;
+
+    const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
+    let combos: Record<string, string>[] = [{}];
+    for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
+    const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
+
+    const hit = new Set<string>();
+    const walk = (n: FigmaNodePlan): void => {
+      for (const v of [n.paints?.fills, n.paints?.strokes, n.descendantFills]) if (v) hit.add(v);
+      for (const c of n.children) walk(c);
+    };
+    for (const size of def.variants!.size!) for (const c of combos) for (const st of states)
+      for (const leading of [false, true]) for (const trailing of [false, true])
+        walk(figmaAnatomyPlan(probed, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
+
+    // A sentinel that came back but maps to no key would mean the substitution missed something — a
+    // silently smaller subject, which is the failure mode this whole file is about.
+    for (const v of hit)
+      if (v.startsWith('color/probe-') && !sentinel.has(v))
+        fails.push(`reachability: ${def.id} returned sentinel '${v}', which names no key — the probe substitution is incomplete and this arm's coverage is not what it reports`);
+
+    const reachedKeys = new Set([...hit].map((v) => sentinel.get(v)).filter((k): k is string => !!k));
+    for (const [key, ref] of colour) {
+      const id = `${def.id}|${key}`;
+      if (reachedKeys.has(key)) { if (id in UNREACHED_EXPLAINED) explained.add(id); continue; }
+      if (id in UNREACHED_EXPLAINED) continue;
+      fails.push(`reachability: ${id} -> ${ref} is bound but returned by the projector at NO coordinate — it resolves, it satisfies provenance, and it paints nothing`);
+    }
+    covered.push({ id: def.id, reached: reachedKeys.size, total: colour.length });
+  }
+
+  for (const id of Object.keys(UNREACHED_EXPLAINED)) {
+    const [defId, key] = id.split('|');
+    const def = componentDefs.find((d) => d.id === defId);
+    if (!def || !(key in (def.tokens ?? {})))
+      fails.push(`reachability: ${id} is explained as unreachable but does not exist — remove the entry, it asserts something untrue`);
+    else if (explained.has(id))
+      fails.push(`reachability: ${id} is explained as unreachable but IS now reached — remove the entry so the rule covers it`);
+  }
+  return { covered, uncovered, fails };
+};
+
 const main = (): void => {
   const accept = process.argv.includes('--accept');
   const fails: string[] = [];
@@ -292,10 +430,20 @@ const main = (): void => {
     console.log(`  census/${id.padEnd(14)} grid ${got.grid.members}/${got.grid.assignments}${got.set ? `, set ${got.set.members}/${got.set.assignments}` : ''} … ${okSet && okGrid ? 'ok' : 'DRIFTED'}`);
   }
 
+  // ── ARM 3 ─────────────────────────────────────────────────────────────────────────────────────
+  const reach = reachability();
+  fails.push(...reach.fails);
+  for (const c of reach.covered)
+    console.log(`  reach/${c.id.padEnd(15)} ${c.reached}/${c.total} colour bindings returned by the projector${c.reached === c.total ? '' : ' … UNREACHED'}`);
+  // Printed, never counted as a pass — a scope that quietly excludes a def is the failure mode this
+  // repo hunts, so what is NOT covered is named on every run.
+  for (const u of reach.uncovered) console.log(`  reach/          not covered: ${u}`);
+
   if (fails.length) {
     console.error(`\n✗ ${fails.length} failure(s):`);
     for (const f of fails) console.error(`  · ${f}`);
     console.error('\n  A provenance failure is a WRONG binding — fix the def.');
+    console.error('  A reachability failure is an UNREACHABLE binding — fix the KEY (see PAINT_SLOTS), not the list.');
     console.error('  A census failure is a CHANGED projection — read the diff, then: npx tsx packages/engine/lint-paint.ts --accept');
     process.exit(1);
   }
