@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-12) — Gate independence one level in: the probe that read the code it was probing (docs/34 shape 12)
+
+**STATUS: shipped.** Docs only — `docs/34-gate-independence.md` gains sub-shape **12**, a register row, and a
+sixth question in "In practice". No code, no gate, no artifact changes.
+
+**Why this is its own entry rather than a line in #750's.** Every one of the eleven existing sub-shapes is
+about the *gate* versus its *subject*. This one is a level further in: the **probe** — the small assertion
+whose only job is to prove the gate's fixture is in the state the gate assumes — versus the code that
+fixture gets fed to. Probes get none of the scrutiny gates get, and that asymmetry is the whole hazard:
+a probe is a *certificate* of reachability, so a probe that cannot fail is worse than no probe at all,
+because every assertion downstream of it is then read as exercised when it may never have run.
+
+**The instance (#681, in #750).** Making the variant coordinate optional meant the four existing
+"what did the miss find" cases had to be driven by a payload emitted **without** one. The probe asserting
+the strip really stripped was `js.includes('nestVariant')` over the whole payload — and it reported the
+stripped payload as still carrying a coordinate. The payload is a ~40KB string holding both the serialized
+plan **and the executor's own source**, and the executor reads `n.nestVariant`, so the probe was matching
+the resolution code, which is in every payload by construction. It answered *"does this payload contain the
+feature"* (always yes) where the question was *"did this plan declare a coordinate"*.
+
+**The tell that distinguishes self-reading from merely wrong: inverting the assertion leaves it green.**
+The substring is unconditionally present, so neither polarity can fail. That is the sharpest single test
+for this shape, and it is now question 6 in "In practice".
+
+**The generalization, stated as the rule rather than as this bug:** a probe over a haystack that contains
+its own needle is not a probe. Emitted payloads, bundled JS, generated docs and serialized plans all carry
+the code or the schema alongside the data, so any `includes`/grep over the *whole* artifact is ambiguous
+between the two — and the ambiguity resolves toward **pass**. The fix has two halves and needs both:
+narrow to the region that holds only data (#681's reads the serialized `const PLAN=` line and nothing
+else), **and** assert that region is non-empty in the same breath, so narrowing to nothing cannot pass as
+narrowing to clean. Then run it in both directions — the positive probe (*the real fixture DOES carry it*)
+is what gives the negative one its meaning, because a strip function that silently did nothing produces a
+green "stripped" probe with a table of vacuous passes behind it.
+
+**One thing deliberately not done:** no gate was added for this. The detector would have to distinguish a
+grep over data from a grep over code inside an arbitrary test file, which is the shape doc 34 itself says
+to be suspicious of — a proxy predicate standing in for the real claim. Question 6 is a review question,
+and the register row is the memory.
+
+---
+
 ## (2026-08-12) — Three lanes lost the same race in one day, and none of them could see it (CLAUDE.md)
 
 **STATUS: docs only.** One paragraph in `CLAUDE.md`, beside the worktree hazards. No engine change,
