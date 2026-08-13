@@ -512,6 +512,82 @@ matching must fail loudly**, since an empty region satisfies nothing and would o
 for a renamed heading. Keep the failure message naming the **document and the section**: "missing from
 `CLAUDE.md`" sends a reader to 25,000 characters, "missing from `CLAUDE.md` §4" sends them to the list.
 
+### 14. The threshold sits below the defect the gate was written for
+
+Independence, falsifiability, scope and the choice of quantity are all properties of the
+**instrument**. A threshold is a separate axis, and nothing above constrains it. So a gate can be
+right in every structural respect — comparing two independent things, demonstrably able to fail,
+measuring the property it promises rather than a consequence of it, over a scope it declared — and
+still be set where nothing it cares about lives. It then goes green on the case it was written for,
+and the green comes from the one part of the gate no other shape here inspects.
+
+`#779` is the instance, and what earns it a section is what it survives. `apps/studio/test-smoke.mjs`'s
+rendered-contrast probe exists because `lint-contrast.mjs` structurally cannot see a pairing that
+conforms as declared **token values** and resolves differently once **rendered**. #555's canonical case
+is `.mo-playnote`: a legal `--faint` at **4.628 declared**, faded through `opacity: .75`, arriving at
+**3.12:1**. Compositing the opacity chain down to the first opaque ancestor is the probe's entire
+design, and it does that correctly.
+
+**The floor is 2.0:1, and `.mo-playnote` passes it.**
+
+Ask this file's own questions of it and every one comes back clean. Independent of its subject (shapes
+1, 2, 11, 12) — it reads the live DOM through `getComputedStyle` and derives nothing from the
+stylesheet it checks. Able to fail (shape 4) — a node at 1.5:1 fails the assertion and the suite exits
+1. Measuring the rule rather than today's symptom (shape 10) — rendered contrast *is* the property
+promised, not a proxy standing in for it. Not written from its subject's mental model (shape 8) — it
+measures pixels, not the app's own resolution logic. Reach declared rather than inherited (shapes 9,
+13) — an enumerated page × mode × brand sweep, not a set some other file's structure happens to hand
+it. Present, running, independent, green, and calibrated past its own motivating case.
+
+**The floor was reasoned, and that is the part to sit with.** `test-smoke.mjs` states outright that it
+is an *invisible* floor rather than an AA one, and records both bounding numbers: the lowest rendered
+ratio in the studio is **3.04:1**, and the 3.0–3.2 band is occupied by specimens meeting their own
+engine contract — the disabled set at `disabledMin`, the `-subtle` semantics at `secondaryMin` — so
+asserting AA over them would fail the suite on the engine working. Against that ceiling it was fitted
+to the defects at **1.00–1.61:1**, #555's four fixed-ground families. Four of #555's five. The fifth is
+named in the same file, in the probe's own header, and nothing in the file's structure asks anyone to
+compare the two numbers. Documented, deliberate, and one case short.
+
+**Why a larger number is not the fix, which is the generalizable half.** The defect renders at 3.12
+and a legitimate contracted specimen renders at 3.04, so the two populations are **interleaved**: no
+single threshold separates them, and any number high enough to catch `.mo-playnote` fails the suite on
+the engine being right. The miss was therefore not a number picked too low — it was a
+**single-threshold instrument over a population that needs more than one bar**, and a single threshold
+over interleaved populations is wrong somewhere by construction; the only choice left is which end
+takes the error. The fix is to classify — normal text at 4.5, large text at 3.0, contracted specimens
+against their own contract — which the probe cannot do today, because it records `{ ratio, cls, text }`
+and neither `fontSize` nor `fontWeight`. **When the defect band and the legitimate band overlap under
+your threshold, the threshold is not the thing to tune.**
+
+**Why this is not shape 4.** Shape 4 is *the measurement cannot move* — a stub returning a constant,
+two identically clipped values. Here the measurement moves correctly and reports the true quantity:
+3.12 is what the page renders. What is wrong is the **comparison point**. The two do share a tell, and
+that is worth admitting rather than smoothing over — shape 4's *"feed it an input you know to be
+wrong"* would have caught this had anyone run it with `.mo-playnote`. But the diagnosis and the fix
+diverge immediately, because shape 4's fix is to model the axis the stub flattened, and every axis
+here is already modeled.
+
+**Why this is not shape 10.** There the gate measures a *consequence* the current violation happens to
+produce, so it catches future violations only when they produce the same consequence. Here it measures
+exactly the property it promises. A shape-10 gate is pointed at the wrong quantity; this one is pointed
+at the right quantity from the wrong distance.
+
+Worth separating from a second question about the same suite, since both are true of one gate and only
+one of them is this shape: shape 9's cheap tell applies too — `nodesMeasured` is printed and nothing
+compares it, and an empty sweep would report *every one of 0 text nodes clears 2:1*. That is a missing
+floor, fixed by asserting the recognized set is non-empty. This shape is what remains once that floor
+exists.
+
+**Tell:** run the gate against the defect that caused it to be written. If it passes, the threshold is
+wrong. Nothing else in this file performs that check, because every other shape asks about the gate's
+structure and this one asks about a number. Where a gate cites an issue in its header — this one cites
+#555 twice — **that issue is the fixture**: reconstruct the case and feed it in.
+**Fix:** calibrate against the defects rather than against the headroom, and then keep the case, because
+a threshold with a named motivating defect and no test of it is a comment rather than a bound. And when
+raising it turns other surfaces red, those are findings: a rendered value diverging from a declared one
+is the defect class the gate exists for, and tuning back to green is the move that ends the
+measurement.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -583,6 +659,7 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-13 | `test-smoke.mjs` rendered-contrast floor (#779) | 14 | `.mo-playnote` at **3.12:1** — the exact #555 case the probe was built to composite the opacity chain for — clearing a **2.0:1** floor fitted to #555's other four families at 1.00–1.61 |
 | 2026-08-12 | `test.ts` coordinate-strip probe (#681/#750) | 12 | a `nestVariant` grep over the whole emitted payload matching the **executor's own** `n.nestVariant` reads — a stripped plan reported as still carrying a coordinate, and the assertion could not fail inverted either |
 | 2026-08-12 | `lint-doc-gates.ts` document scope (#704) | 13 | the `CLAUDE.md` §4 checklist going **short** while the gate reported green — a layer-table row 80 lines above the list satisfied a file-wide search for the workspace name |
 | 2026-08-12 | `lint-doc-gates.ts` token proximity (#728) | 13 | `["test", "@prism3/plugin"]` satisfied by the word `test` in one paragraph and the workspace in another — 3 CI steps unverifiable, measured against `origin/main`'s predicate |
@@ -643,6 +720,11 @@ gives:
    hope. If one searches a whole artifact, ask what that artifact holds besides the data — code, schema,
    comments — and whether the search can tell them apart. Invert it: if it stays green, it is reading
    itself (shape 12).
+7. **Would it catch the defect it was written for?** Every question above is about the instrument;
+   a threshold is a separate axis and none of them constrain it. Reconstruct the case the gate's own
+   header cites and feed it in. If it passes, the number is wrong — and if no number separates that
+   case from the legitimate values beneath it, the answer is a classifier rather than a larger number
+   (shape 14).
 
 And when a gate's duplication looks like something to tidy up, the comment beside it should already
 say why it isn't. If it doesn't, add that before the cleanup finds it.
