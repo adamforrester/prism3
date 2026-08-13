@@ -20,10 +20,18 @@ removes the marker from the doc header. The hunks do not overlap, so git merges 
 gate fails — the prose would simply go on asserting a condition the document no longer supports. Worth
 catching before #759 lands rather than after, because nothing downstream will ever flag it.
 
-**What replaced it, and why this version does not decay.** §6 is about **dependencies** — what the
-plan waits on. §7 is about **scope boundaries** — what it does not cross. Different questions, so
-different sections. That reasoning holds regardless of §6's title, framing or supersession status, so
-#759 can land without disturbing it.
+**What replaced it, and why this version does not decay.** §6 is about **dependencies**; §7 is about
+**scope boundaries**. Different questions, so different sections. That holds regardless of §6's title,
+framing or supersession status, so #759 can land without disturbing it.
+
+**The first replacement still decayed, and that is the lesson worth keeping.** It read *"§6 is about
+dependencies — what this plan waits on"*, glossing the durable term with §6's current title. #759
+retitles §6 to *"What this plan no longer waits on"* and concludes #252 was never a blocker, so that
+gloss would not merely go stale — it would be **wrong**, which is worse than the claim it replaced. Two
+more clauses went the same way: §7's opener carried the mirror gloss, and the placement note had a
+reader arriving at §6 *"with the blocking question in hand"*, now rephrased to the plan's dependencies
+because #759 removes the blocker, not the dependency question. **Naming a section by its subject
+survives a retitle; quoting its title does not.**
 
 **The progress note mattered more than the doc.** Both carried the claim, but this log is what a future
 reader trusts for reasoning a diff cannot show, so an expiring claim inherited here outlives the doc
@@ -363,10 +371,10 @@ backlog and there are currently zero open studio PRs, so `main.ts` is at its lea
 every week re-accumulates in-flight work to conflict with.
 
 **Placement note for §7.** It went in as a new section after §6 rather than into §6, and rather than
-into §2's table or an arc body. §6 is about **dependencies** — what this plan waits on; §7 is about
-**scope boundaries** — what it does not cross. Different questions, so different sections, and a
-reader arriving at §6 with the blocking question in hand meets the boundary next. No arc definition
-and no existing section was touched.
+into §2's table or an arc body. §6 is about **dependencies**; §7 is about **scope boundaries**.
+Different questions, so different sections — and adjacent ones, so a reader working through what the
+plan depends on meets what it does not cross next. No arc definition and no existing section was
+touched.
 
 **Gates: all 28 of `ci.yml`'s gate steps green**, run in full per `CLAUDE.md` principle 4 rather than trimmed on the grounds that
 this is a docs change — four of the gates (`lint-us-english`, `lint-voice`, `lint-layout-claims`,
