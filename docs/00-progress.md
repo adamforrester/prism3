@@ -7,6 +7,74 @@
 
 ---
 
+## (2026-08-13) — The indicator painted correctly and was blank; #510's defect at one-node scale (#798)
+
+**STATUS: shipped.** `field-label` declares a second TEXT property, and `figmaPropertyErrors` gains the rule that
+would have caught its absence. Found by starting the live Figma run #796 deliberately left open.
+
+**#796 SHIPPED A BLANK NODE, REVIEWED AND MERGED, AND EVERY GATE WAS GREEN ON IT.** That PR's whole subject was
+making `field-label`'s indicator paint in its own de-emphasised ink — `PartDef.paintSlot`, a new slot in
+`PAINT_SLOTS`, a corrected decision, mutation-tested validations, an independent review that re-ran the census and
+confirmed **4 of 4** bindings reachable. Projecting the def and reading the node tree, the node in question was:
+
+```json
+{ "name": "indicator", "type": "TEXT", "textStyle": "label/sm/emphasis",
+  "paints": { "fills": "color/text/secondary" }, "bound": {}, "children": [] }
+```
+
+Correct ink, correct type style, **no `characters` field** — an empty, zero-width text node in Figma. So the
+"(optional)" marker the entire PR existed to make readable would have materialized as nothing, and its paint fix
+was **true and pointless at the same time**. Both halves of that sentence held simultaneously and no gate could
+express the contradiction, because each gate's subject was one half.
+
+**The cause is one line.** `anatomy-figma.ts:650` writes `characters` only where `figmaProperties.texts` names the
+part (`const chars = p.kind === 'text' ? placeholder.get(name) : undefined`), and the def declared
+`children → text` alone. Fixed by declaring `indicator: { part: 'indicator', default: '(optional)' }`.
+
+**THIS IS #510 AT ONE-NODE SCALE** — the paste that produced 21 buttons that were all BLANK, every binding
+resolved and every check green, because *"nothing wrote `characters` and nothing declared a TEXT property."* The
+same defect, one gate later, harder to see: the component looks right and a single node inside it is missing.
+Whole-component blankness is obvious on a canvas; one absent text node reads as intentional spacing.
+
+**WHY THE EXISTING CHECK COULD NOT SEE IT, WHICH IS THE REUSABLE PART.** `figmaPropertyErrors` starts from the
+**property list** and asks whether each declared default is non-empty. The failure was a text part with **no
+property at all** — so the traversal had nothing to iterate over, and the absence produced *silence rather than a
+finding*. A def with two text parts and one property passes that check trivially: there is nothing wrong with the
+property it declares.
+
+The new rule walks the relation from the other end: from `anatomy.parts`, every `kind: 'text'` part must be claimed
+by some `texts` entry. **Two traversals over one relation, opposite starting sets, and neither implies the other** —
+"every property renders" and "every part has a property" are independent claims, and either alone is half a gate.
+Worth generalizing: *a check that iterates a list can only find defects that have an entry in it.* Absence has to
+be checked from the side where the thing is present. That is the same shape as `docs/34`'s independence rule seen
+from a new angle — not a gate derived from its subject, but a gate whose **iteration domain** excludes the defect.
+
+Built from `fp.texts` rather than reusing the `claimed` map already in that function, and that is **not**
+duplication to tidy away: `claimed` records part → *any* property kind, so a text part claimed by a `swaps` entry
+would satisfy it while still writing no `characters`. Only a TEXT property populates the placeholder. (`checkMap`
+separately rejects a `swaps` entry pointing at a text part, so that state is unreachable *today* — which is the
+argument for asking the precise question here rather than depending on it staying so.)
+
+**Scoped to defs that can project, deliberately.** The rule only runs where `figmaProperties` exists
+(`component-schema.ts:564`), which is exactly the set that can reach a canvas. `field-message` is the other
+unclaimed text part in the corpus and is benign for that reason: no `figmaProperties`, so `figmaAnatomySet` throws
+and there is no blank node to ship. Failing it there would report a defect that cannot happen, and be silenced by
+fabricating a property — the same fabrication #796 refused for its `size` axis. The day #795 lets it project, this
+rule demands the property, which is the behavior we want.
+
+**Mutation-tested by name** against a clean control (7 defs, 0 errors, 0 warnings unmutated): dropping the
+`indicator` property fires the new rule; blanking its default still fires the old one. Two distinguishable rules,
+not one rule with two messages.
+
+**And the paint census is byte-identical across this fix, which is correct and is the lesson.** It hashes paint,
+and `characters` is content — so a defect that made the painted node invisible was outside every paint gate's
+subject *by construction*. No amount of rigor inside the paint gates could have found it. That is the case for the
+rule that every Arc 2 step ends in a live materialization rather than a green suite: #796 was reviewed by a second
+agent that independently re-ran the census, mutation-tested both validations and verified 4-of-4 reachability, and
+the defect survived all of it because reviewer and author were both reading the same declarations.
+
+---
+
 ## (2026-08-13) — `docs/34`'s shape numbers get a gate, and the precedent that justified it turns out never to have happened (#786)
 
 **STATUS: shipped.** `docs/34`'s sub-shape numbers are cited as stable identifiers from gate headers,

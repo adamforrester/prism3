@@ -785,6 +785,41 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     if (!t.default || !renders(t.default)) e.push(`figmaProperties.texts.${prop}.default is empty — a TEXT property with no placeholder builds a component with an unreadable label, which is what the field exists to prevent`);
   }
 
+  // AND THE COMPLEMENT, which the rule above cannot see (#798): every `text` part must BE claimed by one
+  // of those properties. `characters` lands on a text node only where a TEXT property names that part
+  // (`anatomy-figma.ts`'s `placeholder` map), so an unclaimed text part projects as a TEXT node with
+  // correct ink, correct type style and NO CONTENT — an empty, zero-width node on the canvas.
+  //
+  // The two checks are opposite halves and neither implies the other: the one above starts from the
+  // PROPERTY list and asks whether each default renders; this one starts from the PART list and asks
+  // whether each part has a property at all. A def with two text parts and one property passes the first
+  // trivially — there is nothing wrong with the property it declares — which is exactly how #796 shipped
+  // `field-label`'s indicator as a blank node through a green suite, reviewed and merged.
+  //
+  // #510 IS THE PRECEDENT AND IT IS WHY THIS IS AN ERROR RATHER THAN A WARNING: it pasted 21 buttons that
+  // were all BLANK, every binding resolved, every check green, because *"nothing wrote `characters` and
+  // nothing declared a TEXT property"* (`anatomy-figma.ts`'s `pasteComponentSet` header). That was the
+  // whole-component case; this is the same defect at one-node scale, which is harder to see because the
+  // component looks right and one node inside it is missing.
+  //
+  // Scoped to defs that CAN project, deliberately: a def with no `figmaProperties` cannot be built at any
+  // coordinate (`figmaAnatomySet` throws), so it has no blank node to ship. `field-message` is exactly
+  // that case today — one text part, no property, unprojectable for #795's reason — and failing it here
+  // would report a defect that cannot reach a canvas, then be silenced by a fabricated property. This
+  // function only runs where `figmaProperties` exists, which is that scope already; stated so the
+  // narrowness reads as chosen rather than as an oversight.
+  // Built from `fp.texts` rather than reusing the `claimed` map above, and that is not duplication: that
+  // map records part → *any* property kind, so a text part claimed by a `swaps` entry would satisfy it
+  // while still writing no `characters`. Only a TEXT property populates the placeholder. (`checkMap`
+  // separately rejects a `swaps` entry pointing at a text part, so that state is unreachable today —
+  // which is the argument for asking the precise question here rather than relying on it staying so.)
+  const textClaimed = new Set(Object.values(fp.texts ?? {}).map((t) => t.part));
+  for (const [name, p] of Object.entries(def.anatomy?.parts ?? {})) {
+    if (p.kind === 'text' && !textClaimed.has(name)) {
+      e.push(`anatomy part '${name}' is a 'text' part with no TEXT property claiming it — \`characters\` is written only where \`figmaProperties.texts\` names the part, so this node projects with its ink and type style and NO content: an empty, zero-width text node in Figma. Add \`texts: { <prop>: { part: '${name}', default: '<placeholder>' } }\`. This is #510's blank-button defect at one-node scale`);
+    }
+  }
+
   return e;
 };
 
