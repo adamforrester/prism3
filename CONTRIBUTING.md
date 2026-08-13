@@ -222,7 +222,14 @@ npx tsx tools/exporter-comparison/gate.ts # the two DTCG exporters agree where a
                                           # `counterpart` and the expectation is read from the CANONICAL
                                           # TREE, never from the rule's own claim. Closing it needed
                                           # #697's axis call, DECLARED in axes.ts: an unclassified
-                                          # collection fails rather than defaulting
+                                          # collection fails rather than defaulting. Read the bound with
+                                          # the 0: the arm compares `$type`, so it falsifies a rule's
+                                          # `reason` only when the error CHANGES A TYPE. Swapping the
+                                          # grid rule's gutter<->margin orphans nothing, keeps both
+                                          # sides `dimension`, and passes FULLY GREEN — while nb's two
+                                          # values differ at 3 of its 5 breakpoints. A green
+                                          # `paired types` means the two sides agree on type, NOT that
+                                          # the pairing is right
 npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over EVERY emitted brand —
                                           # characterization gate: pins each brand's mode collapse
                                           # (permanent, #609); asserts as a RULE that the conforming
