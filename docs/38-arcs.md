@@ -277,11 +277,12 @@ was asking which platforms consume what, which nobody had written down.
 
 ## 7. The studio cleanup, and the boundary it does not cross
 
-**Current as of 2026-08-13, and outside §6's supersession.** After an external review of the repo the
-owner called the `apps/studio/` cleanup (#768, blocked by #767) the priority, and accepted pausing other
-work for it if that is what it takes. The measured scope of that pause is much narrower than the
-sentence sounds, and the boundary belongs here rather than only in the issue, because this is the file a
-lane reads before picking up an arc.
+**Current as of 2026-08-13.** §6 covers dependencies — what this plan waits on; this section covers
+scope boundaries — what it does not cross. After an external review of the repo the owner called the
+`apps/studio/` cleanup (#768, blocked by #767) the priority, and accepted pausing other work for it if
+that is what it takes. The measured scope of that pause is much narrower than the sentence sounds, and
+the boundary belongs here rather than only in the issue, because this is the file a lane reads before
+picking up an arc.
 
 **Arcs 1 through 4 do not pause.** They are engine-side — `packages/engine/`, and the defs under
 `packages/engine/components/`. The cleanup is `apps/studio/`: four seams inside one file
