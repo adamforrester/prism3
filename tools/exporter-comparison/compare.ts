@@ -50,6 +50,15 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { adaptBrand, assertAdaptable, type Adapted } from './adapt-figma-emission.ts';
 import { runTokenPress, DEFAULT_DTCG_OPTIONS, type TokenPressOutput } from './run-tokenpress.ts';
+import {
+  AXIS_MODEL,
+  STYLE_AXIS_AS_NAME,
+  axesRepresentedIn,
+  censusFromEmission,
+  classifyCollections,
+  type Axis,
+  type AxisClassification,
+} from './axes.ts';
 
 const OUT = 'packages/engine/out';
 const BRANDS_DEFAULT = ['nb', 'aurora'];
@@ -123,11 +132,17 @@ const readPrism3 = (brand: string) => {
  *  variables agree with base, against 14/163 for dark). TokenPress's own per-mode files are equal
  *  peers with no default marked — so the harness names the modes that correspond to base, and says
  *  so. Letting ZIP order pick instead made `dark/color.json` win and reported all 228 color aliases
- *  as differences, which measured the adapter's alphabetical mode sort, not the exporters. That the
- *  correspondence has to be supplied BY HAND here is #697's three-axis problem exactly. */
-const BASE_EQUIVALENT_MODES = new Set(['light', 'desktop', 'shared']);
-
-const unionTokenPress = (out: TokenPressOutput) => {
+ *  as differences, which measured the adapter's alphabetical mode sort, not the exporters.
+ *
+ *  THIS SET USED TO BE HAND-WRITTEN — `new Set(['light', 'desktop', 'shared'])` — with a comment
+ *  saying that having to supply the correspondence by hand "is #697's three-axis problem exactly".
+ *  It was, and #697 is now decided: the correspondence is DERIVED from the axis declaration
+ *  (`axes.ts`), by asking each collection's axis which of its members the `base` projection carries.
+ *  The three names it produces are the same three, which is the point — the decision had to reproduce
+ *  the measured behavior before it could be trusted to extend it. What changed is that a brand adding
+ *  a mode-varying collection now gets the right answer from the declaration instead of a set that
+ *  silently omits it. */
+const unionTokenPress = (out: TokenPressOutput, baseDirs: Set<string>) => {
   const union = new Map<string, Leaf>();
   const perFile = new Map<string, Map<string, Leaf>>();
   /** `divergent` distinguishes a real resolution hazard (the files disagree, so merge order decides
@@ -139,7 +154,7 @@ const unionTokenPress = (out: TokenPressOutput) => {
   const dirOf = (p: string) => (p.includes('/') ? p.split('/')[0] : 'shared');
   // Base-equivalent modes first, so they win the union; everything else still contributes paths.
   const ordered = [...out.order].sort(
-    (a, b) => Number(BASE_EQUIVALENT_MODES.has(dirOf(b))) - Number(BASE_EQUIVALENT_MODES.has(dirOf(a)))
+    (a, b) => Number(baseDirs.has(dirOf(b))) - Number(baseDirs.has(dirOf(a)))
   );
 
   for (const path of ordered) {
@@ -518,6 +533,72 @@ const classifyValue = (
 type PathExplanation = {
   reason: string;
   pairs: { prism3: string; tokenpress: string }[];
+  /** Where each pair's prism3 leaf lives, so the TYPE arm can find it (#747).
+   *
+   *  `pairs[].prism3` is a LABEL, not always a path — the overlay rule writes
+   *  `shadow.xs (dark overlay)` so the report reads well — so a type comparison cannot re-parse it
+   *  without re-deriving the pairing from its own prose. `typed` carries the resolved leaves instead,
+   *  index-aligned with `pairs`, filled by whoever built the pairing and therefore by the only code
+   *  that knows which artifact the prism3 side came from. `null` means "this rule pairs a path against
+   *  an ABSENCE" (the NOT-IN-EMISSION family), where there is no counterpart to carry a type. */
+  typed: ({ prism3Path: string; prism3Type: string; tokenpressType: string } | null)[];
+};
+
+/** THE TYPE ARM'S SECOND HALF (#747) — a type disagreement found through a PAIRING rule.
+ *
+ *  The shared-path walk in `analyze` can only compare paths that appear verbatim on both sides. Every
+ *  path a pairing rule explains is invisible to it — 71 on nb, 73 on aurora, 71 on wendys, ~14% of
+ *  each brand's paired surface — because a renamed or axis-collapsed path never enters the shared set.
+ *  That was measured by a mutation that did NOT fail: retyping TokenPress's grid branch `dimension` →
+ *  `number` left the gate green (#747).
+ *
+ *  A rule that pairs A with B is ALREADY CLAIMING they are one token. So the type comparison belongs
+ *  exactly there: the rule is the only code that knows the two correspond. */
+export type PairedTypeDiff = {
+  prism3: string;
+  tokenpress: string;
+  prism3Type: string;
+  tokenpressType: string;
+  rule: string;
+};
+
+/** Collects the type disagreements out of a set of explanations. Reads `typed`, which the rules fill,
+ *  and never re-derives the pairing from `pairs[].prism3` prose. */
+const pairedTypeDiffs = (explained: PathExplanation[]): PairedTypeDiff[] => {
+  const out: PairedTypeDiff[] = [];
+  for (const e of explained) {
+    e.pairs.forEach((p, i) => {
+      const t = e.typed[i];
+      if (!t || t.prism3Type === t.tokenpressType) return;
+      out.push({
+        prism3: p.prism3,
+        tokenpress: p.tokenpress,
+        prism3Type: t.prism3Type,
+        tokenpressType: t.tokenpressType,
+        rule: e.reason,
+      });
+    });
+  }
+  return out;
+};
+
+/** The count the types arm CANNOT see — asserted, not printed (#747's last Verify bullet).
+ *
+ *  A pair with no `typed` entry is a blind path: the rule paired it and nothing compared its type.
+ *  #747 asks for this to reach 0 and be asserted, because "a count that is only printed goes stale the
+ *  way #707's figures did". Pairs against an absence are excluded by construction — `typed` is `null`
+ *  there and that is correct, not blind, so they are counted separately. */
+const blindPairs = (explained: PathExplanation[]): { blind: number; againstAbsence: number } => {
+  let blind = 0;
+  let againstAbsence = 0;
+  for (const e of explained) {
+    e.pairs.forEach((p, i) => {
+      if (e.typed[i]) return;
+      if (p.tokenpress === '(absent)') againstAbsence += 1;
+      else blind += 1;
+    });
+  }
+  return { blind, againstAbsence };
 };
 
 /** A raw "118 here, 59 there" is not an answer — most of those paths are the SAME token under a
@@ -527,13 +608,42 @@ type PathExplanation = {
  *  Each rule is a hypothesis about WHY the two exporters disagree, and it earns its place only by
  *  pairing paths one-to-one. A rule that pairs nothing is printed with a count of 0 rather than
  *  removed, so the report says which explanations were tested and did not apply. */
+/** What a rule may ask the axis declaration for. Deliberately narrow: a rule gets the MEMBERS of a
+ *  declared axis, and nothing else — not the classification, not the emission. A rule that needed more
+ *  would be inferring axis semantics again, which is the thing #697 decided against. */
+type AxisLookup = { members: (axis: Axis) => Set<string> };
+
 const RENAME_RULES: {
   reason: string;
-  rewrite: (p: string) => string | null;
+  rewrite: (p: string, axis: AxisLookup) => string | null;
   /** A duplicate-emission rule may pair a prism3 path a SECOND time — that is the point of it. */
   duplicate?: boolean;
   /** An axis-collapse rule pairs MANY prism3 paths onto ONE tokenpress path — also the point. */
   manyToOne?: boolean;
+  /**
+   * WHAT the rule claims corresponds — and therefore what its type comparison means (#747).
+   *
+   * `'token'`         — the two paths are the same token, so their `$type`s must be equal.
+   * `{ field: 'x' }`  — the TokenPress path is ONE FIELD of the prism3 composite, so the type to
+   *                     compare against is the type of whatever that field REFERENCES, not the
+   *                     composite's own `typography`.
+   *
+   * This distinction was forced by the type comparison itself, and it is the clearest thing #747
+   * produced. Adding types to the pairing immediately reported 11 disagreements per brand on the
+   * `font-fluid.*` rule — `typography` against `dimension` — and the rule's own `reason` said they
+   * were "the same 11 tokens emitted twice". They are not. TokenPress's `font-fluid.display.sm.strong`
+   * is a FLOAT variable holding a font SIZE (48px); prism3's `type.display.sm.strong` is a composite
+   * whose `fontSize` field references it. A "second copy of the composite" would have carried
+   * fontFamily and fontWeight too, and it carries neither.
+   *
+   * So the 11 findings were a FALSE POSITIVE from a loose rule — exactly the failure #747's watch-outs
+   * predicted ("adding a type assertion to a wrong rule produces a false positive that someone will
+   * silence by loosening the rule further"). The fix is the opposite of loosening: the rule now states
+   * which field it pairs, and the type expectation is DERIVED from that field's referent. Which means
+   * the type arm did its job on its first run — it falsified a pairing hypothesis that had been read
+   * and re-read as prose four times without anyone noticing it was wrong.
+   */
+  counterpart: 'token' | { field: string };
 }[] = [
   {
     // prism3's composite type tokens live under `type.*`; TokenPress derives its name from the Figma
@@ -541,28 +651,50 @@ const RENAME_RULES: {
     // set is the same; the group name comes from a different place on each side.
     reason: 'group renamed: prism3 `type.*` = tokenpress `typography.*` (collection-derived name)',
     rewrite: (p) => (p.startsWith('type.') ? `typography.${p.slice('type.'.length)}` : null),
+    counterpart: 'token',
   },
   {
-    // NOT a second name for the same output — a SECOND COPY. TokenPress emits these composites
-    // twice: once from the `type-sets` VARIABLE collection (as `font-fluid.*`, in `desktop/` and
-    // `mobile/`) and once from the TEXT STYLES (as `typography.*`, in `shared/`). Both routes
-    // describe the same 11 tokens. Measured, not inferred: every `font-fluid.*` path also exists as
-    // `typography.*`. This rule runs AFTER the `typography` rule so that the pairing is reported as
-    // a duplicate rather than competing with it for the same prism3 paths.
-    reason: 'DUPLICATE emission: tokenpress emits these composites twice — `typography.*` from text styles AND `font-fluid.*` from the type-sets variables',
+    // TokenPress reaches these composites through TWO channels: the TEXT STYLES (as `typography.*`,
+    // in `shared/`) and the `type-sets` VARIABLE collection (as `font-fluid.*`, per viewport mode).
+    // But the two channels do not carry the same THING, which is what the type comparison established
+    // and what this rule used to get wrong — see `counterpart` on the type above.
+    //
+    //   typography.display.sm.strong  $type typography  — the whole composite, from the text style
+    //   font-fluid.display.sm.strong  $type dimension   — the fluid SIZE the composite's fontSize binds
+    //
+    // prism3 has no `font-fluid.*` path at all: the same fact lives in the composite's `fontSize`
+    // reference and in `$extensions.prism3.responsive.{min,max}.ref`. So this pairs the prism3
+    // composite against ONE FIELD of it, and the type expectation comes from that field's referent
+    // (`font.size.48` -> `dimension`, all 11 per brand, in all three brands).
+    //
+    // It keeps `duplicate: true` because it still re-pairs a prism3 path the `typography` rule already
+    // claimed — which is right, and is the part of the old reasoning that survived: one prism3 token
+    // does correspond to two TokenPress paths. What was wrong was believing both were the same token.
+    reason: 'SECOND CHANNEL, not a second copy: tokenpress reaches these composites twice — `typography.*` (the whole composite, from the text styles) AND `font-fluid.*` (only the fluid fontSize, from the type-sets variables)',
     rewrite: (p) => (p.startsWith('type.') ? `font-fluid.${p.slice('type.'.length)}` : null),
     duplicate: true,
+    counterpart: { field: 'fontSize' },
   },
   {
-    // THE AXIS COLLAPSE, in the paths rather than the files. prism3 carries the breakpoint as a PATH
-    // SEGMENT (`grid.sm.columns`), so all five coexist. TokenPress carries it as a mode, so all five
-    // become `grid.columns` in five different FILES — five prism3 paths pair to one tokenpress path.
+    // THE AXIS COLLAPSE, in the paths rather than the files — #697's three-axes-into-one. prism3
+    // carries the breakpoint as a PATH SEGMENT (`grid.sm.columns`), so all five coexist. TokenPress
+    // carries it as a mode, so all five become `grid.columns` in five different FILES — five prism3
+    // paths pair to one tokenpress path.
+    //
+    // THE MEMBER LIST IS NO LONGER SPELLED HERE. It used to be an inline alternation
+    // (`xs|sm|md|lg|xl|2xl`) — a list of breakpoint names written into a regex in the comparison, which
+    // is precisely the axis identity #697 says is human knowledge. It now comes from `axes.ts`, so a
+    // brand adding a breakpoint extends the pairing by editing the declaration, and a member the
+    // declaration does not know about stays UNPAIRED and fails the gate's unpaired arm rather than
+    // being quietly dropped.
     reason: 'axis collapse: prism3 `grid.<breakpoint>.<prop>` = tokenpress `grid.<prop>`, once per mode file (MANY prism3 paths -> ONE tokenpress path)',
-    rewrite: (p) => {
-      const m = /^grid\.(?:xs|sm|md|lg|xl|2xl)\.(.+)$/.exec(p);
-      return m ? `grid.${m[1]}` : null;
+    rewrite: (p, axis) => {
+      const m = /^grid\.([^.]+)\.(.+)$/.exec(p);
+      if (!m || !axis.members('breakpoint').has(m[1])) return null;
+      return `grid.${m[2]}`;
     },
     manyToOne: true,
+    counterpart: 'token',
   },
 ];
 
@@ -592,7 +724,8 @@ const RENAME_RULES: {
 const explainViaModeOverlay = (
   onlyTP: string[],
   overlays: Map<string, Map<string, Leaf>>,
-  canonical: unknown
+  canonical: unknown,
+  tpUnion: Map<string, Leaf>
 ): { paired: PathExplanation; regressed: PathExplanation } => {
   const root = canonical && typeof canonical === 'object'
     ? (canonical as Record<string, unknown>)[
@@ -611,17 +744,34 @@ const explainViaModeOverlay = (
   };
 
   const pairs: PathExplanation['pairs'] = [];
+  const typed: PathExplanation['typed'] = [];
   const regressed: PathExplanation['pairs'] = [];
+  // The prefix, the axis and the member are DECLARED (`axes.ts`), not spelled here. `shadow-dark`
+  // reads like a token name, and only human knowledge says the `-dark` is an appearance-axis member —
+  // #697's "axis identity is human knowledge Figma does not record", in the one place this harness
+  // previously hard-coded it as a regex.
+  const styleRules = STYLE_AXIS_AS_NAME.filter((s) => s.axis === 'appearance');
   for (const p of onlyTP) {
-    const m = /^shadow-dark\.(.+)$/.exec(p);
-    if (!m) continue;
-    const target = `shadow.${m[1]}`;
-    if (overlays.get('dark')?.has(target)) {
-      pairs.push({ prism3: `${target} (dark overlay)`, tokenpress: p });
-    } else if (hasModeExtension(target, 'dark')) {
+    const rule = styleRules.find((s) => p.startsWith(`${s.prefix}.`));
+    if (!rule) continue;
+    const target = `${rule.pairsWith}.${p.slice(rule.prefix.length + 1)}`;
+    const mode = rule.member;
+    if (overlays.get(mode)?.has(target)) {
+      pairs.push({ prism3: `${target} (${mode} overlay)`, tokenpress: p });
+      // #747: the prism3 leaf is in the OVERLAY, not base, so the type comes from there. The overlay
+      // is also the artifact this pairing is derived from, which keeps the type comparison and the
+      // pairing reading the same side of the projector — see the header on why that matters.
+      const mine = overlays.get(mode)?.get(target)?.type;
+      const theirs = tpUnion.get(p)?.type;
+      typed.push(
+        mine !== undefined && theirs !== undefined
+          ? { prism3Path: target, prism3Type: mine, tokenpressType: theirs }
+          : null
+      );
+    } else if (hasModeExtension(target, mode)) {
       // The canonical tree says this leaf varies in dark; the overlay a conforming reader consumes
       // does not carry it. That is #708, and only this comparison can see it.
-      regressed.push({ prism3: `${target} $extensions.prism3.modes.dark, ABSENT from dark overlay`, tokenpress: p });
+      regressed.push({ prism3: `${target} $extensions.prism3.modes.${mode}, ABSENT from ${mode} overlay`, tokenpress: p });
     }
   }
   return {
@@ -632,6 +782,7 @@ const explainViaModeOverlay = (
         'prefixes them `shadow-dark/*` and tokenpress exposes them as peer tokens. Same decision, ' +
         'different axis — and a conforming reader now sees it on both sides',
       pairs,
+      typed,
     },
     regressed: {
       reason:
@@ -639,6 +790,11 @@ const explainViaModeOverlay = (
         'the `dark` overlay does not, so a conforming consumer reading `base` + `dark.overlay` renders ' +
         'LIGHT-MODE shadows in dark mode',
       pairs: regressed,
+      // A regressed pair is a pairing whose prism3 side is MISSING from the artifact a consumer reads.
+      // There is no leaf there to take a type from, so `null` is the truthful entry — and it makes
+      // `blindPairs` count these, which is right: if #708 came back, those paths would genuinely stop
+      // being type-checked, and the blind-set assertion should say so rather than stay at 0.
+      typed: regressed.map(() => null),
     },
   };
 };
@@ -665,39 +821,101 @@ const explainPaths = (
   onlyP3: string[],
   onlyTP: string[],
   canonical: unknown,
-  overlays: Map<string, Map<string, Leaf>>
+  overlays: Map<string, Map<string, Leaf>>,
+  p3Base: Map<string, Leaf>,
+  tpUnion: Map<string, Leaf>,
+  classification: AxisClassification,
+  rootKey: string
 ) => {
   const tpSet = new Set(onlyTP);
   const claimedTP = new Set<string>();
   const claimedP3 = new Set<string>();
   const explained: PathExplanation[] = [];
 
+  /** The type of a prism3 leaf, looked up in the BASE projection and then in the overlays.
+   *
+   *  Both, because the two sides do not always carry a token in the same artifact: the appearance-axis
+   *  rule pairs a TokenPress `shadow-dark.*` style against a prism3 leaf that lives in the DARK
+   *  OVERLAY, not in base. Looking only in base would return `undefined` there and silently leave
+   *  those 7 paths blind — the same hole #747 is about, one artifact over. */
+  const p3TypeOf = (path: string): string | undefined =>
+    p3Base.get(path)?.type ?? [...overlays.values()].map((m) => m.get(path)?.type).find((t) => t !== undefined);
+
+  /** The members of a declared axis, read off the emission's own collection modes.
+   *
+   *  Two independent things meet here, which is the point (docs/34): the AXIS of a collection is
+   *  declared in `axes.ts`, and its MEMBERS are observed in the emission. Neither is derived from the
+   *  other, and neither is derived from the pairing rule that consumes them. */
+  const axisLookup: AxisLookup = {
+    members: (axis) =>
+      new Set(classification.classified.filter((c) => c.axis === axis).flatMap((c) => c.modes)),
+  };
+
+  /** The `$type` a composite's FIELD resolves to — for a rule whose `counterpart` is a field (#747).
+   *
+   *  The field's value is a DTCG alias (`{nbds.font.size.48}`), so the type to compare against is the
+   *  type of the token it points at, looked up in the same base projection. This is the independent
+   *  oracle the decision needed: the expectation comes from the canonical/base tree — the emitter's
+   *  INPUT, authored nowhere in this file — and not from the pairing rule's own claim. */
+  const p3FieldTypeOf = (path: string, field: string): string | undefined => {
+    const v = p3Base.get(path)?.value;
+    if (!v || typeof v !== 'object') return undefined;
+    const raw = (v as Record<string, unknown>)[field];
+    if (typeof raw !== 'string' || !isAlias(raw)) return undefined;
+    return p3Base.get(aliasTarget(raw, rootKey))?.type;
+  };
+
   for (const rule of RENAME_RULES) {
     const pairs: PathExplanation['pairs'] = [];
+    const typed: PathExplanation['typed'] = [];
     for (const p of onlyP3) {
       // A duplicate-emission rule is allowed to re-pair an already-claimed prism3 path: the whole
       // point is that ONE prism3 token corresponds to TWO tokenpress paths.
       if (claimedP3.has(p) && !rule.duplicate) continue;
-      const target = rule.rewrite(p);
+      const target = rule.rewrite(p, axisLookup);
       if (target && tpSet.has(target) && (rule.manyToOne || !claimedTP.has(target))) {
         pairs.push({ prism3: p, tokenpress: target });
+        // #747: the rule claims these are one token, so it carries the type comparison. `manyToOne`
+        // needs no special case here BY CONSTRUCTION — five prism3 paths each pair against the same
+        // TokenPress leaf, so five comparisons are pushed against one `tokenpressType`, and a
+        // disagreement AMONG the five surfaces as several findings naming different prism3 paths.
+        // That is #747's "disagreement among the five is itself a finding", and it needed no extra
+        // mechanism: the fan-out already produces one comparison per prism3 path.
+        const mine =
+          rule.counterpart === 'token' ? p3TypeOf(p) : p3FieldTypeOf(p, rule.counterpart.field);
+        const theirs = tpUnion.get(target)?.type;
+        const label = rule.counterpart === 'token' ? p : `${p}.${rule.counterpart.field} ->`;
+        typed.push(
+          mine !== undefined && theirs !== undefined
+            ? { prism3Path: label, prism3Type: mine, tokenpressType: theirs }
+            : null
+        );
         claimedP3.add(p);
         claimedTP.add(target);
       }
     }
-    explained.push({ reason: rule.reason, pairs });
+    explained.push({ reason: rule.reason, pairs, typed });
   }
 
   const stillUnpaired = onlyP3.filter((p) => !claimedP3.has(p));
-  const notInEmission = NOT_IN_EMISSION.map((r) => ({
-    reason: `NOT IN THE FIGMA EMISSION — ${r.prefix}*: ${r.why}`,
-    pairs: stillUnpaired.filter((p) => p.startsWith(r.prefix)).map((p) => ({ prism3: p, tokenpress: '(absent)' })),
-  })).filter((e) => e.pairs.length);
+  const notInEmission = NOT_IN_EMISSION.map((r) => {
+    const pairs = stillUnpaired
+      .filter((p) => p.startsWith(r.prefix))
+      .map((p) => ({ prism3: p, tokenpress: '(absent)' }));
+    return {
+      reason: `NOT IN THE FIGMA EMISSION — ${r.prefix}*: ${r.why}`,
+      pairs,
+      // A path paired against an ABSENCE has no counterpart type. `null` is the honest entry — not a
+      // gap in the type arm, which is why `blindPairs` counts these separately. Conflating the two is
+      // what made the first measurement of the blind set read 140 instead of 71.
+      typed: pairs.map(() => null),
+    };
+  }).filter((e) => e.pairs.length);
 
   const accounted = new Set(notInEmission.flatMap((e) => e.pairs.map((p) => p.prism3)));
 
   const remainingTP = onlyTP.filter((p) => !claimedTP.has(p));
-  const { paired: overlayPaired, regressed } = explainViaModeOverlay(remainingTP, overlays, canonical);
+  const { paired: overlayPaired, regressed } = explainViaModeOverlay(remainingTP, overlays, canonical, tpUnion);
   // A leaf claimed by EITHER explanation is accounted for. `regressed` is a pairing too — the token
   // exists on both sides; what is wrong is which prism3 artifact carries it — so leaving it out of
   // `overlayClaimed` would double-report it as an unpaired TokenPress path as well.
@@ -885,6 +1103,17 @@ export type BrandReport = {
     unpairedTokenPress: string[];
   };
   types: { path: string; prism3: string; tokenpress: string }[];
+  /** Type disagreements found through a PAIRING rule rather than a shared path (#747). A separate
+   *  field from `types` so the report can say which arm found what — and so the gate can assert both
+   *  at 0 without either one being able to mask the other's silence. */
+  pairedTypes: PairedTypeDiff[];
+  /** #747's own acceptance measurement, asserted rather than printed: how many rule-paired paths have
+   *  NO type comparison. Must be 0. `againstAbsence` is the NOT-IN-EMISSION family, which pairs a path
+   *  against nothing and correctly has no type to compare. */
+  typeBlindSpots: { blind: number; againstAbsence: number };
+  /** #697's axis decision, as applied to this brand: what was declared, and what the emission carries
+   *  that nobody declared. `unclassified` non-empty is a failure, never a default. */
+  axes: AxisClassification & { represented: Axis[] };
   values: ValueDiff[];
   structure: {
     prism3Root: string;
@@ -903,7 +1132,11 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
   const a = adaptBrand(brand, join(OUT, 'figma', brand));
   assertAdaptable(a);
   const out = await runTokenPress(a);
-  const { union, collisions } = unionTokenPress(out);
+  // #697's declaration, applied before anything is compared: which TokenPress mode directories
+  // correspond to prism3's `base` follows from the axis of each collection, and getting that wrong
+  // moves hundreds of paths into the difference report (see `unionTokenPress`).
+  const classification = classifyCollections(censusFromEmission(join(OUT, 'figma', brand)));
+  const { union, collisions } = unionTokenPress(out, classification.baseDirs);
   const p3 = readPrism3(brand);
 
   const onlyPrism3 = [...p3.base.keys()].filter((k) => !union.has(k)).sort();
@@ -932,6 +1165,17 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
   const prism3Overlays: Record<string, number> = {};
   for (const [mode, l] of p3.overlays) prism3Overlays[mode] = l.size;
 
+  const paths = explainPaths(
+    onlyPrism3,
+    onlyTokenPress,
+    p3.canonical,
+    p3.overlays,
+    p3.base,
+    union,
+    classification,
+    p3.rootKey
+  );
+
   return {
     brand,
     adapted: a.notes,
@@ -945,9 +1189,12 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
       onlyPrism3,
       onlyTokenPress,
       shared: shared.length,
-      ...explainPaths(onlyPrism3, onlyTokenPress, p3.canonical, p3.overlays),
+      ...paths,
     },
     types,
+    pairedTypes: pairedTypeDiffs(paths.explained),
+    typeBlindSpots: blindPairs(paths.explained),
+    axes: { ...classification, represented: axesRepresentedIn(classification) },
     values,
     structure: {
       prism3Root: p3.rootKey,

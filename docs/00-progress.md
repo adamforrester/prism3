@@ -7,6 +7,101 @@
 
 ---
 
+## (2026-08-13) — #697's axis call: be told for the round-trip, flatten for a foreign import — and it closes #747 (#697, #747)
+
+**STATUS: shipped.** A Figma collection's mode axis is now **declared**, in
+`tools/exporter-comparison/axes.ts`, and the declaration is load-bearing rather than documentary: it
+decides which TokenPress mode file wins the union, supplies the breakpoint members the `grid.*` pairing
+rule matches on, and drives three new gate arms. #747's blind set went from **71–73 paths per brand to
+0**, asserted.
+
+**THE DECISION, AND WHY IT SPLITS IN TWO.** #697 offered three options and no fourth — flatten (lose the
+axis), carry `$extensions` (record it DTCG-ignorably), or be told (take it as configuration). The call is
+**be told for the round-trip; flatten for a foreign import**, and the scoping question underneath is what
+forces the split. For a file prism3 itself themed, the collections are the engine's own, so each one's
+axis is known *before* the file is read — being told is not a limitation, it is the truth, and such an
+export can therefore carry a token contract. For any other Figma file the collections are whatever a
+designer made: there is nothing to be told, no axis to recover, and no contract possible. Flattening is
+correct there, and is what TokenPress does today.
+
+**`$extensions` IS A THIRD THING, NOT AN ALTERNATIVE — measured while deciding, and it changed the shape
+of the answer.** The canonical tree *already* carries `$extensions.prism3.figma` on 43–47% of its leaves,
+and for the breakpoint axis it already carries exactly the triple this would need
+(`{collection: 'layout', mode: 'sm', variable: 'grid.columns'}` on `grid.sm.columns`, all 15–18, every
+brand). So option 2 is partly shipped. It still is not the answer: that extension records **where a leaf
+went**, per leaf. It does not record **what a collection's modes mean**. Reading `mode: 'sm'` tells you
+this leaf lives in `sm`; it does not tell you `sm` is a breakpoint rather than an appearance, and a
+consumer needs the second fact to know whether modes are *alternatives* (pick one) or *coordinates* (all
+apply, at different widths). The two compose — a table for the axis of each **collection**, the extension
+for the destination of each **leaf** — and each does what the other cannot.
+
+**THE INFERENCE WAS TRIED AND DOES NOT WORK, which is what makes "declared" a finding rather than a
+preference.** The tempting heuristic is "a collection whose variables all vary across its modes is a data
+axis; one where they mostly do not is appearance". Measured, every multi-mode collection has varying
+variables: nb `color` 159 of 163, `layout` 3 of 10, `type-sets` 11 of 11; aurora 157/163, 3/11, 11/11.
+Those differ in **degree**, and any threshold between 3/10 and 159/163 is a number fitted to this corpus
+that a fourth brand moves. There is no property of the file to read — #697's "human knowledge Figma does
+not record", confirmed by trying to recover it. Hence **unclassified is an error, never a default**: same
+posture as the payload manifest (#674). 13 of the 16 entries are `'none'`, so a default would have been
+right 13 times **by accident** and silently wrong on the 14th — a new mode-varying collection, which is
+precisely when it matters.
+
+**THE CALL IS LOAD-BEARING, VERIFIED BY MUTATION, because #697 asked for exactly that** ("relabel a
+collection's axis and confirm a gate names it; if nothing fails, the axis is decorative"). Relabeling
+`layout` from `breakpoint` to `none` produces **57 failures** — `grid.*` stops pairing at all, and the
+paths land in the tokenpress-only arm. Deleting `color` from the table fails 3 brands as *unclassified*.
+Declaring a collection nothing emits fails 3 brands as *stale*. The declaration also replaced a
+hand-written `new Set(['light','desktop','shared'])`; the derivation reproduces those three names
+byte-identically, which is the order it had to happen in — the decision had to reproduce the measured
+behavior before it could be trusted to extend it.
+
+**HOW THE TYPE CARRIES ACROSS A COLLAPSE (#747 closed).** Each pairing rule now declares a
+**`counterpart`**: either a whole token, or a *named field* of a composite. The type expectation is read
+from the **canonical tree** — the emitter's own input, which `compare.ts` authors nothing of — never from
+the rule's claim about itself, which is the tautology #747's own header warned about before the work
+started. `manyToOne` needed no special case: five prism3 breakpoints pairing against one TokenPress leaf
+already fan out to five comparisons, so "disagreement among the five is itself a finding" falls out free.
+Three arms went into `gate.ts`: paired types at 0, **type-blind pairs at 0** (the arm that keeps the other
+two honest — a pairing resolving no type on one side is an uncompared path, not a pass), and the axis
+classification. What remains unasserted is `againstAbsence`, 65–67 per brand: pairs where one side has no
+leaf at all, so there is no second type to compare. Conflating those with the blind set is what made an
+earlier measurement read 140 instead of 71.
+
+**THE NEW ARM FALSIFIED ONE OF THE PAIRING RULES ON ITS FIRST RUN, and this is the entry's most useful
+finding.** The `font-fluid.*` rule's authored prose said TokenPress emitted "a second copy" of the
+typography composite. The arm reported 11 disagreements per brand — `type.*` `typography` against
+`font-fluid.*` `dimension`. The exporters were both right and **the rule was wrong**: `font-fluid.*` is
+the composite's `fontSize` **referent**, not a copy of it, carrying neither `fontFamily` nor `fontWeight`.
+Verified independently — all 38/37/38 composites' `fontSize` refs resolve to `dimension`, and exactly 11
+fluid composites exist per brand, matching the 11 `font-fluid.*` paths. Fixed by **tightening**
+(`counterpart: { field: 'fontSize' }`), which is the only honest direction; loosening the rule to absorb
+the disagreement would have restored the green and deleted the finding. That prose had been read several
+times without anyone noticing it was wrong, so the general lesson is worth keeping: **an authored `reason`
+explaining why two things correspond is an unverified claim sitting inside a gate**, and a check
+independent enough to contradict a claim its own file makes is the strongest evidence available that it is
+not a tautology. Recorded as `docs/34` shape 15.
+
+**THE TRAP FOR WHOEVER RE-VERIFIES THIS.** Mutating the `FONT_SIZE` branch to check the duplicate-channel
+rule reported **EXIT 0**, which reads as a second blind spot. It was a **non-mutation**: disabling the
+explicit check falls through to a defensive `dimensionScopes` list further down, and that code's own
+comment (`exporter.ts:764-770`) says it is there for exactly this refactor. Both sites had to move before
+behavior did — then it fires 7. A mutation that changes nothing proves nothing about the gate and is
+indistinguishable from a blind spot until you read *why* it passed. Confirm the thing you mutated is the
+thing that decides.
+
+**THE FULL MUTATION REGISTER** is in `gate.ts`'s own header, per-arm and by name: M4 grid retype → 32
+(the acceptance criterion, measured EXIT 0 before), M5 `typography` → 113, M6 both `FONT_SIZE` sites → 7,
+M7 `shadow` → 21, D1 relabel → 57, D2 undeclare → 3, D3 stale → 3. All mutations were made in
+`apps/tokenpress/src/plugin/exporter.ts` and reverted, `git status` clean — the fix itself is entirely in
+the harness, never in TokenPress, which is a guest (`CLAUDE.md`'s port policy).
+
+**A PROCESS FINDING WORTH FLAGGING: #747 is closed as "completed" with no implementing commit.**
+Confirmed twice — `git log --all --grep=747` yields only the two commits that *filed* it, and its stated
+acceptance criterion (the M4 mutation going red) demonstrably still failed on `main` at `3dd7f39`,
+measured EXIT 0. Whatever closed it did not do it. The criterion passes now.
+
+---
+
 ## (2026-08-13) — The def declares its paint axes, and #758's own acceptance criterion turns out to be unfalsifiable (#758)
 
 **STATUS: shipped (engine + schema half).** `ComponentDef.paintKeys` declares how a def's paint keys are
