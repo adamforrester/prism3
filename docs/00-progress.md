@@ -7,6 +7,93 @@
 
 ---
 
+## (2026-08-12) — The nest-exposed cost measurement: the property count was never the constraint
+
+**STATUS: measured, not decided.** #681 shipped `swap` and `nest-fixed` and deferred `nest-exposed`
+pending "the property-count measurement" — my own deferred item from #750, and the one thing blocking
+the third nesting kind now that the emitter lane is authoring icon and focus-ring as defs. New
+`tools/nest-exposed-cost/measure.ts`, plus the `tools/` row in the three layout tables. **`NestingRelation`
+is unchanged and no emitter learned to project an exposed nest** — #739's discipline: measure in one PR,
+decide in another. The deciding question the owner named (per-property opt-in vs all-or-nothing) is
+deliberately still open at the end of this PR.
+
+**The headline finding inverts the question's own name.** The measurement was called "the property-count
+measurement" and the property count turns out not to be the constraint at all. Button's designer panel
+goes **9 rows → at most 12** across every nested shape, IconButton's **5 → 8**, including the owner's
+named case ("Form label would likely be exposed if there are 2 size variants" — 2 axes plus a TEXT
+property, so 3 contributed rows). And Figma publishes **no cap whatsoever** on component properties per
+set: the 4,000-variant cap is real and the full Button reaches under a fifth of it, but nothing in the
+docs bounds properties. So all-or-nothing's *worst* case is three extra rows on a panel with no published
+ceiling. Whatever decides the schema, it is not a limit being approached.
+
+**What IS nearly touching is the byte ceiling, and that is the number to carry into the schema PR.**
+Button's fullest chunk is **41,996 B against `SET_CHUNK_BYTES`'s 42,000 — four bytes of headroom, today,
+before any exposure exists at all.** Every candidate exposure field still packs into the same 36 chunks
+(+2,052 B for a bare flag through +3,780 B for renamed per-property, ~3–6 B per variant across 648
+variants); IconButton stays at 6 chunks (+513 through +945). Nothing overflows. But the two candidate
+schemas differ by only **~1,700 B on the largest real set**, which is the finding that matters: **cost
+does not distinguish them.** The schema question has to be settled on expressiveness — collision handling
+when two nested instances expose the same axis name, whether a def author can be trusted to enumerate —
+not on bytes. Better to know that before the argument starts than to discover it inside the argument.
+
+**Worst-chunk bytes are not monotonic, and this file measured itself wrong before it measured itself
+right.** The first run reported Button deltas of **-57, -41, -9, -18 B** for progressively *larger*
+per-variant fields. The cost was not negative; the instrument was wrong. The packer is greedy, so a
+fatter variant moves a chunk boundary one variant earlier and the *fullest* chunk can end up **less**
+full — Button's worst chunk drops 41,996 → 41,939 while the payload grows 2 KB. Reporting only
+worst-chunk would have shown exposure as free-or-better on the 648-variant set and recommended
+all-or-nothing on a phantom. The file now reports **total bytes** as the primary figure with worst-chunk
+alongside it and a comment stating why (it is still the number the *budget* is enforced against, which is
+why it cannot simply be dropped). This is the trap for whoever re-verifies: a chunk-packing measurement
+needs a monotonic instrument, and "the worst case" is not one.
+
+**How exposure was counted without implementing it**, which is the `docs/34` half — a measurement that
+models its own subject measures itself. Three facts, all read out of code that already ships: what a
+nested set *would* contribute (`planSetProperties` over the nested plans plus one per varying axis,
+because a set's axes **are** properties in the panel); what the parent already carries (the same
+`planSetProperties(figmaAnatomySet(def))` call the payload makes); and Figma's published ceilings, quoted
+with source so a stale number reads as a stale quote. The payload half mutates the real plans at every
+node carrying `nestTarget` and re-runs **the real `planSetChunks`** — never an estimate, because the
+packer is a fixpoint whose shell width changes with the chunk count, so "N bytes per variant" cannot
+predict where a boundary lands.
+
+**Two limits worth stating.** `focus-ring` — the nested component in both real cases — **has no def in
+this repo**; it is nominated by name and must pre-exist in the file, so its property count is
+unprojectable and the tool sweeps the shapes it is known to take instead. That unprojectability is itself
+a finding: the parent's cost depends on a component nobody here can measure. And a plain-COMPONENT
+`focus-ring`, which is what the current live run holds, contributes **zero** properties — an exposed nest
+of a non-set exposes nothing, which is the case that would make exposure look free if it were the only
+one measured.
+
+**No gate sibling, on purpose.** `tools/exporter-comparison/` has one; this does not. A gate asserts an
+answer and nobody has decided what an acceptable exposure cost is — adding this to `ci.yml` would be
+reporting a decision no one made. It always exits 0.
+
+**Trap for the next contributor, found by running the sweep:** `lint-layout-claims.ts` arm B resolves
+against `git ls-files`, not the filesystem, so documenting `tools/nest-exposed-cost/` **failed** until the
+file was `git add`ed. Working as designed (#653's untracked-residue measurement), but the failure reads as
+a wrong path rather than an unstaged one. Separately, `@prism3/tokenpress`'s `test` and `build` fail in any
+tree without `jszip` — declared in its `package.json` and present in the lockfile, but installed in
+neither the shared checkout nor a fresh worktree. Link it entry-by-entry like every other third-party
+dep; it needs 12 transitive packages, `setimmediate` among them.
+
+**Gates: all 25 green.** Engine `test.ts` 2134/2134 · `mcp-test.ts` 49/49 · `regen --check` 104 artifacts
+byte-matched · `nb-regression`/`emit-dtcg`/`emit-figma` exit 0 · `token-contract --check` unchanged ·
+`lint-skills`/`lint-doc-gates`/`lint-layout-claims`/`lint-payload-manifest` (4 brands, 12 rules)/
+`typecheck-components`/`lint-overlay-completeness` (1685 varying leaves, 12 overlays) clean. Studio
+`typecheck`/`test` 150 assertions/`build`/`check:ignore`/`lint:contrast`/`lint:classes` (24 entries).
+Plugin `typecheck`/`test`/`build`. TokenPress `test` 274 assertions across 22 files/`build`.
+`exporter-comparison/gate.ts` 3 brands, 0 disagreements. `check:consumability`. `lint-us-english` and
+`lint-voice` last, after the web build.
+
+**Next, and explicitly not in this PR:** the schema decision. It now has its input — and the input says
+the choice is not about cost. Whoever takes it should also know the `paintOf` generalization coming from
+the emitter lane (paint keyed `{intent}.{appearance}.{slot}`, so a primitive with tone or color axes
+projects unpainted, filed under #740) lands in `write-components.ts` as the second executor, the same
+two-executor shape as #750.
+
+---
+
 ## (2026-08-12) — The export dialog: two artifacts, four settings, and applicability as a declaration rather than a spot check
 
 **STATUS: shipped.** #723 replaces the two-item Export dropdown with a dialog implementing #720's export

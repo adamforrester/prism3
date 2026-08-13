@@ -73,7 +73,8 @@ prism3/                            (this repo — grows into the monorepo)
 ├── docs/                          the numbered design record + superpowers/
 ├── skills/                        shipped product skills (prism3-theme, prism3-consume)
 └── tools/                         measurement harnesses, run by hand, outside CI
-    └── exporter-comparison/       both DTCG exporters over one brand, differences classified
+    ├── exporter-comparison/       both DTCG exporters over one brand, differences classified
+    └── nest-exposed-cost/         what exposing a nested part's properties costs the parent
 
 brand-skills/      own repo — EXTRACT (assets → design.md)   [upstream, public]
 knowledge-base/    own repo — the practice POV / reference    [reference]
