@@ -283,9 +283,17 @@ for (const brand of BRANDS) {
       // --- key DOM assertions ------------------------------------------------------------------
       const dom = await page.evaluate(() => {
         const err = document.querySelector('.errbar-global');
+        // The page-chrome floor (#772), read from what the app DECLARES rather than from a list
+        // restated here. `mountView` publishes the keys the current root view promises to carry onto
+        // `<html data-chrome>`; every one of them must resolve to a mounted `[data-chrome]` node. A
+        // surface added to `CHROME_SURFACES` is therefore covered by this the day it lands — the same
+        // reason `BRANDS` above is read from the start screen instead of being typed out.
+        const roster = (document.documentElement.dataset.chromeRoster ?? '').split(' ').filter(Boolean);
         return {
           heroTitle: document.querySelector('.hero h1')?.textContent?.trim() ?? '',
           controls: document.querySelectorAll('.ws input, .ws select, .ws button').length,
+          roster,
+          chromeMissing: roster.filter((k) => !document.querySelector(`[data-chrome="${k}"]`)),
           errorBarShown: !!err && getComputedStyle(err).display !== 'none',
           errorBarText: err?.textContent?.trim() ?? '',
           // A derived mode (HC light / HC dark / Wireframe) is auto-generated and never hand-tuned, so
@@ -305,6 +313,17 @@ for (const brand of BRANDS) {
       // page that rendered its hero and then threw.
       ok(dom.controls > 0 || dom.readOnlyNote > 0,
         `${where}: renders ${dom.controls} control(s), or a read-only note when the mode is derived`);
+      // THE FLOOR, IN BOTH DIRECTIONS. The roster must be non-empty first: `chromeMissing` over an
+      // empty roster is an empty array, so the check below would pass vacuously on a build that
+      // published nothing — the shape #779 records one assertion along, and not one worth repeating.
+      ok(dom.roster.length >= 3, `${where}: the view publishes its chrome roster (${dom.roster.join(', ') || 'EMPTY'})`);
+      ok(dom.roster.includes('error'),
+        `${where}: the roster names the engine-error surface — #388's defect was one page rendering it and the rest not`);
+      ok(dom.chromeMissing.length === 0,
+        `${where}: every declared chrome surface is mounted${dom.chromeMissing.length ? ` — missing ${dom.chromeMissing.join(', ')}` : ''}`);
+      // Now non-vacuous: an ABSENT `.errbar-global` used to read as "hidden" and pass this line, which
+      // is the same defect as showing nothing. The roster assertions above are what make it mean
+      // "mounted, and with nothing to say" rather than "not there".
       ok(!dom.errorBarShown, `${where}: the global error bar is hidden${dom.errorBarShown ? ` — "${dom.errorBarText}"` : ''}`);
       ok(dom.overflowX <= 1, `${where}: no horizontal overflow (${dom.overflowX}px past the viewport)`);
       if (hasBar) {
@@ -440,6 +459,78 @@ for (const brand of BRANDS) {
   try { parsed = JSON.parse(body); } catch { /* reported by the assertion below */ }
   ok(parsed !== null && typeof parsed === 'object', `${brand}: the exported token file is valid JSON (${body.length} bytes)`);
   ok(parsed !== null && Object.keys(parsed).length > 0, `${brand}: the exported token tree is not empty`);
+
+  // --- 2d. an engine throw from a NON-COLOR page is visible (#388 / #772) ------------------------
+  //
+  // #388's original defect path, driven. `lastError` was surfaced only by `renderPrimitives`' paint
+  // closure, so a throw raised on Typography set the flag and showed nothing while the control went on
+  // displaying the value the engine had refused. Every assertion here is on a page that is NOT the
+  // Color page, which is the whole point — a check run on Palettes would have passed on the defect.
+  //
+  // THE REPRO: `typeScale: 'compact'` plus `titleFloor: 16` is a real engine refusal (compact already
+  // shifts title.xs to 16px, so the floor would duplicate a rung). The ORDER is load-bearing and is
+  // the reason this is a drive rather than a state injection: the shape CARDS trial-build before they
+  // enable, so with the floor already on, Compact is correctly disabled and no throw is reachable. The
+  // toggle does not trial-build. So: floor off, pins released, shape to Compact, then floor on — which
+  // is the sequence a designer performs, and the only one that reaches the engine's refusal.
+  //
+  // Brand-agnostic on purpose. The two corpus brands start on opposite sides of this (aurora ships the
+  // floor on and pinned sizes; harbor does not), so a fixed click list would exercise one and silently
+  // no-op on the other.
+  await gotoPage(page, 'Typography');
+  await page.locator('.pvseg-b', { hasText: 'Text styles' }).click();
+  await page.waitForSelector('.shape-cards');
+  const floorToggle = () => page.locator('.range-f').filter({ hasText: 'Smallest title size' }).locator('input.toggle');
+  const floorOn = () => page.evaluate(() => [...document.querySelectorAll('.range-f')]
+    .find((f) => f.textContent.includes('Smallest title size'))?.querySelector('input.toggle')?.checked ?? null);
+  if (await floorOn()) {
+    await floorToggle().click();
+    await page.waitForFunction(() => [...document.querySelectorAll('.range-f')]
+      .find((f) => f.textContent.includes('Smallest title size'))?.querySelector('input.toggle')?.checked === false);
+  }
+  const release = page.locator('.shape-release');
+  if (await release.count()) { await release.click(); await page.waitForSelector('.shape-cards'); }
+  const compact = page.locator('.shape-card').filter({ hasText: 'Compact' }).first();
+  ok(!(await compact.isDisabled()), `${brand}: with the title floor released, the Compact shape is selectable`);
+  await compact.click();
+  await page.waitForFunction(() => document.querySelector('.shape-card.on b')?.textContent === 'Compact');
+
+  const errState = () => page.evaluate(() => {
+    const e = document.querySelector('.errbar-global');
+    return { present: !!e, shown: !!e && getComputedStyle(e).display !== 'none', text: e?.textContent?.trim() ?? '' };
+  });
+  const clean = await errState();
+  ok(clean.present && !clean.shown, `${brand}: the error surface is mounted and quiet before the refused edit`);
+
+  await floorToggle().click();
+  // Wait on the BAR, not on a timer — this condition is the assertion's subject, so a hang here fails
+  // loudly as the defect it is rather than passing on a measurement taken too early.
+  const surfaced = await page.waitForFunction(() => {
+    const e = document.querySelector('.errbar-global');
+    return !!e && getComputedStyle(e).display !== 'none';
+  }, null, { timeout: 5000 }).then(() => true, () => false);
+  ok(surfaced, `${brand}: an engine throw raised on Typography SURFACES (#388's defect path)`);
+  const raised = await errState();
+  ok(/titleFloor/.test(raised.text), `${brand}: the bar names what the engine refused — "${raised.text.slice(0, 90)}"`);
+
+  // THE GENERALIZATION, not just the instance: the surface belongs to the view, so navigating to a
+  // third page must not lose it. A page-local bar would vanish here, which is the state #388 described
+  // from the other end — the error existing with nothing rendering it.
+  await gotoPage(page, 'Motion');
+  const afterNav = await errState();
+  ok(afterNav.shown, `${brand}: the error is still shown after navigating to Motion — it belongs to the chrome, not to a page`);
+
+  // Put it back, and check the bar CLEARS. A surface that only ever appears is half a surface, and the
+  // rest of this context (and the console-error drain below) needs a resolved theme.
+  await gotoPage(page, 'Typography');
+  await page.locator('.pvseg-b', { hasText: 'Text styles' }).click();
+  await page.waitForSelector('.shape-cards');
+  await floorToggle().click();
+  const cleared = await page.waitForFunction(() => {
+    const e = document.querySelector('.errbar-global');
+    return !!e && getComputedStyle(e).display === 'none';
+  }, null, { timeout: 5000 }).then(() => true, () => false);
+  ok(cleared, `${brand}: undoing the refused edit clears the bar`);
 
   const errs = drain();
   ok(errs.length === 0, `${brand}: driving the controls raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);

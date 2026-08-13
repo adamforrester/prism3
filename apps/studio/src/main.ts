@@ -242,20 +242,36 @@ const rebuild = (): void => {
 // edits — add/remove color, Derive⇄Pin, stage switch); build() re-renders the shell.
 let paintVolatile: () => void = () => {};
 let globalErrHost: HTMLElement | null = null;
-// renderModeStrip repaints the mode-selector strip that sits at the top of the workspace (#432) — it
-// carries no contrast marks any more (#54 retired, owner decision), but still needs to refresh on
-// every edit because currentMode's "on" state and the derived-mode "view only" tag both track it.
 /** Keep the global error bar honest after every rebuild. `lastError` is set by `rebuild()`'s catch and
  *  means "the live edit did not resolve; you are looking at the last good theme" — a state the user must
- *  be told about wherever they are, not only on the page that happens to render it. */
+ *  be told about wherever they are, not only on the page that happens to render it.
+ *
+ *  The second clause is inherited from the Color-page bar this replaced (#772). That bar said "showing
+ *  the last valid palettes", which was the useful half the global copy was missing: without it the
+ *  message says an edit failed and leaves open whether what is on screen is the failed state. It is
+ *  true on every page, so it is said on every page — folding the duplicate in was not allowed to lose
+ *  what the duplicate knew. */
 const syncErrorBar = (): void => {
-  if (!globalErrHost) return;
+  // THE INVARIANT, STATED WHERE IT CAN BE VIOLATED (#772): an engine error must never be held with no
+  // surface rendering it. That is #388 in one line, and checking it here catches every route to it —
+  // the bar not mounted, mounted into a view that was then replaced, or a root view put on screen
+  // outside `mountView`. `isConnected`, not a null check: a detached node is a surface that shows
+  // nothing while still satisfying every reference to it. Reports rather than throws, for the reason
+  // `chromedWorkspace` gives; the smoke suite's zero-console-errors assertion makes it fatal in CI.
+  if (!globalErrHost?.isConnected) {
+    if (lastError) console.error(`the 'error' chrome surface is not mounted in this view, so an engine error is going unreported: ${lastError} (#772)`);
+    return;
+  }
   globalErrHost.style.display = lastError ? '' : 'none';
-  if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError}`;
+  if (lastError) globalErrHost.textContent = `That change didn't apply: ${lastError} — you are seeing the last theme that resolved.`;
   syncChromeHeight();   // the bar lives in the chrome; showing it moves everything sticky below
 };
-const apply = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); paintVolatile(); };
-const applyFull = (): void => { rebuild(); renderModeStrip(); syncErrorBar(); renderWorkspace(); };
+// `syncChrome()` refreshes EVERY declared chrome surface (see CHROME_SURFACES) rather than naming
+// them one at a time. These two lines used to read `renderModeStrip(); syncErrorBar();` — two of the
+// four surfaces, hand-listed in two refresh paths, which is the shape that let #388's error bar be
+// reachable from exactly one page. A surface added to the declaration is picked up here for free.
+const apply = (): void => { rebuild(); syncChrome(); paintVolatile(); };
+const applyFull = (): void => { rebuild(); syncChrome(); renderWorkspace(); };
 
 // ---- DOM helpers -----------------------------------------------------------
 const el = (tag: string, cls?: string, text?: string): HTMLElement => {
@@ -897,16 +913,19 @@ const neutralRow = (): { row: HTMLElement; refresh: () => void } => {
   return { row, refresh };
 };
 
-const renderPrimitives = (host: HTMLElement): void => {
+const renderPrimitives = (host: PageHost): void => {
   host.append(hero('Start from your brand colors.',
     'Give the engine your exact hues. It grows each into a gamut-aware, contrast-placed ramp and pins your color as the anchor — never shifted. Every semantic role downstream aliases these.'));
 
   const refreshers: Array<() => void> = [];
 
   // Brand — primary + accents, each a full-width row; the swatch is the color picker.
+  // The page-local error bar that used to sit here is GONE (#772). It was #388's original surface, left
+  // in place by #389 as a harmless duplicate of the chrome bar — harmless, but also the live example of
+  // the pattern that ticket exists to retire, and a second copy of the message that could drift from the
+  // one every other page shows. Its one piece of extra information (that the ramps below are the last
+  // theme that resolved) moved into `syncErrorBar`, where every page gets it.
   const brandSec = palSection('Brand palettes', 'Each brand color grown into a gamut-aware, contrast-placed ramp — your color pinned as the anchor, never shifted.');
-  const errBar = el('div', 'errbar'); errBar.style.display = 'none';
-  brandSec.append(errBar);
   const action = brandState.actionPalette ?? 'primary';
   {
     const b = brandRow(
@@ -957,9 +976,9 @@ const renderPrimitives = (host: HTMLElement): void => {
   host.append(valSec);
   host.append(renderAlphaAndOpacity());
 
+  // The error half of this closure moved to the declared chrome (see above) — what is left is the
+  // page's own volatile region, which is what `paintVolatile` was always for.
   paintVolatile = () => {
-    errBar.style.display = lastError ? '' : 'none';
-    if (lastError) errBar.textContent = `This combination doesn't resolve: ${lastError} — showing the last valid palettes.`;
     refreshers.forEach((r) => r());
   };
   paintVolatile();
@@ -3328,7 +3347,7 @@ const renderSectionContrast = (key: PageKey): HTMLElement | null => {
 };
 
 // Surfaces / fills — backgrounds, derived text/ink, an optional gradient.
-const renderSurfacesPage = (host: HTMLElement): void => renderScreen(host, 'surfaces', (h) => {
+const renderSurfacesPage = (host: PageHost): void => renderScreen(host, 'surfaces', (h) => {
   h.append(renderSurfacesEditor());     // self-heads "Backgrounds"
   h.append(renderForegroundsEditor());  // self-heads "Foreground fills" — the bold/surface fills (docs/23 §2)
   h.append(renderForegroundEditor());   // self-heads "Text"
@@ -3341,7 +3360,7 @@ const renderSurfacesPage = (host: HTMLElement): void => renderScreen(host, 'surf
 // Interactive & action colors — the per-palette matrix (#69). Global behaviors at the top, then one
 // section per action palette (Primary / Neutral / Destructive / accents) of full-width slot rows binding
 // every fill/text/inverse/overlay/on-fill role. The per-page contrast table stays volatile below.
-const renderInteractivePage = (host: HTMLElement): void => renderScreen(host, 'interactive', (h) => {
+const renderInteractivePage = (host: PageHost): void => renderScreen(host, 'interactive', (h) => {
   renderInteractiveMatrix(h);
 }, () => [renderSectionContrast('interactive')]);
 
@@ -3523,7 +3542,7 @@ const renderTypePreview = (): HTMLElement => {
 type TypeTab = 'primitives' | 'semantics' | 'styles' | 'preview';
 let typeTab: TypeTab = 'primitives';
 const TYPE_TABS: Array<[TypeTab, string]> = [['primitives', 'Primitives'], ['semantics', 'Semantics'], ['styles', 'Text styles'], ['preview', 'Preview']];
-const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'typography', (h) => {
+const renderTypographyPage = (host: PageHost): void => renderScreen(host, 'typography', (h) => {
   const seg = el('div', 'pvseg');
   for (const [k, label] of TYPE_TABS) {
     const b = el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement;
@@ -3558,7 +3577,7 @@ const renderTypographyPage = (host: HTMLElement): void => renderScreen(host, 'ty
 }, () => []);
 
 // Elevation — the shadow ramp (softness + tint live together in the bespoke editor).
-const renderElevationPage = (host: HTMLElement): void => renderScreen(host, 'elevation', (h) => {
+const renderElevationPage = (host: PageHost): void => renderScreen(host, 'elevation', (h) => {
   h.append(renderShadowEditor(leverByKey('shadow.softness')));
 }, () => [renderShadowSpecimen()]);
 
@@ -3687,7 +3706,7 @@ const spacingFixedNote = (): HTMLElement => el('p', 'ic-modenote',
   + 'unlock them — 4px is still available as space.050 — and the numbered scale only means “n× base” '
   + 'across brands if the base is the same across brands.');
 
-const renderSizeRadiusPage = (host: HTMLElement): void => controlSplitPage(host, 'sizeRadius', () => {
+const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => {
   const perMode = currentMode !== 'light';
   return [
     { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', controls: csLeverStack(['baseMd', 'radiusScale'], perMode), paint: paintRadiusPreview },
@@ -3766,7 +3785,7 @@ const csPicker = (key: string, label: string, choices: Array<[string, string]>, 
 
 // Layout — breakpoints, grid columns, container caps (docs #264).
 const LAYOUT_COLUMN_CHOICES = [4, 6, 8, 12, 16, 24];   // curated grid systems — no odd/awkward counts (#264)
-const renderLayoutPage = (host: HTMLElement): void => controlSplitPage(host, 'layout', () => {
+const renderLayoutPage = (host: PageHost): void => controlSplitPage(host, 'layout', () => {
   // Grid columns — a curated step-picker (4/6/8/12/16/24, no awkward counts). Numeric key → coerce on commit.
   const colSel = selectEl('cap');
   const curCols = (brandState.layout?.columns ?? theme.layout.baseColumns) as number;
@@ -3790,7 +3809,7 @@ const renderLayoutPage = (host: HTMLElement): void => controlSplitPage(host, 'la
 });
 
 // Motion — Tempo (per-mode outside Light) + the Easing curve, each its own concept section.
-const renderMotionPage = (host: HTMLElement): void => renderScreen(host, 'motion', (h) => {
+const renderMotionPage = (host: PageHost): void => renderScreen(host, 'motion', (h) => {
   const perMode = currentMode !== 'light';
   // The section head no longer restates the knob's own description verbatim — both said "scales the
   // duration ramp" and "reduce-motion is derived", three lines apart. The head says what the section
@@ -3813,7 +3832,7 @@ let previewView: PreviewView = 'styleguide';
  *  a repaint, like `previewView` and `currentMode` beside it. */
 let sgSurface = 'background.primary';
 const PREVIEW_VIEWS: Array<[PreviewView, string]> = [['styleguide', 'Style guide'], ['contrast', 'Contrast contracts'], ['tokens', 'Token list']];
-const renderPreviewPage = (host: HTMLElement): void => {
+const renderPreviewPage = (host: PageHost): void => {
   const [title, lede] = PAGE_COPY.preview;
   host.append(hero(title, lede));
   // Segmented view-switcher (docs/23 §7) — the three "look at the result" views in one destination.
@@ -3857,7 +3876,7 @@ const renderPreviewPage = (host: HTMLElement): void => {
  * the map by name, so a future caller reaching it directly would otherwise render a control whose
  * `postComponents` is inert.
  */
-const renderComponentsPage = (host: HTMLElement): void => {
+const renderComponentsPage = (host: PageHost): void => {
   const [title, lede] = PAGE_COPY.components;
   host.append(hero(title, lede));
   // Every other page renderer assigns `paintVolatile`, and it is MODULE state — so a page that skips
@@ -6417,6 +6436,205 @@ let workspace: HTMLElement;
 let modeStripHost: HTMLElement;   // top of the WORKSPACE — the mode bar sits with what it scopes (#432)
 let chromeHost: HTMLElement;      // the sticky header, measured into --chrome-h
 
+// ---- page chrome — the declared floor every view carries (#772) --------------------------------
+/**
+ * WHY THIS IS DATA RATHER THAN A HABIT.
+ *
+ * #388 was one page-level surface rendered by one page. `lastError` was painted inside
+ * `renderPrimitives`' Color-page closure, so an engine throw from Typography set the flag and showed
+ * NOTHING — the field went on displaying the value the engine had already refused. #389 closed that
+ * instance by mounting a bar in the chrome and calling `syncErrorBar()` from `apply()`/`applyFull()`,
+ * and left the shape that produced it standing: surfaces appended one at a time in `build()`, and
+ * refreshed by hand-listed calls in two separate refresh paths. Each of those lists is a place the
+ * NEXT surface gets forgotten, which is precisely how the first one was. #388's own words: "worth
+ * deciding once rather than patching per page — this will recur for any future validation."
+ *
+ * So the surfaces are DECLARED here and applied by iteration. Four consumers read this one list:
+ * `mountView` mounts the root ones, `renderWorkspace` mounts the workspace ones, `syncChrome`
+ * refreshes all of them, and `chromedWorkspace` checks the roster `mountView` published before it
+ * will vouch for a page host. Nothing is written twice, so nothing can be written once.
+ *
+ * A FLOOR, NOT UNIFORMITY. `home` and `views` exist because the surfaces genuinely disagree, and
+ * flattening that would cost more than it saves: the brand bar has no business on a start screen that
+ * draws its own mark and has no brand to switch, and the mode strip belongs in the workspace beside
+ * the controls it scopes (#432) rather than back in the header it was deliberately moved out of. What
+ * every view does share is the error surface — see its entry for why its scope is every view.
+ *
+ * SURVEYED AND DELIBERATELY LEFT OUT, so the question is not reopened from scratch:
+ *
+ *   • The MODE-SCOPE BADGES (`attachModeBadges` / `SECTION_MODE_SCOPE`) are ALREADY structural in the
+ *     way this list is trying to be — a post-render pass over the workspace DOM, which its own header
+ *     defends on exactly these grounds ("a pass over the rendered DOM cannot be forgotten by code that
+ *     does not know it exists"). They carry no cross-render refresh, so there is no forgettable second
+ *     obligation to declare, and their placement rules are coupled to `mode-audit.mjs --check-badges`.
+ *     Declaring them would move working code for symmetry, and into #771's lane.
+ *
+ *   • The SEED / RESTORE / APPLY pills (#480, #722) render INSIDE `renderBar()`, which IS the
+ *     `brand-bar` surface — so they are already mounted once, structurally, by something on this list.
+ *     They are bar CONTENT, and promoting content to a surface would put a plugin-only pill into the
+ *     floor every web view has to carry.
+ *
+ *   • The START SCREEN's import validation stays a field message on its own control — see the note at
+ *     `renderStartScreen` for the distinction between a rejected input and adopted state.
+ */
+type RootView = 'start' | 'app';
+type ChromeSurface = {
+  /** Stable identity. Stamped as `data-chrome` on the mounted node and published in the roster, so
+   *  "is this surface actually there" is answerable from the rendered page rather than from this file. */
+  readonly key: string;
+  /** `root` surfaces are mounted into the chrome header by `mountView`; `workspace` surfaces are minted
+   *  by `renderWorkspace` alongside the page they scope. */
+  readonly home: 'root' | 'workspace';
+  /** Which root views carry it. */
+  readonly views: readonly RootView[];
+  /** Mint the node. The mounter stamps and appends it, so a surface cannot land unstamped or in the
+   *  wrong host by writing its own append. */
+  readonly mount: () => HTMLElement;
+  /** Derive its state from module state — called on mount and after EVERY rebuild.
+   *
+   *  Optional, and the omission is a statement rather than an oversight: a surface that re-renders on
+   *  its own events and holds live UI state says so by leaving this out, instead of being refreshed
+   *  out from under the person using it. */
+  readonly sync?: () => void;
+};
+
+/** Every reference below is wrapped in an arrow rather than passed as a value. Two of these four
+ *  (`syncApplyDetail`, `APPLY_DETAIL_ID`) are declared LATER in this file, and a bare value reference
+ *  would be evaluated while this array literal is built — at module init, in their temporal dead zone.
+ *  Uniform wrapping means moving a declaration cannot arm that trap. */
+const CHROME_SURFACES: readonly ChromeSurface[] = [
+  {
+    key: 'brand-bar', home: 'root', views: ['app'],
+    mount: () => { barHost = el('div', 'bar'); renderBar(); return barHost; },
+    // NO `sync`, deliberately. `renderBar()` rebuilds `barHost` wholesale, and that node holds the open
+    // brand menu, the Pages menu and the export dialog — refreshing it on every knob edit would close
+    // whatever the designer had open, mid-gesture. It re-renders on its own events instead (menu
+    // toggles, apply state, brand load), which is the reason `sync` is optional at all.
+  },
+  {
+    key: 'error', home: 'root', views: ['start', 'app'],
+    // THE SURFACE THIS MECHANISM IS NAMED AFTER (#388). It is the one entry scoped to every view, and
+    // the start screen is in that list even though `lastError` is unreachable there today — nothing
+    // calls `rebuild()` before an origin exists. Mounted anyway, because the EXEMPTION is what would
+    // rot: the next pre-brand view that does touch the engine would inherit "no error surface" from a
+    // list it never read, which is this ticket's defect with a different page in it. A hidden node
+    // costs a div; the precedent costs the ticket. (Its own import validation stays where it is — see
+    // the survey note in `renderStartScreen`.)
+    mount: () => { globalErrHost = el('div', 'errbar errbar-global'); return globalErrHost; },
+    sync: () => syncErrorBar(),
+  },
+  {
+    key: 'apply-detail', home: 'root', views: ['app'],
+    // App-level write status, in the chrome for the same reason the error bar is (#483): a per-page or
+    // popover home would either be forgotten by the next page or cover the CTA it describes. Minted
+    // unconditionally — `renderApplyStatus` is plugin-only, so on web `applyState` stays null and the
+    // sync keeps this hidden. Visibility is derived, never hardcoded at mount: page nav re-runs
+    // `build()`, so a hardcoded "hidden" would collapse an open detail (and, one surface up, would drop
+    // a live error the moment the user changed page — the hole #388 closed).
+    mount: () => {
+      applyDetailHost = el('div', 'applystat-detail');
+      applyDetailHost.id = APPLY_DETAIL_ID;
+      return applyDetailHost;
+    },
+    sync: () => syncApplyDetail(),
+  },
+  {
+    key: 'mode-strip', home: 'workspace', views: ['app'],
+    // Page furniture, not header chrome (#432) — it scopes the CONTROLS, so it lives with them, and
+    // this declaration does not move it back. What brings it into the list is its REFRESH, which was
+    // hand-listed in `apply()`/`applyFull()` right beside `syncErrorBar()`: `currentMode`'s "on" state
+    // and the derived-mode "view only" tag both track every edit. Its PLACEMENT stays in
+    // `renderWorkspace`, which is the only code that knows where the page's hero (and, on Preview, its
+    // view switcher) ended up — a position no declaration here could state.
+    mount: () => { modeStripHost = el('div', 'modebar'); return modeStripHost; },
+    sync: () => renderModeStrip(),
+  },
+];
+
+/** Mount every declared surface of `home` that `view` carries. MOUNT ONLY — the sync pass is a
+ *  separate `syncChrome()` call once the host is in the document, because `syncErrorBar` now judges
+ *  itself by `isConnected` and syncing mid-mount would report a detached-but-correct surface as the
+ *  very defect that check exists to find. */
+const mountSurfaces = (home: ChromeSurface['home'], view: RootView, host: HTMLElement): void => {
+  for (const s of CHROME_SURFACES) {
+    if (s.home !== home || !s.views.includes(view)) continue;
+    const node = s.mount();
+    node.setAttribute('data-chrome', s.key);
+    host.append(node);
+  }
+};
+
+/** THE ONLY refresh path. `apply()` and `applyFull()` call this instead of naming surfaces one at a
+ *  time, which is what makes "a new surface cannot be forgotten" true of the refresh half as well as
+ *  the mount half. Each `sync` guards its own host, so this is safe before the first build. */
+const syncChrome = (): void => { for (const s of CHROME_SURFACES) s.sync?.(); };
+
+/** The keys `view` promises to carry, published on `<html data-chrome-roster>` — a separate attribute
+ *  from the per-node `data-chrome` stamp, so `[data-chrome="<key>"]` cannot match the root element
+ *  itself on a single-surface view and report a surface as mounted when it is not. Publishing it lets
+ *  the check below — and the smoke suite — compare the PROMISE against the rendered DOM instead of
+ *  restating the list in a second place that could disagree with this one. */
+const chromeRoster = (view: RootView): string[] =>
+  CHROME_SURFACES.filter((s) => s.views.includes(view)).map((s) => s.key);
+
+/** THE ONLY WRITER OF THE APP ROOT, and that is the structural half of this ticket. A view mounted any
+ *  other way is a view that skipped the floor — which is exactly what the start screen was doing, and
+ *  what the next page-like view would have done by copying it. Routing both root views through here
+ *  means "which surfaces does this view carry" is answered by the declaration rather than by whichever
+ *  branch of `build()` happened to be written first. */
+const mountView = (view: RootView, body: () => HTMLElement): void => {
+  app.innerHTML = '';
+  document.documentElement.dataset.chromeRoster = chromeRoster(view).join(' ');
+  // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
+  // the persistent mode selector. The mode bar is NOT tier 2 any more (#432) — it is minted into the
+  // workspace instead — so the chrome carries brand identity and app-level status.
+  const chrome = el('header', 'chrome');
+  chromeHost = chrome;
+  mountSurfaces('root', view, chrome);
+  // Sync AFTER the append, never before: a surface's first paint is its sync, and the initial state is
+  // always DERIVED — page nav re-runs `build()`, so a hardcoded "hidden" at mount would drop a live
+  // error the moment the user changed page, which is the hole #388 closed.
+  app.append(chrome, body());
+  syncChrome();
+  syncChromeHeight();
+};
+
+declare const CHROMED: unique symbol;
+/** A workspace host with the declared page chrome already mounted around it.
+ *
+ *  The brand is a `unique symbol` no object literal can satisfy, and `chromedWorkspace` is its only
+ *  producer — so `PAGE_RENDERERS` cannot be invoked with an element that has not been through the
+ *  mounter, and a new page renderer cannot accept one either. Same enforcement as `loadBrand`'s
+ *  required `origin` (#722): checked by construction at every call site, with no scan to keep in
+ *  scope. A convention every page happens to follow is what already existed. */
+type PageHost = HTMLElement & { readonly [CHROMED]: true };
+type PageRenderer = (host: PageHost) => void;
+
+/** Compile-time proof that the brand is load-bearing, at zero runtime cost. If `PageHost` ever loses
+ *  it, a plain `HTMLElement` satisfies it, `Assert` is instantiated with `false`, and
+ *  `npm run -w @prism3/studio typecheck` fails — so the floor cannot be quietly downgraded from
+ *  structural back to advisory without the gate saying so. */
+type Assert<T extends true> = T;
+type PageHostIsUnforgeable = Assert<HTMLElement extends PageHost ? false : true>;
+
+/** Mint the page host — the only producer of `PageHost`, and it verifies before it vouches: the type
+ *  says a page cannot be rendered without the chrome, this says the chrome is really in the tree
+ *  rather than merely declared. Compared against the published roster, so it checks what was PROMISED
+ *  for this view rather than a second hardcoded list.
+ *
+ *  REPORTS, does not throw. A missing surface means an engine error could go unseen, which is bad; a
+ *  throw here renders nothing at all, which is worse. The console is not a dead end — the smoke suite
+ *  asserts zero console errors across all 72 page × mode × brand states — so this is fatal in CI and
+ *  legible rather than blank in front of a user. */
+const chromedWorkspace = (ws: HTMLElement): PageHost => {
+  const missing = (document.documentElement.dataset.chromeRoster ?? '').split(' ')
+    .filter((k) => k && !document.querySelector(`[data-chrome="${k}"]`));
+  if (missing.length) {
+    console.error(`page chrome missing: ${missing.join(', ')} — an engine error may not be visible on this page (#772)`);
+  }
+  return ws as PageHost;
+};
+
 /** #268 — the switcher appears only where a mode-varying control actually exists.
  *
  *  The governing rule is the one #268 proposed and #176's decision 2 implies: modes live in the
@@ -6499,7 +6717,10 @@ function syncChromeHeight(): void {
   if (chromeHost) document.documentElement.style.setProperty('--chrome-h', `${chromeHost.offsetHeight}px`);
 }
 
-const PAGE_RENDERERS: Record<PageKey, (host: HTMLElement) => void> = {
+/** Every destination in the rail, keyed by `PageKey` — so a page added to `NAV` fails to compile
+ *  until it is registered here, and registered as a `PageRenderer`, which can only be called with a
+ *  host the chrome mounter produced. */
+const PAGE_RENDERERS: Record<PageKey, PageRenderer> = {
   palettes: renderPrimitives,
   surfaces: renderSurfacesPage,
   interactive: renderInteractivePage,
@@ -6576,12 +6797,18 @@ function renderWorkspace(): void {
   // applyFull() call site, rather than patching each one individually.
   const scrollY = window.scrollY;
   workspace.innerHTML = '';
-  // Page furniture, not global chrome (#432). Re-minted every render because the workspace is cleared;
-  // `currentMode` is module state, so the SELECTION survives navigation exactly as it did in the header.
-  modeStripHost = el('div', 'modebar');
-  workspace.append(modeStripHost);
-  renderModeStrip();
-  PAGE_RENDERERS[page](workspace);
+  // The workspace-home chrome surfaces (#772) — today that is the mode strip, page furniture rather
+  // than global chrome (#432). Re-minted every render because the workspace is cleared; `currentMode`
+  // is module state, so the SELECTION survives navigation exactly as it did in the header. Mounted
+  // from the declaration rather than by name, so a second piece of page furniture cannot arrive here
+  // wired to one of its two obligations.
+  mountSurfaces('workspace', 'app', workspace);
+  syncChrome();   // the workspace is in the document by now, so every surface's first paint is honest
+  // `chromedWorkspace` is the only producer of the host `PAGE_RENDERERS` will accept, and it checks
+  // the declared floor is mounted before minting one. A page therefore cannot be rendered into a view
+  // that skipped the chrome — the distinction this ticket turns on, since a convention every page
+  // happens to follow is what was already here.
+  PAGE_RENDERERS[page](chromedWorkspace(workspace));
   attachModeBadges(workspace);
   // The bar belongs UNDER the page's title + lede, not above it. It scopes the CONTROLS; the hero is
   // the page's identity, and a scope control sitting above the name of the thing it scopes reads as
@@ -7486,6 +7713,12 @@ const renderStartScreen = (): HTMLElement => {
   const c4 = el('div', 'start-card start-row2');
   const t4 = el('div', 'start-c2t');
   t4.append(el('h2', 'start-ct', 'Import a design.md'), el('p', 'start-cd', 'Already have a design.md? Upload it to load the full brand.'));
+  // DELIBERATELY NOT FOLDED INTO THE DECLARED CHROME (#772). This is field validation — "that file is
+  // not a design.md" — attached to the control that produced it, and it reports a REJECTED input the
+  // app never adopted. The chrome error bar reports the opposite case: an engine throw over state the
+  // app is already holding, which is why that one has to be visible wherever you are. Moving this into
+  // shared chrome would put a message about one upload control at the top of the screen, away from the
+  // control, and the floor would have cost this view the ability to say something true about itself.
   const err4 = el('p', 'start-imp-err');
   t4.append(err4);
   const up4 = el('label', 'start-alt start-upload');
@@ -7509,40 +7742,10 @@ const renderStartScreen = (): HTMLElement => {
 };
 
 const build = (): void => {
-  app.innerHTML = '';
-  if (firstRun()) { app.append(renderStartScreen()); return; }   // no origin yet: the start moment stands in for the app
-  // Two-tier global header (docs/23 §7): tier 1 = brand identity + Export (the "brand bar"); tier 2 =
-  // the persistent mode selector. Both sticky together so the mode context never scrolls away.
-  const chrome = el('header', 'chrome');
-  chromeHost = chrome;
-  barHost = el('div', 'bar');
-  chrome.append(barHost);
-  // The mode bar is NOT tier 2 of the chrome any more (#432): it scopes the controls on the page, so
-  // it is minted by renderWorkspace at the top of the workspace instead. Chrome keeps brand + errors.
-  // #388 — the error surface lives in the CHROME, not in a page. It used to be rendered only by
-  // `renderPrimitives`' paint closure, so an engine throw from any other page set `lastError` and showed
-  // nothing: on Typography an off-ladder rung silently kept the old value while the field displayed the
-  // rejected one. Per-page rendering is the shape that caused the hole — the next page added would have
-  // forgotten it too — so this is mounted once and refreshed by `syncErrorBar` on every apply.
-  // `syncErrorBar` — not a literal `display:none` — sets the initial state: page nav re-runs `build()`,
-  // so hardcoding "hidden" here would drop a live error the moment the user changed page, which is the
-  // very hole this bar closes. The host is minted fresh each build; its visibility is always derived.
-  globalErrHost = el('div', 'errbar errbar-global');
-  chrome.append(globalErrHost);
-  syncErrorBar();
-  // The apply detail sits in the chrome for the same reason the error bar does (#388): it is app-level
-  // status, and a per-page or popover home would either be forgotten by the next page or cover the CTA
-  // it describes. Minted unconditionally — `renderApplyStatus` is plugin-only, so on web `applyState`
-  // stays null and `syncApplyDetail` keeps this hidden. Visibility is always derived, never hardcoded
-  // here: page nav re-runs `build()`, which would otherwise collapse an open detail.
-  applyDetailHost = el('div', 'applystat-detail');
-  applyDetailHost.id = APPLY_DETAIL_ID;
-  chrome.append(applyDetailHost);
-  syncApplyDetail();
-  app.append(chrome);
-  renderBar();
-  renderModeStrip();
-  bindStuck();
+  // No origin yet: the start moment stands in for the app. It is a ROOT VIEW, not a page — so it goes
+  // through `mountView` like the app does and carries whatever surfaces the declaration scopes to it,
+  // instead of being the one screen in the studio that renders outside the chrome entirely (#772).
+  if (firstRun()) { mountView('start', () => renderStartScreen()); return; }
 
   const shell = el('div', 'shell');
   const rail = el('nav', 'rail');
@@ -7575,7 +7778,10 @@ const build = (): void => {
 
   workspace = el('section', 'ws');
   shell.append(workspace);
-  app.append(shell);
+  mountView('app', () => shell);
+  bindStuck();
+  // After `mountView`, never inside its `body()`: `renderWorkspace` measures real geometry (`syncStuck`
+  // reads a bounding rect against the live `--chrome-h`), and a detached shell measures zero.
   renderWorkspace();
 };
 
