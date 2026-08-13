@@ -14,8 +14,9 @@
  * a matching doc edit. This gate is that stop.
  *
  * WHAT IT COMPARES, and why that is the whole design: `.github/workflows/ci.yml` on one side — parsed
- * live, every run, never restated as a hand-written list — against the three documents' own text on
- * the other. A hand-written "the gates CI runs" constant would make this gate agree with itself
+ * live, every run, never restated as a hand-written list — against the three documents' own gate
+ * REGIONS on the other (see `GATE_REGIONS`, and #704 for why a region rather than a whole file).
+ * A hand-written "the gates CI runs" constant would make this gate agree with itself
  * forever regardless of what ci.yml actually contains (`docs/34`, shape 2 — the subject and the
  * oracle sharing a derivation). Parsing the real file is what lets a *new* CI step, added without a
  * doc edit, actually fail this gate.
@@ -41,8 +42,41 @@
  * `ci.yml` writes `npm run -w @prism3/studio typecheck` — same command, different argument order. Exact
  * string matching would false-positive on that harmless rephrasing, so `gateTokensOf` extracts the
  * identifying pieces (script name + workspace, or the bare `.ts` filename for `npx tsx` steps) and
- * `docHas` checks that each piece appears as a substring *somewhere* in a doc, not that the full
- * command line appears verbatim or that the pieces sit adjacent.
+ * asks whether those pieces appear together, rather than whether the full command line appears verbatim.
+ *
+ * ── WHERE IT LOOKS, AND HOW CLOSE THE PIECES MUST SIT (#704, #728) ──────────────────────────────
+ *
+ * Both fixes below are to the same predicate, and both were live false passes rather than theory.
+ *
+ * SCOPE — THE REGION THAT CARRIES THE PROMISE, NOT THE WHOLE FILE (#704). This gate used to search
+ * each document end to end. #703 added two CI steps; this gate correctly flagged `CONTRIBUTING.md` and
+ * the PR template, and stayed SILENT about `CLAUDE.md` §4, where they were also genuinely missing —
+ * because the same PR had added an `apps/tokenpress` row to the layer table under "What this repo is",
+ * and that row satisfied the file-wide search. The checklist went short while the gate reported green,
+ * which is precisely the #601/#602 condition this file exists to make impossible.
+ *
+ * The scope of a check must be the scope of its promise. `CLAUDE.md` promises nothing about gates in
+ * its layer table; principle 4 is where the promise lives, so principle 4 is what gets read.
+ * `lint-layout-claims.ts` had already solved this with three declared layout regions — this adopts that
+ * pattern rather than inventing one, down to declaring the membership rule (see `GATE_REGIONS`), because
+ * an undeclared region is the thing that drifts next.
+ *
+ * PROXIMITY — ONE LINE, NOT ONE FILE (#728). Even inside the right region, checking each token as an
+ * independent bare substring lets a two-token gate be satisfied by text that has nothing to do with it:
+ * `npm run -w @prism3/studio test` extracts `["test", "@prism3/studio"]`, and the word `test` plus the
+ * workspace name appear in all three documents for unrelated reasons. Three CI steps have `test` as
+ * their script token and all three were unverifiable — documented in fact, but the gate would not have
+ * noticed them stopping.
+ *
+ * So the tokens must co-occur on ONE LINE of the region. That keeps the argument-order tolerance the
+ * paragraph above defends (both spellings put their tokens on one line) and rejects a match assembled
+ * from two unrelated paragraphs. MEASURED before choosing the unit: all 78 token sets across the three
+ * regions already co-occur on a single line, so this costs zero false positives, and a character window
+ * would have been wrong — `CLAUDE.md` §4's Web bullet names the workspace once and then lists five
+ * scripts after it, spanning 328–363 characters legitimately, all on one line.
+ *
+ * The two questions are ONE predicate with different DATA, not two code paths — see `REQUIRED_POINTERS`
+ * on why the README's pointers are two one-token sets rather than one two-token set.
  *
  * TWO STRENGTHS OF CONTRACT: the three checklist documents must ENUMERATE every gate; the root
  * `README.md` must only POINT at the two that hold the list. The README is a signpost by its own
@@ -69,13 +103,51 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 
 const CI_PATH = resolve(repo, '.github/workflows/ci.yml');
-const REQUIRED_DOCS: { label: string; path: string }[] = [
-  { label: 'CLAUDE.md', path: resolve(repo, 'CLAUDE.md') },
-  { label: 'CONTRIBUTING.md', path: resolve(repo, 'CONTRIBUTING.md') },
-  { label: '.github/pull_request_template.md', path: resolve(repo, '.github/pull_request_template.md') },
+
+export type DocRegion = { label: string; path: string; section: string; start: RegExp; end: RegExp };
+
+/**
+ * The three checklist documents, each scoped to THE REGION THAT CARRIES THE PROMISE (#704).
+ *
+ * THE MEMBERSHIP RULE, declared rather than left to judgment — the same discipline
+ * `lint-layout-claims.ts` applies to its layout regions, and for the same reason: an undeclared region
+ * is the one that drifts next. **A region is a gate promise when it is the passage a contributor is
+ * told to run before pushing.** Not "wherever the document mentions a gate" — `CLAUDE.md` discusses
+ * `lint-us-english.ts` in its Naming-conventions section and `regen.ts` in principle 5, and neither
+ * passage promises to be complete. Principle 4 does. That is the difference the file-wide search could
+ * not see.
+ *
+ * `end` is matched against the lines AFTER `start`, so a region runs to the next sibling heading. Each
+ * boundary is anchored on a structural marker (a numbered principle, an `##` heading) rather than on
+ * prose, so reordering sentences inside a region cannot move its edges. If a boundary regex ever stops
+ * matching, the region reads EMPTY — which fails loudly via the region floor below rather than passing
+ * over nothing, the failure mode this whole file is about.
+ */
+const GATE_REGIONS: DocRegion[] = [
+  {
+    label: 'CLAUDE.md §4 (Goal-driven execution with verification)',
+    path: resolve(repo, 'CLAUDE.md'),
+    section: 'principle 4',
+    start: /^4\. \*\*Goal-driven execution/,
+    end: /^5\. \*\*/,
+  },
+  {
+    label: 'CONTRIBUTING.md §3 (The gates)',
+    path: resolve(repo, 'CONTRIBUTING.md'),
+    section: '§3',
+    start: /^## 3\. The gates\b/,
+    end: /^## \d+\./,
+  },
+  {
+    label: '.github/pull_request_template.md §Gates',
+    path: resolve(repo, '.github/pull_request_template.md'),
+    section: '§Gates',
+    start: /^## Gates\b/,
+    end: /^## /,
+  },
 ];
 
-// The root `README.md` is DELIBERATELY not in REQUIRED_DOCS above, and this is what it gets instead.
+// The root `README.md` is DELIBERATELY not in GATE_REGIONS above, and this is what it gets instead.
 //
 // The three docs above are checklists — someone reads them to learn what to run, so a checklist
 // shorter than `ci.yml` actively misleads, which is the #601/#602 defect. The README is not a
@@ -102,7 +174,20 @@ const REQUIRED_DOCS: { label: string; path: string }[] = [
 // entirely with a comment recording the omission as a decision. That records the reasoning but gates
 // nothing, and the README had already drifted once. Open to reviewer override.
 const POINTER_DOC = { label: 'README.md', path: resolve(repo, 'README.md') };
+
+// TWO one-token sets, not one two-token set — and that is a claim about the README's promise, not a
+// workaround for the co-occurrence rule (#728). "Name both authorities" is satisfied by naming them in
+// two different places; the banner points at `CONTRIBUTING.md` (line 13) and the gates summary points
+// at `ci.yml` (line 61), 48 lines apart, and both are correct. Demanding one line would be a new
+// requirement on the README's prose that nothing has argued for. A *command*, by contrast, is one
+// thing: its script and its workspace belong together. Same predicate, different data.
 const REQUIRED_POINTERS = ['.github/workflows/ci.yml', 'CONTRIBUTING.md'];
+
+/** Which authorities the README fails to name. Each pointer is its own ONE-token query through
+ *  `missingTokens` — the shipped predicate, not a copy — which is what lets the two pointers sit on
+ *  different lines while a single command's tokens may not. */
+export const lostPointersIn = (lines: string[]): string[] =>
+  REQUIRED_POINTERS.filter((p) => missingTokens(lines, [p]).length > 0);
 
 // See the file header's SCOPE note — this is the one exclusion that can't be inferred from shape
 // alone, because its `run:` genuinely contains an `npx tsx` invocation.
@@ -167,28 +252,56 @@ export const gateTokensOf = (run: string): string[][] => {
   return out;
 };
 
-/** Which of `tokens` are absent from a doc. The ONE place membership is decided — `docHas`, `findGaps`
- *  and the README pointer check below all drive this, so a change to what "mentioned" means moves all
- *  three together instead of leaving a copy behind. */
-export const missingTokens = (docText: string, tokens: string[]): string[] => tokens.filter((t) => !docText.includes(t));
+/** Extract a declared region's lines. Returns `[]` when the start boundary no longer matches — a
+ *  missing region must be LOUD (the floor in the real run below), never "nothing to check". */
+export const sliceRegion = (text: string, region: { start: RegExp; end: RegExp }): string[] => {
+  const lines = text.split('\n');
+  const from = lines.findIndex((l) => region.start.test(l));
+  if (from < 0) return [];
+  const rest = lines.slice(from + 1);
+  const to = rest.findIndex((l) => region.end.test(l));
+  return to < 0 ? rest : rest.slice(0, to);
+};
 
-/** A doc "represents" a token set when every token in it appears somewhere in the doc's text — not
- *  adjacent, not in order (see the file header's substance-not-verbatim note). */
-export const docHas = (docText: string, tokens: string[]): boolean => missingTokens(docText, tokens).length === 0;
+/**
+ * Which of `tokens` are absent from `lines`. THE ONE PLACE MEMBERSHIP IS DECIDED — `docHas`, `findGaps`
+ * and the README pointer check all drive this, so a change to what "mentioned" means moves all of them
+ * together instead of leaving a copy behind (`docs/34`, shape 2).
+ *
+ * Present means: SOME SINGLE LINE carries every token (#728). Order-agnostic within the line, so
+ * `npm run typecheck -w @prism3/studio` and `npm run -w @prism3/studio typecheck` both match — but a
+ * `test` in one paragraph and a `@prism3/studio` in another no longer combine into a match for a gate
+ * neither mentions. A single-token set degenerates to a plain substring search over the region, which
+ * is what the `.ts` filenames and the README pointers want.
+ *
+ * Takes LINES rather than a blob precisely so a caller cannot pass a whole file by accident and get the
+ * old file-wide behavior back: the type makes the #704 mistake awkward to re-make.
+ */
+export const missingTokens = (lines: string[], tokens: string[]): string[] => {
+  if (lines.some((l) => tokens.every((t) => l.includes(t)))) return [];
+  // Nothing matched together — report only the tokens that are absent ENTIRELY, so the message says
+  // "no mention of X" when X is missing, and names every token when they merely fail to co-occur.
+  const absent = tokens.filter((t) => !lines.some((l) => l.includes(t)));
+  return absent.length ? absent : tokens;
+};
+
+/** A region "represents" a token set when `missingTokens` finds nothing missing. */
+export const docHas = (lines: string[], tokens: string[]): boolean => missingTokens(lines, tokens).length === 0;
 
 type Finding = { step: string; doc: string; missing: string[] };
 
 /** The one function both the self-check and the real run drive — never a copy of it (`docs/34`,
  *  shape 2: a self-check that samples a reimplementation validates the reimplementation, not the
- *  gate that ships). */
-export const findGaps = (steps: Step[], docs: { label: string; text: string }[]): Finding[] => {
+ *  gate that ships). Each doc arrives as the LINES OF ITS PROMISE REGION, already sliced, and `label`
+ *  names the document AND the section so the failure message points at the passage to edit (#704). */
+export const findGaps = (steps: Step[], docs: { label: string; lines: string[] }[]): Finding[] => {
   const findings: Finding[] = [];
   for (const step of steps) {
     if (NOT_A_DISTINCT_GATE.has(step.name)) continue;
     const tokenSets = gateTokensOf(step.run);
     for (const tokens of tokenSets) {
       for (const doc of docs) {
-        const missing = missingTokens(doc.text, tokens);
+        const missing = missingTokens(doc.lines, tokens);
         if (missing.length) findings.push({ step: step.name, doc: doc.label, missing });
       }
     }
@@ -254,24 +367,74 @@ const npmTokensDocOrder = gateTokensOf('npm run typecheck -w @prism3/sample');
 const setsEqual = (a: string[][], b: string[][]) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 if (!setsEqual(npmTokensCiOrder, npmTokensDocOrder)) selfFails.push('npm-run token extraction is sensitive to `-w` argument order');
 
-// 4. docHas: substance match (tokens present anywhere, any order) — both directions.
-if (!docHas('the sample workspace runs typecheck via @prism3/sample', ['typecheck', '@prism3/sample'])) {
-  selfFails.push('docHas no longer accepts tokens present out of order');
+// 4. docHas: substance match, ORDER-AGNOSTIC WITHIN A LINE — both directions.
+if (!docHas(['the sample workspace runs typecheck via @prism3/sample'], ['typecheck', '@prism3/sample'])) {
+  selfFails.push('docHas no longer accepts tokens present out of order on one line');
 }
-if (docHas('the sample workspace runs typecheck only', ['typecheck', '@prism3/sample'])) {
+if (docHas(['the sample workspace runs typecheck only'], ['typecheck', '@prism3/sample'])) {
   selfFails.push('docHas is satisfied when a required token is actually missing (false pass)');
 }
 
-// 4b. The README pointer contract — both directions, driven through `missingTokens`, the same
+// 4a. #728's defect, as an assertion: tokens scattered across UNRELATED LINES must NOT match. The
+//     `test`/workspace pair is the real case — three ci.yml steps have `test` as their script token,
+//     and both words occur in all three documents for reasons that have nothing to do with the step.
+if (docHas(
+  ['Run the plugin tests before pushing.', 'The @prism3/sample workspace also builds a bundle.'],
+  ['test', '@prism3/sample'],
+)) {
+  selfFails.push('docHas accepts tokens assembled from two unrelated lines (#728 reintroduced)');
+}
+// ...and the co-occurrence rule must not turn the tolerance above into a false positive: the same two
+// tokens ON one line still match, in either argument order.
+for (const spelling of ['npm run test -w @prism3/sample', 'npm run -w @prism3/sample test']) {
+  if (!docHas([spelling], ['test', '@prism3/sample'])) {
+    selfFails.push(`docHas rejects a genuinely documented step written as \`${spelling}\``);
+  }
+}
+// When tokens fail only to CO-OCCUR, the report must name them rather than claim nothing was found —
+// otherwise the message reads "no mention of test" about a document that says `test` twice.
+const scatter = missingTokens(['a test somewhere', 'and @prism3/sample elsewhere'], ['test', '@prism3/sample']);
+if (scatter.length !== 2) selfFails.push('a co-occurrence failure does not report both tokens');
+
+// 4b. sliceRegion — the #704 fix's own boundary logic, in both directions, plus the empty case that
+//     the region floor depends on being detectable.
+const SAMPLE_DOC = [
+  '## 2. Something else',
+  'mentions sample-test.ts in passing — this is OUTSIDE the promise region',
+  '## 3. The gates',
+  'run npx tsx packages/engine/other-test.ts',
+  '## 4. After',
+  'trailing prose',
+].join('\n');
+const region = sliceRegion(SAMPLE_DOC, { start: /^## 3\. The gates\b/, end: /^## \d+\./ });
+if (region.length !== 1 || !region[0].includes('other-test.ts')) {
+  selfFails.push('sliceRegion does not stop at the next sibling heading');
+}
+if (region.some((l) => l.includes('sample-test.ts'))) {
+  selfFails.push('sliceRegion leaks content from BEFORE the region — the #704 false pass');
+}
+if (sliceRegion(SAMPLE_DOC, { start: /^## 9\. Nope\b/, end: /^## / }).length !== 0) {
+  selfFails.push('sliceRegion invents content for a region whose start boundary does not match');
+}
+// The whole point of #704, stated as an assertion at the predicate level: a mention OUTSIDE the region
+// must not satisfy a gate. Same tokens, same document, two different scopes, two different answers.
+const wholeFile = SAMPLE_DOC.split('\n');
+if (!docHas(wholeFile, ['sample-test.ts'])) selfFails.push('the sample doc no longer mentions the token at all — this sample cannot test #704');
+if (docHas(region, ['sample-test.ts'])) {
+  selfFails.push('a gate mentioned OUTSIDE the promise region still satisfies the check (#704 reintroduced)');
+}
+
+// 4c. The README pointer contract — both directions, driven through `missingTokens`, the same
 //     function the real check below calls. A pointer check that cannot fail is worse than no pointer
-//     check, because it makes the README look covered.
-if (missingTokens('summary only; the gates live elsewhere', REQUIRED_POINTERS).length !== REQUIRED_POINTERS.length) {
+//     check, because it makes the README look covered. Note the pointers are two ONE-token sets, so
+//     they may legitimately sit on different lines — see REQUIRED_POINTERS.
+if (lostPointersIn(['summary only; the gates live elsewhere']).length !== REQUIRED_POINTERS.length) {
   selfFails.push('the README pointer check passes a doc naming neither authority (it cannot fail)');
 }
-if (missingTokens('the full list is in .github/workflows/ci.yml; the checklist in CONTRIBUTING.md', REQUIRED_POINTERS).length) {
-  selfFails.push('the README pointer check flags a doc that DOES name both authorities (false positive)');
+if (lostPointersIn(['the full list is in .github/workflows/ci.yml', 'the checklist is in CONTRIBUTING.md']).length) {
+  selfFails.push('the README pointer check flags a doc that names both authorities on separate lines (false positive)');
 }
-if (!missingTokens('see .github/workflows/ci.yml for the full list', REQUIRED_POINTERS).includes('CONTRIBUTING.md')) {
+if (!lostPointersIn(['see .github/workflows/ci.yml for the full list']).includes('CONTRIBUTING.md')) {
   selfFails.push('the README pointer check is satisfied by naming only one of the two authorities');
 }
 
@@ -280,15 +443,20 @@ if (!missingTokens('see .github/workflows/ci.yml for the full list', REQUIRED_PO
 //    doc, once it mentions the token, must produce none for it. And the named exclusion must survive
 //    all the way through `findGaps`, not just `gateTokensOf` in isolation.
 const docsMissingSample = [
-  { label: 'DocA', text: 'nothing relevant here' },
-  { label: 'DocB', text: 'run sample-test.ts before pushing' },
+  { label: 'DocA §Gates', lines: ['nothing relevant here'] },
+  { label: 'DocB §Gates', lines: ['run sample-test.ts before pushing'] },
 ];
 const gapsMissing = findGaps(steps, docsMissingSample);
-if (!gapsMissing.some((f) => f.step === 'Sample unit tests' && f.doc === 'DocA')) {
+if (!gapsMissing.some((f) => f.step === 'Sample unit tests' && f.doc === 'DocA §Gates')) {
   selfFails.push('findGaps does not flag a doc that never mentions a real gate step (the gate cannot fail)');
 }
-if (gapsMissing.some((f) => f.step === 'Sample unit tests' && f.doc === 'DocB')) {
+if (gapsMissing.some((f) => f.step === 'Sample unit tests' && f.doc === 'DocB §Gates')) {
   selfFails.push('findGaps flags a doc that DOES mention the gate step (false positive)');
+}
+// The finding must carry the SECTION, not just the file — "missing from CLAUDE.md" sends a reader to a
+// 25,000-character document; "missing from CLAUDE.md §4" sends them to the checklist (#704's Do list).
+if (!gapsMissing.every((f) => f.doc.includes('§'))) {
+  selfFails.push('a finding names a document without naming the section inside it');
 }
 if (gapsMissing.some((f) => f.step === 'Drift gate still covers the full artifact set')) {
   selfFails.push('the named exclusion did not survive into findGaps — the meta-check step is being required in the docs');
@@ -311,7 +479,7 @@ if (!existsSync(CI_PATH)) {
   console.error(`\n❌ ${resolve(repo, '.github/workflows/ci.yml')} not found — this gate has nothing to compare against.`);
   process.exit(1);
 }
-const missingDocs = [...REQUIRED_DOCS, POINTER_DOC].filter((d) => !existsSync(d.path));
+const missingDocs = [...GATE_REGIONS, POINTER_DOC].filter((d) => !existsSync(d.path));
 if (missingDocs.length) {
   console.error('\n❌ required doc(s) not found — this gate cannot check what it never opened:');
   for (const d of missingDocs) console.error(`    ${d.label}`);
@@ -320,7 +488,27 @@ if (missingDocs.length) {
 
 // ---- THE REAL RUN --------------------------------------------------------------------------------
 const realSteps = parseSteps(readFileSync(CI_PATH, 'utf8'));
-const realDocs = REQUIRED_DOCS.map((d) => ({ label: d.label, text: readFileSync(d.path, 'utf8') }));
+const realDocs = GATE_REGIONS.map((r) => ({
+  label: r.label,
+  section: r.section,
+  path: r.path,
+  lines: sliceRegion(readFileSync(r.path, 'utf8'), r),
+}));
+
+// ---- REGION FLOOR: did it find the promise, or just fail to find it? ----------------------------
+// A region whose `start` no longer matches slices to ZERO LINES, and a zero-line region satisfies
+// nothing — so this would fail loudly on every gate at once rather than pass silently. Loud is already
+// the right direction, but the message would blame the docs for a heading that merely got renamed. This
+// names the real cause instead, and is the same "assert you looked" shape as the candidate floor below.
+const emptyRegions = realDocs.filter((d) => d.lines.length === 0);
+if (emptyRegions.length) {
+  console.error('\n❌ a declared gate region is EMPTY — its start boundary no longer matches, so this gate is');
+  console.error('   reading nothing where it promised to read a checklist:\n');
+  for (const d of emptyRegions) console.error(`    ${d.label} — no line matched the region's start pattern`);
+  console.error('\n  Either the heading was renamed (update the boundary in GATE_REGIONS, same PR), or the');
+  console.error('  checklist moved out of the section that promises to hold it.');
+  process.exit(1);
+}
 
 const candidates = realSteps.filter((s) => !NOT_A_DISTINCT_GATE.has(s.name) && gateTokensOf(s.run).length > 0);
 // A parser that silently stopped matching would report "clean" over zero candidates — a floor here
@@ -333,24 +521,34 @@ if (candidates.length < 10) {
 
 const findings = findGaps(realSteps, realDocs);
 
-// The README's weaker contract — see POINTER_DOC above for why it is not held to enumeration.
-const lostPointers = missingTokens(readFileSync(POINTER_DOC.path, 'utf8'), REQUIRED_POINTERS);
+// The README's weaker contract — see POINTER_DOC above for why it is not held to enumeration, and
+// REQUIRED_POINTERS for why its two pointers are checked as separate one-token queries.
+const lostPointers = lostPointersIn(readFileSync(POINTER_DOC.path, 'utf8').split('\n'));
 
-console.log(`Doc/CI gate-sync check — ${candidates.length} contributor-facing gate step(s) in ci.yml, checked against ${realDocs.length} doc(s) + ${POINTER_DOC.label} (pointers only).`);
+console.log(
+  `Doc/CI gate-sync check — ${candidates.length} contributor-facing gate step(s) in ci.yml, checked against ` +
+    `${realDocs.length} declared gate region(s) + ${POINTER_DOC.label} (pointers only).`
+);
+for (const d of realDocs) console.log(`    region: ${d.label} — ${d.lines.length} line(s)`);
 if (lostPointers.length) {
   console.error(`\n❌ ${POINTER_DOC.label} summarizes the gates without naming ${lostPointers.length} of the ${REQUIRED_POINTERS.length} place(s) that hold the real list:\n`);
   for (const p of lostPointers) console.error(`    ${p}`);
   console.error('\n  The README carries a CATEGORICAL summary on purpose and is not required to enumerate');
   console.error('  every step — but a summary that no longer points at the authority is how it drifted to');
-  console.error('  4 gates against CI\'s 21. Keep the pointers, or move the README into REQUIRED_DOCS and');
+  console.error('  4 gates against CI\'s 21. Keep the pointers, or move the README into GATE_REGIONS and');
   console.error('  accept the full enumeration.');
   process.exit(1);
 }
 if (findings.length) {
   console.error(`\n❌ ${findings.length} gate(s) undocumented:\n`);
-  for (const f of findings) console.error(`    "${f.step}" is missing from ${f.doc} (no mention of: ${f.missing.join(', ')})`);
+  for (const f of findings) console.error(`    "${f.step}" is missing from ${f.doc} (not on any one line there: ${f.missing.join(' + ')})`);
   console.error('\n  Every CLAUDE.md/CONTRIBUTING.md/PR-template checklist must equal what ci.yml actually runs —');
   console.error('  #601 and #602 both shipped `lint:classes` silently broken by following a shorter, stale checklist.');
+  console.error('\n  Note WHERE this is checked (#704): only the section that carries the promise, named above.');
+  console.error('  Mentioning the gate elsewhere in the same file will not satisfy it — that leniency is what let');
+  console.error('  #703 add two CI steps and leave CLAUDE.md §4 short with this gate green. And the tokens must');
+  console.error('  appear ON ONE LINE (#728): `test` in one paragraph plus a workspace name in another is not a');
+  console.error('  documented step. Argument order does not matter.');
   process.exit(1);
 }
-console.log('  ✓ clean — every npm-run/npx-tsx gate in ci.yml is represented in all three documents.');
+console.log(`  ✓ clean — every npm-run/npx-tsx gate in ci.yml is documented in all ${realDocs.length} gate regions.`);

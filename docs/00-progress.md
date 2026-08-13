@@ -7,6 +7,99 @@
 
 ---
 
+## (2026-08-12) — `lint-doc-gates.ts` looked in the whole file for a promise about one section (#704 + #728)
+
+**STATUS: shipped.** `lint-doc-gates.ts` gains three **declared gate regions** with a stated membership
+rule, a per-line **co-occurrence** predicate, and an **empty-region floor**; `docs/34` gains sub-shape 13
+and two register rows. Both issues close together, because one line of code decided both.
+
+**The bug, stated with its scope attached.** The gate's promise is *"a contributor who runs `CLAUDE.md`
+§4's list exactly cannot ship broken"*. Its predicate was `file.includes(token)`. Those are not the same
+claim, and no green run distinguishes them. #703 added two CI steps; the gate flagged `CONTRIBUTING.md` §3
+and the PR template and **stayed silent about `CLAUDE.md` §4, where the steps were equally missing** —
+because the same PR had added an `apps/tokenpress` row to the layer table under "What this repo is", 80
+lines above the checklist, and that row satisfied the search. The §4 list went short while the gate
+reported clean, restoring exactly the #601/#602 condition it exists to prevent. #728 is the same predicate
+failing on **proximity**: `["test", "@prism3/plugin"]` was satisfied by the bare word `test` in one
+paragraph and the workspace name in another.
+
+**This is not the scope-silence shape, and the distinction is the reason it survived a review.** The
+surface was in scope, it was opened, and it was read. **The detector fired on the wrong part of a file it
+did open.** Recorded as `docs/34` sub-shape 13 rather than folded into the adjacent "never looked" mode,
+because the tell is different: the promise names a section and the predicate takes a whole file.
+
+**Reproduced before fixing, and measured before designing.** Against `origin/main`'s predicate the
+historical case gives 2 findings with `CLAUDE.md` silent, and #728's own acceptance test — delete the
+plugin `test` line, ask whether the step is still represented — returns **`true`**, a demonstrated false
+pass rather than an argued one. Then two measurements decided the design instead of taste:
+
+- **0** of the token sets are absent from their declared region. Region-scoping costs **no** false
+  positives, so the narrowing is free.
+- **78 of 78** token sets already co-occur **on one line**. The line is the right proximity unit — and a
+  character window would have been *wrong*: three legitimate §4 spans measure 328 / 346 / 363 characters
+  on a single line, so any window tight enough to reject a cross-paragraph match would reject them.
+
+Co-occurrence on one line also preserves the tolerance that matters: `npm run typecheck -w @prism3/studio`
+and `npm run -w @prism3/studio typecheck` both pass, because argument order is not the thing being
+checked. What is rejected is a match **assembled from unrelated paragraphs**.
+
+**The pattern was adopted, not invented.** `lint-layout-claims.ts` had already solved this with declared
+layout regions; `GATE_REGIONS` is the same shape (`label`, `path`, `section`, `start`, `end` + a
+`sliceRegion` helper). Three things were added that the pattern needs here:
+
+1. **A declared membership rule**, in prose next to the list: *a region is a gate promise when it is the
+   passage a contributor is told to run before pushing* — not "wherever the document mentions a gate."
+   `CLAUDE.md` discusses `lint-us-english.ts` in Naming conventions and `regen.ts` in principle 5; neither
+   passage promises to be complete, and principle 4 does. **An undeclared region is the thing that drifts
+   next**, so the rule is written down rather than inferable from the three entries.
+2. **An empty-region floor.** A region whose `start` stops matching slices to `[]`, and `[]` satisfies
+   nothing — so without the floor a renamed heading fails the gate while blaming the *docs*. The floor
+   fails first and names the boundary.
+3. **The failure message names document *and* section.** "missing from `CLAUDE.md`" sends a reader to
+   25,000 characters; "missing from `CLAUDE.md` §4" sends them to the list. A self-check asserts every
+   finding's `doc` contains `§`.
+
+`missingTokens` takes `lines: string[]`, not a blob — the type is the guard, so a future caller cannot
+re-make the #704 mistake by accident. README pointers stay **two one-token queries** through the same
+predicate (`lostPointersIn`), because they legitimately sit 48 lines apart at lines 13 and 61: one
+predicate, different data.
+
+**Six mutations, all confirmed to fail by name.** The rule is not "does the suite go red" — it is "is
+*this* gate among the failures":
+
+| # | mutation | before | after |
+|---|---|---|---|
+| M1 | the historical one: add a CI step, mention the workspace **outside** §4 | 2 findings, §4 **silent** | EXIT 1, **3** findings, `CLAUDE.md §4` named |
+| M2 | inverse: documented only inside the regions | — | EXIT 0 — no false positive |
+| M3 | #728's case: delete the plugin `test` line | represented → **`true`** | EXIT 1, names step, section, and `test + @prism3/plugin` |
+| M4 | rename principle 4's heading | — | the region floor fires and blames the **boundary**, not the docs |
+| M5 | revert `missingTokens` to file-wide | — | the **self-check** fails, naming "#728 reintroduced" |
+| M6 | widen a region's `start` to `/^/` | 3 findings | **2** — `CLAUDE.md`'s disappears |
+
+M6 is the one that proves causation rather than coincidence: widening the region back toward file scope
+makes exactly the #704 finding vanish, which is the same defect arriving through the boundary instead of
+through the predicate.
+
+**Why this was urgent rather than tidy.** §4 gained `tools/exporter-comparison/gate.ts` mid-session, and a
+short gate list was nearly shipped off it. That gate is the only thing standing between a contributor and
+a green run on an incomplete checklist — and until this PR it could pass on the wrong part of the file.
+
+**Two traps for whoever re-verifies this**, neither about the fix:
+
+- The git **stash stack is repo-global**, shared across every worktree. A `git stash` here suspended
+  another session's WIP into the same stack. Recover with `git stash show --name-only` then
+  `git show 'stash@{0}:<path>'` to extract a single file **without popping** — popping merges two PRs'
+  work.
+- **`jszip` is not installed in this checkout at all**, so `@prism3/tokenpress test`, its `build`, and
+  `tools/exporter-comparison/gate.ts` (which executes TokenPress's real exporter) all fail with
+  `ERR_MODULE_NOT_FOUND` locally. Pre-existing since #703 and **not** a worktree artifact — verified by
+  reproducing it identically in the shared checkout. `package-lock.json` has the entry; nothing ever ran
+  the install. Unblocked by installing `jszip@3.10.1` into a scratch directory and linking its 13
+  entries **individually** into the worktree's `node_modules` — never the directory, per the workspace
+  symlink rule. Then: 274 assertions, build's four properties, gate 3 brands all-arms-zero.
+
+---
+
 ## (2026-08-12) — Gate independence one level in: the probe that read the code it was probing (docs/34 shape 12)
 
 **STATUS: shipped.** Docs only — `docs/34-gate-independence.md` gains sub-shape **12**, a register row, and a
