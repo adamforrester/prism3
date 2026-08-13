@@ -236,9 +236,20 @@ const gridCensus = (def: ComponentDef): Tally => {
 
 /**
  * The defs a census can be taken of at all: they have an anatomy to project and a `size` axis, which
- * `figmaAnatomyPlan` requires. Three of the seven defs (`focus-ring`, `field-message`, `field-label`,
- * `text-field`) fall outside for reasons Arc 2 steps 3 and 5 address — they are covered by arm 1,
- * which reads their `tokens` directly and needs no projection.
+ * `figmaAnatomyPlan` requires. Everything outside is still covered by arm 1, which reads `tokens`
+ * directly and needs no projection — but NOT by arms 2 and 3, and that gap is the point of the list
+ * below. Named with the REASON rather than a count, because the count is what went stale: this comment
+ * said "Three of the seven" while listing four, and `field-label` has since left the list.
+ *
+ *   - `focus-ring`, `field-message` — an anatomy block and no `size` axis. Both have one type scale, and
+ *     `figmaAnatomyPlan` requires a declared `size` while `planComponentName` always writes `size=`, so
+ *     they project at NO coordinate by our own construction. Filed as #795: it now blocks two
+ *     defs for one reason and has stopped being a per-def note.
+ *   - `text-field` — no anatomy at all, so `figmaAnatomyPlan` cannot be called. Arc 2 step 5.
+ *
+ * `field-label` entered the census in #796 and is the reason to state this precisely: an `anatomy` block
+ * is necessary and not sufficient (docs/38 §2). Having one does not put a def in here; having one plus a
+ * size axis does.
  */
 const censusable = (): ComponentDef[] => componentDefs.filter((d) => !!d.anatomy && (d.variants?.size ?? []).length > 0);
 

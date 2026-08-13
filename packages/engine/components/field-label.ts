@@ -55,21 +55,113 @@ export const fieldLabel: ComponentDef = {
   // shipped while painting NOTHING, because `paintOf` is asked for `label` on a text node and never for
   // a slot named `text`. Measured before the rename: 0 of 3 colour bindings reachable at any coordinate.
   //
-  // `indicator.label` is the SECOND text part's ink, keyed under the part rather than as a slot of its
-  // own. It reads as a sub-key of the indicator and resolves through the same `{slot}` template once the
-  // anatomy block names that part (Arc 2 step 3, the next PR) — where `disabled.label` also becomes
-  // reachable via the projector's cross-cutting `disabled.*` branch, same as Button's.
+  // THE SECOND TEXT PART'S INK IS ITS OWN SLOT (#796), and this is a CORRECTED decision rather than a
+  // new one — the comment that stood here was wrong, and wrong in the exact way #784 was about.
+  //
+  // It read: *"`indicator.label` is the SECOND text part's ink, keyed under the part rather than as a
+  // slot of its own … resolves through the same `{slot}` template once the anatomy block names that
+  // part."* The reasoning was that the template list disambiguates the two text nodes positionally.
+  // MEASURED, and it does not: `paintOf` takes a SLOT and never sees which part asked, so the
+  // `kind === 'text'` branch called `paintOf('label')` for every text node. Both parts came back
+  // `color/text/primary`, and `indicator.label` → `color.text.secondary` was authored, resolvable and
+  // reached at NO coordinate — the de-emphasised "(optional)" suffix would have shipped in
+  // full-strength primary ink. A rename that produced a dead key, inside #784's own fix.
+  //
+  // So the indicator part declares `paintSlot: 'indicator'` and the key is `indicator`, a slot the
+  // projector dispatches. Not folded into `label` (Figma renders two text nodes in two colors
+  // trivially, so a shared ink would be a real design loss recorded as a tooling ceiling), and not
+  // deferred (the cost is visible in the library designers actually use).
+  //
+  // `disabled.label` needs no new mechanism — it resolves via the cross-cutting `disabled.*` branch,
+  // same as Button's, and the branch builds `disabled.<slot>` from the slot it was ASKED for, so the
+  // indicator's disabled ink is `disabled.indicator`. Bound below for that reason: without it a
+  // disabled label dims and its indicator does not.
   paintKeys: ['{slot}'],
 
   tokens: {
     'gap': 'space.050',
     'label': 'color.text.primary',
-    'indicator.label': 'color.text.secondary',
+    'indicator': 'color.text.secondary',
     'disabled.label': 'color.disabled.text',
+    'disabled.indicator': 'color.disabled.text',
     // NOT renamed: these bind TYPE, not colour, and are resolved by `anatomy`'s `type` field through
     // `varOf` rather than by any paint template. #784 is a paint rule and this is not paint.
     'size.small.text': 'type.label.sm.emphasis',
     'size.medium.text': 'type.label.md.emphasis',
+  },
+
+  // TWO TEXT NODES IN A ROW, and the def's whole structure is that plus the gap between them. The
+  // label names the field; the indicator is the required/optional marker beside it, in its own ink.
+  anatomy: {
+    root: 'label',
+    parts: {
+      label: {
+        kind: 'box',
+        // `target` in the schema's sense — the node that owns this component's paint and geometry — and
+        // NOT the interaction sense, on `icon`'s terms: a label takes no focus. What it DOES own that a
+        // glyph does not is a real a11y relationship, the native `<label for>`, and that is a DOM fact
+        // with no Figma expression (see codeOnly).
+        role: 'target',
+        // BASELINE, not center, and this is the one alignment choice here that is a design decision
+        // rather than a default: the marker sits beside running text at a different type step in the
+        // `optional` case, so centering would float "(optional)" off the label's baseline. Figma's
+        // auto-layout carries baseline alignment natively, so this projects.
+        layout: { direction: 'row', align: 'baseline', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        gap: 'gap',
+        children: ['text', 'indicator'],
+      },
+      text: {
+        kind: 'text',
+        type: 'size.{size}.text',
+        // No `paintSlot` — the default IS `label`, and stating it would invite the reading that the
+        // field is required on every text part.
+        note: 'The accessible name. A native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.',
+      },
+      indicator: {
+        kind: 'text',
+        type: 'size.{size}.text',
+        // THE FIELD THIS PR ADDS (#796). Without it this part takes `paintOf('label')` like every other
+        // text node and renders in `color.text.primary` — the de-emphasis silently lost. Measured before
+        // the field existed: both text parts came back `color/text/primary`.
+        paintSlot: 'indicator',
+        // NOT `optional: true`, and this is a projector constraint rather than a design claim. `present()`
+        // returns `!p.optional` for every part except the two it name-checks (`leadingVisual` /
+        // `trailingVisual`), so an optional part named anything else is built at NO coordinate — it would
+        // validate clean, read as a considered absence, and never appear. The `indicator` axis is what
+        // expresses absence, and it is unprojectable for its own reason (see codeOnly), so in Figma the
+        // marker is always present and a designer deletes it for the `none` case. Stated because the
+        // tempting shape — `optional: true` plus a Figma BOOLEAN — is unbuildable in BOTH directions:
+        // `figmaProperties.booleans` requires `optional: true`, and `present()` then drops the node the
+        // boolean would toggle. No def in the corpus uses `booleans` (both declare it stated-empty),
+        // which is why that contradiction has never surfaced.
+        note: 'The required/optional marker — "*" or "(optional)", in the muted indicator ink so it reads as de-emphasised beside the name. Never the sole signal: the field carries required / aria-required.',
+      },
+    },
+    codeOnly: [
+      // MUST LEAD with `indicator` — `figmaPropertyErrors` requires an unprojected variant axis to be
+      // admitted by an entry that STARTS with the axis name (the #563 finding: a passing mention inside
+      // an entry about something else is a gate satisfied by unrelated prose).
+      'indicator — the required/optional axis, declared in `variants` and not projectable as a Figma variant, for the same structural reason `icon`\'s `tone` is not: `figmaAnatomySet` refuses any variant axis outside intent/appearance/size (`PROJECTABLE_VARIANT_AXES`) and throws rather than enumerating around it, because a set silently missing an axis is worse than a set that refuses to build (#487 §5\'s 189-vs-756). PAINT is not the obstacle and this is worth separating: the marker\'s ink resolves at every coordinate as of #796, via `paintSlot: \'indicator\'`. So the Figma projection carries ONE indicator treatment per size with placeholder text, and the three-way choice — no marker, a required marker, "(optional)" — lives in the code projection. The related trap is in the part\'s own note: absence cannot be modelled as `optional: true` either, because `present()` never builds an optional part outside the two slot names it hardcodes.',
+      'htmlFor / label association — the entire reason this component exists (§6) and it has no Figma expression at all. A native `<label for=id>` is what makes the name programmatic; Figma has no accessibility tree and no node-to-node reference a materializer could write, so the projection is two text nodes that LOOK like a label and carry none of the relationship. A designer reviewing the Figma member cannot see whether the field is actually named, which is the one property this def is for.',
+      'the visually-hidden case — §6\'s only label-less shape is a label that exists in the DOM and is clipped from view (a search field). That is a CSS technique with two hard requirements Figma cannot hold: the node must stay in the accessibility tree, so `display: none` and `visibility: hidden` are both wrong, and it must still be present. A Figma variant with the text node deleted expresses the opposite of what the technique does — an absent label rather than a hidden-but-announced one — so it is deliberately not projected as a coordinate.',
+      'sentence-case and ≤3-word content rules — `content.labelPattern` states them and no projection enforces them. Figma carries a placeholder string, and a placeholder is a suggestion: a designer typing "Please enter your email address here:" produces a member that is structurally perfect and violates three of the four rules at once. The enforcement surface is review and lint in the code tier, which is worth admitting rather than implying the def governs copy.',
+    ],
+  },
+
+  // `size` alone, on `icon`'s terms: the projectable axis list is intent/appearance/size, and `size` is
+  // the only one of this def's two axes on it — `indicator` is admitted in codeOnly above rather than
+  // dropped. Two members, one per size step.
+  //
+  // `stateAxis` is DECLARED here where `icon` has none, because this def has states (`rest`, `disabled`)
+  // and both project: the disabled treatment is a paint change on nodes that already exist, which is
+  // exactly what a variant coordinate carries. `booleans` is stated-empty rather than omitted — the
+  // established way this schema says "considered, and none survive" — and the indicator's note records
+  // why the one candidate is unbuildable.
+  figmaProperties: {
+    variantAxes: ['size'],
+    stateAxis: { name: 'state', values: ['rest', 'disabled'] },
+    texts: { children: { part: 'text', default: 'Email address' } },
+    booleans: {},
   },
 
   accessibility: {
