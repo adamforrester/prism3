@@ -21,3 +21,23 @@ declare const PRISM3_HOST: 'web' | 'figma';
  * and diffing rendered pixels. That happened, for a change that had in fact shipped correctly.
  */
 declare const PRISM3_BUILD: string;
+
+/**
+ * `.css` imported as TEXT (#769). The chrome stylesheet moved out of a template literal in
+ * `main.ts` into `styles.css`, and it is pulled back in as a string rather than emitted as a
+ * separate asset — the bundle has to stay self-contained for the Figma plugin iframe, which ships
+ * `allowedDomains:["none"]` and cannot fetch a second file.
+ *
+ * This declaration lives beside the two defines above for the same reason they do: it is a
+ * BUILD INPUT the type system cannot see, shared by both tsconfigs that compile `apps/studio/src`
+ * (`apps/studio/tsconfig.json` and `apps/plugin/tsconfig.ui.json`, which names this file
+ * explicitly). The matching build-side requirement is `--loader:.css=text` on every esbuild entry
+ * that bundles this directory; `styles.css`'s own header lists them.
+ *
+ * Typecheck alone cannot prove the loader is configured — this declaration is satisfied by a
+ * bundler that emits a separate .css file just as happily. `main.ts` asserts the string at boot.
+ */
+declare module '*.css' {
+  const css: string;
+  export default css;
+}

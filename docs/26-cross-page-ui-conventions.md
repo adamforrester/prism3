@@ -175,8 +175,13 @@ ordered, and step 3 is the one that decides whether the findings are real.
   #388, and again at 829px on a token pill). Cap with an explicit px `max-width`.
 - **`el()` escapes its text argument.** Markup needs `innerHTML`. **Never put markdown in visible
   copy** — backticks shipped literally to users in a section description.
-- **No backticks anywhere inside the CSS template literal, including comments (#366).** They terminate
-  the literal and esbuild reports the failure dozens of lines from the edit.
+- **~~No backticks anywhere inside the CSS template literal, including comments (#366).~~ RETIRED by
+  #769.** The stylesheet moved out of `main.ts` into `apps/studio/src/styles.css`, so there is no
+  enclosing literal left to terminate and a backtick in a CSS comment is now an ordinary character.
+  Struck rather than deleted, because the rule was live for four separate build breaks and the reflex
+  outlives the constraint: the cost was never the backtick, it was that `tsc` reported `TS1005`
+  hundreds of lines from the edit. Edit CSS in the `.css` file — two gates read it there
+  (`lint-classes.mjs`, `lint-contrast.mjs`) and both fail closed if it moves again.
 - **`.tpill` is `direction: rtl`** (left-ellipsis for long paths), so a trailing glyph reorders to the
   front — `type.display.*` renders as `*.type.display`. Name a node, not a glob.
 - **A scoped `display` rule outranks the UA `[hidden]` rule.** If you write

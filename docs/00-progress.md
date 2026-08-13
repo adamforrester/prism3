@@ -7,6 +7,98 @@
 
 ---
 
+## (2026-08-13) — The studio stylesheet becomes a real file, and the packaging that made it a trap stays (#769)
+
+**STATUS: shipped.** Piece 1 of 4 under the cleanup tracking issue #768. `apps/studio/src/styles.css`
+is a real stylesheet; `src/main.ts` imports it. No `packages/engine/` change beyond the one comment
+#769 asks for, so the component arcs running there are untouched.
+
+**Re-measured, not inherited.** #769's body said L7370–8754 (~1,384 lines); the handoff brief said
+L7580–9041 (~1,462). On `4d5ab4f` the declaration is **L7580–9041 (1,462 lines)**, of which
+**1,460 are CSS** (L7581–9040), out of a 9,088-line file — **16.1%**. `main.ts` is now 7,644 lines.
+The ratio is the durable part; both absolutes had already moved.
+
+**THE FORK, and it is the whole decision.** #769's comment predicts the obvious implementation:
+`import './styles.css'`, esbuild writes `dist/main.css`, and `build-site.mjs`'s `EXPECTED` manifest
+plus `index.html` have to move together. That is one of two options and it is the wrong one **here**,
+for three reasons measured rather than assumed:
+
+1. **The plugin.** `apps/plugin/build.mjs` bundles this same entry as its UI (#110, one UI no fork)
+   and the iframe ships `allowedDomains:["none"]` — no server, so the UI must be a single
+   self-contained HTML file. A separate stylesheet is unfetchable there by construction.
+2. **Gate coverage.** `lint-us-english.ts` scans `apps/studio/dist/**` filtered to `.js`. The CSS
+   comments are ~1,460 lines of prose that ship verbatim into that bundle, and the 2026-08-04 entry
+   for #446 records the gate firing on a `colour` inside one. Emitting `dist/main.css` moves that
+   prose off the scanned surface entirely — a silent coverage loss, repairable only in
+   `packages/engine/`, which this PR is scoped out of.
+3. **The manifest is worth more armed than updated.** Under the CSS-output route, `EXPECTED` grows a
+   `dist/main.css` entry and the check stops being able to fail on the case it was written for.
+
+So the CSS is imported through esbuild's **`text` loader**: a real `.css` file to author, still one
+JS bundle to ship. `styles.css` is byte-identical to the literal it replaced (asserted against the
+extracted text, then against the string inside the built bundle), and the whole bundle diff is three
+hunks — the CSS moving to a `styles_default` module var, the boot guard, and `STYLE` →
+`styles_default` at the injection site.
+
+**What that costs, stated plainly.** `--loader:.css=text` is now duplicated across five esbuild
+entries (`dev`, `build`, `build-site.mjs`, `vercel-ignore-check.mjs`, `apps/plugin/build.mjs`), and
+esbuild's DEFAULT `.css` loader does not error on a JS default-import — it resolves to `{}` and every
+rule silently vanishes. Three things catch a dropped loader, which is why five copies is tolerable:
+the two entries built with `write: false` have no output path and esbuild refuses the import outright
+(verified — the plugin build exits 1 naming the file); `build:site` emits `dist/main.css` +
+`dist/main.css.map` and the manifest fails on them (verified); and `main.ts` now throws at boot if
+`STYLE` did not arrive as a string, so an unstyled page cannot render at all.
+
+**Three gate migrations, each mutation-tested in both directions.**
+
+| gate | mutation that must FAIL | mutation that must PASS |
+|---|---|---|
+| `lint-classes.mjs` → `src/styles.css` | re-add `.slider{margin-top:16px}` — the literal #464 rule — and it flags `pfield slider`, exit 1 | a comment-only CSS edit, exit 0 |
+| `lint-contrast.mjs` → `src/styles.css` | `--faint` lightened to `#8d8d94` → 2 pairings under floor, exit 1 | `--faint` darkened to `#5d5d64`, exit 0 |
+| `build-site.mjs` `EXPECTED` | drop the `loader` → `unexpected: dist/main.css, dist/main.css.map`, exit 1 | the real build, exit 0 |
+
+Both fail-closed checks were also driven: an empty stylesheet, and the gates left pointed at
+`src/main.ts` (the pre-migration state) — both exit 1 rather than passing over a file with nothing in
+it. `lint-classes` needed the smaller half of the split noticed: it reads **two** files now, rules
+from the CSS and `el()`/`className` mints from the TS, and each half keeps its own fail-closed check
+because after the split "found half of what it needs" is a reachable state.
+
+**`build-site.mjs` is the one CI cannot catch** — it runs on Vercel's preview deploy, not in
+`ci.yml`. Run locally: green, three files, `EXPECTED` unchanged. Unchanged is the *result*, not an
+omission: nothing new is emitted, so `index.html` needs no new reference and the guard stays able to
+fail. Its comment was rewritten anyway, because the hypothetical it names ("add a CSS import to
+`src/main.ts`") is now a live configuration and a comment that reads as a prediction of something
+that already happened is the next reader's wrong turn.
+
+**Comments that asserted a protection the code no longer provides.** Three, all rewritten in this
+PR per the #646 lesson: `lint-voice.ts`'s carve-out paragraph (the CSS is still string content in the
+`.js` bundle, so the exemption is unchanged — but it now says *why* the move did not break it, and
+what would have broken it); `docs/26`'s "no backticks anywhere inside the CSS template literal"
+(struck, not deleted — the rule cost four build breaks and the reflex outlives the constraint); and
+`.claude/commands/review-pr.md`'s pointer at `main.ts`'s literal.
+
+**Evidence that no pixel moved**, in three independent forms. The shipped CSS string is byte-identical
+to the template literal it came from. The smoke suite (#767) is green at **517 assertions / 72 states
+/ 15,638 text nodes / lowest rendered contrast 3.04:1** — the same three numbers as a baseline run on
+`origin/main`, which is the comparison that makes them mean something. And a throwaway 72-state
+screenshot sweep across every page × mode × brand: **64 states byte-identical**, the 8 differing ones
+all `Motion` — which a control run of the sweep against *itself* also reports as differing, because
+the page animates. Read the suite's output directly; it is `continue-on-error` until 2026-08-20
+(#775), so a red run appears in no status check.
+
+**Not touched, deliberately:** `mode-audit.mjs` reads `main.ts` by logic rather than by CSS and
+belongs to #771 (it still runs clean); `lint-layout-claims.ts` carries `main.ts` in a self-check
+fixture and the file still exists, so nothing it claims was invalidated (gate green, unchanged).
+`check:ignore` reports **16 engine files in the bundle**, the same as before — `styles.css` is not an
+engine file.
+
+**Trap for whoever does #770 (scoped styles).** The gates now read `src/styles.css` by path and by
+SHAPE: `lint-contrast` wants a top-level `^:root{` block, `lint-classes` wants top-level
+`^.class{` rules. Scoping that nests every rule under a wrapper selector will take both to zero
+matches, and they will fail closed — correctly, and loudly, exactly as they did here.
+
+---
+
 ## (2026-08-13) — The studio gets DOM/interaction coverage it could not have, and #333 closes (#767)
 
 **STATUS: shipped.** `apps/studio/test-smoke.mjs` — a committed headless suite over every page in every

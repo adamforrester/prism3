@@ -31,11 +31,15 @@ await mkdir(pub, { recursive: true });
 const buildId = (process.env.VERCEL_GIT_COMMIT_SHA ?? '').slice(0, 7) || 'local';
 
 // Same flags as the `build` script — the deployed bundle must be the one we develop against.
+// `loader` included: `src/main.ts` imports `src/styles.css` as TEXT (#769), and esbuild's DEFAULT
+// `.css` loader would instead emit a `dist/main.css` nothing references — which is precisely the
+// unreferenced-asset case the manifest below exists to catch, so the two are wired to agree.
 await build({
   entryPoints: [resolve(root, 'src/main.ts')],
   outdir: resolve(pub, 'dist'),
   bundle: true,
   format: 'esm',
+  loader: { '.css': 'text' },
   define: { PRISM3_HOST: "'web'", PRISM3_BUILD: JSON.stringify(buildId) },
   sourcemap: true,
   logLevel: 'info',
@@ -45,8 +49,11 @@ await build({
 await cp(resolve(root, 'index.html'), resolve(pub, 'index.html'));
 
 // Enforce the manifest rather than assume it. index.html is copied verbatim and references
-// only /dist/main.js, so an emitted-but-unreferenced asset (add a CSS import to src/main.ts
-// and esbuild writes dist/main.css) would deploy a broken site on a green build.
+// only /dist/main.js, so an emitted-but-unreferenced asset would deploy a broken site on a green
+// build. THE EXAMPLE THIS COMMENT USED TO GIVE IS NOW LIVE: `src/main.ts` does import a CSS file
+// (#769). It is loaded as TEXT and travels inside main.js, so the expected set is unchanged — and
+// this check is what stands between a dropped `loader` above and a deployed page with no styles at
+// all. `build:site` is NOT in ci.yml (it runs on Vercel's preview deploy), so run it by hand.
 const EXPECTED = ['dist/main.js', 'dist/main.js.map', 'index.html'];
 const found = (await readdir(pub, { recursive: true, withFileTypes: true }))
   .filter((e) => e.isFile())

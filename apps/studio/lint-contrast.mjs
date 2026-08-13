@@ -69,11 +69,13 @@ const PAIRS = [
   ['--danger', '--danger-tint', 4.5],
 ];
 
-const src = await readFile(resolve(root, 'src/main.ts'), 'utf8');
+// #769 moved the stylesheet out of a template literal in `src/main.ts` into a real `src/styles.css`.
+// Same bytes, same `:root{}` shape, different file — and this gate reads the file, not the literal.
+const src = await readFile(resolve(root, 'src/styles.css'), 'utf8');
 const block = src.match(/^:root\{([\s\S]*?)^\}/m);
 if (!block) {
-  console.error('lint:contrast FAILED — no :root{} block found in src/main.ts.');
-  console.error('  The gate reads token values straight from the stylesheet; if that literal moved,');
+  console.error('lint:contrast FAILED — no :root{} block found in src/styles.css.');
+  console.error('  The gate reads token values straight from the stylesheet; if that block moved,');
   console.error('  this must follow it rather than silently pass over a file it cannot parse.');
   process.exit(1);
 }

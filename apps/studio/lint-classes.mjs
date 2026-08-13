@@ -32,6 +32,12 @@
  * ordinary base+modifier convention, which cannot collide across surfaces because the prefix scopes it.
  * Everything else is listed by hand.
  *
+ * TWO FILES, TWO HALVES, SINCE #769. The stylesheet moved out of a template literal in `src/main.ts`
+ * into `src/styles.css`; the `el()` / `className` mints stayed behind in `src/main.ts`. So this reads
+ * both, and each half keeps its own fail-closed check — the rules half over the CSS, the mints half
+ * over the TS. Reading one file and finding half of what it needs is exactly the state those checks
+ * exist to refuse, and after the split that state is reachable one file at a time.
+ *
  * Run: `npm run -w @prism3/studio lint:classes`
  */
 import { readFile } from 'node:fs/promises';
@@ -83,6 +89,9 @@ const ALLOWED = new Set([
   'tf-in tf-addin',
 ]);
 
+// The stylesheet (#769) and the code that mints class names onto elements. Separate files, and the
+// two halves below are read from the one that actually holds each.
+const css = await readFile(resolve(root, 'src/styles.css'), 'utf8');
 const src = await readFile(resolve(root, 'src/main.ts'), 'utf8');
 
 // Classes with their own top-level rule. Anchored at line start so a nested or compound selector
@@ -93,12 +102,12 @@ const src = await readFile(resolve(root, 'src/main.ts'), 'utf8');
 // used to be invisible here — every selector in a CSS group owns the same rule body, so each one is
 // captured (#544; found because `.brandsel,.barbtn{...}` already existed in this exact shape).
 const owns = new Set();
-for (const m of src.matchAll(/^((?:\.[a-z][a-z0-9-]*\s*,\s*)*\.[a-z][a-z0-9-]*)\s*\{/gm)) {
+for (const m of css.matchAll(/^((?:\.[a-z][a-z0-9-]*\s*,\s*)*\.[a-z][a-z0-9-]*)\s*\{/gm)) {
   for (const sel of m[1].split(',')) owns.add(sel.trim().slice(1));
 }
 if (owns.size === 0) {
-  console.error('lint:classes FAILED — no top-level CSS rules found in src/main.ts.');
-  console.error('  The stylesheet literal moved or changed shape; this must follow it rather than');
+  console.error('lint:classes FAILED — no top-level CSS rules found in src/styles.css.');
+  console.error('  The stylesheet moved or changed shape; this must follow it rather than');
   console.error('  pass over a file it can no longer read (the #502 lesson: prove you looked).');
   process.exit(1);
 }
@@ -111,7 +120,7 @@ if (owns.size === 0) {
 // default (same #502 lesson as above).
 const NON_BOX_PROP = /^(font(-[a-z-]+)?|color|letter-spacing)$/;
 for (const cls of UTILITIES) {
-  const m = src.match(new RegExp(`^\\.${cls}\\{([^}]*)\\}`, 'm'));
+  const m = css.match(new RegExp(`^\\.${cls}\\{([^}]*)\\}`, 'm'));
   if (!m) {
     console.error(`lint:classes FAILED — UTILITIES class '.${cls}' has no top-level rule to verify.`);
     console.error('  A utility exempted from the collision check must have a rule to check in the');
