@@ -285,7 +285,6 @@ for (const brand of BRANDS) {
         const err = document.querySelector('.errbar-global');
         return {
           heroTitle: document.querySelector('.hero h1')?.textContent?.trim() ?? '',
-          sections: document.querySelectorAll('.psec').length,
           controls: document.querySelectorAll('.ws input, .ws select, .ws button').length,
           errorBarShown: !!err && getComputedStyle(err).display !== 'none',
           errorBarText: err?.textContent?.trim() ?? '',
