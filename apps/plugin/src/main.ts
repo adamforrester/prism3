@@ -247,8 +247,25 @@ const measureSettle = async (): Promise<number | null> => {
  * axis filter would be a curation taxonomy nobody has chosen. If a smaller default is wanted, this line
  * is where it goes — nothing downstream needs to change.
  *
- * BUTTON BY NAME, not a catalogue loop, because `anatomy` is what makes a def materialisable and Button
- * is the only def in the catalogue that has one. A loop over five defs would throw on four of them.
+ * BUTTON BY NAME, not a catalogue loop — and the reason is a PROPERTY, deliberately not a count.
+ * Materialising a def takes two things, which `docs/38` §2 names in the vocabulary this comment
+ * borrows so a reader moving between the design record and here is not translating: an `anatomy` block
+ * (`figmaAnatomyPlan` throws without one) **and** a `figmaProperties` block declaring which axes the
+ * set spans (`figmaAnatomySet` throws without that). **An `anatomy` block is necessary and not
+ * sufficient** — `focus-ring` carries one and still cannot be built, because declaring its axes would
+ * validate cleanly and throw at projection.
+ *
+ * So a catalogue loop would throw on whichever defs are missing either half, and **the count is not
+ * written here on purpose.** The claim this replaced was *"Button is the only def in the catalogue that
+ * has one"* — true when written, false since #734 and #741, and it rotted silently because a count in a
+ * comment has an expiry date that nothing checks. Restating it as a newer count would rot on the same
+ * schedule; Arc 2 step 3 moves it again the moment the three field defs gain anatomy. For today's
+ * numbers read `componentDefs` (#742), which is a real set that `typecheck-components.ts` asserts holds
+ * exactly the defs git tracks — or `docs/38` §2's census row, which carries its own **was** column.
+ *
+ * Button specifically, rather than "the first materialisable def", because this action's contract is
+ * Button's 648-member set: `SWAP_TARGET`, the progress calibration below, and #483's whole scope. A loop
+ * would be a different feature with a different name, not a generalisation of this one.
  *
  * The global `figma` satisfies `ComponentsApi` wholesale, so this call site is what proves that port on
  * every typecheck — the same way the three sibling lanes are proven, and what retired
