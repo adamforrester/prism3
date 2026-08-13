@@ -35,6 +35,16 @@
 # The measurement above says `ci` does not follow links INSIDE `node_modules`; it says nothing about
 # `node_modules` itself being one, and the difference is somebody else's work.
 #
+# REFUSING REPORTS, IT DOES NOT BLOCK, and that distinction is the reason every path here ends in
+# `exit 0`. A hook that refused by failing would strand the one person who can fix it: an agent in a
+# worktree whose `node_modules` is a symlink needs a working session to repair it, and the repair
+# instruction is in the message. Measured per branch rather than reasoned from the source — all six
+# (not-a-repo, no lockfile, marker-present, symlink refusal, `npm ci` failure, and both fall-off-the-
+# end outcomes of the `case`) exit 0, including the two that inherit `jq`'s status by falling off the
+# end. SessionStart cannot block a session at any exit code, so this is belt-and-braces rather than
+# load-bearing — but a future edit could move this logic to a blocking event, and then it is the
+# whole design. Keep the property; do not "propagate the error" here.
+#
 # ── IDEMPOTENCE IS THE MARKER, NOT A SOURCE FILTER ────────────────────────────────────────────────
 #
 # `node_modules/.package-lock.json` is npm's own record of what it installed. Present means npm has
@@ -44,6 +54,17 @@
 # AGREES with the lockfile. A tree npm populated and a human then broke (a deleted package, an
 # interrupted install) keeps its marker and is skipped here. Repairing that is `npm ci` by hand; this
 # hook answers "was there ever an install", which is the failure all three lanes actually hit.
+#
+# ── THE CO-TENANT: `settings.json` REGISTERS TWO SessionStart HOOKS ───────────────────────────────
+#
+# The other one reports whether the branch is behind `origin/main`. Both run, NEITHER can stop the
+# other, and neither can stop the session: matching hooks run in PARALLEL, each in its own process
+# with its own timeout, and a failure is reported per-hook while the others still execute and their
+# output is still collected. So do not read the array order as sequencing — this hook is listed first
+# and that guarantees nothing. They are safe to run concurrently because they touch disjoint state
+# (this one writes `node_modules`, the other reads git refs), which is a property to re-check rather
+# than assume if a third is ever added. If a future hook genuinely DEPENDS on this one's install, the
+# only way to order them is to put both steps in one script.
 #
 set -u
 

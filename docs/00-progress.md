@@ -7,6 +7,145 @@
 
 ---
 
+## (2026-08-13) — A SessionStart hook populates a fresh worktree, and #781's plugin half turns out not to exist
+
+**STATUS: shipped.** `.claude/hooks/session-start-npm-ci.sh` + its registration in
+`.claude/settings.json`. Two files, no code change to any surface. Also settles the open question
+#781's own entry left above: **there is no `write-components.ts` half.**
+
+### 1. The hook: a prohibition with no replacement is one people work around
+
+Three lanes hit missing deps in a worktree and each reached for the same workaround — hand-made
+symlinks into the shared checkout. **The third incident was destructive across sessions:** `npm
+install` at a worktree root wrote THROUGH those links and gutted the shared checkout's
+`@figma/plugin-typings`, so a plugin typecheck that had passed minutes earlier failed on typings the
+diff never touched, in a tree whose owner was not running the command.
+
+`CLAUDE.md` already forbade the workaround by name, and #711 already said `npm ci` was the setup.
+Per-lane reminders still failed three times, because **the prohibition had no replacement attached.**
+This supplies it rather than restating the rule.
+
+Why the repo hides the problem until it hurts: the engine is buildless, so `npx tsx` re-downloads and
+the engine **runs** in an empty worktree. What fails is the studio/plugin/tokenpress builds (esbuild's
+platform binary, jszip) and the plugin typecheck (`@figma/plugin-typings`) — later, and reading like a
+code defect rather than a setup one. This very PR's first `plugin build` failed exactly that way, on
+`@esbuild/darwin-arm64`, through links into a shared checkout that held only an interrupted-install
+staging directory.
+
+### 2. The canary: CLAUDE.md's claim about `ci` is true, and the mechanism is why
+
+`ci` over `install` had a stated reason (`install` may resolve a version the lockfile does not pin —
+the 2026-08-11 leak) and an *unstated* one: that `ci` is safe in the very tree shape that made
+`install` destructive. That second half was **inherited, not measured**, so it was measured.
+
+An absolute link `node_modules/canary-abs -> /tmp/canary-target/pkg` was planted in a worktree and
+`npm ci` run. **The link was removed; the target came back byte-intact** — sentinel file and version
+both unchanged. The mechanism is the finding: **`ci` clears `node_modules` wholesale rather than
+writing into what it finds**, which is exactly why it *repairs* a hand-linked tree instead of
+propagating through it. `install`, which reconciles against what is already there, is the one that
+follows a link to somebody else's package.
+
+**Re-take that measurement before replacing `ci` with anything else** — it is the whole reason this
+script may run unattended, and the script's header says so.
+
+### 3. Two guards, and the trap door one of them nearly was
+
+**`node_modules` being a symlink is refused outright.** The canary covers links *inside*
+`node_modules`; it says nothing about `node_modules` itself being one, and through such a link "clears
+`node_modules`" means clears the directory at the far end — another session's tree. Verified: the
+guard fires and a planted far-end file survives.
+
+But refusal raised a question worth recording, because the obvious implementation is wrong: **if
+refusing meant failing, it would strand the only person who can fix it.** An agent in a worktree with
+a symlinked `node_modules` needs a working session to repair it. So every path ends in `exit 0` and the
+message carries the repair instruction. Measured per branch rather than reasoned from the source — all
+**six** exit 0 (not-a-repo, no lockfile, marker-present, symlink refusal, `npm ci` failure, and both
+fall-off-the-end outcomes of the `case`), including the two that inherit `jq`'s status. `SessionStart`
+cannot block a session at any exit code, so today this is belt-and-braces; a future edit moving the
+logic to a blocking event would make it load-bearing, which is why the property is documented as one
+to keep rather than left as an accident.
+
+**The second guard is the one no other check can make.** An absolute link into another checkout
+satisfies "the import resolved" — it typechecks, builds, and exits 0 while loading code from the tree
+you are not working in. Only `realpath` sees it. So after installing, the hook realpaths every
+`@prism3/*` and warns unless all of them land inside this worktree. Its `OUTSIDE`/`ABSENT` branches had
+to be exercised **directly**, because `npm ci` repairs a sabotaged link before the end-to-end route
+reaches them — a limit worth stating, since a branch only reachable by hand is a branch that will rot.
+
+Verified in a genuinely fresh worktree (`--detach`, no `node_modules`): **4.8s** cold, all five
+`@prism3/*` relative, `realpath` landing inside the worktree, **0** absolute links, and `jszip` +
+`@esbuild/darwin-arm64` + `@figma/plugin-typings` all present. **40ms and silent** on the second run,
+so `SessionStart` stays free on every resume and compact — which is why idempotence keys off npm's own
+`node_modules/.package-lock.json` marker rather than a `startup|resume` matcher: a filter would *guess*
+when a tree is stale, and the marker knows.
+
+**The co-tenant, stated because the next person adding a hook will want it:** `settings.json` now
+registers two `SessionStart` hooks (this one, and the branch-currency notice). Matching hooks run in
+**parallel**, each in its own process with its own timeout; neither can stop the other and neither can
+stop the session. **Array order is not sequencing** — an earlier draft of this entry read it as such.
+They are safe concurrently because they touch disjoint state (this writes `node_modules`, the other
+reads git refs); a third hook needs that re-checked, and anything that genuinely *depends* on this
+install must live in one script with it.
+
+### 4. #781's plugin half: the answer is no, and the analogy that predicted otherwise
+
+#781's entry above scoped itself to the engine and left the plugin half open, honestly flagging its own
+evidence as *"a grep, not a run."* The expectation was a consumer half by analogy with #734 → #750.
+**The analogy does not hold, and the run confirms it.**
+
+The mechanism: `paintOf` resolves the token ref to a Figma variable **name inside the engine**
+(`figmaVarName(def.tokens[k])`), and the plan field is `paints?: { fills?: string; strokes?: string }` —
+a **string**. Both executors consume it opaquely (`byName.get(varName)` →
+`setBoundVariableForPaint`). #781 changed `paintOf`'s *inputs* (`PlanSlots`, the widened `VariantCoord`,
+`fillPaintKey`) and its internals; **widening the grammar from two axes to seven changes which name
+arrives, never its shape nor the node it lands on.**
+
+What was run, against a tree containing `3dd7f39`:
+
+| Evidence | Result |
+|---|---|
+| Files #781 touched under `apps/plugin/` | **0** of 20 |
+| `plugin typecheck` (both contexts) · `test` · `build` | green; `dist/main.js` 312.5kb, **0** `node:` builtins |
+| Paint-value **type** over the full declared grid — 468 plans, all seven defs, 851 values | **every value a string** |
+| Node-type × paint-field **pairs**, after #781 | `FRAME.fills`, `FRAME.strokes`, `FRAME.descendantFills`, `TEXT.fills` |
+| Same pairs at `3dd7f39^` under the old hardcoded grammar (1,224 values) | **identical set** |
+| Code (not comment) refs in `write-components.ts` to `paintKeys`/`VariantCoord`/`PlanSlots`/`intent`/`coord` | **0** — all 10 `coord` and 2 `appearance` hits are prose |
+
+**The pair set is the load-bearing measurement, and it needed a second worktree to take.** A consumer
+half would be required only if a def gained a paint on a node type outside those four pairs; the
+before/after sets are identical, so none did. Note the trap in getting there: the probe derives each
+def's coordinate from `paintKeys`, which **does not exist** pre-#781, so run unmodified at the parent
+commit it finds nothing and reports a clean "no paints" — a false negative that looks like a result.
+The before-reading has to restate the old `{intent}.{appearance}.{slot}[.{state}]` grammar by hand.
+
+**One caveat for whoever picks up Arc 2 steps 3/5:** four defs (`focus-ring`, `field-label`,
+`field-message`, `text-field`) project **zero plans** today — three have no `anatomy` block and
+`focus-ring` declares no `medium` size. #781 made them *keyable*, not yet *projectable*. The pair set is
+the thing to re-measure when they gain anatomy, and the probe that takes it is reconstructible from the
+table above.
+
+### 5. Two notes on process, both about restraint
+
+**The shared checkout was diagnosed and not touched.** Its `node_modules/@esbuild/` held only an
+interrupted-install staging directory (`.darwin-arm64-rnAWoLV1`) and no `jszip`, which is what broke
+this lane's first build through hand-made links. It was reported to the owner and fixed by the owner
+(`npm` at that root: 331 packages). Writing there would have been the 2026-08-11 incident again, from
+the other direction.
+
+**And the branch that looked like a competing claim was checked read-only.** `claude/worktree-npm-ci`
+(unpushed, another lane) carries a `SessionStart` block — but it is the *branch-currency* hook, its
+`settings.json` is byte-identical to main's, and `grep -c 'npm ci'` on it is **0**. So the hook was
+unclaimed. Verified with `log`/`diff`/`status`/`show` only: `/review-pr` destroyed two sessions'
+uncommitted work on 2026-08-05 by checking out in a tree someone else was editing, and the auto-stash
+recovery is worse than it sounds because one stash can hold two PRs' work.
+
+**A commit message is not recognizable as merged from its own history** — that branch's
+`253a178 docs: npm ci in worktrees, never a bare npm install` describes guidance that landed as #711 and
+is in `CLAUDE.md` today. Compare **trees**, not subjects: `git diff origin/main..HEAD` is the question,
+and here it showed three prose files, not a hook.
+
+---
+
 ## (2026-08-13) — The def declares its paint axes, and #758's own acceptance criterion turns out to be unfalsifiable (#758)
 
 **STATUS: shipped (engine + schema half).** `ComponentDef.paintKeys` declares how a def's paint keys are
