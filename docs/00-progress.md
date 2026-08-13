@@ -90,13 +90,27 @@ a green run on an incomplete checklist — and until this PR it could pass on th
   another session's WIP into the same stack. Recover with `git stash show --name-only` then
   `git show 'stash@{0}:<path>'` to extract a single file **without popping** — popping merges two PRs'
   work.
-- **`jszip` is not installed in this checkout at all**, so `@prism3/tokenpress test`, its `build`, and
-  `tools/exporter-comparison/gate.ts` (which executes TokenPress's real exporter) all fail with
-  `ERR_MODULE_NOT_FOUND` locally. Pre-existing since #703 and **not** a worktree artifact — verified by
-  reproducing it identically in the shared checkout. `package-lock.json` has the entry; nothing ever ran
-  the install. Unblocked by installing `jszip@3.10.1` into a scratch directory and linking its 13
-  entries **individually** into the worktree's `node_modules` — never the directory, per the workspace
-  symlink rule. Then: 274 assertions, build's four properties, gate 3 brands all-arms-zero.
+- **Three gates could not run locally, and my first diagnosis of why was wrong.** `@prism3/tokenpress`
+  `test`, its `build`, and `tools/exporter-comparison/gate.ts` (which executes TokenPress's real
+  exporter) all failed with `ERR_MODULE_NOT_FOUND` on `jszip`. I reported that as a missing install in
+  the lockfile and worked around it by installing `jszip@3.10.1` into a scratch directory and linking
+  its 13 entries individually. **Both halves were wrong**, and `CLAUDE.md:42` names both moves by name:
+  *"Populate it with `npm ci` — never a bare `npm install`, and never a hand-rolled symlink loop."*
+  `npm ci` is the whole fix, measured here at **8.9s / 331 packages**: before, **97 top-level entries,
+  all symlinks**, with `@prism3/*` pointing at *absolute* `/tmp/p3-704/...` paths; after, **0 top-level
+  symlinks**, all five links **relative** (`../../packages/engine`), and `jszip` installed natively.
+  The real cause is narrower than "the lockfile" — the lockfile is correct and installs `jszip`
+  unaided. **The shared checkout's `node_modules` has 87 entries and predates #703**, so it was never
+  repopulated after TokenPress added the dependency: a tree set up before #703 hits this, one set up
+  after does not, and nothing in the docs makes that asymmetry visible. Recorded because the wrong
+  reading is the more natural one, and the workaround it produced is the one the repo already forbids.
+  **Filed as #757**, not left here: three gates only CI can run is the wrong side of the exact problem
+  this entry is about — `lint-doc-gates.ts` proves the two *lists* match, and nothing proves a
+  documented command actually **runs** where it is documented to. A header comment is a memory, not a
+  queue.
+
+---
+
 ## (2026-08-12) — `nest-fixed` resolves to a member: the coordinate the def named, the two executors that read it, and the fifth miss
 
 **STATUS: shipped.** #734 added `PartDef.nesting` and documented it (docs/28 §4.1); this is the **consumer**
