@@ -48,22 +48,71 @@ never on sibling packages' internals. That yields two delivery modes from one so
 
 The eject is a *packaging* operation, not a repo split; both modes ship from the same package.
 
-## 3. Output target — WC primary, React fast-follow, framework-agnostic headless core
+## 3. Output target — ranked by what the named platforms consume
 
-`14 §6` already plans WC + React + Storybook + `.ai.json` + Code Connect from one definition, so
-"primary output" is a **sequencing** call. The shape that keeps every target cheap:
+**Corrected 2026-08-12. This section previously read "WC primary, React fast-follow" and that lean
+is retired.** It was reasoned from deployment-neutrality in the abstract, before anyone had written
+down which platforms we ship to. Once they were named — **AEM #1, Drupal #2**, React mostly for
+prototypes — both vendors' own published guidance contradicted it. The superseded text is kept at
+the end of this section, because the *reasoning* that produced it is still the reasoning anyone
+would reproduce without the platform names in hand.
 
-- **Behaviour = framework-agnostic headless** — state machines / a11y / keyboard model with no
-  styling (Zag-style; the "headless *primitive*" of `18 §6`, *not* a token primitive). Author our own
-  or wrap an existing lib (React-Aria / Radix / Ark) — an open sub-decision.
-- **Styling = token-bound** — the visual skin resolves through the token contract, so it re-themes by
-  input.
-- **Emit WC as the neutral primary** (matches deployment-neutrality, `15`), **React as a thin
-  wrapper** over the same headless core. Because behaviour lives in the framework-agnostic core,
-  adding a target is a wrapper, not a re-implementation.
+**What settled it, verified rather than recalled** (two independent research passes, knowledge-base
+PR #12 and a second-model validation run, both 2026-08-12; every claim carries a fetched URL):
 
-Per KB `27` (adaptive interfaces): open primitives + rich intent metadata are what an LLM composes
-against — so we generate *primitives + metadata*, not a sealed catalogue.
+- Adobe's Core Components documentation (updated 7 August 2026) states that Core Components may
+  continue for existing projects but *"for new projects, Adobe recommends leveraging Edge Delivery
+  Services."* Prism3 serves **new** engagements, which is that sentence's population.
+- Edge Delivery's own FAQ: *"Web Components can be used in Edge Delivery Services projects, but they
+  are not the default recommendation"* — they *"require careful optimization to avoid impacting
+  performance"* (`aem.live/docs/faq`, fetched 2026-08-12).
+- Drupal's component story runs through **Single Directory Components** and Twig.
+
+### The ranking
+
+Criterion: **how many of the named platforms consume the artifact natively, then cost.** Not
+framework elegance — the previous lean is what optimizing for elegance produces.
+
+| | projection | tier | why here |
+|---|---|---|---|
+| 1 | **token / CSS layer** | token | DTCG → Style Dictionary → CSS custom properties at `:root`. Both platforms consume it natively today. **Already shipped** |
+| 2 | **class-based skin over platform markup** | component | a projection of `anatomy` + `variants` to semantic classes. Both platforms augment server-generated HTML with classes |
+| 3 | **AEM Universal Editor block definitions** | **block** | `13`'s block tier, not this one — see the note below |
+| 4 | **Drupal SDC `component.yml`** | component | JSON Schema prop validation at render |
+| 5 | **React** | component | not for client site builds; the native authoring unit of Drupal Canvas, and useful for prototypes. **Rank 5 not 4:** reaching Twig from a Canvas code component runs through a *separate* bridge project, `drupal.org/project/code_component` ("Canvas Code Components as SDC"), at `1.0.0-alpha1` and outside Drupal's security advisory policy (fetched 2026-08-13). Do not confuse it with `drupal.org/project/canvas`, the page builder, which is stable and covered |
+| 6 | **web components** | component | secondary, interactive-tier, light-DOM-biased |
+| 7 | **native mobile** | — | deferred |
+
+**Rank 3 is a different tier and must not be absorbed into the component work.** `13` established
+blocks as the tier above components and Edge Delivery uses the same word for its unit of page
+composition. Tracked as #693 / `docs/37`.
+
+### What survives from the old lean
+
+- **Styling = token-bound.** Unchanged, and now the highest-ranked projection rather than a
+  supporting detail.
+- **One definition, many projections.** Unchanged, and the reversal *tested* it — `38` Arcs 1–3
+  (schema, primitives, registry) needed no change when the output strategy inverted, which is the
+  property `13`'s "projection, not conversion" was supposed to buy.
+- Per KB `27` (adaptive interfaces): open primitives + rich intent metadata are what an LLM composes
+  against — so we generate *primitives + metadata*, not a sealed catalogue.
+
+### What does not
+
+- **Behaviour = framework-agnostic headless**, and the author-our-own-vs-wrap fork (#252) beneath
+  it, now govern only ranks 5–6. #252 stays **parked** rather than answered; it was filed as a
+  first-slice blocker and is not one. Two corrections to its own framing are recorded on the issue,
+  including that all three candidates it names peer on `react`/`react-dom`.
+
+> **Superseded text, 2026-08-12** — *"`14 §6` already plans WC + React + Storybook + `.ai.json` +
+> Code Connect from one definition, so 'primary output' is a **sequencing** call… **Emit WC as the
+> neutral primary** (matches deployment-neutrality, `15`), **React as a thin wrapper** over the same
+> headless core. Because behaviour lives in the framework-agnostic core, adding a target is a
+> wrapper, not a re-implementation."*
+>
+> The last sentence is still true and is why the reversal was cheap. The error was choosing the
+> neutral primary by reasoning about neutrality instead of by asking what the delivery platforms
+> read.
 
 ## 4. The DX leap — kill the fork-per-brand model
 

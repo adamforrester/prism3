@@ -1,4 +1,4 @@
-# 38 — The arcs: sequencing the component tier to shipping web components
+# 38 — The arcs: sequencing the component tier to its shipping projections
 
 > `14` §6 sketched a build sequence for the component layer and `19` §8 named a first slice.
 > Both were written before anything was materialized. Button has now been built into a real
@@ -10,28 +10,17 @@
 > not an architecture one — every architectural claim here is cited from `14`, `19` or `28`
 > rather than made here.
 >
-> **Status: §§1–3 Arcs 1–3 current; Arc 4 and §6 SUPERSEDED, 2026-08-12.** Issue numbers are from
-> `19` §8's 2026-07-28 snapshot and were not re-verified when this was written. **Verified
-> 2026-08-12** (filing the arc tracking issues): 13 of 16 cited numbers were unchanged. §3 Arc 5
-> needed a real correction — see its 2026-08-12 note.
+> **Status: current, re-cut 2026-08-12.** Issue numbers are from `19` §8's 2026-07-28 snapshot and
+> were not re-verified when this was written. **Verified 2026-08-12** (filing the arc tracking
+> issues): 13 of 16 cited numbers were unchanged. §3 Arc 5 needed a real correction — see its
+> 2026-08-12 note.
 >
-> **What is superseded, and by what.** This file's title, §1 step 3, Arc 4 and §6 all assume
-> `19` §3's lean that web components are the neutral primary output and React a thin wrapper over
-> it. Two independent research passes (knowledge-base PR #12 and a second-model validation run,
-> both 2026-08-12) retired that lean, on the named delivery platforms' own published guidance:
-> Adobe steers new AEM projects to Edge Delivery Services, whose FAQ states *"Web Components can
-> be used in Edge Delivery Services projects, but they are not the default recommendation"*
-> (`aem.live/docs/faq`, fetched 2026-08-12), and Drupal's component story runs through Single
-> Directory Components and Twig. The ranked projections are now: **token/CSS layer → class-based
-> skin over platform markup → platform metadata (AEM Universal Editor, Drupal SDC) → React → web
-> components → native.** So Arc 4 becomes *the class-based skin projection*, unblocked, and #252
-> drops off the critical path rather than gating it.
->
-> **Arcs 1–3 are unaffected and remain the critical path.** They are the definition layer, and
-> every projection on that list reads them — which is the property `13`'s "projection, not
-> conversion" was supposed to buy, now tested by an actual reversal of the output strategy. The
-> re-cut of Arc 4, §1 step 3, §6 and the title lands in its own PR; it is stated here rather than
-> applied so this file is discoverable now — two lanes have already been blocked looking for it.
+> **What the re-cut changed.** The title, §1 step 3, Arc 4 and §6 originally assumed `19` §3's lean
+> that web components are the neutral primary output and React a thin wrapper over it. Two
+> independent research passes retired that lean on the named platforms' own published guidance, and
+> `19` §3 now carries the ranking and the citations. **Arcs 1–3 did not change** — they are the
+> definition layer every projection reads, which is the property `13`'s "projection, not conversion"
+> was supposed to buy, now tested by an actual reversal of the output strategy rather than argued.
 
 ---
 
@@ -44,15 +33,20 @@ The target is a loop, stated by the owner on 2026-08-12 and consistent with `14`
 2. **Send each filled spec to Figma** to validate the component data and the anatomy schema
    against a real file, which populates the Prism3 Figma file as a side effect. Via the emitter,
    not the Console MCP: the emitter path is lossless and it is the thing being tested.
-3. **Send the confirmed spec and schema onward** to be built as web components, React to follow.
+3. **Send the confirmed spec and schema onward** to be built as the projections the delivery
+   platforms actually consume — `19` §3's ranking, top-down. *(Re-cut 2026-08-12: this step read
+   "built as web components, React to follow" until the platform research retired that ordering.)*
 
 Two dependencies sit in front of the loop, both surfaced by the Button build rather than
 predicted:
 
 - **A — nested component dependencies.** Icons, form labels, helper messages and focus rings have
   to exist as materializable components before anything can nest them.
-- **B — library setup.** The web-component package, Storybook and its documentation template, web
-  fonts, a production Style Dictionary configuration, and a confirmed token pipeline.
+- **B — the delivery scaffold.** Re-cut with §1 step 3: the first projection is a token/CSS layer
+  plus a class-based skin, so B is a production Style Dictionary configuration, a confirmed token
+  pipeline, and the class-name contract that skin emits. **The web-component package, Storybook and
+  web fonts move down with ranks 5–6** — they are the scaffold for a projection we are no longer
+  building first.
 
 ---
 
@@ -142,15 +136,31 @@ unchanged**: it maintains no def list at all. Its universe is *generated artifac
 source, so wiring the registry into it would have invented a coupling rather than removed a second
 list. The line above listing it as a reader was written from the assumption, not from the file.
 
-### Arc 4 — Dependency B, the library scaffold
+### Arc 4 — The class-based skin projection
 
-Blocked on #252 (§6). Once called, the sequence `19` §8 already implies: #252 → #253 (brand-token
-flow into the library) → #256 (the code leg: web components, Storybook, `.ai.json`) → #254 (docs
-surface) → #257 and #258.
+**Re-cut 2026-08-12.** This arc read *"Dependency B, the library scaffold — blocked on #252"* until
+the platform research reordered `19` §3. It is no longer blocked, and it is no longer the library.
 
-One constraint is already recorded and worth carrying forward: `packages/tokens/README.md` states
-that a production Style Dictionary configuration must be a **second file**, never merged into the
-consumer one, because the consumer configuration's value is entirely conditional on staying naive.
+The first new projection is a **class-based skin**: `anatomy` + `variants` → semantic CSS classes
+over the markup a platform already generates. Rank 2 in `19` §3, and it is the nearest new work
+because rank 1 — the token/CSS layer — ships today.
+
+Three things make this arc smaller than the one it replaces:
+
+- **It reads what Arcs 1–3 build**, and nothing else. No behavior layer, no framework, no bundler.
+- **Both named platforms consume it natively.** AEM Edge Delivery decorates server-generated HTML
+  with classes; Drupal themes use atomic component classes. One artifact, two platforms.
+- **Rank 1 + rank 2 together are `27` Idea 2's AEM starter**, corrected — a tokens clientlib plus a
+  skin over platform markup, with zero dependence on a component library, React, or web components.
+  That is the nearest deliverable with commercial value, and it does not wait on the code leg.
+
+The old sequence (#252 → #253 → #256 → #254 → #257/#258) still describes ranks 5–6 and is deferred
+with them, **not cancelled**. `19` §8's first slice remains the plan for the framework tier when
+that tier's turn arrives.
+
+One constraint carries forward unchanged: `packages/tokens/README.md` states that a production
+Style Dictionary configuration must be a **second file**, never merged into the consumer one,
+because the consumer configuration's value is entirely conditional on staying naive.
 
 ### Arc 5 — Clear the in-flight debt
 
@@ -233,19 +243,35 @@ corpus it would read.
 
 ---
 
-## 6. The decision this plan waits on
+## 6. What this plan no longer waits on
 
-**#252 — author-headless vs. wrap.** `19` §7.2 records that this fork has no lean anywhere, and
-Arc 4 cannot be scoped without it.
+**Re-cut 2026-08-12.** This section read *"the decision this plan waits on — #252, author-headless
+vs. wrap,"* and named it as the thing Arc 4 could not be scoped without. **That is no longer true,
+and the correction is worth more than the fact.**
 
-It does not block Arcs 1 through 3, and this file was filed rather than held for it. But there is
-a coupling worth knowing. #681's decision holds that **exposure is the component's public API** —
-a nested part the def exposes projects into a web-component property, an `.ai.json` option and a
-Storybook control. If the behavior layer wraps an existing library, part of that public surface
-belongs to the wrapped library and the def stops being a one-to-one source, becoming a mapping.
-That is a step-3 concern rather than a schema-shape one, so Arc 1 proceeds. It is also the reason
-to settle #252 before Arc 1's exposure work hardens around the assumption that the whole surface
-is ours.
+#252 governs the *behavior* layer — state machines, keyboard model, a11y — which only ranks 5 and 6
+need. Ranks 1 and 2 are a token layer and a class-based skin: no behavior layer, therefore no fork
+to settle. It stays **parked rather than answered**, and answering it now would be work spent on the
+tier we deferred.
+
+**Two corrections to #252's own framing are recorded on the issue**, because the decision was
+badly posed rather than merely premature: all three candidates it names (Radix, React Aria, Ark)
+peer on `react`/`react-dom`, so "wrap an existing library" under a neutral-primary output would
+have imported React into the neutral output; and the one genuinely framework-agnostic option —
+Zag's machines, which carry no peer dependencies — is the layer *underneath* the candidate the
+issue named as agnostic.
+
+**The coupling that made it feel urgent is real but deferred with it.** #681 holds that exposure is
+the component's public API — a nested part the def exposes projects into a property, an `.ai.json`
+option and a Storybook control. If the behavior layer wraps a library, part of that surface belongs
+to the library and the def becomes a mapping rather than a one-to-one source. That bites when ranks
+5–6 are built, not before, and Arc 1 proceeds either way.
+
+**The general lesson, which is why this section was kept rather than deleted.** #252 was filed as a
+first-slice blocker and treated as one for two weeks. It was never a blocker; it was a decision
+about a tier nobody had established was first. **A decision inherits the urgency of the plan that
+cites it, and a plan can be wrong about its own order.** The fix was not answering it faster — it
+was asking which platforms consume what, which nobody had written down.
 
 ---
 
