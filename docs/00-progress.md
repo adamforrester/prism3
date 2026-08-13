@@ -52,6 +52,34 @@ no scheduled removal is indistinguishable, six months on, from a suite nobody no
 red. #775's stated condition is deliberately narrow — if the week finds flakiness, *fix it*, do not
 extend the period, because a second extension is how advisory becomes forever.
 
+**And the advisory week nearly produced no evidence at all — found by proving the CI wiring, not by
+reading it.** With `continue-on-error`, GitHub reports the **step's own** `conclusion` as `success`
+when the command exits non-zero, not only the job's. So the deliberately red run this branch pushed
+came back green in every status check and in everything reading the API; the only trace was
+`##[error]` inside the step log. A week of not-blocking would have bought a week of *nothing*, and
+#775's flip would then have been made blind — the opposite of what an advisory period is for. Fixed
+here rather than deferred to #775: the suite writes to `$GITHUB_STEP_SUMMARY`, so a red run states
+itself on the run page with the count and the failing assertions (each already naming its page × mode
+× brand). **It writes on SUCCESS too, and that is the part worth defending**: a summary that appeared
+only on failure would make *absence* ambiguous between "it passed" and "the write is broken / the step
+never ran" — the exact shape `ci.yml` warns about elsewhere ("green starts meaning nothing ran"). One
+line on success makes silence mean one thing. Verified by a second deliberately red CI run, because a
+`$GITHUB_STEP_SUMMARY` write that never fires is precisely the failure this repo keeps catching.
+
+**Where the mode-outer finding lives, and why there rather than only in the test file.** That finding
+is what the next person writing *any* probe against the studio will hit, and they will not be reading
+this PR. The header comment in `test-smoke.mjs` reaches whoever is already editing that suite; it
+reaches nobody about to write a new one. So it also went into **`apps/studio/README.md`**, under a
+"Driving it headlessly — read this before writing a probe" section, stated as mechanism → symptom →
+rule. That file rather than `docs/23`: `docs/23` is the IA **plan**, read when changing the
+information architecture, and its §7 already records `currentMode`'s persistence as a *design
+decision* — which is the mechanism, not its consequence for a harness. The workspace README is what
+someone opens when they land in `apps/studio/` to build something against the app, it sits beside both
+drivers, and it already carries this exact genre (the stale-bundle trap, the inverted ignore-script
+exit codes). The new section cross-references `docs/23` §7 so the decision trail survives without
+being duplicated, and inherits the two smaller traps as well — the ephemeral port and the per-brand
+browser context.
+
 **What it covers, concretely.** 9 pages x 4 modes x 2 corpus brands = **72 states**, 15,638 text nodes,
 **517 assertions**, ~19s. Per state: zero console errors / uncaught exceptions / failed requests; a hero
 title renders; the page is not blank (controls, *or* the read-only note a derived mode legitimately

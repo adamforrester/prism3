@@ -292,6 +292,17 @@ jobs:
       # any author's machine) is what earns the flip. If that week finds flakiness, #775's condition
       # is to fix it — not to extend the period, which is how advisory becomes forever.
       #
+      # ADVISORY MUST NOT MEAN SILENT, and it does by default. Measured on this branch: with
+      # `continue-on-error`, GitHub reports the STEP'S OWN conclusion as `success` when the command
+      # exits non-zero — not only the job's — so a red suite appears in no status check and in nothing
+      # reading the API. The only trace is `##[error]` inside the step log. A week that produces no
+      # signal is not a week of evidence, and the flip would then be made blind. So the suite writes
+      # to `$GITHUB_STEP_SUMMARY`: on failure the count and the failing assertions (each already
+      # naming its page × mode × brand), rendered on the run page without opening a log; and on
+      # SUCCESS a single line, deliberately, so that a MISSING summary means "this did not run"
+      # rather than being indistinguishable from a pass. Proven by a deliberately red run, not by
+      # reading this comment.
+      #
       # `npx playwright install` is inside this step rather than beside it so `continue-on-error`
       # covers the browser download too: an advisory step whose SETUP is gating would block merges
       # on exactly the ambient-infrastructure failure this arrangement exists to keep out of the way.

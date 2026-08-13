@@ -42,7 +42,7 @@
  * chosen without going through the overwrite-confirm path.
  */
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { appendFile, readFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
@@ -329,7 +329,7 @@ for (const brand of BRANDS) {
 }
 
 console.log(`\n  ${statesVisited} page × mode states, ${nodesMeasured} text nodes measured.`);
-console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (floor ${CONTRAST_FLOOR}:1)`);
+console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (floor ${CONTRAST_FLOOR.toFixed(1)}:1)`);
 console.log(`    ${worstWhere}`);
 
 // =============================================================================================
@@ -456,4 +456,71 @@ if (failed) {
 } else {
   console.log(`\n✅ ALL PASS — ${executed} assertions executed`);
 }
+
+/**
+ * The run-page summary — the thing that makes the advisory period actually advisory rather than
+ * silent.
+ *
+ * MEASURED, not assumed: with `continue-on-error: true`, GitHub reports the STEP'S OWN `conclusion`
+ * as `success` when the command exits non-zero, not only the job's. So while this suite is advisory
+ * (until 2026-08-20 — #775) a red run is invisible to every status check and to anything reading the
+ * API; the only evidence is `##[error]` buried in the step log. A week of not-blocking was meant to
+ * buy a week of EVIDENCE, and without this it buys a week of nothing — the flip would then be made
+ * blind, which is the opposite of what the advisory period is for.
+ *
+ * WHY IT ALSO WRITES ON SUCCESS, which is the part worth defending. A summary that appears only on
+ * failure makes ABSENCE ambiguous: "no summary" reads identically as "the suite passed" and as "the
+ * write is broken / the step never ran". That is the exact shape this repo keeps catching (`ci.yml`'s
+ * own "a gate that silently stops running is worse than no gate, because green starts meaning nothing
+ * ran"). One line on success costs a line and makes silence mean one thing only: this did not run.
+ *
+ * The failing list is capped — a whole-sweep regression is hundreds of rows and the summary has a
+ * size limit — with the count kept honest and the log named as the full record.
+ */
+const SUMMARY_ROWS = 25;
+const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+if (summaryPath) {
+  const stats = `${statesVisited} page × mode × brand states · ${nodesMeasured} text nodes · `
+    + `lowest rendered contrast ${worstRatio}:1 against a ${CONTRAST_FLOOR.toFixed(1)}:1 floor`;
+  const md = failed
+    ? [
+        `### ❌ Studio smoke suite — ${failed} of ${executed} assertions failed`,
+        '',
+        '**This step is advisory and does not block the merge** (until 2026-08-20 — #775). It is',
+        'reported here because `continue-on-error` makes the step\'s own conclusion `success`, so a red',
+        'suite shows up in no status check at all. Treat it as a real failure.',
+        '',
+        stats,
+        '',
+        '| # | Failing assertion |',
+        '|---|---|',
+        ...failures.slice(0, SUMMARY_ROWS).map((f, i) => `| ${i + 1} | ${f.replace(/\|/g, '\\|')} |`),
+        ...(failures.length > SUMMARY_ROWS
+          ? ['', `_…and ${failures.length - SUMMARY_ROWS} more. The step log has the full list._`]
+          : []),
+        '',
+      ]
+    : [
+        `### ✅ Studio smoke suite — ${executed} assertions, all pass`,
+        '',
+        stats,
+        '',
+        '_Written on success too, deliberately: if this line is missing, the step did not run — which_',
+        '_is a different problem from the suite failing, and one an absent summary would otherwise hide._',
+        '',
+      ];
+  const text = `${md.join('\n')}\n`;
+  // Never let the reporting kill the report. If the append fails the exit code below is still the
+  // truth, and a summary that took the process down with it would be worse than no summary.
+  //
+  // AND SAY SO IN THE LOG, either way. A file append is invisible: a write that silently stopped
+  // firing would leave the run page bare, which is precisely the ambiguity the success case above
+  // exists to remove — one level down. So the log carries the outcome and the headline that was
+  // published, which makes the write verifiable from the one channel every tool can read.
+  await appendFile(summaryPath, text).then(
+    () => console.log(`  → wrote ${text.length} bytes to GITHUB_STEP_SUMMARY: ${md[0]}`),
+    (e) => console.error(`  → could NOT write GITHUB_STEP_SUMMARY (${e.message}) — the run page will be bare`),
+  );
+}
+
 process.exit(failed === 0 ? 0 : 1);

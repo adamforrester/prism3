@@ -49,6 +49,49 @@ Imports reach the engine by relative path (`../../packages/engine/…`) and pull
 **pure modules only** — never the I/O shells (`nb-fixture`, `emit-*`, `cli`), which
 touch `node:` and would not bundle for the browser.
 
+## Driving it headlessly — read this before writing a probe
+
+`src/main.ts` touches `document` at import time, so it cannot be loaded into a Node harness at
+any granularity. Anything that needs to observe this app's *behaviour* has to drive a browser.
+Two committed drivers do, and both are Playwright (an `apps/studio` devDependency since #767 —
+the engine core stays dependency-free):
+
+```bash
+npm run test:smoke   -w @prism3/studio   # test-smoke.mjs — the CI suite: every page × mode × brand
+npm run audit:modes  -w @prism3/studio   # mode-audit.mjs — which sections respond to the mode bar
+```
+
+Start from one of those rather than a blank file. What follows is the trap that neither of them
+makes obvious, and that a third probe will hit on its first run.
+
+**Mode is global state that survives navigation, so a sweep must loop modes OUTSIDE pages.**
+
+- **Mechanism.** `currentMode` is a single module-level global, and its persistence across
+  navigation is a deliberate design decision, not an accident of the implementation — see
+  `../../docs/23-dashboard-ia-and-component-system.md` §7. Separately, the mode bar renders **only on
+  pages that carry a mode-varying control** (#268): today that is 6 of the 9 rail pages, so Palettes,
+  Typography and Layout show no bar at all. Those three still render *through* whatever mode is
+  selected. The bar's absence means "nothing here is edited per mode", never "mode does not apply".
+- **Symptom.** A probe that loops pages on the outside and modes on the inside reads each bar-less
+  page in whichever mode the *previous* page happened to leave behind — so its results are ordering
+  artefacts. Worse, it does not look like an ordering bug: arrive at Typography or Layout from a
+  **derived** mode (HC light / HC dark / Wireframe) and those pages drop their editors entirely for
+  the read-only "auto-derived" note, so the probe reports a blank page with no controls. That is the
+  app being correct. The first draft of `test-smoke.mjs` did exactly this and reported two false
+  defects on its first run.
+- **Rule.** Select the mode on a page that **has** the bar, then walk every page carrying it; repeat
+  per mode. That is also the sequence a person performs, and it is the difference between covering
+  *every page in every mode* and covering *every page that offers a mode bar*.
+
+Two smaller traps worth inheriting rather than rediscovering:
+
+- **Serve on an ephemeral port** (`listen(0)`). `mode-audit.mjs` holds **8899**; two harnesses on one
+  port collide as `EADDRINUSE`, which reads exactly like a test failure and gets debugged as one.
+- **Use a fresh browser context per brand.** The working brand persists to `localStorage`, so a shared
+  context carries one brand's state — and any override a probe writes — into the next. A new context
+  also returns the app to its first-run start screen, which is how a brand gets chosen without going
+  through the overwrite-confirm path.
+
 ## Scope (what's here vs. next)
 
 - ✅ Four-stage shell; the colour axis is the live interactive loop (edit a brand
