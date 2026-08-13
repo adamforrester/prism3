@@ -59,16 +59,43 @@
  *    properties per set at all. Whatever decides per-property-vs-all-or-nothing, it is not a ceiling
  *    being approached: all-or-nothing's worst case is three extra rows.
  *
- * 2. THE BYTE CEILING IS THE CONSTRAINT, and it is nearly touching. Button's fullest chunk is 41,996 B
- *    against the 42,000 B budget — FOUR BYTES of headroom, today, before any exposure exists. Every
- *    exposure shape still packs into 36 chunks (+2,052 to +3,780 B total, ~3–6 B per variant), so
- *    nothing here overflows; the finding is how little room the decision has to spend, and that the
- *    two candidate schemas differ by only ~1,700 B on the largest real set. Cost is not what
- *    distinguishes them, which is worth knowing BEFORE the schema PR argues about cost.
+ * 2. NEITHER IS THE BYTE CEILING, and the first version of this file got that wrong in the other
+ *    direction. It reported Button's fullest chunk at 41,996 B against the 42,000 B budget as "FOUR
+ *    BYTES of headroom", and a reviewer on #761 correctly refused it. **Worst-chunk fullness is
+ *    near-budget BY CONSTRUCTION**: `pack` adds variants until the next one would not fit, so the
+ *    fullest chunk is always within one variant of the budget no matter how much or how little room
+ *    there is. It measures how evenly the last bin filled, not scarcity. And chunk overflow is not a
+ *    failure mode — the budget bounds ONE `figma_execute` call, calls are unbounded, and growth is
+ *    absorbed by ADDING CHUNKS, which is what this file's own table already showed (36 chunks across
+ *    every exposure shape).
  *
- * 3. WORST-CHUNK BYTES ARE NOT MONOTONIC, and this file's first run got it wrong before it got it
- *    right. See the comment above the payload table: adding bytes per variant made Button's worst
- *    chunk SMALLER. The delta to trust is the total.
+ * 3. THE REAL CLIFF IS THE INDIVISIBLE UNIT — shell + the single largest variant — because no amount of
+ *    re-packing can split one variant across two calls. That is the number with actual headroom in it,
+ *    and it went unmeasured until #761's review:
+ *
+ *      button       shell 18,954 + largest variant 1,668 = 20,622 B  →  21,378 B spare (49.1% of budget)
+ *      icon-button  shell 15,756 +   largest variant 965 = 16,721 B  →  25,279 B spare (39.8% of budget)
+ *
+ *    Button's largest variant would have to grow **13.8x** to become unpackable; IconButton's 27.2x.
+ *    Exposure moves the unit by 19–35 B. So the honest reading inverts the first one: the byte budget is
+ *    not close, and cost does not distinguish the two candidate schemas — they differ by ~1,700 B in
+ *    total and by 35 B in the one place a cliff could exist.
+ *
+ * 4. WHAT DOES SCALE, if anything here is to be watched: the SHELL, because every chunk pays it in
+ *    full. It is already 45.1% of the budget for Button before a single variant, so shell growth is
+ *    multiplied by the chunk count — +4,000 B of shell takes Button 36 → 44 chunks, +16,000 B → 127.
+ *    Exposure adds nothing to the shell (a per-node field rides in `PLANS`), which is exactly why it is
+ *    cheap. A future field in the payload HEADER is the expensive shape, and the contrast row in the
+ *    output exists so the next person sizing a payload field sees which half they are adding to.
+ *
+ * 5. WORST-CHUNK BYTES ARE NOT MONOTONIC EITHER, which is how finding 2 should have been reached the
+ *    first time. See the comment above the payload table: adding bytes per variant made Button's worst
+ *    chunk SMALLER. The same property that disqualifies worst-chunk as a DELTA disqualifies it as a
+ *    CEILING — a number that improves while the payload grows is not measuring room. One argument, both
+ *    uses; the first pass applied it to one and then quoted the other as the headline. **An instrument
+ *    found non-monotonic is disqualified for every reading taken from it, not just the one that
+ *    prompted the check.** The deltas to trust are the total and the chunk count; the ceiling to trust
+ *    is the indivisible unit.
  */
 import { ComponentDef } from '../../packages/engine/component-schema';
 import { button } from '../../packages/engine/components/button';
@@ -77,6 +104,7 @@ import {
   figmaAnatomySet,
   planSetProperties,
   planSetChunks,
+  planSetLayout,
   planComponentName,
   SET_CHUNK_BYTES,
   type AnatomyPlan,
@@ -102,12 +130,12 @@ const FIGMA_LIMITS = {
   propertiesPerSet: {
     value: null as number | null,
     hard: false,
-    source: 'No published cap. Figma documents no maximum number of component properties on a set; the binding constraint is the properties PANEL (a designer scrolling a list) and the payload byte ceiling below, both of which this measures.',
+    source: 'No published cap. Figma documents no maximum number of component properties on a set, so the only constraint on a growing panel is the designer scrolling it — a judgment, not a limit. Notably NOT bounded by the byte ceiling below either: properties ride in PROPS_ALL, which only the FINAL chunk carries. The property count and the payload budget are independent axes; #761 implied they were linked.',
   },
   executeBytes: {
     value: 45_000,
     hard: true,
-    source: '`figma_execute`\'s ~45KB payload ceiling (#487 §6), which `SET_CHUNK_BYTES` packs to 42,000 against — the one ceiling here that has bitten a real run.',
+    source: '`figma_execute`\'s ~45KB payload ceiling (#487 §6), which `SET_CHUNK_BYTES` packs to 42,000 against. Hard, and the one ceiling here that has bitten a real run — but it bounds ONE CALL, not the set: exceeding it produces another chunk. It is a wall only for a single variant that cannot be split (the indivisible unit), which sits at 49% of budget on the largest real set.',
   },
 } as const;
 
@@ -187,6 +215,40 @@ const patchNested = (plans: AnatomyPlan[], patch: Record<string, unknown>): Anat
   return plans.map((p) => ({ ...p, root: walk(p.root as unknown as Record<string, unknown>) as never }));
 };
 
+/**
+ * THE INDIVISIBLE UNIT: shell + the single largest variant — the only byte figure here that is a real
+ * ceiling, and the one the first version of this file failed to measure.
+ *
+ * A chunk's payload is `shell + Σ(variant costs)`, where the shell is what EVERY chunk pays before any
+ * variant. `pack` fills a chunk until the next variant would exceed the budget, so worst-chunk fullness
+ * is within one variant of the budget BY CONSTRUCTION — it reports how evenly the last bin filled, not
+ * how much room exists. Overflow of a chunk is not a failure mode at all: the packer answers it by
+ * emitting another chunk, and `figma_execute` calls are unbounded.
+ *
+ * What re-packing CANNOT fix is one variant that does not fit alone. `pack`'s own comment says what
+ * happens then — *"ALWAYS at least one variant per chunk, even one that does not fit … a one-variant
+ * over-budget chunk is reported by its own `bytes` and fails visibly at the transport"* — and that is the
+ * cliff: the packer's designed response is to ship something that breaks. Hence shell + max(variant).
+ *
+ * BOTH TERMS ARE RECOVERED FROM THE REAL PACKER'S OUTPUT, not modeled, and that is the docs/34 half. The
+ * variant costs use the same `JSON.stringify(spec).length + 1` the packer charges (the `+1` is the comma
+ * this variant adds to the `PLANS` array literal), and the shell is the fullest chunk's MEASURED bytes
+ * minus the variants it actually holds. Deriving the shell from the payload template instead would be the
+ * classic failure here: the shell is a fixpoint over the chunk count (`CHUNK`/`TOTAL`/`FIRST` are
+ * interpolated, so a payload's own index widens it), so a modeled shell is the wrong width — and wrong in
+ * the direction that flatters the answer.
+ */
+const indivisibleUnit = (plans: AnatomyPlan[], chunks: ReturnType<typeof planSetChunks>) => {
+  const { cells } = planSetLayout(plans, 'nest-exposed-cost');
+  const specs = cells.map((c) => ({ name: c.name, root: c.root }));
+  const costs = new Map(specs.map((s) => [s.name, JSON.stringify(s).length + 1]));
+  const worst = Math.max(...chunks.map((c) => c.bytes));
+  const fullest = chunks.find((c) => c.bytes === worst)!;
+  const shell = worst - fullest.variants.reduce((a, n) => a + (costs.get(n) ?? 0), 0);
+  const largest = Math.max(...costs.values());
+  return { shell, largest, unit: shell + largest, spare: SET_CHUNK_BYTES - (shell + largest), worst };
+};
+
 const report: Record<string, unknown> = {};
 const args = process.argv.slice(2);
 const json = args.includes('--json');
@@ -221,7 +283,15 @@ for (const id of targets) {
   say(`  varying axes (= properties)  ${cur.varying.length}   ${cur.varying.join(', ')}`);
   say(`  constant axes (no property)  ${cur.constant.length}   ${cur.constant.join(', ') || '(none)'}`);
   say(`  PANEL ROWS TODAY             ${cur.panelRows}`);
-  say(`  chunks / worst chunk         ${chunks.length} / ${fmt(worst)} B against a ${fmt(SET_CHUNK_BYTES)} B budget (${fmt(SET_CHUNK_BYTES - worst)} B spare)`);
+  const unit = indivisibleUnit(plans, chunks);
+  say(`  chunks                       ${chunks.length}  (one figma_execute call each; the count is unbounded, so growth is ABSORBED here)`);
+  say(`  worst chunk                  ${fmt(unit.worst)} B of ${fmt(SET_CHUNK_BYTES)} — NOT headroom: pack() fills until the next`);
+  say(`                               variant would not fit, so this is within one variant of the budget by construction`);
+  say(`  shell (paid by EVERY chunk)  ${fmt(unit.shell)} B = ${((unit.shell / SET_CHUNK_BYTES) * 100).toFixed(1)}% of the budget before a single variant`);
+  say(`  largest single variant       ${fmt(unit.largest)} B`);
+  say(`  INDIVISIBLE UNIT             ${fmt(unit.unit)} B → ${fmt(unit.spare)} B REAL headroom (${((unit.unit / SET_CHUNK_BYTES) * 100).toFixed(1)}% of budget used)`);
+  say(`                               ← the only true cliff: one variant cannot be split across two calls.`);
+  say(`                               The largest variant would have to grow ${((SET_CHUNK_BYTES - unit.shell) / unit.largest).toFixed(1)}x to become unpackable.`);
 
   // How many parts of this def would be candidates for exposure — i.e. point at another component.
   const nestingParts = Object.entries(def.anatomy?.parts ?? {}).filter(([, p]) => p.nesting);
@@ -264,22 +334,40 @@ for (const id of targets) {
   // it can improve while the payload grows. It is still reported, because it is the number the BUDGET is
   // enforced against, but the delta that answers "what does exposure cost" is the total and the chunk
   // count. Reporting only worst-chunk would have shown exposure as free-or-better on the 648-variant set.
-  say('    exposure field shape                              total bytes     Δ total   worst   chunks   verdict');
+  say('    exposure field shape                              total bytes     Δ total   chunks   indivisible   Δ unit   verdict');
   const payloadRows: Record<string, unknown>[] = [];
   const totalNow = chunks.reduce((a, c) => a + c.bytes, 0);
   for (const shape of EXPOSURE_FIELD_SHAPES) {
-    const patched = planSetChunks(patchNested(plans, shape.patch as Record<string, unknown>));
-    const pWorst = Math.max(...patched.map((c) => c.bytes));
+    const pPlans = patchNested(plans, shape.patch as Record<string, unknown>);
+    const patched = planSetChunks(pPlans);
     const pTotal = patched.reduce((a, c) => a + c.bytes, 0);
-    const over = pWorst > SET_CHUNK_BYTES;
-    const verdict = patched.length !== chunks.length
-      ? `+${patched.length - chunks.length} CHUNK(S)`
-      : over ? 'OVER BUDGET' : 'fits';
-    say(`    ${shape.label.padEnd(49)} ${fmt(pTotal).padStart(11)}   ${('+' + fmt(pTotal - totalNow)).padStart(9)}  ${fmt(pWorst).padStart(6)}    ${String(patched.length).padStart(4)}   ${verdict}`);
-    payloadRows.push({ shape: shape.label, totalBytes: pTotal, deltaTotal: pTotal - totalNow, worstChunkBytes: pWorst, chunks: patched.length, chunkDelta: patched.length - chunks.length, overBudget: over, models: shape.models });
+    const pUnit = indivisibleUnit(pPlans, patched);
+    // The verdict names the only two things that can actually go wrong, and neither is "the worst chunk
+    // got full". A chunk-count change is a real if cheap cost (more round trips). An indivisible unit over
+    // budget is the failure the packer cannot answer: it ships a one-variant over-budget chunk that dies
+    // at the transport. Verified reachable by mutation — a 30KB field on icon-button reports
+    // UNPACKABLE VARIANT at 46,740 B, so this branch is not decoration.
+    const verdict = pUnit.unit > SET_CHUNK_BYTES
+      ? 'UNPACKABLE VARIANT'
+      : patched.length !== chunks.length
+        ? `+${patched.length - chunks.length} CHUNK(S)`
+        : 'fits';
+    say(`    ${shape.label.padEnd(49)} ${fmt(pTotal).padStart(11)}   ${('+' + fmt(pTotal - totalNow)).padStart(9)}    ${String(patched.length).padStart(4)}   ${fmt(pUnit.unit).padStart(11)}   ${('+' + fmt(pUnit.unit - unit.unit)).padStart(6)}   ${verdict}`);
+    payloadRows.push({ shape: shape.label, totalBytes: pTotal, deltaTotal: pTotal - totalNow, chunks: patched.length, chunkDelta: patched.length - chunks.length, indivisibleUnit: pUnit.unit, deltaUnit: pUnit.unit - unit.unit, unitSpare: pUnit.spare, worstChunkBytes: pUnit.worst, unpackable: pUnit.unit > SET_CHUNK_BYTES, models: shape.models });
   }
   say();
-  say(`    (today: ${fmt(totalNow)} B total across ${chunks.length} chunks, worst ${fmt(worst)} — ${fmt(SET_CHUNK_BYTES - worst)} B under budget)`);
+  say(`    (today: ${fmt(totalNow)} B total across ${chunks.length} chunks; indivisible unit ${fmt(unit.unit)} B with ${fmt(unit.spare)} B spare)`);
+  say();
+  // SHELL SENSITIVITY, the one figure that is genuinely leveraged, since every chunk pays it in full.
+  // Simulated by SHRINKING the budget — arithmetically the same as shell growth, and it re-runs the real
+  // packer rather than building a second model of it. Here for contrast: exposure adds nothing to the
+  // shell, so this documents which future field shape WOULD be expensive.
+  say('    for contrast — what SHELL growth costs, since every chunk pays it in full:');
+  const sens = [0, 1_000, 4_000, 16_000].map((g) => {
+    const b = SET_CHUNK_BYTES - g;
+    return b <= unit.unit ? `+${fmt(g)}→unpackable` : `+${fmt(g)}→${planSetChunks(plans, b).length} chunks`;
+  });
+  say(`      ${sens.join('   ')}`);
   say();
 
   report[def.id] = {
@@ -292,6 +380,11 @@ for (const id of targets) {
     panelRowsToday: cur.panelRows,
     chunks: chunks.length,
     worstChunkBytes: worst,
+    worstChunkIsAnArtifact: 'pack() fills until the next variant would not fit, so this is within one variant of the budget regardless of how much room exists. Not headroom.',
+    shellBytes: unit.shell,
+    largestVariantBytes: unit.largest,
+    indivisibleUnitBytes: unit.unit,
+    indivisibleUnitSpare: unit.spare,
     chunkBudget: SET_CHUNK_BYTES,
     exposureCandidates: exposable.map(([n]) => n),
     perNestedShape: rows,

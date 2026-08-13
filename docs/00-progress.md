@@ -6,6 +6,84 @@
 > changes. Most recent entry first.
 
 ---
+## (2026-08-13) — The four-byte cliff was not a cliff: worst-chunk fullness is an artifact of greedy packing
+
+**STATUS: corrected.** A reviewer pushed back on #761's headline before the schema PR could quote it, and
+they were right. #761 reported Button's fullest chunk at **41,996 B against a 42,000 B budget — "four bytes
+of headroom"** — and read that as the constraint that makes the `nest-exposed` schema decision tight. It is
+not a constraint at all. This corrects the tool, adds the number nobody measured, and leaves the wrong
+paragraph in the #761 entry with a pointer rather than rewriting it.
+
+**Why the number was meaningless, from the packer's own code.** `pack` adds variants to a chunk *until the
+next one would not fit*:
+
+```
+if (cur.length && size + cost > budgetBytes) { groups.push(cur); cur = []; size = shell; }
+```
+
+So the fullest chunk is **always within one variant of the budget**, no matter how much or how little room
+exists. 41,996 of 42,000 measures how evenly the last bin happened to fill — not scarcity. And chunk
+overflow is not a failure mode: the budget bounds ONE `figma_execute` call, calls are unbounded, and the
+packer's answer to growth is another chunk. #761's own table showed exactly that (36 chunks across every
+exposure shape) and I still read the fullness as a cliff.
+
+**The compounding error is that I had already proven this instrument was broken.** The same entry records
+worst-chunk going *down* (41,996 → 41,939) as the payload grew 2 KB, and concludes "worst-chunk is not a
+cost signal." Then it turns around and uses worst-chunk fullness as the ceiling. A number that improves
+when the payload grows cannot be measuring room — one argument disqualifies it for both uses, and I applied
+it to one. That is the transferable lesson: when an instrument is found non-monotonic, the finding
+invalidates *every* reading taken from it, not the one that prompted the check.
+
+**The real cliff, which nobody had measured.** What re-packing cannot fix is a single variant too big to
+ship alone — and `pack`'s own comment says what happens then: *"ALWAYS at least one variant per chunk, even
+one that does not fit … a one-variant over-budget chunk is reported by its own `bytes` and fails visibly at
+the transport."* The packer's designed response to that case is to ship something that breaks. So the
+ceiling is **shell + largest single variant** — the indivisible unit:
+
+| | shell (every chunk) | largest variant | indivisible unit | real headroom | budget used |
+|---|---|---|---|---|---|
+| Button (648 variants) | 18,954 B | 1,668 B | **20,622 B** | **21,378 B** | **49.1%** |
+| IconButton (162 variants) | 15,756 B | 965 B | **16,721 B** | **25,279 B** | **39.8%** |
+
+Button's largest variant would have to grow **13.8×** to become unpackable; IconButton's **27.2×**. Exposure
+moves the unit by **19–35 B**. The byte budget is not close to anything.
+
+**The conclusion survives and is strengthened.** #761's actual recommendation — that cost does not
+distinguish per-property opt-in from all-or-nothing, so the schema decision must turn on expressiveness
+(name collisions when two nested instances expose the same axis, whether a def author can be trusted to
+enumerate) — was right for a better reason than the one given. The two schemas differ by ~1,700 B total and
+**35 B at the only place a cliff could exist**. The schema PR should quote *this* entry, not #761's headline.
+
+**What does scale, if anything is to be watched: the SHELL.** Every chunk pays it in full, so shell growth
+is multiplied by the chunk count. It is already **45.1% of the budget for Button before a single variant**,
+and simulated growth costs: +1,000 B → 38 chunks, +4,000 B → 44, +16,000 B → 127. Exposure adds nothing to
+the shell, because a per-node field rides in `PLANS` — which is *why* it is cheap. A future field in the
+payload **header** is the expensive shape, and that is now in the tool as a contrast row so the next person
+sizing a payload field sees which half they are adding to.
+
+**Both terms are recovered from the real packer's output, not modeled.** Variant costs use the same
+`JSON.stringify(spec).length + 1` the packer charges (the `+1` is the comma in the `PLANS` array literal),
+and the shell is the fullest chunk's *measured* bytes minus the variants it actually holds. Deriving the
+shell from the template instead would have been the `docs/34` failure: the shell is a fixpoint over the
+chunk count, so a modeled one is the wrong width. Shell sensitivity is likewise simulated by shrinking the
+budget and re-running the real `planSetChunks` — arithmetically identical to shell growth, and it avoids a
+second model of the packer.
+
+**Also corrected in the tool:** the `executeBytes` ceiling row now says it bounds one call rather than the
+set, and `propertiesPerSet` records that properties are not bounded by the byte ceiling *at all* —
+`PROPS_ALL` rides only in the FINAL chunk, so the property count and the payload budget are independent
+axes. #761 implied they were linked.
+
+**Gates: all 25 green** (same list as #761; the diff is one tool file and two docs). Engine `test.ts`
+2134/2134 · `mcp-test.ts` 49/49 · `regen --check` 104 artifacts · `lint-layout-claims`/`lint-doc-gates`
+clean · studio and plugin suites unchanged · TokenPress `test` 274 assertions · `lint-us-english` and
+`lint-voice` last.
+
+**Worktree note, since main changed under me:** CLAUDE.md now prescribes `npm ci` for a fresh worktree
+rather than a hand-rolled symlink loop. #761's report of a missing `jszip` was me hitting exactly the
+problem that instruction solves — the fix is `npm ci`, not linking the 12 transitive packages by hand.
+
+---
 
 ## (2026-08-13) — The component registry, and the gate arm that keeps it honest (#742, `docs/38` Arc 3)
 
@@ -113,6 +191,13 @@ docs bounds properties. So all-or-nothing's *worst* case is three extra rows on 
 ceiling. Whatever decides the schema, it is not a limit being approached.
 
 **What IS nearly touching is the byte ceiling, and that is the number to carry into the schema PR.**
+> ⚠️ **CORRECTED — see the 2026-08-13 entry above.** The "four bytes of headroom" reading in this
+> paragraph is wrong. Worst-chunk fullness is near-budget *by construction* (the packer fills until the
+> next variant will not fit), and chunk overflow is absorbed by adding chunks. The real ceiling is the
+> indivisible unit — shell + largest single variant — which sits at **49% of budget**, not 99.99%. The
+> paragraph's *conclusion* (cost does not distinguish the two schemas) survives, and is in fact
+> strengthened. Left in place rather than rewritten, because the misreading is the instructive part.
+
 Button's fullest chunk is **41,996 B against `SET_CHUNK_BYTES`'s 42,000 — four bytes of headroom, today,
 before any exposure exists at all.** Every candidate exposure field still packs into the same 36 chunks
 (+2,052 B for a bare flag through +3,780 B for renamed per-property, ~3–6 B per variant across 648
