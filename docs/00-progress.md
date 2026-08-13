@@ -7,6 +7,77 @@
 
 ---
 
+## (2026-08-13) — A comment carrying a count has an expiry date, and `docs/38` §2 had already contradicted itself
+
+**STATUS: shipped.** `apps/plugin/src/main.ts` (the `buildComponents` header) + `docs/38` §2's census
+row. Comments and docs only — no behavior change, no gate change.
+
+**THE REPORTED DEFECT, and why the obvious fix would have rotted on the same schedule.**
+`main.ts:250` read *"`anatomy` is what makes a def materialisable and Button is the only def in the
+catalogue that has one. A loop over five defs would throw on four of them."* True when written, false
+since #734 and #741 — and **both** of its sentences were wrong by then, including the arithmetic ("five
+defs" when seven exist).
+
+The obvious correction is *"four defs have anatomy"*. That is the same kind of statement and would rot
+the same way: Arc 2 step 3 gives the three field defs anatomy and moves it again. **A comment carrying a
+count has an expiry date that nothing checks** — there is no gate over prose arithmetic, which is
+exactly how the original survived two PRs that changed its answer. So the comment now states the
+**property** and points at the source of truth: `componentDefs` is a real set since #742, and
+`typecheck-components.ts` asserts in both directions that it holds exactly the defs git tracks. It says
+what to look at, not what the answer was in August.
+
+It borrows `docs/38` §2's vocabulary verbatim — **"an `anatomy` block is necessary and not
+sufficient"** — rather than inventing a second way to say it, so a reader moving between the design
+record and the code is not translating between two private terminologies.
+
+**WHAT THE CENSUS FOUND, which is not what either source said.** Measured live over `componentDefs`
+rather than re-read (`figmaAnatomySet` per def, catching what it throws):
+
+| def | `anatomy` | `figmaProperties` | projects |
+|---|---|---|---|
+| `button` | yes | yes | **648 plans** |
+| `icon-button` | yes | yes | **162 plans** |
+| `icon` | yes | yes | **4 plans** |
+| `focus-ring` | yes | **no** | throws — *no `figmaProperties` block* |
+| `field-label` · `field-message` · `text-field` | no | no | throws |
+
+So it is **four of seven carrying `anatomy`, three of those materializing** — and `docs/38` §2's row
+said *"Three of seven… two of those"* while its own evidence cell already cited *"`icon.ts` projects
+four members"*. **A def cannot project without `anatomy`**, so the row contradicted itself in the space
+of one sentence. Corrected there too, with the progression kept in the **was** column (*one, then two,
+then three*), because that column is what §4 reasons from.
+
+Worth naming the shape: the row was *more* rigorous than the comment — it had already drawn the
+necessary-vs-sufficient distinction the comment elided — and it was still wrong, because the headline
+count and the evidence cell were written at different times and nothing compares them. **Prose
+internal to one row is not a gate on itself.**
+
+`focus-ring` is the case the new comment is built to survive: it carries `anatomy` and still cannot be
+built, because declaring `variantAxes: ['color']` would validate cleanly and throw at projection, so it
+ships with `figmaProperties` **absent**. Two blocks are required, not one — which is why the comment
+names both and why "has anatomy" was never the right predicate.
+
+**Independent corroboration, from a direction the code does not offer.** The #781 plugin-half
+measurement (previous entry) had already established the falsity without reading this comment at all:
+`icon` projected 36 plans and `icon-button` 216 under a full-grid coordinate sweep, so both
+demonstrably carry anatomy. Two instruments, two answers that agree — and note the plan counts differ
+from the table above because that sweep enumerated every axis coordinate by hand while
+`figmaAnatomySet` projects what `figmaProperties` declares. Same property, different question.
+
+**One thing deliberately NOT changed:** `docs/38`'s header premise (*"one working component and four
+defs that cannot be materialized at all"*) describes the state when the file was written. §2's table
+exists to track drift from it, and the **was** column now carries the whole progression, so rewriting
+the premise would erase what §4 reasons from.
+
+**A method note on the gates.** `lint-us-english.ts` exited **1** on the first run in this lane, and
+the reason is the gate working: no web build existed yet in a fresh worktree, and it refuses to report a
+pass on a surface it could not reach (*"the gate's SCOPE shrank — 1 promised surface(s) are absent"*).
+Represented, not counted. The trap in noticing this is separate and cost a wrong reading: `npx tsx
+gate.ts 2>&1 | tail -2; echo $?` reports **`tail`'s** exit status, not the gate's, so a failing gate
+reads as a pass. Capture to a file and echo `$?` immediately.
+
+---
+
 ## (2026-08-13) — A def spells the paint ORDER; the projector owns the slot NAMES — and half of #758's paint was reachable at no coordinate (#784)
 
 **STATUS: shipped (engine half).** `PAINT_SLOTS` is now the written-down dispatch vocabulary, four defs'
