@@ -157,10 +157,31 @@ export const fieldLabel: ComponentDef = {
   // exactly what a variant coordinate carries. `booleans` is stated-empty rather than omitted — the
   // established way this schema says "considered, and none survive" — and the indicator's note records
   // why the one candidate is unbuildable.
+  // TWO TEXT PROPERTIES, ONE PER TEXT PART, and the second one is a defect fix found by projecting rather
+  // than by reading (#796). `characters` lands on a text node ONLY where the def declares a TEXT property
+  // for that part (`anatomy-figma.ts:650`), so with `children` alone the `indicator` projected as a TEXT
+  // node with correct ink, correct type style and **no content at all** — an empty, zero-width node in
+  // Figma. The whole point of `paintSlot: 'indicator'` is that the marker reads as de-emphasised beside
+  // the name, and an invisible node reads as nothing.
+  //
+  // This is #510's defect at one-node scale, and that precedent is why it is worth a comment rather than
+  // a quiet line: #510 pasted 21 buttons that were all BLANK, every binding resolved and every check
+  // green, because *"nothing wrote `characters` and nothing declared a TEXT property"*
+  // (`anatomy-figma.ts`'s `pasteComponentSet` header). The existing gate cannot see this case — it
+  // asserts a declared property's default is non-empty, and the failure here is a text part with **no**
+  // property, which nothing asks about.
+  //
+  // The default is `(optional)` rather than `*` because it is the marker this def's own prop docs
+  // recommend (mark the MINORITY, and "(optional)" is the shape that carries meaning without a legend),
+  // and because a one-glyph placeholder in a de-emphasised ink is exactly the projection a designer
+  // mistakes for an empty node — the thing this fix is for.
   figmaProperties: {
     variantAxes: ['size'],
     stateAxis: { name: 'state', values: ['rest', 'disabled'] },
-    texts: { children: { part: 'text', default: 'Email address' } },
+    texts: {
+      children: { part: 'text', default: 'Email address' },
+      indicator: { part: 'indicator', default: '(optional)' },
+    },
     booleans: {},
   },
 

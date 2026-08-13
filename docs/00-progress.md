@@ -10,8 +10,13 @@
 ## (2026-08-13) — Both field defs get their anatomy; only one of them can be projected (#796, Arc 2 step 3)
 
 **STATUS: shipped.** `field-label` and `field-message` both carry `anatomy` blocks. `field-label` projects —
-4 Figma members, 12 grid coordinates, **4 of 4** colour bindings reachable, now pinned in the paint census.
-`field-message` does **not**, deliberately, and that asymmetry is the entry.
+4 Figma members, 12 grid coordinates, **4 of 4** colour bindings reachable, two TEXT properties, now pinned in the
+paint census. `field-message` does **not**, deliberately, and that asymmetry is the entry.
+
+**TWO DEFECTS, AND EACH WAS FOUND BY EXERCISING THE THING RATHER THAN READING IT** — a dead paint key found by
+enumerating coordinates, and a *blank text node* found by projecting the def and reading the node JSON. Both were
+green in the whole suite. The second one is the argument for the rule that every Arc 2 step ends in a live Figma
+run: the paint gates verified the indicator's ink at every coordinate, and the node had no content to paint.
 
 **AND THIS DOES NOT CLOSE ARC 2 STEP 2.** `focus-ring` still cannot project: `planComponentName` always writes
 a `size=` coordinate the ring has no axis for, and `PartDef` has no stroke field (#740). Nothing here touched
@@ -66,6 +71,39 @@ a size axis into a throwaway copy), so it projects with no further work on it th
 It is an Arc 1 schema question, same family as #758 — and like #758 it was tempting to settle inside this PR,
 which is exactly why it was not.
 
+**AND THEN THE PROJECTION ITSELF FOUND A SECOND DEFECT — THE INDICATOR PAINTED CORRECTLY AND WAS BLANK.** Taking
+the live Figma run meant projecting `field-label` and reading the node tree rather than the def, and the node this
+whole PR is about came out as:
+
+```json
+{ "name": "indicator", "type": "TEXT", "textStyle": "label/sm/emphasis",
+  "paints": { "fills": "color/text/secondary" }, "bound": {}, "children": [] }
+```
+
+Correct ink, correct type style, **no `characters` field** — an empty, zero-width text node in Figma. So the
+de-emphasised "(optional)" that `paintSlot` exists to make readable would have materialized as nothing at all,
+and the paint fix would have been verified true and pointless in the same pass. The cause is one line:
+`anatomy-figma.ts:650` writes `characters` **only** where `figmaProperties.texts` names the part, and this def
+declared `children → text` alone. Fixed by declaring a second TEXT property (`indicator`, default `(optional)`).
+
+**This is #510 at one-node scale**, which is why it earns a comment in the def rather than a quiet line: #510
+pasted 21 buttons that were all BLANK, every binding resolved and every check green, because *"nothing wrote
+`characters` and nothing declared a TEXT property."* The same defect, sixteen months and one gate later.
+
+**The existing gate could not see it, and the reason is a shape worth naming.** `figmaPropertyErrors` starts from
+the **property list** and asks whether each declared default is non-empty. The failure here is a text part with
+**no property at all** — so there was nothing for that traversal to iterate over, and the absence produced silence
+rather than a finding. The new rule walks the other direction: from `anatomy.parts`, every `kind: 'text'` part must
+be claimed by some `texts` entry. Two traversals over the same relation, opposite starting sets; either alone is
+half a gate. It is built from `fp.texts` rather than reusing the `claimed` Map already in that function
+(`component-schema.ts:746`), because that map records part → *any* property kind, so a text part claimed by a
+`swaps` entry would have passed falsely — the DRY version is the broken version, `docs/34`'s rule again.
+
+Audited the rest of the corpus by the same question: only `field-message`'s text part is unclaimed, benignly, since
+it declares no `figmaProperties` and cannot project at all. The new rule runs only when `figmaProperties` exists
+(`component-schema.ts:564`), so it correctly says nothing about that def until #795 lets it project — at which
+point it will demand the property, which is the behavior we want.
+
 **WHAT THE GATES CAUGHT, AND WHAT ONLY ONE OF THEM COULD.** Mutation-tested by reverting `field-label` to its
 pre-#796 shape:
 
@@ -78,9 +116,16 @@ pre-#796 shape:
 - A pre-existing `paintKeys` rule independently caught `disabled.indicator.label` (the cross-cutting branch's
   ground segment) but **not** the plain `indicator.label` — so `validateComponentDef` alone saw half of it.
 
-Both new validations were mutation-tested **by name** against a clean control: `paintSlot` on a non-`text` part,
-and `paintSlot` naming a word outside `PAINT_SLOTS` (whose message says *do not add it to `PAINT_SLOTS` to clear
-this*).
+All three new validations were mutation-tested **by name** against a clean control (7 defs, 0 errors, 0 warnings
+unmutated): `paintSlot` on a non-`text` part, `paintSlot` naming a word outside `PAINT_SLOTS` (whose message says
+*do not add it to `PAINT_SLOTS` to clear this*), and the unclaimed-text-part rule — dropping the `indicator` TEXT
+property fires the new rule, while blanking its default still fires the old one, so the two are distinguishable
+rather than one rule with two messages.
+
+Worth recording what did **not** move: the paint census is byte-identical across the blank-node fix. Correct — it
+hashes paint, and `characters` is content. A defect that made the painted node invisible was outside every paint
+gate's subject by construction, which is the argument for ending an Arc step in a materialization instead of a
+suite.
 
 **A CONTRADICTION FOUND IN PASSING, worth writing down because nothing in the corpus exercises it.**
 `present()` returns `!p.optional` for every part except the two slot names it hardcodes (`leadingVisual` /
