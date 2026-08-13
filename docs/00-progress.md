@@ -460,11 +460,21 @@ rule-paired pairs, which the report carries for none of them today (the values c
 `CONTRIBUTING.md` §3 rather than implied, because a green `paired types` reads as "the pairings are
 correct" and does not mean it. The generalizable form is this shape one turn deeper: **a check added to
 verify an authored correspondence is itself scoped, and its scope is as easy to overstate as the claim it
-verifies.** And the sweep needed a second pass to be complete: #788 carried the bound to four sites and
-left `CONTRIBUTING.md` §3 reading only "Now 0 and ASSERTED" — the *canonical* gate list, and the one
-phrasing a reader is most likely to take as "the pairings are verified." **A qualification has to reach
-every site the unqualified claim reached**, which is one more site than the claim itself had, because
-`CONTRIBUTING.md` had never said "four arms" in the sentence that needed fixing.
+verifies.**
+
+**AND THE SWEEP ITSELF NEEDED A SECOND PASS, WHICH IS THE FINDING (#789).** #788 carried the bound to four
+sites and left `CONTRIBUTING.md` §3 reading only "Now 0 and ASSERTED" with no bound at all — in the one
+document `lint-doc-gates.ts` treats as **canonical** for gate claims, and the single phrasing a reader is
+most likely to take as *the pairings are verified*. State the generalization exactly this way: **a
+qualification has to reach every site the unqualified claim reached, and that set is not always findable
+by grepping the claim's own wording.** The mechanism is worth naming because it is the whole reason the
+first pass looked complete: I found the four sites by grepping the phrase the change had invalidated —
+"four arms" — which finds every site that carried the claim *in those words* and no site that carried the
+same false implication in different words. `CONTRIBUTING.md` §3 was the second kind. So the sweep set is
+the sites the **claim** reached, enumerated from where the claim is *made* (here: every document that
+describes the gate's arms), not the sites a **string** reaches. The two coincide often enough to be
+mistaken for the same thing, and when they diverge the leftover site is the one still asserting the thing
+you just qualified.
 
 **THE TRAP FOR WHOEVER RE-VERIFIES THIS.** Mutating the `FONT_SIZE` branch to check the duplicate-channel
 rule reported **EXIT 0**, which reads as a second blind spot. It was a **non-mutation**: disabling the
