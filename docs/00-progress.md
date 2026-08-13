@@ -34,6 +34,17 @@ reaches:
 case: `paintKeys: ['{slot}']` passes every check #758 shipped and the def paints **nothing**. `docs/38`'s
 paint row and `docs/28` §5 carried that claim and are corrected here.
 
+**The claim is also in #781's merged commit title** — *"Let the def declare its paint axes, so five of seven
+can be painted"* — and that is **left alone deliberately**, on the terms #773 set (2026-08-12 entry): rewriting
+merged history to correct a claim is a worse trade than the claim. Worth saying plainly rather than leaving a
+reader to wonder whether it was missed. The count is right about the CAUSE and wrong about the CURE, which is
+the whole of #784: removing the hardcoded `{intent}.{appearance}.{slot}` did unblock five defs, and three of
+the five were spelled in words the projector answers. So a title claiming the grammar was fixed is true; one
+claiming five defs paint is not, and the two are one word apart. **This is the second time in this task that a
+count was asserted from the mechanism rather than measured at the coordinate** — the first was #758's own
+five, the second was mine in the corrected report — which is the argument for `lint-paint.ts` arm 3 existing at
+all: a claim about what paints is only ever worth what the enumeration behind it is worth.
+
 **THE GENERALIZATION, which is why this is one rule and not three.** The two latent defects #758 named and
 deferred (`text-field`'s `border.focus` against its declared `focus-visible`; `field-message`'s unreachable
 `text` keys) are **one defect wearing two hats** — a template segment filled with a word nothing supplies.
