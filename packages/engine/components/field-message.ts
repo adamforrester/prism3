@@ -16,6 +16,29 @@
  * carries the meaning — never colour-only). The HOST (TextField) owns the wiring — it puts
  * this node's id into the field's `aria-describedby` chain and sets `aria-invalid` on error
  * (§6). So the part is presentational; the host stitches it in.
+ *
+ * IT HAS AN ANATOMY BLOCK AND NO FIGMA PROJECTION (#796), which is `focus-ring`'s position and is
+ * recorded the same way — in this header, with `figmaProperties` ABSENT, rather than in `codeOnly`.
+ * docs/38 §2 already has the phrasing for it: **an `anatomy` block is necessary and not sufficient.**
+ *
+ * WHY NOT `codeOnly`: that list means *some anatomy provably will not survive the Figma leg* — its
+ * examples are things Figma has no equivalent for (a touch target larger than the frame, an
+ * accessibility tree). This ceiling is not one of those. `figmaAnatomyPlan` requires a declared `size`
+ * axis (`anatomy-figma.ts:302`) and `planComponentName` always writes a `size=` coordinate, so a def
+ * with ONE type scale is unprojectable **by our own construction** — code we wrote and can remove.
+ * Filing it as a Figma ceiling would make `codeOnly` mean two different things, and the day someone
+ * reads that list to answer *"what can Figma not do?"* they would get a wrong answer.
+ *
+ * AND NOT A FABRICATED `size` AXIS. A caption has one scale (`type.caption.md`), so `size: ['md','lg']`
+ * would emit Figma members corresponding to nothing in the design — two byte-identical variants per
+ * tone, projected only to satisfy a coordinate. The def stays honest and stays unprojected.
+ *
+ * WHAT IS ALREADY TRUE, verified rather than assumed: the anatomy is correct and all EIGHT colour
+ * bindings resolve at every tone (`error.label` → `color/text/danger`, `error.icon` →
+ * `color/icon/danger`, and so on for all four tones), probed by substituting a size axis in a throwaway
+ * copy. So this def projects with **no further work on it** the day the size requirement is relaxed —
+ * which is filed as #795, because it now blocks two defs for one reason (this and
+ * `focus-ring`) and has stopped being a per-def note.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -76,6 +99,61 @@ export const fieldMessage: ComponentDef = {
     'success.label': 'color.text.success',
     'success.icon': 'color.icon.success',
   },
+
+  // A GLYPH AND A CAPTION IN A ROW. The structure is small and the two things it fixes are not: the
+  // icon comes FIRST (the status is read before the sentence), and the caption is `fill` on the main
+  // axis so a long message wraps within the field's width instead of widening its parent.
+  anatomy: {
+    root: 'message',
+    parts: {
+      message: {
+        kind: 'box',
+        // `target` in the schema's sense — this def's paint and geometry owner — not the interaction
+        // sense, on `icon`'s terms. A message takes no focus; the FIELD it describes does, and this
+        // node's relationship to that field is a DOM one (see codeOnly).
+        role: 'target',
+        // START, not baseline, and this differs from `field-label` deliberately: the glyph beside a
+        // possibly-wrapping caption should align to the caption's FIRST line, which `start` gives and
+        // `baseline` would too — but `baseline` on a wrapped text node is the last line's in some
+        // engines. `start` is the reading that survives wrapping.
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
+        gap: 'gap',
+        children: ['icon', 'text'],
+      },
+      icon: {
+        kind: 'slot',
+        // NOT `optional: true`, for the projector reason recorded on `field-label`'s indicator:
+        // `present()` returns `!p.optional` for every part but the two slot names it hardcodes, so an
+        // optional part named `icon` would be built at no coordinate. The prop is optional on the
+        // default tone (see `props.icon`) and required in practice on the validation tones, which is
+        // where §7's never-colour-only contract lives — so always-present is also the safer default of
+        // the two: a message that ships its glyph is never the colour-only failure.
+        nesting: { kind: 'swap' },
+        note: 'The leading status glyph, aria-hidden — the caption carries the meaning. Its ink is the tone\'s `icon` role, so the pairing icon+text that satisfies SC 1.4.1 is one token decision rather than two.',
+      },
+      text: {
+        kind: 'text',
+        // The caption scale, and NOT `{size}`-templated — this def has one scale, which is the whole
+        // reason it cannot project (see the header). A `{size}` placeholder here would need a size axis
+        // to expand over and `anatomyErrors` rejects that combination outright.
+        type: 'type',
+        note: 'The message itself. `paintSlot` is absent because the default `label` is right: this is the only text node, and its ink is the tone\'s text role.',
+      },
+    },
+    codeOnly: [
+      'aria-describedby wiring — the message\'s entire relationship to its field is a DOM one the HOST owns (§6): the field references this node\'s id in its describedby chain and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the projection is a glyph and a caption that sit below a field and are associated with it by proximity alone. This is the same ceiling `field-label`\'s htmlFor hits, and it is the reason both defs are presentational in Figma and load-bearing in code.',
+      'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `tone=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
+      'tone-to-icon pairing — the def binds the icon\'s INK per tone and cannot bind WHICH glyph each tone shows (an exclamation for error, a check for success). `PartKind` has no vector kind by `icon`\'s own reasoning — glyph geometry is the set\'s content, not a declared part — so the projection carries one placeholder glyph in the tone\'s colour, and a designer swaps it. A Figma member showing a check mark in danger ink is reachable and would read as a component defect rather than an unswapped placeholder.',
+      'the default tone\'s optional icon — `props.icon` is optional on the default tone and expected on the validation tones, and the anatomy declares the part always-present because `present()` builds no optional part outside the two slot names it hardcodes. So the helper-guidance case renders with a glyph in Figma where the code projection may omit it. Recorded rather than modelled: the alternative (an optional part) projects at NO coordinate, which is worse than a member a designer deletes a node from.',
+    ],
+  },
+
+  // NO `figmaProperties`, and its ABSENCE is the declaration — `focus-ring`'s pattern exactly. Declaring
+  // `variantAxes: ['tone']` would validate cleanly here and throw at projection, because
+  // `figmaAnatomySet` refuses any axis outside intent/appearance/size. But that is the second wall, not
+  // the first: this def cannot be projected at ANY coordinate, with any axis list, because
+  // `figmaAnatomyPlan` requires a declared `size` axis and a caption has one scale. See the header for
+  // why that is filed as #795 rather than admitted in `codeOnly`.
 
   accessibility: {
     role: 'none (rendered text; the host associates it via aria-describedby)',

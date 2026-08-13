@@ -378,12 +378,20 @@ export const figmaAnatomyPlan = (
    *
    * THE SLOT SEGMENT IS STILL THIS FILE'S (#784), and that half is what #758 gave away by accident.
    * A def spells the ORDER and the AXES; it does not get to invent the slot NAMES, because the slot is
-   * the argument this function is CALLED with — see the five `paintOf('…')` sites below (`overlay`,
-   * `fill`, `border`, `label`, `icon`), which are the entire dispatch vocabulary (`PAINT_SLOTS`). A key
-   * whose `{slot}` segment is a word not among them is authored, resolvable and reached at no
-   * coordinate: `field-label`'s ink was spelled `text` and painted 0 of 3. `paintKeyErrors` now reads
-   * `PAINT_SLOTS` and rejects that, so adding a SIXTH `paintOf('…')` call here is what widens the
-   * vocabulary — never an edit to the list alone.
+   * the argument this function is CALLED with — see the five `paintOf(…)` sites below (`overlay`,
+   * `fill`, `border`, the text branch's `p.paintSlot ?? 'label'`, and `icon`), which are the entire
+   * dispatch vocabulary (`PAINT_SLOTS`). A key whose `{slot}` segment is a word not among them is
+   * authored, resolvable and reached at no coordinate: `field-label`'s ink was spelled `text` and
+   * painted 0 of 3. `paintKeyErrors` now reads `PAINT_SLOTS` and rejects that, so adding a SIXTH
+   * `paintOf('…')` call here is what widens the vocabulary — never an edit to the list alone.
+   *
+   * ONE OF THE FIVE IS NOW PARAMETERIZED BY THE PART (#796) rather than a literal, and that is a real
+   * loosening of the sentence above, so it is said out loud: the text branch asks for `p.paintSlot`,
+   * so a def can reach any slot in `PAINT_SLOTS` from a text node by naming it. What it CANNOT do is
+   * invent a word — the value still has to be in the list, and the list still only grows when a
+   * dispatch exists. So the guarantee that survives is the one that matters: every `{slot}` segment
+   * anywhere in the corpus is a word this file dispatches. See `PAINT_SLOTS` for the admissibility
+   * rule that keeps the list from becoming a per-part registry.
    *
    * ORDER IS THE DEF'S TOO, and it carries the state fallback that used to be hardcoded here.
    * `{intent}.{appearance}.{slot}.{state}` leads `{intent}.{appearance}.{slot}`, so a state that
@@ -616,7 +624,13 @@ export const figmaAnatomyPlan = (
       if (fill) paints.fills = fill;
       if (border) paints.strokes = border;
     } else if (p.kind === 'text') {
-      const ink = paintOf('label');
+      // THE ONE PLACE A PART NAMES ITS OWN SLOT (#796), and the default is what keeps that from being a
+      // widening: a text part that declares nothing asks for `label`, exactly as before. What the field
+      // buys is a SECOND text node with a different ink role — `field-label`'s de-emphasised
+      // "(optional)" suffix — which was unreachable at every coordinate while this line read `'label'`
+      // unconditionally, because `paintOf` dispatches by slot and never sees which part asked. Measured:
+      // both of `field-label`'s text parts came back `color/text/primary`.
+      const ink = paintOf(p.paintSlot ?? 'label');
       if (ink) paints.fills = ink;
     } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /
