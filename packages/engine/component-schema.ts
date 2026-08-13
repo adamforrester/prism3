@@ -362,6 +362,51 @@ export type ComponentDef = {
    *  VALUES are token refs, validated to resolve. Reach for SEMANTIC roles, not primitives. */
   tokens: Record<string, TokenRef>;
 
+  /** HOW `tokens`' PAINT KEYS ARE SPELLED, in the order a lookup tries them (#758).
+   *
+   *  Optional, and its absence means "this def declares no paint grammar", which is why it can be
+   *  added without touching a def that has none.
+   *
+   *  ── THE DEFECT THIS REMOVES ──────────────────────────────────────────────────────────────────
+   *
+   *  `anatomy` NAMES its geometry keys (`size.{size}.gap`, resolved through `varOf`), so a typo is
+   *  an authoring error caught before a tree is supplied. Paint keys were the one binding family
+   *  nothing named: `paintOf` BUILT them from a template hardcoded to `{intent}.{appearance}.{slot}`
+   *  — Button's two axes, written into the projector as though they were every component's. Five of
+   *  the seven defs carry neither axis, so they projected structurally complete and silently
+   *  colorless (the #500 / #482 shape), and no authoring could fix it.
+   *
+   *  The asymmetry is stated at the top of this file as deliberate — paint stays out of `anatomy`
+   *  because folding it in re-declares the part tree per variant. That still holds. What did not
+   *  follow from it, and was the actual bug, is that the paint grammar was unstated ANYWHERE.
+   *
+   *  ── WHY A TEMPLATE LIST RATHER THAN AN AXIS LIST ─────────────────────────────────────────────
+   *
+   *  The tempting shape is `paintAxes: ['tone']`, with the projector building `{value}.{slot}` from
+   *  it. Measured against the corpus, that blesses one convention and invalidates another that has
+   *  already shipped. `icon` keys `tone.primary` — the axis NAME leads, the value follows, and there
+   *  is no slot segment at all. `field-message` keys `default.text` — the axis VALUE leads and the
+   *  slot follows. Same axis name, opposite grammars, disjoint value sets (9 values against 4). An
+   *  axis list cannot express both, so adopting one would force a rekey of the other; a template
+   *  says which grammar this def uses and both stay valid as authored.
+   *
+   *  ORDER IS THE DECLARATION, not an implementation detail. `paintOf` walks the list and takes the
+   *  first key that `tokens` binds, so the more specific template must lead — `focus-ring` keys both
+   *  `stroke.inverse` and a bare `stroke`, and reversing them makes every ring paint the default.
+   *  This is the fallback `paintOf` used to hardcode as a state suffix, now stated per def.
+   *
+   *  PLACEHOLDERS: `{slot}` is the paint slot the projector asks for (`fill` / `overlay` / `border`
+   *  / `label` / `icon` — chosen by part KIND, never by part name), and `{<axis>}` is the current
+   *  coordinate's value on that axis, for any axis in `variants` or the literal `{state}`. A
+   *  template whose placeholders cannot all be filled at a coordinate is SKIPPED rather than
+   *  half-substituted, which is what makes a ragged grid expressible: a missing key still means
+   *  "this appearance does not paint that part in that state" (see `figmaAnatomyPlan`'s header).
+   *
+   *  Button declares the two templates it already used, so its 648-member paint is unchanged BY
+   *  CONSTRUCTION rather than by a test that happens to agree — the point of doing this as a
+   *  declaration instead of a rewrite. */
+  paintKeys?: string[];
+
   /** The STRUCTURAL layer (#327). Optional while the catalogue is mid-migration — a def without
    *  it is semantically complete but not materializable. */
   anatomy?: AnatomyDef;
@@ -482,6 +527,9 @@ export const validateComponentDef = (
       else if (isPrimitiveRef(path)) warnings.push(`token slot '${slot}' → '${ref}' reaches a raw primitive tier — prefer a semantic role`);
     }
   }
+
+  // the paint grammar (#758). Optional; when present, every placeholder must name something.
+  if (def.paintKeys) errors.push(...paintKeyErrors(def));
 
   // anatomy — the structural layer (#327). Optional; when present it must be COMPLETE.
   if (def.anatomy) errors.push(...anatomyErrors(def));
@@ -718,6 +766,151 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
  *  placeholder expands to itself, so callers need not special-case. */
 export const expandKey = (key: string, sizes: string[]): string[] =>
   key.includes('{size}') ? sizes.map((s) => key.replace('{size}', s)) : [key];
+
+/** The paint slots the projector asks for, chosen by part KIND rather than part name
+ *  (`anatomy-figma.ts`'s paint dispatch). Exported so `paintKeyErrors` and the projector cannot
+ *  disagree about the vocabulary — one list, two readers. */
+export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon'] as const;
+
+/**
+ * The paint slots a SLOT-FREE template is allowed to answer (#758).
+ *
+ * A template with no `{slot}` placeholder — `icon`'s `tone.{tone}` — substitutes to the same key for
+ * every slot asked, so applied blind it answers `border` with the same variable it answers `fill`.
+ * Measured, not predicted: `icon`'s glyph came back with `fills` AND `strokes` both bound to
+ * `color/icon/primary`, a spurious 1px outline on every glyph in the set. Nothing would have failed —
+ * the plan is structurally valid and the variable resolves.
+ *
+ * So a slot-free grammar answers only the slot that IS the part's paint: a box's `fill`, a text node's
+ * `label`, a glyph's `icon`. It is a rule over the projector's own dispatch rather than a per-def
+ * declaration, because a def with one paintable surface has nothing to choose between — asking it to
+ * name the slot would be asking it to restate its part's kind.
+ *
+ * A def whose grammar DOES need to reach `border` or `overlay` says so by keying `{slot}`, which is
+ * what every def with more than one paintable surface already does.
+ */
+export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon']);
+
+/** Every `{placeholder}` in a paint-key template, in order of appearance. */
+export const paintKeyPlaceholders = (template: string): string[] =>
+  [...template.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]);
+
+/**
+ * Fill one paint-key template at one coordinate, or `undefined` if it cannot be filled (#758).
+ *
+ * Returning `undefined` rather than a partly-substituted string is what keeps a RAGGED grid
+ * expressible. `{intent}.{appearance}.{slot}.{state}` at a rest coordinate has no `state` value, and
+ * a template that emitted `primary.filled.fill.` would look up a key nothing binds — indistinguishable
+ * from a key the def deliberately omits. So an unfillable template is skipped and the next one is
+ * tried, which is exactly the state-suffix fallback `paintOf` used to hardcode.
+ */
+export const fillPaintKey = (
+  template: string,
+  slot: string,
+  coord: Record<string, string | undefined>,
+): string | undefined => {
+  let out = template;
+  for (const ph of paintKeyPlaceholders(template)) {
+    const value = ph === 'slot' ? slot : coord[ph];
+    if (!value) return undefined;
+    out = out.replace(`{${ph}}`, value);
+  }
+  return out;
+};
+
+/**
+ * Cross-reference checks for `paintKeys` (#758). Every placeholder must name something the def has.
+ *
+ * This is the check the hardcoded template could never have: `{intent}` inside `anatomy-figma.ts` was
+ * true of Button and false of five other defs, and nothing could say so because nothing declared it.
+ * A placeholder here is validated against THIS def's `variants` and `states`, so a def naming an axis
+ * it does not have fails at authoring time instead of projecting unpainted.
+ */
+const paintKeyErrors = (def: ComponentDef): string[] => {
+  const e: string[] = [];
+  const keys = def.paintKeys!;
+  if (!Array.isArray(keys) || keys.length === 0) {
+    e.push('paintKeys must be a non-empty array — an empty grammar is stated by omitting the field');
+    return e;
+  }
+  const axes = Object.keys(def.variants ?? {});
+  const seen = new Set<string>();
+  for (const template of keys) {
+    if (typeof template !== 'string' || !template) { e.push('paintKeys: every entry must be a non-empty string'); continue; }
+    if (seen.has(template)) e.push(`paintKeys: '${template}' listed twice`);
+    seen.add(template);
+    const phs = paintKeyPlaceholders(template);
+    if (!phs.length) continue; // a literal key (`stroke`, `focus-ring`) — checked against `tokens` below
+    for (const ph of phs) {
+      if (ph === 'slot' || ph === 'state') continue;
+      if (!axes.includes(ph))
+        e.push(`paintKeys: '${template}' names '{${ph}}', which is not an axis in variants [${axes.join(', ')}]`);
+    }
+    if (phs.includes('state') && !(def.states ?? []).length)
+      e.push(`paintKeys: '${template}' names '{state}', but this def declares no states`);
+  }
+
+  // A template that can never resolve is a declaration nobody honours, and it is SILENT: `paintOf`
+  // skips a key `tokens` does not bind, so a grammar with a typo'd slot segment projects unpainted
+  // and reports nothing. So every template must be REACHABLE — some key in `tokens` matches its
+  // shape — which is the same posture `anatomy`'s binding keys already take, one step less direct
+  // because the coordinate is not known here.
+  const bound = Object.keys(def.tokens ?? {});
+  const matcher = (template: string): RegExp =>
+    new RegExp(`^${template.replace(/[.]/g, '\\.').replace(/\{[^}]+\}/g, '[^.]+')}$`);
+  for (const template of keys) {
+    if (!bound.some((k) => matcher(template).test(k)))
+      e.push(`paintKeys: '${template}' matches no key in tokens — a template nothing binds projects unpainted and reports nothing`);
+  }
+
+  // ORDER IS THE DECLARATION, so an order that strands an AUTHORED BINDING is an error.
+  //
+  // The lookup returns on the first template whose filled key is bound, so listing the general
+  // `{slot}` before the specific `{slot}.{color}` means that for slot `stroke` the bare `stroke` key
+  // always answers and `stroke.inverse` — authored, resolvable, and passing the reachability check
+  // above, because the template that names it does match something — is never reached. Every focus
+  // ring paints the default colour and the inverse ring is invisible on the surface it exists for.
+  // That is #656's defect, reintroduced by a reordering no other check can see.
+  //
+  // So the rule runs per BINDING rather than per template: a key that a qualified template matches
+  // must be what the chain actually returns at its own coordinate. Note this is not the same check as
+  // the one above and neither implies the other — that one asks whether a template reaches any key,
+  // this asks whether a key is reached by the chain.
+  //
+  // WHY IT IS A SCHEMA RULE AND NOT A PROJECTION TEST. It was found by mutation, and the paint census
+  // is structurally blind to it: `focus-ring` declares no `size` axis, so `figmaAnatomyPlan` refuses
+  // it and no census covers that def at all. Shadowing is decidable from the def alone, so it belongs
+  // where all seven defs are checked rather than where three are.
+  const withAxis = keys.filter(
+    (t): t is string => typeof t === 'string' && paintKeyPlaceholders(t).some((p) => p !== 'slot'),
+  );
+  for (const template of withAxis) {
+    const phs = paintKeyPlaceholders(template);
+    const segs = template.split('.');
+    for (const key of bound) {
+      if (!matcher(template).test(key)) continue;
+      // Recover the coordinate this binding sits at, by reading the key back through its template.
+      const parts = key.split('.');
+      const coord: Record<string, string | undefined> = {};
+      let slot = 'fill'; // a template with no `{slot}` answers a primary slot; `fill` stands for it
+      segs.forEach((seg, i) => {
+        const ph = seg.startsWith('{') ? seg.slice(1, -1) : undefined;
+        if (ph === 'slot') slot = parts[i];
+        else if (ph) coord[ph] = parts[i];
+      });
+      const winner = keys.find(
+        (t): t is string => typeof t === 'string' && !!fillPaintKey(t, slot, coord) && !!def.tokens?.[fillPaintKey(t, slot, coord)!],
+      );
+      const won = winner ? fillPaintKey(winner, slot, coord) : undefined;
+      if (won && won !== key)
+        e.push(
+          `paintKeys: '${key}' is bound but never reached — at its own coordinate (${[`slot=${slot}`, ...phs.filter((p) => p !== 'slot').map((p) => `${p}=${coord[p]}`)].join(', ')}) ` +
+            `the earlier template '${winner}' answers with '${won}' first. Order is the fallback chain: put the more specific template before the more general one.`,
+        );
+    }
+  }
+  return e;
+};
 
 /**
  * Structural checks for `anatomy`. Kept separate from `validateComponentDef`'s body because it

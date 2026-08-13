@@ -49,6 +49,13 @@ export const iconButton: ComponentDef = {
   // this delta binds the square geometry + the base focus contract + the icon-glyph skins.
   // The icon glyph binds the same interactive inks Button's label does (on-fill for filled,
   // text for outline/text) — every colour now carries the full state shape (v1 gap closed).
+
+  // Same paint grammar as the substrate (#758), and stated rather than inherited: `inherits` records
+  // the API delta, not the skin, and `paintOf` reads this def's own field. Repeating two lines is the
+  // cheaper error than a lookup that walks `inherits` and resolves to a grammar nobody reading this
+  // file can see — the 162-member set's colour would then depend on a file it does not name.
+  paintKeys: ['{intent}.{appearance}.{slot}.{state}', '{intent}.{appearance}.{slot}'],
+
   tokens: {
     'radius': 'radius.md',
     'focus-ring': 'color.border.focus',

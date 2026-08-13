@@ -43,6 +43,17 @@ export const fieldLabel: ComponentDef = {
   // Label ink is the strong primary content role; the indicator is muted (secondary) so the
   // "(optional)" suffix reads as de-emphasised; disabled dims to the shared disabled ink.
   // Two sizes bind the type system's two label steps (type.label.{sm,md}.emphasis).
+
+  // THE PAINT GRAMMAR (#758): a bare slot, because this def's ink does not vary by any of its axes.
+  // `size` changes the type step and `indicator` changes which text is present — neither changes a
+  // colour. So the grammar is one template with no axis placeholder at all, which is a shape the
+  // hardcoded `{intent}.{appearance}.{slot}` could not express and the reason this def was one of the
+  // five that projected unpainted.
+  //
+  // `disabled.text` is reached by the projector's cross-cutting `disabled.*` branch, not by a template
+  // here — same as Button's.
+  paintKeys: ['{slot}'],
+
   tokens: {
     'gap': 'space.050',
     'text': 'color.text.primary',

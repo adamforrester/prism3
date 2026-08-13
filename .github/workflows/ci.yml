@@ -273,6 +273,28 @@ jobs:
       - name: Overlays carry exactly the leaves that vary per mode
         run: npx --yes tsx@4 packages/engine/lint-overlay-completeness.ts
 
+      # #758: the component tier's colour bindings, in two arms — because #758's own stated acceptance
+      # ("Button's 648-member paint is byte-identical: regen --check reports 104") cannot fail.
+      # `figmaAnatomySet` is called by no emitter and no component payload is committed under `out/`,
+      # so component paint is outside regen's universe: repointing `destructive.outline.icon` at
+      # `color.interactive.neutral.text.rest` — a token that RESOLVES — left `regen --check` at 104 and
+      # `test.ts` at 2192/0, with a destructive button's icon painting neutral ink.
+      #
+      # ARM 1 is a RULE at zero: a paint key led by an axis value points at a token ref carrying that
+      # value (90/90 across the corpus). EXPECTED comes from the key, ACTUAL from the ref — two authored
+      # halves, neither derived from the other, and deliberately not from `paintOf`'s own lookup, which
+      # would agree with itself in the mutated case too. Its four exceptions are named per key with a
+      # reason and checked in BOTH directions, so a stale exemption fails.
+      #
+      # ARM 2 is a CHARACTERIZATION pinned to an authored baseline, because a uniform loss crosses no
+      # intent boundary and arm 1 stays green through it. It is taken over the FULL DECLARED GRID, not
+      # over `figmaAnatomySet`: `icon.figmaProperties.variantAxes` is ['size'] while its paint axis is
+      # `tone`, so a set-based census pins `icon: 0` — a number no mutation can move, in a file that
+      # reads as coverage. `schema/paint-census.json` is AUTHORED and NOT a regen artifact, for the same
+      # reason as `token-contract.json`: regenerated, it would rewrite itself to agree with a regression.
+      - name: Component paint is where the defs say it is
+        run: npx --yes tsx@4 packages/engine/lint-paint.ts
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero

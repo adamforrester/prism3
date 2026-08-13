@@ -362,6 +362,60 @@ feature."** That inference is what this section exists to block.
    a type three call sites read, and it was not put on the critical path of a component that does
    not need it.
 
+### 5.1 Decided (2026-08-13, #758): paint keys are declared by the def, as templates
+
+**The asymmetry that was the defect.** §4 states deliberately that paint stays *out* of `anatomy` —
+folding it in would re-declare the part tree per variant. That still holds and is not what #758
+changed. What did not follow, and was never noticed, is this: `anatomy` **names** its geometry keys
+(`size.{size}.gap`, resolved through `varOf`, which throws), while paint keys were **built** by
+`paintOf` from a template hardcoded to `{intent}.{appearance}.{slot}`. Button's two axes were written
+into the projector as though they were universal, and the paint grammar was stated *nowhere* — not in
+the schema, not in the def, not in a doc.
+
+Measured on `main`, that made **five of seven defs unpaintable**: `icon` and `focus-ring` have
+neither axis, `field-label` and `text-field` have `size`, `field-message` has `tone`. Not a
+`focus-ring` problem — a projector-wide one, and the wall under Arc 2 steps 3 and 5.
+
+**The decision: `paintKeys: string[]` on the def, using `{axis}`/`{slot}`/`{state}` placeholders,
+tried in order.** Four shapes were considered (an axis list, a key template list, a per-slot map, and
+folding paint into `anatomy` after all). The template list is the only one under which **all seven
+shipped defs stay valid unchanged** — and that is a measurement, not a preference, because the corpus
+already ships **seven different grammars, not one**:
+
+| def | grammar | what it shows |
+|---|---|---|
+| `button`, `icon-button` | `{intent}.{appearance}.{slot}[.{state}]` | the shape that was hardcoded |
+| `icon` | `tone.{tone}` | axis **name** leads; **no slot segment at all** |
+| `field-message` | `{tone}.{slot}` | axis **value** leads — the *opposite* order to `icon`, over an axis of the same name |
+| `focus-ring` | `{slot}.{color}`, then `{slot}` | a fallback chain, where order carries meaning |
+| `text-field` | `{slot}.{state}`, then `{slot}` | same, on a different axis |
+| `field-label` | `{slot}` | a bare slot: neither of its axes changes a colour |
+
+`icon` and `field-message` are the decisive pair. They key **the same axis name in opposite orders
+over disjoint value sets** (nine content roles vs four validation states), and both are right for
+their component. An axis list — `paintAxes: ['tone']` — cannot express both, so adopting it would
+have forced a rekey of a shipped def to satisfy the schema. That is the wrong direction: the schema
+should describe the defs, not conscript them.
+
+**Why order is part of the declaration, and gated separately.** The lookup returns on the first
+template whose filled key is bound, so `['{slot}.{color}', '{slot}']` and `['{slot}', '{slot}.{color}']`
+are different components: under the second, `focus-ring`'s authored `stroke.inverse` is never reached
+and every ring paints the default colour — #656's invisible ring, reintroduced by a reordering. This
+is checked in `component-schema.ts` per **binding** rather than per template, and it has to live there
+rather than in the paint census, for a reason found by mutation: `focus-ring` declares no `size` axis,
+so `figmaAnatomyPlan` refuses it and **no census can cover that def at all**.
+
+**What this does *not* do.** `focus-ring`'s stroke colour is now resolvable, but the ring is still not
+projectable: `PROJECTABLE_VARIANT_AXES` remains `['intent', 'appearance', 'size']` and its three
+*structural* walls are untouched, deliberately. #758 fixes wall 4 — paint — and only that.
+
+Two latent defects surfaced by writing the grammars down, both deferred with the anatomy work that
+owns them: `text-field` binds `border.focus` and `border.readonly` while declaring the states
+`focus-visible` and `read-only`, so neither is ever reached and a focused field would paint its **rest**
+border (Arc 2 step 5); and `field-message`'s `text` keys cannot be filled by a `{slot}` the projector
+fills with `label` (Arc 2 step 3). Both were equally real before, and nothing in the repo could see
+either. Naming them is what declaring the grammar bought.
+
 ---
 
 ## 6. Next step

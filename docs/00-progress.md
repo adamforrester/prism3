@@ -7,6 +7,140 @@
 
 ---
 
+## (2026-08-13) — The def declares its paint axes, and #758's own acceptance criterion turns out to be unfalsifiable (#758)
+
+**STATUS: shipped (engine + schema half).** `ComponentDef.paintKeys` declares how a def's paint keys are
+spelled; `paintOf` reads it instead of building keys from a hardcoded template. Arc 2 steps 3 and 5 are
+unblocked. The plugin half is handed off — see the last section, which measures rather than asserts how
+much of it there is.
+
+**THE DIAGNOSIS THAT MADE THE FIX SMALL.** `docs/28` §4 states deliberately that paint stays *out* of
+`anatomy`. That is still right and was never the bug. What did not follow from it: `anatomy` **names**
+its geometry keys (`size.{size}.gap`, resolved via `varOf`, which throws on a typo), while paint keys
+were **built** by `paintOf` from `{intent}.{appearance}.{slot}` — Button's two axes written into the
+projector as though universal, with the grammar stated nowhere at all. Measured on `main`, five of
+seven defs could not be painted: `icon` and `focus-ring` have neither axis, `field-label` and
+`text-field` have `size`, `field-message` has `tone`. Framing it as a `focus-ring` problem is what had
+kept it small; it was projector-wide.
+
+**WHY A TEMPLATE LIST AND NOT AN AXIS LIST** (the decision, per #739's precedent — proposed, then
+confirmed, not settled by implementation). The corpus already ships **seven grammars**, and two of them
+settle it: `icon` keys `tone.{tone}` (axis *name* leads, no slot segment at all) while `field-message`
+keys `{tone}.{slot}` (axis *value* leads) — the **same axis name in opposite orders over disjoint value
+sets**, nine content roles against four validation states. `paintAxes: ['tone']` cannot express both, so
+choosing it would have forced a rekey of a shipped def to satisfy the schema. The template list is the
+only option under which all seven defs stay valid unchanged, which also makes Button's 648-member paint
+byte-identical **by construction** rather than by test: its two templates are a transcription of what
+`paintOf` already did.
+
+**#758'S STATED ACCEPTANCE CRITERION CANNOT FAIL, and this is the entry's most useful finding.** The
+issue asked for *"Button's 648-member paint is byte-identical: `regen --check` reports 104 artifacts in
+sync."* `figmaAnatomySet` is called by no emitter and no component payload is committed under `out/`, so
+component paint is outside regen's universe entirely. Four mutations:
+
+| mutation | `regen --check` | `test.ts` |
+|---|---|---|
+| `primary.filled.fill` → a non-existent token (*the issue's own suggestion*) | green, 104 | 3 failed — by *resolution* gates |
+| `primary.filled.fill` → a token that resolves | green, 104 | 3 failed — by `figmaProperties` duplicate gates |
+| drop `paintOf`'s state-qualified lookup (1926 → 1782 assignments) | green, 104 | 11 failed |
+| **`destructive.outline.icon` → `color.interactive.neutral.text.rest`** | **green, 104** | **2192 passed, 0 failed** |
+
+The last is a real undetected regression: a destructive outline button's icon silently paints neutral
+ink, and the entire suite is green. So the gate had to be built, not cited.
+
+**THE GATE: `lint-paint.ts`, two arms, because those mutations are two defect classes.** Arm 1 is a
+**rule at zero** — a paint key led by an axis *value* must point at a token ref carrying that value.
+It holds 90/90 across the corpus, so it is a property of how semantic colour is organized rather than a
+snapshot, and it names the silent mutation exactly. EXPECTED comes from the key, ACTUAL from the ref;
+deliberately **not** from `paintOf`'s lookup, which would agree with itself in the mutated case too.
+Its four `field-message` exceptions (`default` → `secondary`, `error` → `danger`) are listed **per key
+with a reason and checked in both directions**, so a stale exemption fails — a count-based tolerance
+would have let a real regression hide inside the budget. Arm 2 is a **characterization** on an authored
+baseline, because a uniform loss crosses no intent boundary and leaves arm 1 legitimately green.
+`schema/paint-census.json` is **authored and not a regen artifact**, same reason as `token-contract.json`
+(principle 5), rewritten only by an explicit `--accept`.
+
+**THE TRAP INSIDE THE GATE, caught by measuring instead of reasoning.** The obvious census is "project
+the Figma set and hash it". It is wrong, and silently:
+
+```
+figmaAnatomySet(icon) → 4 members, 0 paint assignments
+the full declared grid → 36 coordinates, 32 paint assignments
+```
+
+`icon.figmaProperties.variantAxes` is `['size']` while its paint axis is `tone`, so a set-based census
+would have committed `icon: 0` — a number no mutation to `tone.{tone}` can move, recorded in a file that
+reads as coverage. The census therefore enumerates the grid from `variants`/`states` **directly**, and
+that the walk duplicates something `figmaAnatomySet` also does **is the gate, not redundancy**: calling
+it would make the expected coordinate set a function of the projector's own opinion about which axes
+matter, so an axis dropped from `variantAxes` would shrink both sides at once and report a pass.
+
+**THE MUTATION THAT ESCAPED, AND WHERE IT SENT THE FIX.** Six mutations were run against the finished
+gate; five failed by name. The sixth — reversing `focus-ring`'s `['{slot}.{color}', '{slot}']` — passed
+everything, because order is the fallback chain: the bare template answers first, the authored
+`stroke.inverse` is never reached, and every ring paints the default colour (#656's invisible ring,
+reintroduced by a reordering). **No census can catch it**: `focus-ring` declares no `size` axis, so
+`figmaAnatomyPlan` refuses it and no census covers that def at all. So the check went into
+`component-schema.ts`, per **binding** rather than per template, where all seven defs are covered
+instead of three. The first attempt at it was wrong in an instructive way — I wrote it as template
+*subsumption* (`{slot}` swallowing `{slot}.{color}`), which typechecked, passed, and caught nothing,
+because the shadowing is at the filled-key level, not the pattern level. It generalizes: reversing
+Button's or IconButton's order now fails too. Reversing `text-field`'s does not, and that is **inert
+rather than a hole** — verified, not assumed: no slot in `text-field` has both a bare and a qualified
+binding, so the two templates cover disjoint keys.
+
+**TWO LATENT DEFECTS SURFACED BY WRITING THE GRAMMARS DOWN**, both deferred to the anatomy work that
+owns them, both real before and invisible to everything: `text-field` binds `border.focus` and
+`border.readonly` while declaring the states `focus-visible` and `read-only`, so neither is ever reached
+and a focused field would paint its **rest** border (Arc 2 step 5); and `field-message`'s `text` keys
+cannot be filled by a `{slot}` the projector fills with `label` (Arc 2 step 3).
+
+**WHAT THIS DELIBERATELY DOES NOT DO.** `PROJECTABLE_VARIANT_AXES` is unchanged at
+`['intent', 'appearance', 'size']`. `focus-ring`'s stroke colour is now resolvable, but its three
+*structural* walls stand and `figmaProperties` stays absent. #758 was wall 4 — paint — and only that.
+
+**TRAPS FOR WHOEVER IS NEXT.**
+- **`PRIMARY_PAINT_SLOTS` exists because of a measurement, not a prediction.** A slot-free template
+  substitutes identically for every slot asked, so `icon`'s `tone.{tone}` answered `border` with the same
+  variable as `fill` — every glyph came back with a spurious 1px stroke, structurally valid and fully
+  resolvable, so nothing would have failed.
+- **`coord` and `paintCoord` are separate on purpose.** Folding `size` into `coord` broke
+  `test.ts:6181` (*"a structure-only plan's coord is empty — a gate can tell 'legitimately unpainted'
+  from 'dropped the paints'"*). That existing assertion was right and my change was wrong.
+- **`VariantCoord`'s index signature cannot be intersected with the boolean slot flags.** The engine is
+  buildless, so `leading: boolean` colliding with `Record<string, string | undefined>` typechecks under
+  the engine's own config and **fails only under the plugin's `tsc`** — which is what caught it. Hence
+  `PlanSlots` plus a narrowing `axisValue()`.
+- **A census hash that differs from a recorded one is not automatically a regression.** Mine did; rather
+  than assume, I stashed all nine files and ran the *identical* script against unmodified baseline —
+  exact match. The recorded hash had come from an earlier, differently-shaped scratch script.
+- **`tokenpress test`/`build` fail in a stale checkout for an unrelated reason**: `jszip` is missing from
+  `node_modules`. Identical failure in the untouched main checkout, so it is environmental. `npm ci` is
+  the documented fix, but it rewrites a tree other sessions may be using.
+- **`npm install` inside a worktree WRITES THROUGH the hand-made `node_modules` symlinks and damages the
+  shared checkout.** This happened here, and it is a new entry in the same family CLAUDE.md already warns
+  about for `ln -s` of a whole directory. Installing one package (`jszip`, above) made npm re-stage
+  `@figma/plugin-typings`: it replaced the worktree's `@figma` *symlink* with a real directory holding
+  1.133.0, and left the shared checkout's `node_modules/@figma/` containing nothing but a staging
+  directory named `.plugin-typings-FZi1Z4Dg`. The signature is a `plugin typecheck` that passed minutes
+  earlier failing with ~5 `VariablesAPI is not assignable to VariablesApi` errors in `src/main.ts` —
+  **typings drift, in a diff that touched no typings**. Recovery is non-destructive because npm stages
+  rather than deletes: `mv .plugin-typings-<hash> plugin-typings` in the shared checkout restores it
+  (verify with `grep version`, then run the shared checkout's own `plugin typecheck`), then in the
+  worktree `rm -rf node_modules/@figma && ln -s <main>/node_modules/@figma node_modules/@figma`. Prefer
+  installing into the *nested* workspace `node_modules` (`apps/<ws>/node_modules`) or accepting the gate
+  failure as environmental — do not `npm install` at a worktree root.
+
+**THE PLUGIN HANDOFF, measured.** `write-components.ts` is the second executor, so it was scoped out
+per the issue. How much is left there is *small, and verified rather than asserted*: `grep -c 'intent'`
+is **0**, it never reads `plan.coord`, and it consumes `n.paints.fills` as an opaque variable name
+(`byName.get(varName)` → `setBoundVariableForPaint`). Its only engine imports are `planSetLayout`,
+`nestMissAdvice`, `nestVariantMatch`, `nestVariantMissAdvice` and the plan types. The paint-key grammar
+change does not appear to reach it at all — but that is a grep, not a run, and the plugin lane should
+confirm it against a live file before closing its half.
+
+---
+
 ## (2026-08-13) — `docs/34` gains shape 14: a gate calibrated below its own motivating defect (#779)
 
 **STATUS: shipped, docs only.** One new sub-shape in `docs/34-gate-independence.md`, one register row,

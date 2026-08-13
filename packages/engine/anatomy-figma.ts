@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { expandKey, gridColumnAxis } from './component-schema';
+import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS } from './component-schema';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -170,10 +170,35 @@ export type FigmaNodePlan = {
   children: FigmaNodePlan[];
 };
 
-/** Where in the variant grid a plan sits. Absent `intent`/`appearance` means "structure only" — the
- *  plan carries no paints at all, which is what every caller before #487 step 3 wanted and still
- *  gets. Present, and the plan is one fully-skinned variant. */
-export type VariantCoord = { intent?: string; appearance?: string; state?: string };
+/**
+ * Where in the variant grid a plan sits. A coordinate carrying none of the axes a def's `paintKeys`
+ * name means "structure only" — the plan carries no paints at all, which is what every caller before
+ * #487 step 3 wanted and still gets. Carry them, and the plan is one fully-skinned variant.
+ *
+ * `intent` and `appearance` are NAMED rather than left to the index signature because three of this
+ * file's own functions read them by name (`planComponentName` writes them in a fixed position in the
+ * member name), so they are part of the projection's shape and not merely data. The index signature is
+ * what makes a def's OWN axes reachable — `tone`, `color`, `style` — without which a `paintKeys`
+ * template naming one could be declared and never filled (#758). `state` is named for the same reason
+ * as the first two and is not a `variants` axis at all.
+ */
+export type VariantCoord = { intent?: string; appearance?: string; state?: string } & Record<string, string | undefined>;
+
+/**
+ * What a caller hands `figmaAnatomyPlan`: the boolean slot toggles and the swap target, plus any axis
+ * coordinate the def declares.
+ *
+ * It is NOT `… & VariantCoord`, and the reason is worth the line. That intersection typechecks inside
+ * the engine's own `tsconfig` and fails under the plugin's, because `leading: boolean` collides with a
+ * `Record<string, string | undefined>` index signature — the engine is buildless and only the plugin's
+ * `tsc --noEmit` reached it. So the index signature widens to admit the booleans, and `axisValue()`
+ * below narrows on the way out: a coordinate is a string or it is not a coordinate.
+ */
+export type PlanSlots = { leading?: boolean; trailing?: boolean; swapTarget?: string } & {
+  intent?: string;
+  appearance?: string;
+  state?: string;
+} & Record<string, string | boolean | undefined>;
 
 /**
  * One Figma COMPONENT PROPERTY to declare on the assembled set (#487 step 6).
@@ -270,22 +295,57 @@ const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED'
 export const figmaAnatomyPlan = (
   def: ComponentDef,
   size: string,
-  slots: { leading?: boolean; trailing?: boolean; swapTarget?: string } & VariantCoord = {},
+  slots: PlanSlots = {},
 ): AnatomyPlan => {
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
   if (!(def.variants?.size ?? []).includes(size)) throw new Error(`${def.id}: '${size}' is not a declared size`);
   const leading = slots.leading ?? false;
   const trailing = slots.trailing ?? false;
-  const { intent, appearance, state } = slots;
-  // Validated, not trusted. A typo'd intent would otherwise resolve no paint keys at all and emit a
-  // structurally perfect, entirely unpainted component — a silent failure of exactly the shape #500
-  // and #482 were.
-  if (intent && !(def.variants?.intent ?? []).includes(intent)) throw new Error(`${def.id}: '${intent}' is not a declared intent`);
-  if (appearance && !(def.variants?.appearance ?? []).includes(appearance)) throw new Error(`${def.id}: '${appearance}' is not a declared appearance`);
+  const { state } = slots;
+  // An axis coordinate read off `slots` is a string or it is absent — `leading`/`trailing` share the
+  // index signature but are not coordinates, and a def is free to declare an axis named either.
+  const axisValue = (axis: string): string | undefined => {
+    const v = slots[axis];
+    return typeof v === 'string' ? v : undefined;
+  };
+  // Validated, not trusted. A typo'd axis value would otherwise resolve no paint keys at all and emit
+  // a structurally perfect, entirely unpainted component — a silent failure of exactly the shape #500
+  // and #482 were. Every axis the def declares is checked, not just Button's two (#758): the loop is
+  // over `def.variants`, so a def gaining an axis gets the check without this line being edited.
+  for (const [axis, values] of Object.entries(def.variants ?? {})) {
+    const given = axisValue(axis);
+    if (given !== undefined && !values.includes(given))
+      throw new Error(`${def.id}: '${given}' is not a declared ${axis}`);
+  }
   if (state && !(def.states ?? []).includes(state)) throw new Error(`${def.id}: '${state}' is not a declared state`);
-  if (!!intent !== !!appearance) throw new Error(`${def.id}: intent and appearance must be given together — the def keys paint as {intent}.{appearance}.*`);
-  const coord: VariantCoord = { ...(intent ? { intent } : {}), ...(appearance ? { appearance } : {}), ...(state ? { state } : {}) };
+  // WHERE THE PLAN SITS IN THE GRID. Only axes the caller actually supplied, so a structure-only plan
+  // has an EMPTY coord — a load-bearing invariant with its own assertion, because it is what lets a
+  // gate tell "legitimately unpainted" from "dropped the paints". `size` is deliberately NOT folded in
+  // even though it is always known: it is already `plan.size`, `planComponentName` writes it from
+  // there, and adding it here would make every plan's coord non-empty and retire that distinction.
+  const coord: VariantCoord = {
+    ...Object.fromEntries(Object.keys(def.variants ?? {}).flatMap((a) => (axisValue(a) !== undefined ? [[a, axisValue(a)]] : []))),
+    ...(state ? { state } : {}),
+  };
+  // The coordinate paint keys are FILLED from, which is the grid coordinate plus `size`. Separate from
+  // `coord` for the reason above, and it carries `size` because a `paintKeys` template naming `{size}`
+  // would otherwise validate, pass reachability, and silently never fill.
+  const paintCoord: VariantCoord = { ...coord, size };
+
+  // A PARTIAL COORDINATE IS AN ERROR, and generalizing this was the second half of #758. The old rule
+  // was `intent and appearance must be given together`, which is this rule with Button's axes baked
+  // in. Supplying some of a template's axes but not all makes every template needing the missing one
+  // unfillable, so the plan comes back structurally perfect and unpainted — the #500 shape again, and
+  // the caller's own typo'd argument name is enough to cause it. Asked per template, because "all the
+  // axes" is not a property of the def: `field-message` keys `{tone}.{slot}` and nothing else, so
+  // `tone` alone is a COMPLETE coordinate there and an incomplete one in Button's grammar.
+  for (const template of def.paintKeys ?? []) {
+    const axes = paintKeyPlaceholders(template).filter((p) => p !== 'slot' && p !== 'state' && p in (def.variants ?? {}));
+    const missing = axes.filter((a) => axisValue(a) === undefined);
+    if (axes.length && missing.length && missing.length < axes.length)
+      throw new Error(`${def.id}: a partial paint coordinate — '${template}' needs [${axes.join(', ')}] and [${missing.join(', ')}] was not given, so every key in that grammar goes unresolved and the plan projects unpainted`);
+  }
 
   // binding key (possibly `{size}`-templated) → Figma variable name, via def.tokens.
   const varOf = (key: string): string => {
@@ -309,21 +369,46 @@ export const figmaAnatomyPlan = (
    * is applied only where the appearance HAS that structure, which is asked by resolving the same
    * slot at rest. Ink (`label` / `icon`) is unconditional: every appearance has ink.
    *
-   * State qualification is a SUFFIX and it is tried first: `primary.filled.fill.hover` before
-   * `primary.filled.fill`. The unqualified key is the rest value, so falling back to it is correct
-   * for a state that does not restyle that part (a `pending` button's fill is its rest fill), and it
-   * is what keeps this from needing an entry per state per part.
+   * THE KEY SPELLING IS THE DEF'S, NOT THIS FILE'S (#758). This function used to build its keys from
+   * a template hardcoded to `{intent}.{appearance}.{slot}` — Button's two axes, written in here as
+   * though they were every component's. Five of the seven defs carry neither axis, so they resolved no
+   * paint at all and projected structurally complete and silently colorless. Now `def.paintKeys`
+   * declares the grammar and this walks it, so `icon`'s `tone.primary` and `focus-ring`'s
+   * `stroke.inverse` resolve by the same code path as Button's `primary.filled.fill.hover`.
+   *
+   * ORDER IS THE DEF'S TOO, and it carries the state fallback that used to be hardcoded here.
+   * `{intent}.{appearance}.{slot}.{state}` leads `{intent}.{appearance}.{slot}`, so a state that
+   * restyles a part wins and one that does not falls through to the rest value (a `pending` button's
+   * fill is its rest fill) — which is what keeps this from needing an entry per state per part. An
+   * unfillable template is SKIPPED rather than half-substituted, so a rest coordinate simply misses
+   * the state-qualified template instead of looking up a key ending in a dot.
+   *
+   * THE `disabled` BRANCH IS BEHAVIOR, NOT GRAMMAR, which is why it stays here and is NOT expressed
+   * as a template. Two things it does that a key spelling cannot say: it switches namespace outright
+   * rather than falling back within the interactive one, and it is conditional on structure. A
+   * template list says how keys are spelled; this says which family applies, and folding the second
+   * into the first would make the restKey guard below unstatable.
    */
   const STRUCTURAL = new Set(['fill', 'border']);
-  const restKey = (slot: string): boolean => !!def.tokens[`${intent}.${appearance}.${slot}`];
+  const restKey = (slot: string): boolean =>
+    (def.paintKeys ?? []).some((t) => {
+      const k = fillPaintKey(t, slot, { ...paintCoord, state: undefined });
+      return !!k && !!def.tokens[k];
+    });
   const paintOf = (slot: string): string | undefined => {
-    if (!intent || !appearance) return undefined;
+    if (!def.paintKeys?.length) return undefined;
     if (state === 'disabled') {
       if (STRUCTURAL.has(slot) && !restKey(slot)) return undefined;
       return def.tokens[`disabled.${slot}`] ? figmaVarName(def.tokens[`disabled.${slot}`]) : undefined;
     }
-    const keys = [...(state && state !== 'rest' ? [`${intent}.${appearance}.${slot}.${state}`] : []), `${intent}.${appearance}.${slot}`];
-    for (const k of keys) if (def.tokens[k]) return figmaVarName(def.tokens[k]);
+    for (const template of def.paintKeys) {
+      // A SLOT-FREE template answers only the part's primary paint slot — see `PRIMARY_PAINT_SLOTS`
+      // for the measurement. Without this, `icon`'s `tone.{tone}` answered `border` with the same
+      // variable it answered `fill`, and every glyph in the set came back outlined.
+      if (!template.includes('{slot}') && !PRIMARY_PAINT_SLOTS.has(slot)) continue;
+      const k = fillPaintKey(template, slot, paintCoord);
+      if (k && def.tokens[k]) return figmaVarName(def.tokens[k]);
+    }
     return undefined;
   };
 

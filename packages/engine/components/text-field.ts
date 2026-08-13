@@ -72,6 +72,21 @@ export const textField: ComponentDef = {
   // border roles, disabled from the shared disabled skin. The value ink is full-contrast text.primary
   // in every non-disabled state (read-only included — it is NOT dimmed); disabled swaps to the
   // contrast-exempt disabled ink. The focus ring uses the field-specific offset.
+
+  // THE PAINT GRAMMAR (#758) — SLOT-LED with a state suffix, the mirror image of Button's, whose state
+  // suffix follows two axis values. This def's paint varies by state and by nothing else: `size` is
+  // geometry and `style` has one value. So the qualified template leads and the bare slot is the rest
+  // value, the same fallback shape `focus-ring` uses over a colour axis instead of a state.
+  //
+  // A LATENT DEFECT THIS DECLARATION SURFACES, recorded rather than fixed here. Two keys carry a
+  // suffix that is NOT one of the declared `states`: `border.focus` against state `focus-visible`, and
+  // `border.readonly` against state `read-only`. Under `{slot}.{state}` neither is ever reached — a
+  // focused field would paint its REST border. That is a def-side rename, and it belongs with the
+  // anatomy block this def still lacks (Arc 2 step 5), where a projection can prove the fix. Naming it
+  // here is the point of declaring the grammar: the mismatch was equally real before and nothing in
+  // the repo could see it.
+  paintKeys: ['{slot}.{state}', '{slot}'],
+
   tokens: {
     'fill': 'color.field.fill',
     'text': 'color.text.primary',

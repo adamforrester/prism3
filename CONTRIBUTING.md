@@ -99,6 +99,39 @@ npx tsx packages/engine/lint-overlay-completeness.ts # each mode's overlay carri
                                                     # buildOverlay, or from the overlays themselves, is
                                                     # the gate agreeing with itself — do not "simplify"
                                                     # the duplicated walk away; it IS the gate
+npx tsx packages/engine/lint-paint.ts               # the component tier's colour bindings (#758), in two
+                                                    # arms — because #758's OWN stated acceptance
+                                                    # ("Button's 648-member paint is byte-identical:
+                                                    # regen --check reports 104") cannot fail.
+                                                    # figmaAnatomySet is called by no emitter and no
+                                                    # component payload is committed under out/, so
+                                                    # component paint is outside regen's universe:
+                                                    # repointing destructive.outline.icon at
+                                                    # color.interactive.neutral.text.rest — a token that
+                                                    # RESOLVES — left regen --check at 104 AND test.ts at
+                                                    # 2192/0, with a destructive icon painting neutral ink.
+                                                    # ARM 1 is a RULE at zero: a key led by an axis VALUE
+                                                    # points at a ref carrying that value (90/90).
+                                                    # EXPECTED from the key, ACTUAL from the ref — two
+                                                    # authored halves, deliberately NOT paintOf's own
+                                                    # lookup, which would agree with itself in the mutated
+                                                    # case too. Its 4 exceptions are named per key with a
+                                                    # reason and checked BOTH ways, so a stale one fails.
+                                                    # ARM 2 is a CHARACTERIZATION on an authored baseline,
+                                                    # because a uniform loss (1926 -> 1782 assignments)
+                                                    # crosses no intent boundary and arm 1 stays green.
+                                                    # It is taken over the FULL DECLARED GRID, never over
+                                                    # figmaAnatomySet: icon's variantAxes is ['size'] while
+                                                    # its paint axis is `tone`, so a set-based census pins
+                                                    # icon at 0 — a number no mutation can move, in a file
+                                                    # that reads as coverage. schema/paint-census.json is
+                                                    # AUTHORED, not a regen artifact, same reason as
+                                                    # token-contract.json. Grammar ORDER is gated in
+                                                    # component-schema.ts instead, per BINDING: reversing
+                                                    # focus-ring's templates strands the authored
+                                                    # stroke.inverse (#656's invisible ring), and no census
+                                                    # can see it — focus-ring has no `size` axis, so it
+                                                    # cannot be projected at all
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

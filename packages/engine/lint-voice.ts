@@ -207,6 +207,8 @@ const gated: string[] = [
   // The token-name baseline — deliberately not a `regen` artifact (see CLAUDE.md principle 5), so
   // named by hand here exactly as lint-us-english.ts names it.
   join(repo, 'packages/engine/schema/token-contract.json'),
+  // The paint census (#758) — the second baseline kept out of `regen`, named by hand for the same reason.
+  join(repo, 'packages/engine/schema/paint-census.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];
