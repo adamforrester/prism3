@@ -157,7 +157,7 @@ const CONTRAST_PROBE = () => {
  * THE FLOOR IS "INVISIBLE", NOT "AA" — and the two numbers that set it are recorded here so the next
  * person can see how much budget there is rather than re-deriving it.
  *
- * Measured on this branch across the whole sweep below (11,440 text nodes, 54 page × mode × brand
+ * Measured on this branch across the whole sweep below (15,638 text nodes, 72 page × mode × brand
  * states): the lowest rendered ratio in the studio today is **3.04:1**, and everything in the 3.0–3.2
  * band is a specimen meeting its OWN engine contract — the disabled set at `disabledMin` (3), the
  * `-subtle` semantics at `secondaryMin`. Those are the brand's contracted values being previewed
@@ -419,9 +419,11 @@ for (const brand of BRANDS) {
   await page.evaluate(() => window.scrollTo(0, 400));
   await page.waitForFunction(() => window.scrollY === 400);
   await surfSel.selectOption(target);
-  // Wait on the EDIT having landed, then read the scroll position — not on a timer.
-  await page.waitForFunction((t) => document.querySelector('.psec select')?.value !== undefined
-    && [...document.querySelectorAll('select')].some((s) => s.value === t), target);
+  // Wait on the EDIT having landed IN THE REBUILT SECTION — `applyFull()` replaces the whole
+  // workspace, so this condition is only true once the new DOM exists. Not a timer, and not a read of
+  // the pre-rebuild element, which would already hold the new value and prove nothing.
+  await page.waitForFunction((t) => [...document.querySelectorAll('.psec')]
+    .find((s) => s.textContent.includes('Backgrounds'))?.querySelector('select')?.value === t, target);
   const scrollY = await page.evaluate(() => window.scrollY);
   ok(Math.abs(scrollY - 400) <= 2, `${brand}: changing a surface select holds the scroll position (400 → ${scrollY}) (#485)`);
 

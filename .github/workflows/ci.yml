@@ -295,7 +295,11 @@ jobs:
       # `npx playwright install` is inside this step rather than beside it so `continue-on-error`
       # covers the browser download too: an advisory step whose SETUP is gating would block merges
       # on exactly the ambient-infrastructure failure this arrangement exists to keep out of the way.
-      - name: Studio headless smoke suite (advisory until 2026-08-20 — #775)
+      # QUOTED, and it has to be: a bare YAML scalar ends at ` #`, so an unquoted name would be
+      # truncated to "…2026-08-20 —" and the issue reference silently dropped — measured on the first
+      # CI run of this branch. Same reason the "Plugin main.js has 0 node: builtins" step above is
+      # quoted, one character class along.
+      - name: "Studio headless smoke suite (advisory until 2026-08-20 — #775)"
         continue-on-error: true
         run: |
           npx playwright install --with-deps chromium
