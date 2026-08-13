@@ -1,8 +1,12 @@
 # `@prism3/tokens`
 
-The token→code leg of `docs/19`. **Only the token leg.** The component leg (web components, React,
-Storybook) is genuinely blocked on the author-headless-vs-wrap decision (#252), which has no lean
-recorded anywhere — so nothing component-shaped belongs here yet.
+The token→code leg of `docs/19`. **Only the token leg** — nothing component-shaped belongs here yet.
+
+*Corrected 2026-08-12: this read "the component leg (web components, React, Storybook) is genuinely
+blocked on the author-headless-vs-wrap decision (#252)." That framing is retired. #252 governs the
+behavior layer, which `19` §3's re-ranked projections put at ranks 5–6; it is parked, not blocking.
+The token layer this package gates is now **rank 1** — the projection both named delivery platforms
+consume natively — so this workspace got more load-bearing, not less.*
 
 What exists today is one thing: **a gate that answers whether a stranger could consume our tokens** — measured across every brand the engine emits.
 

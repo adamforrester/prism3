@@ -769,6 +769,57 @@ and the register row is the memory.
 
 ---
 
+## (2026-08-12) — Web-components-primary is retired: the projections, re-ranked by what the named platforms read (docs/19 §3, 38, packages/tokens)
+
+**STATUS: docs only.** `19` §3 rewritten, `38` re-cut (title, §1 step 3, Arc 4, §6),
+`packages/tokens/README.md` corrected. No engine change, no emitted artifact, no gate. `regen
+--check` still 104.
+
+**The reversal.** `19` §3 stated "emit WC as the neutral primary, React as a thin wrapper." Two
+independent research passes on 2026-08-12 — knowledge-base PR #12 and a second-model validation run
+— retired it, and every Part B claim came back confirmed by both. Verified independently before any
+of it was written down: Adobe's Core Components docs (updated 7 August 2026) recommend Edge Delivery
+Services *for new projects*, and Edge Delivery's own FAQ says *"Web Components can be used in Edge
+Delivery Services projects, but they are not the default recommendation."* The new ranking is
+token/CSS layer → class-based skin over platform markup → AEM Universal Editor blocks → Drupal SDC →
+React → web components → native.
+
+**The root cause, which is the transferable part.** `19` §3 chose the primary output by reasoning
+about *neutrality in the abstract*. It was written before anyone had recorded which platforms we
+ship to. The owner named them on 2026-08-12 — **AEM #1, Drupal #2, React mostly for prototypes** —
+and both vendors' published guidance contradicted the lean within a single research pass. **The
+error was not the conclusion; it was answering a question whose deciding input had never been
+written down.** Nothing in the repo held that input, so nothing could have caught it.
+
+**Three corrections made to the research rather than adopted from it.** Both passes overstated in
+the same direction and one claim was outright wrong: (1) *"React is not consumed by the EDS delivery
+tier"* is false — the same FAQ says EDS *"supports integration with frameworks like React, Angular,
+Vue, and Svelte"*; the buildless posture is the default and recommended, not a prohibition. (2) The
+Drupal Canvas→SDC bridge that props up React's rank is `1.0.0-alpha1`, released three days earlier
+and explicitly *"not covered by Drupal's security advisory policy"* — a signal, not a foundation.
+(3) The second run stated its criterion as portability, then ranked 3 above 4 on platform priority.
+Recorded because a ranking whose stated rule does not produce it cannot be extended by anyone else.
+
+**What the reversal proved about the architecture.** `38` Arcs 1–3 — schema, primitives, registry —
+**needed no change at all**. They are the definition layer every projection reads. That is precisely
+the property `13`'s *"the path is projection, not conversion"* was supposed to buy, and it had never
+been tested; a full inversion of the output strategy tested it and it held. Worth knowing the next
+time the definition layer looks like overhead.
+
+**#252 was never a blocker, and that is its own lesson.** It was filed as a first-slice blocker and
+treated as one for two weeks. It governs the *behavior* layer, which only ranks 5–6 need — so it was
+a decision about a tier nobody had established was first. **A decision inherits the urgency of the
+plan that cites it, and a plan can be wrong about its own order.** Parked, with two corrections to
+its own framing on the issue: all three candidates it names peer on `react`/`react-dom`, and the one
+genuinely framework-agnostic option (Zag's machines, no peer dependencies) is the layer *underneath*
+the candidate it named as agnostic.
+
+**Trap.** Do not read "AEM is buildless" as a flat claim anywhere shipped. What the FAQ supports is
+*Adobe's default and recommended posture, with framework integration supported*. The stronger
+phrasing is the kind that gets discovered in front of a client.
+
+---
+
 ## (2026-08-12) — Three lanes lost the same race in one day, and none of them could see it (CLAUDE.md)
 
 **STATUS: docs only.** One paragraph in `CLAUDE.md`, beside the worktree hazards. No engine change,
