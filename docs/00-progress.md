@@ -7,6 +7,44 @@
 
 ---
 
+## (2026-08-13) — The arcs §7 placement note, re-justified on ground that survives #759
+
+**STATUS: shipped.** Docs only, and small: the justification prose in `docs/38` §7 and in this log's
+#773 entry. The placement itself did not move, no arc definition changed, and nothing closes.
+
+**The defect is a citation with an expiry date.** #773 filed `docs/38` §7 — the studio-cleanup
+boundary — after §6, and justified that placement partly on §6 being marked SUPERSEDED: a current
+coordination boundary filed inside a superseded section would read as superseded too. True when it was
+written. **#759 retires it.** That PR re-cuts `docs/38` including §6, drops the superseded framing and
+removes the marker from the doc header. The hunks do not overlap, so git merges both cleanly and no
+gate fails — the prose would simply go on asserting a condition the document no longer supports. Worth
+catching before #759 lands rather than after, because nothing downstream will ever flag it.
+
+**What replaced it, and why this version does not decay.** §6 is about **dependencies**; §7 is about
+**scope boundaries**. Different questions, so different sections. That holds regardless of §6's title,
+framing or supersession status, so #759 can land without disturbing it.
+
+**The first replacement still decayed, and that is the lesson worth keeping.** It read *"§6 is about
+dependencies — what this plan waits on"*, glossing the durable term with §6's current title. #759
+retitles §6 to *"What this plan no longer waits on"* and concludes #252 was never a blocker, so that
+gloss would not merely go stale — it would be **wrong**, which is worse than the claim it replaced. Two
+more clauses went the same way: §7's opener carried the mirror gloss, and the placement note had a
+reader arriving at §6 *"with the blocking question in hand"*, now rephrased to the plan's dependencies
+because #759 removes the blocker, not the dependency question. **Naming a section by its subject
+survives a retitle; quoting its title does not.**
+
+**The progress note mattered more than the doc.** Both carried the claim, but this log is what a future
+reader trusts for reasoning a diff cannot show, so an expiring claim inherited here outlives the doc
+version of it. `docs/38` §7 now also states the §6 relationship in its own opening clause, where it
+previously carried only the supersession stamp — a lane picking up an arc should not have to open this
+log to learn why the boundary has its own section.
+
+**Left alone deliberately.** #773's commit message repeats the same reasoning and is immutable history;
+rewriting merged history to correct a justification is a worse trade than the defect it fixes. The
+`SUPERSEDED` markers in `docs/38`'s header and §6 are #759's to remove, not this PR's.
+
+---
+
 ## (2026-08-12) — Web-components-primary is retired: the projections, re-ranked by what the named platforms read (docs/19 §3, 38, packages/tokens)
 
 **STATUS: docs only.** `19` §3 rewritten, `38` re-cut (title, §1 step 3, Arc 4, §6),
@@ -333,11 +371,10 @@ backlog and there are currently zero open studio PRs, so `main.ts` is at its lea
 every week re-accumulates in-flight work to conflict with.
 
 **Placement note for §7.** It went in as a new section after §6 rather than into §6, and rather than
-into §2's table or an arc body. §6 is the doc's "what this plan waits on" section, so a boundary about
-what the plan does *not* wait on is its direct pair and a reader arriving there with the blocking
-question in hand meets it next. It could not go *inside* §6: the header marks §6 SUPERSEDED as of
-2026-08-12, and a current coordination boundary filed inside a superseded section reads as superseded
-too, which is why §7 opens by saying it is not. No arc definition and no existing section was touched.
+into §2's table or an arc body. §6 is about **dependencies**; §7 is about **scope boundaries**.
+Different questions, so different sections — and adjacent ones, so a reader working through what the
+plan depends on meets what it does not cross next. No arc definition and no existing section was
+touched.
 
 **Gates: all 28 of `ci.yml`'s gate steps green**, run in full per `CLAUDE.md` principle 4 rather than trimmed on the grounds that
 this is a docs change — four of the gates (`lint-us-english`, `lint-voice`, `lint-layout-claims`,
