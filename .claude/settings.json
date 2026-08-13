@@ -19,6 +19,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-npm-ci.sh\"",
+            "timeout": 300,
+            "statusMessage": "Populating node_modules if this worktree has none…"
+          },
+          {
+            "type": "command",
             "command": "nl=$(printf \"\\nx\"); nl=${nl%x}; root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; cd \"$root\"; git fetch origin main --quiet 2>/dev/null || exit 0; counts=$(git rev-list --left-right --count HEAD...origin/main 2>/dev/null); ahead=$(echo \"$counts\" | awk \"{print \\$1}\"); behind=$(echo \"$counts\" | awk \"{print \\$2}\"); if [ -n \"$behind\" ] && [ \"$behind\" -gt 0 ] 2>/dev/null; then stat=$(git diff --stat HEAD...origin/main 2>/dev/null | tail -6); msg=\"This branch is $behind commit(s) behind origin/main (and $ahead ahead). Diffstat since divergence:${nl}${stat}\"; jq -n --arg msg \"$msg\" \"{systemMessage:\\$msg,hookSpecificOutput:{hookEventName:\\\"SessionStart\\\",additionalContext:\\$msg}}\"; fi",
             "timeout": 30,
             "statusMessage": "Checking branch is current with origin/main…"
