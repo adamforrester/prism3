@@ -7,6 +7,124 @@
 
 ---
 
+## (2026-08-13) — A def spells the paint ORDER; the projector owns the slot NAMES — and half of #758's paint was reachable at no coordinate (#784)
+
+**STATUS: shipped (engine half).** `PAINT_SLOTS` is now the written-down dispatch vocabulary, four defs'
+colour keys are rekeyed into it, and `paintKeyErrors` checks **every** placeholder segment against its own
+oracle. **This does not close Arc 2 step 2.** `focus-ring` still cannot project: `planComponentName` always
+writes a `size=` coordinate the ring has no axis for, and `PartDef` has no stroke field (#740). What #784
+changed is that the ring's *colour resolves*; the three structural walls stand and `figmaProperties` stays
+absent. Step 2 stays incomplete on purpose.
+
+**THE DIAGNOSIS.** #758 moved the paint grammar out of `paintOf` and into the def — correctly — and moved
+the **whole key** there, including the one segment the projector still owns. The slot is the argument
+`paintOf` is *called* with, so its vocabulary is not the def's to invent, and it was written down nowhere a
+def author could read. Four defs consequently shipped keys spelled in words nothing ever asks for. Measured
+by enumerating every coordinate `paintOf` can be called at and asking which colour bindings any of them
+reaches:
+
+| def | reachable before #784 | keys that reached nothing |
+|---|---|---|
+| `field-label` | **0 of 3** | `text`, `indicator`, `disabled.text` |
+| `focus-ring` | **0 of 2** | `stroke`, `stroke.inverse` |
+| `field-message` | 4 of 8 | the four `{tone}.text` keys — every tone painted its glyph, no tone painted its caption |
+| `text-field` | 6 of 12 | `text`, `placeholder`, `border.focus`, `border.readonly` |
+
+**#758's report claimed five of seven defs could now be painted. Three could.** `field-label` is the sharp
+case: `paintKeys: ['{slot}']` passes every check #758 shipped and the def paints **nothing**. `docs/38`'s
+paint row and `docs/28` §5 carried that claim and are corrected here.
+
+**The claim is also in #781's merged commit title** — *"Let the def declare its paint axes, so five of seven
+can be painted"* — and that is **left alone deliberately**, on the terms #773 set (2026-08-12 entry): rewriting
+merged history to correct a claim is a worse trade than the claim. Worth saying plainly rather than leaving a
+reader to wonder whether it was missed. The count is right about the CAUSE and wrong about the CURE, which is
+the whole of #784: removing the hardcoded `{intent}.{appearance}.{slot}` did unblock five defs, and three of
+the five were spelled in words the projector answers. So a title claiming the grammar was fixed is true; one
+claiming five defs paint is not, and the two are one word apart. **This is the second time in this task that a
+count was asserted from the mechanism rather than measured at the coordinate** — the first was #758's own
+five, the second was mine in the corrected report — which is the argument for `lint-paint.ts` arm 3 existing at
+all: a claim about what paints is only ever worth what the enumeration behind it is worth.
+
+**THE GENERALIZATION, which is why this is one rule and not three.** The two latent defects #758 named and
+deferred (`text-field`'s `border.focus` against its declared `focus-visible`; `field-message`'s unreachable
+`text` keys) are **one defect wearing two hats** — a template segment filled with a word nothing supplies.
+#758 could see the *state* half by eye, because states are declared in the def where a reader trips over
+them; it could not see the *slot* half, because the slot list lived only in `anatomy-figma.ts`'s call sites.
+`{slot}`, `{state}` and `{<axis>}` are the same question asked three times, and each has an enumerable
+oracle: `PAINT_SLOTS`, `def.states`, `def.variants[axis]`. `paintKeyErrors` now asks it once, per segment.
+
+**THE ORACLE IS THE PROJECTOR'S DISPATCH LIST, NOT A RE-LISTING** (docs/34). EXPECTED comes from
+`PAINT_SLOTS` — which `anatomy-figma.ts` reads to decide what to ask for — and ACTUAL from the defs' binding
+keys. Two artifacts, neither derived from the other. Deriving EXPECTED by asking `paintOf` what it resolves
+would reproduce any bug in `paintOf` on both sides and report it as a pass: #708's trap exactly.
+
+**DO NOT WIDEN `PAINT_SLOTS` TO GO GREEN.** Once the rule reads that list, the cheapest way to make a future
+failure vanish is to add the offending word to it — a real defect converted to a silent pass in one line.
+The list may only grow when the projector **actually dispatches** the new slot, which is checkable: a
+`paintOf('<slot>')` call must exist in the paint branch for the part kind that owns it. There are exactly
+five today, one per slot. This is stated in the gate's own header, because someone will otherwise widen it.
+
+**I DID NOT TRUST MY OWN GATE, AND THAT IS WHERE THE REAL FINDINGS CAME FROM.** A second, fully independent
+oracle — a probe that enumerates every coordinate, runs `figmaAnatomyPlan`, and reads paint out of the
+emitted **plans** — found four unreachable bindings the schema rule missed. Both oracles now agree at zero.
+Two of those findings are outside a rename:
+
+- **A live accessibility defect with a measured consequence.** `disabled.on-fill` was bound on `button` and
+  `text-field`, gated per mode, and reached at **no** coordinate — so a disabled **filled** button painted
+  *page* ink on a *fill*: **2.55:1** (harbor light), **2.14:1** (harbor dark), **2.14:1** (wendys light),
+  **2.13:1** (wendys dark), against contracts of 3.06–3.08:1. **Ink-on-fill and ink-on-page are different
+  contrast contracts** (Carbon's `text-on-color-disabled`); the token tier emitted both and the projector
+  only ever asked for one. Fixed in `paintOf`: disabled ink is now conditional on structure the same way the
+  fill already was, plus a rekey in both defs. Verified — `filled` paints `color/disabled/on-fill`;
+  `outline` and `text` keep page ink.
+- **Three `button` keys naming a nonexistent appearance value** (`*.on-inverse.label`). **Removed rather than
+  renamed**, because there is no value to rename *to*: the inverse surface is a fourth axis this def does not
+  declare. Verified first that the token family is gated independently and that no gate requires the def to
+  bind it, so no contract is lost; the ceiling is recorded in `codeOnly`.
+
+**THE EXEMPTION THAT WAS PLAUSIBLE AND WRONG, recorded because it hid the defect above.** `paintOf`'s
+cross-cutting `disabled` branch short-circuits before the template loop and builds `disabled.<slot>` from the
+slot it was *asked* for, so `disabled.*` keys do not go through the key *spelling* rule. My first version
+therefore exempted `disabled.*` wholesale — and a blanket exemption is what let `disabled.on-fill` sit
+unreached. The branch is exempt from the **spelling**, not from the **vocabulary**. So the exemption is now
+the `disabled` **lead segment only** (removing it entirely produces six false positives on `text-field`,
+where `disabled.fill` read through `{slot}.{state}` reports `{slot}='disabled'`, `{state}='fill'` — both true,
+both meaningless), and a dedicated pass checks the branch's own keys against the same oracle. The qualified
+form is `disabled.<slot>.on-fill`: **the suffix qualifies the slot rather than replacing it**, so the slot
+segment stays a dispatched word and a qualifier cannot become a hiding place for an unreachable slot name.
+
+**A GATE WHOSE MESSAGE ASSERTS SOMETHING UNTRUE IS THE SAME DEFECT AS A GATE THAT CANNOT FAIL.** Two were
+found by re-reading rather than by running, and both were green throughout:
+- `icon`'s zero-paint ceiling said *"Fails when #758 lands, by design."* #758 landed and it passed, because
+  the grammar is fine (8/8 given a tone) and the true cause is `figmaAnatomySet` refusing the `tone` axis.
+  Corrected to *"Fails when the set learns a fourth axis, by design,"* with a **positive** companion
+  assertion that `figmaAnatomyPlan(icon, 'md', {tone:'danger'})` yields `color/icon/danger`.
+- Button's ring ceiling required the literal string `{intent}.{appearance}.{slot}` and read "names its TRUE
+  cause" — prose #758 had already falsified. Now the resolvability is **measured** (via `fillPaintKey` +
+  `PAINT_SLOTS`, the projector's grammar, against the ring's own bindings) and the prose is only required to
+  agree with the measurement. Mutation-tested 3/3 by name, including reverting the slot rename.
+
+**VERIFICATION.** `test.ts` 2197 passed / 0 failed. Schema rule: 0 findings. Independent projector probe: 0
+unexplained unreached bindings. Mutation battery on the rule: **7/7 caught by name**, including a negative
+control (a slot that *is* dispatched must not fire) and both stale directions of the
+`NESTED_WITHOUT_ANATOMY` exemption.
+
+**TRAPS FOR WHOEVER IS NEXT.**
+- **`test.ts`'s TextField chrome assertion had to be rewritten to read REFS, not keys.** It banned keys
+  matching `/label|caption|message/` to prove the def carries chrome only — which stopped meaning what it
+  said the moment the value ink was legitimately rekeyed to `label`. It now reads the ref
+  (`!/^type\.(label|caption)\./`) plus a per-tone key ban.
+- **`size.*.text` on `field-label` and `field-message` is deliberately NOT renamed.** It binds **type**, not
+  paint, and resolves through `varOf`. #784 is a paint rule; `isColourBinding` scopes it by reading the
+  **ref**, not the key shape.
+- **The prose around `focus-ring`'s keys still says "stroke", on purpose.** That is the CSS/Figma property
+  the def binds. Only the KEY has to match the projector.
+
+**NEXT.** Arc 2 step 3's actual deliverable — the `anatomy` blocks for `field-label` and `field-message`,
+both now paintable — ending in a live Figma run.
+
+---
+
 ## (2026-08-13) — #697's axis call: be told for the round-trip, flatten for a foreign import — and it closes #747 (#697, #747)
 
 **STATUS: shipped.** A Figma collection's mode axis is now **declared**, in

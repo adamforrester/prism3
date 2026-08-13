@@ -380,7 +380,7 @@ neither axis, `field-label` and `text-field` have `size`, `field-message` has `t
 tried in order.** Four shapes were considered (an axis list, a key template list, a per-slot map, and
 folding paint into `anatomy` after all). The template list is the only one under which **all seven
 shipped defs stay valid unchanged** — and that is a measurement, not a preference, because the corpus
-already ships **seven different grammars, not one**:
+already ships **six distinct grammars across seven defs, not one** (`button` and `icon-button` are the only pair that share):
 
 | def | grammar | what it shows |
 |---|---|---|
@@ -409,12 +409,60 @@ so `figmaAnatomyPlan` refuses it and **no census can cover that def at all**.
 projectable: `PROJECTABLE_VARIANT_AXES` remains `['intent', 'appearance', 'size']` and its three
 *structural* walls are untouched, deliberately. #758 fixes wall 4 — paint — and only that.
 
-Two latent defects surfaced by writing the grammars down, both deferred with the anatomy work that
-owns them: `text-field` binds `border.focus` and `border.readonly` while declaring the states
+Two latent defects surfaced by writing the grammars down, both deferred at the time with the anatomy
+work that owns them: `text-field` binds `border.focus` and `border.readonly` while declaring the states
 `focus-visible` and `read-only`, so neither is ever reached and a focused field would paint its **rest**
-border (Arc 2 step 5); and `field-message`'s `text` keys cannot be filled by a `{slot}` the projector
-fills with `label` (Arc 2 step 3). Both were equally real before, and nothing in the repo could see
-either. Naming them is what declaring the grammar bought.
+border; and `field-message`'s `text` keys cannot be filled by a `{slot}` the projector fills with
+`label`. Both were equally real before, and nothing in the repo could see either. Naming them is what
+declaring the grammar bought — **and deferring them is what hid the other four**, which is §5.1.
+
+### 5.1 The slot vocabulary (#784)
+
+**A def spells the paint ORDER and the AXES. It does not get to invent the slot NAMES.** The slot is the
+argument `paintOf` is *called* with, so the vocabulary is the projector's: `PAINT_SLOTS = ['fill',
+'overlay', 'border', 'label', 'icon']`, one entry per `paintOf('…')` call site in `anatomy-figma.ts`.
+
+#758 gave that half away by accident. Moving the grammar into the def moved the *whole* key there,
+including the segment the projector still owns — so four defs shipped keys spelled in words nothing ever
+asks for. Measured by enumerating every coordinate `paintOf` can be called at:
+
+| def | reachable before #784 | keys that reached nothing |
+|---|---|---|
+| `field-label` | **0 of 3** | `text`, `indicator`, `disabled.text` |
+| `focus-ring` | **0 of 2** | `stroke`, `stroke.inverse` |
+| `field-message` | 4 of 8 | the four `{tone}.text` keys — every tone painted its glyph, no tone painted its caption |
+| `text-field` | 6 of 12 | `text`, `placeholder`, `border.focus`, `border.readonly` |
+
+`field-label` is the sharp case: `paintKeys: ['{slot}']` passes every check #758 shipped and the def
+paints **nothing**. The state half and the slot half are **one defect wearing two hats** — a segment
+filled with a word nothing supplies — and #758 could see the state half by eye because states are
+declared in the def, while the slot vocabulary was written down nowhere a def author could read it.
+
+So `paintKeyErrors` now checks **every** placeholder segment against its own enumerable oracle:
+`{slot}` against `PAINT_SLOTS`, `{state}` against `def.states`, `{<axis>}` against `def.variants[axis]`.
+One rule asked three times, rather than three checks.
+
+**Two things this pass changed beyond the renames**, both found by a second oracle rather than by the
+rule above (a probe that enumerates every coordinate, runs `figmaAnatomyPlan`, and reads paint out of the
+emitted plans — the rule and the probe now agree at zero):
+
+- **A live accessibility defect.** `disabled.on-fill` was bound on `button` and `text-field`, gated per
+  mode, and reached at no coordinate — so a disabled **filled** button painted page ink on a fill:
+  **2.55:1** (harbor light), **2.14:1** (harbor dark), **2.14:1** (wendys light), **2.13:1** (wendys dark),
+  against contracts of 3.06–3.08:1. Ink-on-fill and ink-on-page are *different contrast contracts*; the
+  token tier emitted both and the projector only ever asked for one. `paintOf`'s disabled branch now makes
+  ink conditional on structure the same way the fill already was, and the qualified form is
+  `disabled.<slot>.on-fill` — the suffix qualifies the slot rather than replacing it, so the slot segment
+  stays a dispatched word and a qualifier cannot become a hiding place for an unreachable slot name.
+- **Three `button` keys naming a nonexistent appearance value** (`*.on-inverse.label`). Removed rather
+  than renamed: there is no value to rename *to*, because the inverse surface is a fourth axis this def
+  does not declare. The token family is gated independently, so no contract is lost — the ceiling is
+  recorded in `codeOnly`.
+
+**Do not widen `PAINT_SLOTS` to go green.** Once the rule reads that list, the cheapest way to make a
+failure vanish is to add the offending word to it, which converts a real defect into a silent pass in one
+line. The list may only grow when the projector **actually dispatches** the new slot, which is checkable:
+a `paintOf('<slot>')` call must exist in the paint branch for the part kind that owns it.
 
 ---
 

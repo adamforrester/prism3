@@ -40,7 +40,7 @@ import { aliasRows, floatCollections, fontCollections, passJs, passOrder, pruneR
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -5879,15 +5879,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // The field FAMILY (docs/20 §17, KB text-field): TextField is a HOST that composes the two
   // shared parts, and binds INPUT CHROME only — label/message colour+type live in their own defs.
   ok(['field-label', 'field-message'].every((p) => textField.composition?.composesWith?.includes(p)), 'component: TextField composes field-label + field-message (the shared parts, not re-declared)');
-  ok(!Object.keys(textField.tokens).some((k) => /label|caption|message/.test(k)), 'component: TextField binds input chrome only — no label/message tokens (those live in the part defs)');
+  // Asserted over the REFS, not the key names, since #784. The old form banned any key MATCHING
+  // /label|caption|message/, which stopped meaning what it said the moment the input's own value ink was
+  // renamed to the projector's `label` slot: the field does paint a text node, and `label` is what
+  // `paintOf` calls that. What the claim is actually about is not re-declaring the PARTS — their type
+  // ramps and the message's per-tone inks — so it now reads the thing it means.
+  ok(!Object.values(textField.tokens).some((v) => /^type\.(label|caption)\./.test(String(v))), 'component: TextField binds input chrome only — no label/caption TYPE ramps (those live in the part defs)');
+  ok(!Object.keys(textField.tokens).some((k) => /^(error|warning|success)\./.test(k)), 'component: TextField declares no per-tone message inks (field-message owns the tone axis)');
   ok(textField.tokens['border.rest'] === 'color.field.border.rest' && textField.tokens['border.hover'] === 'color.field.border.hover', 'component: TextField binds the stateful field border (rest + hover)');
   // read-only ≠ disabled — the live edge: read-only keeps full-contrast text.primary, not a dimmed disabled ink.
-  ok(textField.tokens['text'] === 'color.text.primary' && textField.tokens['border.readonly'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
+  ok(textField.tokens['label'] === 'color.text.primary' && textField.tokens['border.read-only'] === 'color.border.secondary', 'component: TextField read-only stays full-contrast (text.primary + border.secondary), not disabled.*');
+  // #784: the key naming that state must BE the state, or `{slot}.{state}` never reaches it. `border.readonly`
+  // was bound, resolvable and unreachable — a read-only field painted its rest border. Asserted against
+  // `states` rather than against the literal, so the two cannot drift apart again.
+  ok(Object.keys(textField.tokens).filter((k) => k.startsWith('border.') && k !== 'border.rest')
+    .every((k) => textField.states.includes(k.slice('border.'.length))), 'component: TextField every state-qualified border key names a DECLARED state (#784)');
   ok(textField.tokens['border.error'] === 'color.border.danger', 'component: TextField error is a border-only swap (border.danger)');
   // FieldMessage: every validation tone re-points BOTH ink + icon at the matching semantic role.
-  ok(([['error', 'danger'], ['warning', 'warning'], ['success', 'success']] as const).every(([tone, role]) => fieldMessage.tokens[`${tone}.text`] === `color.text.${role}` && fieldMessage.tokens[`${tone}.icon`] === `color.icon.${role}`), 'component: FieldMessage tones bind text.<role> + icon.<role> (icon + text, never colour-only)');
+  // `${tone}.label`, not `${tone}.text`, since #784 — the SLOT segment has to be the word the projector
+  // dispatches for a text node. The ROLE it points at is still `color.text.<role>`; those are two
+  // different vocabularies and the old key conflated them, which is why four of eight never painted.
+  ok(([['error', 'danger'], ['warning', 'warning'], ['success', 'success']] as const).every(([tone, role]) => fieldMessage.tokens[`${tone}.label`] === `color.text.${role}` && fieldMessage.tokens[`${tone}.icon`] === `color.icon.${role}`), 'component: FieldMessage tones bind text.<role> + icon.<role> (icon + text, never colour-only)');
   ok(fieldMessage.states.length === 0 && JSON.stringify(fieldMessage.variants.tone) === JSON.stringify(['default', 'error', 'warning', 'success']), 'component: FieldMessage is presentational with a tone axis');
-  ok(!!fieldLabel.props.find((p) => p.name === 'children')?.required && fieldLabel.tokens['text'] === 'color.text.primary', 'component: FieldLabel requires text + binds the primary label ink');
+  ok(!!fieldLabel.props.find((p) => p.name === 'children')?.required && fieldLabel.tokens['label'] === 'color.text.primary', 'component: FieldLabel requires text + binds the primary label ink');
 
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).
   const broken = { ...button, ai: { ...button.ai, avoidWhen: '' }, tokens: { ...button.tokens, bogus: 'color.nope.nope' } } as ComponentDef;
@@ -9498,20 +9512,33 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const mdBound = planBoundVars(mdPlan.root);
     ok(mdBound.length === 2 && mdBound[0] === mdBound[1] && mdBound[0] === 'icon/size/md',
       `icon: the square binds ONE variable to BOTH axes — a single key cannot drift from itself (got [${mdBound.join(', ')}])`);
-    // THE MEASURED CEILING, and the reason this PR files #758 rather than closing it. `paintOf` keys
-    // every paint as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolves NO
-    // paint — the plan is structurally complete and silently colorless, which is the #500/#482 failure
-    // shape. Asserted at ZERO so the day #758 lands, this test fails and has to be rewritten as the
-    // positive claim; pinned silence would let the fix ship without anyone re-reading the ceiling.
+    // THE MEASURED CEILING — still zero, and #784 corrects WHY, which is the whole value of this line.
+    // It was written expecting to fail when #758 landed. #758 landed and it still passed, and the reason
+    // it gave for the zero had become false: `paintOf` no longer keys paint as
+    // `{intent}.{appearance}.{slot}`, and `icon`'s `tone.{tone}` resolves all eight inks perfectly when
+    // called at a coordinate that HAS a tone (measured: 8/8 over the full grid).
+    //
+    // The live ceiling is one axis further out: `figmaAnatomySet` does not enumerate `tone` at all —
+    // `PROJECTABLE_VARIANT_AXES` is intent/appearance/size, so every member of this set has `coord: {}`,
+    // `paintOf` is handed `tone: undefined`, and the template is unfillable at every one of the four
+    // coordinates that exist. The paint grammar is fixed; the SET is what cannot carry the axis.
+    //
+    // A test that passes for a reason its own message denies is worse than a missing test, because the
+    // message is what the next reader believes. Still asserted at zero, now against the true ceiling:
+    // this fails the day `figmaAnatomySet` learns a fourth axis, which is when it should.
     ok(planPaintVars(mdPlan.root).length === 0,
-      'icon: the projected glyph carries NO paint — paintOf keys paint as {intent}.{appearance}.{slot}, so a `tone` axis resolves nothing (#758). Fails when #758 lands, by design');
+      'icon: the projected glyph carries NO paint — not because the grammar cannot key it (it resolves 8/8 given a tone), but because figmaAnatomySet refuses the `tone` axis, so every member has coord {} and the template is unfillable. Fails when the set learns a fourth axis, by design');
+    // The other half of that claim, and the reason the line above is not just pinned silence: given a
+    // tone, the grammar DOES resolve. Without this, "0 paints" reads as "paint is broken" forever.
+    ok(planPaintVars(figmaAnatomyPlan(icon, 'md', { tone: 'danger' } as never).root).join(',') === 'color/icon/danger',
+      'icon: the SAME def paints correctly at a coordinate that carries a tone — the ceiling is the set, not the grammar (#784)');
   }
 
   // ---- focus-ring: the bindings that moved from the FILE into the engine ----
   // This is what the def actually accomplishes. docs/32 measured the hand-authored ring carrying
   // hardcoded #2D65D4 / #AFC7F3 fills, radius 0, and a stroke weight bound to a REMOTE New Balance
   // variable — all placeholders. These four now resolve against the emitted tree for every brand.
-  for (const [slot, path] of [['stroke', 'color.border.focus'], ['stroke.inverse', 'color.border.focus-inverse'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
+  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.border.focus-inverse'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
     ok(focusRing.tokens[slot] === path && paths.has(path),
       `focus-ring: '${slot}' binds ${path}, which the engine EMITS — the ring's skin is no longer whatever a Figma file happens to hold`);
   }
@@ -9599,8 +9626,32 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(!!ringCeiling, 'button: the focus-ring stroke/width/radius ceiling is still declared');
   ok(!/Accepted deliberately/.test(ringCeiling),
     'button: the ring ceiling no longer calls the ungated stroke a deliberate acceptance — it was never a trade, it is a projector constraint (#741)');
-  ok(/#758/.test(ringCeiling) && /\{intent\}\.\{appearance\}\.\{slot\}/.test(ringCeiling),
-    'button: the ring ceiling names its TRUE cause (paintOf\'s {intent}.{appearance}.{slot} keying) and the ticket tracking it (#758)');
+  // THE PAINT WALL IS DOWN, AND THIS ASSERTION USED TO PIN THE PROSE INSTEAD OF THE FACT (#784). Until
+  // #784 it required the ceiling to contain the literal `{intent}.{appearance}.{slot}` and read "names
+  // its TRUE cause" — a string check over a claim #758 had already made false, and #784 falsified twice
+  // over. It went green throughout, which is the `icon` zero-paint ceiling's defect exactly: a passing
+  // check whose message asserts something untrue. So the resolvability is now MEASURED, and the prose is
+  // only required to agree with the measurement.
+  //
+  // The oracle is the projector's grammar (`fillPaintKey` + `PAINT_SLOTS` — what `paintOf` fills a
+  // template with and which slots it dispatches); the subject is the ring's own bindings. Two artifacts,
+  // neither derived from the other, per docs/34. Deriving this by calling `paintOf` would reproduce any
+  // bug in `paintOf` on both sides.
+  const ringPaintResolves = (focusRing.variants.color ?? []).map((color) => {
+    const key = focusRing.paintKeys!
+      .map((t) => fillPaintKey(t, 'border', { color }))
+      .find((k) => k !== undefined && focusRing.tokens[k] !== undefined);
+    return { color, key };
+  });
+  ok((PAINT_SLOTS as readonly string[]).includes('border') && ringPaintResolves.every((r) => r.key),
+    `focus-ring: the ring's stroke COLOUR resolves at every color coordinate through the dispatched 'border' slot (${ringPaintResolves.map((r) => `${r.color}→${r.key}`).join(', ')}) — so paint is no longer one of this ceiling's causes`);
+  ok(/#758/.test(ringCeiling) && /#784/.test(ringCeiling) && /CLOSED/.test(ringCeiling),
+    'button: the ring ceiling records the paint gap as CLOSED (#758 → #784) rather than naming it a live cause — the measurement above is what makes that true');
+  // And the causes that ARE live have to be the ones still measured above: wall 1 (figmaAnatomySet
+  // refuses the axis) and wall 2 (planComponentName always writes `size=`). Without this, "CLOSED" could
+  // be satisfied by an entry that closed the paint gap and named no remaining cause at all.
+  ok(/figmaAnatomySet/.test(ringCeiling) && /planComponentName/.test(ringCeiling),
+    'button: the ring ceiling names the STRUCTURAL walls that remain (figmaAnatomySet refuses the axis; planComponentName always writes size=) — the two this file measures directly above');
   ok(/#740/.test(ringCeiling) && /PartDef/.test(ringCeiling),
     'button: the ring ceiling also names the second wall — PartDef has no stroke field, a schema decision under #740');
   // Sharing the ring IS still the right call, and the correction must not have thrown that away with

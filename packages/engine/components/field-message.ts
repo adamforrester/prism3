@@ -53,23 +53,27 @@ export const fieldMessage: ComponentDef = {
   // defaulting to `inherit`), these four are validation states. That collision is the reason the field
   // is a template list and not `paintAxes: ['tone']`.
   //
-  // NOTE the slot vocabulary. `{slot}` is filled with the name the PROJECTOR asks (`label` for a text
-  // node, `icon` for a glyph), so this def's `text` keys are unreachable through it as spelled — the
-  // reachability check in `paintKeyErrors` catches exactly that. Renaming these keys is a def change
-  // this PR deliberately does not make: the def has no `anatomy` yet, so nothing projects it, and the
-  // rename belongs with the anatomy that gives it a text part (Arc 2 step 3).
+  // THE SLOT VOCABULARY (#784). `{slot}` is filled with the name the PROJECTOR asks — `label` for a text
+  // node, `icon` for a glyph — so these were spelled `{tone}.text` until #784 and four of eight colour
+  // bindings resolved at no coordinate at all: every tone painted its glyph and left its caption unpainted.
+  //
+  // #758's comment here claimed *"the reachability check in `paintKeyErrors` catches exactly that."*
+  // IT DID NOT, and that claim is the reason #784 exists. Mutation-tested: removing all four `.icon`
+  // bindings, leaving only the stranded `.text` ones, produced NO error — the check tested template
+  // SHAPE (`^[^.]+\.[^.]+$`, which `default.text` matches perfectly) and never asked whether the value
+  // filling `{slot}` was a slot the projector asks for. An expectee authored rather than read.
   paintKeys: ['{tone}.{slot}'],
 
   tokens: {
     'type': 'type.caption.md.default',
     'gap': 'space.075',
-    'default.text': 'color.text.secondary',
+    'default.label': 'color.text.secondary',
     'default.icon': 'color.icon.secondary',
-    'error.text': 'color.text.danger',
+    'error.label': 'color.text.danger',
     'error.icon': 'color.icon.danger',
-    'warning.text': 'color.text.warning',
+    'warning.label': 'color.text.warning',
     'warning.icon': 'color.icon.warning',
-    'success.text': 'color.text.success',
+    'success.label': 'color.text.success',
     'success.icon': 'color.icon.success',
   },
 

@@ -374,7 +374,16 @@ export const figmaAnatomyPlan = (
    * though they were every component's. Five of the seven defs carry neither axis, so they resolved no
    * paint at all and projected structurally complete and silently colorless. Now `def.paintKeys`
    * declares the grammar and this walks it, so `icon`'s `tone.primary` and `focus-ring`'s
-   * `stroke.inverse` resolve by the same code path as Button's `primary.filled.fill.hover`.
+   * `border.inverse` resolve by the same code path as Button's `primary.filled.fill.hover`.
+   *
+   * THE SLOT SEGMENT IS STILL THIS FILE'S (#784), and that half is what #758 gave away by accident.
+   * A def spells the ORDER and the AXES; it does not get to invent the slot NAMES, because the slot is
+   * the argument this function is CALLED with — see the five `paintOf('…')` sites below (`overlay`,
+   * `fill`, `border`, `label`, `icon`), which are the entire dispatch vocabulary (`PAINT_SLOTS`). A key
+   * whose `{slot}` segment is a word not among them is authored, resolvable and reached at no
+   * coordinate: `field-label`'s ink was spelled `text` and painted 0 of 3. `paintKeyErrors` now reads
+   * `PAINT_SLOTS` and rejects that, so adding a SIXTH `paintOf('…')` call here is what widens the
+   * vocabulary — never an edit to the list alone.
    *
    * ORDER IS THE DEF'S TOO, and it carries the state fallback that used to be hardcoded here.
    * `{intent}.{appearance}.{slot}.{state}` leads `{intent}.{appearance}.{slot}`, so a state that
@@ -388,8 +397,23 @@ export const figmaAnatomyPlan = (
    * rather than falling back within the interactive one, and it is conditional on structure. A
    * template list says how keys are spelled; this says which family applies, and folding the second
    * into the first would make the restKey guard below unstatable.
+   *
+   * AND THE INK IS CONDITIONAL ON STRUCTURE THE SAME WAY THE FILL IS (#784) — the half this branch was
+   * missing, and the only finding in this pass with a measured contrast consequence. `disabled.fill` was
+   * already applied only where the appearance HAS a fill at rest, precisely so a ghost button does not
+   * become a gray box. But the INK was applied unconditionally, and ink on a fill is a different
+   * contract from ink on the page: the token tier emits BOTH (`disabled.text`, gated against the page
+   * floor, and `disabled.on-fill`, gated against `disabled.fill` — Carbon's `text-on-color-disabled`),
+   * and this branch only ever asked for one. So a disabled FILLED button painted page ink on a fill:
+   * 2.14:1 on wendys, 2.55:1 on harbor, against a 3.04-3.08:1 contract that already existed, was
+   * already gated per mode, and was bound by the def and reached at no coordinate in the grid.
+   *
+   * So the ink asks for the ON-FILL form where a disabled fill actually lands, and the plain form
+   * otherwise — the same `restKey` question the structural guard asks, which is why the two now read as
+   * one rule rather than two. `outline` and `text` have no fill to sit on, so they keep page ink.
    */
   const STRUCTURAL = new Set(['fill', 'border']);
+  const INK = new Set(['label', 'icon']);
   const restKey = (slot: string): boolean =>
     (def.paintKeys ?? []).some((t) => {
       const k = fillPaintKey(t, slot, { ...paintCoord, state: undefined });
@@ -399,7 +423,13 @@ export const figmaAnatomyPlan = (
     if (!def.paintKeys?.length) return undefined;
     if (state === 'disabled') {
       if (STRUCTURAL.has(slot) && !restKey(slot)) return undefined;
-      return def.tokens[`disabled.${slot}`] ? figmaVarName(def.tokens[`disabled.${slot}`]) : undefined;
+      // `disabled.<slot>.on-fill` is a QUALIFIED form of the same slot, not a slot of its own — the
+      // node being painted is still the label or the glyph, and only the ground beneath it changed.
+      // Keying it that way is what keeps the vocabulary check honest: the slot segment stays a word the
+      // projector dispatches, so a def cannot smuggle an unreachable key in behind the qualifier.
+      const onFill = INK.has(slot) && !!def.tokens['disabled.fill'] && restKey('fill');
+      const key = (onFill && def.tokens[`disabled.${slot}.on-fill`] && `disabled.${slot}.on-fill`) || `disabled.${slot}`;
+      return def.tokens[key] ? figmaVarName(def.tokens[key]) : undefined;
     }
     for (const template of def.paintKeys) {
       // A SLOT-FREE template answers only the part's primary paint slot — see `PRIMARY_PAINT_SLOTS`
