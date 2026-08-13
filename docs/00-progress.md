@@ -7,6 +7,58 @@
 
 ---
 
+## (2026-08-13) — `docs/34` gains shape 14: a gate calibrated below its own motivating defect (#779)
+
+**STATUS: shipped, docs only.** One new sub-shape in `docs/34-gate-independence.md`, one register row,
+one question added to the "In practice" checklist. No code changed — `test-smoke.mjs`'s floor is #779's
+work and this PR only registers the shape it belongs to.
+
+**The instance.** `apps/studio/test-smoke.mjs`'s rendered-contrast probe was built for the defect class
+`lint-contrast.mjs` structurally cannot see, and #555's canonical case is `.mo-playnote` — a legal
+`--faint` at 4.628 declared, faded through `opacity: .75`, rendering at 3.12:1. The floor is 2.0:1, so
+**the probe passes the case it exists to catch.**
+
+**Why it needed a section rather than a line under an existing shape, which was the first thing checked
+and is the reason this is a small diff.** Every discipline already in the file passes it, verified
+against the shape bodies rather than their headings: independent of its subject (1, 2, 11, 12 — it
+reads the live DOM and derives nothing from the stylesheet it checks), able to fail (4 — a 1.5:1 node
+fails and the suite exits 1), measuring the rule rather than today's symptom (10 — rendered contrast
+*is* the promised property), not written from its subject's mental model (8 — it measures pixels), and
+declared in reach rather than inheriting it (9, 13 — an enumerated page × mode × brand sweep). The
+general form is that independence, falsifiability and choice of quantity are all properties of the
+**instrument**; a threshold is a separate axis and none of them constrain it.
+
+**The diagnosis that made this worth writing down rather than filing as a number to raise.** The floor
+is documented and was fitted deliberately — to #555's *other* four families at 1.00–1.61:1, against a
+ceiling set by a legitimate contracted specimen rendering at 3.04:1. The defect at 3.12 sits **above**
+that ceiling, so the two populations are interleaved and **no single number separates them**. The floor
+was not careless and raising it is not the fix; the fix is to classify, which the probe cannot do until
+it records `fontSize`/`fontWeight` (#779's stated prerequisite). That is the durable half — *when the
+defect band and the legitimate band overlap under your threshold, the threshold is not the thing to
+tune.*
+
+**Stated rather than smoothed over:** shape 4 and shape 14 share a tell (*"feed it an input you know to
+be wrong"*), and the section says so instead of pretending they are unrelated — what separates them is
+that shape 4's measurement cannot move, while this one moves correctly against a wrong comparison
+point, so shape 4's fix (model the flattened axis) does nothing here.
+
+**One thing found while verifying those claims, recorded so the next person does not re-derive it.**
+The same suite also has shape 9's cheap tell — `nodesMeasured` is printed and nothing compares it, and
+an empty sweep would report *every one of 0 text nodes clears 2:1*. That is a missing non-empty floor,
+a different shape, and it is named in the section so the "passes shapes 9 and 13" claim above it cannot
+be read wider than it is. Not fixed here: one concern per PR, and it belongs with #779's code work.
+
+**Trap for whoever re-verifies this.** `docs/34` counts itself in exactly one place — the register
+table — and says so in prose twice (#568: a count written in prose is a landmark that goes stale). The
+opening paragraph's "found twelve" is a historical statement about the original audit and must **not**
+be updated. Shape numbers are referenced by index from gate headers in `packages/engine/`
+(`typecheck-components.ts`, `lint-doc-gates.ts`, `lint-layout-claims.ts`, `nb-regression.ts`,
+`test.ts`, `components/index.ts`), so the new shape was **appended** as 14 and the new checklist
+question **appended** as 7 — inserting either would have invalidated live references, including
+`docs/34`'s own "Question 2 does not cover this".
+
+---
+
 ## (2026-08-13) — The studio stylesheet becomes a real file, and the packaging that made it a trap stays (#769)
 
 **STATUS: shipped.** Piece 1 of 4 under the cleanup tracking issue #768. `apps/studio/src/styles.css`
