@@ -35,6 +35,8 @@
 import type { ComponentDef } from '../component-schema';
 import { button } from './button';
 import { iconButton } from './icon-button';
+import { icon } from './icon';
+import { focusRing } from './focus-ring';
 import { fieldLabel } from './field-label';
 import { fieldMessage } from './field-message';
 import { textField } from './text-field';
@@ -45,10 +47,17 @@ import { textField } from './text-field';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, iconButton, fieldLabel, fieldMessage, textField };
+export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
+  // The dependency-A primitives first (#741, `docs/38` Arc 2). They lead not because they were
+  // authored first but because composition order puts them here: `button` nests `focus-ring` and
+  // swaps in `icon`, and `icon-button` requires `icon` outright. `docs/38` §4 is the argument —
+  // these are not preliminary work in front of the interesting components, they are the components
+  // whose absence makes the interesting ones unmeasurable.
+  icon,
+  focusRing,
   button,
   iconButton,
   fieldLabel,

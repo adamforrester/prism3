@@ -54,7 +54,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, iconButton, fieldLabel, fieldMessage, textField } from './components/index';
+import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField } from './components/index';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
@@ -5812,6 +5812,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // liveness is checked before anything is concluded from it. Liveness only — that the set holds
   // EVERY tracked def is `typecheck-components.ts`'s registry arm, which compares it against git's
   // index; a completeness claim made here would be the set checking itself (`docs/34` shape 1).
+  //
+  // #741 registered `icon` and `focus-ring` and did NOT touch this loop, which is #742 working as
+  // designed: two new defs picked up their structural and two-brand binding coverage from the
+  // registry, and the hand-written pair list this replaced would have skipped both in silence.
   ok(componentDefs.length >= 5, `component: the registry holds a live set (${componentDefs.length} defs) — a loop over an empty registry asserts nothing`);
   for (const def of componentDefs) {
     const name = def.name;
@@ -9398,6 +9402,230 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   const set = buildOverlaySet(t);
   ok(set.overlays.length === modes.length, `overlay: the set carries one overlay per mode (${set.overlays.length})`);
+}
+
+// ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------
+// The two defs Button and IconButton already NOMINATE by name. Before this, both nested references
+// resolved against whatever the Figma file happened to contain (`compByName.get(n.nestTarget)`), which
+// made the file the source of truth for what a focus ring and an icon ARE — the inversion docs/14 §1
+// rejects, and the correction #749 recorded against #734.
+//
+// WHAT THESE ASSERTIONS ARE FOR, since the structural validation above already covers both defs in its
+// loop: they pin the DECISIONS in each def that a later edit could reverse while leaving the def
+// individually valid. Every one is a claim no other gate holds, and the two that could be derived from
+// the defs themselves are deliberately written against independent sources instead — the emitted token
+// tree and the projector's own behavior — because a claim checked against its own subject is not a
+// check (docs/34).
+{
+  const nbT = nbTheme();
+  const nbTree = buildTree(nbT).tree;
+  const paths = tokenPaths(nbTree, nbT.root);
+
+  // ---- icon: the size enum, checked against the EMITTED tree rather than against the def ----
+  // The rung names are the contract (principle 5), and the trap this pins is the one-rung offset
+  // between the KB brief's names and the engine's: the brief implies sm=16/md=20/lg=24/xl=32 while the
+  // engine emits xs=16/sm=20/md=24/lg=32/xl=40. A def that adopted the brief's names would make
+  // `icon.size.md` mean 24 in the token layer and 20 in the component API — individually valid on both
+  // sides, undetectable by every other gate, and exactly the shadow-overlay class of defect (a wrong
+  // value that resolves). So this asserts the def's enum against the token PATHS, not against a list
+  // restated here.
+  const iconSizes = icon.variants.size;
+  ok(iconSizes.join(',') === 'xs,sm,md,lg',
+    `icon: the size enum is the four rungs with a witness in the survey (got [${iconSizes.join(', ')}])`);
+  for (const rung of iconSizes)
+    ok(paths.has(`icon.size.${rung}`),
+      `icon: size rung '${rung}' names an EMITTED token path (icon.size.${rung}) — the engine's rung names, not the brief's offset ones`);
+  const iconSizeProp = icon.props.find((p) => p.name === 'size');
+  ok(iconSizeProp?.default === 'md',
+    `icon: size defaults to 'md' — 24 in engine naming, a deliberate shift from the brief's 20 caused by the rung offset (got '${iconSizeProp?.default}')`);
+  // `xl` (40) IS emitted and is bound by NO def, deliberately. Asserted so the omission stays a
+  // decision rather than becoming a gap someone "fixes": the token must keep existing (removing an
+  // emitted path is a MAJOR CONTRACT_VERSION bump) while the component enum must keep excluding it.
+  ok(paths.has('icon.size.xl') && !iconSizes.includes('xl'),
+    'icon: icon.size.xl (40) is emitted and admitted by no def — a token tier broader than one component\'s enum is the layering working, not a leak');
+  // `tone.inherit` binds NOTHING, and that is the point: `currentColor` is the ABSENCE of a pinned ink,
+  // so a binding key for it would have to resolve to some real path and every candidate would lie about
+  // what the default does. Pinned because adding one would read as completing the map.
+  ok(icon.variants.tone.includes('inherit') && !('tone.inherit' in icon.tokens),
+    'icon: `tone: inherit` is a declared value that binds no token — currentColor is the absence of a pinned ink, not a token whose value is "inherit"');
+  // The brief's `tokens-not-props` discipline (§3): width, height and stroke are bound to the grid, not
+  // exposed. A prop for any of them is an icon system with no grid.
+  for (const banned of ['width', 'height', 'stroke'])
+    ok(!icon.props.some((p) => p.name === banned),
+      `icon: '${banned}' is a token bound to the grid, never a prop — an icon system that lets a consumer set arbitrary dimensions has no grid`);
+  // Not interactive (§4/§5). `states: []` is a CLAIM — hover/pressed/disabled belong to the host
+  // control, and the icon-only-button trap is exactly the mistake of modelling them here.
+  ok(icon.states.length === 0,
+    'icon: no runtime states — an icon is never the interactive element, so its host control owns them (the icon-only-button trap)');
+  // `label` is the SOLE a11y gateway, and `role="img"` is mandatory with it or AT ignores the name.
+  ok(icon.props.some((p) => p.name === 'label' && !p.required),
+    'icon: `label` is optional — its ABSENCE is the decorative default, which is the most common correct answer');
+  ok(/role="img"/.test(icon.accessibility.aria ?? '') && /aria-hidden/.test(icon.accessibility.aria ?? ''),
+    'icon: the a11y matrix states both cells — role="img" + aria-label when meaningful, aria-hidden when decorative');
+
+  // ---- icon: the projection, measured against the projector rather than predicted ----
+  // Four members, one per rung, and the square binds ONE key to BOTH axes. `size` rather than a
+  // `height` plus a matching `width` because two bindings that must agree can be rebound on one axis
+  // with nothing noticing, while one key cannot drift from itself.
+  //
+  // GUARDED, and this is not defensive padding — it is mutation M1's finding. Rebinding the size enum
+  // to the brief's offset rung names made `figmaAnatomySet` throw on the unbound `size.xl` key, which
+  // ABORTED THE WHOLE SUITE: no report line, no named failure, and a `grep 'passed,'` over the run
+  // matched nothing at all. A gate that dies is not a gate that fails — it turns "which claim was
+  // violated" into a stack trace — and a crashed run whose output is grepped for failures reads as
+  // clean. Both halves of that were prior findings (M14, M12) and this block reproduced them, so the
+  // throw is converted into a named assertion instead.
+  let iconSet: AnatomyPlan[] = [];
+  let iconSetThrow = '';
+  try { iconSet = figmaAnatomySet(icon); } catch (err: any) { iconSetThrow = err?.message ?? String(err); }
+  // The message is built OUTSIDE the template that reports it — `ok(...)`'s argument evaluates eagerly,
+  // so a null-safe condition with an unguarded message string still crashes (the second half of M14).
+  ok(iconSetThrow === '', `icon: the def PROJECTS — every anatomy binding key resolves in tokens${iconSetThrow ? ` (threw: ${iconSetThrow})` : ''}`);
+  ok(iconSet.length === 4, `icon: projects four members, one per grid rung (got ${iconSet.length})`);
+  ok(figmaAxisNames(icon).join(',') === 'size',
+    `icon: `+ `'size' is the only projected axis — 'tone' is admitted in codeOnly, not dropped (declared [${figmaAxisNames(icon).join(', ')}])`);
+  // The assertions BELOW read the projection, so they only run once it exists — and skipping them is
+  // safe precisely because the two `ok(...)` calls above already recorded the reason by name. Reaching
+  // into an empty set here is what turned M1 into a crash the second time: catching the throw was not
+  // enough, because `ok` accumulates into `fails` and PRINTS AT THE END, so any crash downstream
+  // discards every named failure already collected. The guard has to cover the whole sub-block that
+  // consumes the projection, not just the call that produces it.
+  const mdPlan = iconSet.find((p) => p.size === 'md');
+  if (iconSet.length === 4 && mdPlan) {
+    const iconEmitted = [...new Set(iconSet.flatMap((p) => planComponentName(p).split(', ').map((kv) => kv.split('=')[0])))];
+    ok(iconEmitted.slice().sort().join(',') === figmaAxisNames(icon).slice().sort().join(','),
+      `icon: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(icon).join(', ')}] vs emitted [${iconEmitted.join(', ')}])`);
+    const mdBound = planBoundVars(mdPlan.root);
+    ok(mdBound.length === 2 && mdBound[0] === mdBound[1] && mdBound[0] === 'icon/size/md',
+      `icon: the square binds ONE variable to BOTH axes — a single key cannot drift from itself (got [${mdBound.join(', ')}])`);
+    // THE MEASURED CEILING, and the reason this PR files #758 rather than closing it. `paintOf` keys
+    // every paint as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolves NO
+    // paint — the plan is structurally complete and silently colorless, which is the #500/#482 failure
+    // shape. Asserted at ZERO so the day #758 lands, this test fails and has to be rewritten as the
+    // positive claim; pinned silence would let the fix ship without anyone re-reading the ceiling.
+    ok(planPaintVars(mdPlan.root).length === 0,
+      'icon: the projected glyph carries NO paint — paintOf keys paint as {intent}.{appearance}.{slot}, so a `tone` axis resolves nothing (#758). Fails when #758 lands, by design');
+  }
+
+  // ---- focus-ring: the bindings that moved from the FILE into the engine ----
+  // This is what the def actually accomplishes. docs/32 measured the hand-authored ring carrying
+  // hardcoded #2D65D4 / #AFC7F3 fills, radius 0, and a stroke weight bound to a REMOTE New Balance
+  // variable — all placeholders. These four now resolve against the emitted tree for every brand.
+  for (const [slot, path] of [['stroke', 'color.border.focus'], ['stroke.inverse', 'color.border.focus-inverse'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
+    ok(focusRing.tokens[slot] === path && paths.has(path),
+      `focus-ring: '${slot}' binds ${path}, which the engine EMITS — the ring's skin is no longer whatever a Figma file happens to hold`);
+  }
+  // The two axes exist because the token tier already emitted exactly two of each — docs/32's evidence
+  // that the ring was always one shared thing with a per-context parameter.
+  ok(focusRing.variants.color.join(',') === 'default,inverse',
+    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / focus-inverse)');
+  ok(focusRing.variants.offset.join(',') === 'control,field',
+    'focus-ring: the offset axis mirrors the emitted pair (focus.ring.offset / offset-field)');
+  ok(focusRing.states.length === 0,
+    'focus-ring: no states of its own — the ring is the VISUAL EXPRESSION of its host\'s focus-visible, so a state here would model a focusable focus ring');
+
+  // ---- focus-ring: NOT materializable, and each wall asserted where it actually lives ----
+  // `figmaProperties` absent is a DECISION (a block declaring `variantAxes: ['color']` would validate
+  // clean and throw at projection), so it is pinned rather than left to read as an oversight.
+  ok(!focusRing.figmaProperties,
+    'focus-ring: declares no figmaProperties — a `variantAxes: [color]` block would pass figmaPropertyErrors and THROW inside figmaAnatomySet, claiming a projection it does not have');
+  // Wall 1 — the projector refuses any axis outside intent/appearance/size, rather than enumerating
+  // around it. Probed live: a def is CONSTRUCTED with the block focus-ring deliberately omits, and the
+  // throw is asserted by message. This is the independent check — it interrogates the projector, not
+  // the def's own comment about the projector.
+  const ringProjected = { ...focusRing, figmaProperties: { variantAxes: ['color'], booleans: {} } } as ComponentDef;
+  let ringThrow = '';
+  try { figmaAnatomySet(ringProjected); } catch (err: any) { ringThrow = err.message; }
+  ok(/cannot project variant axes \[color\]/.test(ringThrow),
+    `focus-ring wall 1: figmaAnatomySet REFUSES a 'color' axis rather than enumerating around it (got '${ringThrow.slice(0, 80)}')`);
+  // Wall 2 — `planComponentName` always writes `size=`, and this def has no size axis, so a projected
+  // member could never carry the coordinate Button nests by. Asserted through `nestVariantMatch`, which
+  // is the function the executors actually use: a coordinate must account for EVERY axis in the member
+  // name, so `{color:'default'}` matches a hand-built set and matches nothing in a projected one.
+  //
+  // THE PROJECTED NAME IS TAKEN FROM `planComponentName` ITSELF, not typed here, and that is the whole
+  // gate — mutation M18 is why. The first version compared Button's coordinate against a literal
+  // `['size=md']` that I had written, so making `size=` conditional in `planComponentName` (which
+  // LIFTS this wall) left the suite fully green: the gate was asserting a fact about my own string.
+  // Reading the name from the projector means the day the projector stops writing `size=`
+  // unconditionally, this fails and the ceiling has to be re-read. Docs/34's rule, and the third time
+  // this shape appeared in one afternoon's mutation battery.
+  const buttonNest = button.anatomy!.parts.focusRing.nesting;
+  const wanted = buttonNest?.kind === 'nest-fixed' ? buttonNest.variant : {};
+  ok(nestVariantMatch(wanted, ['color=default', 'color=inverse']) === 'color=default',
+    'focus-ring wall 2a: Button\'s nest coordinate matches a HAND-BUILT color set — which is what #734\'s live run resolved against (#749)');
+  // A stand-in plan for a def with no intent/appearance/state/slot axes AND NO SIZE — exactly what a
+  // projected ring would be. `size` has to be genuinely absent for this to measure anything: the first
+  // version spread `iconSet[0]` and kept its `size: 'xs'`, so M18 (making the `size=` write conditional,
+  // which LIFTS this wall) still produced a `size=` and the gate stayed green. Whatever
+  // `planComponentName` writes for a sizeless plan IS the member name a projected ring would carry.
+  const ringMemberName = planComponentName({ ...iconSet[0], coord: {}, slotAxes: [], size: undefined } as unknown as AnatomyPlan);
+  ok(/(^|, )size=/.test(ringMemberName),
+    `focus-ring wall 2b: planComponentName writes a 'size=' coordinate even for a plan with NO size — this def has no size axis, so a projected member is named for an axis it does not have (got '${ringMemberName}')`);
+  ok(nestVariantMatch(wanted, [ringMemberName]) === null,
+    `focus-ring wall 2c: Button's coordinate matches NOTHING in a set named the way the projector names one ('${ringMemberName}') — so the declared nest is unsatisfiable by any engine-projected ring today`);
+  // Wall 3 — `PartDef` has no stroke field, so the ring's entire visual substance has nowhere to be
+  // declared. Read from the SCHEMA DECLARATION, not from this def, and not via a runtime validation
+  // probe either. Two dead ends worth recording so nobody re-walks them: asserting the absence on
+  // `focusRing.parts.ring` proves only that I did not type one (the M18 shape — a def omitting a field
+  // says nothing about whether the field EXISTS), and feeding `validateComponentDef` a part carrying
+  // `strokeWeight` passes, because the schema has no runtime unknown-key check. This wall is enforced
+  // at the TYPE level, by `typecheck-components.ts`, which a runtime suite cannot invoke — so the
+  // independent source available here is `PartDef`'s own field list, parsed out of the declaration.
+  const partDefSrc = readFileSync(resolve(HERE, './component-schema.ts'), 'utf8');
+  const partDefBlock = (() => { const i = partDefSrc.indexOf('export type PartDef = {'); return partDefSrc.slice(i, partDefSrc.indexOf('\n};', i)); })();
+  const partDefFields = [...partDefBlock.matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
+  ok(partDefFields.includes('kind') && partDefFields.includes('radius') && partDefFields.length > 10,
+    `focus-ring wall 3: PartDef's field list parsed from the declaration (${partDefFields.length} fields) — the parse is asserted before the absence, so a parse that silently found nothing cannot read as a pass`);
+  ok(!partDefFields.some((f) => /stroke|border|outline/i.test(f)),
+    `focus-ring wall 3b: PartDef declares NO stroke/border/outline field — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'type', 'inset', 'padding'].includes(f)).join(', ')}]. Fails when #740 adds one, by design`);
+
+  // ---- the codeOnly contract on both defs, and the correction to Button's ----
+  // Every unprojected variant axis must be ADMITTED by a codeOnly entry that LEADS with the axis name
+  // (a passing mention inside an entry about something else is a gate satisfied by unrelated prose).
+  // `focus-ring` has no figmaProperties, so that check does not run against it today — which is exactly
+  // why it is asserted here: adding the block later must not be able to ship an unadmitted axis.
+  for (const axis of Object.keys(focusRing.variants))
+    ok(focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith(axis)),
+      `focus-ring: the '${axis}' axis is ADMITTED by a codeOnly entry leading with its name, so adding figmaProperties later cannot ship it unadmitted`);
+  ok(icon.anatomy!.codeOnly.some((c) => c.trim().startsWith('tone')),
+    'icon: the `tone` axis is admitted in codeOnly, leading with the axis name (figmaPropertyErrors requires the lead, not a mention)');
+  // THE REAL DELIVERABLE OF #741. Button's entry used to close "Accepted deliberately, because the
+  // alternative is authoring the ring N ways in N hosts" — describing an unexamined projector
+  // constraint as a considered trade-off. That is a comment that stops anyone looking, the same shape
+  // as a gate reporting a stale memory as a pass. Both directions are asserted: the false claim is
+  // gone, and the true cause is named with its ticket.
+  const ringCeiling = button.anatomy!.codeOnly.find((c) => c.startsWith('focus-ring STROKE'))!;
+  ok(!!ringCeiling, 'button: the focus-ring stroke/width/radius ceiling is still declared');
+  ok(!/Accepted deliberately/.test(ringCeiling),
+    'button: the ring ceiling no longer calls the ungated stroke a deliberate acceptance — it was never a trade, it is a projector constraint (#741)');
+  ok(/#758/.test(ringCeiling) && /\{intent\}\.\{appearance\}\.\{slot\}/.test(ringCeiling),
+    'button: the ring ceiling names its TRUE cause (paintOf\'s {intent}.{appearance}.{slot} keying) and the ticket tracking it (#758)');
+  ok(/#740/.test(ringCeiling) && /PartDef/.test(ringCeiling),
+    'button: the ring ceiling also names the second wall — PartDef has no stroke field, a schema decision under #740');
+  // Sharing the ring IS still the right call, and the correction must not have thrown that away with
+  // the false acceptance. Pinned because the tempting over-correction is to delete the whole rationale.
+  ok(/one shared thing/.test(ringCeiling),
+    'button: the ring ceiling still records WHY the ring is shared — correcting the false acceptance must not delete the true rationale');
+
+  // ---- grounding, stated in the def because there is no focus-ring.md to cite ----
+  // A def with no cited source is one someone will assume was invented. `icon` has a brief; the ring
+  // does not, so it names button.md's focus section and docs/32's two absolute-sibling findings.
+  //
+  // SCOPED TO THE HEADER, and this scope IS the gate — mutations M13-M15 are why. The first version
+  // scanned the whole file, and deleting every citation from the header still PASSED, because
+  // `notes.contested` independently cites `button.md:34`, `docs/32:592` and `docs/32:731` in its own
+  // prose. A whole-file scan for a string the file mentions in several places cannot fail: it was
+  // measuring that the citations exist somewhere, while the claim is that the GROUNDING IS STATED UP
+  // FRONT where a reader meets the def. That is the #563 finding — a scan satisfied by unrelated
+  // prose — in a gate written after reading it, which is how reliably this shape recurs.
+  const ringSrc = readFileSync(resolve(HERE, './components/focus-ring.ts'), 'utf8');
+  const ringHeader = ringSrc.slice(0, ringSrc.indexOf('*/') + 2);
+  ok(ringHeader.length > 500 && ringHeader.startsWith('/**'),
+    `focus-ring: the source opens with a header block for the grounding to live in (got ${ringHeader.length} chars)`);
+  for (const cite of ['button.md:34', 'docs/32', ':592', ':731'])
+    ok(ringHeader.includes(cite),
+      `focus-ring: the HEADER cites '${cite}' — there is no focus-ring.md, so the grounding is stated where a reader meets the def, not merely mentioned somewhere in the file`);
 }
 
 // ------------------------------------------------------------------- report

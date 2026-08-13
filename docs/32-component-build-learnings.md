@@ -730,6 +730,25 @@ survive a mode switch, and the answer is not uniform across them.
 
 ### `[SKILL]` The focus ring wants to be a shared nested component, and the schema cannot say so
 
+> **Resolved 2026-08-12 (#741), and worth reading with the resolution attached because the ORIGINAL
+> DIAGNOSIS WAS RIGHT ABOUT THE GAP AND WRONG ABOUT WHERE IT WAS.** The schema can now say it:
+> `packages/engine/components/focus-ring.ts` is a real def, and Button's `focusRing` part nests it via
+> `kind: 'absolute'` + `nests` + `nesting: { kind: 'nest-fixed', variant: { color: 'default' } }`
+> (#681's field, and the `absolute` kind rather than the fifth part kind proposed below).
+>
+> **What #741 measured that this section did not predict.** The remaining gap is not in `anatomy.parts`
+> at all — it is three walls further down, and the third is the one nobody would guess:
+> `planComponentName` **always** writes a `size=` coordinate, and a ring has no size axis. So a
+> projected ring's members are named `size=…` while Button's declared coordinate is `color=default`,
+> and `nestVariantMatch` requires a coordinate to account for every axis in the member name.
+> **Button's nest is therefore satisfiable only by a hand-built component**, which is what #734's live
+> run was resolving against all along (#749). The other two: `paintOf` keys paint as
+> `{intent}.{appearance}.{slot}`, so a `color`-axis def projects unpainted (#758); and `PartDef` has no
+> stroke field, so a ring's weight and colour have nowhere to be declared (#740). What #741 did move is
+> real — the ring's skin (`color.border.focus`, `focus.ring.width`/`style`/`offset`/`offset-field`) now
+> resolves against the **engine**, gate-checked per brand, instead of against the placeholder
+> `#2D65D4` / remote-variable stroke this section measured in the file.
+
 Owner practice, and it is a better answer than anything the projection could reach for on its own: in
 Figma, author the focus ring **once as its own component** and nest it inside every component that
 needs a focused state.
@@ -749,6 +768,9 @@ per-context parameter).
 depends on another component already existing in the file** — every current kind is created from
 nothing. That publish-then-nest ordering is the component-tier echo of `materialise-to-figma.ts`'s
 create-before-alias pass ordering and needs the same treatment.
+
+*(Answered by the `absolute` kind plus `nests`/`nesting`, not by a fifth kind — see the note at the top
+of this section. The publish-then-nest ordering observation stands and is still unbuilt.)*
 
 Also unresolved: `composition.composesWith` exists but is pure documentation — nothing materializes
 from it. A nested ring would be the first composition relationship the Figma projection must honor.

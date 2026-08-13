@@ -7,6 +7,134 @@
 
 ---
 
+## (2026-08-12) — `icon` and `focus-ring` become real defs, and Button's ring ceiling stops lying about why (#741)
+
+**STATUS: shipped.** Arc 2 steps 1 and 2 of `docs/38`. Two new component defs — `packages/engine/components/icon.ts`
+and `packages/engine/components/focus-ring.ts` — plus a correction to one `codeOnly` entry in `button.ts`
+that is the real deliverable of the PR. Scope was deliberately held to authoring: no projector change, no
+schema change. `docs/32`'s *"The focus ring wants to be a shared nested component, and the schema cannot say
+so"* (:731) is now closed.
+
+**What these defs actually accomplish, stated narrowly because the honest answer is less than it looks.**
+Button and IconButton have nominated a component called `icon` — and Button a `focus-ring` — by name for
+some time, and `anatomy-figma.ts` resolves a nest target through `compByName.get(n.nestTarget)`: **against
+the Figma file**. So the file was the source of truth for what a focus ring and an icon ARE, which is the
+inversion `docs/14` §1 exists to reject and the correction #749 recorded against #734. These defs move that
+answer into the engine. The ring's skin in particular: `docs/32` measured the hand-authored ring carrying
+hardcoded `#2D65D4` / `#AFC7F3` fills, radius 0, and a stroke weight bound to a **remote New Balance
+variable** — all placeholders. `focus-ring.ts` binds `color.border.focus`, `color.border.focus-inverse`,
+`focus.ring.width`, `focus.ring.style`, `focus.ring.offset` and `focus.ring.offset-field`, and every one is
+gate-checked against both brands' emitted trees. What the file still owns is the ring's **node**.
+
+**The correction to Button, which is why this PR exists in this shape.** The ring `codeOnly` entry used to
+close *"Accepted deliberately, because the alternative is authoring the ring N ways in N hosts."* That was
+false, and not in a small way. Sharing the ring is genuinely right — `focus.ring.*` and `color.border.focus`
+are top-level token families belonging to no component, which is the token tier having said so first — but
+**the ungated stroke is not a consequence of sharing it.** It is two unexamined gaps:
+
+- `paintOf` (`anatomy-figma.ts`) keys every paint as `{intent}.{appearance}.{slot}` and returns `undefined`
+  unless both are present, so a def whose paint axis is `color` or `tone` projects **structurally complete
+  and silently unpainted** — the #500/#482 failure shape. Filed as **#758**.
+- `PartDef` has no stroke field at all. Its geometry vocabulary is gap / height / radius / size / type /
+  inset / padding. A ring **is** a stroke, so the one thing the component is has nowhere to be declared.
+  That is a schema decision, under #740 / Arc 1.
+
+A limitation described as a considered trade-off is a comment that stops anyone looking — the same shape as
+a gate reporting a stale memory as a pass. **Turning "accepted deliberately" into "blocked by a ticket" is
+the deliverable**; the entry now names both causes with their tickets, and keeps the sharing rationale,
+which the tempting over-correction would have deleted along with the false claim.
+
+**Four walls, not one, and three of them were discovered while authoring rather than predicted.** Only the
+paint wall was known going in. Measured on this branch:
+
+1. **Paint** — `paintOf`'s keying, above. #758.
+2. **Axis refusal** — `PROJECTABLE_VARIANT_AXES` is `['intent','appearance','size']` and `figmaAnatomySet`
+   **throws** rather than enumerating around an unknown axis. Correctly so: enumerating around an axis emits
+   a set silently missing it (#487 §5's 189-vs-756).
+3. **The nest coordinate is unsatisfiable** — and this is the one worth carrying forward. `planComponentName`
+   **always** writes a `size=` coordinate. `focus-ring` has no size axis, so a projected member would be
+   named `size=…`, while Button's `nesting: { kind: 'nest-fixed', variant: { color: 'default' } }` needs
+   `color=default`. Verified against `nestVariantMatch`, which requires a coordinate to account for every
+   axis in the member name: `{color:'default'}` matches a hand-built `['color=default','color=inverse']` and
+   matches **nothing** in a projected set. **Button's declared nest is satisfiable only by a hand-built
+   component** — an independent confirmation of #749's correction, arrived at from the other direction.
+4. **No stroke field** — `PartDef`, above. #740.
+
+So `focus-ring` ships with **`figmaProperties` absent, deliberately**: a block declaring
+`variantAxes: ['color']` would pass `figmaPropertyErrors` and then throw inside `figmaAnatomySet`, which is a
+def claiming a projection it does not have. `field-label` and `field-message` already model exactly this
+shape — semantically complete, not yet materializable.
+
+**Two decisions recorded so nobody re-derives them.** *The rung-name offset:* KB `icon.md` §15 implies
+sm=16 / md=20 / lg=24 / xl=32; the engine emits xs=16 / sm=20 / md=24 / lg=32 / xl=40. The **values agree
+exactly on the overlap** — only the names differ. Engine naming wins, and not as a preference: principle 5
+makes token names the contract, so a def adopting the brief's names would make `icon.size.md` mean 24 in the
+token layer and 20 in the component API, individually valid on both sides and undetectable by every other
+gate. **This is the first instance of a systemic collision** — every def authored from a brief meets it, and
+text-field and card are next — so it is resolved here for `icon` and deliberately **not** generalized; the
+general fix is filed separately. *And `icon.size.xl` (40):* emitted, bound by no def. It satisfies the
+brief's base-4/base-8 artboard rule, so it is not off-grid — what it lacks is a **witness**: no system in the
+surveyed field ships 40 (16/20/24, Carbon adds 32). Deliberately not admitted. Not a defect, and the token
+stays: removing an emitted path is a MAJOR `CONTRACT_VERSION` bump, and a token tier broader than one
+component's enum is **the layering working, not a leak** — a component enum states what that component
+admits, never an inventory of what the system offers.
+
+**Also decided:** #739 — `anatomy` nests inside `ComponentDef`, explicitly.
+
+**The mutation battery found three holes in the new gates, all the same shape, and that is the part of this
+entry most worth reading.** The rule is `docs/34`'s: mutate the subject and confirm *your* gate is among the
+failures **by name**. Twenty mutations were run. Seventeen failed correctly on the first attempt. Three did
+not, and each was a gate whose expected value I had authored rather than read:
+
+- **A whole-file citation scan.** The grounding gate asserted `focus-ring.ts` cites `button.md:34`,
+  `docs/32`, `:592`, `:731`. Deleting every citation **from the header** passed clean, because
+  `notes.contested` independently cites all three in its own prose. That is the **#563 finding** — a scan
+  satisfied by unrelated prose — reproduced in a gate written *after* reading it. Now scoped to the header
+  block, with the parse asserted before the absence.
+- **A member name I typed.** The wall-3 probe compared Button's coordinate against a literal `['size=md']`.
+  Making `size=` conditional in `planComponentName` — which **lifts the wall** — left the suite fully green,
+  because the gate was asserting a fact about my own string. Now the name comes from `planComponentName`
+  itself, fed a **sizeless** plan (the first fix still spread `iconSet[0]`'s `size: 'xs'`, so the conditional
+  still fired and the mutation still passed — the same error twice, one layer in).
+- **An absence on the def instead of the schema.** Wall 4 asserted `!('stroke' in parts.ring)`, which proves
+  only that I did not type one; a def omitting a field says nothing about whether the field **exists**. A
+  runtime `validateComponentDef` probe was the next dead end — the schema has no unknown-key check, so this
+  wall is enforced at the **type** level by `typecheck-components.ts`, which a runtime suite cannot invoke.
+  Now parsed out of `PartDef`'s own declaration, and a self-check asserts the parse found fields **before**
+  asserting none of them is a stroke, so a vacuous parse cannot read as a pass.
+
+**Two process traps hit live, both previously recorded, both hit anyway.** `sed -i` on macOS/BSD requires a
+backup-suffix argument; the mutation silently never applied, the suite ran clean, and the run read as *"the
+mutation broke nothing"* — the **M12** false-pass shape. Every mutation since goes through a driver that
+`assert`s the substitution changed the file before running anything. And the first M1 run **crashed** instead
+of failing: an unbound `size.xl` threw out of `figmaAnatomySet`, and because `ok()` accumulates into `fails`
+and prints **at the end**, the crash discarded every named failure already collected. **A gate that dies is
+not a gate that fails** (M14) — it turns *"which claim was violated"* into a stack trace. Catching the throw
+was not sufficient; the guard had to cover the whole sub-block that consumes the projection.
+
+**The measurement that justifies the rung-offset gate.** A def using the brief's rung names *inconsistently*
+is caught by the existing structural validator (an unbound binding key). A def using them **consistently** —
+brief names, engine values, every binding resolving — **passes every existing gate**: validation clean,
+bindings resolve in both brands, projection succeeds. 2185 of 2188 passed. Only three named assertions catch
+it, and the sharpest one names the defect exactly: `md` binds `icon/size/sm` = 20, not 24. That is a wrong
+value that resolves — the shadow-overlay class — and nothing in the repo held an independent answer to which
+rung a name means until this PR.
+
+**Rebased onto Arc 3, and the registry did its job on first contact.** #742/#760 landed
+`components/index.ts` while this was in flight, which turned the rebase into a live test of the thing that
+PR was for. Both defs are registered in `componentDefs`, in composition order (the primitives lead, per
+`docs/38` §4), and **the per-def loop in `test.ts` was not touched**: iterating the registry means two new
+defs picked up structural validation and two-brand binding coverage automatically, where the hand-written
+pair list it replaced would have skipped both in silence. `typecheck-components.ts`'s registry arm also
+fired correctly twice — first refusing the defs as *"untracked residue is not coverage"* before they were
+`git add`ed, then confirming both are represented in what tsc actually read.
+
+**Suite:** 2191 passed, 0 failed (from 2123). **Next:** `icon-button` is now unblocked (it is the first def to
+exercise `inherits`), `field-label` and `field-message` gain anatomy blocks, and #758 plus #740's `PartDef`
+stroke decision are what stand between `focus-ring` and a materialized ring.
+
+---
+
 ## (2026-08-13) — The external studio review: what the line count hid, and the seams the defect record named (#765–#772)
 
 **STATUS: recorded, not built.** An outside design-system developer read the repo cold on 2026-08-13.
@@ -494,8 +622,6 @@ the brand in hand.
 reads our DTCG with no custom code — an SD-specific emitter would contradict a gate that runs every CI run),
 and the doc 26 rescope plus the voice-standard §4 cross-reference, which are lane:web bookkeeping that
 should follow rather than ride here.
-
----
 
 ## (2026-08-12) — `lint-doc-gates.ts` looked in the whole file for a promise about one section (#704 + #728)
 

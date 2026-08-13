@@ -64,10 +64,10 @@ what changed is itself the evidence §4 now rests on.
 
 | Claim | Evidence | Was, when written |
 |---|---|---|
-| Five component defs exist | `packages/engine/components/` — `button`, `icon-button`, `text-field`, `field-label`, `field-message` | unchanged |
-| **Two of five are materializable** | `button.ts` and `icon-button.ts` carry `anatomy` blocks; `figmaAnatomyPlan` throws without one (`anatomy-figma.ts:235`) | **one** — `32`'s *"Only one of five defs is materializable"* was true until #734 |
+| **Seven component defs exist** | `packages/engine/components/` — `button`, `icon-button`, `text-field`, `field-label`, `field-message`, plus `icon` and `focus-ring` | **five** — until #741 authored the two dependency-A primitives |
+| **Three of seven carry an `anatomy` block; two of those materialize** | `button.ts`, `icon-button.ts` and `focus-ring.ts` carry `anatomy` (`figmaAnatomyPlan` throws without one, `anatomy-figma.ts:235`), and `icon.ts` projects four members. `focus-ring` is the one that does NOT: it ships with `figmaProperties` **absent**, because declaring `variantAxes: ['color']` would validate cleanly and throw at projection. **An `anatomy` block is necessary and not sufficient** — the distinction this row used to elide | **one, then two** — `32`'s *"Only one of five defs is materializable"* held until #734 |
 | **The registry exists** | `packages/engine/components/index.ts` exports `componentDefs`; `test.ts` iterates it, and `typecheck-components.ts` asserts in both directions that it holds exactly the defs git tracks | **there is none** — `test.ts:51-55` imported the five defs by name, one line each, `components/` held no index and nothing iterated the set, until #742 |
-| Dependency A has no defs | No `icon`, no `focus-ring` — still true, and now the sharpest gap in the file. `32`: *"The focus ring wants to be a shared nested component, and the schema cannot say so"* | unchanged |
+| **Dependency A has its defs, and the gap moved rather than closed** | #741 authored both. `32`'s *"the schema cannot say so"* is answered — Button nests `focus-ring` via `kind: 'absolute'` + `nests` + `nesting`, and the ring's skin now binds engine tokens instead of a Figma file's placeholders. **What replaced it is more specific and further down:** `planComponentName` always writes `size=` while a ring has no size axis, so Button's `{color:'default'}` coordinate is satisfiable only by a **hand-built** component; `paintOf` keys paint `{intent}.{appearance}.{slot}`, so a colour-axis def projects unpainted (#758); and `PartDef` has no stroke field (#740) | **no defs at all** — and the gap was believed to be in `anatomy.parts` |
 | **The mechanism A needs is built** | #734 added `PartDef.nesting` / `NestingRelation` (`component-schema.ts:134`); #750 added the consumer half (`nestVariant` resolution in both executors) | **decided, not built** |
 | ~~Dependency B waits on one fork~~ | **Superseded** — see the header. #252 no longer gates the critical path | `19` §7.2 |
 | The schema has five undecided questions | `28` §5, filed as #735–#739. All still open | unchanged |
@@ -100,9 +100,15 @@ This arc is what replaces it.
 
 Order is set by the dependency graph:
 
-1. **`icon`** — the swap target Button already nominates, and the one every other component needs.
-2. **`focus-ring`** — the absolute sibling `32` describes, and the shared-nested case that
-   motivated #681.
+1. ~~**`icon`**~~ — **done in #741.** The swap target Button already nominates. Four projected
+   members, one per grid rung; `tone` is admitted in `codeOnly` because `paintOf` cannot key it.
+2. ~~**`focus-ring`**~~ — **authored in #741, and NOT materializable, deliberately.** The def is real
+   and its six bindings are gate-checked per brand, which is what moved the ring's colour, weight,
+   style and offsets out of the Figma file. What it cannot do is project: `figmaProperties` is absent
+   because a `variantAxes: ['color']` block would validate cleanly and throw. **The step ending in a
+   live Figma run is the one part of this item still open**, and it is blocked on the three walls §2's
+   table now names — not on more authoring. Worth carrying into item 5: the same three walls sit in
+   front of anything else that wants to nest a shared primitive by a non-size coordinate.
 3. **`field-label` and `field-message`** gain anatomy blocks.
 4. ~~**`icon-button`**~~ — **already done, out of order, in #734.** It was taken before the
    primitives on my instruction, and it succeeded for the reason §4 now records: its nested
