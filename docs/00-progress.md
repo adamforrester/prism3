@@ -7,6 +7,77 @@
 
 ---
 
+## (2026-08-13) — The smoke suite gets a non-empty floor, and the number that would catch a blank page is not the one that survives (#779 defect 1)
+
+**STATUS: shipped.** `apps/studio/test-smoke.mjs` only — three constants, one assertion inside the
+sweep, two after it. **#779 defect 1 only.** Defect 2 (the 2.0:1 floor sitting below `.mo-playnote`'s
+3.12:1) and defect 3 (naming the summary line) stay open; #780 already recorded why defect 2 is not a
+number to raise, and its `fontSize`/`fontWeight` prerequisite gates the *design*, not the typing.
+
+**The defect.** `ok(under.length === 0, …)` compares ratios, and a comparison over an empty list is
+true. At `rows.length === 0` the suite passed while printing *"every one of 0 text nodes clears
+2:1"*. `nodesMeasured` and `statesVisited` were both accumulated, printed in the run summary, and
+compared to nothing. So a probe selector that stopped matching, or a page that stopped rendering
+text, reported **green** — in the file that is the stated safety net for the studio cleanup
+(#768–#772) restructuring the very code it measures. `docs/34` shape 9's cheap tell, named in #780
+and left for this PR.
+
+**The shape was already in the repo, so it was copied rather than invented.**
+`packages/engine/typecheck-components.ts` refuses to run under a `defs.length < 3` floor, written
+after #658's review found a gate printing *"0 engine files in the bundle … ✓ clean"*. Same fix here:
+assert the **count**, next to and separate from the ratios, so an empty state fails naming itself
+instead of the ratio assertion going quietly true.
+
+**The measurement that set the numbers, and the one that changed the answer.** Four independent runs
+(#776, #780, #790, #791) all reported 72 states / 15,638 nodes, so those are constants. The
+per-state distribution had not been measured before, and it is what the calibration turns on:
+
+| | nodes |
+|---|---|
+| sparsest state (Typography / Layout in a derived mode, editors replaced by the read-only note) | **34** |
+| …of which is page chrome outside `.ws` | **27** |
+| richest state (Surfaces & fills) | **490** |
+| whole sweep | **15,638** |
+
+- **`STATE_NODE_FLOOR = 20`** — ~40% under the sparsest legitimate state, so the read-only note can
+  lose lines without tripping. **The interesting part is what it deliberately is not.** A floor of
+  ~30 would also catch a page whose workspace blanked, since chrome alone is 27 — but the gap from
+  27 to 34 is a few lines of copy, and a gate whose margin is four lines of wording fails on
+  editing. The blanked-workspace case is already covered, and covered better, by the existing
+  `controls > 0 || readOnlyNote > 0` assertion, which names the condition instead of proxying it
+  through a count. **Verified rather than assumed** — blanking `.ws` on one state fails that
+  assertion by name (below), which is what makes the comment's claim to leave the case alone honest
+  rather than an excuse for the lower number.
+- **`SWEEP_NODE_FLOOR = 8000`** — about half the measured total, more headroom than the cleanup in
+  flight can plausibly need. It is **not** redundant with the per-state floor: every state rendering
+  nothing but chrome clears 20 seventy-two times over and totals ~1,900, which the per-state floor
+  structurally cannot see and this catches.
+- **`SWEEP_STATE_FLOOR = 32`** — the product of the three per-axis minimums the sweep already
+  asserts (≥ 2 brands × ≥ 2 modes × ≥ 8 pages), so it raises **no new bar**. What it adds is a named
+  failure for a sweep that visits nothing: at zero states the loop body never runs, so contrast,
+  console errors and mode agreement are *absent* rather than failing — and absence reading as a pass
+  is the same defect one level out.
+
+**Verified in both directions, because a floor proved only in the passing direction is the defect it
+is being added to prevent.** Three mutations, each reverted:
+
+| mutation | exit | what failed |
+|---|---|---|
+| probe selector → `no-such-element` (every state empty) | **1** | 72 per-state floors, each naming its state, + the sweep total (`0 text nodes in total`). `statesVisited` was still 72, so the state floor correctly stayed green — the three floors discriminate. |
+| one state's rows forced to `[]` | **1** | exactly 1 assertion — *"aurora / Elevation / Light: the contrast probe measured 0 text nodes (floor 20)"*. Total stayed at 15,570, well clear of 8000: **this is the case only the per-state floor catches.** |
+| one state's `.ws` emptied in the DOM | **1** | the hero, controls and mode-bar assertions, all naming the state. The count floors stayed green, exactly as the comment says they will. |
+
+Unmutated: **591 assertions, all pass** (517 before + 72 per-state + 2 totals), 72 states, 15,638
+nodes — the baseline unmoved.
+
+**Trap for whoever re-verifies.** `test:smoke` is `continue-on-error` until 2026-08-20 (#775), so a
+red suite fails no status check and appears in no summary anywhere GitHub's API can see it. Read the
+step's stdout and its `$GITHUB_STEP_SUMMARY` block directly; green checks are not evidence about
+this suite. And run `npm run -w @prism3/studio build` first — the suite serves `dist/`, so an
+unbuilt or stale bundle is measured without complaint.
+
+---
+
 ## (2026-08-13) — Page chrome is declared, and the floor becomes structural rather than advisory (#772)
 
 **STATUS: shipped.** The surfaces every studio view must render are now **declared once**, in

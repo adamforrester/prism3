@@ -170,6 +170,47 @@ const CONTRAST_PROBE = () => {
  */
 const CONTRAST_FLOOR = 2.0;
 
+/**
+ * NON-EMPTY FLOORS — DID THE SWEEP LOOK? (#779, defect 1.)
+ *
+ * The contrast assertion below compares ratios, and a comparison over an empty list is true: at
+ * `rows.length === 0` it passed while printing "every one of 0 text nodes clears 2:1" — a true
+ * statement about nothing. A probe selector that stopped matching, or a page that stopped rendering
+ * text, reported GREEN, and the summary read "15638 text nodes" one run and "0 text nodes" the next
+ * with no assertion between the two. That matters most while this suite is the studio cleanup's
+ * stated safety net (#768–#772 restructure the very file it measures).
+ *
+ * Same shape, same fix as `packages/engine/typecheck-components.ts`, whose `defs.length < 3` floor
+ * is there because #658's review found a gate printing "0 engine files in the bundle … ✓ clean".
+ * The floors assert the COUNT; the assertion beside them keeps asserting the ratios.
+ *
+ * MEASURED, so the headroom is visible rather than re-derived. The sweep below reports 72 states and
+ * 15,638 text nodes, and four independent runs (#776, #780, #790, #791) landed on that same total —
+ * a constant, not one sample. The per-state range is **34 to 490**. The 34 is the sparsest
+ * LEGITIMATE state: Typography and Layout in a derived mode, where the editors are replaced by the
+ * read-only note. 27 of those 34 nodes are page chrome outside `.ws`.
+ *
+ *  - `STATE_NODE_FLOOR` (20) — ~40% under the sparsest real state, so the read-only note can lose
+ *    lines without tripping it, and a state the probe comes back empty from fails BY NAME rather
+ *    than passing quietly. It deliberately does NOT sit above the 27-node chrome in order to claim
+ *    a blanked workspace: 27 is what a rich page renders with its whole workspace gone, and
+ *    the gap from 27 to 34 is a few lines of copy — a floor in there would fail on wording. That
+ *    case is covered, and covered better, by the `controls > 0 || readOnlyNote > 0` assertion in the
+ *    loop, which names the condition instead of proxying it through a count.
+ *  - `SWEEP_NODE_FLOOR` (8000) — about half the measured 15,638, which is more headroom than the
+ *    cleanup in flight can plausibly need. Not redundant with the per-state floor: every state
+ *    rendering nothing but its chrome clears 20 seventy-two times over and totals ~1,900, which this
+ *    catches and the per-state floor structurally cannot.
+ *  - `SWEEP_STATE_FLOOR` (32) — the product of the three per-axis minimums already asserted below
+ *    (≥ 2 brands × ≥ 2 modes × ≥ 8 pages), so it raises no new bar. What it adds is a NAMED failure
+ *    for a sweep that visits nothing: at zero states the loop body never runs, so contrast, console
+ *    errors and mode agreement are all ABSENT rather than failing, and absence is what this file
+ *    keeps having to convert into a failure.
+ */
+const STATE_NODE_FLOOR = 20;
+const SWEEP_NODE_FLOOR = 8000;
+const SWEEP_STATE_FLOOR = 32;
+
 // ---- browser plumbing ------------------------------------------------------------------------
 const browser = await chromium.launch();
 
@@ -337,6 +378,13 @@ for (const brand of BRANDS) {
       // --- rendered contrast -------------------------------------------------------------------
       const rows = await page.evaluate(CONTRAST_PROBE);
       nodesMeasured += rows.length;
+      // The non-empty floor, asserted BEFORE the ratios and separately from them, so an empty state
+      // fails naming itself rather than passing as "every one of 0 text nodes clears 2:1".
+      ok(rows.length >= STATE_NODE_FLOOR,
+        `${where}: the contrast probe measured ${rows.length} text nodes (floor ${STATE_NODE_FLOOR})${
+          rows.length < STATE_NODE_FLOOR
+            ? ' — this state rendered almost no text, or the probe stopped matching; the ratio assertion below is vacuous here'
+            : ''}`);
       const under = rows.filter((r) => r.ratio < CONTRAST_FLOOR);
       for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
       ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${
@@ -346,6 +394,15 @@ for (const brand of BRANDS) {
   console.log(`  ${brand}: ${pages.length} pages × ${modes.length} modes swept (${pages.join(', ')})`);
   await ctx.close();
 }
+
+// The sweep totals, asserted rather than only printed (#779). Both were reported in the summary and
+// compared to nothing; the state count is what makes "the loop never ran" a failure instead of a
+// silence, and the node total is what catches every state rendering nothing but chrome — which the
+// per-state floor passes 72 times over.
+ok(statesVisited >= SWEEP_STATE_FLOOR,
+  `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 8 pages)`);
+ok(nodesMeasured >= SWEEP_NODE_FLOOR,
+  `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR}, ~half the 15,638 baseline)`);
 
 console.log(`\n  ${statesVisited} page × mode states, ${nodesMeasured} text nodes measured.`);
 console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (floor ${CONTRAST_FLOOR.toFixed(1)}:1)`);
