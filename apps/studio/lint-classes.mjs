@@ -58,8 +58,15 @@ const ALLOWED = new Set([
                                  // the click target without changing adv-x's painted box.
   'barbtn navbtn',              // hamburger nav toggle — barbtn's visual style, navbtn's display:none
                                  // gate flipped to flex only inside the narrow-width media query
-  'brandmenu exportmenu',       // menu variants — exportmenu/navmenu re-skin the shared popover
-  'brandmenu navmenu',
+  'brandmenu navmenu',          // menu variant — navmenu re-skins the shared popover
+                                 // (`brandmenu exportmenu` was here until #723 replaced the export
+                                 //  dropdown with a dialog; `.exportmenu` no longer exists)
+  'seg exdlg-seg',              // #723 — the export dialog's artifact + option pickers reuse the
+  'seg exdlg-oseg',             // shared segmented control. Checked: `.seg` owns the box (display,
+                                 // border, radius, padding, gap, background) and both modifiers add
+                                 // only sizing/flow — align-self on each, plus max-width + flex-wrap
+                                 // on exdlg-oseg so a long option pair wraps inside the panel instead
+                                 // of widening it. Nothing `.seg` declares is overridden.
   'ctable mo-ramp',             // the motion ramp IS a contract table; mo-ramp adds the ms column
   'mtbl-scroll sl-tall',        // sl-tall raises the scroll cap for the taller mode table
   'mtbl-spec-t tf-prev',        // typeface preview inside a mode-table specimen cell
