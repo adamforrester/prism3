@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-08-14) — #808 closed: a progress-log sweep found a fix comment and read it as a live defect
+
+**STATUS: shipped.** #808 (filed from a sweep of `docs/00-progress.md` for described-but-unfiled defects)
+claimed `text-field`'s focus border and `field-message`'s tone keys were live, unfiled defects. Both were
+already fixed by #784 — `text-field.ts` carries the corrected `border.focus-visible`/`border.read-only`
+keys with a comment naming the fix, and `field-message`'s four tone keys are the named, reasoned
+`PROVENANCE_EXCEPTIONS` in `lint-paint.ts`, checked in both directions and passing on `main`. Closed with
+citations; independently re-ran `lint-paint.ts` rather than trusting the file diff alone.
+
+**The method finding, recorded as a `[SKILL]` entry in `docs/32`:** the sweep quoted `docs/28` §5.1's
+2026-08-13 prose verbatim and searched the code for matching language, rather than reading the code's
+*current* disposition. A fix comment, written in the past tense, reads exactly like a live defect
+description at skimming speed — same vocabulary, same named key, same symptom. "Verified against `main`"
+has to mean reading what the code says happened to the described behavior, not finding text that matches
+the quote that motivated the search.
+
+---
+
 ## (2026-08-14) — Filing a found-but-unfixed defect is not optional, stated where a lane reads it before starting
 
 **STATUS: shipped.** `CLAUDE.md` principle 3 (Surgical changes) now says explicitly: *"'One concern per

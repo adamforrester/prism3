@@ -36,6 +36,33 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-14 — from a progress-log sweep that filed a defect already fixed (#808)
+
+### `[SKILL]` "Verified against `main`" means reading the current disposition, not the description that found it
+
+#808 filed `text-field`'s focus-border defect and `field-message`'s unreachable text keys as live and
+unfiled, quoting both verbatim from `docs/28` §5.1's 2026-08-13 prose. Both were already fixed —
+`text-field.ts:79-99` names the fix directly (*"THE FOUR DEFECTS THIS DECLARATION SURFACED, all fixed in
+#784"*) and carries the corrected keys (`border.focus-visible`, `border.read-only`); `field-message`'s
+four tone keys are the named, reasoned `PROVENANCE_EXCEPTIONS` in `lint-paint.ts`, checked in both
+directions, passing on `main`. Closed rather than shipped as a duplicate only because the citations were
+checked against the file, not against the entry that motivated filing.
+
+**Why this is a recurring trap and not a one-off miss.** A progress-log entry describes a defect at the
+moment it was found. The code a sweep reads afterward holds whatever happened *since* — and a fix
+comment, written in the past tense, reads exactly like a live defect description at normal reading speed:
+both name the wrong behavior, both cite the wrong key, both use the same vocabulary. The tell is tense and
+a nearby issue number (*"all fixed in #784"*), not content — so skimming for the described symptom finds
+a match whether or not the defect still exists.
+
+**The fix that generalizes:** "verified against `main`" is not satisfied by finding language that matches
+the progress-log quote. It requires reading the code's own current disposition — the comment that says
+what happened to the described behavior, not just the code region the description points at — and
+independently running whatever gate would catch a regression, rather than trusting that the description
+still holds because the file still exists.
+
+---
+
 ## 2026-08-06 — from the slot × size live probe (#536 item 6)
 
 ### `[SKILL]` The 30 s `figma_execute` ceiling is a TRANSPORT limit — measure before optimizing the wrong layer
