@@ -374,6 +374,27 @@ jobs:
       - name: An absolutely-positioned part lands outside its parent
         run: npx --yes tsx@4 packages/engine/lint-absolute-inset.ts
 
+      # A stated advisory window, once it closes, fails the build. The step below this one is
+      # advisory with a date on it, and that date is written in six places — this workflow twice,
+      # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning
+      # every one of them becomes a false statement about what CI does, and NOTHING anywhere would
+      # say so; whoever pushes that day did not write the claim and has none of this context.
+      #
+      # GATING, not advisory — a gate that watches for expired advisories and is itself advisory
+      # would be its own joke. The broader "forward claim" problem ships separately as a tools/
+      # harness because its recall is unknown; this sub-class is the one where that objection
+      # dissolves. The oracle is the CLOCK — no API, no issue state, no network, and the repo cannot
+      # edit the calendar — and the pattern is literal, so recall is MEASURED, not estimated: 904
+      # dates across 548 tracked text files, 13 of them claims, and the complement read by hand.
+      #
+      # Verified in BOTH directions with an injected clock (PRISM3_TODAY), never by editing the
+      # dates in the files, which would test a different program: passes today; fails on the stated
+      # date naming all 8 live sites; fails on a planted past date and passes once it is removed.
+      # docs/00-progress.md is out of scope BY GENRE — its dated entries describe the repo as it was,
+      # so a closed window recorded there is correct prose forever.
+      - name: A stated advisory window has not expired
+        run: npx --yes tsx@4 packages/engine/lint-advisory-expiry.ts
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero

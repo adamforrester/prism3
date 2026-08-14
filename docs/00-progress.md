@@ -7,6 +7,103 @@
 
 ---
 
+## (2026-08-14) — A dated advisory window now fails the build when it closes
+
+**STATUS: shipped.** New gate `packages/engine/lint-advisory-expiry.ts`, wired into `ci.yml`,
+`verify.ts` and the three checklist documents. It scans the tracked tree for a stated advisory window
+and **fails once the stated day arrives**, naming every site. Gate count **33 → 34**. Engine and
+`out/*` untouched; `packages/engine/components/` untouched.
+
+**THE DIAGNOSIS THAT MADE IT SMALL — this is one sub-class of a problem that is otherwise not
+gateable.** A general checker for *"we will do X later"* prose is a recall problem: nobody can
+enumerate the phrasings, so nobody can say what it misses, so it cannot block a merge. That work is
+shipping in parallel as a `tools/` harness for exactly that reason, and the temptation was to fold
+this into it. `advisory until <date>` is the one sub-class where every objection dissolves, on three
+counts and all three were required: **the oracle is the clock** — no API, no issue state, no network,
+and the repo cannot edit the calendar, so `docs/34` independence is free rather than argued; **the
+pattern is literal**, so recall is *measured* rather than estimated; and **there is an imminent
+instance**, so the gate has a real first firing rather than a hypothetical one. Shipped **gating, not
+advisory**, deliberately: a gate that watches for expired advisories and is itself advisory would be
+its own joke.
+
+**ANCHOR ON THE DATE, NOT THE PHRASE — the decision that made recall provable.** The obvious build is
+to grep for the phrase, which leaves "what does it miss?" unanswerable. Anchoring on every
+`YYYY-MM-DD` instead makes the denominator finite and printable: **905 dates across 549 tracked text
+files**, of which **13** are claims (8 live, 5 in the exempt history log). The complement was then read
+by hand — **28** dates sit near an `until` with no marker, and every one is an unrelated sense of the
+word (*"until the seam moves"*, *"until asked"*, *"until it graduates"*). That is what "the set is
+complete" means here, and it is a sentence no phrase-grep could have written.
+
+**THE ENUMERATION FOUND TWO SITES THE BRIEF DID NOT LIST**, which is the payoff on its own: the brief
+named `ci.yml` ×2, `verify.ts`, `CLAUDE.md`, `CONTRIBUTING.md` and the PR template — **six**.
+`apps/studio/test-smoke.mjs` carries the claim **twice more** (in the `$GITHUB_STEP_SUMMARY` text a
+red run prints, and in the comment above it), so the real count is **eight**. Six spellings of one
+fact, all fixtures in `FORM_SAMPLES`: `advisory until D` · `ADVISORY UNTIL D, THEN GATING` · `Advisory
+in CI until D, then gating` · `ADVISORY \n (continue-on-error) until D` (across a line break) ·
+`advisory … (until D — #NNN)` · `SMOKE_ADVISORY_UNTIL = 'D'` (an *identifier*, not prose). Two markers
+were needed, not one: `continue-on-error` appears with no `advis…` anywhere near it.
+
+**THE WINDOW WAS MEASURED, NOT CHOSEN.** Marker and `until` may sit up to `WINDOW` characters before
+the date — not "the same line", because one form puts a parenthesis and eight words in between,
+another wraps across a comment prefix, and a third joins them with an underscore. The found set is
+**identical at 120, 200 and 400** characters, and the only additions past that plateau (800, 2000) are
+demonstrable false positives *inside the history log*, where an unrelated later date drifts into range
+of an earlier claim. 400 sits mid-plateau with room for a rewording.
+
+**TRIED AND DISCARDED: exempting this gate's own file.** The file has to quote the forms it detects,
+so it detects itself — the first draft flagged its own test data with no way to go green, and the easy
+fix (a self-exemption) would mean the one file most likely to grow an advisory claim is the one file
+never checked. Instead **fixture dates are assembled by `iso()`** and `FORM_SAMPLES` carries a `DATE`
+placeholder substituted at runtime, so the file is scanned like every other with **no exemption**. The
+single literal date left in it is the usage example in the header, which no marker precedes — the
+classifier working, not an escape from it. **Trap for whoever edits this file or the three documents:
+do not write a `YYYY-MM-DD` within 400 characters after the words `advisory … until`, or you will
+author a claim.**
+
+**THE ONE EXEMPTION IS A PROPERTY OF THE DOCUMENT.** `docs/00-progress.md` — this file — is out of
+scope, in the same `EXEMPT_PREFIXES { prefix, why }` shape `lint-layout-claims.ts` already uses and for
+the same reason: its entries are dated records of what *was* true, so flagging them would force us to
+falsify history to go green. Stated in the gate header as a property of the genre, not a weakness of
+the pattern — the identical sentence in `CONTRIBUTING.md` is a live promise and *is* checked.
+`docs/superpowers/` was considered and deliberately left **in** scope: a spec's forward claim is a plan
+someone may still act on, unlike a log entry, and there are zero occurrences there so the stricter
+choice is free.
+
+**VERIFIED IN BOTH DIRECTIONS WITH AN INJECTED CLOCK (`PRISM3_TODAY`), never by editing the dates in
+the files** — that would test a different program. Four runs: **passes today** (exit 0, 8 claims, 0
+expired); **fails on 2026-08-20** (exit 1, all 8 sites named); **fails on a past date planted in a
+throwaway tracked file** (exit 1, naming only it) and **passes once removed** (exit 0); and at
+2026-09-01 the log's own 5 claims — which `claimsIn` demonstrably *does* detect when called directly —
+appear nowhere in the output. The env var is named in the run's first line when it is set, so a bypass
+is visible in the log rather than silent; CI never sets it.
+
+**WHAT THE FAILURE MESSAGE HAD TO DO**, because on 2026-08-20 it fires for whoever pushes next and
+they will have none of this context: it quotes each site with the text **centered on the date** (three
+of the eight sites are on lines 400–900 characters long, so quoting a line's first N characters shows
+the reader everything except the claim), harvests the tracking issue from *after* the date (the prose
+in front routinely cites three or four unrelated issues), and then gives the remedy in order — **make
+the change the window was buying time for**, then update every site, with the note that moving the
+dates forward will make the gate green and is not the fix. That last sentence is phrased as a norm and
+not as a protection, because the gate cannot stop it.
+
+**KNOWN LIMIT, stated in the header rather than discovered later.** A claim phrased with neither
+`advis…` nor `continue-on-error` — *"non-blocking through the end of the month"* — is not seen, and
+widening this file does not fix that class; it is the harness's. `FORM_SAMPLES` proves the detector
+still recognizes the six forms it was written for and cannot prove it recognizes a seventh, which is
+why the run prints the whole census every time: a count that drops with no deletion in the diff is the
+tell (`docs/34` shape 9, and the cheap defense against it). A `scanned < 100 || dates < 100` floor
+separates "clean" from "the scan never ran" — the two are otherwise the same output.
+
+**Deliberately NOT done: fixing the expiring text.** The prose that goes false on 2026-08-20 is
+untouched. Pre-emptively editing it would remove the gate's first real test.
+
+**Gates:** `npm run verify` — **33/33 PASS** (0 FAIL, 0 SKIP, 0 ADVISORY), including the new
+`lint-advisory-expiry` row and the smoke suite. `lint-doc-gates.ts` clean at **33 runner gates vs 33
+runnable `ci.yml` steps, both directions**. `- name:` steps 34 → 35, gates (steps with a `run:`, minus
+`Install workspace deps`) **33 → 34**; the `- name:` diff is exactly the one added step.
+
+---
+
 ## (2026-08-14) — Forward claims about issue state, measured — and deliberately not gated
 
 **STATUS: shipped.** `tools/forward-claim-check/measure.ts` finds present-tense claims about *mutable*

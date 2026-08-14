@@ -405,6 +405,14 @@ export const GATES: Gate[] = [
     cmd: engine('lint-absolute-inset.ts'),
   },
   {
+    // Its first real firing is the `smoke` row directly below: on the date that row's own name
+    // states, this gate fails and names every site that describes it — including that name, and
+    // `SMOKE_ADVISORY_UNTIL` above.
+    id: 'lint-advisory-expiry',
+    ciStep: 'A stated advisory window has not expired',
+    cmd: engine('lint-advisory-expiry.ts'),
+  },
+  {
     id: 'smoke',
     ciStep: `Studio headless smoke suite (advisory until ${SMOKE_ADVISORY_UNTIL} — #775)`,
     cmd: ws('@prism3/studio', 'test:smoke'),

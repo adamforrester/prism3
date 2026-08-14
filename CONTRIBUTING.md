@@ -294,6 +294,39 @@ npx tsx packages/engine/lint-absolute-inset.ts      # an absolutely-positioned p
                                                     # quantity — it printed a pass on the shipped ring
                                                     # while test.ts's parity gate confirmed both
                                                     # executors agreed on the same wrong formula.
+npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
+                                                    # the build. The one gate here whose ORACLE IS THE
+                                                    # CLOCK: no API, no issue state, no network, and
+                                                    # the repo cannot edit the calendar. The smoke
+                                                    # suite below is non-blocking with a date on it,
+                                                    # and that dated promise is written in SIX places
+                                                    # — ci.yml twice, verify.ts, test-smoke.mjs twice,
+                                                    # and CLAUDE.md/this file/the PR template. All six
+                                                    # go false on the same morning, and nothing else
+                                                    # would say so. GATING, not advisory: a gate that
+                                                    # watches for expired advisories and is itself
+                                                    # advisory would be its own joke. The wider
+                                                    # "forward claim" class is a tools/ harness rather
+                                                    # than a gate because its recall is unknown; this
+                                                    # sub-class is where that objection dissolves,
+                                                    # since the pattern is literal and recall is
+                                                    # MEASURED — 904 dates across 548 tracked text
+                                                    # files, 13 claims, complement read by hand.
+                                                    # Anchored on the DATE, not the phrase, which is
+                                                    # what makes the denominator finite and printable.
+                                                    # docs/00-progress.md is exempt BY GENRE — the
+                                                    # same exemption lint-layout-claims.ts grants it,
+                                                    # a property of that document and not of the
+                                                    # pattern: its dated entries describe the repo as
+                                                    # it was, so a closed window recorded there is
+                                                    # correct prose forever. Verified in BOTH
+                                                    # directions with an injected clock
+                                                    # (PRISM3_TODAY), never by editing the dates in
+                                                    # the files — that would test a different program.
+                                                    # LIMIT: a claim phrased with neither `advis...`
+                                                    # nor `continue-on-error` is not seen, and the run
+                                                    # prints the whole census so a count that drops
+                                                    # without a deletion in the diff is the tell
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
