@@ -129,6 +129,7 @@ const CITING_FILES_FLOOR = [
   'apps/studio/vercel-ignore-check.mjs',
   'apps/studio/src/export-settings.ts',
   'apps/plugin/test-write-components.ts',
+  'verify.ts',
 ];
 
 type Shape = { n: number; title: string };

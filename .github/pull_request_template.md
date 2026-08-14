@@ -23,6 +23,12 @@
      (#601, #602) each shipped a gate broken because they stopped their Gates table at an
      older, shorter version of this template. -->
 
+- [ ] `npm run verify` → _N/N PASS · 0 FAIL · 0 SKIP_ (paste the run's own summary line; it prints the
+      total, so no count is authored here to go stale) — the runner (`verify.ts`, #789). Paste its
+      summary line and you have satisfied every box below, which is the point: they are the same list,
+      and hand-transcribing it is where #601/#602 went wrong. **A SKIP is not a pass** — it means a
+      gate did not run (a dirty `out/`, no Chromium), so clear the stated reason and rerun rather than
+      reporting around it. Run the boxes below individually when one is red and you need its detail
 - [ ] `npx tsx packages/engine/test.ts` → _N/N passed_
 - [ ] `npx tsx packages/engine/mcp-test.ts` → _N/N passed_
 - [ ] `npx tsx packages/engine/nb-regression.ts` → exits 0 (ΔE00 _…_)

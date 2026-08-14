@@ -6,5 +6,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "// scripts": "The repo's first root scripts (#789). `verify` is the gate runner — the same list ci.yml runs, in an order it declares and checks, with a per-gate PASS/FAIL table. Read verify.ts's header before changing it: the four things it exists to get right (status captured with no pipeline between, output buffered per gate, ordering declared and enforced, and a gate that did not run never printed as a pass) are each a defect that has actually shipped here.",
+  "scripts": {
+    "verify": "npx --yes tsx@4 verify.ts"
+  }
 }

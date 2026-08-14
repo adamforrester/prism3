@@ -7,6 +7,128 @@
 
 ---
 
+## (2026-08-13) — The gate list becomes runnable, and `ci.yml` stops being an unchecked oracle (#789)
+
+**STATUS: shipped.** `npm run verify` runs every gate in a declared, checked order and prints a per-gate
+PASS/FAIL table. Its list is a **fifth authored statement** of what the gates are, compared
+against `ci.yml` in *both* directions plus an orphan scan, by two new arms in `lint-doc-gates.ts`.
+
+**NO GATE COUNT IS WRITTEN DOWN, and that is #786's finding applied on its first opportunity.** This entry
+first said "all 30", in five places. #799 merged one hour later, added `lint-shape-index.ts`, and made all
+five stale — the same failure #786 had just recorded twice ("every count is now printed by the run"). Arm 3
+would have caught the *list* being short (it did, by name — the friction working), but nothing checks a
+number in prose. So the docs, the PR template and this entry now say *what the runner does* and let the run
+print *how many*. The one count that remains authored is `EXPECTED_ARTIFACTS = 104`, which is a claim about
+the emitted tree rather than about the gate list, and `ci.yml` asserts the same number independently.
+
+**WHAT WAS ACTUALLY WRONG, and it was not "no runner exists."** The checklist lived in prose in three
+documents, and prose cannot run. Every PR therefore contained two hand transcriptions — prose → one shell
+invocation per gate, then every result → a Gates table — and *both* were unverified copies. In one session that list
+was hand-assembled **six times**. #601 and #602 are the same defect already having shipped: both followed a
+checklist faithfully and both broke `lint:classes`.
+
+**THE ARM THAT MATTERS MOST IS NOT THE RUNNER.** `lint-doc-gates.ts` compared three documents against
+`ci.yml` in *one* direction, which takes `ci.yml` as ground truth. So a gate **missing from `ci.yml`** left
+four artifacts in perfect agreement, and nothing fired — silence, not a failure. **Measured, not assumed:**
+deleting the `lint-paint.ts` step from `ci.yml` and running the *pre-change* gate (via
+`git show origin/main:packages/engine/lint-doc-gates.ts`) exits **0** and prints `✓ clean`. Arm 3 compares
+`verify.ts`'s `GATES` against `ci.yml` bidirectionally, joined on each step's `- name:` **verbatim** — no
+token tolerance, because a runner is code, not prose, and a renamed CI step *should* fail.
+
+**WHY THE LIST IS AUTHORED AND NOT PARSED OUT OF `ci.yml`.** Deriving it would make the runner agree with CI
+by construction: it could not disagree, so it could never report a discrepancy — `docs/34` shape 2 exactly.
+The cost is that adding a gate is now a **five-file edit**. That is the `payload-manifest` reasoning: the
+friction is the feature.
+
+**ARM 4 IS THE CASE NO LIST CAN SEE.** Five copies of a list cannot see something absent from all five. A
+`lint-*` file that exists in the repo and is named **nowhere** is invisible to arms 1–3 by construction, so
+arm 4 reads the filesystem (`git ls-files`, never `readdirSync` — untracked residue makes the filesystem lie,
+per `lint-layout-claims.ts`'s measurement) and asks `ci.yml` about each file. It needs an npm-script hop:
+`lint-classes.mjs` appears in `ci.yml` **nowhere**, only in `apps/studio/package.json` as `lint:classes`, so a
+file counts as named when `ci.yml` mentions its basename **or** when a workspace script runs it and `ci.yml`
+runs that script. 10 tracked gate files, 0 orphans. Its scope floor refuses a "clean" answer from an empty
+scan, because `git ls-files` failing reads identically to a repo with no gate files.
+
+**THE FOUR THINGS THE RUNNER HAD TO GET RIGHT — each one a defect that has shipped here.**
+
+1. **The exit status, captured with nothing between it and the command.** This week a failing gate was
+   reported as a PASS because the reading was `npx tsx gate.ts 2>&1 | tail -2; echo $?` — `$?` is **`tail`'s**
+   status, and `tail` succeeds at tailing a failure. `lint-us-english.ts` had exited 1 and the report said
+   green. The fix is structural rather than remembered: one `spawnSync` with `shell: false` returns status and
+   output in one object, so **there is no pipeline for a status to get lost in**. The trap is unrepresentable
+   here, which is the only version that survives an edit by someone who has not read the header.
+2. **Output buffered per gate.** A clean run is a table; a red run is a table plus only what failed.
+3. **Ordering declared per gate, checked before anything runs.** Three orderings are load-bearing and each,
+   violated, produces a **pass**: the prose gates scan the built bundle (#302, #310), the exporter gate needs
+   TokenPress's build, the `node:` check reads the plugin's `dist`. Each gate declares `after` + a `why`, and
+   the array is the order — two independent halves, because sorting the array *from* `after` would make the
+   check agree with itself.
+4. **A gate that did not run is never a pass.** Four outcomes, not two: PASS · FAIL · **SKIP** · ADVISORY. A
+   skip makes the run non-green, and `verdictOf` takes an `expected` count so a **table shorter than the list
+   is itself a failure** — represented, not counted.
+
+**TWO REFUSALS WORTH THE WORDS.** The runner deliberately does **not** run bare `regen.ts` before
+`regen.ts --check`, and this is a real trap rather than an omission: `CLAUDE.md` §4 opens with that sequence
+because it is the **authoring** workflow (regenerate → review the diff → commit). Run bare `regen.ts` in a
+*verification* workflow and what is on disk **is** the fresh output, so `--check` — the one gate that reads
+the committed tree (#281) — compares it with itself, passes unconditionally, and leaves the drift in `HEAD`
+reported green. `ci.yml` does not run it either. Second: a dirty `out/` makes `--check` a statement about the
+working tree, not about `HEAD`, so it reports **SKIP with the reason**. Exercised for real, not just in the
+self-check — appending a newline to `out/aurora.ai.json` produces `⊘ SKIP drift` and exit 1.
+
+**AND A DERIVED GATE PROPAGATES *UNKNOWN* AS UNKNOWN.** `drift-coverage` (the 104-artifact meta-check, read
+from the drift gate's already-captured output rather than by running the slowest gate twice) first reported
+FAIL when its input was skipped. Non-green either way, and still wrong: it sends a reader hunting a broken
+artifact count when the truth is that nothing measured it. It now returns SKIP for a skipped input and keeps
+FAIL for a genuinely failed one, asserted in both directions.
+
+**VERIFIED BY MUTATION — six, each failing BY NAME** (`docs/34`: the test is not "does the suite go red", it
+is "is *my* gate among the failures, named"):
+
+| mutation | expected | result |
+|---|---|---|
+| drop `lint-paint` from `verify.ts` | arm 3, runner-short direction | `ci.yml runs "Component paint…" — verify.ts does NOT` |
+| add a gate `verify.ts` runs that CI lacks | arm 3, runner-extra direction | `verify.ts runs "A gate CI has never heard of" — ci.yml does NOT` |
+| add a tracked `lint-orphan-probe.ts` | arm 4 | `1 gate file(s) exist in the repo and are named in NOTHING` |
+| delete the `lint-paint` step from `ci.yml` | **the hole this closes** | fails via arm 3; the **pre-change** gate exits **0** |
+| remove the `verify` row from the PR template | arm 1 (prose) | `"The gate runner's list…" is missing from …§Gates` |
+| move `lint-voice` before `build-web` | order check | `lint-voice must run after build-web` — refuses to run |
+
+**THE RUNNER IS NOT A ROW IN ITS OWN TABLE**, declared by name in `NOT_A_RUNNABLE_GATE`. `ci.yml` gains a
+`verify.ts --list` step — `--list`, not `npm run verify`, because running the runner inside a job that already
+runs every gate would double the job for no new information. What that step *does* cover is everything the
+runner asserts about **itself** before running anything: its self-checks (each derived gate can actually fail,
+the ordering check catches a real inversion, the orphan scan catches an unnamed file) and `orderViolations`
+over the real array. A `verify.ts` whose own checks are broken must not reach `main` because CI never imported
+it. A row in its own table would be the runner reporting the result of asking itself.
+
+**TRAPS FOR WHOEVER TOUCHES THIS NEXT.**
+
+- **Two block-comment hazards cost a cycle each.** `apps/*/lint-*.mjs` inside a `/** */` header **terminates
+  the comment** at the `*/` — esbuild reports `Unexpected "*"` on a line whose content looks blameless.
+  Written `apps/<workspace>/lint-*.mjs` in prose. And `Object.entries<string>(...)` is rejected by esbuild's
+  TS parser in that position; the type argument was doing nothing anyway.
+- **The progress line must be TTY-gated.** `process.stderr.write('…\r')` keeps its carriage returns in a
+  captured log, so every row arrives with an overwritten ghost — visible in this entry's own first full run.
+  A verify run is very often captured into a PR body.
+- **`verdictOf` is a hoisted `function`, deliberately**, so the self-check block can drive it above its
+  textual position. An arrow constant there is a TDZ error at import.
+- **A `spawnSync` with `status === null`** (spawn failure, absent binary) is an **unrun** gate, not a failed
+  one. It reports SKIP. Point 4 reaches further than the preconditions.
+
+**WHAT THIS IS NOT.** Not a replacement for CI, and not an authority on what any gate *means*: every entry
+shells out to the real gate, so the runner has no opinion about tokens, contrast or contracts and cannot make
+a failing gate pass. The one judgment it holds is **order**; the one claim it makes about itself is that its
+list equals CI's. `CONTRIBUTING.md` §3 stays long on purpose — the runner tells you *whether*, the prose tells
+you *why*, and a red gate is unfixable without the second.
+
+**KNOWN LIMIT, stated rather than papered over.** #775's smoke-suite advisory date (`2026-08-20`) is authored
+in both `ci.yml` and `verify.ts`, and nothing compares the two. Arm 3 joins on the step name, which *contains*
+the date, so a date changed in one file and not the other fails as a name mismatch — accidental coverage,
+worth knowing about before someone "tidies" the date out of the name.
+
+---
+
 ## (2026-08-14) — Scoped class names, and `lint-classes.mjs` retired as the proof (#770)
 
 **STATUS: shipped.** Piece 2 of 4 under #768, held to last because it ends in a **gate deletion** and the
@@ -398,6 +520,7 @@ every count is now printed by the run, and no number of citations is written dow
 hand-named in `lint-us-english.ts` and `lint-voice.ts` — exactly the line `lint-us-english.ts`'s own
 comment predicts would be needed. Verified by mutation rather than assumed: a planted `colour` in a shape
 title fails that gate by name (schema surface 6 → 7 files).
+
 
 ---
 
