@@ -87,6 +87,15 @@ type Page = { children: Node[] };
  *  measure right. Same function the engine's stub uses, so the two paths measure identically. */
 const varValue = (name: string): number => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
 
+/** The offset `resolveForConsumer` hands back for an `absoluteInset`, unless a case overrides it.
+ *
+ *  NAMED rather than inlined at the shim, because it is the harness's INPUT and the ring assertions'
+ *  EXPECTED — one constant read by two places that must not derive it from each other. Before #801 the
+ *  literal `2` sat in the shim and the ring check read its expectation off the built NODE instead, so
+ *  the two could never disagree and a flush ring passed. Matches `focus.ring.offset`'s emitted value in
+ *  every brand today, which is why the number is 2 rather than an arbitrary probe. */
+const SHIM_INSET = 2;
+
 type FontName = { family: string; style: string };
 const fontKey = (f: FontName): string => `${f.family}|${f.style}`;
 /** The font every text style in this shim names, unless a case overrides it. Semi Bold rather than
@@ -185,7 +194,7 @@ const makeShim = (opts: ShimOpts = {}) => {
     if (!page) return;
     for (const k of kids) { const i = page.children.indexOf(k); if (i >= 0) page.children.splice(i, 1); }
   };
-  const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: opts.insetValue ?? 2 }) });
+  const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: opts.insetValue ?? SHIM_INSET }) });
 
   const mkNode = (type: string): Node => {
     const node: Node = {
@@ -603,27 +612,88 @@ const memberByName = new Map(members.map((m) => [String(m.name), m] as const));
 const partOf = (member: Node, name: string): Node | null =>
   ((member.findAll as () => Node[])().find((n) => n.name === name) as Node | undefined) ?? null;
 
-// The ring is on the FOCUS variant, and it is the one part sized as `parent + 2 × inset`.
+/**
+ * THE RING GEOMETRY, and this block is the way it is because of #801 — which it passed while broken.
+ *
+ * Its previous form derived the expected offset FROM THE NODE UNDER TEST and skipped itself whenever the
+ * ring was flush:
+ *
+ *     if ((ring.x as number) >= 0) continue;      // the flush case skips its own check
+ *     const off = -(ring.x as number);            // EXPECTED read off ACTUAL
+ *
+ * Both lines are `docs/34` shape 1. The `continue` was there to tell an INSET part from a CENTERED one
+ * (#612's spinner) and used the negative origin as the discriminator — so the one state worth catching
+ * was classified as "not my subject". Then `off` came off the node, making `width === parent + off*2` a
+ * comparison of the node with itself: at offset 0 it asserts `0 === 0`. Measured, not inferred — with
+ * the shim's inset at 0, a ring sitting exactly on the border it must be distinguishable from, this
+ * whole suite stayed green and this line printed a ✓ claiming the ring was "2px larger on EVERY side".
+ *
+ * Two changes, and each closes one of those:
+ *
+ *   1. INSET vs CENTERED is read from the PLAN's `absoluteInset`, which is the field that actually
+ *      means it — not from a coordinate the executor wrote. A centered part has `absoluteCenter` and no
+ *      inset; the plan states which is which before the run, so the classification cannot be moved by
+ *      the very write under test.
+ *   2. EXPECTED is the offset the SHIM WAS TOLD to resolve (`SHIM_INSET`, the harness's INPUT), not the
+ *      offset read back out. Input vs output is the #708 shape, and it is the only version of this
+ *      assertion that can fail.
+ *
+ * And `off > 0` is asserted OUTRIGHT, because that is #801's actual defect: an offset of 0 resolves
+ * cleanly, writes without throwing, reports no miss, and produces a structurally perfect component.
+ * There is no layer below this one at which it looks like an error. The negative control immediately
+ * after runs the flush case and requires this checker to complain about it, by name.
+ */
 const focusName = grid.map(planComponentName).find((n) => n.includes('state=focus'))!;
 const focusMember = memberByName.get(focusName)!;
+const focusPlan = grid.find((p) => planComponentName(p) === focusName)!;
+/** Part names the PLAN marks inset / centered — the independent classification point 1 above needs. */
+const planParts = (n: { name: string; absoluteInset?: string; absoluteCenter?: boolean; children: unknown[] }): Array<{ name: string; inset?: string; centered?: boolean }> => [
+  { name: n.name, inset: n.absoluteInset, centered: n.absoluteCenter },
+  ...(n.children as typeof n[]).flatMap(planParts),
+];
+const planInset = new Map(planParts(focusPlan.root).filter((p) => p.inset).map((p) => [p.name, p.inset!] as const));
 const ringNames = (focusMember.findAll as () => Node[])().filter((n) => n._absolute).map((n) => String(n.name));
 ok(ringNames.length > 0, `the focus variant carries an absolutely-positioned part (${ringNames.join(', ')})`);
-const ringBad: string[] = [];
-for (const rn of ringNames) {
-  const ring = partOf(focusMember, rn)!;
-  if (ring.layoutPositioning !== 'ABSOLUTE') { ringBad.push(`${rn}: reads ${ring.layoutPositioning}, so it would take a cell in the row`); continue; }
-  // Centered parts keep their own size; only the INSET one is grown against its target. Told apart by
-  // the negative origin the inset writes.
-  if ((ring.x as number) >= 0) continue;
-  const off = -(ring.x as number);
-  if ((ring.width as number) !== (focusMember.width as number) + off * 2 || (ring.height as number) !== (focusMember.height as number) + off * 2)
-    ringBad.push(`${rn}: ${ring.width}x${ring.height} against a ${focusMember.width}x${focusMember.height} target at offset ${off}`);
-  if (ring.y !== -off) ringBad.push(`${rn}: y=${ring.y}, expected ${-off}`);
-  const con = ring.constraints as { horizontal?: string; vertical?: string } | null;
-  if (con?.horizontal !== 'STRETCH' || con?.vertical !== 'STRETCH') ringBad.push(`${rn}: constraints ${JSON.stringify(con)} — it would not track a resized variant`);
-}
-ok(ringBad.length === 0, 'the focus ring is absolute, 2px larger on EVERY side, at a negative origin, and STRETCHed'
+ok(planInset.size > 0 && ringNames.some((n) => planInset.has(n)),
+  `the PLAN marks at least one of them inset, so the geometry below is classified independently of what the executor wrote (${[...planInset].map(([n, v]) => `${n}→${v}`).join(', ')})`);
+
+/** Every way the built ring can disagree with the offset the run was TOLD to resolve. Returns the
+ *  complaints so both the main case and the negative control below can read the same checker. */
+const ringProblems = (member: Node, insetOf: Map<string, string>, wantOff: number): string[] => {
+  const bad: string[] = [];
+  for (const [rn] of insetOf) {
+    const ring = partOf(member, rn);
+    if (!ring) { bad.push(`${rn}: the plan marks it inset and no such node was built`); continue; }
+    if (ring.layoutPositioning !== 'ABSOLUTE') { bad.push(`${rn}: reads ${ring.layoutPositioning}, so it would take a cell in the row`); continue; }
+    // #801. Every other line here is arithmetic AROUND the offset; this is the offset itself, and it is
+    // the one thing nothing checked.
+    if (!(wantOff > 0)) bad.push(`${rn}: the offset is ${wantOff} — the ring is built ${wantOff === 0 ? 'FLUSH AGAINST' : 'INSIDE'} the border it exists to be distinguishable from (#801)`);
+    if (ring.x !== -wantOff || ring.y !== -wantOff) bad.push(`${rn}: origin ${JSON.stringify([ring.x, ring.y])}, expected ${JSON.stringify([-wantOff, -wantOff])} for an offset of ${wantOff}`);
+    if ((ring.width as number) !== (member.width as number) + wantOff * 2 || (ring.height as number) !== (member.height as number) + wantOff * 2)
+      bad.push(`${rn}: ${ring.width}x${ring.height} against a ${member.width}x${member.height} target at offset ${wantOff}`);
+    const con = ring.constraints as { horizontal?: string; vertical?: string } | null;
+    if (con?.horizontal !== 'STRETCH' || con?.vertical !== 'STRETCH') bad.push(`${rn}: constraints ${JSON.stringify(con)} — it would not track a resized variant`);
+  }
+  return bad;
+};
+const ringBad = ringProblems(focusMember, planInset, SHIM_INSET);
+ok(ringBad.length === 0, `the focus ring is absolute, ${SHIM_INSET}px larger on EVERY side, at origin [-${SHIM_INSET},-${SHIM_INSET}], and STRETCHed`
   + (ringBad.length ? ` — ${ringBad.join('; ')}` : ''));
+
+// ---- the negative control: THIS CHECKER MUST FAIL ON A FLUSH RING ---------------------------
+// The assertion above is the one that reported a pass on #801, so its replacement does not get to be
+// taken on trust. Build the same set with the offset resolving to 0 — the exact #801 symptom — and
+// require the checker to complain. `docs/34`: the test of a gate is not that the suite goes red, it is
+// that THIS check is among the failures. Here that is asserted in the suite itself rather than left to
+// whoever next runs a mutation by hand.
+const flushPage: Page = { children: [] };
+const flush = await run(grid, { ...full(), page: flushPage, insetValue: 0 });
+const flushMember = (flushPage.children[0].children as Node[]).find((m) => String(m.name) === focusName)!;
+ok(flush.misses.length === 0,
+  `a zero offset is reported by NOTHING — the flush run is clean at every layer below this assertion (${flush.misses.length} misses), which is why #801 needed a check of its own`);
+const flushBad = ringProblems(flushMember, planInset, 0);
+ok(flushBad.some((b) => b.includes('#801')),
+  `and the ring checker CATCHES it: a flush ring is a failure, not a skipped case (${flushBad[0] ?? 'NOTHING REPORTED — the check is self-disarming again'})`);
 
 // The pending spinner takes the LEADING VISUAL'S CELL when there is one, so the grid above — which fills
 // that slot — exercises the in-flow branch. Assert that, then take the centered branch on a LABEL-ONLY

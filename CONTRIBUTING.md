@@ -236,6 +236,44 @@ npx tsx packages/engine/lint-schema-classification.ts  # every file in packages/
                                                     # answer down, not that the answer is right —
                                                     # moving a prose-carrying file to EXEMPT passes,
                                                     # which is what each entry's `why` is for
+npx tsx packages/engine/lint-absolute-inset.ts      # an absolutely-positioned part carrying an `inset`
+                                                    # lands OUTSIDE its parent (#801, the first
+                                                    # instance of #802). Button's focus ring shipped
+                                                    # FLUSH against the component. Both causes #801
+                                                    # named were wrong — measured against the real
+                                                    # executor over the real 648-member set, the
+                                                    # lookup RESOLVES (0 misses) and its miss path is
+                                                    # reachable and COUNTED (108 misses with the
+                                                    # variable removed). What was missing is that
+                                                    # nothing read the NUMBER. An offset of 0 is an
+                                                    # error at no layer it passes: a valid FLOAT,
+                                                    # binding nothing (Figma's x/y take no variable, so
+                                                    # it travels as a NAME frozen to a literal at
+                                                    # paste), writing without throwing, producing a
+                                                    # structurally perfect component — right
+                                                    # positioning, constraints and paints, 0 misses,
+                                                    # ring on the border it must be distinguished
+                                                    # from. EXPECTED walks the DEF (part → inset key →
+                                                    # tokens → ref → variable name, restating the
+                                                    # convention rather than calling `varOf`); ACTUAL
+                                                    # is the plan's absoluteInset and the FLOAT it
+                                                    # resolves to in each brand's COMMITTED export.
+                                                    # It does NOT re-derive the executors' arithmetic:
+                                                    # test.ts compares that against its own stub's
+                                                    # inset and fails by name at 0, and its parity
+                                                    # gate holds the plugin executor to the payload.
+                                                    # Both directions, so it cannot pass over an empty
+                                                    # set — every declared inset part must be
+                                                    # REPRESENTED, and one gated by `when:` must carry
+                                                    # its inset at that state and NO other. A
+                                                    # legitimately-zero offset (ring.offset-field is 0
+                                                    # by design) is admitted in ZERO_OK with a reason:
+                                                    # AUTHORED, same argument as payload-manifest.json
+                                                    # — a gate choosing its own exemptions would have
+                                                    # waved #801 through. Its LIMIT: no browser and no
+                                                    # Figma file, so a host that accepts a write and
+                                                    # discards it is caught by the executors' own
+                                                    # read-backs, not here (#802's Figma half is open)
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

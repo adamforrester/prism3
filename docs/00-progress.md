@@ -7,6 +7,120 @@
 
 ---
 
+## (2026-08-13) — The focus ring shipped flush, and both diagnoses in the issue were wrong (#801, first instance of #802)
+
+**STATUS: shipped.** `packages/engine/lint-absolute-inset.ts` asserts that an absolutely-positioned part
+carrying an `inset` lands **outside** its parent, per brand, from the def's own declaration through to the
+committed export. The self-disarming ring assertion in `apps/plugin/test-write-components.ts` is fixed and
+now carries an in-suite negative control. 32/32 gates pass.
+
+**The symptom.** Button's focus ring sat flush against the component in the built Figma file — the one
+element WCAG 2.4.11 asks to be distinguishable from the control's own border, sitting exactly on it.
+
+**Answering the diagnostic question first, because both of its branches turned out to be false.** #801
+asked: does the lookup resolve and the write is wrong, or does the lookup miss with nothing reporting it?
+The live run reported 0 misses, which meant either resolution succeeded or the miss path was not wired
+into the count. Measured — in the harness, driving the REAL executor over the REAL 648-member Button set
+with a real brand's 494 variable names, not reasoned about:
+
+- **The lookup resolves.** 0 `absoluteInset` misses. The ring measured `144×16 at x=-2 y=-2 ABSOLUTE`
+  against a `140×12` target: outside on all four sides, correct.
+- **The miss path is reachable AND counted.** Delete `focus/ring/offset` from the file and the same run
+  reports **108** misses reading `focusRing.absoluteInset -> focus/ring/offset` — one per focus member.
+
+So the resolve-and-write path is correct and the silence was not silent. **Neither branch of the question
+was the answer, which is worth recording as a shape**: a diagnostic question offering N candidates is
+itself a hypothesis, and the discipline that pays is measuring both branches rather than picking the more
+likely one and fixing it.
+
+**What was actually missing: nothing anywhere read the NUMBER.** An offset of `0` is not an error at any
+layer it passes through. It is a valid FLOAT. It binds nothing — Figma's `x`/`y` accept no variable
+binding, which is precisely why this one value travels on the plan as a **name** and is frozen to a
+literal at paste, per file. It writes without throwing. And it produces a **structurally perfect**
+component: correct `layoutPositioning`, correct `STRETCH` constraints, correct paints, 0 misses, a
+legible artifact that fails the single requirement it exists to satisfy. That is #802's profile exactly —
+every gate in this repo checks that a thing exists, a ref resolves, a count matches, nothing threw, or
+contrast clears; **none asserted that a value a human can see equals the value the engine computed.**
+
+**And one gate reported a PASS on it — the finding that made this a located defect rather than a guess.**
+`test-write-components.ts` DID assert the ring's geometry, under the label *"the focus ring is absolute,
+2px larger on EVERY side, at a negative origin, and STRETCHed"*. With the shim's inset mutated to 0 — a
+flush ring, the exact #801 symptom — the **entire plugin suite stayed green** and that line printed a ✓.
+Two lines did it, and they are `docs/34` shape 1 twice in four lines:
+
+```ts
+if ((ring.x as number) >= 0) continue;      // a flush ring skips its own check
+const off = -(ring.x as number);            // EXPECTED derived from ACTUAL
+```
+
+The `continue` existed to tell an INSET part from a CENTERED one (#612's spinner) and used the negative
+origin as the discriminator — so **the one state the check exists to catch is the one state it classifies
+as "not my subject."** Then `off` came off the node under test, making `width === parent + off*2` a
+comparison of the node with itself: at offset 0 it asserts `0 === 0`.
+
+**The negative control that made the location certain.** The same mutation applied to the ENGINE stub
+(`test.ts:6542`) DOES fail, by name: `❌ anatomy/ring: the ring sits 2px OUTSIDE its target on every side
+— offset [0,0], size [88,8] against a target of [88,8]`. Payload path covered, executor path not. That
+asymmetry is what turned "the ring is wrong somewhere" into a named line number.
+
+**The two fixes, and why one was not enough.** At the site: the part is now classified from the **plan's**
+`absoluteInset` (the field that actually means it) rather than from a coordinate the executor wrote, and
+EXPECTED is `SHIM_INSET` — the offset the harness **told** the shim to resolve, its INPUT — rather than
+the offset read back out. `off > 0` is asserted outright. And the suite now runs the flush case itself and
+**requires the checker to complain about it by name**, so the assertion that once reported a pass on this
+bug is not taken on trust afterwards. But that is one suite, over one stub, at one offset, in one
+workspace — so the claim also belongs where the geometry is decided.
+
+**The gate, and where its two halves come from.** EXPECTED walks the **def**: part → `inset` binding key →
+`def.tokens` → token ref → Figma variable name, with the naming convention restated as a one-liner rather
+than calling `varOf`. ACTUAL is the **plan's** `absoluteInset` plus the FLOAT that name resolves to in each
+brand's **committed** `out/figma/<brand>/` export — the same surface a designer's file is built from and
+the executor's `byName` map is built over at paste. Three shortcuts were available and each would have
+made the gate unable to fail: calling `varOf` for the name (one derivation, agrees with itself), resolving
+from a live `Theme` (the projector's input, not the artifact), and reading the offset off the built node
+(the defect above).
+
+**What it deliberately does NOT check, because a gate restating another gate's claim reads as thoroughness
+and adds nothing.** It does not re-derive the executors' `x = -off, w = parent + 2*off` arithmetic.
+`test.ts` already compares that against its own stub's declared inset and fails by name at 0, and its
+parity gate holds the plugin executor's loop to the payload's — two independent statements of the formula
+already disagree when either moves. The **value** was the uncovered half: `varOf` proves the def binds a
+key, `planBindingErrors` proves bound names resolve, and `readVarsOwn` exists precisely because this name
+is READ and never bound, so no binding gate reaches it.
+
+**Both directions, so it cannot pass over an empty set.** Every part the def declares `kind: 'absolute'`
+with an `inset` must be **represented** in some projected plan — without which a projector that stopped
+emitting `absoluteInset` altogether satisfies every check above, *and* leaves `readVarsOwn` reporting no
+names for `planBindingErrors` to find fault with, so nothing else would notice either. And a part gated by
+`when: '<state>'` must carry its inset at that state and at **no other**: an inset projected at every
+state grows all 648 members by 4px, silently.
+
+**`ZERO_OK` is authored and empty, and the empty case is the interesting one.** `focus.ring.offset-field`
+resolves to 0 in every brand **on purpose** — `text-field` binds it and `focus-ring`'s own `offset` prop
+says why ("an input's own border already supplies the separation and a gap there reads as a double
+border"). `text-field` has no `anatomy` yet so nothing projects it; the day it does, this gate fails until
+a human writes that reason down. Same argument as `schema/payload-manifest.json` being authored rather
+than regenerated: **a gate that decided for itself which zeroes were intended would have classified
+#801's as intended too.**
+
+**Mutation-tested, and the result is the reason the gate exists.** With `focus.ring.offset` changed from 2
+to 0 in `tree.ts` and every artifact regenerated: this gate fails **18×** by name (2 defs × 3 sizes × 3
+brands), each failure naming the def, the size, the state, the variable, the brand and the value. Every
+other gate stayed **green** — `test.ts`, `token-contract --check`, `nb-regression`,
+`lint-overlay-completeness`, the whole plugin suite, and `regen --check` at 104 committed artifacts
+byte-matching. A brand shipping rings on the border, with a fully green suite.
+
+**The live limit, stated rather than left implied.** #801's first Do bullet asks for a reproduction against
+the **built Figma file** — reading the ring node's actual `x`/`y`/`width`/`height` and its parent's.
+Everything above is harness-level and says the resolve-and-write path is correct, which **does not by
+itself explain the visible defect in the real file.** Two possibilities remain untested and both need Adam
+at a keyboard: a file whose own `focus/ring/offset` differs from what the engine emits (a hand-edited or
+stale variable — the offset is frozen at paste, so an already-pasted ring does not re-theme, which
+`button.ts`'s `codeOnly` admits), or a host behavior the shim does not model. #802's Figma half is
+therefore still open, and this gate is the cheap half it named: no browser, no Figma file.
+
+---
+
 ## (2026-08-13) — Both prose gates were silent about three files neither of them scanned (#807)
 
 **STATUS: shipped.** `packages/engine/lint-schema-classification.ts` asserts that every file in

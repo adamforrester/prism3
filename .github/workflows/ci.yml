@@ -340,6 +340,40 @@ jobs:
       - name: Every packages/engine/schema file has a decided place in the prose gates
         run: npx --yes tsx@4 packages/engine/lint-schema-classification.ts
 
+      # #801, the first instance of #802: Button's focus ring shipped FLUSH against the component. The
+      # issue named two candidate causes and both were WRONG — measured against the real executor over
+      # the real 648-member set, the `focus/ring/offset` lookup resolves (0 misses) and its miss path is
+      # both reachable and counted (108 misses when the variable is removed). What was missing is that
+      # NOTHING ANYWHERE READ THE NUMBER. An offset of 0 is not an error at any layer it passes: a valid
+      # FLOAT, binding nothing (Figma's x/y take no variable, so this value travels as a NAME and is
+      # frozen to a literal at paste), writing without throwing, producing a structurally perfect
+      # component — correct positioning, constraints and paints, 0 misses, and a ring on the border it
+      # must be distinguishable from. #802's profile exactly: a value a human can see that no gate
+      # compares against what it should be.
+      #
+      # And one gate REPORTED A PASS on it. `test-write-components.ts` asserted the ring's geometry
+      # under the label "2px larger on EVERY side" while skipping itself on a flush ring (`if (ring.x >=
+      # 0) continue`) and reading EXPECTED off the node under test (`off = -ring.x`) — shape 1, twice, in
+      # four lines. Fixed at its site in this PR (classified from the PLAN's `absoluteInset`, expectation
+      # from the shim's declared input) with an in-suite negative control that requires the checker to
+      # fail on a flush ring by name.
+      #
+      # This gate is the plan-level version #802 asked for. EXPECTED walks the DEF (part → inset key →
+      # def.tokens → token ref → variable name, restating the convention rather than calling `varOf`);
+      # ACTUAL is the plan's `absoluteInset` and the FLOAT it resolves to in each brand's COMMITTED
+      # export. It deliberately does NOT re-derive the executors' arithmetic — `test.ts` already
+      # compares that against its own stub's inset and fails by name at 0 (the negative control that
+      # located this gap), and its parity gate holds the plugin executor to the payload. Both directions,
+      # so it cannot pass over an empty set: every declared inset part must be REPRESENTED in a plan,
+      # and one gated by `when:` must carry its inset at that state and no other. A legitimately-zero
+      # offset (`focus.ring.offset-field` is 0 by design) must be admitted in ZERO_OK with a reason —
+      # authored, for the same argument as `payload-manifest.json`: a gate that decided for itself which
+      # zeroes were intended would have waved #801's through. Mutation-verified: `focus.ring.offset`
+      # 2 → 0 fails this gate 18× by name while test.ts, token-contract, nb-regression,
+      # lint-overlay-completeness, the plugin suite and `regen --check` all stay green.
+      - name: An absolutely-positioned part lands outside its parent
+        run: npx --yes tsx@4 packages/engine/lint-absolute-inset.ts
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero
