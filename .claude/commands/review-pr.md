@@ -92,6 +92,36 @@ a worktree whose `node_modules` came from a checkout *without* the link fails wi
 `ERR_MODULE_NOT_FOUND: Cannot find package '@prism3/engine'`. That one tells you. The
 quiet version above is the one that costs you a review.
 
+**And never point a package manager at a worktree whose `node_modules` is a tree of
+links** — not `npm install <pkg> --prefix <worktree>`, not with `--no-save`, not to add
+one dependency. The two rules above are about how you *build* the links; this is about
+operating *inside* them afterwards, and it is the same write-through hazard arriving
+from a direction neither warns about. Measured 2026-08-14: `npm install --no-save
+--prefix /tmp/p3-<lane> playwright@1.62.1`, for a package `package-lock.json` already
+pinned at exactly `1.62.1` — so the install was unnecessary before it was harmful, and
+that is the first tell. npm reconciles the *whole* tree against the `package.json` it
+finds, declares 292 packages extraneous, and prunes them. The worktree went from **252
+links to 18**; the prune unlinks link *contents* rather than the links, so it reached
+through and emptied **12 scoped directories in the shared checkout** (`@esbuild`,
+`@figma`, `@types`, `@typescript-eslint`, `@eslint`, `@bundled-es-modules`, `@zip.js`,
+`@jsonjoy.com`, `@rtsao`, `@humanfs`, `@humanwhocodes`, `@eslint-community`). Every
+concurrent session's builds and typechecks break in a tree you never checked out, and
+**`git status` shows nothing, because no tracked file changed** — this is the one
+shared-tree accident git cannot help you notice, which makes it worse than the
+clobbering below rather than milder.
+
+If you have already done it, the repair that worked, in order: relink the worktree (238
+third-party + the five `@prism3/*` built **relative**, verified resolving inside the
+worktree, + `.bin`); run a plain `npm install` in the shared checkout; confirm all 12
+scoped directories repopulated **and** that the shared `@prism3/*` links are still
+relative and still resolve to the shared tree; then prove it by building rather than by
+inspection — `npm run -w @prism3/plugin build` and `npx tsx packages/engine/test.ts`.
+Tell the other sessions either way. What to do instead: a dependency the lockfile
+already pins is what `npm ci` is for; one it does not pin is a `package.json` change
+and belongs in a PR. A one-off browser download (`npx playwright install chromium`) is
+fine — it writes to a cache outside `node_modules`, and it is what makes the smoke gate
+run on merit instead of reporting a SKIP.
+
 **Why this is mandatory, not tidiness.** Checking out a branch in the shared tree
 destroys a concurrent session's uncommitted work — this happened for real on
 2026-08-05: another agent lost its edits twice to this protocol, once auto-stashed

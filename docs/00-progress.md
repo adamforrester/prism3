@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-14) — A package manager run inside a worktree emptied 12 scoped directories in the shared tree
+
+**STATUS: shipped (docs only).** No code, no gate, no emitted artifact — the third direction of the
+worktree `node_modules` hazard, written into `CLAUDE.md`'s worktree paragraph and
+`.claude/commands/review-pr.md` with the measurements from a real incident.
+
+**WHAT HAPPENED.** To make `apps/studio test:smoke` runnable in a lane worktree rather than reporting it
+as a SKIP, an agent ran `npm install --no-save --prefix /tmp/p3-<lane> playwright@1.62.1`. npm reported
+"removed 292 packages": it reconciles the *whole* tree against the `package.json` it finds, and the
+worktree's `node_modules` is a tree of **links**, so the prune unlinks link *contents* rather than the
+links themselves. The worktree fell from **252 links to 18**, and the deletions went through to the
+shared checkout, emptying **12 scoped directories** there (`@esbuild`, `@figma`, `@types`,
+`@typescript-eslint`, `@eslint`, `@bundled-es-modules`, `@zip.js`, `@jsonjoy.com`, `@rtsao`, `@humanfs`,
+`@humanwhocodes`, `@eslint-community`). Every concurrent session's builds and typechecks break, in a tree
+the agent never checked out.
+
+**THE FIRST TELL WAS THAT THE INSTALL WAS UNNECESSARY.** `playwright` is already an `apps/studio`
+devDependency pinned at exactly `1.62.1` in `package-lock.json`. `npm ci` would have supplied it. An
+install for something the lockfile already pins is a signal you have misread why the tree is empty.
+
+**WHY IT NEEDED WRITING DOWN, GIVEN TWO RULES WERE ALREADY THERE.** `CLAUDE.md` warned about `ln -s` of a
+whole directory (relative workspace links resolving against the main checkout) and about `install` versus
+`ci` (an unlocked version leaking in). Both are about **how you build** the links. This is about
+**operating inside them afterwards**, and neither rule reaches it — the agent that caused it had read the
+paragraph. That is the durable half: a hazard documented from one direction reads as fully documented.
+
+**AND `git status` SHOWS NOTHING.** No tracked file changes, so this is the one shared-tree accident git
+cannot help you notice — worse than the branch-clobbering the same paragraph describes, not milder, since
+that at least leaves a stash. Recovery is recorded in `review-pr.md` in order, and its last step is to
+**prove the repair by building** (`plugin build`, `engine/test.ts`) rather than by inspecting links:
+verified here as 238 third-party + five relative `@prism3/*` + `.bin` in the worktree, all 12 scoped
+directories repopulated in the shared tree with its own `@prism3/*` still resolving to itself, and no
+tracked file touched.
+
+**Not filed as a gate, and this time the reason is checked rather than assumed.** Nothing in the repo can
+observe another checkout's `node_modules`, and a gate that could would need a second tree to read — the
+guard here is the protocol. One incident, and the counter is in the entry so the next person can see what
+the number actually is.
+
+---
+
 ## (2026-08-14) — `icon.name`'s promise becomes true, and one import made 53 invisible spellings visible (#833)
 
 **STATUS: shipped.** `components/icon.ts` imports `ICON_NAMES` from the generated `icon-glyphs.ts`
