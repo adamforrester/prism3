@@ -8,7 +8,10 @@
   "exports": {
     "./anatomy-figma": "./anatomy-figma.ts",
     "./color": "./color.ts",
+    "./component-schema": "./component-schema.ts",
     "./components/button": "./components/button.ts",
+    "./components/field-label": "./components/field-label.ts",
+    "./components/index": "./components/index.ts",
     "./design-md": "./design-md.ts",
     "./emit-brandinput": "./emit-brandinput.ts",
     "./emit-figma-color": "./emit-figma-color.ts",

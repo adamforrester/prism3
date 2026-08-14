@@ -201,7 +201,13 @@ npm run lint:classes  -w @prism3/studio     # no unreviewed class-name collision
                                           # ALLOWED in apps/studio/lint-classes.mjs
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
-npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins
+npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins — asserted by
+                                          # build.mjs as of #804, where it had been a CI-ONLY step and a
+                                          # green local run therefore shipped a red PR. The string arrived
+                                          # as bundled $description PROSE, not an import ("…a Figma node:
+                                          # the engine…"), so the check stays a whole-file grep rather
+                                          # than parsing imports: a builtin reached another way would slip
+                                          # past a syntax-aware check, and a false positive costs one dash
 npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly
