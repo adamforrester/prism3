@@ -17,28 +17,40 @@
  * this node's id into the field's `aria-describedby` chain and sets `aria-invalid` on error
  * (§6). So the part is presentational; the host stitches it in.
  *
- * IT HAS AN ANATOMY BLOCK AND NO FIGMA PROJECTION (#796), which is `focus-ring`'s position and is
- * recorded the same way — in this header, with `figmaProperties` ABSENT, rather than in `codeOnly`.
- * docs/38 §2 already has the phrasing for it: **an `anatomy` block is necessary and not sufficient.**
+ * IT PROJECTS AS OF #795 — four members, one per tone, all eight colour bindings resolved. Until #795 it
+ * had an anatomy block and no Figma projection, recorded here with `figmaProperties` ABSENT, on docs/38
+ * §2's phrasing: **an `anatomy` block is necessary and not sufficient.** The block below is the
+ * sufficiency arriving, and the reasoning that kept it absent is worth keeping because the DECISION it
+ * argued for is the one #795 implemented.
  *
- * WHY NOT `codeOnly`: that list means *some anatomy provably will not survive the Figma leg* — its
- * examples are things Figma has no equivalent for (a touch target larger than the frame, an
- * accessibility tree). This ceiling is not one of those. `figmaAnatomyPlan` requires a declared `size`
- * axis (`anatomy-figma.ts:302`) and `planComponentName` always writes a `size=` coordinate, so a def
- * with ONE type scale is unprojectable **by our own construction** — code we wrote and can remove.
- * Filing it as a Figma ceiling would make `codeOnly` mean two different things, and the day someone
- * reads that list to answer *"what can Figma not do?"* they would get a wrong answer.
+ * WHY IT WAS NEVER `codeOnly`: that list means *some anatomy provably will not survive the Figma leg* —
+ * its examples are things Figma has no equivalent for (a touch target larger than the frame, an
+ * accessibility tree). This ceiling was not one of those. `figmaAnatomyPlan` required a declared `size`
+ * axis and `planComponentName` always wrote a `size=` coordinate, so a def with ONE type scale was
+ * unprojectable **by our own construction** — code we wrote and have now removed. Filing it as a Figma
+ * ceiling would have made `codeOnly` mean two different things, and the day someone read that list to
+ * answer *"what can Figma not do?"* they would have got a wrong answer.
  *
  * AND NOT A FABRICATED `size` AXIS. A caption has one scale (`type.caption.md`), so `size: ['md','lg']`
- * would emit Figma members corresponding to nothing in the design — two byte-identical variants per
- * tone, projected only to satisfy a coordinate. The def stays honest and stays unprojected.
+ * would have emitted Figma members corresponding to nothing in the design — two byte-identical variants
+ * per tone, projected only to satisfy a coordinate. The def stayed honest and stayed unprojected, and
+ * #795 made the honest shape the projectable one: `variantAxes` is exhaustive, so NOT listing `size` is
+ * how a def says it has none.
  *
- * WHAT IS ALREADY TRUE, verified rather than assumed: the anatomy is correct and all EIGHT colour
- * bindings resolve at every tone (`error.label` → `color/text/danger`, `error.icon` →
- * `color/icon/danger`, and so on for all four tones), probed by substituting a size axis in a throwaway
- * copy. So this def projects with **no further work on it** the day the size requirement is relaxed —
- * which is filed as #795, because it now blocks two defs for one reason (this and
- * `focus-ring`) and has stopped being a per-def note.
+ * ONE CLAIM IN THIS HEADER WAS FALSE (#825), and it is the reason #795's write-up is a docs/32 entry
+ * rather than a line in a changelog. It said: *"this def projects with no further work on it the day the
+ * size requirement is relaxed"*, offered as verified. Measured on the branch that relaxed it: with `tone`
+ * intact and only the size wall down, this def projected **1 plan and 0 paint variables**.
+ *
+ * The claim's own EVIDENCE was sound and its scope was not. Hand `figmaAnatomyPlan` a `tone` coordinate
+ * and all eight bindings resolve, exactly as claimed — that is the function the author probed by hand.
+ * But nothing HANDS it one: `tone` was not in `PROJECTABLE_VARIANT_AXES`, so `figmaAnatomySet` — the
+ * function every executor calls — refused to declare the axis and enumerated a single plan carrying
+ * `coord={}`. A probe of the plan path cannot answer a question about the set path. So what actually
+ * unblocked this def was the SECOND wall, whatever the size requirement said, and with both down it
+ * projects 4 plans and 8 paint variables. A comment claiming a def would project under condition X is a
+ * testable claim; nothing tested it, and the half that was convenient to probe is not the half that
+ * bound.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -148,12 +160,30 @@ export const fieldMessage: ComponentDef = {
     ],
   },
 
-  // NO `figmaProperties`, and its ABSENCE is the declaration — `focus-ring`'s pattern exactly. Declaring
-  // `variantAxes: ['tone']` would validate cleanly here and throw at projection, because
-  // `figmaAnatomySet` refuses any axis outside intent/appearance/size. But that is the second wall, not
-  // the first: this def cannot be projected at ANY coordinate, with any axis list, because
-  // `figmaAnatomyPlan` requires a declared `size` axis and a caption has one scale. See the header for
-  // why that is filed as #795 rather than admitted in `codeOnly`.
+  // IT PROJECTS AS OF #795, over `tone` and no size axis at all.
+  //
+  // `variantAxes: ['tone']` is now the whole declaration, and both halves of it are load-bearing. `tone`
+  // is listed because this def's four tones ARE its Figma grid; `size` is not listed because a caption
+  // has ONE scale (`type.caption.md`), and since #795 an unlisted `size` means `planComponentName` writes
+  // no `size=` segment rather than the projector demanding one. That is what the absence used to be
+  // recording — see the header for why it was filed rather than worked around with a fabricated axis.
+  //
+  // No `gridAxis`: one varying axis has nothing to choose, and the fallback (highest-cardinality varying
+  // axis) reaches `tone` anyway. Stating that here rather than declaring it is the honest version — a
+  // `gridAxis: 'tone'` would read as a decision where there is only one option.
+  // The property KEYS are PROP names, not Figma-facing labels — `figmaPropertyErrors` checks each against
+  // `props`, so `Message`/`Icon` (the first thing I wrote) are two errors, not two nicer names. `children`
+  // and `icon` are the props these properties drive, on Button's and `field-label`'s terms.
+  //
+  // The TEXT default is `content.labelPattern`'s own example rather than a fresh string: that field says
+  // the default tone carries the format up front, and a placeholder demonstrating the rule is worth more
+  // than one describing the slot. An empty default is what #510 shipped and what the schema now rejects.
+  figmaProperties: {
+    variantAxes: ['tone'],
+    texts: { children: { part: 'text', default: 'Use 8+ characters' } },
+    swaps: { icon: 'icon' },
+    booleans: {},
+  },
 
   accessibility: {
     role: 'none (rendered text; the host associates it via aria-describedby)',

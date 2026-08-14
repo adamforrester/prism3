@@ -403,11 +403,20 @@ are different components: under the second, `focus-ring`'s authored `stroke.inve
 and every ring paints the default colour — #656's invisible ring, reintroduced by a reordering. This
 is checked in `component-schema.ts` per **binding** rather than per template, and it has to live there
 rather than in the paint census, for a reason found by mutation: `focus-ring` declares no `size` axis,
-so `figmaAnatomyPlan` refuses it and **no census can cover that def at all**.
+so `figmaAnatomyPlan` refused it and **no census could cover that def at all**. #795 removed that
+refusal — the ring is planned and censused now — and the check stays where it is: a per-binding check in
+the schema covers a def whether or not the census reaches it, which is the property that made it right
+the first time. The mutation found the right home for the wrong-lived reason.
 
-**What this does *not* do.** `focus-ring`'s stroke colour is now resolvable, but the ring is still not
-projectable: `PROJECTABLE_VARIANT_AXES` remains `['intent', 'appearance', 'size']` and its three
-*structural* walls are untouched, deliberately. #758 fixes wall 4 — paint — and only that.
+**What #758 did *not* do — and what closed it.** #758 made `focus-ring`'s stroke colour resolvable and
+left the ring unprojectable behind three *structural* walls, deliberately. **#795 took two of them
+down** — `PROJECTABLE_VARIANT_AXES` is deleted, so `figmaAnatomySet` enumerates whatever
+`figmaProperties.variantAxes` declares; and `planComponentName` writes a `size=` segment only where the
+def declares the axis, so a one-scale def is nameable. Both were **ours**, not Figma's, and they landed
+together because either alone is worse than neither: relaxing the size requirement without the axis list
+projects a def's grid with an axis silently missing (#487 §5's 189-vs-756), and the axis list alone
+still can't name a sizeless member. The survivor is #740 — `PartDef` has no stroke field — so the ring
+projects and pastes without its stroke, which is a materialization ceiling and not a projection one.
 
 Two latent defects surfaced by writing the grammars down, both deferred at the time with the anatomy
 work that owns them: `text-field` binds `border.focus` and `border.readonly` while declaring the states

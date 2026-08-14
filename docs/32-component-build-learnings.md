@@ -157,7 +157,104 @@ could gate. Worth building alongside #795, which is the issue that will make the
 then the entry is the record: the header's second sentence describes the plan path and the first describes
 the set path, and #795 should re-measure rather than trust either. The inaccurate header itself is **#825**
 — filed rather than left here, because a defect described in a docs entry is not discoverable as work
-(#819).
+(#819). *(#795 has since rewritten that header, so the sentences quoted above are quoted from its
+pre-#795 state; the entry below is the measurement.)*
+
+---
+
+## 2026-08-14 — from making the projector read a declaration (#795)
+
+### `[GATE]` The def with the longer written record read as the better understood one
+
+#795 is the PR that made `field-message`'s header claim evaluable, and the method finding behind it is
+already recorded above (*"A comment claiming behavior under a hypothetical condition is a testable claim
+nothing tests"*, #825) — with the correct diagnosis: the probe measured `figmaAnatomyPlan` by hand, where
+a `tone` coordinate is supplied and all eight bindings do resolve, while the claim was about
+`figmaAnatomySet`, which refused `tone` and enumerated one plan carrying `coord={}`. **Two additions from
+having actually relaxed the condition**, neither of which the earlier entry could have:
+
+- **Relaxing *both* walls measures 4 plans and 8 paint variables** — so the header's conclusion was right
+  and its stated reason was not, which is the least useful combination to inherit. It now states the
+  measurement with its numbers, and `test.ts` pins the correction and the false sentence's absence in both
+  directions, because the finding is the deliverable and a header that quietly reverts takes it along.
+- **Assert the paint count separately from the plan count.** They come apart exactly here: on the
+  size-only relaxation, one member with zero paints is structurally perfect, fully valid, entirely grey —
+  and *"it projects"* reads as success. `field-message` is the def where the two numbers disagreed; it is
+  now the def where both are asserted.
+- **This branch's own first explanation of the miss was wrong, in the more attractive direction.** It said
+  the original probe had *renamed* `tone` by substituting a size axis — a named mechanism, and #784's trap
+  one level up, which made it feel like a finding. Measured on `main`: a copy with a size axis **added** and
+  `tone` left intact returns the same 1 plan / 0 paints, so no rename is needed to produce the symptom, and
+  the mechanism explains nothing. The correct account is the duller one above — two functions were
+  confused. **A wrong diagnosis that names a mechanism outcompetes a right one that names a mix-up**, and
+  the tell is that nobody had run the counterfactual: adding the axis without renaming anything takes one
+  line, and it falsifies the whole story.
+
+The record was also wrong about *which* def was nearest to projecting, and that error is worth its own
+line. `docs/38` and `00-progress` both had `focus-ring` as the near miss and `field-message` as the
+further one, when `field-message` was nearer: `focus-ring` additionally needs a stroke field `PartDef`
+does not have (#740). Both files are corrected, and the direction of the error is the tell — `focus-ring`
+has by far the longer written record here, and the volume of prose about it read as understanding of it.
+
+### `[GATE]` My gate for this was unreachable, and the suite reported 2220 passed
+
+Worth its own entry because it is the same defect class as #825 above — an expected value authored rather
+than measured — one level further in, and it survived a full green run.
+
+#795 needed a new gate: a def that declares `variantAxes` and projects *nothing* must throw, rather than
+returning an empty answer nobody reads (#802's class). I wrote `if (plans.length === 0) throw`, on a
+real measurement — under the old nested loops, `figmaAnatomySet(fieldMessage, { variantAxes: [] })` did
+return OK with 0 plans. But the same PR rewrote that function into a cartesian fold, and `one<T>()` maps
+an absent or empty axis to `[undefined]`: the product of nothing is **one empty coordinate**, so the set
+comes back with 1 plan named `""`. Zero stopped being reachable in the same diff that motivated the
+check. The gate could never fire.
+
+And **its two tests passed.** They passed on Button's *size* guard throwing first — an unrelated throw
+satisfying an assertion that asked only "did it throw". Which is the general rule: **a `throws` test
+must match the message**, or it is a test that something, somewhere, is broken. Both now match by
+message, and both run against a `focus-ring` copy chosen precisely because it has no size axis, so no
+other guard can stand in.
+
+What found it was mutation testing (docs/34) and nothing else would have: neutering the throw left the
+suite at **2220 passed, 0 failed**. Review could not — the gate reads correctly and its measurement was
+honestly taken, just taken against the previous version of the function it guards. The rewritten rule
+asks for what actually cannot be true — a member with **no coordinate at all** — and asks it of
+`planComponentName`'s *output* rather than re-reading `variantAxes`, so the two sides stay independent.
+
+One more, from the same battery: **the order of an anti-vacuity guard is part of the guard.** The test
+that compares the engine's cohort key against the payload's extracts `cellOf` from the generated JS and
+`new Function`s it, with a length assertion so an empty slice cannot make every later comparison
+vacuously true. Written as extract → compile → assert, that guard reported *nothing*: mutation-tested by
+pointing the slice at the payload with no `cellOf` in it, the empty source compiled to a body returning
+an undeclared name and the whole suite died with `ReferenceError` at exit 1, before a single `❌`
+printed. A harness crash is not an assertion failing — it is the assertion never being reached, and the
+next reader gets no line number for what actually broke. Assert while it can still be reported; compile
+once it holds.
+
+### `[SKILL]` Two changes where either alone is worse than neither must land together
+
+The size wall and the axis wall looked like one refactor and a follow-up. They are not separable, and
+the reason generalizes past this PR.
+
+Relaxing the size requirement **alone** creates a silent-failure mode that did not previously exist: a
+def could then project with an axis it declares simply missing from the grid, which is #487 §5's
+189-vs-756 through the front door. Closing the axis vocabulary **alone** still leaves a one-scale def
+unnameable. So the fix is one PR, and the declaration is what makes it safe — `figmaProperties.variantAxes`
+becomes **exhaustive**: the axes this def projects into the Figma grid, and *not listing* an axis is how
+a def says it has none. A boolean (`sizeAxis: false`) would have special-cased the one axis we happened
+to hit and invited the next one.
+
+The cheap tell for this shape: if step 2 of a plan removes a *check* and step 1 removes the *thing that
+made the check unnecessary*, they are one step. Ship them apart and the interval between them is a
+version of the code with neither.
+
+### `[SKILL]` An axis whose members differ only by a number the platform cannot bind is not an axis
+
+`focus-ring`'s `offset` was the tempting fourth axis, and #801 already answered it: the value travels as
+a **name frozen to a literal at paste time**, because Figma's `x`/`y` bind no variable. Two members
+differing only by a number nothing can rebind are two frozen snapshots, not a coordinate — so `offset`
+stays a paste-time parameter, and `text-field`'s field-specific offset comes from the parent at paste.
+Stated in the def so it is not rediscovered as a blocker.
 
 ---
 
