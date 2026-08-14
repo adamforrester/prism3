@@ -7,6 +7,83 @@
 
 ---
 
+## (2026-08-14) — The component tier's output contract, decided before the catalogue rather than after
+
+**STATUS: docs only.** New `39-component-projection.md`. No engine change, no emitted artifact, no
+gate — `regen --check` still reports 104 and the def set is untouched at seven.
+
+**Why now.** The plan is to author 20–25 components. Before that, one measured fact reorganizes the
+question: **the component tier emits nothing.** `packages/engine/out/` holds 27 entries and zero of
+them is a component; `grep -in component regen.ts` returns nothing; `<brand>.ai.json` is token-only.
+Seven defs and 158 KB of authored TypeScript produce zero bytes of output, and the three things that
+read a def today are all in-process TypeScript imports inside this repo. That is workable for two
+consumers in one monorepo and it is not a contract. Deciding the output contract is cheap at seven
+defs and a migration at twenty-five.
+
+**The finding that changed the architecture, and it came from a measurement rather than reasoning.**
+`19` §5 specifies three widths (index → summary → full entry) so an agent pulls only what fits its
+context. Correct, and it describes a **budget** — successively more of one thing. But a byte census
+over the seven defs shows the readers do not want more-and-less of one thing, they want close to
+disjoint things: `anatomy` is **33.0%** of the serialized def and a selecting agent has no use for
+it, while `ai` — the entire selection surface — is **5.6%**. An agent handed the whole def to answer
+*"is this the right component?"* pays roughly **18×** for what it reads, and that ratio is a property
+of the shape, so it is identical at 25 components. **Width and audience are two axes, not one.**
+Audience decides which fields a projection contains at all; width decides depth *within* the
+selection surface. Collapsing them is exactly how the token `.ai.json` reached 286–311 KB, and the
+intuitive move here — one component `.ai.json` with a `--compact` flag — would have reproduced it and
+called the mitigation a feature.
+
+**The number that decides it.** Composed widths, measured: index 245 bytes/component, summary 1,136,
+full API entry 7,159, whole def 12,651. Extrapolated to 25 that is **≈ 6 KB, ≈ 28 KB, and ≈ 316 KB**
+— and the last figure lands on the same order as the token `.ai.json` we already know cannot be handed
+to an agent whole. The first two fit in any working context with room for the task. So the three
+widths are not an optimization to add later; at these numbers they are the difference between a
+surface an agent can use and one it cannot. The extrapolation is arithmetic on today's average, and
+the doc says so — a table or a date picker will exceed it.
+
+**Three things the doc puts a deadline on, in order of how expensive they get:**
+
+1. **`content` cannot answer a block's question.** It is `[k: string]: string | undefined` — copy
+   guidance for a writer, structurally unable to express cardinality, type or overflow, which is
+   precisely what a block needs to know about a slot's occupant. Widening it (or adding a sibling
+   `contentModel`) is a seven-file change today and a twenty-five-file change plus every downstream
+   projection later, at which point the pressure is to fake the content model in the block tier —
+   i.e. put it in the consumer of the data rather than the data. The index signature is also doing
+   quiet harm now: every misspelled content key is valid, so the field cannot be gated at all.
+2. **`states` and `variants` are free-form strings.** At seven defs the drift is invisible; at
+   twenty-five it is the difference between a catalogue with a state model and twenty-five
+   components that each invented one. Total cost of closing it today: 254 bytes of `states` across
+   the whole set.
+3. **The component name surface is unversioned.** `CONTRACT_VERSION` exists because a renamed token
+   path resolves to nothing with no error. `<button appearance="filled">` has the identical failure
+   mode and no baseline. The mechanism transfers without redesign; the reason to raise it now is
+   that a baseline is cheap over 7 components and a migration over 25.
+
+**The consistency mechanism is the repo's existing one, not a new one.** A declared shared
+vocabulary, each divergence justified at the point of divergence, and a gate whose oracle is not the
+vocabulary — `PAINT_SLOTS` + `lint-paint.ts`'s four two-directional exceptions is the model. Two
+notes worth carrying: `notes.contested` / `notes.unverified` already **is** the mechanism for
+carrying a research brief's unresolved parts into the def, and it is used by one component (Button
+carries 1,407 bytes of it; `icon-button` 192, `field-label` 201) — that gap is the mechanism being
+used once, not a fact about those components. And a byte-budget gate is a candidate here **only if
+its oracle is an authored budget with a stated reason** — a gate expecting "the current size" is
+`34` shape 1 and reports itself as a pass.
+
+**The classification `lint-payload-manifest.ts` is about to force, flagged in advance.** Selection,
+API and docs projections are payload. The **structural** projection is genuinely contested: a client
+ejecting a Figma library does not need it, a client ejecting a skin does — which may mean its class
+depends on what was ejected, something the manifest's two-value vocabulary cannot currently say. The
+gate checks a class is *declared*, not that it is *right*, so the `why` field is the only thing
+carrying that argument and it needs to be written at the strength of an argument.
+
+**Deliberately not decided:** the 20–25 component list; per-brand vs. brand-neutral projections (the
+doc proposes brand-neutral plus a per-brand membership list, and labels it a proposal); the content
+model's actual shape; MCP vs. a `cli query` surface (both read the same registry, so the registry
+shape is upstream and that choice can be made later without rework); #252, still parked at `19` §3
+ranks 5–6.
+
+---
+
 ## (2026-08-14) — Three method findings in one day, all the same family (docs/32)
 
 **STATUS: shipped.** `docs/32` gains one entry each for three findings that landed within a day of each
