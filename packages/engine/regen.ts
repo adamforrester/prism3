@@ -40,13 +40,28 @@ const STEPS: Array<{ label: string; args: string[] }> = [
   { label: 'emit-levers    (lever-manifest)', args: ['packages/engine/emit-levers.ts'] },
   { label: 'emit-preview   (preview-spec)', args: ['packages/engine/emit-preview.ts'] },
   { label: 'emit-brandinput(example-brands)', args: ['packages/engine/emit-brandinput.ts'] },
+  { label: 'emit-icons     (icon-glyphs.ts)', args: ['packages/engine/emit-icons.ts'] },
 ];
 
 // Committed generated artifacts that live at the ENGINE ROOT rather than under `out/`. Both were
 // outside the comparison until now: `modes-report.md` was regenerated (emit-dtcg writes it) but never
 // CHECKED, and `nb-regression-report.md` was neither regenerated nor checked — so this file's own
 // claim to cover "every committed artifact" was an overclaim. Both are gated now.
-export const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md'];
+export const ENGINE_ARTIFACTS = ['modes-report.md', 'nb-regression-report.md', 'icon-glyphs.ts'];
+//
+// `icon-glyphs.ts` is a generated MODULE rather than a report, and it belongs here rather than under
+// `out/` for a reason worth stating: `icon.ts` IMPORTS it, and the plugin bundles that import into a
+// sandbox with no filesystem. It is engine source that happens to be generated — so it needs the
+// drift check every other generated artifact gets, and it is deliberately NOT an `out/` artifact,
+// which is why `lint-payload-manifest.ts` does not classify it. `docs/40` §5.3 said it would be
+// classified payload; that was written before this file's artifact model had been read, and the
+// eject-side question is real and `schema/payload-manifest.json` answers it: this file is classified
+// PAYLOAD there, because any component projection rendering an icon carries the glyph data with it.
+//
+// A first draft of this comment claimed `lint-payload-manifest.ts` does not reach ENGINE_ARTIFACTS.
+// It does, and it failed on this file within ninety seconds of the wiring landing. Recorded rather
+// than quietly corrected, because the claim was reasoned from the gate's source rather than measured
+// by running it — the same move that produced three wrong scope claims elsewhere this week.
 
 // `schema/` mixes hand-authored contracts (theme-schema.json) with emitted ones, so unlike `out/`
 // — which is generated wholesale — it is compared file-by-file against this list. These three are

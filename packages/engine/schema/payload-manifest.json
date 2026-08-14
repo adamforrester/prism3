@@ -9,15 +9,18 @@
     "until a human classifies it here. That friction is the feature."
   ],
   "version": 1,
-
-  "brands": ["aurora", "harbor", "nb", "wendys"],
+  "brands": [
+    "aurora",
+    "harbor",
+    "nb",
+    "wendys"
+  ],
   "brandsWhy": [
     "Asserted BY NAME, in both directions: a brand in `out/` and not here fails, and a brand here",
     "with no emitted artifacts fails. Brands are DATA — the per-kind rules below cover a new one's",
     "files automatically — but membership is a DECISION, so it is stated rather than discovered.",
     "Same posture as the consumability gate's #635 scope assertion."
   ],
-
   "payload": [
     {
       "kind": "canonical-tree",
@@ -38,9 +41,13 @@
       "kind": "agent-metadata",
       "pattern": "out/{brand}.ai.json",
       "why": "Per-brand agent metadata. Travels because an ejected repo has no Prism3 MCP to query (#668)."
+    },
+    {
+      "kind": "icon-glyphs",
+      "pattern": "icon-glyphs.ts",
+      "why": "The glyph vocabulary and its path data, generated from `icons/*.svg` through `icon-set.ts` (#833). PAYLOAD because any component projection that renders an icon carries this data with it — a client's ejected button needs the caret. It is a generated MODULE rather than an `out/` tree because `components/icon.ts` imports it and the plugin bundles that import into a sandbox with no filesystem, so it could not be read from disk at runtime. The SVGs beside it are authoring input and are outside this manifest, the same way a brand's design brief is. Licence and provenance: `icons/NOTICE.md` — the set is Remix Icon under its own v1.0 licence, held as a swappable placeholder core, which is what keeps our use inside the licence's `design systems where Icons are a minor component` clause."
     }
   ],
-
   "ours": [
     {
       "kind": "figma-variables",
