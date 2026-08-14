@@ -191,9 +191,31 @@ export type PartDef = {
   paintSlot?: string;
   /** A slot that need not be present. `false`/absent means required. */
   optional?: boolean;
-  /** For `overlay`: the part whose position it takes (width-preserving, per the brief). */
-  replaces?: string;
-  /** For `overlay`: what to do when the part named in `replaces` is ABSENT at this coordinate.
+  /** For `overlay`: the part whose position it takes (width-preserving, per the brief).
+   *
+   *  An ORDERED LIST of candidates as of #848, resolved to the FIRST one present at this coordinate.
+   *  A single string is still accepted and means a one-entry list — every existing def reads the same.
+   *
+   *  Why a list. Primer's rule is that the spinner "replaces only that visual slot, and the button
+   *  label remains visible", and until #848 we spelled that as `replaces: 'leadingVisual'` — one named
+   *  slot, with `overlaysWhenAbsent` as the fallback for everything else. That reading was too narrow
+   *  in a way no gate could see: at `leading=false, trailing=true` there IS a visual cell available,
+   *  and naming only the leading one sent that coordinate to the label-overlay fallback. The result
+   *  was a `pending` button rendering as spinner + trailing visual with its label at zero opacity —
+   *  **two icons and no text** (#848, seen in a live Figma paste, not in any gate).
+   *
+   *  So the generalization is Primer's rule stated over the cells that EXIST rather than over one
+   *  name: take whichever visual cell is present, preferring the leading one because a spinner on the
+   *  left reads as "loading" while one on the right reads as a trailing indicator. The fallback is
+   *  then reached only when there is genuinely no visual cell at all — the label-only button it was
+   *  written for.
+   *
+   *  ORDER IS THE DECLARATION and it is the def's to make, not this file's: the list is walked in
+   *  order and the first present part wins, so a def that prefers its trailing cell says so by
+   *  writing it first. */
+  replaces?: string | string[];
+  /** For `overlay`: what to do when NONE of the parts named in `replaces` is present at this
+   *  coordinate.
    *
    *  The part named here is overlaid OUT OF FLOW — the overlay takes no cell, and the named part is
    *  rendered at zero opacity so it keeps its space. Absent this field, an overlay whose `replaces`
@@ -302,6 +324,20 @@ export type PartDef = {
   strokeInset?: string;
   note?: string;
 };
+
+/** An overlay's `replaces` as an ordered candidate LIST, whatever shape the def wrote it in (#848).
+ *
+ *  Exported and shared by the validator and both materializers ON PURPOSE. The alternative — each
+ *  caller doing its own `Array.isArray` — is three normalizations that agree until one of them is
+ *  edited, and the field's whole meaning is the ORDER, so a caller reading it differently places the
+ *  overlay somewhere else while every gate stays green. That is not a DRY nicety: it is the same
+ *  two-shapes-for-one-concept defect #708 found in `$extensions.prism3.modes`, where color wrapped
+ *  its value and shadow was a bare array, one reader guarded the wrong shape, and 28 mode-varying
+ *  shadows were silently dropped from every overlay in all four brands. One shape, read once.
+ *
+ *  Returns `[]` for an absent field so callers can test `.length` and never hold `undefined`. */
+export const replacesCandidates = (p: PartDef): string[] =>
+  p.replaces === undefined ? [] : Array.isArray(p.replaces) ? p.replaces : [p.replaces];
 
 export type AnatomyDef = {
   /** The part every other part hangs beneath. */
@@ -1568,8 +1604,24 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   for (const n of names) {
     const p = parts[n];
     if (p.kind === 'overlay') {
-      if (!p.replaces) e.push(`anatomy part '${n}': an overlay must declare what it 'replaces'`);
-      else if (!parts[p.replaces]) e.push(`anatomy part '${n}': replaces '${p.replaces}', which is not a declared part`);
+      // `replaces` is a string OR an ordered list since #848. Normalized once here and read as a list
+      // from this point down, so every rule below states itself over candidates rather than over the
+      // single name the field used to hold.
+      const replacesList = replacesCandidates(p);
+      if (!replacesList.length) e.push(`anatomy part '${n}': an overlay must declare what it 'replaces'`);
+      for (const r of replacesList) if (!parts[r]) e.push(`anatomy part '${n}': replaces '${r}', which is not a declared part`);
+      // A DUPLICATE in the list is refused rather than tolerated. Walking the list stops at the first
+      // present candidate, so a repeat can never be reached and is therefore always a mistake — most
+      // likely a def meaning to name a second, different cell.
+      const dupes = replacesList.filter((r, i) => replacesList.indexOf(r) !== i);
+      if (dupes.length) e.push(`anatomy part '${n}': replaces lists '${dupes[0]}' more than once — resolution stops at the first present candidate, so a repeat is unreachable`);
+      // At most ONE non-optional candidate, and it must be LAST. A required part is present at every
+      // coordinate, so resolution can never walk past it: any candidate after it is dead, and
+      // `overlaysWhenAbsent` is dead too. That would make the label-only fallback unreachable while
+      // reading as though it were configured — the #848 shape of "validates clean, cannot fire".
+      const requiredAt = replacesList.findIndex((r) => parts[r] && !parts[r].optional);
+      if (requiredAt >= 0 && requiredAt < replacesList.length - 1)
+        e.push(`anatomy part '${n}': replaces '${replacesList[requiredAt]}' is REQUIRED but is not last — it is present at every coordinate, so candidates after it (${replacesList.slice(requiredAt + 1).join(', ')}) can never be reached`);
       // The trigger is as required as the target. Without it the part is declarative decoration: it
       // validates clean, reads complete, and no projection can place it — which is exactly how the
       // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
@@ -1582,12 +1634,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       if (p.overlaysWhenAbsent) {
         if (!parts[p.overlaysWhenAbsent]) e.push(`anatomy part '${n}': overlaysWhenAbsent '${p.overlaysWhenAbsent}', which is not a declared part`);
         else if (parts[p.overlaysWhenAbsent].optional) e.push(`anatomy part '${n}': overlaysWhenAbsent '${p.overlaysWhenAbsent}' is optional — the fallback must be a part that is always present, or there is still a coordinate where the overlay takes a cell of its own`);
-        if (p.overlaysWhenAbsent === p.replaces) e.push(`anatomy part '${n}': overlaysWhenAbsent duplicates 'replaces' — the fallback exists for the case that part is ABSENT, so naming the same part says nothing`);
-      } else if (p.replaces && parts[p.replaces]?.optional) {
-        // An overlay whose `replaces` target is OPTIONAL has a coordinate where it lands nowhere, so
-        // the fallback is REQUIRED, not a nicety. Gating it here rather than trusting a def to think of
-        // it: this is the #612 defect's root, and it was invisible for exactly as long as nothing asked.
-        e.push(`anatomy part '${n}': replaces '${p.replaces}', which is OPTIONAL — declare 'overlaysWhenAbsent' for the coordinate where it is missing, or the overlay takes a cell of its own there and the part GROWS on its '${p.when}' state`);
+        if (replacesList.includes(p.overlaysWhenAbsent)) e.push(`anatomy part '${n}': overlaysWhenAbsent duplicates a 'replaces' candidate ('${p.overlaysWhenAbsent}') — the fallback exists for the case EVERY candidate is absent, so naming one of them says nothing`);
+      } else if (replacesList.length && replacesList.every((r) => parts[r]?.optional)) {
+        // Every candidate OPTIONAL means a coordinate exists where the overlay lands nowhere, so the
+        // fallback is REQUIRED, not a nicety. Gating it here rather than trusting a def to think of it:
+        // this is the #612 defect's root, and it was invisible for exactly as long as nothing asked.
+        // `every` rather than the old single-name test — a list with one required entry has no such
+        // coordinate and correctly needs no fallback.
+        e.push(`anatomy part '${n}': every 'replaces' candidate (${replacesList.join(', ')}) is OPTIONAL — declare 'overlaysWhenAbsent' for the coordinate where they are all missing, or the overlay takes a cell of its own there and the part GROWS on its '${p.when}' state`);
       }
     } else if (p.kind === 'absolute') {
       // An `absolute` IS a child — it is a sibling of the row's cells that simply takes no space in

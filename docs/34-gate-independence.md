@@ -747,6 +747,44 @@ After fixing an independence hole, re-ask the *first* question in the list below
 repair inherits the original's idea of what was worth measuring. That is shape 3 pointed at the oracle's
 subject rather than at its derivation.
 
+#### The second instance, two days later — and what it adds (#848)
+
+`#612`'s pending spinner shipped a button rendering **no label and two icons**, in a live Figma paste,
+with every gate green. `replaces: 'leadingVisual'` named one slot, so the coordinate
+`leading=false, trailing=true` — which *has* a visual cell — fell through to the label-overlay branch:
+spinner plus trailing visual, label at 0% opacity. Two gates covered the mechanism. `test.ts:9238`
+asserts the in-flow cell count and resolved padding are identical between `rest` and `pending`; it
+passed, because both cells existed at rest and both stayed filled. `test.ts:9247` asserts which of the
+two mechanisms fires; it passed, because it only ever sampled `trailing: false` and so never reached
+the coordinate where the branches disagree. Both true. Neither asks whether anything a person reads
+survives.
+
+**The durable half is the question, not the shape.** *If this gate is green, what would a person see?*
+The honest answer was "a button with no label and two icons" — and no assertion in the block could have
+said otherwise, because none of them asked about anything a person looks at. That question is now
+question 8 in the list below, and this is the instance that earned it a worked example rather than a
+clause: it took **eleven assertions** across that one block to reach the defect, and every one of them
+was about geometry.
+
+**Why both gates stopped short is worth its own line, because it predicts where the next one hides:
+a hard-won invariant becomes the only thing anyone checks.** Width became load-bearing after #612 —
+the two assertions it replaced were *pinning* the defect (register row: a button growing 28px
+mid-submit, asserted as correct), and the comment recording that spends nine lines on it. So width was
+the thing that had been fought for, and width is what every later assertion in the block reached for:
+four slot combinations of cell-count-and-padding, a mechanism check, a z-order check, a property-ref
+check. The neighboring questions — *is there text*, *is there one spinner*, *is the spinner over the
+thing it stands for* — were never asked, and their absence is invisible precisely because the block
+looks thorough. **When you find an invariant a previous fix fought for, ask what it is not measuring.**
+That is where the next defect lands, and it lands there *because* the hard-won one is drawing the eye.
+
+Two smaller notes from the same fix. The **constant-stub trap (shape 4) was on its fourth and fifth
+instance**: both executors' test doubles held `x`/`y` as plain `0` fields, so centering on the parent
+and centering on a sibling produced identical coordinates — the geometry gate for this defect could not
+have been written against either double until they derived flow position. And the new assertions needed
+a **hand-built asymmetric plan**, because the fix removed the coordinate that exposes the difference:
+after it, wherever a visual cell exists the spinner takes it and centers nothing. A gate that can only
+be exercised on a shape the fixed code no longer produces still has to be exercised on it.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -839,6 +877,8 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-14 `[in review]` | `test.ts` pending-spinner block (#848) | 16 | a button with **no label and two icons**, in a live Figma paste, past eleven assertions in the block written for exactly this part. `replaces: 'leadingVisual'` named one slot, so `leading=false, trailing=true` — which *has* a visual cell — took the label-overlay branch anyway: spinner + trailing visual, label at 0%. The width gate passed (both cells existed at rest, both stayed filled, padding unchanged); the mechanism gate passed (it samples `trailing: false` only, so it never reached the coordinate where the branches disagree). Second instance of shape 16 in two days, and the one that promoted its tell to **question 8**: *if this gate is green, what would a person see?* Every assertion in the block measured geometry, because **width had become the hard-won invariant after #612** — the two assertions it replaced were pinning a 28px growth as correct — and a hard-won invariant crowds out its neighbors. Nothing asked whether text survived, whether there was one spinner, or whether the spinner was over the thing it stood for. Found by a designer looking at a column of pasted variants |
+| 2026-08-14 `[in review]` | both executors' test doubles, `x`/`y` (#848) | 4 | the 4th and 5th instance of the same constant: `x: 0, y: 0` as plain fields, so **centering on the parent and centering on a sibling are the same coordinate** and the 12px-off spinner the fix exists to correct was unmeasurable. Both doubles now derive a flow child's position from the parent's padding and its preceding flow siblings, which is what made the geometry gate writable at all. The same doubles' own headers already recorded this finding three times (`width`, `height`, TEXT measurement) — the sweep half of shape 4 |
 | 2026-08-14 | `anatomy-figma.ts` empty-projection gate (#795) | 14 | the gate **the ticket asked for**, unreachable, at `2220 passed, 0 failed` with the throw neutered. `if (plans.length === 0) throw` was written on a real measurement — under the *old* nested loops, `figmaAnatomySet(fieldMessage, { variantAxes: [] })` did return OK with 0 plans — and **the same PR** rewrote that function into a cartesian fold where `one<T>()` maps an absent or empty axis to `[undefined]`, so the product of nothing is one empty coordinate and the set returns **1 plan named `""`**. Zero stopped being reachable in the diff that motivated the check. Shape 14 rather than 4 because the quantity moves and reports truly; the **comparison point** sits where no member of the population can land — and shape 14's own tell is what found it, once run: feed the gate the defect it was written for. Fixed by asking for what genuinely cannot be true (a member with **no variant coordinate at all**) of `planComponentName`'s *output*, not by re-reading `variantAxes` |
 | 2026-08-14 | `test.ts` empty-projection `throws` tests (#795) | 5 | **both** tests for the gate above passing while the gate did not exist — satisfied by Button's unrelated *size* guard throwing first. `did it throw` is a truthiness check on a failure, so it cannot distinguish the throw it names from any other on the same call. Both now match by **message**, over a `focus-ring` copy chosen because it has no size axis and so no other guard can stand in. The same PR's sizeless-plan mutation confirms the discipline pays: it fired only because the assertion refused the substitute throw (`size.undefined.type`) |
 | 2026-08-14 | `test.ts` `cellOf` anti-vacuity guard (#795) | sweep | a length guard against an empty payload slice, present and correct, reporting **nothing** — written as extract → compile → assert, the empty source compiled to a body returning an undeclared name and the suite died with `ReferenceError` at exit 1 before one `❌` printed. #680's *"a crashing assertion is not a failing one"* one file over, and the sweep half of it: the lesson was recorded here and the shape still shipped, because a guard against vacuity is itself ordered code. **Assert while it can still be reported; compile once it holds.** |

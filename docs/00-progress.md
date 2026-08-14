@@ -7,6 +7,94 @@
 
 ---
 
+## (2026-08-14) — The pending spinner takes whichever visual cell exists, and centers on what it covers
+
+**STATUS: shipped (#848).** `replaces` becomes an ordered candidate list; new plan field
+`absoluteCenterOn`; both executors updated in parallel. Engine and `out/*` untouched — this is
+projection and geometry, not values, so no artifact moved and `regen --check` still reports 104.
+
+**FOUND IN A LIVE FIGMA PASTE, WITH EVERY GATE GREEN.** At `leading=false, trailing=true` a pending
+button rendered **spinner + trailing visual with the label at 0% opacity** — two icons, no text. Two
+faults, and the second only reachable because of the first:
+
+1. **`replaces: 'leadingVisual'` named one slot.** #612's rule is *take a visual cell if there is one,
+   otherwise overlay the label and hold the width open at zero opacity*. With only the leading slot
+   named, a coordinate that **has** a visual cell took the overlay branch anyway.
+2. **`absoluteCenter` centered on the container.** Correct only when the overlaid part is itself
+   centered in the parent, and with a trailing cell present it is not. Measured at `small` from real NB
+   values (padL 16, padR-visual 12, gap 8, icon 20): the label spans 16→60, center 38, against a
+   container center of 50 — the spinner sat **12px right** of the text it stood in for. Which is why
+   turning absolute positioning off in Figma did not straighten it out; that only unmasked fault 1.
+
+**THE FIX, AND WHY THIS OPTION.** Three were live: (a) the spinner takes whichever cell exists, (b)
+keep the label hidden but center the spinner on it correctly, (c) drop the trailing visual on pending.
+(b) is defensible in code and not here — its mitigation is `aria-busy` plus a live region, **neither of
+which exists in a Figma kit**, so a designer sees a label-less button and copies it. We picked the kit
+as the first deliverable and the kit teaches. (c) is a regression however narrow. So (a): `replaces` is
+an ordered list, first present candidate wins, leading before trailing because "loading" reads
+left-to-right ahead of the label, and the label-overlay fallback is reached only when there is
+genuinely no cell to take. **The order is the declaration** — a validator rule refuses a duplicate
+candidate (unreachable past the first present one) and requires a REQUIRED candidate to be last.
+
+`absoluteCenterOn` carries a **name, not a number**, for the same reason `bound` holds names: the
+label's width is the designer's text and only Figma knows it at paste. A named box that is not in the
+tree is **reported as a miss**, never silently swapped for the parent — the silent swap is the defect,
+and a fallback here would reproduce it quietly.
+
+**WHY BOTH GATES MISSED IT — the half worth keeping.** `test.ts` covered this part with two assertions
+and both were true. The width invariant (in-flow cell count + resolved padding identical between `rest`
+and `pending`) passed, because both cells existed at rest and both stayed filled. The
+which-mechanism-fires assertion passed, because it only ever sampled `trailing: false` and so never
+reached the coordinate where the two branches disagree. Neither asks whether anything readable
+survives. `docs/34` shape 16, **second instance in two days** — and the durable half is the diagnostic
+question rather than the shape: **if this gate is green, what would a person see?** The honest answer
+here was *a button with no label and two icons*, and no assertion in the block could have said
+otherwise, because none of them asked about anything a person looks at.
+
+And the reason both stopped short has its own line in doc 34, because it predicts where the next one
+hides: **the width invariant became load-bearing after #612 and crowded out everything around it.**
+Width was the hard-won thing — the assertions #612 replaced were *pinning* a 28px mid-submit growth as
+correct — so width is what every later assertion in that block reached for: four slot combinations of
+cell-count-and-padding, a mechanism check, a z-order check, a property-ref check. The neighboring
+questions (*is there text*, *is there one spinner*, *is the spinner over the thing it stands for*) were
+never asked, and their absence is invisible because the block looks thorough. **When you find an
+invariant a previous fix fought for, ask what it is not measuring.**
+
+**THE NEW GATES, AND THE TRAP IN WRITING THEM.** Across **all four** slot combinations at
+`state=pending`: exactly one spinner in the subtree; exactly one node carrying the button's copy, and
+that copy either visible or covered by the spinner standing in its place; wherever a visual cell exists
+nothing is hidden at all; and with both cells filled the spinner takes the **leading** one. Each
+mutation-tested by name — reverting `replaces` to the single slot fires the copy-hidden assertion,
+splicing the overlay into every present candidate fires the one-spinner count (and **only** it: the
+width and mechanism gates stay green under a two-spinner bug, which is exactly why that assertion was
+asked for), reversing the candidate order fires the ordering assertion.
+
+The executed geometry needed a **hand-built asymmetric plan**, and this is the part to remember: the
+fix removes the coordinate that exposes the difference. After it, wherever a visual cell exists the
+spinner takes it in the flow and centers nothing — so the only shape where the parent's box and the
+label's box give different answers is one the fixed projector no longer produces. Held here as the
+label-only pending tree with a trailing visual spliced in beside the label, with an explicit guard
+asserting the two candidate boxes disagree by more than a pixel *before* the centering is asserted,
+because without that gap the assertion passes against either implementation.
+
+**AND THE CONSTANT-STUB TRAP, 4TH AND 5TH INSTANCE.** Both executors' test doubles held `x`/`y` as
+plain `0` fields, so centering on the parent and centering on a sibling produced **identical
+coordinates** — the geometry gate for this defect could not have been written against either double.
+Both now derive a flow child's position from the parent's left padding plus the widths and gaps of its
+preceding flow siblings, skipping ABSOLUTE children, with `y` modeling `counterAxisAlignItems:
+'CENTER'`. The doubles' own headers already recorded this finding three times (`width`, `height`, TEXT
+measurement); it arrived a fourth and fifth time on a new axis. Engine assertion count moved 54 → 81 in
+one place as a result — **a count going up there is the fix**, since 27 slot coordinates now have a
+cell that previously reported position 0.
+
+**One thing left open, deliberately.** `#848`'s issue number is not `#841`; the code comments were
+first written citing 841 and renumbered once the issue was filed, because 841 was already an unrelated
+closed issue. Nothing in the repo binds a comment's issue citation to a real issue — `docs/34`'s shape
+citations have `lint-shape-index.ts` and issue numbers have nothing. Not filed as a gate: a shape-9
+hazard with no recorded incident, and the same argument that kept #786 small applies here.
+
+---
+
 ## (2026-08-14) — A guest's issue numbers are a foreign namespace, and two conventions written down
 
 **STATUS: PR open.** Three files, prose and one exclusion: `tools/forward-claim-check/measure.ts`

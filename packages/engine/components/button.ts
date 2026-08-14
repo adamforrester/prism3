@@ -257,11 +257,14 @@ export const button: ComponentDef = {
       spinner: {
         kind: 'overlay',
         nesting: { kind: 'swap' },
-        replaces: 'leadingVisual',
+        // ORDERED, and the order is the design decision (#848). Leading first because a spinner on the
+        // left reads as "loading" while one on the right reads as a trailing indicator; trailing second
+        // because a cell that EXISTS is always a better host than the label-overlay fallback.
+        replaces: ['leadingVisual', 'trailingVisual'],
         overlaysWhenAbsent: 'label',
         when: 'pending',
         size: 'size.{size}.icon',
-        note: 'Takes the leading visual\'s cell when there is one (Primer: "the spinner replaces only that visual slot, and the button label remains visible") — width identical, because the cell was already the icon\'s size. With NO leading visual there is no cell to take, so it goes out of flow, centered, and the label holds the width open at zero opacity (React Aria). The old note here ruled out the label\'s position on the grounds that replacing a centered label collapses the width, which conflated REPLACE with REMOVE: removing the label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the label-only case for as long as it stood (#612).',
+        note: 'Takes a visual cell when there is one (Primer: "the spinner replaces only that visual slot, and the button label remains visible") — width identical, because the cell was already the icon\'s size. With NO visual cell at all there is nothing to take, so it goes out of flow, centered on the label, and the label holds the width open at zero opacity (React Aria). GENERALIZED FROM "the leading visual" TO "a visual cell" BY #848, and the narrow reading was a real defect rather than a simplification: `replaces` named only `leadingVisual`, so `leading=false, trailing=true` — which HAS a visual cell — fell through to the label overlay and rendered as spinner + trailing visual with the label at zero opacity, i.e. two icons and no text. Found in a live Figma paste; every gate was green (see #848 and docs/34 shape 16). The older note before that ruled out the label\'s position on the grounds that replacing a centered label collapses the width, which conflated REPLACE with REMOVE: removing the label collapses the width, overlaying it does not, and that conflation ruled out the correct fix for the label-only case for as long as it stood (#612).',
       },
       focusRing: {
         kind: 'absolute',
