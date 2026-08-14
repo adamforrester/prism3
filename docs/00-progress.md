@@ -63,11 +63,27 @@ the doc says so — a table or a date picker will exceed it.
 vocabulary, each divergence justified at the point of divergence, and a gate whose oracle is not the
 vocabulary — `PAINT_SLOTS` + `lint-paint.ts`'s four two-directional exceptions is the model. Two
 notes worth carrying: `notes.contested` / `notes.unverified` already **is** the mechanism for
-carrying a research brief's unresolved parts into the def, and it is used by one component (Button
-carries 1,407 bytes of it; `icon-button` 192, `field-label` 201) — that gap is the mechanism being
-used once, not a fact about those components. And a byte-budget gate is a candidate here **only if
-its oracle is an authored budget with a stated reason** — a gate expecting "the current size" is
-`34` shape 1 and reports itself as a pass.
+carrying a research brief's unresolved parts into the def, and it is populated across the whole set —
+`contested` on all seven defs (1–4 entries, 147–1,407 bytes), `unverified` on three. And a
+byte-budget gate is a candidate here **only if its oracle is an authored budget with a stated
+reason** — a gate expecting "the current size" is `34` shape 1 and reports itself as a pass, so what
+to borrow from `paint-census.json` is its **mechanism** (authored, not a regen artifact,
+`--accept`-gated) and explicitly **not** its semantics, which `lint-paint.ts`'s own header calls a
+characterization, *"never 'this is right'"*.
+
+**A correction inside the doc, kept because the way it went wrong is the doc's own argument.** §7(b)
+first read *"used by one component"*, citing Button's 1,407 bytes against `icon-button`'s 192 and
+`field-label`'s 201. The byte figures were right and the inference was wrong: 192 bytes is one
+tersely-written adjudicated decision, not an empty field. §4 argues at length that a count cannot see
+what a payload contains, and §7 read a count and inferred its contents three sections later — the
+same defect `packages/tokens/README.md` records as *"the count was right and the output was broken."*
+Caught in review by reading the contents rather than re-running the census, which is the only way it
+could have been caught. The surviving claim is narrower and better: `unverified` is on three of
+seven, and #810 (Button's anatomy promising an unimplemented `minWidthMultiplier`) is precisely what
+that field exists to hold and was found by a progress-log sweep instead. §3 was softened in the same
+pass — `19` §5 is scoped to the registry and its twelve fields are selection material throughout, so
+§39 fills a gap there rather than correcting an error, and framing it as a correction attacks a
+design nobody proposed.
 
 **The classification `lint-payload-manifest.ts` is about to force, flagged in advance.** Selection,
 API and docs projections are payload. The **structural** projection is genuinely contested: a client

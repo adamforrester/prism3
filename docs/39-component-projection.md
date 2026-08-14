@@ -88,26 +88,35 @@ each reader need that the others actively do not.**
 | **human reading docs** | `docs.*`, `content`, `accessibility`, `notes.contested` | the token binding table, mostly |
 | **a gate** | the canonical def, undiluted | any projection at all — a gate reading a projection is reading its own subject's output (`34` shape 1) |
 
-**The finding: the reader needs are not nested, and `19` §5's three widths assume they are.**
+**The finding: the reader needs are not nested, and nothing has yet said which axis the three widths
+run along.**
 
 `19` §5 specifies "the registry projects at three widths (index → summary → full entry), the Astryx
 `--compact` idea, so an agent pulls only what fits its context." That is a correct and useful
-mechanism, and it describes a **budget** — successively more of the same thing. But a materializer's
-need and a selecting agent's need are not more-and-less of one thing; they are close to disjoint. A
-materializer wants all of `anatomy` and none of `ai`. A selecting agent wants all of `ai` and none of
-`anatomy`. Neither is a wider or narrower cut of the other.
+mechanism, and it describes a **budget** — successively more of the same thing. It is also scoped to
+*the registry*: §5's own field list is Wolosin's twelve (`when_to_use`, `avoid_when`,
+`common_partners`, `trigger_keywords`), which is selection material throughout, and §5's sibling
+bullets treat Code Connect and Storybook as separate per-audience projections. **So this section is
+filling a gap in `19` §5, not correcting an error in it** — §5 never proposed folding `anatomy` into
+the tiered registry, and reading it as though it had would be attacking a design nobody wrote.
 
-So **width and audience are two axes, not one.** The correction is small and it changes what gets
+The gap is that §5 addresses neither the materializer nor the building agent, and once you ask what
+*those* readers want the nesting breaks: a materializer wants all of `anatomy` and none of `ai`; a
+selecting agent wants all of `ai` and none of `anatomy`. Neither is a wider or narrower cut of the
+other.
+
+So **width and audience are two axes, not one.** The addition is small and it changes what gets
 built:
 
 - **audience** decides the *shape* of a projection — which fields it contains at all;
 - **width** decides the *depth* within one audience — index → summary → full, and it applies to the
   **selection surface only**, because that is the surface an agent must hold many members of at once.
 
-Collapsing them is how the token `.ai.json` got to 300 KB: one file, every field, one audience
-assumed. It is also how the answer would have gone wrong here, since the intuitive move — "put
-everything in a component `.ai.json` and offer a `--compact` flag" — makes every reader pay for the
-largest reader's needs and calls the mitigation a feature.
+One file, every field, one audience assumed is how the *token* `.ai.json` got to 300 KB, and it is
+the shape the intuitive answer here would take — "put everything in a component `.ai.json` and offer
+a `--compact` flag" — which makes every reader pay for the largest reader's needs and calls the
+mitigation a feature. Nobody has proposed that; it is named because it is the default a reader with
+only §5's widths in hand would land on.
 
 ## 4. The measurement: what a component costs, by slice
 
@@ -155,7 +164,13 @@ Whereas the index at ≈ 6 KB and the summary at ≈ 28 KB both fit in any worki
 left for the task. **The three widths are not an optimization to add later; at these numbers they are
 the difference between a surface an agent can use and one it cannot.**
 
-Two cautions on these numbers, so nobody quotes them past what they support:
+**How to reproduce them**, since an independent re-derivation landed ~0.6% off on the per-field sum:
+each slice row is `Buffer.byteLength(JSON.stringify(def[field]))` — the field's **value alone**, with
+no key name and no enclosing braces. The whole-set row is `JSON.stringify(def)`, which does carry
+every key name and every brace, so the two do not reconcile exactly and the remainder row absorbs the
+difference along with the identity fields. Percentages are of the whole-set total.
+
+Three cautions on these numbers, so nobody quotes them past what they support:
 
 - They are `JSON.stringify` byte counts of the def objects as authored. The projections do not exist,
   so this measures **the material a projection would be cut from**, not a projection. A real emitter
@@ -163,6 +178,9 @@ Two cautions on these numbers, so nobody quotes them past what they support:
 - `anatomy`'s 33% is over the six defs that have one. `text-field` has no `anatomy` block and is the
   most composition-heavy def in the set, so the share is if anything understated for a mature
   catalogue.
+- **Bytes are a proxy for context cost, not the cost itself.** Roughly four bytes to a token is a
+  rule of thumb, and the ratios here — 18×, 33%, 5.6% — are what the argument rests on, not any
+  absolute figure. Nothing downstream should treat a byte count as a token count.
 
 ## 5. What follows for the artifacts
 
@@ -239,12 +257,35 @@ one." **Closing the state vocabulary is the single highest-value schema change a
 catalogue grows**, and it is cheap now — seven defs' worth of `states` is 254 bytes total.
 
 **(b) A research brief precedes the def, with a fixed section list, and its unresolved parts land in
-the def rather than in a document.** The mechanism for the second half already exists and is
-currently used by one component: `notes.contested`, `notes.unverified`, `notes.evolution`. Button
-carries 1,407 bytes of it — three contested decisions and two open findings, each of which is a real
-adjudication with a named alternative. `icon-button` carries 192 bytes; `field-label` 201. That gap
-is not a fact about those components being simpler. It is the mechanism being used once and then
-not.
+the def rather than in a document.** The mechanism for the second half already exists —
+`notes.contested`, `notes.unverified`, `notes.evolution` — and it is used across the whole set, not
+by one component. Measured:
+
+| def | `contested` | `unverified` | `notes` bytes |
+|---|---|---|---|
+| `icon` | 3 | 1 | 812 |
+| `focus-ring` | 3 | 0 | 809 |
+| `button` | 3 | 2 | 1,407 |
+| `icon-button` | 1 | 0 | 192 |
+| `field-label` | 2 | 0 | 201 |
+| `field-message` | 1 | 0 | 147 |
+| `text-field` | 4 | 1 | 724 |
+
+**This table replaces a claim that was wrong, and the way it was wrong is the argument for §4's own
+method.** The first draft of this section read *"used by one component"*, citing Button's 1,407 bytes
+against `icon-button`'s 192 and `field-label`'s 201. The byte figures were correct and the conclusion
+drawn from them was not: 192 bytes is one tersely-written adjudicated decision, not an empty field.
+A reviewer caught it by reading the contents. §4 argues at length that a count cannot see what a
+payload contains; §7 then read a count and inferred the contents three sections later, which is the
+same defect `packages/tokens/README.md` records — *"the count was right and the output was broken."*
+
+The true reading is narrower and still useful. `contested` is populated everywhere and varies ~9× by
+bytes; `unverified` — the field that records *"we asserted this and have not checked it"* — is
+populated on **three of seven**. #810 (Button's anatomy promising a `minWidthMultiplier` that was
+never implemented) is exactly what that field exists to hold, and it was found by a sweep rather than
+by the mechanism. Whether the byte variance reflects genuinely different amounts of contested ground
+or uneven research depth **is not answerable from these numbers** — which is the argument for a brief
+with a fixed section list, since a fixed shape makes depth comparable instead of inferable.
 
 The brief's value is that it makes the *research* comparable, not just the output. `28` §2 is the
 model: a field survey across named systems, a convergence finding, a divergence finding, and an
@@ -252,12 +293,25 @@ explicit "where we differ, deliberately, and worth re-testing." That shape is re
 `32` is where the build learnings from each go.
 
 **(c) A gate over the catalogue, whose oracle is outside the catalogue.** The census in §4 is a
-candidate subject: a per-component byte census against an authored baseline, in the shape of
-`paint-census.json` — authored, not regenerated, so a component whose selection surface bloats past
-its budget fails rather than quietly widening the number. But note the trap `34` would catch:
-**a budget gate whose expectation is "the current size" cannot fail.** The oracle has to be an
-authored budget with a stated reason (*"the summary width must stay under N KB because that is what
-fits alongside a task"*), not a snapshot. Get that wrong and it is shape 1 again, reported as a pass.
+candidate subject: a per-component byte census against a budget, so a component whose selection
+surface bloats past what an agent can hold fails rather than quietly widening a number.
+
+**Borrow `paint-census.json`'s mechanism and not its semantics, and the distinction is the whole
+section.** Its *mechanism* is right to copy: an authored file, deliberately not a regen artifact,
+rewritten only by an explicit `--accept`, so the thing being checked cannot rewrite what checks it.
+Its *semantics* are wrong to copy, and `lint-paint.ts`'s own header says so — `paint-census.json` is
+a **characterization**, pinned to whatever was true when someone wrote it down, *"never 'this is
+right'"*. That is legitimate there, because a uniform paint loss crosses no intent boundary and there
+is no authored answer to compare against. It is not legitimate here, because there **is** an authored
+answer: a budget is a claim about what an agent can hold alongside a task, and §4 measures the
+numbers to set it from.
+
+So the trap, stated plainly: **a budget gate whose expectation is "the current size" cannot fail.**
+It ratifies today's payload as correct by definition and reports that as a pass — `34` shape 1. The
+oracle has to be an authored budget carrying its reason (*"the summary width stays under N KB because
+that is what fits alongside a task"*), against which today's measurement is the SUBJECT. Copying the
+census file's shape without copying that distinction builds precisely the anti-pattern this paragraph
+disclaims.
 
 ## 8. What blocks impose, and why it lands now rather than later
 
