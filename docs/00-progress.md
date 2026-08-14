@@ -148,6 +148,22 @@ observe another checkout's `node_modules`, and a gate that could would need a se
 guard here is the protocol. One incident, and the counter is in the entry so the next person can see what
 the number actually is.
 
+**AND THE FINDING OUTGREW THAT INCIDENT (follow-up, #849).** *A hazard documented from one direction reads
+as fully documented, so the reader stops* is the same shape as **#849**, filed the same day from an
+unrelated lane: the US-English carve-out states reasoning about *any module that can reach a bundle* and
+then names one directory, leaving **58 en-GB instances** across six component defs behind a rule whose own
+argument covers them. Two instances, both in `CLAUDE.md`, both correct about what they say, both read by
+the person who then hit the hazard. Written up as its own `docs/32` entry with the remedy — **a rule names
+its own boundary, or it will be read as closed** — and both paragraphs now mark their open edge instead of
+implying a closed list. Tagged `[SKILL]`, not `[GATE]`, with the reason stated: no gate can compare a
+paragraph's reasoning against its scope, and the nearest mechanical proxy would fire on every
+correctly-specific rule in the file.
+
+**One measurement corrected in passing, and it is the kind that gets quoted.** #849's table reports **53**
+latent spellings; it counted `grep -c` **lines**. Instances are **58** — `button.ts` is 17 lines carrying 20
+— confirmed at `d6c0d42` (#849's own ref) as well as at current `main`, so the difference is method, not
+drift. A latent-surface figure is exactly what a later reader cites without re-measuring.
+
 ---
 
 ## (2026-08-14) — The pending spinner takes whichever visual cell exists, and centers on what it covers
