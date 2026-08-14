@@ -1,0 +1,22 @@
+{
+  "$comment": "AUTHORED BASELINE — the number-to-title binding for docs/34-gate-independence.md's sub-shapes. Not a regen artifact, for the reason in lint-shape-index.ts's header: regenerated from the document, it would rewrite itself to agree with a renumber and report that as a pass. Append with `npx tsx packages/engine/lint-shape-index.ts --accept`, which appends only and refuses to rewrite an existing binding. Changing a binding is a HAND edit, and the PR that makes it owes the ~58 citations an update.",
+  "policy": "append-only",
+  "document": "docs/34-gate-independence.md",
+  "shapes": [
+    { "n": 1, "title": "The gate reads the declaration it is checking" },
+    { "n": 2, "title": "The subject and the oracle share a derivation (the DRY trap)" },
+    { "n": 3, "title": "The obvious fix inherits the hole" },
+    { "n": 4, "title": "The oracle measures a constant" },
+    { "n": 5, "title": "\"It resolves\" instead of \"it is right\"" },
+    { "n": 6, "title": "A gate allowed to rewrite what it reads" },
+    { "n": 7, "title": "A string-anchored mutation stolen by a duplicate" },
+    { "n": 8, "title": "The gate written from the same mental model as its subject" },
+    { "n": 9, "title": "The detector is anchored on a name its subject can move" },
+    { "n": 10, "title": "The oracle measures today's symptom instead of the rule" },
+    { "n": 11, "title": "Both SIDES of the comparison share the subject" },
+    { "n": 12, "title": "The REACHABILITY PROBE reads the code it is probing" },
+    { "n": 13, "title": "The scope is the whole document; the promise is one section" },
+    { "n": 14, "title": "The threshold sits below the defect the gate was written for" },
+    { "n": 15, "title": "The comparison is correct; the set it walks excludes the hard cases" }
+  ]
+}
