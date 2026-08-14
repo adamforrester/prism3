@@ -95,11 +95,22 @@ expected, not a discrepancy: it enumerates declared coordinates, and no coordina
 The census is an **authored** baseline, so this needed an explicit `--accept`; that friction is what made
 measuring the delta per-shape the cheap path instead of the diligent one.
 
-**One thing left open, deliberately.** `#848`'s issue number is not `#841`; the code comments were
-first written citing 841 and renumbered once the issue was filed, because 841 was already an unrelated
-closed issue. Nothing in the repo binds a comment's issue citation to a real issue — `docs/34`'s shape
-citations have `lint-shape-index.ts` and issue numbers have nothing. Not filed as a gate: a shape-9
-hazard with no recorded incident, and the same argument that kept #786 small applies here.
+**One thing left open — and it is not "no incidents," which is what this entry first said.** `#848`'s
+issue number is not `#841`; the code comments were first written citing 841 and renumbered once the
+issue was filed, because 841 was already an unrelated closed issue. Nothing in the repo binds a
+comment's issue citation to a real issue — `docs/34`'s shape citations have `lint-shape-index.ts` and
+issue numbers have nothing. This first went down as a shape-9 hazard *with no recorded incident*,
+borrowing the argument that kept `#786` cheap. **That premise was false when it was written.** Three
+independent instances landed the same day, each verified against the API rather than assumed: the
+emitter lane's placeholders `#829`–`#833` were all real unrelated issues (829/830/831 open, 832/833
+closed); `#101` cited a closed web-tab issue that was wrong the day it was written, and `#72` resolved
+against **TokenPress's** tracker rather than ours; and this one. Eight more foreign-namespace sites have
+since been measured. So the status is **being measured under task 5**, not *never happened* — and the
+honest outcome may still be review discipline rather than a tool, which is a different conclusion
+reached for a true reason. Note the shape of the error, because it is the one this week has been about:
+a hazard's incident count is a **claim about the world**, and recording it as a *reason* without
+checking makes the reason unfalsifiable by whoever reads it next. `docs/34`'s own shape-number row
+stays as it is — those citations genuinely have never fired, and it is a different subject.
 
 ---
 
