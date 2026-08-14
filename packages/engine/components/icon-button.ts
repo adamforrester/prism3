@@ -188,6 +188,9 @@ export const iconButton: ComponentDef = {
         when: 'focus-visible',
         nests: 'focus-ring',
         inset: 'ring-offset',
+        // Identical to Button's, and for the identical reason (#801) — the ring's inside-drawn stroke
+        // consumes the offset, so the gap needs both numbers. See `PartDef.strokeInset`.
+        strokeInset: 'ring-width',
         // `nest-fixed`, naming the variant (#681). NOT inherited from the ring set's default, which is
         // its first child and therefore an artifact of creation order — #656's inherit-vs-choose error
         // one layer out, and equally invisible here because both variants are valid rings and nothing
@@ -201,7 +204,7 @@ export const iconButton: ComponentDef = {
     },
     codeOnly: [
       'touch-target-expansion — the same decoupling of the optical box from the hit box Button records, and the one component where it matters MOST: `size=small` is a 32px (aurora) / 40px (nb, wendys) square, so the optical box is at or below the Apple HIG 44×44 floor at every brand and below it at one. Figma has no concept of a hit area larger than the frame, so the expansion cannot project and the emitted small square is the optical size only. A designer measuring it in Figma is reading the wrong box.',
-      'focus-ring-offset — the ring GEOMETRY projects (an absolute sibling nesting the shared `focus-ring`), and its offset is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` to a number and writes it. A brand changing its ring offset re-themes every bound paint and does not move an already-pasted ring. The `:focus-visible` CONDITION is likewise unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
+      'focus-ring-offset — the ring GEOMETRY projects (an absolute sibling nesting the shared `focus-ring`), and its position is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` AND `focus.ring.width` to numbers and writes their sum (#801 — the ring\'s stroke draws INSIDE its own bounds and would otherwise consume the whole gap). A brand changing either value re-themes every bound paint and does not move an already-pasted ring; nor does a REBUILD, which finds the set by name and skips each member by name, so a corrected position needs the existing set deleted or a fresh page. See `button`\'s entry — the caveat is general to any geometry change, not to the ring. The `:focus-visible` CONDITION is likewise unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
       // The phrase "a Figma node" ends this clause with a DASH rather than a colon, and that is not a
       // style preference (#804). This def's prose is bundled into `apps/plugin/dist/main.js` as string
       // content, and both CI and `build.mjs` assert that file contains no Node builtin import by grepping

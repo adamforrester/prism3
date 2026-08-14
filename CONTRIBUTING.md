@@ -237,43 +237,63 @@ npx tsx packages/engine/lint-schema-classification.ts  # every file in packages/
                                                     # moving a prose-carrying file to EXEMPT passes,
                                                     # which is what each entry's `why` is for
 npx tsx packages/engine/lint-absolute-inset.ts      # an absolutely-positioned part carrying an `inset`
-                                                    # lands OUTSIDE its parent (#801, the first
-                                                    # instance of #802). Button's focus ring shipped
+                                                    # leaves a VISIBLE GAP between itself and its
+                                                    # parent (#801, the first instance of #802) — the
+                                                    # GAP, not the coordinate, and that distinction is
+                                                    # the whole finding. Button's focus ring shipped
                                                     # FLUSH against the component. Both causes #801
-                                                    # named were wrong — measured against the real
-                                                    # executor over the real 648-member set, the
-                                                    # lookup RESOLVES (0 misses) and its miss path is
-                                                    # reachable and COUNTED (108 misses with the
-                                                    # variable removed). What was missing is that
-                                                    # nothing read the NUMBER. An offset of 0 is an
-                                                    # error at no layer it passes: a valid FLOAT,
-                                                    # binding nothing (Figma's x/y take no variable, so
-                                                    # it travels as a NAME frozen to a literal at
-                                                    # paste), writing without throwing, producing a
-                                                    # structurally perfect component — right
-                                                    # positioning, constraints and paints, 0 misses,
-                                                    # ring on the border it must be distinguished
-                                                    # from. EXPECTED walks the DEF (part → inset key →
-                                                    # tokens → ref → variable name, restating the
-                                                    # convention rather than calling `varOf`); ACTUAL
-                                                    # is the plan's absoluteInset and the FLOAT it
-                                                    # resolves to in each brand's COMMITTED export.
-                                                    # It does NOT re-derive the executors' arithmetic:
-                                                    # test.ts compares that against its own stub's
-                                                    # inset and fails by name at 0, and its parity
-                                                    # gate holds the plugin executor to the payload.
+                                                    # named were wrong, AND SO WAS THE THIRD: the
+                                                    # offset resolves (0 misses over the real
+                                                    # 648-member set), its miss path is reachable and
+                                                    # COUNTED (108 misses with the variable removed),
+                                                    # and `focus.ring.offset` is 2 in every brand — so
+                                                    # "nothing read the NUMBER" was measured and false.
+                                                    # The actual cause, found by comparing against the
+                                                    # Prism2 reference (which sites the same ring at
+                                                    # -4, not -2): strokeAlign is INSIDE at both
+                                                    # executors — correct for a border, since an
+                                                    # outside stroke grows the auto-layout footprint —
+                                                    # so the ring's own 2px stroke is drawn back inward
+                                                    # across the whole 2px gap. Visible separation =
+                                                    # offset − strokeWidth = ZERO, from a component
+                                                    # that is otherwise perfect: right positioning,
+                                                    # constraints and paints, 0 misses. NOTHING
+                                                    # ANYWHERE KNEW THE RING CARRIED A STROKE.
+                                                    # EXPECTED walks the DEF (part → inset + strokeInset
+                                                    # keys → tokens → refs → variable names, restating
+                                                    # the convention rather than calling `varOf`), and
+                                                    # asks the NESTED def whether it draws inward, so a
+                                                    # host cannot answer that about itself; ACTUAL is
+                                                    # the plan's absoluteInset/absoluteStrokeInset and
+                                                    # the FLOATs they resolve to in each brand's
+                                                    # COMMITTED export. C computes gap = offset − stroke
+                                                    # and re-derives it from the sited coordinate, so a
+                                                    # compensation applied backwards fails even though
+                                                    # offset > 0 still holds. It does NOT re-derive the
+                                                    # executors' arithmetic: test.ts compares that
+                                                    # against its own stub's two inputs, including an
+                                                    # unequal-halves case a doubling could not produce.
                                                     # Both directions, so it cannot pass over an empty
                                                     # set — every declared inset part must be
-                                                    # REPRESENTED, and one gated by `when:` must carry
-                                                    # its inset at that state and NO other. A
-                                                    # legitimately-zero offset (ring.offset-field is 0
-                                                    # by design) is admitted in ZERO_OK with a reason:
-                                                    # AUTHORED, same argument as payload-manifest.json
-                                                    # — a gate choosing its own exemptions would have
-                                                    # waved #801 through. Its LIMIT: no browser and no
-                                                    # Figma file, so a host that accepts a write and
-                                                    # discards it is caught by the executors' own
-                                                    # read-backs, not here (#802's Figma half is open)
+                                                    # REPRESENTED, one gated by `when:` must carry its
+                                                    # inset at that state and NO other, and
+                                                    # MUST_CLEAR_STROKE asserts the compensation was
+                                                    # EXERCISED (without it the arithmetic degrades to
+                                                    # gap = offset — #801 exactly — and every other
+                                                    # check still passes). A legitimately-zero gap
+                                                    # (ring.offset-field is 0 by design) is admitted in
+                                                    # ZERO_OK with a reason: AUTHORED, same argument as
+                                                    # payload-manifest.json — a gate choosing its own
+                                                    # exemptions would have waved #801 through. Its
+                                                    # LIMIT: no browser and no Figma file, so a host
+                                                    # that accepts a write and discards it is caught by
+                                                    # the executors' own read-backs, not here (#802's
+                                                    # Figma half is open). And the LESSON, docs/34
+                                                    # shape 16: this gate's FIRST version was fully
+                                                    # independent, falsifiable, and measured the wrong
+                                                    # quantity — it printed a pass on the shipped ring
+                                                    # while test.ts's parity gate confirmed both
+                                                    # executors agreed on the same wrong formula.
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

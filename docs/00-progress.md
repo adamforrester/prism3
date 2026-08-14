@@ -7,6 +7,153 @@
 
 ---
 
+## (2026-08-14) — The ring was at the coordinate its plan intended, and the gap was zero (#801, second pass)
+
+**STATUS: shipped.** The flush focus ring is fixed for real. `regen --check` still reports **104** —
+`absoluteInset` is plan-only and travels in no emitted artifact, so a geometry correction moves no
+committed byte, which is worth knowing before anyone tries to verify this from `out/`. `verify.ts`
+reports **32/32**. Filed #827 out of it.
+
+### What was actually wrong
+
+Yesterday's entry (2026-08-13, immediately below) closed on a diagnosis: both causes the issue named
+were measured and wrong, and what was missing was that *nothing read the resolved number* — an offset
+of `0` being an error at no layer. **That diagnosis was also wrong,** and its own two measurements say
+so if you read them with one more fact in hand: the ring measured at `(-2,-2)`, 2px larger on every
+side, and `focus.ring.offset` is **2** in every brand. Nothing was zero. The plan's stated intent was
+satisfied exactly, and the designer was still looking at a ring sitting on the border.
+
+Adam found it by opening **Prism2** — the hand-built library this engine's output is measured against —
+next to the built file. Same 2px stroke, same 2px intended gap, and Prism2's ring sits at **x = -4,
+y = -4, size = host + 8**. Ours at `-2` / host + 4.
+
+The missing 2 is the ring's own stroke. Both materializers set `strokeAlign: 'INSIDE'`
+(`anatomy-figma.ts:1381`, `write-components.ts:635`), which is **correct** and not the bug — an
+outside-aligned stroke grows the auto-layout footprint, so a border has to be inside. But it means a
+ring positioned at `-offset` has its 2px stroke drawn *back inward across the whole 2px gap*: outer
+edge lands exactly on the host's border, **visible gap = `offset − strokeWidth` = 0.**
+
+And this is a Figma-specific divergence rather than a porting slip, which is what decided where the
+fix goes. In CSS `outline-offset` measures from the border edge and the outline grows *away* from it,
+so the gap and the coordinate are the same number and `2` is right. The code leg was never wrong.
+
+### Where the arithmetic lives, and why not in the token
+
+The obvious fix — a derived `focus.ring.inset = 4` — was proposed and **rejected**. It would be
+correct for exactly one projection and a trap for every other consumer who found the name: a Figma
+compensation sitting in the platform-neutral tree, against `docs/19` §1. The precedent was already
+locked in `docs/05` (canonical value in `$value`, platform directive in `$extensions.prism3.figma`),
+and lineHeight's px-from-ratio is the same problem already solved that way.
+
+So `focus.ring.offset` stays **2** — canonical, and what the gap *is* — and the compensation lives in
+the materializer:
+
+- `PartDef.strokeInset` (`component-schema.ts`) — a second binding key naming the stroke the nested
+  component draws inward. **Separate from `inset` rather than folded into it**, because they have
+  different owners: `inset` is the brand's design decision, `strokeInset` is a fact about the nested
+  component's rendering that the host must compensate for. Summing them at *authoring* time is what
+  produces a token that is right for Figma and wrong for CSS — #801's defect one layer up.
+- `FigmaNodePlan.absoluteStrokeInset` (`anatomy-figma.ts`) — the plan carries **two names**, and both
+  executors sum them. Figma's `x`/`y` accept no variable binding, so these travel as names and freeze
+  to literals at paste; two names freeze exactly as one did (two `resolveForConsumer` reads and an
+  addition), so the `codeOnly` ceiling is unchanged.
+- `button.ts` / `icon-button.ts` gained `strokeInset: 'ring-width'`. Both defs already bound
+  `'ring-width': 'focus.ring.width'` — the width was in the def the whole time, reaching no node.
+
+**Shaped so #740 generalizes it, not so the ring is special-cased.** The emitter lane independently
+reported the same day that `focus-ring` is blocked on #740 (`PartDef` has no field for a part's own
+stroke, so it would project a strokeless ring) — the same missing field found from the opposite
+direction on the same day. The validator rule is deliberately narrow (`inset && nests === 'focus-ring'
+&& !strokeInset`) and written to be *replaced*: when #740 gives a part a stroke field, that field
+supplies this width, `inwardStrokeRef` in the gate reads it instead of the nested def's `width` token,
+and neither executor changes.
+
+### The docs/34 entry, which is the most valuable output
+
+`test-write-components.ts`'s repaired assertion — the fix for yesterday's shape-1 hole — expected the
+ring at exactly `-2`. And `lint-absolute-inset.ts`, the **new gate written specifically to cover
+#801**, asserted `off > 0` on the same coordinate and printed `✓ every declared inset part resolves to
+an offset that lands it outside its parent`. Both passed on the shipped defect.
+
+Neither was shape 1. EXPECTED and ACTUAL were genuinely independent in both, both were falsifiable,
+and both had negative controls that genuinely fired at offset 0. They were **measuring the wrong
+quantity**: the coordinate, when the property that matters is the gap, and the gap depends on a third
+quantity — the ring's inward stroke — that appeared in neither half of either derivation.
+
+`docs/34` **shape 16: fully independent, and measuring the wrong quantity.** It is the hardest shape
+to see precisely because the standard test for independence *passes*. Its tell is a question the other
+fifteen do not ask: *if this gate is green, what would a person see* — answered in the units they would
+see it in. A coordinate is not a distance; a count is not coverage; a ratio is not legibility. The
+smell is concrete: the gate's expected value is a number that appears verbatim in the plan, the def or
+the token, and here the artifact's vocabulary and the requirement's vocabulary were the same word
+(`inset`) for two different numbers.
+
+**The aggravating detail is the parity gate.** `test.ts` holds the plugin executor's absolutes loop to
+the emitted payload's, and it was green — so two independently-written implementations were pinned to
+each other by a third check and all three confirmed to agree, **on one wrong formula.** Agreement
+between independent implementations is evidence about *drift* and no evidence whatever about whether
+the formula is right. Worth stating plainly because a parity gate makes this shape *harder* to spot: it
+retires a question that is still open.
+
+And one thing this cost that generalizes past the shape: **#801 is now in the register twice for one
+visible defect.** A gate repaired against the shape you found is not a gate repaired — the repair
+inherits the original's idea of what was worth measuring. `docs/34`'s "In practice" list gained an
+eighth question and a note to re-ask the first one from scratch after any independence fix.
+
+### The gate now, and how it was verified
+
+`C` computes `gap = offset − stroke` and then **re-derives the gap back out of the sited coordinate**,
+so a compensation applied in the wrong direction fails even where `offset > 0` still holds. The stroke
+is read from the **nested def's own tokens** (`inwardStrokeRef`), so a host cannot answer the question
+about itself, and a host compensating for the *wrong* width is a distinct failure with its own message.
+
+`MUST_CLEAR_STROKE` is a second scope floor, **deliberately not derived from `MUST_COVER`**: the whole
+check degrades silently to `gap = offset` — #801's arithmetic exactly — the moment the plan stops
+carrying the second name, and every other assertion passes straight through that. The two floors fail
+for different reasons (a part that stopped being projected vs. a part still projected whose stroke
+stopped being modeled) and only the first is visible in the coverage set, so deriving one from the
+other would delete the second.
+
+Three mutations, each confirmed to fail **by name**:
+
+| mutation | what fired |
+|---|---|
+| drop `strokeInset` from `button.ts` (the exact shipped defect) | 4 failures — 3 coordinates naming `focus.ring.width` and the #801 consequence, plus `COMPENSATION NOT EXERCISED` |
+| projector stops emitting `absoluteStrokeInset` | 6 failures — the def/plan disagreement per coordinate, plus both `MUST_CLEAR_STROKE` floors |
+| gate computes `gap − stroke` instead of `gap + stroke` | fails on the derived-gap line only — `gap 2 + stroke 2` is unchanged and positive, so **this is the mutation the old version could not see** |
+
+Test harnesses: both stubs resolved `resolveForConsumer` without reading the variable *name*, so
+`gap + stroke` was indistinguishable from `2 × gap`. Both now resolve per name, with a `varOverrides`
+hook and an **unequal-halves** case (gap 5, stroke 1 → −6, where a doubling gives −10 or −2). The
+plugin suite gained a second negative control that reproduces the geometry that actually shipped
+(`focus/ring/width: 0` → ring at `-2`) and confirms the checker catches it by name. Engine suite
+**2200 passed / 0 failed**.
+
+### #827, and the half of the migration note that was missing
+
+The `codeOnly` note said a brand changing its ring offset does not move an already-pasted ring, and
+that a rebuild is the only thing that does. True and **incomplete**: a rebuild over an existing set
+writes nothing. `write-components.ts:740` finds the set by name on the current page, `:769-773` skips
+each member by name, and `apply-summary.ts:67-70` reports `✓ already built`. The skip branch never
+calls `build`, so following the note as written produces a **green verdict and an unchanged file.** Both
+defs' notes now say to delete the set or build onto a fresh page.
+
+Filed as **#827** and scoped wider than the ring, because the ring is one instance: **name-based
+idempotence cannot distinguish "already built correctly" from "built by an older engine,"** so any
+geometry, paint, constraint or layout change silently fails to apply to an existing set while the
+plugin reports success. Variable-bound paints are the exception — those re-theme, because the binding
+is what was written. The issue deliberately does **not** design the fix: content comparison, an
+engine-version stamp on the set, and an explicit `--force` have genuinely different costs, and that is
+a decision rather than an implementation detail.
+
+### What is still open
+
+`#802`'s Figma half. Everything here is the plan and the committed export — no browser, no Figma file.
+The live reproduction against a built set is **unrun**, and per #827 it now requires deleting the
+existing set first, which is exactly the trap the note was missing.
+
+---
+
 ## (2026-08-14) — The projector reads a declaration, and the def nearest to projecting was not the one the docs named (#795)
 
 **STATUS: shipped.** `figmaProperties.variantAxes` is now the **exhaustive** statement of which axes a def

@@ -677,6 +677,76 @@ for exactly this refactor. Behavior never moved, so the run proved nothing about
 non-mutation is indistinguishable from a blind spot until you read *why* it passed. **Confirm the thing
 you mutated is the thing that decides.**
 
+### 16. Fully independent, and measuring the wrong quantity
+
+Every shape so far weakens the *comparison* — the sides collapse into one derivation, or the set excludes
+the hard cases, or the threshold sits below the defect. This one has none of those problems. **Both sides
+are genuinely independent, the mutation moves the measurement, the negative control fires — and the
+number being compared is not the number anyone cares about.** It is the hardest shape to see precisely
+because the standard test for independence *passes*.
+
+`#801` is the instance, and it is the second defect in the same subject, which is what makes it worth
+reading. Button's focus ring shipped **flush against the border WCAG 1.4.11 asks it to be distinguishable
+from**. The first diagnosis found a shape-1 hole (register row above: `if (ring.x >= 0) continue`, then
+`off = -ring.x`) and repaired it — the part told apart by the *plan's* `absoluteInset`, EXPECTED read from
+the variable the stub resolved, a negative control that genuinely fired at offset 0. A new gate,
+`lint-absolute-inset.ts`, was written alongside it: EXPECTED from the **def** (`inset` key → `def.tokens`
+→ the naming convention), ACTUAL from the **plan** and the **committed emitted export**. Two walks,
+neither reading the other. Three named shortcuts refused in the header.
+
+**Both then reported a pass on the shipped defect.** The repaired plugin assertion expected the ring at
+exactly `-2`; the new gate asserted `off > 0` and printed *"✓ every declared inset part resolves to an
+offset that lands it outside its parent"*. `-2` **is** the flush geometry. `focus.ring.offset` is 2 in
+every brand, it resolved, it wrote, it reported 0 misses, and the component was structurally perfect.
+
+The quantity nobody measured: a materializer sets `strokeAlign: 'INSIDE'` — correct for a border, since an
+outside stroke grows the auto-layout footprint — so the ring's own **2px stroke is drawn back inward
+across the whole 2px gap**. The visible separation is `offset − strokeWidth`, and at the shipped 2/2 that
+is **zero**. Both halves of both gates modeled the plan's *coordinate*; the property that matters is the
+*gap*, and the gap depends on a third quantity — the nested component's inward stroke — that appeared
+nowhere in either derivation. Found by comparing against **Prism2**, the hand-built library the engine's
+output is measured against, which sites the same ring at `-4` / host + 8. Found by a human looking at two
+files side by side; by no gate.
+
+**The aggravating detail, and the part to generalize from.** `test.ts` carries a **parity gate** holding
+the plugin executor's absolutes loop to the emitted payload's. It was green. So the record is: two
+independently-written implementations, pinned to each other by a third check, all three agreeing — **on
+one wrong formula.** Agreement between independent implementations is evidence about *drift*, and no
+evidence whatever about whether the formula is the right one. A parity gate raises confidence in exactly
+the way that makes this shape harder to spot, because it retires the question that felt open.
+
+**Why no other shape catches it.** EXPECTED was not derived from ACTUAL (not 1, 2, 11). The measurement
+moves under mutation and the negative control fired (not 4, 12). The scope was declared with a floor and
+represented (not 13, 15). The threshold was 0, and correct for the quantity it was applied to (not 14).
+It measures a real emitted artifact, not a proxy (not 5, 10). **The gate was well-built, and the plan's
+own stated intent was substituted for the requirement.**
+
+**Tell:** ask *"if this gate is green, what would a person see?"* — and answer in the units they would
+see it in. A gate that asserts a **coordinate** when the requirement is a **distance**, a *count* when the
+requirement is *coverage*, a *ratio* when the requirement is *legibility on a screen*, has quietly
+adopted the subject's account of what it is doing as the specification. The specific smell: the gate's
+expected value is a number that appears verbatim in the plan, the def or the token — `-inset` when the
+brand asked for `inset` of background. When the artifact's own vocabulary and the requirement's
+vocabulary are the same word, check whether they are the same *number*.
+
+**Fix:** derive the checked property from the **physical inputs**, not from the intent. `C` now computes
+`gap = offset − stroke` and re-derives the gap back out of the sited coordinate, so a compensation applied
+in the wrong direction fails even though `offset > 0` still holds (mutated: `gap + stroke` → `gap −
+stroke` keeps every other assertion green and fails on that line alone). The stroke is read from the
+**nested def's own tokens**, so the host cannot answer the question about itself, and a host compensating
+for the *wrong* width is a distinct failure with its own message. And because the whole check degrades
+silently to `gap = offset` — #801's arithmetic — the moment the plan stops carrying the compensation,
+there is a second floor, `MUST_CLEAR_STROKE`, asserting the compensation path was **exercised** and not
+merely available: deliberately *not* derived from `MUST_COVER`, because a part that stopped being
+projected and a part still projected whose stroke stopped being modeled fail for different reasons and
+only the first is visible in the coverage set.
+
+**And one thing this shape says about the register itself.** #801 appears twice in it — once as shape 1,
+once here — for one visible defect. A gate repaired against the shape you found is not a gate repaired.
+After fixing an independence hole, re-ask the *first* question in the list below from scratch, because the
+repair inherits the original's idea of what was worth measuring. That is shape 3 pointed at the oracle's
+subject rather than at its derivation.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -772,7 +842,8 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 | 2026-08-14 | `anatomy-figma.ts` empty-projection gate (#795) | 14 | the gate **the ticket asked for**, unreachable, at `2220 passed, 0 failed` with the throw neutered. `if (plans.length === 0) throw` was written on a real measurement — under the *old* nested loops, `figmaAnatomySet(fieldMessage, { variantAxes: [] })` did return OK with 0 plans — and **the same PR** rewrote that function into a cartesian fold where `one<T>()` maps an absent or empty axis to `[undefined]`, so the product of nothing is one empty coordinate and the set returns **1 plan named `""`**. Zero stopped being reachable in the diff that motivated the check. Shape 14 rather than 4 because the quantity moves and reports truly; the **comparison point** sits where no member of the population can land — and shape 14's own tell is what found it, once run: feed the gate the defect it was written for. Fixed by asking for what genuinely cannot be true (a member with **no variant coordinate at all**) of `planComponentName`'s *output*, not by re-reading `variantAxes` |
 | 2026-08-14 | `test.ts` empty-projection `throws` tests (#795) | 5 | **both** tests for the gate above passing while the gate did not exist — satisfied by Button's unrelated *size* guard throwing first. `did it throw` is a truthiness check on a failure, so it cannot distinguish the throw it names from any other on the same call. Both now match by **message**, over a `focus-ring` copy chosen because it has no size axis and so no other guard can stand in. The same PR's sizeless-plan mutation confirms the discipline pays: it fired only because the assertion refused the substitute throw (`size.undefined.type`) |
 | 2026-08-14 | `test.ts` `cellOf` anti-vacuity guard (#795) | sweep | a length guard against an empty payload slice, present and correct, reporting **nothing** — written as extract → compile → assert, the empty source compiled to a body returning an undeclared name and the suite died with `ReferenceError` at exit 1 before one `❌` printed. #680's *"a crashing assertion is not a failing one"* one file over, and the sweep half of it: the lesson was recorded here and the shape still shipped, because a guard against vacuity is itself ordered code. **Assert while it can still be reported; compile once it holds.** |
-| 2026-08-13 | `test-write-components.ts` ring geometry (#801) | 1 | a focus ring **flush against the border it exists to be distinguishable from**, printing `✓ the focus ring is absolute, 2px larger on EVERY side, at a negative origin, and STRETCHed` — whole plugin suite green, measured. Two lines, four apart: `if (ring.x >= 0) continue` used the negative origin to tell an inset part from a centered one, so **the one state the check exists to catch is the one state it classifies as "not my subject"**; then `off = -ring.x` read EXPECTED off the node under test, making `width === parent + off*2` assert `0 === 0`. The value itself was covered by nothing anywhere — an offset of `0` is a valid FLOAT that binds nothing, writes without throwing, reports no miss, and builds a structurally perfect component, so no layer below the assertion saw an error. The engine-side twin of the same check DID fail by name, which is what located it |
+| 2026-08-14 | `lint-absolute-inset.ts` + the *repaired* `test-write-components.ts` ring check (#801, second pass) | 16 | the **same flush focus ring**, past both the fix for the row below it and a brand-new gate written to cover it. The repaired plugin assertion expected the ring at exactly `-2`; the new gate asserted `off > 0` on the same coordinate and printed `✓ every declared inset part resolves to an offset that lands it outside its parent`. `-2` **is** the flush geometry: `strokeAlign: 'INSIDE'` draws the ring's own 2px stroke back inward across the whole 2px gap, so the visible separation is `offset − strokeWidth` = **0**. Both halves of both gates modeled the plan's *coordinate*; the requirement is a *gap*, and it depends on a third quantity — the nested component's inward stroke — that appeared in neither derivation. Everything the standard independence test asks for was satisfied. **Aggravating:** `test.ts`'s parity gate was green, so two independent implementations were pinned to each other and confirmed to agree — on one wrong formula. Found by comparing against **Prism2** (`-4` / host + 8 for the identical ring), by a human, not by any gate |
+| 2026-08-13 | `test-write-components.ts` ring geometry (#801, first pass — and see the row above: this repair inherited the wrong quantity) | 1 | a focus ring **flush against the border it exists to be distinguishable from**, printing `✓ the focus ring is absolute, 2px larger on EVERY side, at a negative origin, and STRETCHed` — whole plugin suite green, measured. Two lines, four apart: `if (ring.x >= 0) continue` used the negative origin to tell an inset part from a centered one, so **the one state the check exists to catch is the one state it classifies as "not my subject"**; then `off = -ring.x` read EXPECTED off the node under test, making `width === parent + off*2` assert `0 === 0`. The value itself was covered by nothing anywhere — an offset of `0` is a valid FLOAT that binds nothing, writes without throwing, reports no miss, and builds a structurally perfect component, so no layer below the assertion saw an error. The engine-side twin of the same check DID fail by name, which is what located it |
 | 2026-08-13 | both prose gates' `schema/` scope (#807) | scope | three authored files — `payload-manifest.json` (a `why` on **every** rule), `nb-measured.json`, `theme-schema.example.json` — in **neither** `lint-us-english.ts` nor `lint-voice.ts`, both printing `✓ clean` over a file count that never included them. Two files in the same directory, one covered and one not, are indistinguishable from outside |
 | 2026-08-13 | `gate.ts` types arm path set (#747, under #697) | 15 | a retyped **axis-collapsed** path (`grid.<breakpoint>.<prop>` vs `grid.<prop>`) green, because the arm walked `prism3 ∩ tokenpress` and the paths the harness writes *pairing rules* for never appear verbatim on both sides — **71–73 per brand, ~14% of the paired surface**; the same mutation on a verbatim-pairing path fired 66 failures |
 | 2026-08-13 | `font-fluid.*` pairing rule prose (#747) | 15 | an authored `reason` claiming "a second copy of the composite" for what is the composite's `fontSize` **referent** — read several times, and only falsified once a check existed that could contradict it |
@@ -849,6 +920,14 @@ gives:
    header cites and feed it in. If it passes, the number is wrong — and if no number separates that
    case from the legitimate values beneath it, the answer is a classifier rather than a larger number
    (shape 14).
+8. **If it is green, what would a person see?** Answer in the units they would see it in, and check
+   that is the quantity the gate compares. A coordinate is not a distance; a count is not coverage; a
+   contrast ratio is not legibility on a screen. Every question above can be answered correctly by a
+   gate measuring the wrong thing — and a *parity* check between implementations makes this harder to
+   spot, not easier, because agreement retires the question that is still open (shape 16).
 
-And when a gate's duplication looks like something to tidy up, the comment beside it should already
-say why it isn't. If it doesn't, add that before the cleanup finds it.
+And two things about repairs, both from #801, which is in the register twice for one visible defect.
+Re-ask question 1 from scratch after fixing an independence hole: the repair inherits the original's
+idea of what was worth measuring, so a gate fixed against the shape you found is not a gate fixed. And
+when a gate's duplication looks like something to tidy up, the comment beside it should already say why
+it isn't. If it doesn't, add that before the cleanup finds it.

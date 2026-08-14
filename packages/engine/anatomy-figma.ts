@@ -142,6 +142,36 @@ export type FigmaNodePlan = {
    *  is admitted in `codeOnly`. Carrying the name also keeps this value inside `planBindingErrors`,
    *  instead of it being the one geometry binding in the projection exempt from the emit gate. */
   absoluteInset?: string;
+  /** The variable name whose value must be ADDED to `absoluteInset` to leave a visible gap of
+   *  `absoluteInset` — the width of the stroke the nested component draws inside its own bounds.
+   *
+   *  THE FIGMA COMPENSATION, and #801 is why it exists. A materializer sets `strokeAlign: 'INSIDE'`
+   *  (correct for a border: the stroke must not grow the auto-layout footprint), so a ring positioned at
+   *  `-offset` has its stroke drawn back inward across the gap. At the shipped 2px offset and 2px ring
+   *  width the outer edge lands exactly on the host's border and the gap is ZERO — the one position WCAG
+   *  1.4.11 says a focus indicator must not take, produced by a projection that applied its offset
+   *  correctly. Nothing anywhere modeled the stroke, so the number that mattered was never computed.
+   *
+   *  A SECOND NAME rather than a summed number or a derived token, each alternative rejected for a stated
+   *  reason. A number summed at plan time breaks the brand-invariance the sibling field's own doc exists
+   *  to preserve. A derived `focus.ring.inset` token would put a Figma compensation in the
+   *  platform-neutral tree, against docs/19 §1: `focus.ring.offset` is 2 because 2 is what CSS wants and
+   *  what the gap IS, so a token valued 4 is correct for this projection and a trap for every other
+   *  consumer who finds the name. The precedent is docs/05 — canonical value in `$value`, platform
+   *  directive in `$extensions` — and lineHeight's px-from-ratio is the same problem already solved that
+   *  way. So the arithmetic lives HERE, in the materializer, against the projection it corrects.
+   *
+   *  Both names freeze to literals at paste exactly as one did: two `resolveForConsumer` reads and an
+   *  addition. So this changes nothing about the ceiling in `codeOnly` — an already-pasted ring still does
+   *  not move when a brand re-themes, and a rebuild over an existing set writes nothing at all (#821).
+   *
+   *  OPTIONAL, and its absence means the nested component draws nothing inside its bounds: such a part is
+   *  positioned at exactly `-absoluteInset`, which is right. Ring-specific today only because
+   *  `focus-ring` is the only part kind carrying a stroke of its own; when #740 gives `PartDef` a stroke
+   *  field it supplies this width and neither executor changes. In `readVarsOwn` for the same reason the
+   *  sibling is — a name this projection references without binding, and an unresolvable one silently
+   *  returns the ring to flush. */
+  absoluteStrokeInset?: string;
   /** Taken out of the auto-layout flow and CENTERED on its parent, rather than inset from its bounds.
    *
    *  A separate field from `absoluteInset` even though both end in `layoutPositioning='ABSOLUTE'`,
@@ -722,6 +752,9 @@ export const figmaAnatomyPlan = (
       // keeps an exposed nest from being silently pinned by its own projection.
       ...(p.kind === 'absolute' && p.nesting?.kind === 'nest-fixed' ? { nestVariant: p.nesting.variant } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
+      // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
+      // nothing to correct, and the schema rejects that shape before the projection sees it.
+      ...(p.kind === 'absolute' && p.inset && p.strokeInset ? { absoluteStrokeInset: varOf(p.strokeInset) } : {}),
       // The out-of-flow half of the #612 fix, on the two nodes it concerns: the overlay is centered
       // absolutely, and the part it covers holds its cell at zero opacity. Both are keyed off
       // `overlaidPart`, so when the overlay lands on a real cell (`replaces` present) neither appears
@@ -913,15 +946,21 @@ export const planBoundVars = (n: FigmaNodePlan): string[] =>
 const paintVarsOwn = (n: FigmaNodePlan): string[] =>
   [n.paints?.fills, n.paints?.strokes, n.descendantFills].filter((x): x is string => !!x);
 
-/** Every variable name a plan REFERENCES without binding — today just `absoluteInset`, which Figma's
- *  `x`/`y` cannot bind but which the payload still resolves by name to read a value.
+/** Every variable name a plan REFERENCES without binding — the two geometry names Figma's `x`/`y`
+ *  cannot bind but which the payload still resolves by name to read values from.
  *
  *  Folded into `planBoundVars` rather than given a separate check, because the question the emit gate
  *  asks is "does this name exist in the emitted variables" and the answer does not depend on which
  *  setter consumes it. Keeping it out would have made the one geometry value on the new part kind the
  *  only one in the projection nothing verified — and an unresolvable inset silently positions a focus
- *  ring flush against the border it exists to be distinguishable from. */
-const readVarsOwn = (n: FigmaNodePlan): string[] => (n.absoluteInset ? [n.absoluteInset] : []);
+ *  ring flush against the border it exists to be distinguishable from.
+ *
+ *  `absoluteStrokeInset` is here for exactly that reason (#801): it is the second half of the same sum,
+ *  so an unresolvable stroke width returns the ring to flush just as surely as an unresolvable offset —
+ *  and both executors fall back to the offset alone when it misses, which is a legible ring rather than a
+ *  broken one, and therefore the kind of failure only a gate notices. */
+const readVarsOwn = (n: FigmaNodePlan): string[] =>
+  [n.absoluteInset, n.absoluteStrokeInset].filter((x): x is string => !!x);
 
 /** Every paint variable a plan binds, depth-first. Exported for the gate that asserts a skinned plan
  *  actually carries paints — the check that a coordinate resolved to something. */
@@ -1530,14 +1569,30 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // name rather than a number (the plan stays brand-invariant; the freeze happens here, per file).
     // \`resolveForConsumer\` rather than reading \`valuesByMode\`: the value is itself an ALIAS to a
     // dimension primitive, and the raw map hands back a VARIABLE_ALIAS object rather than a number.
-    const off=v.resolveForConsumer(kid).value;
-    if(typeof off!=='number'){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset+' resolved to '+JSON.stringify(off)+', not a number');continue;}
-    // Grown on every side: a ring at offset 2 sits 2px OUTSIDE its target, so it is 2×offset larger
-    // than the parent and starts at -offset.
+    const gap=v.resolveForConsumer(kid).value;
+    if(typeof gap!=='number'){misses.push(c.name+'.absoluteInset -> '+c.absoluteInset+' resolved to '+JSON.stringify(gap)+', not a number');continue;}
+    // THE STROKE THE GAP HAS TO CLEAR (#801). \`strokeAlign\` is INSIDE above — correct for a border,
+    // since a stroke outside would grow the auto-layout footprint — so the nested ring draws its own
+    // stroke back inward across the gap. At 2px offset and a 2px ring the outer edge lands exactly on the
+    // host's border: gap ZERO, which is the position WCAG 1.4.11 exists to forbid. So the coordinate is
+    // \`gap + strokeWidth\` and only the GAP is the design value. Absent means the nested component draws
+    // nothing inside its bounds, which is right for any absolute part that is not a ring.
+    let inset=gap;
+    if(c.absoluteStrokeInset){
+      const sv=byName.get(c.absoluteStrokeInset);
+      if(!sv)misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' (positioned at the offset alone; the ring will sit flush against the border it must be distinguishable from — #801)');
+      else{
+        const sw=sv.resolveForConsumer(kid).value;
+        if(typeof sw!=='number')misses.push(c.name+'.absoluteStrokeInset -> '+c.absoluteStrokeInset+' resolved to '+JSON.stringify(sw)+', not a number (positioned at the offset alone — the ring will sit flush, #801)');
+        else inset=gap+sw;
+      }
+    }
+    // Grown on every side by the full coordinate: the ring is 2×inset larger than the parent and starts
+    // at -inset, which leaves \`gap\` of visible background once the stroke is drawn inward.
     // \`resize\` is safe HERE and nowhere else in this payload: it clears dimension bindings, and an
     // absolute part binds none (its size IS the parent's, so \`bound\` is empty by construction — gated).
-    kid.resize(node.width+off*2,node.height+off*2);
-    kid.x=-off;kid.y=-off;
+    kid.resize(node.width+inset*2,node.height+inset*2);
+    kid.x=-inset;kid.y=-inset;
     // STRETCH on both axes so the ring tracks its target when a designer resizes a variant. Without it
     // the ring keeps the size it was pasted at and widening the button leaves it behind — silently,
     // because it looks correct at the one size it was built.

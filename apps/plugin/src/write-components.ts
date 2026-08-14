@@ -713,16 +713,34 @@ export const applyComponentPlan = async (
       // instead of a binding, and why the plan carries a name (it stays brand-invariant; the freeze
       // happens here, per file). `resolveForConsumer` rather than `valuesByMode`: the value is itself
       // an alias to a dimension primitive, so the raw map hands back a VARIABLE_ALIAS object.
-      const off = v.resolveForConsumer(kid).value;
-      if (typeof off !== 'number') {
-        misses.push(`${c.name}.absoluteInset -> ${c.absoluteInset} resolved to ${JSON.stringify(off)}, not a number`);
+      const gap = v.resolveForConsumer(kid).value;
+      if (typeof gap !== 'number') {
+        misses.push(`${c.name}.absoluteInset -> ${c.absoluteInset} resolved to ${JSON.stringify(gap)}, not a number`);
         continue;
       }
-      // Grown on every side: a ring at offset 2 sits 2px OUTSIDE its target. `resize` is safe HERE and
-      // nowhere else — an absolute part binds no dimensions by construction (gated in the validator).
-      kid.resize?.((node.width ?? 0) + off * 2, (node.height ?? 0) + off * 2);
-      kid.x = -off;
-      kid.y = -off;
+      // THE STROKE THE GAP HAS TO CLEAR (#801). Strokes here are `strokeAlign: 'INSIDE'` — correct for a
+      // border, since an outside stroke grows the auto-layout footprint — so the nested ring draws its own
+      // stroke back inward across the gap. At the shipped 2px offset and 2px ring width the ring's outer
+      // edge lands exactly on the host's border: gap ZERO, the position WCAG 1.4.11 forbids, reached by a
+      // projection that applied its offset correctly. So the coordinate is `gap + strokeWidth` while only
+      // the gap is the design value. Absent means the nested component draws nothing inside its own
+      // bounds, which is right for every absolute part that is not a ring.
+      let inset = gap;
+      if (c.absoluteStrokeInset) {
+        const sv = byName.get(c.absoluteStrokeInset);
+        if (!sv) misses.push(`${c.name}.absoluteStrokeInset -> ${c.absoluteStrokeInset} (positioned at the offset alone; the ring will sit flush against the border it must be distinguishable from — #801)`);
+        else {
+          const sw = sv.resolveForConsumer(kid).value;
+          if (typeof sw !== 'number') misses.push(`${c.name}.absoluteStrokeInset -> ${c.absoluteStrokeInset} resolved to ${JSON.stringify(sw)}, not a number (positioned at the offset alone — the ring will sit flush, #801)`);
+          else inset = gap + sw;
+        }
+      }
+      // Grown on every side by the full coordinate, which leaves `gap` of visible background once the
+      // stroke is drawn inward. `resize` is safe HERE and nowhere else — an absolute part binds no
+      // dimensions by construction (gated in the validator).
+      kid.resize?.((node.width ?? 0) + inset * 2, (node.height ?? 0) + inset * 2);
+      kid.x = -inset;
+      kid.y = -inset;
       // STRETCH so the ring tracks its target when a designer resizes a variant; without it the ring
       // keeps the size it was pasted at, silently, because it looks right at that one size.
       kid.constraints = { horizontal: 'STRETCH', vertical: 'STRETCH' };
