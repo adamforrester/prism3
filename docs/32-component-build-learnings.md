@@ -36,6 +36,94 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-14 — from two numbers that crossed a lane boundary and arrived meaning something else
+
+### `[SKILL]` A number keeps its value across a hand-off and loses its referent
+
+Two instances this week, in opposite directions, through the same node. Neither is a measurement
+defect: **both figures were measured correctly, by someone who said correctly what they had
+measured.** What did not survive the hand-off is what the number was *about*.
+
+**Instance 1 — measured, this week.** `tools/forward-claim-check/measure.ts` reported *"precision is
+17/17."* That figure is its own `selfCheck()` on the **reported-vs-asserted filter** — how reliably
+the tool separates a claim being *made* from one being *quoted*, and the number exists at all because
+a trailing `\b` had made the filter unable to match the case it was written for (14/17 before the fix,
+17/17 after). It is not the detector's precision at finding forward claims. The coordinating lane
+relayed it onward as detector precision; a later measurement put the detector at **10/12 ≈ 83%** on the
+tree it ran against, because two of those twelve reportable sites are past-tense narrations of a
+resolved blocker that the tool's **own `NON_CHECKABLE` register** already describes as not-live-claims
+— so under the target definition they are false positives, and the register naming them is the
+evidence.
+
+| the question | the figure | who asked it |
+|---|---|---|
+| does the reported-vs-asserted filter classify correctly? | **17/17**, as quoted | `selfCheck()`, in the tool |
+| does the detector fire only on live forward claims? | **10/12 ≈ 83%** | a later measurement, separately |
+
+*(Both absolutes have already moved, which is this file's #568 rule arriving uninvited and twice over.
+Run live on `63efb29`, `selfCheck()` printed **13/16 → 16/16** over **12** reportable sites; run again
+on `de77d0b` two rebases later, **12/15 → 15/15** over **11** — and unchanged again on `dd99ad3`,
+this entry's base — because #851 excluded a vendored guest by genre and took a `NON_CHECKABLE` entry
+with it. So the **denominator of the 10/12 moved between the
+measurement and this entry** — the two past-tense narrations that make the numerator are still there
+and still registered, but the population they are counted against is not the one they were counted
+against. Both figures are marked with the commit they were taken on for that reason. Two independent
+drifts, kept apart: the **referent**, which is this entry, and the **landmark**, which is the older
+entry walking past.)*
+
+The consequence is not academic: a decision about whether the tool could **gate** was taken partly on
+a number answering the first question while the conversation was on the second. (The tool's own header
+argues against gating on **recall**, and that argument stands untouched — which is the sharpest part.
+The relayed figure was not merely misread, it was answering the half nobody was blocked on.)
+
+**Instance 2 — earlier the same week, and the mechanism travelled rather than the number.** The
+account of *why* `field-message`'s header claim failed reached the emitter lane (#826, closing #795)
+as settled: the original probe had **renamed** `tone` by substituting a size axis into a throwaway
+copy. It cited #784's trap one level up, which is exactly what made it feel established. Falsified in
+one line on `origin/main` — a copy with a size axis **added** and `tone` left intact returns the same
+**1 plan / 0 paints**, so no rename is required to produce the symptom. The correct account is #820's
+and duller: two functions were confused. Recorded in the #795 section below as *"a wrong diagnosis
+that names a mechanism outcompetes a right one that names a mix-up"*; recorded **here** for the other
+half of it — the wrong mechanism did not originate in the lane that acted on it. *(The written record
+calls it "this branch's own first explanation"; the owner's characterization is that it was relayed
+into that lane. The finding does not turn on which: it arrived as an account rather than as a
+measurement, and the one-line counterfactual that kills it was run by neither side.)*
+
+**Why this is one finding and not two coincidences.** Both crossed **the same node** — the
+coordinating lane — in opposite directions. In one, the number was correct and its referent changed
+in transit; in the other, the mechanism was wrong and travelled as though established. **The common
+factor is the hand-off, not the measurement.** That is also why neither lane's verification discipline
+was in a position to catch it: each side was internally consistent. The harness measured its filter
+and said so in the sentence it printed; the relay quoted that sentence accurately. There is no step
+either lane skipped.
+
+**The remedy is identical in both cases, and it belongs to the RECEIVER.** *Ask what was measured,
+not just what the value was* — precision **of what**, against **which definition**, over **which
+population**. A number arriving from another lane carries its referent only if someone asks for it,
+and the asking has to happen on the receiving side, because the sending side has no way to notice
+that the thing it stated plainly is about to be read as something adjacent.
+
+**Adjacent to #786, and deliberately not merged into it.** #786's laundered precedent — a stated
+precedent (*"the shape was filed as 12 and renumbered to 13 on merge"*) recorded as established, then
+measured and found never to have happened — is **provenance** degrading across a hand-off: *"I was
+told X"* becoming *"X, measured."* This is **referent** degrading across a hand-off: X measured, X
+quoted, X now about something else. Same family — a claim loses something crossing a boundary — and
+the remedies do not substitute for each other. **Provenance needs a label; referent needs a
+question.** Labeling instance 1 changes nothing, because its provenance was never in doubt and was
+never misstated.
+
+**No gate, and the reason is structural rather than a lack of effort.** This is a **coordination**
+failure, not a measurement one, and there is no artifact to scan: a correctly-quoted number is
+byte-identical to a correctly-understood one at the point of quotation. The missing thing is a
+question nobody asked in a conversation, which leaves no residue in the tree. The nearest mechanical
+idea — require every relayed figure to travel with its definition — is a review convention, not a
+check, and it fails the same way #808's does further down this file: nothing distinguishes the good case
+from the bad case structurally. It is also **not** a fourth member of #820's family, which is *a claim
+believed because the prose asserting it was read, when the code was available to ask.* Here the code
+**was** asked, and answered correctly, on both sides.
+
+---
+
 ## 2026-08-14 — from closing the states and variants vocabularies (#821)
 
 ### `[SKILL]` "Which compilers read this type?" is not answerable from one gate's `include`
