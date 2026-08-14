@@ -710,6 +710,27 @@ gate: it produces findings, it names files, it looks like it is working. **An ab
 finding in a forward scan — not a quiet one, none — so a gate with only a forward arm reports the
 missing row as `✓ clean`.**
 
+**And #807 is the third instance on that same gate, which is why the pattern above needed to become a
+gate of its own rather than a third reminder.** Both directions were being checked *within* each prose
+gate's promise list — and both gates passed, because the files in question were in **neither** list and
+so were claimed by no promise and demanded by none. `payload-manifest.json` (a `why` on every rule),
+`nb-measured.json` and `theme-schema.example.json` sat in `packages/engine/schema/` beside four files
+that *were* gated, and nothing anywhere held an answer to which of them **ought** to be. The rule
+existed — CLAUDE.md's *"anything else kept out of regen needs the same line"* — and its enforcement was
+human memory at the moment a file was created.
+
+Two things worth taking from it. First, **a bidirectional check over a list cannot see a file that is
+absent from the list**; the converse arm makes a list self-maintaining with respect to what it
+*contains*, not with respect to what exists. Closing that needs a third input neither list supplies —
+here `git ls-files packages/engine/schema/`, the **directory**. Measured, the difference is total: a
+version of `lint-schema-classification.ts` whose expectation is a union of the lists it checks prints
+`✓ clean` at exit 0 on the very file the directory-derived one fails on, because the unclassified file
+is by definition in no list. Second, **membership decided by location is invisible from outside.** Two
+files in one directory, one covered and one not, look identical to a reader; this is the same defect
+`payload-manifest.json` was written to remove for `out/` (#674), reproduced one tier up, in the
+directory that holds the manifest. The fix has the same shape as #674's and the same justification: a
+new schema file **fails until a human classifies it**, and that friction is the feature.
+
 **A declaration that also satisfies the check it exempts you from.** `omits: personality` was itself
 prose *about* `personality`, so the exemption was suppressed twice and only the second suppression
 was ever load-bearing — mutating the exemption dead exited 0 (#514). Keep the two inputs disjoint:
@@ -748,6 +769,7 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-13 | both prose gates' `schema/` scope (#807) | scope | three authored files — `payload-manifest.json` (a `why` on **every** rule), `nb-measured.json`, `theme-schema.example.json` — in **neither** `lint-us-english.ts` nor `lint-voice.ts`, both printing `✓ clean` over a file count that never included them. Two files in the same directory, one covered and one not, are indistinguishable from outside |
 | 2026-08-13 | `gate.ts` types arm path set (#747, under #697) | 15 | a retyped **axis-collapsed** path (`grid.<breakpoint>.<prop>` vs `grid.<prop>`) green, because the arm walked `prism3 ∩ tokenpress` and the paths the harness writes *pairing rules* for never appear verbatim on both sides — **71–73 per brand, ~14% of the paired surface**; the same mutation on a verbatim-pairing path fired 66 failures |
 | 2026-08-13 | `font-fluid.*` pairing rule prose (#747) | 15 | an authored `reason` claiming "a second copy of the composite" for what is the composite's `fontSize` **referent** — read several times, and only falsified once a check existed that could contradict it |
 | 2026-08-13 | `test-smoke.mjs` rendered-contrast floor (#779) | 14 | `.mo-playnote` at **3.12:1** — the exact #555 case the probe was built to composite the opacity chain for — clearing a **2.0:1** floor fitted to #555's other four families at 1.00–1.61 |

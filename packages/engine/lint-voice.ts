@@ -246,6 +246,13 @@ const gated: string[] = [
   // The docs/34 shape-index baseline (#786) — the third, same reason. Its shape titles are quoted
   // verbatim in that gate's failure messages, so they are contributor-facing prose.
   join(repo, 'packages/engine/schema/shape-index.json'),
+  // The payload manifest (#674) and the NB measurement fixture (#807) — authored, out of regen, and
+  // prose-carrying: a `why` per rule and a `$comment` in the first, `$source` lines and a
+  // `brand.voice` in the second. Named here exactly as lint-us-english.ts names them, and
+  // `lint-schema-classification.ts` now asserts that both gates name the same set, so one of them
+  // going short is a failure rather than a silence.
+  join(repo, 'packages/engine/schema/payload-manifest.json'),
+  join(repo, 'packages/engine/schema/nb-measured.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];
