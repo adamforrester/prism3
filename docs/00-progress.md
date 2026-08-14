@@ -7,6 +7,91 @@
 
 ---
 
+## (2026-08-14) — The MVP catalogue: 25 named components, and the three things that block def #8
+
+**STATUS: docs only.** New `40-component-catalogue-mvp.md`. No engine change, no emitted artifact, no
+gate. `39` decided what a component projects into; this decides **which components**, and it is the
+last document before authoring starts.
+
+**A counting correction that changes the scope.** The seven existing defs are **four components and
+three substrate parts** — `focus-ring`, `field-label` and `field-message` are parts nested by other
+components, never placed alone. So "25 components" means **eighteen more to author**, not thirteen.
+
+**The corpus is the asset.** The knowledge base holds **45 component briefs**, 41 stable, across seven
+categories. The field research is already done for almost everything we would pick, so the question is
+which briefs to author against, not what a component is. Three of the 45 have defs today.
+
+**The eighteen, in dependency order:** form (`checkbox`, `radio`, `switch`, `textarea`, `select`) →
+status and feedback (`badge`, `tag`, `banner`, `tooltip`, `spinner`) → surface and container (`card`,
+`divider`, `accordion`, `list`) → nav and overlay (`link`, `tabs`, `dialog`, `menu`).
+
+**The exclusions carry the argument, and one falls straight out of the Figma-first weighting.**
+`Box`, `Stack`, `Grid` and `Section` have **no Figma component form at all** — they are auto-layout
+settings and semantic wrappers, which is exactly `28`'s `code-only` classification. That is the
+cleanest cut in the list and the one place the weighting has a visible cost: the code leg's layout
+story stays unbuilt until Arc 4, accepted rather than overlooked. `Combobox`, `date-picker`,
+`file-upload`, `slider`, `table` and `tree` are the components **#252 actually governs** — the KB
+calls Combobox *"the hardest widget in ARIA"* — so admitting them forces a parked decision on its
+worst instance. The doc names the tension it leaves rather than hiding it: `dialog` and `menu` are in,
+and both carry real behavior; the distinction claimed is that theirs is well-specified where a
+combobox's is contested, and tranche 4 is where that line gets tested on two defs rather than six.
+
+**Three dependencies, and the third is not a def.**
+
+1. **`text`/`heading`** — the component-tier expression of the `type.*` ladder, which `card`, `banner`,
+   `dialog` and `list` all compose with so their content is consistently sized rather than styled per
+   instance. **Unbriefed** — no `text.md` among the 45 — so this is the one place the pipeline runs
+   backwards and a brief precedes the def.
+2. **`image`** — an aspect-ratio frame. Also unbriefed. `card` wants it.
+3. **An icon set**, which blocks tranche 1 rather than inconveniencing it.
+
+**The icon finding is the sharpest thing in the doc, and it was found by reading a prop.**
+`icon.ts:48` types `name` as *"typed to the set vocabulary… an unknown name must fail at compile time,
+because a missing glyph otherwise fails silently as an invisible gap in production"*, and `:107` says
+the glyph geometry *"is the SET's content."* **Nothing anywhere defines that set.** The prop states the
+exact failure it exists to prevent and the mechanism it names does not exist. Filed as #833 — the same
+shape as #810, a def asserting a mechanism with every gate green, and the second instance in one day
+found by a human rather than a check. Neither was in `notes.unverified`, the field for exactly this.
+
+Requirements counted per component rather than guessed: **nine hard glyphs** (`chevron-down`,
+`chevron-right`, `check`, `minus`, `close`, and the four status glyphs — status is colour **and** icon,
+never colour alone) and **six useful**, fifteen total. A select with no caret is not a select.
+
+**Storage follows from a hard constraint, not a preference.** Source SVGs committed as authoring input
+plus a **generated TypeScript module** carrying the path data, produced by `regen.ts` and covered by
+`regen --check`. The engine bundles into the Figma plugin sandbox, where there is no filesystem — an
+emitter reading `.svg` at runtime works under `tsx` and fails in the plugin, which is the environment
+that most needs the glyphs. The generated module's keys then **are** `icon.name`'s vocabulary, so the
+set closes #833 as a consequence rather than as separate work. Classification is **payload**, and
+brand-neutral with a per-brand override, the same call `39` §5 proposes for the catalogue. Delivery
+constraints are stated in advance because they are expensive to correct after a set is drawn — filled
+paths rather than strokes being the one most likely to force a redraw, since a Figma stroke's weight is
+absolute and does not scale with the artboard while the `icon` paint slot binds a fill.
+
+**Two things must land before def #8**, both of which get more expensive per def and neither of which
+is visible as a problem until it has happened eighteen times.
+
+**#756 — the KB-divergence rule — and the finding is that #756 and #824 are one problem.** A brief and
+the token tier use the same rung names for different values (`icon.md` says `md` = 20, the engine says
+24), both halves valid, every gate green, visible only side by side. The call was already made and had
+landed nowhere. **Decided with this doc: the divergence is recorded per-def**, one line where the
+author meets it, as `icon` already does — not a table, which is one more artifact to drift when the
+record's whole value is sitting where the decision is made. And `notes.contested`/`notes.unverified`
+**is** that record, which makes #824's backfill the same rule applied to the corpus that motivated it.
+Landing them separately would be writing a rule and then not applying it.
+
+**#821 — close the `states` and `variants`-name vocabularies.** 254 bytes today; an eighteen-file
+migration after. The research pass found no design system anywhere enforcing that two components'
+shared axis names mean the same thing.
+
+Not blockers, running alongside authoring: #822, #823, #833.
+
+**Also cleaned up:** #821–#824 and #827 were filed with **no labels at all**, so ownership existed only
+in chat — the same class as the four stale records Worker A named, except with no record to go stale.
+Labeled.
+
+---
+
 ## (2026-08-14) — The ring was at the coordinate its plan intended, and the gap was zero (#801, second pass)
 
 **STATUS: shipped.** The flush focus ring is fixed for real. `regen --check` still reports **104** —
