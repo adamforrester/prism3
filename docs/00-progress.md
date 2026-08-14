@@ -261,10 +261,13 @@ finding) and the landmark (the older finding walking past).
 **THE SECOND INSTANCE IS THE REASON IT IS AN ENTRY AND NOT AN ANECDOTE.** Earlier the same week, the
 false `tone`-rename mechanism reached the emitter lane (#826, closing #795) as an established account
 of why `field-message`'s header claim failed — falsified in one line on `origin/main`, where a size
-axis **added** with `tone` intact returns the same 1 plan / 0 paints. Both crossed the same node in
-opposite directions: once a correct number whose referent changed, once a wrong mechanism carried as
-settled. **The common factor is the hand-off, not the measurement**, which is exactly why neither
-lane's own verification discipline was positioned to catch it — each side was internally consistent.
+axis **added** with `tone` intact returns the same 1 plan / 0 paints. The sequence is agreed rather
+than contested: the explanation originated in the reporting lane's own account, was restated into a
+prompt with no counterfactual asked for, came back amplified, and reached six places from there. Both
+crossed the same node in opposite directions: once a correct number whose referent changed, once a
+wrong mechanism carried as settled. **The common factor is the hand-off, not the measurement**, which
+is exactly why neither lane's own verification discipline was positioned to catch it — each side was
+internally consistent, and what nobody did at any hop was run the test that kills it.
 
 **THE REMEDY BELONGS TO THE RECEIVER**, and it is one question: *precision of what, against which
 definition, over which population.* A number arriving from another lane carries its referent only if
@@ -283,9 +286,12 @@ degrading across one — X measured, X quoted, X now about something else. Same 
 mechanism, and the remedies do not substitute: provenance needs a label, referent needs a question.
 Filing them as one entry would have made both less useful.
 
-**NOT A FOURTH MEMBER OF #820's FAMILY**, which is the trap this entry was one paragraph from walking
-into. That family is *a claim believed because the prose asserting it was read, when the code was
-available to ask*. Here the code was asked, on both sides, and answered correctly.
+**ITS OWN FAMILY, AND THE SPLIT IS A TEST RATHER THAN A TAXONOMY CALL.** #820's remedy is *run the
+code*, and every member of that family fails to survive it. This instance survives it: `17/17` was
+asked of the code and the code answered correctly — the number was never in question, only its label
+was. No code run surfaces a mislabelled true number, because the defect sits in what the value is
+offered as an answer to, not in the value. A value travels across a hand-off and its definition does
+not, which is why the remedy sits on the receiving side.
 
 **TRAP FOR WHOEVER RE-VERIFIES THIS.** The 10/12 figure comes from a measurement running in a separate
 lane and is not on `main` at the time of writing; the 17/17 is in `measure.ts`'s header and is correct
