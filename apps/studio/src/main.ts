@@ -33,6 +33,8 @@ import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
 import { ENGINE_VERSION } from '@prism3/engine/version';
+import { componentDefs } from '@prism3/engine/components/index';
+import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
 import {
@@ -3902,13 +3904,72 @@ const renderPreviewPage = (host: PageHost): void => {
 };
 
 /**
+ * Which defs can actually be materialized, ASKED rather than listed (#800).
+ *
+ * It projects each def and keeps the ones that do not throw, so the answer is the projector's and not a
+ * second copy of it. The alternative — a literal array, or a `!!def.anatomy && !!def.figmaProperties`
+ * predicate — is the mistake this very control already made once: `renderComponentsPage` carried the
+ * claim *"Button is the only def of the five that has one"*, true when written and false since #734,
+ * #741 and #796, because a count in a comment has an expiry date that nothing checks. The plugin's
+ * `main.ts` had the twin claim and fixed it the same way (#742/#787). A predicate would rot more slowly
+ * and still rot: it restates `figmaAnatomySet`'s preconditions from outside, so a third requirement
+ * added there would leave this list confidently wrong.
+ *
+ * The member count comes free and is worth carrying: it is the only honest per-def cost estimate, since
+ * a run is ~162ms per member (#700) and the defs span 4 to 648 — a single "about 105 seconds" note
+ * would be wrong by two orders of magnitude for three of the four.
+ *
+ * The throw is the SIGNAL, not an error to report: `figmaAnatomySet` throws precisely when a def has no
+ * `anatomy` or no `figmaProperties`, which is the definition of not-materializable. `focus-ring` and
+ * `field-message` are in that state deliberately (#795), so a def missing here is expected rather than
+ * broken and the page says so instead of listing them as failures.
+ *
+ * Computed ONCE at module scope, not per render: the defs are compiled in and brand-invariant, so this
+ * cannot change while the app is running.
+ *
+ * GATED ON `PRISM3_HOST`, WHICH IS ABOUT THE WEB BUNDLE RATHER THAN CORRECTNESS. The control is Figma-only
+ * (`commit.isFigma` returns early below), so on web the answer is unused — but the import graph does not
+ * know that. Measured: importing `figmaAnatomySet` and `componentDefs` unconditionally put 35KB gzip of
+ * projector and every component def into the *web* bundle, a 20% increase over a 140KB baseline, for a
+ * control that page can never reach. Behind the define, esbuild eliminates the defs and most of the
+ * projector: 147KB. Both fields come from the one gated expression because a second ungated reference to
+ * `componentDefs` would defeat it — which is why `missing` is derived here rather than at the call site.
+ *
+ * It does NOT eliminate all of it: ~18KB of `anatomy-figma.ts` survives, because that module's top-level
+ * template constants are not provably side-effect-free. That is why `anatomy-figma.ts`, `component-schema.ts`
+ * and `eval.ts` came OFF the exclusion list in `vercel-ignore.sh` in the same PR — a change to any of them
+ * can now change the deployed site, so treating them as Figma-only would be a #474 stale deploy. Dead-code
+ * elimination is a size optimization, not a dependency boundary.
+ */
+const COMPONENT_CATALOGUE: { readonly buildable: readonly { id: string; name: string; members: number }[]; readonly missing: readonly string[] } =
+  PRISM3_HOST === 'figma'
+    ? (() => {
+        const buildable = componentDefs.flatMap((d) => {
+          try {
+            return [{ id: d.id, name: d.name, members: figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).length }];
+          } catch {
+            return [];
+          }
+        });
+        const ids = new Set(buildable.map((b) => b.id));
+        return { buildable, missing: componentDefs.filter((d) => !ids.has(d.id)).map((d) => d.name) };
+      })()
+    : { buildable: [], missing: [] };
+
+/**
  * The Components page (#718) — the new home of the component write, moved off the primary action bar.
  *
  * THE MOVE IS A DEMOTION. The control sat beside **Apply to Figma**, which is the terminal action of
  * the theme flow and the thing a designer runs after every knob change. A build takes tens of seconds
- * at ~162ms per member (#700) and materializes one component out of five, so a slot next to Apply
+ * at ~162ms per member (#700) and materializes a fraction of the catalogue, so a slot next to Apply
  * claimed a parity that does not exist. Rail item, marked internal, is where a materialization proof
  * belongs — see `NAV` for the framing and docs/28 / docs/14 §3.1 for why it is kept runnable at all.
+ *
+ * "A fraction", not "one of five": the claim here used to be *"Button is the only def of the five that
+ * has one"* and the control was named for Button on that basis. It was true when written and false since
+ * #734, #741 and #796 — four defs project today. It is now `COMPONENT_CATALOGUE` (derived, above) in both the
+ * picker and this prose, which is the same fix the plugin's twin comment took (#742/#787): a count in a
+ * comment has an expiry date that nothing checks, so state the property and point at the derivation.
  *
  * The three internal/experimental statements are deliberately different rather than one repeated
  * label, because each answers a different question a designer would actually ask here: the rail sub
@@ -3933,37 +3994,82 @@ const renderComponentsPage = (host: PageHost): void => {
   setVolatile([], () => {});
   if (!commit.isFigma) return;
 
-  const sec = palSection('Build the Button set', 'Writes the component set onto the current Figma page.');
+  const sec = palSection('Build a component set', 'Writes one component set onto the current Figma page.');
 
-  // The internal notice. States the mechanism and the two numbers, per the voice standard: what it is
-  // for, what it costs, and what it does not do — so a designer who runs it is not surprised, and one
-  // who skips it is not missing a feature.
+  // The internal notice. States the mechanism and the cost, per the voice standard: what it is for, what
+  // it costs, and what it does not do — so a designer who runs it is not surprised, and one who skips it
+  // is not missing a feature.
+  //
+  // THE COST IS NOW PER DEF rather than one number in this sentence. It used to read "a full run writes
+  // 648 variants … roughly 105 seconds", which was a measurement of Button stated as a property of the
+  // action — off by two orders of magnitude for a 4-member def. The per-member rate is the part that
+  // transfers (#700), so the rate lives here and the multiplication lives in the picker beside each def.
   const note = el('p', 'cw-note');
   note.append(
     el('b', undefined, 'Internal — experimental. '),
     document.createTextNode(
       'This exists to prove the component definition format can materialize, so it is not a supported '
-      + 'way to get components into a file. A full run writes 648 variants at about 162ms each — '
-      + 'roughly 105 seconds, in short bursts that leave Figma stuttering rather than frozen. Figma '
-      + 'then reconciles the new nodes after the result lands: that settle was measured at 1m10s on a '
-      + 'full run, and it is not something this plugin can shorten. Known limits are tracked on #718.',
+      + 'way to get components into a file. Each variant takes about 162ms to write, in short bursts '
+      + 'that leave Figma stuttering rather than frozen — so the cost is the variant count beside each '
+      + 'set below. Figma then reconciles the new nodes after the result lands: that settle was measured '
+      + 'at 1m10s on the 648-variant Button run, and it is not something this plugin can shorten. Known '
+      + 'limits are tracked on #718.',
     ),
   );
   sec.append(note);
 
+  // WHICH DEFS ARE MISSING, AND WHY, said plainly rather than by omission. A designer who knows the
+  // catalogue has seven components and sees four here would otherwise reasonably read it as a bug. The
+  // requirement is ours, not Figma's (#795), which is the honest way to put it.
+  const { buildable, missing } = COMPONENT_CATALOGUE;
+  if (missing.length) {
+    const gap = el('p', 'cw-note');
+    gap.append(
+      document.createTextNode(
+        `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not offered here yet. A set needs a `
+        + 'declared size axis to project, which is a limit in our own projector rather than something '
+        + 'Figma cannot hold — tracked on #795.',
+      ),
+    );
+    sec.append(gap);
+  }
+
   const row = el('div', 'cw-row');
   if (componentState) row.append(renderApplyStatus(componentState, 'components'));
   const cPending = componentState === 'pending';
-  // NAMED FOR BUTTON, not "components" — unchanged from the action bar and for the same reason.
-  // `anatomy` is what makes a def materializable and Button is the only def of the five that has one,
-  // so a control saying "Build components" would promise four components it cannot build. It gets
-  // renamed when a second def earns an anatomy block, not before.
-  const compBtn = el('button', 'barbtn', cPending ? '⋯ Building…' : '⊞ Build Button set') as HTMLButtonElement;
+
+  // A PICKER, NOT A BUTTON PER DEF. Four sets today and Arc 2 adds more, so a control per def would grow
+  // the page every time a def earns a `figmaProperties` block. The select is also what carries the cost:
+  // the member count sits in each option, because that is the number a designer needs BEFORE choosing —
+  // Button is ~105s and FieldLabel is under a second, and a picker that hid that would make the two look
+  // like equivalent choices.
+  //
+  // Defaults to Button, matching what this page has always built, so the familiar action is the one
+  // already selected rather than one the designer has to find.
+  // `cap` rather than a new `cw-*` class: the only styling this needs is a width cap, which `.select.cap`
+  // already is (`styles.css`), and a new pairing would mean a new `ALLOWED` entry in `lint-classes.mjs`
+  // for a rule identical to one that exists.
+  const sel = selectEl('cap');
+  for (const b of buildable) {
+    const opt = el('option', undefined, `${b.name} — ${b.members} variant${b.members === 1 ? '' : 's'}`) as HTMLOptionElement;
+    opt.value = b.id;
+    if (b.id === 'button') opt.selected = true;
+    sel.append(opt);
+  }
+  sel.disabled = cPending;
+  sel.title = 'Which set to build. The variant count is the cost — about 162ms each.';
+  row.append(sel);
+
+  // NAMED FOR THE ACTION, NOT THE DEF, which is a change and the reason is that the def is now a
+  // selection beside it. The label read "Build Button set" because Button was the only def that could be
+  // built and a generic label would have promised four components it could not deliver (#718). With a
+  // picker the specificity moved into the picker, and a label naming one def would contradict it.
+  const compBtn = el('button', 'barbtn', cPending ? '⋯ Building…' : '⊞ Build set') as HTMLButtonElement;
   compBtn.disabled = cPending;
   // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
   // designer cannot recover from the result: the set binds variables by name, so a build into an
   // unthemed file misses every binding.
-  compBtn.title = 'Builds the Button set on this page. Apply to Figma first — it binds those variables.';
+  compBtn.title = 'Builds the selected set on this page. Apply to Figma first — it binds those variables.';
   // `componentProgress` clears here as well as on the result (#684) — belt and braces on purpose. The
   // result handler is the normal path, but a build that THROWS in the main thread before the executor
   // returns posts a failed result, and one that never answers at all posts nothing; without this line a
@@ -3973,9 +4079,13 @@ const renderComponentsPage = (host: PageHost): void => {
   // read-back pill and the theme write's own status, and `openDetail` is cleared here — the shared
   // detail row is chrome, so the bar has to be told the row it was showing is gone.
   compBtn.onclick = () => {
+    // Read at CLICK time, not at render: the select is a live DOM node and this page does not re-render
+    // on its change, so a value captured during render would build whatever was selected when the page
+    // was drawn — the defect being that it would look right for the default and wrong for every change.
+    const def = sel.value;
     componentState = 'pending'; componentProgress = null; openDetail = null;
     renderBar(); syncApplyDetail(); renderWorkspace();
-    commit.postComponents();
+    commit.postComponents(def);
   };
   row.append(compBtn);
   sec.append(row);

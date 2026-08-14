@@ -57,10 +57,30 @@
  *     false-positive profiles in comments: an en-GB spelling in a comment is rare and trivial to
  *     avoid, but this repo's own comment style — as read throughout this very file and its sibling
  *     gates — uses "just"/"simply" constantly as ordinary connective prose. A structural exemption is
- *     what makes this gate usable at all, not a convenience. Mechanically: real TypeScript `//` and
- *     `/* *\/` comments never reach `apps/studio/dist/main.js` in the first place — esbuild strips them
- *     (confirmed by grepping the built bundle for known source-comment text and finding none). The
- *     ONE place a comment survives into the shipped bundle is C-style block comments carried as
+ *     what makes this gate usable at all, not a convenience.
+ *
+ *     **THIS PARAGRAPH USED TO CLAIM esbuild STRIPS SOURCE COMMENTS, AND THAT WAS WRONG (#800).** It
+ *     read: *"real TypeScript `//` and `/* *\/` comments never reach `apps/studio/dist/main.js` in the
+ *     first place — esbuild strips them (confirmed by grepping the built bundle for known
+ *     source-comment text and finding none)"*. Measured: `apps/studio/dist/main.js` carries **300**
+ *     whole-line `//` source comments today, including this repo's own `// Citation deliberately
+ *     TRUNCATED rather than reworded`. The grep that "confirmed" it must have probed text that had
+ *     since changed, and nothing re-ran it — the `dist/` bundle is the `build` script's output, which
+ *     is NOT minified (`build:site` is the one that minifies, and it writes somewhere this gate does
+ *     not read). So the exemption below was resting on a property the shipped surface never had.
+ *
+ *     It only ever went unnoticed because a `//` comment reaching this scan had to carry a §2 word,
+ *     and for 299 of the 300 none did. #800 imported `anatomy-figma.ts` into the studio and the 300th
+ *     arrived — a `//` line inside `PAYLOAD_PREAMBLE`, a template literal, which `stripPayloadComments`
+ *     removes before any payload reaches Figma. A comment that ships nowhere, flagged as shipped prose.
+ *
+ *     Both halves are now handled: `stripLineComments` blanks whole-line `//` comments in `.js`
+ *     bundles, and the SELF_CHECK below pins the two boundaries that make it safe rather than greedy —
+ *     a mid-line `//` (a URL, a trailing guard comment) is left alone, because deleting a line that is
+ *     *simply gone* is the exact failure `stripPayloadComments`'s own header records against a
+ *     greedier `!l.includes('//')` pass.
+ *
+ *     The other surviving-comment case is unchanged: C-style block comments carried as
  *     literal STRING CONTENT — the studio chrome stylesheet, whose ~1,460 lines of CSS comments ship
  *     into `apps/studio/dist/main.js` verbatim because esbuild does not parse the inside of a string.
  *     **#769 moved that stylesheet out of a template literal in `apps/studio/src/main.ts` into a real
@@ -130,6 +150,17 @@ const EXCLAIM = /(?<=[A-Za-z0-9])!(?!=)(?![A-Za-z])/g;
 // and Markdown surfaces get no such stripping.
 const stripBlockComments = (txt: string): string => txt.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
 
+// ---- The `//` half of the same exemption (#800 — see header point 4 for why this was missing and what
+// it cost). WHOLE-LINE ONLY: the line's first non-space characters must be `//`. A mid-line `//` is left
+// untouched on purpose, and the reason is `stripPayloadComments`'s own header two files over — a greedier
+// `l.includes('//')` pass eats `if(!id)continue; // ...`, a real guard, and every downstream assertion
+// stays green because output sampling cannot see a line that is no longer there. Here the equivalent
+// greed would blank the prose half of `const msg = "Applied!"; // note`, hiding a real violation. Blanks
+// character-for-character like its sibling so line numbers on a later real hit stay accurate; the leading
+// whitespace is preserved for the same reason.
+const stripLineComments = (txt: string): string =>
+  txt.replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent: string) => indent + ' '.repeat(m.length - indent.length));
+
 type RawHit = { rule: string; match: string; index: number };
 type Hit = { file: string; line: number; rule: string; match: string; context: string };
 
@@ -163,9 +194,12 @@ const scan = (abs: string): Hit[] => {
     blind.push(`${relative(repo, abs)} — could not be read (${(e as Error).message})`);
     return [];
   }
-  // Code comments are exempt (header point 4) — only the built bundle carries any, and only inside
-  // `/* ... */` spans (a CSS-in-template-literal stylesheet), so this is the only surface stripped.
-  const txt = abs.endsWith('.js') ? stripBlockComments(raw) : raw;
+  // Code comments are exempt (header point 4). The built bundle is the only surface stripped, and it
+  // carries BOTH shapes: `/* ... */` spans (a CSS-in-template-literal stylesheet) and 300 whole-line
+  // `//` source comments — esbuild does not strip the latter, contrary to what this gate assumed until
+  // #800. Block spans go first: a `//` inside a block comment is part of that comment, not a line
+  // comment, and blanking the span makes the line-pass a no-op over it either way.
+  const txt = abs.endsWith('.js') ? stripLineComments(stripBlockComments(raw)) : raw;
   return voiceHits(txt).map(({ rule, match, index }) => ({
     file: relative(repo, abs),
     line: txt.slice(0, index).split('\n').length,
@@ -256,6 +290,37 @@ const commentSelfFails: string[] = [];
   if (stripped.split('\n').length !== COMMENT_SAMPLE.split('\n').length) commentSelfFails.push('stripBlockComments changed the line count — line numbers on later hits would be wrong');
 }
 selfFails.push(...commentSelfFails);
+
+// ---- Fourth self-check: the `//` half of the exemption (#800). Same forward+converse discipline as the
+// block-comment pass above, plus the one property that makes it SAFE rather than greedy — a mid-line
+// `//` must be left alone, so a violation in the code half of such a line is still caught. Without that
+// converse this pass would be the `!l.includes('//')` mistake `stripPayloadComments` documents, and it
+// would report as a pass.
+const LINE_SAMPLE = [
+  '  // Obviously this is simply a source comment and should not trip anything.',
+  'const a = b !== c;',
+  'const msg = "Sorry, that failed."; // a trailing comment on a real line',
+  'const url = "https://example.com/just/a/path";',
+].join('\n');
+{
+  const stripped = stripLineComments(stripBlockComments(LINE_SAMPLE));
+  const hits = voiceHits(stripped);
+  if (hits.some((h) => h.rule === 'banned-word')) {
+    selfFails.push('stripLineComments left a banned word inside a whole-line // comment reachable');
+  }
+  // The converse: line 3's `Sorry` sits BEFORE its `//`, so a whole-line rule must not reach it.
+  if (!hits.some((h) => h.rule === 'apology')) {
+    selfFails.push('stripLineComments over-stripped — it ate a real violation on a line whose // starts mid-line');
+  }
+  if (stripped.split('\n').length !== LINE_SAMPLE.split('\n').length) {
+    selfFails.push('stripLineComments changed the line count — line numbers on later hits would be wrong');
+  }
+  // A URL's `//` is mid-line, so the line survives; `just` inside a path is a real "just" by this
+  // gate's rules and SHOULD be flagged. Pinned so a future widening to mid-line `//` fails here.
+  if (!hits.some((h) => h.rule === 'just')) {
+    selfFails.push('stripLineComments blanked a line whose only // was inside a URL — mid-line // must be left alone');
+  }
+}
 
 // ---- Second self-check, on SCOPE rather than detection — same forward+converse pair as
 // lint-us-english.ts, and for the same reason: the detection self-check above proves the scanner can

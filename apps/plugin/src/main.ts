@@ -7,10 +7,11 @@
  *   • `apply-theme` (carries the live `BrandInput` from the UI's knobs) → build the colour write
  *     plan + run #108's `applyWritePlan` against `figma.variables`, then report `apply-result` (a
  *     short headline for the UI's status pill + the full per-axis summary behind it).
- *   • `build-components` (no payload — the def is compiled in) → project the Button def into the full
- *     variant set and run #487's `applyComponentPlan` against the canvas, then report `component-result`.
- *     Its own action rather than part of `apply-theme` (#483/#652): a theme apply is cheap and run after
- *     every knob change, where this writes hundreds of nodes.
+ *   • `build-components` (carries a def `id`; the defs themselves are compiled in) → project that def
+ *     into the full variant set and run #487's `applyComponentPlan` against the canvas, then report
+ *     `component-result`. Absent `id` means Button, which is #483's original contract. Its own action
+ *     rather than part of `apply-theme` (#483/#652): a theme apply is cheap and run after every knob
+ *     change, where this writes hundreds of nodes.
  *   • on `ui-ready` → run #109's read-back + verify and post `seed-info` (informational: does an
  *     existing Prism3 theme in this file pass the contract).
  *
@@ -38,6 +39,7 @@ import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { button } from '@prism3/engine/components/button';
+import { componentDefs } from '@prism3/engine/components/index';
 
 // Show the UI iframe. `__html__` is the bundled shared-UI HTML Figma injects from `manifest.ui`
 // (the inlined `apps/studio/src` app; declared for the sandbox global in `figma-env.d.ts`). The shared
@@ -247,7 +249,12 @@ const measureSettle = async (): Promise<number | null> => {
  * axis filter would be a curation taxonomy nobody has chosen. If a smaller default is wanted, this line
  * is where it goes — nothing downstream needs to change.
  *
- * BUTTON BY NAME, not a catalogue loop — and the reason is a PROPERTY, deliberately not a count.
+ * ONE DEF PER CALL, NAMED BY THE CALLER — and still not a catalogue loop (#800). The reason a loop was
+ * refused stands unchanged and is worth restating, because this change could be mistaken for it: a loop
+ * would throw on whichever defs are missing either half of what materialising takes, and it would make
+ * the cheap 4-member run cost every member in the catalogue, so nobody could build one def to look at
+ * it. What #800 adds is a caller naming WHICH def, which is the opposite of building all of them.
+ *
  * Materialising a def takes two things, which `docs/38` §2 names in the vocabulary this comment
  * borrows so a reader moving between the design record and here is not translating: an `anatomy` block
  * (`figmaAnatomyPlan` throws without one) **and** a `figmaProperties` block declaring which axes the
@@ -255,17 +262,36 @@ const measureSettle = async (): Promise<number | null> => {
  * sufficient** — `focus-ring` carries one and still cannot be built, because declaring its axes would
  * validate cleanly and throw at projection.
  *
- * So a catalogue loop would throw on whichever defs are missing either half, and **the count is not
- * written here on purpose.** The claim this replaced was *"Button is the only def in the catalogue that
- * has one"* — true when written, false since #734 and #741, and it rotted silently because a count in a
- * comment has an expiry date that nothing checks. Restating it as a newer count would rot on the same
- * schedule; Arc 2 step 3 moves it again the moment the three field defs gain anatomy. For today's
- * numbers read `componentDefs` (#742), which is a real set that `typecheck-components.ts` asserts holds
- * exactly the defs git tracks — or `docs/38` §2's census row, which carries its own **was** column.
+ * **The count is not written here on purpose.** The claim this replaced was *"Button is the only def in
+ * the catalogue that has one"* — true when written, false since #734 and #741, and it rotted silently
+ * because a count in a comment has an expiry date that nothing checks. Restating it as a newer count
+ * would rot on the same schedule. For today's numbers read `componentDefs` (#742), which is a real set
+ * that `typecheck-components.ts` asserts holds exactly the defs git tracks — or `docs/38` §2's census
+ * row, which carries its own **was** column. `buildableDefs` below derives the answer by ASKING the
+ * projector rather than by carrying a list, for the same reason.
  *
- * Button specifically, rather than "the first materialisable def", because this action's contract is
- * Button's 648-member set: `SWAP_TARGET`, the progress calibration below, and #483's whole scope. A loop
- * would be a different feature with a different name, not a generalisation of this one.
+ * WHAT MADE THIS ACTION BUTTON-SHAPED, AND WHERE EACH OF THOSE THREE THINGS WENT. The claim this
+ * replaced named them: *"this action's contract is Button's 648-member set: `SWAP_TARGET`, the progress
+ * calibration below, and #483's whole scope."* Each was checked against a real projection rather than
+ * reasoned about, because "add a field" would otherwise understate the change by three things:
+ *
+ *   • `SWAP_TARGET` — GENERALIZES UNCHANGED, and it turns out to be inert where a def has no swap parts.
+ *     Measured: `figmaAnatomySet(fieldLabel, { swapTarget: 'FPO-default-icon' })` and
+ *     `figmaAnatomySet(fieldLabel, {})` produce identical plans and identical set properties, because
+ *     the option is only read where a part declares `nesting: { kind: 'swap' }` (`anatomy-figma.ts:685`).
+ *     Button's 648 plans carry 702 swap nodes, IconButton's 162 carry 162, `icon` and `field-label` carry
+ *     none. So it is passed unconditionally and the def decides whether it means anything — no
+ *     per-def branch, and nothing for a caller with no icon placeholder to nominate.
+ *   • THE PROGRESS CALIBRATION — GENERALIZES, because it was already derived rather than declared.
+ *     `CHUNK` is a members-per-chunk constant, and `build-telemetry.ts` computes every figure it prints
+ *     from the reports themselves (`p.total`, `totalMs / s.members`). Verified at 4 members: the per-phase
+ *     rows, the per-member cost, the worst-chunk frame count and the "UNREACHABLE by CHUNK alone" warning
+ *     all still read correctly. The one thing that does NOT transfer is the *prose* quoting 105s and
+ *     1m10s, which is a measurement OF Button — so it moves into a per-def estimate in the UI rather than
+ *     being restated for every def (see `apps/studio/src/main.ts`).
+ *   • #483's SCOPE — STAYS EXACTLY WHAT IT WAS: the full set the def models, every variant
+ *     `figmaProperties` declares. Nothing here filters, and `messages.ts` records why an axis filter is
+ *     still not a field on the message even though the def now is.
  *
  * The global `figma` satisfies `ComponentsApi` wholesale, so this call site is what proves that port on
  * every typecheck — the same way the three sibling lanes are proven, and what retired
@@ -276,9 +302,25 @@ const measureSettle = async (): Promise<number | null> => {
  * before the chunking this function had nothing to report and no moment to report it in. `onProgress`
  * fires at every chunk boundary; the terminal `component-result` still lands exactly once, at the end.
  */
-const buildComponents = async (): Promise<void> => {
+const buildComponents = async (defId?: string): Promise<void> => {
   try {
-    const plans = figmaAnatomySet(button, { swapTarget: SWAP_TARGET });
+    // ABSENT MEANS BUTTON, which is #483's contract preserved rather than a default chosen here: a UI
+    // older than #800 posts no `def`, and it must keep building the thing its own control names.
+    const def = defId === undefined ? button : componentDefs.find((d) => d.id === defId);
+    if (!def) {
+      // A FAILED RESULT, NOT A THROW. The UI offers only ids it derived from `componentDefs`, so an id
+      // that misses means the two sides disagree about the catalogue — which the designer has to be told,
+      // because the alternative is a pill that stays at "Building…" forever. Named ids in the message so
+      // the disagreement is diagnosable from the pill alone.
+      postToUi({
+        type: 'component-result', ok: false, headline: '✗ unknown def',
+        summary: `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`,
+      });
+      return;
+    }
+    // `SWAP_TARGET` PASSED UNCONDITIONALLY, because it is inert where a def has no swap parts — measured,
+    // see the header. A per-def branch here would be a branch on a distinction the projector already makes.
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
@@ -435,7 +477,9 @@ onUiMessage((msg: UiToMain) => {
       void applyTheme(msg.input);
       return;
     case 'build-components':
-      void buildComponents();
+      // `msg.def` straight through, `undefined` included — the resolution lives in `buildComponents`
+      // (absent means Button) rather than being defaulted here, so there is one place that decides it.
+      void buildComponents(msg.def);
       return;
     case 'resize-ui': {
       // Resize on every drag message so the window tracks the pointer; persist only on the

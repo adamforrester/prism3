@@ -100,16 +100,19 @@ export interface HostCommit {
    *  reusing #108 verbatim. Typed loosely (`unknown`) here to avoid a web→engine type import in
    *  the DOM layer; the plugin bridge + main thread carry the real `BrandInput` type. */
   postTheme(input: unknown): void;
-  /** Ask the host to materialise the Button component set onto the canvas (#483; Figma only, no-op on
-   *  web, which has no canvas to build onto).
+  /** Ask the host to materialise one component set onto the canvas (#483; Figma only, no-op on web,
+   *  which has no canvas to build onto).
    *
-   *  NO ARGUMENT, unlike `postTheme`. The theme is what the UI's knobs describe, so it has to travel;
-   *  the component set is described by the DEF, which is compiled into the plugin's own bundle — the
-   *  main thread reads it directly and there is nothing for this layer to send. Scope (which variants
-   *  get built) is likewise the main thread's: `applyComponentPlan` takes a plan list, so scoping is
-   *  entirely which plans it passes, and an argument here would put a curation taxonomy on the wire
-   *  before anyone has chosen one. */
-  postComponents(): void;
+   *  ONE ARGUMENT, AND IT IS AN ID RATHER THAN A DEF (#800). What travels is the def's `id` — the defs
+   *  are compiled into the plugin's own bundle, so sending one would put a large structure on the wire
+   *  that the receiver already has and must look up anyway. Optional, so absent still means Button.
+   *
+   *  Scope (which variants get built) is still NOT here and is still the main thread's:
+   *  `applyComponentPlan` takes a plan list, so scoping is entirely which plans it passes, and an
+   *  argument here would put a curation taxonomy on the wire before anyone has chosen one. The
+   *  difference is that "which def" has an answer `componentDefs` already holds, and "which variants"
+   *  does not — see `messages.ts`. */
+  postComponents(def?: string): void;
   /** Register a callback for host→UI notifications: the result of an `apply-theme` write, the #109
    *  read-back seed summary, the #131 knob-rehydration (the persisted `BrandInput`, typed `unknown`
    *  here to keep this DOM layer free of the engine type import) or its #480 loud refusal when the
@@ -155,9 +158,9 @@ export interface HostCommit {
 /** The wire shape the iframe posts to the main thread. Kept in sync with the plugin's
  *  `messages.ts` `UiToMain` (`apply-theme`) — the bridge unwraps `{ pluginMessage }`. */
 type UiApplyMsg = { type: 'apply-theme'; input: unknown };
-/** Kept in sync with `messages.ts` `UiToMain` (`build-components`) — payloadless by design, see
- *  `postComponents` above. */
-type UiComponentsMsg = { type: 'build-components' };
+/** Kept in sync with `messages.ts` `UiToMain` (`build-components`) — `def` is a `componentDefs` id and
+ *  is optional (absent means Button), see `postComponents` above. */
+type UiComponentsMsg = { type: 'build-components'; def?: string };
 /** Kept in sync with `messages.ts` `UiToMain` (`resize-ui`). */
 type UiResizeMsg = { type: 'resize-ui'; width: number; height: number; commit: boolean };
 
@@ -168,8 +171,11 @@ const figmaCommit = (): HostCommit => ({
   postTheme(input) {
     parent.postMessage({ pluginMessage: { type: 'apply-theme', input } as UiApplyMsg }, '*');
   },
-  postComponents() {
-    parent.postMessage({ pluginMessage: { type: 'build-components' } as UiComponentsMsg }, '*');
+  postComponents(def) {
+    // `def` omitted from the message when the caller omitted it, rather than sent as `undefined`: the
+    // main thread distinguishes absent (means Button) from present, and `postMessage` structured-clones,
+    // so an explicit `undefined` would arrive as a present key holding nothing.
+    parent.postMessage({ pluginMessage: { type: 'build-components', ...(def ? { def } : {}) } as UiComponentsMsg }, '*');
   },
   onHostMessage(cb) {
     window.addEventListener('message', (e: MessageEvent) => {

@@ -17,14 +17,28 @@
 # is NOT part of this build and cannot affect the deployed site, so `apps/plugin/**` is deliberately
 # absent from the trigger list.
 #
-# WHY EXCLUSIONS RATHER THAN A LIST OF BUNDLED FILES. Only 15 of the engine's 47 `.ts` files are
+# WHY EXCLUSIONS RATHER THAN A LIST OF BUNDLED FILES. Only 26 of the engine's 52 `.ts` files are
 # actually imported by the bundle; the rest are CLI entry points, emitters, gates and the test
-# suite. Listing the 15 would be more precise and would fail in the DANGEROUS direction: a new
+# suite. Listing the 26 would be more precise and would fail in the DANGEROUS direction: a new
 # engine file that the bundle does import would be missing from the list, so its changes would skip
-# the build and the site would go quietly stale. Listing the 29 fails the other way — a new file is
-# unlisted, so it triggers a build it may not need. A wasted build is cheap; a stale deploy is the
-# bug we are fixing. `apps/studio/vercel-ignore-check.mjs` gates the list against the real metafile so an
+# the build and the site would go quietly stale. Listing the 26 excluded fails the other way — a new
+# file is unlisted, so it triggers a build it may not need. A wasted build is cheap; a stale deploy is
+# the bug we are fixing. `apps/studio/vercel-ignore-check.mjs` gates the list against the real metafile so an
 # excluded file that later gets imported is caught in CI rather than in production.
+#
+# THREE FILES CAME OFF THIS LIST IN #800, and the reason is worth stating because the obvious reading
+# of it is wrong. `apps/studio/src/main.ts` now imports `figmaAnatomySet` to derive which component defs
+# can be materialized, which pulls in `anatomy-figma.ts` → `component-schema.ts` → `eval.ts`. The
+# derivation is gated on `PRISM3_HOST === 'figma'`, so the *web* build eliminates the defs and almost
+# all of the projector — measured, the gate takes the web bundle from 176KB gzip back to 147KB against a
+# 140KB baseline.
+#
+# It does NOT eliminate all of it: 18KB of `anatomy-figma.ts` survives into the web output, because that
+# module's top-level template constants are not provably side-effect-free and esbuild will not drop them.
+# So a change to any of the three CAN change the deployed site, the gate is literally right, and the
+# tempting fix — leaving them excluded because "the feature is Figma-only" — would be the #474 stale
+# deploy with a rationale attached. Dead-code elimination is a size optimization, not a dependency
+# boundary, and this list is about the boundary.
 
 set -uo pipefail
 
@@ -32,9 +46,7 @@ set -uo pipefail
 # --- apps/studio/vercel-ignore-check.mjs, which fails CI if any of these becomes a bundle input)
 EXCLUDED=(
   ai-metadata.ts
-  anatomy-figma.ts
   cli.ts
-  component-schema.ts
   emit-brandinput.ts
   emit-dtcg.ts
   emit-figma-color.ts
@@ -45,7 +57,6 @@ EXCLUDED=(
   emit-levers.ts
   emit-preview.ts
   eval-run.ts
-  eval.ts
   fidelity.ts
   lint-skills.ts
   lint-us-english.ts

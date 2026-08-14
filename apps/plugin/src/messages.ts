@@ -19,7 +19,8 @@
  *
  * The component tier (#483) rides the same bridge as its own action pair — `build-components` /
  * `component-result` — because materialising a component set is a designer ACTION with its own trigger,
- * not part of applying a theme (#652).
+ * not part of applying a theme (#652). Since #800 that action names which def to build; absent still
+ * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
 
@@ -31,7 +32,7 @@ export type UiToMain =
   /** Materialise this brand into `figma.variables` (#108). Carries the live `BrandInput` from the
    *  shared UI's knobs; the main thread rebuilds the plan + runs the executor. */
   | { type: 'apply-theme'; input: BrandInput }
-  /** Materialise the Button COMPONENT SET into this file (#483) — the component tier's own action.
+  /** Materialise a COMPONENT SET into this file (#483) — the component tier's own action.
    *
    *  A SEPARATE ACTION FROM `apply-theme`, NOT a flag on it, and that is the decision rather than a
    *  detail (#652). `apply-theme` writes variables and styles: it is idempotent, cheap, and something a
@@ -40,14 +41,24 @@ export type UiToMain =
    *  unpredictable. The set also depends on the variables existing first, so the two are ordered rather
    *  than merged.
    *
-   *  NO PAYLOAD, deliberately. `apply-theme` carries the live `BrandInput` because the theme is what the
-   *  UI's knobs describe; the component set is described by the DEF, which is compiled into this bundle —
-   *  so the main thread reads it directly and there is nothing for the UI to send. Scope (which variants
-   *  get built) is likewise not here: `applyComponentPlan` takes `AnatomyPlan[]`, so scoping is entirely
-   *  a question of which plans the main thread passes, and an axis filter on the wire would be inventing
-   *  a curation taxonomy the owner has not chosen. If scoping is wanted later it is a field on this
-   *  message, against the same entry point. */
-  | { type: 'build-components' }
+   *  `def` NAMES WHICH DEF TO BUILD, and it is optional so that absent still means Button — the contract
+   *  #483 shipped, unchanged for any caller that does not set it. It carries the def's `id` (a
+   *  `componentDefs` key) rather than the def itself: the defs are compiled into the main bundle, so
+   *  sending one would put a large structure on the wire that the receiver already has, and the receiver
+   *  must look it up anyway to reject an id it cannot build.
+   *
+   *  WHY THIS IS THE FIELD AND AN AXIS FILTER IS STILL NOT (#800). The distinction is which QUESTION the
+   *  field answers. *Which def* has an answer the def list already contains — `componentDefs` is a real
+   *  set, `typecheck-components.ts` asserts it holds exactly the defs git tracks, and an id either is in
+   *  it or is not. *Which variants of that def* has no such answer: `figmaProperties` declares the axes
+   *  and every coordinate they span is equally real, so choosing a subset means inventing a curation
+   *  taxonomy nobody has chosen — which is why scope stays "the full set the def models" and remains a
+   *  question of which plans the main thread passes to `applyComponentPlan`.
+   *
+   *  An UNKNOWN or UNBUILDABLE id is answered with a failed `component-result`, not a throw: the UI
+   *  offers only ids it derived from `componentDefs`, so a bad one means the two sides disagree about the
+   *  catalogue, and the designer needs to be told that rather than watch a build never answer. */
+  | { type: 'build-components'; def?: string }
   /** Designer is dragging the UI's resize grip (#144). Sent continuously during the drag so the
    *  window tracks the pointer; `commit` is true only on pointer-up, which is when the main thread
    *  persists the size to `clientStorage`. Splitting it this way keeps the drag smooth without
