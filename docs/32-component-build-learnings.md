@@ -36,9 +36,52 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
-## 2026-08-14 — from a progress-log sweep that filed a defect already fixed (#808)
+## 2026-08-14 — three method findings in one day, and they are one family
+
+Three findings landed within a day of each other, from three unrelated pieces of work: a gate's scope read
+from its source instead of measured (#807), a sweep that filed a defect its own fix comment described
+(#808), and a def header claiming what it would do under a condition nobody had evaluated
+(`field-message`). They are the same mistake at three sites: **a claim about what code does, believed
+because the prose asserting it was read, when the code was available to ask.** Prose is the artifact a
+reader reaches for first, and every one of these three was written in good faith by someone who had
+looked at the right file.
+
+What separates them is only whether the measurement is cheap. Finding 1's is: instrument the thing and
+print what it resolved to. Finding 3's is: relax the condition in a throwaway copy and count the output.
+Finding 2's is a judgment call about tense and provenance that no counter can make. So the family shares a
+diagnosis and does **not** share a remedy — which is why the entries below propose a gate for none of
+them, and say per entry why.
+
+### `[SKILL]` A gate's scope is measured from what it scans, not read from its source (#807)
+
+`lint-us-english.ts` and `lint-voice.ts` share one scope rule. Reading their source, the two lists look
+different: the same schema files appear in different orders, under different comments, at different
+distances from the `SCHEMA_ARTIFACTS` spread that supplies most of them. Reading that difference as a
+divergence produced a claim that was wrong twice over — that `schema/paint-census.json` was in one gate
+and not the other (it is in both, and entered both in the same commit, `3dd7f39`), and that five schema
+files were unclassified (three were).
+
+The method that settles it takes about a minute: **instrument the gate's own resolved scope array and
+print the entries you care about.** `gated[]` is what the gate actually walks, after every spread, filter
+and `walkRequired` has run. Both gates resolved to the same 7 schema files. No amount of careful reading
+of two 250-line files gets there, because the question is not what the lists say — it is what they
+evaluate to, and the spreads mean those are different questions.
+
+**The subtler half, and the reason this is a `[SKILL]` and not just a caution.** `lint-us-english.ts`
+already checked its scope in *both* directions (#387: every promised surface represented, and every
+scanned file claimed by a promise). Both arms passed. They had to: **a bidirectional check over a list
+cannot see a file that is absent from the list.** Neither direction has any way to learn a file exists.
+So "this gate checks its own scope, both ways" is a true statement that does not mean scope is covered,
+and the instrumented measurement is how you tell those apart before writing an issue that asserts one.
+
+**No gate proposed here** — one shipped. `lint-schema-classification.ts` (#807) derives its expectation
+from `git ls-files packages/engine/schema`, which is the third input neither list supplies. What is left
+for a skill is the reading habit: when a claim about a gate's behavior comes from reading it, measure
+before filing.
 
 ### `[SKILL]` "Verified against `main`" means reading the current disposition, not the description that found it
+
+*(#808 — the middle of the three, and the one whose remedy is the least mechanical.)*
 
 #808 filed `text-field`'s focus-border defect and `field-message`'s unreachable text keys as live and
 unfiled, quoting both verbatim from `docs/28` §5.1's 2026-08-13 prose. Both were already fixed —
@@ -60,6 +103,61 @@ the progress-log quote. It requires reading the code's own current disposition �
 what happened to the described behavior, not just the code region the description points at — and
 independently running whatever gate would catch a regression, rather than trusting that the description
 still holds because the file still exists.
+
+**No cheap mechanical form, and worth saying why rather than leaving it as a gap.** The tell here is
+*tense plus provenance* — "all fixed in #784" is a fix comment; the identical sentence without those three
+words is a defect report. Nothing distinguishes them structurally: same vocabulary, same named key, same
+symptom, same file. A gate would have to decide whether a comment describes the present or the past, which
+is a reading, not a lookup. The nearest mechanical thing — cross-referencing every issue-number citation
+in a comment against that issue's state — answers a different question (#784 is closed either way) and
+would fire on the hundreds of legitimate backward citations this repo's comments are largely made of. So
+this stays a `[SKILL]`: one step in a sweep's procedure, not a check in CI.
+
+### `[SKILL]` A comment claiming behavior under a hypothetical condition is a testable claim nothing tests
+
+*(The defect this was measured from is filed as #825, per principle 3 as amended by #819 — this entry is
+the method finding, not the defect.)*
+
+`field-message`'s header states that the def *"projects with **no further work on it** the day the size
+requirement is relaxed"* — an honest, carefully-reasoned claim, filed against #795, that had never been
+evaluated. Its evidence is stated right there and is real: all eight tone-keyed colour bindings resolve,
+*"probed by substituting a size axis in a throwaway copy."*
+
+Relaxing exactly that requirement the way the header describes — a throwaway copy with `size: ['md']`
+added, nothing else changed — measures:
+
+| what projects | measured |
+|---|---|
+| plans from `figmaAnatomySet` | **1** |
+| paint variables on that plan | **0** |
+| the def's tone-keyed colour bindings | 8 |
+| paint variables on `figmaAnatomyPlan(copy, 'md', { tone: 'error' })` | 2, correct (`color/icon/danger`, `color/text/danger`) |
+
+Both halves matter. The header's evidence is **not wrong** — hand a `tone` coordinate to
+`figmaAnatomyPlan` and every binding resolves exactly as claimed. But nothing *hands it one*: `tone` is
+not in `PROJECTABLE_VARIANT_AXES`, so `figmaAnatomySet` refuses to declare it (`figmaAnatomySet cannot
+project variant axes [tone]`) and the only plan it enumerates carries `coord={}`. Relaxing the size
+requirement alone yields one unpainted member, not eight painted ones. The probe measured the function the
+header's author called by hand, and the claim is about the function the executors call.
+
+**Why the shape is worth an entry.** "This will work when X changes" is unfalsifiable at the moment it is
+written and stops being unfalsifiable immediately — the condition is a two-line edit to a throwaway copy,
+which is *why* the author was able to probe part of it. What survived is the gap between the part that was
+convenient to probe (does a key resolve, given a coordinate) and the part that was not (does anything
+supply the coordinate). A conditional claim needs the *whole* condition evaluated, up to the entry point a
+real caller uses, or it needs to name which half it checked.
+
+**No gate proposed, and this one is genuinely open.** "Every hypothetical in a comment is evaluated" is not
+mechanizable — the condition lives in prose, and there is no way to know what to relax. A narrower version
+might be: a def with an `anatomy` block and no `figmaProperties` gets its projection measured under each
+blocking requirement named in its header, with the count recorded. That is closer to a **measurement
+harness** than a gate (`tools/` in CLAUDE.md's sense: it answers a question rather than asserting an
+answer), and it would need someone to decide what a *defect* is versus a documented ceiling before it
+could gate. Worth building alongside #795, which is the issue that will make the condition real. Until
+then the entry is the record: the header's second sentence describes the plan path and the first describes
+the set path, and #795 should re-measure rather than trust either. The inaccurate header itself is **#825**
+— filed rather than left here, because a defect described in a docs entry is not discoverable as work
+(#819).
 
 ---
 
