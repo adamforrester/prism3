@@ -7,6 +7,113 @@
 
 ---
 
+## (2026-08-14) — The Motion ramp was not one commit stale; it was never repainted at all (#800)
+
+**STATUS: shipped.** The global Tempo control commits through `applyFull()`, so a tempo edit updates the
+Duration ramp's six durations, its ms primitives, its stagger and its `tempo '…'` label in the same commit.
+The studio smoke suite gains its first **value-correctness** assertion — the first instance of **#802**'s
+decision. Closes **#800**. No engine, no `packages/engine/components/`, no `out/*`: `apps/studio/` only.
+
+**THE MECHANISM IS NEITHER OF THE TWO #800 ASKED BETWEEN, and measuring is what separated them.** #800
+records an unresolved ambiguity — *stale by one commit* (a paint reading a pre-commit theme) versus *a
+cached render surviving a navigation* — and says to establish which before designing a fix. It is **neither**.
+Three successive tempo edits with no navigation between them (aurora: snappy → relaxed → standard) left the
+ramp showing `[40, 80, 160, 240, 400, 640]` **all three times** — the *first* tempo's ramp, not the previous
+one's. And navigation is what **cures** it, not what causes it: away and back, the section comes back
+correct. So the section is not stale by one commit and not cached across a nav; it is **frozen at the last
+full render**, because nothing repaints it. A single-edit measurement cannot tell those apart, which is
+exactly how #791's probe produced "one commit behind" from an honest reading.
+
+**Why nothing repaints it.** `apply()` = `rebuild()` + `syncChrome()` + `paintVolatile()`, and on a
+`renderScreen` page the volatile region is the `.stage-vol` specimen box **and nothing else** — the page's
+sections are built once per `renderWorkspace` and never touched again. Motion is the one page where that
+bites, because three of its four sections are read-only renderings **of the very lever it carries**. So a
+tempo edit repainted the one section that does not display the ramp and left the three that do showing the
+previous tempo's numbers.
+
+**It is NOT the #422 / `setVolatile` family, and the difference matters for where to look next.** #800 and
+#802 both suspected a painter holding a reference to a theme that had since been replaced. `renderDurationRamp`
+does not: it reads the module-level `theme` binding at **call** time, correctly, and would print current
+values on any call. There is no stale closure anywhere in it. What it shares with #422 is only the outer
+symptom — *a specimen built outside the loop that updates it* — and the loop it is outside of is the paint
+loop, not a closure. Worth carrying: **"reads a stale reference" and "is never called again" look identical
+from the screen** and are found by different searches.
+
+**The fix, and why it is not over-reach.** `renderControl` now takes a `commit` (defaulting to `apply`),
+`leverSection`/`leverControl` hand it through, and `renderMotionPage` passes `applyFull`. The strongest
+evidence that this is the right cut is that **the per-mode tempo select has always done it**:
+`renderPerModeSelect` commits through `applyFull`, which is why #800 was only ever visible in the base mode
+— driven on Dark, a per-mode tempo change updates the ramp correctly on `main`. So does every other control
+on the page: the easing baseline and per-mode selects go through `renderRepointTable`, which is `applyFull`
+throughout. **The global tempo select was the only control on Motion committing through `apply()`.** Post-#771
+`applyFull` re-renders region by region, so this costs one reconcile pass and keeps every unchanged region.
+
+**Approach tried and discarded — making the section volatile.** The apparently tidier fix is to declare the
+derived sections volatile so `apply()` repaints them. It runs into two things. (1) `renderScreen` calls
+`paintVolatile()` at the end of the page render, i.e. **before** `renderWorkspace` takes `volatileHosts`
+into the reconcile — a painter that replaces its own section there leaves `volatileHosts` pointing at
+detached nodes at exactly the moment the reconcile reads them, and every region reads as keepable. Silent,
+and only on the second commit; the same shape as the trap `setVolatile`'s header already records. (2) The
+Duration ramp is a badged section (`SECTION_MODE_SCOPE['Duration ramp']`), and `attachModeBadges` runs only
+in `renderWorkspace` — so a painter rebuilding it would drop its `.msb`, which is the *second* pre-existing
+defect #791 recorded, newly extended to a section that does not have it today. Fixing that is a second
+concern and belongs in its own change.
+
+**THE ASSERTION — #802's first instance, and it does not follow #802's letter on one point.** New section 3
+of `apps/studio/test-smoke.mjs`. EXPECTED is derived from the engine's **input** by the gate's own walk:
+`DURATION_BASE` and `TEMPO_FACTOR` are read out of `packages/engine/theme.ts` and multiplied and rounded in
+the suite. It never asks the studio what it resolved — reading EXPECTED from the renderer's resolution and
+ACTUAL from the renderer's output is `docs/34` shape 1 with extra steps, and would have passed on this
+defect with it fully present. Parsed from source rather than hand-copied so the duplicated walk cannot go
+stale silently. The rows are correlated by the `motion.duration.<step>` pill the renderer **already prints**
+— nothing is written to the DOM, per #817: `outerHTML` *is* #791's region signature, so a marker added to
+read a node would change the keep decision it is measuring.
+
+**Where it departs from #802: ACTUAL comes from the LIVE DOM, not the staged detached tree.** #802's
+decision names #791's staged tree as the studio's pre-layout artifact, reasoned from the stale-reference
+hypothesis above. That hypothesis is false here, and the consequence is concrete: the staged tree is built
+inside `renderWorkspace` and is **correct every time** — the defect was that a tempo edit never reached
+`renderWorkspace`, so nothing replaced the live section. **A staged-tree read would have reported green
+with the defect fully present.** The live DOM's *text* needs no layout either, so nothing the decision was
+buying is given up. The rest of the decision is followed exactly, including the stated limit in the header:
+it covers values rendered **as text**, so a spacing token drawn as a swatch's width, a radius as a corner,
+an elevation as a shadow or a duration as an animation all pass a text comparison. A green run establishes
+*"every value displayed as text matches the resolved theme"*, not *"every displayed value is correct."*
+
+**Fail-then-pass, because an assertion that has never failed on its own defect proves nothing.** Against
+the unfixed renderer with the assertion in place: **8 failures of 844**, naming the values —
+`aurora/standard: instant shows 40ms, resolves to 50ms; fast shows 80ms, resolves to 100ms; …` and the same
+on harbor from the other direction (harbor ships `relaxed`). Against the fix: **844/844 pass**.
+
+**ONE OTHER SECTION SHARES THE MECHANISM — reported, not fixed.** Every `apply()`-committing control in the
+app was driven one at a time on aurora — **159 control exercises** across the 9 pages, the four Typography
+tabs and the three Preview views — comparing the page after the edit against a fresh render of the *same*
+state reached by navigating away and back. A comparison that needs no correlation and writes nothing. Two offenders, and
+only two: the Motion tempo select, and **Typography → Text styles → "What each category is made of"**, whose
+weight-role checkboxes commit through `apply()` while the per-category style count in the same table is
+derived from the theme. Ticking a `display` weight leaves **"display 4 styles"** on screen against a resolved
+8. Same family, same one-line shape of fix; out of scope here.
+
+**THE SIBLING DEFECT #791 OFFERED TO FILE IS REAL, AND IT *WAS* FILED — as #809.** Confirmed by driving
+it rather than by reading: on Motion, the playback select calls `paintVolatile()` directly, `vol` is
+refilled, and the specimen's `.psec` comes back **NO BADGE** where it rendered `badged` a moment earlier.
+`attachModeBadges` runs only in `renderWorkspace`, so any `.psec` built inside the volatile region loses its
+`.msb` on the first repaint. #809 was opened on 2026-08-14 by the described-but-unfiled sweep that also
+produced #819's CLAUDE.md rule — which is the rule working: the defect was stranded in a merged PR body
+("Happy to file both") until a sweep went looking. Not fixed here; one concern per PR.
+
+**And this PR's own out-of-scope find is filed, not just described** (#819's rule): the Typography
+Text-styles staleness above is **#831**.
+
+**Gates.** Full `ci.yml` sequence: **33 gate steps** at this commit (34 named steps less `npm ci`), of which
+`verify.ts` enumerates **32** — the extra step is the runner's own `verify.ts --list` self-check, which is
+not in its own list. Base and head both 33; this change adds and removes none. All green, plus `build:site`
+(not a CI step) and `audit:modes --check-badges` (46 badged sections, all matching). Smoke suite read from
+its own output: **844 assertions, 15,638 text nodes across 72 states — the #793 baseline exactly**, the 844
+being 819 plus this PR's 25.
+
+---
+
 ## (2026-08-14) — The MVP catalogue: 25 named components, and the three things that block def #8
 
 **STATUS: docs only.** New `40-component-catalogue-mvp.md`. No engine change, no emitted artifact, no

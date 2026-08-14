@@ -1169,7 +1169,16 @@ const renderPrimitives = (host: PageHost): void => {
 // Generic lever controls + the bespoke editors the focused pages compose from
 // ===========================================================================
 
-const renderControl = (lever: Lever): HTMLElement => {
+/** `commit` is the path this control takes when it changes, and it defaults to `apply()` — recompute
+ *  the theme, repaint the volatile region, keep focus. That is right for a control whose page owns a
+ *  painter for everything the edit changes. A caller passes `applyFull` instead when the edit's
+ *  visible consequences are drawn by a page SECTION, which no painter owns — see `renderMotionPage`
+ *  and #800.
+ *
+ *  A `slider` commits on `oninput`, i.e. once per pixel of drag, so `applyFull` is not a sane commit
+ *  for one. Nothing here prevents it; no caller does it, and this says so rather than implying a
+ *  guard that is not written. */
+const renderControl = (lever: Lever, commit: () => void = apply): HTMLElement => {
   const live = LIVE_CONTROLS.has(lever.control);
   let body: HTMLElement;
 
@@ -1177,27 +1186,27 @@ const renderControl = (lever: Lever): HTMLElement => {
     const input = rangeInput({ min: lever.min, max: lever.max, step: lever.step, value: (getPath(brandState, lever.key) ?? lever.default ?? lever.min ?? 0) as number });
     input.disabled = !live;
     const val = el('span', 'knob-val', `${input.value}${lever.unit ?? ''}`);
-    if (live) input.oninput = () => { setPath(brandState, lever.key, Number(input.value)); val.textContent = `${input.value}${lever.unit ?? ''}`; apply(); };
+    if (live) input.oninput = () => { setPath(brandState, lever.key, Number(input.value)); val.textContent = `${input.value}${lever.unit ?? ''}`; commit(); };
     body = knobBody(input, val);
   } else if (lever.control === 'palette-ref' && live) {
     const sel = selectEl('sm');
     const palettes = ['primary', ...(brandState.brandColors ?? []).map((b) => b.name)];
     const cur = String(getPath(brandState, lever.key) ?? lever.default ?? 'primary');
     for (const p of palettes) sel.append(optionEl(p, p, p === cur));
-    sel.onchange = () => { setPath(brandState, lever.key, sel.value); apply(); };
+    sel.onchange = () => { setPath(brandState, lever.key, sel.value); commit(); };
     body = sel;
   } else if (lever.control === 'enum') {
     const sel = selectEl('sm');
     const cur = getPath(brandState, lever.key) ?? lever.default;
     for (const o of lever.options ?? []) sel.append(optionEl(String(o.value), o.label, o.value === cur));
     sel.disabled = !live;
-    if (live) sel.onchange = () => { setPath(brandState, lever.key, sel.value); apply(); };
+    if (live) sel.onchange = () => { setPath(brandState, lever.key, sel.value); commit(); };
     body = sel;
   } else if (lever.control === 'toggle') {
     // Boolean axis. `checked` reads truthy — so `gradients` renders "on" whether it's `true`
     // or an explicit gradient array (the array is only reset if the user toggles off). Toggling
     // writes a plain boolean: on → the default (single gradient / inverse inks), off → false.
-    body = toggleField(!!(getPath(brandState, lever.key) ?? lever.default), (checked) => { setPath(brandState, lever.key, checked); apply(); });
+    body = toggleField(!!(getPath(brandState, lever.key) ?? lever.default), (checked) => { setPath(brandState, lever.key, checked); commit(); });
   } else {
     const v = getPath(brandState, lever.key) ?? lever.default;
     let text: string;
@@ -3774,18 +3783,22 @@ const renderElevationPage = (host: PageHost): void => renderScreen(host, 'elevat
 // Size & radius — component sizing (density) + corner radius; both go per-mode outside Light.
 // Render one lever's control, honouring the per-mode ramp variants (radius / density / tempo go per-mode
 // outside Light). Shared by the geometry/motion pages so each concept `.psec` composes the same way.
-const leverControl = (key: string, perMode: boolean): HTMLElement | null => {
+const leverControl = (key: string, perMode: boolean, commit?: () => void): HTMLElement | null => {
   const l = leverByKey(key); if (!l) return null;
+  // The three per-mode variants already commit through `applyFull` (see `renderPerModeSelect`), which
+  // is why #800 was never visible outside Light: there, changing the tempo re-renders the page and the
+  // Duration ramp comes back current. Only the global control had it.
   if (key === 'radiusScale' && perMode) return renderPerModeRadius(l);
   if (key === 'density' && perMode) return renderPerModeDensity(l);
   if (key === 'motionPersonality.tempo' && perMode) return renderPerModeTempo(l);
-  return renderControl(l);
+  return renderControl(l, commit);
 };
 /** A `.psec` concept section built from a set of lever keys (doc 26). Returns null when none of its
- *  levers resolve, so an empty concept never renders an empty panel. */
-const leverSection = (title: string, sub: string, keys: string[], perMode: boolean): HTMLElement | null => {
+ *  levers resolve, so an empty concept never renders an empty panel. `commit` is handed to every
+ *  control in the section — see `renderControl`. */
+const leverSection = (title: string, sub: string, keys: string[], perMode: boolean, commit?: () => void): HTMLElement | null => {
   const sec = palSection(title, sub); let any = false;
-  for (const k of keys) { const c = leverControl(k, perMode); if (c) { sec.append(c); any = true; } }
+  for (const k of keys) { const c = leverControl(k, perMode, commit); if (c) { sec.append(c); any = true; } }
   return any ? sec : null;
 };
 
@@ -4012,7 +4025,22 @@ const renderMotionPage = (host: PageHost): void => renderScreen(host, 'motion', 
   // The section head no longer restates the knob's own description verbatim — both said "scales the
   // duration ramp" and "reduce-motion is derived", three lines apart. The head says what the section
   // governs; the knob keeps the multipliers.
-  const tempo = leverSection('Tempo', 'The overall motion speed for this brand. Per-mode outside Light.', leversFor('motion').map((l) => l.key), perMode);
+  // #800 — TEMPO COMMITS FULLY, and this is the one page where that is not over-reach.
+  //
+  // `apply()` recomputes the theme and repaints the VOLATILE region; on a `renderScreen` page the
+  // volatile region is the `.stage-vol` specimen box and nothing else. Every other section here is
+  // built once per `renderWorkspace` and never touched again. Three of the four sections below are
+  // read-only renderings OF THE TEMPO — the Duration ramp's six durations, its ms primitives, its
+  // stagger and its `tempo '…'` label — so a tempo edit that commits through `apply()` repaints the
+  // one section that does not display the ramp and leaves the three that do showing the previous
+  // tempo's numbers. Measured before it was fixed: three successive edits (snappy → relaxed →
+  // standard) all left `[40, 80, 160, 240, 400, 640]` on screen. Not stale by one commit — stale
+  // since the last full render, which is what a single-edit measurement could not tell apart.
+  //
+  // `applyFull()` re-renders the page region by region (#771), so the ramp is rebuilt from the
+  // resolved theme and every unchanged region is kept. It is also what the per-mode tempo select has
+  // always done, which is why this was only ever visible in the base mode.
+  const tempo = leverSection('Tempo', 'The overall motion speed for this brand. Per-mode outside Light.', leversFor('motion').map((l) => l.key), perMode, applyFull);
   if (tempo) h.append(tempo);
   h.append(renderDurationRamp());
   h.append(renderEasingEditor());
