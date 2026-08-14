@@ -80,6 +80,28 @@ Worth separating from the fix: the reword this first prompted was **reverted**. 
 case, changing `anatomy-figma.ts` was no longer needed, and a gate fix plus an unnecessary source edit would have
 read as though the source were at fault. `anatomy-figma.ts` is untouched in this PR.
 
+**A THIRD GATE, AND THIS ONE WAS ONLY IN CI.** All 25 documented gates passed locally and CI still went red, on a
+step `ci.yml` has always run and `build.mjs` never did: `grep -q "node:" apps/plugin/dist/main.js`. The Figma main
+thread has no Node builtins, so a regression there breaks the plugin at **load** — not at typecheck, not at build.
+What tripped it was not an import. Importing `componentDefs` into the plugin's main thread pulled
+`icon-button.ts`'s `codeOnly` prose into the bundle as string content, and one clause read *"…neither reaches a
+Figma node: the engine verifies…"*. A colon one character after the word `node`. Measured: 0 occurrences before
+that prose reached the bundle, 1 after.
+
+The grep cannot tell prose from an import, and it is **right not to try** — a check that parsed import syntax
+would miss a builtin reached any other way, and the false positives it admits cost one dash to fix. So the prose
+took the dash.
+
+**The gap it exposed was the real finding.** `build.mjs` already asserted four properties of what it wrote (the
+version stamp, the iife wrapper, the jszip shim, the single `</script>`) for the stated reason that `dist/` is
+gitignored and a regression there is invisible to typecheck, to lint and to every source grep. The
+sandbox-safety property — the one whose failure mode is *the plugin does not load* — was the exception, asserted
+only in CI. A documented pre-push list weaker than CI is a list a diligent contributor can follow exactly and
+still ship red, which is the defect class CLAUDE.md principle 4 already records twice. The assertion now lives in
+`build.mjs`, so `npm run -w @prism3/plugin build` fails where CI failed; mutation-tested by restoring the colon,
+which fails by name (**"references a node: builtin on 1 line(s)"**), and the comment explaining it observes its own
+rule, because the plugin build does not minify and a comment naming the literal would trip the check it documents.
+
 **THE GENERALIZATION.** Both gates went stale in the same way, and it is not the way a rotted count does. Neither
 was wrong about its rule; each was resting on an unstated fact about the bundle — *"these files are not imported"*
 and *"esbuild strips comments"* — that was true when written, that nothing re-checked, and that a change in a

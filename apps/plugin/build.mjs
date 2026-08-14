@@ -95,6 +95,30 @@ if (watch) {
   console.log('watching apps/plugin/src + studio/src …');
 } else {
   await build(mainOpts);
+  // THE SANDBOX-SAFETY ASSERTION, MOVED HERE FROM CI ONLY (#804). `ci.yml` has always run
+  // `grep -q "node:" apps/plugin/dist/main.js` after this build, because the Figma main thread has no
+  // node: builtins and a regression breaks the plugin at LOAD — not at typecheck, not at build time.
+  // This build script asserted four other properties of what it wrote (the version stamp, the iife
+  // wrapper, the jszip shim, the single `</script>`) for exactly that reason: `dist/` is gitignored, so
+  // a regression there is invisible to typecheck, to lint and to every source grep. This one property
+  // was the exception, and the gap was not academic — #804 imported `componentDefs` into the main
+  // thread, which pulled `icon-button.ts`'s `$description` prose into the bundle, and one clause read
+  // "…reaches a Figma node: the engine…". Local `npm run -w @prism3/plugin build` passed; CI failed.
+  //
+  // A documented pre-push list weaker than CI is a list a diligent contributor can follow exactly and
+  // still ship red, which is the defect class CLAUDE.md principle 4 records twice already. Same grep,
+  // same file, deliberately NOT narrowed to import syntax: a check that parsed imports would miss a
+  // builtin reached any other way, and the false positives it admits are one dash to fix.
+  const mainJs = await readFile(resolve(out, 'main.js'), 'utf8');
+  const hits = mainJs.split('\n').map((l, i) => [i + 1, l]).filter(([, l]) => l.includes('node:'));
+  if (hits.length) {
+    throw new Error(
+      `apps/plugin/dist/main.js references a node: builtin on ${hits.length} line(s) — the main thread ` +
+        `must stay sandbox-safe:\n` +
+        hits.map(([n, l]) => `  ${n}: ${String(l).trim().slice(0, 160)}`).join('\n'),
+    );
+  }
   await buildUiHtml();
+  console.log('  dist/main.js   (0 node: builtins)');
   console.log('plugin build complete → apps/plugin/dist/');
 }
