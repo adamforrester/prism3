@@ -325,6 +325,21 @@ jobs:
       - name: A published docs/34 shape number still means what it meant
         run: npx --yes tsx@4 packages/engine/lint-shape-index.ts
 
+      # #807: CLAUDE.md principle 5 says a schema file kept out of regen must be hand-named in both
+      # prose gates — a rule that lived in prose and was carried out by whoever remembered. Three files
+      # (`nb-measured`, `payload-manifest`, `theme-schema.example`) were in neither gate with no record
+      # of a decision, so nothing distinguished "deliberately exempt" from "nobody looked" — the same
+      # membership-by-location defect `payload-manifest.json` itself exists to remove, one tier up.
+      # This asserts every file in `schema/` is classified: in SCHEMA_ARTIFACTS, hand-named in BOTH
+      # prose gates, or EXEMPT with a stated reason. EXPECTED comes from `git ls-files` — the DIRECTORY
+      # — never from the lists being checked: measured, a union-of-the-lists version prints `✓ clean` at
+      # exit 0 on the very file the directory-derived one fails on, because the unclassified file is by
+      # definition absent from every list. Both directions checked, so a stale entry cannot rot quietly.
+      # Its limit is stated in the header: it proves a human wrote an answer down, not that the answer
+      # is right — moving a prose-carrying file to EXEMPT passes, which is what the `why` is for.
+      - name: Every packages/engine/schema file has a decided place in the prose gates
+        run: npx --yes tsx@4 packages/engine/lint-schema-classification.ts
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero

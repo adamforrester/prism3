@@ -192,6 +192,16 @@ const gated: string[] = [
   // and those titles are quoted verbatim in this gate's own failure messages, so an en-GB spelling in
   // one would reach a contributor's terminal.
   join(repo, 'packages/engine/schema/shape-index.json'),
+  // The payload manifest (#674) and the NB measurement fixture — both authored, both kept out of
+  // regen, and both carrying prose that until #807 no prose gate had ever opened. The manifest states
+  // a `why` on every payload/ours rule plus a multi-line `$comment`, and those reasons are the whole
+  // mechanism by which a human classifies an emitted artifact; `nb-measured.json` carries `$comment`,
+  // a `$source` on nearly every field, and a `brand.voice` line. They are here for the reason the
+  // three lines above are here, and their absence is why that reason is now ASSERTED rather than
+  // repeated: `lint-schema-classification.ts` fails until every file in `schema/` has a decided
+  // place, so the next authored file cannot reach main uncovered by being forgotten twice.
+  join(repo, 'packages/engine/schema/payload-manifest.json'),
+  join(repo, 'packages/engine/schema/nb-measured.json'),
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.

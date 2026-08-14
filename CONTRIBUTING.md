@@ -208,6 +208,34 @@ npx tsx packages/engine/lint-shape-index.ts         # a published docs/34 shape 
                                                     # stops matching fails instead of reporting 0.
                                                     # It CANNOT check a citation names the RIGHT shape —
                                                     # that is prose, and review is its only guard
+npx tsx packages/engine/lint-schema-classification.ts  # every file in packages/engine/schema/ has a
+                                                    # DECIDED place in the two prose gates (#807).
+                                                    # Principle 5's rule — a file kept out of regen must
+                                                    # be hand-named in lint-us-english.ts AND
+                                                    # lint-voice.ts — lived in prose and was carried out
+                                                    # by whoever remembered. Three files were in
+                                                    # neither gate with no record of a decision, so
+                                                    # nothing distinguished "deliberately exempt" from
+                                                    # "nobody looked": the same membership-by-location
+                                                    # defect payload-manifest.json exists to remove,
+                                                    # reproduced one tier up. Three classes now:
+                                                    # SCHEMA_ARTIFACTS (regen-covered, so both gates
+                                                    # cover it automatically), hand-named in BOTH prose
+                                                    # gates, or EXEMPT with a stated reason. Requiring
+                                                    # BOTH is deliberate — the gates share one scope
+                                                    # rule, so a file in one and not the other is a
+                                                    # DIVERGENCE at most one side of which can be right.
+                                                    # EXPECTED comes from `git ls-files` — the
+                                                    # DIRECTORY, never the lists being checked.
+                                                    # Measured: a union-of-the-lists version prints
+                                                    # `clean` at exit 0 on the very file the
+                                                    # directory-derived one fails on, since an
+                                                    # unclassified file is by definition in no list.
+                                                    # Both directions, so a stale entry cannot rot
+                                                    # quietly. Its LIMIT: it proves a human wrote an
+                                                    # answer down, not that the answer is right —
+                                                    # moving a prose-carrying file to EXEMPT passes,
+                                                    # which is what each entry's `why` is for
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

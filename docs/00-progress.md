@@ -7,6 +7,97 @@
 
 ---
 
+## (2026-08-13) — Both prose gates were silent about three files neither of them scanned (#807)
+
+**STATUS: shipped.** `packages/engine/lint-schema-classification.ts` asserts that every file in
+`packages/engine/schema/` has a decided place: in `SCHEMA_ARTIFACTS` (regen-covered, and therefore in both
+prose gates automatically, since both map over that export), hand-named in **both** `lint-us-english.ts`
+and `lint-voice.ts`, or `EXEMPT` with a stated reason. A new schema file now fails until a human decides.
+
+**What was wrong.** CLAUDE.md principle 5 states the rule — *"anything else kept out of regen needs the
+same line"* — and it lived in prose and in each gate's header, carried out by whoever remembered when a
+file was created. Three files were in neither prose gate with no record that anyone had considered them:
+`payload-manifest.json` (a `$comment` plus a `why` on **every** payload/ours rule), `nb-measured.json`
+(`$comment`, a `$source` on nearly every field, a `brand.voice` line) and `theme-schema.example.json`.
+Both gates printed `✓ clean` over a file count that never included them.
+
+**The diagnosis, which is the part worth keeping.** This is #674's defect one tier up, in the directory
+that holds #674's own remedy. #674 argued that `out/` decided membership **by location**, with nothing
+but human knowledge separating payload from ours — *"which is how the first eject would have decided
+membership by accident."* A schema file's prose coverage was decided exactly that way: two files in one
+directory, one gated and one not, are indistinguishable from outside. And note why the existing
+machinery could not see it. `lint-us-english.ts` already checks its promise list in **both** directions
+(#387) — every promised surface represented, every scanned file claimed by a promise — and both arms
+passed, because a bidirectional check over a list is blind to a file **absent from the list**. Closing
+that needs a third input neither list supplies.
+
+**Where EXPECTED comes from, and the measurement that settles it.** `git ls-files packages/engine/schema/`
+— the directory. Building the expectation from the gates' own lists would agree with them by
+construction, and this is not a judgment call: with `onDisk` rebuilt as a union of the lists and an
+unclassified `brand-new.json` committed to `schema/`, the gate printed `✓ clean` at **exit 0** with the
+same well-formatted three-way census as a real pass, while the directory-derived version fails on that
+identical file, naming it. A weakened gate here does not go quiet; it produces a confident pass. Same
+move as `shape-index.json` in #786, and the trap #807 named going in.
+
+**Requiring BOTH prose gates is deliberate.** They share one scope rule, so a file in one and not the
+other is a *divergence* at most one side of which can be right. Requiring both means that state cannot be
+reached silently — it has to be argued for by editing the classification gate.
+
+**Two of #807's claims did not survive measurement, and the record should say so.** The issue reports
+`paint-census.json` as present in `lint-voice` and absent from `lint-us-english`, and calls that split
+*"the proof it is memory rather than judgment."* Measured by instrumenting each gate's resolved `gated[]`
+array and printing its `schema/` entries — from what the gates **actually scan**, not from reading their
+source — both gates resolve to the same 7 files, and `paint-census.json` is in both, having entered both
+in the same commit (`3dd7f39`). The divergence does not exist. The issue also predicts a real finding in
+`payload-manifest.json`'s never-scanned `why` prose; it is clean, as are the other two, confirmed by the
+real gates after widening rather than by my own reimplementation of their rules — which is the trap
+`lint-us-english.ts`'s own header documents about self-checks. So the finding is **three files nobody
+decided about, and no divergence**. The diagnosis is untouched by that, because it never rested on the
+divergence: three files in neither list is already a rule enforced by memory. What changes is that no
+gate was ever *wrong* about a file it scanned — both were silent about files neither scanned, which is
+the harder failure to see and precisely what a directory-derived expectation catches.
+
+**Classified.** `payload-manifest.json` and `nb-measured.json` into both prose gates (schema surface
+7 → 9 files in each, both still clean). `theme-schema.example.json` exempt with a reason: it is a worked
+BrandInput read by `emit-dtcg.ts` as an input fixture, pure data with no prose field anywhere in it — no
+`$comment`, no `description` — while `theme-schema.json`, the *contract* it exemplifies, carries
+`description` prose and is gated in both. That decision was made by reading the file, not inferred; a
+2026-08-06 progress entry records it being checked clean **by hand** during #313, which is consistent
+with "nobody had decided whether it should be gated."
+
+**Mutations verified, each failing by name:** a new unclassified schema file (fails naming it, then
+passes once classified in both gates) · a file named in one prose gate only (fails as a divergence,
+naming the gate missing it) · a file both hand-named and exempt · a stale `EXEMPT` entry · a stale
+hand-named path in a prose gate · a stale `SCHEMA_ARTIFACTS` entry · an `EXEMPT` entry with an empty
+reason · the list-derived expectation above. Negative control: an **untracked** scratch file in
+`schema/` does not fail, since the scope is tracked files only and a scratch file mid-work is not
+shipped.
+
+**A trap in the verification itself, worth one line.** `git checkout <file>` cannot restore a mutation to
+an **untracked** file, so the mutation that edited the new gate's own `EXEMPT` array survived what looked
+like a clean restore, and the next run was measuring a tampered gate. Caught because the run said
+`!! NOT RESTORED` — the reason a mutation loop should assert the restore rather than assume it.
+
+**Its limit, stated rather than implied:** it proves a human wrote an answer down, not that the answer is
+right. Moving a prose-carrying file to `EXEMPT` passes. That is what the `why` on each entry is for, and
+review is its only guard — the same limit `lint-payload-manifest.ts` states about payload-vs-ours.
+
+**REBASE NOTES.** Two things worth recording, neither a defect in this PR's own logic:
+
+1. This branch predates `verify.ts` (#789), so its new gate had no entry in `GATES` and #789's arm 3
+   (`lint-doc-gates.ts` comparing `verify.ts` against `ci.yml` in both directions) would have failed on
+   `main` with the new CI step unregistered — the mirror image of the `lint-classes` staleness #789 itself
+   caught after #806. Registered `lint-schema-classification` in `verify.ts`'s `GATES`, in the same
+   position as its `ci.yml` step; `lint-doc-gates.ts` and a full `npx tsx verify.ts` run are both clean
+   afterward (31/31, 30 PASS + smoke ADVISORY).
+2. A clean 3-way `git rebase` auto-merged this PR's own `docs/00-progress.md` entry into the **wrong**
+   position — spliced in after three other entries instead of at the top, with no conflict markers to flag
+   it. Moved by hand to the top, per this file's own "most recent entry first" convention. Recorded because
+   it is exactly the failure mode this file's own review protocol warns about: an auto-merge can misplace
+   an entry silently, and only checking placement (not just checking for conflict markers) catches it.
+
+---
+
 ## (2026-08-13) — The gate list becomes runnable, and `ci.yml` stops being an unchecked oracle (#789)
 
 **STATUS: shipped.** `npm run verify` runs every gate in a declared, checked order and prints a per-gate
