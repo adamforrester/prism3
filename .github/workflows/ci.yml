@@ -213,6 +213,24 @@ jobs:
             *) echo "✗ artifact coverage changed — expected 104. If the set legitimately grew or shrank, update this check in the same PR."; exit 1 ;;
           esac
 
+      # The RUNNER's own checks, not a second run of the gates (#789). `verify.ts` is what a contributor
+      # types instead of hand-assembling ~30 commands, and its list is the FIFTH authored statement of
+      # what the gates are — compared against this file in BOTH directions by the step below, which is
+      # what makes THIS FILE checkable at all. Until #789, `lint-doc-gates.ts` compared three documents
+      # against ci.yml in one direction only, so a gate missing from ci.yml left four artifacts in
+      # perfect agreement and fired nothing; measured, not assumed — deleting the lint-paint step left
+      # the pre-#789 gate exiting 0.
+      #
+      # `--list` deliberately, NOT a full `npm run verify`: running the runner here would execute every
+      # gate a SECOND time inside a job that already runs them all, doubling the job for no new
+      # information. What this step covers is everything `verify.ts` asserts about ITSELF before running
+      # anything — its self-checks (each derived gate can actually fail, the ordering check catches a
+      # real inversion, the orphan scan catches an unnamed file) and `orderViolations` over the real
+      # authored array. A `verify.ts` whose own checks are broken must not reach main just because CI
+      # never imported it.
+      - name: The gate runner's list and order are sound
+        run: npx --yes tsx@4 verify.ts --list
+
       # #610 fixed CLAUDE.md/CONTRIBUTING.md/the PR template being out of sync with the gates above —
       # the PR template listed 4 checks against this workflow's 17, and #601/#602 each shipped a gate
       # (`lint:classes`, retired in #770) silently broken by following that shorter, stale checklist

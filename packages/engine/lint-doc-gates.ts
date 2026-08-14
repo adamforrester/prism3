@@ -83,12 +83,42 @@
  * stated design, so holding it to enumeration would create a fourth copy of the checklist — see
  * `POINTER_DOC` below for the full reasoning and the option that was rejected.
  *
- * ONE DIRECTION ONLY, DELIBERATELY: this checks that every ci.yml gate is represented in the docs, not
- * the converse. `CONTRIBUTING.md` §3 also documents `emit-dtcg.ts`/`emit-figma.ts` as local-only
- * commands with no matching `ci.yml` step — that is fine on purpose (they are covered transitively by
- * `regen.ts`, which the docs also note) and is not the defect #610/#613 exist to catch. Extending this
- * to the reverse direction was considered and left out — it is a different question with a different
- * false-positive shape, not a smaller version of this one.
+ * ONE DIRECTION FOR THE PROSE DOCS, DELIBERATELY: those are checked for every ci.yml gate being
+ * represented, not the converse. `CONTRIBUTING.md` §3 also documents `emit-dtcg.ts`/`emit-figma.ts` as
+ * local-only commands with no matching `ci.yml` step — that is fine on purpose (they are covered
+ * transitively by `regen.ts`, which the docs also note) and is not the defect #610/#613 exist to catch.
+ * Extending the PROSE check to the reverse direction was considered and left out — it is a different
+ * question with a different false-positive shape, not a smaller version of this one.
+ *
+ * ── THE THIRD AND FOURTH ARMS: ci.yml IS NO LONGER AN UNCHECKED ORACLE (#789) ────────────────────
+ *
+ * Everything above compares documents against `ci.yml` and therefore takes `ci.yml` as ground truth.
+ * That leaves one class this file could never see: a gate MISSING FROM `ci.yml`. All four artifacts
+ * would agree — perfectly, and about a gate that runs nowhere — and nothing would fire. Silence, not
+ * a failure, which is the `docs/34` failure mode one level up from the one this file was filed for.
+ *
+ * ARM 3 — `verify.ts`'s `GATES` array, compared against `ci.yml` in BOTH DIRECTIONS. That list is a
+ * RUNNER, so it is not prose and gets no token tolerance: it joins on the `- name:` string verbatim,
+ * and a mismatch in either direction fails. Why both directions are right here when they are not right
+ * for the prose docs: a runner that runs something CI does not is as wrong as one that skips something
+ * CI runs — its whole claim is "this is what CI will do to your PR". The prose docs make a weaker
+ * promise (a checklist may mention a local-only command), so they keep the weaker check.
+ *
+ * The point of the arm is that it makes the disagreement SYMMETRIC. `ci.yml` and `verify.ts` are
+ * authored separately by hand, and either one going short now fails. Adding a gate is a five-file edit
+ * as a result — the `schema/payload-manifest.json` reasoning: the friction is the feature.
+ *
+ * ARM 4 — THE ORPHAN CASE, which no comparison of lists can reach, because five copies of a list
+ * cannot see something absent from all five. A `lint-*` file that exists in the repo and is named in
+ * NOTHING is invisible to arms 1-3 by construction. So this arm reads the FILESYSTEM (via
+ * `git ls-files`) and asks `ci.yml` about each file it finds — two readers, neither derived from the
+ * other. Implementation lives in `verify.ts` beside the list it complements; this file drives it so it
+ * runs in CI rather than only when a human types `verify`.
+ *
+ * WHY IMPORTING `verify.ts` IS SAFE: it runs its gates only under a main-module guard, so importing
+ * `GATES` costs nothing. It does run its own self-checks at import time, which is deliberate — this
+ * gate then fails if the runner's checks are broken, rather than reporting on a list produced by a
+ * runner that cannot see its own defects.
  *
  * Dependency-free per repo convention: a hand-rolled parser for `ci.yml`'s flat `- name: ... run: ...`
  * step structure, not a YAML library — see `lint-us-english.ts`/`lint-skills.ts` for the same choice.
@@ -98,6 +128,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { GATES, orphanGateFiles, trackedGateFiles } from '../../verify.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
@@ -192,6 +223,49 @@ export const lostPointersIn = (lines: string[]): string[] =>
 // See the file header's SCOPE note — this is the one exclusion that can't be inferred from shape
 // alone, because its `run:` genuinely contains an `npx tsx` invocation.
 const NOT_A_DISTINCT_GATE = new Set<string>(['Drift gate still covers the full artifact set']);
+
+/**
+ * ARM 3's scope: which `ci.yml` steps `verify.ts` must carry, by `- name:`.
+ *
+ * EVERY step with a `run:` is in scope — including the two the prose arms skip by shape (the inline
+ * `node:`-builtin grep, and the drift-coverage meta-check). A runner has to run them; `verify.ts`
+ * implements both as `derive` gates, reading a file and an earlier gate's captured output rather than
+ * shelling out. That is a stronger scope than the prose arms use, and it is the right one for exactly
+ * the reason arm 3 is bidirectional: this list's promise is "everything CI does".
+ *
+ * TWO exceptions, declared by NAME rather than inferred, because a shape rule ("exclude anything
+ * without a gate token") would silently widen the day someone adds another non-asserting step:
+ *
+ *   - `npm ci` installs and asserts nothing.
+ *   - The runner's own `--list` step. `verify.ts` must not carry a gate that runs `verify.ts`: it
+ *     already runs those self-checks at import, in-process, before its first gate — so the row would
+ *     re-run them in a subprocess and report the result of asking itself. `docs/34` shape 2 in
+ *     miniature. The CI step exists precisely because CI is the one place that ISN'T the runner.
+ */
+const NOT_A_RUNNABLE_GATE = new Set<string>([
+  'Install workspace deps',
+  "The gate runner's list and order are sound",
+]);
+
+/** `ci.yml` steps arm 3 requires `verify.ts` to carry: everything with a `run:`, minus the named
+ *  install step. */
+export const runnableCiSteps = (steps: Step[]): Step[] =>
+  steps.filter((s) => s.run.trim() && !NOT_A_RUNNABLE_GATE.has(s.name));
+
+/**
+ * ARM 3, BOTH DIRECTIONS. Exact-string join on the `- name:`, no token tolerance — see the header for
+ * why a runner gets a stricter contract than prose. Returns the two disagreements separately, because
+ * they have different fixes and a message that merged them would say "these lists differ" and leave
+ * the reader to work out which way.
+ */
+export const runnerListDiff = (steps: Step[], gateSteps: string[]): { unrun: string[]; extra: string[] } => {
+  const inRunner = new Set(gateSteps);
+  const inCi = new Set(runnableCiSteps(steps).map((s) => s.name));
+  return {
+    unrun: [...inCi].filter((n) => !inRunner.has(n)),
+    extra: [...inRunner].filter((n) => !inCi.has(n)),
+  };
+};
 
 export type Step = { name: string; run: string };
 
@@ -465,6 +539,39 @@ if (gapsMissing.some((f) => f.step === 'Install workspace deps' || f.step === 'S
   selfFails.push('a non-gate step (npm ci / grep-only script) produced a finding');
 }
 
+// 6. ARM 3 — the runner-list comparison, in BOTH directions, over the sample steps rather than the
+//    real ones, so these assertions do not depend on what ci.yml happens to contain today. Each
+//    direction must fail on its own defect and stay silent on the other's.
+const sampleRunnable = runnableCiSteps(steps).map((s) => s.name);
+if (sampleRunnable.includes('Install workspace deps')) {
+  selfFails.push('the named install exclusion leaked into arm 3 — verify.ts would be required to run `npm ci` as a gate');
+}
+if (!sampleRunnable.includes('Sample gate: has a colon')) {
+  selfFails.push("arm 3's scope excludes the inline-script step — a runner would not be required to implement it, which is how the node:-builtin check would go unrun");
+}
+const agreeing = runnerListDiff(steps, sampleRunnable);
+if (agreeing.unrun.length || agreeing.extra.length) {
+  selfFails.push('arm 3 reports a disagreement between two identical lists (false positive)');
+}
+const dropped = runnerListDiff(steps, sampleRunnable.filter((n) => n !== 'Typecheck sample'));
+if (!dropped.unrun.includes('Typecheck sample') || dropped.extra.length) {
+  selfFails.push('arm 3 misses a ci.yml step the runner does not run — the direction that lets the runner go short');
+}
+const invented = runnerListDiff(steps, [...sampleRunnable, 'A gate CI does not have']);
+if (!invented.extra.includes('A gate CI does not have') || invented.unrun.length) {
+  selfFails.push('arm 3 misses a runner gate ci.yml does not have — the direction that makes ci.yml checkable at all (#789)');
+}
+
+// 7. ARM 4 — the orphan check, driven through the SHIPPED function from `verify.ts` (never a copy of
+//    its matching logic), over hand-made inputs. Both directions: a named file must not be flagged, an
+//    unnamed one must be.
+if (orphanGateFiles('        run: npx tsx packages/engine/lint-known.ts', ['packages/engine/lint-known.ts']).length) {
+  selfFails.push('arm 4 flags a gate file ci.yml names directly (false positive)');
+}
+if (!orphanGateFiles('        run: npx tsx packages/engine/lint-known.ts', ['packages/engine/lint-orphan.ts']).includes('packages/engine/lint-orphan.ts')) {
+  selfFails.push('arm 4 misses a gate file named nowhere in ci.yml — the one case no comparison of lists can reach');
+}
+
 if (selfFails.length) {
   console.error("\n❌ the doc/CI gate-sync check's own detection is broken — it cannot see what it claims to:\n");
   for (const f of selfFails) console.error(`    ${f}`);
@@ -521,6 +628,23 @@ if (candidates.length < 10) {
 
 const findings = findGaps(realSteps, realDocs);
 
+// ---- ARM 3 + ARM 4: the runner list, and the orphan case (#789) ---------------------------------
+const ciText = readFileSync(CI_PATH, 'utf8');
+const runnerDiff = runnerListDiff(realSteps, GATES.map((g) => g.ciStep));
+const gateFiles = trackedGateFiles();
+const orphans = orphanGateFiles(ciText, gateFiles);
+
+// SCOPE FLOOR on arm 4, the same shape as the candidate floor above: `trackedGateFiles()` returning
+// nothing would report "no orphans" over an empty set — a clean bill of health from a scan that looked
+// at nothing. `git ls-files` failing (not a git tree) reads identically to a repo with no gate files,
+// which is why this asserts a floor rather than trusting the empty answer.
+if (gateFiles.length < 8) {
+  console.error(`\n❌ arm 4 found only ${gateFiles.length} tracked gate file(s) — expected at least 8.`);
+  console.error('    Either the `lint-*` naming convention moved (update `gateFilePattern` in verify.ts,');
+  console.error('    same PR), or `git ls-files` failed and this arm just scanned nothing.');
+  process.exit(1);
+}
+
 // The README's weaker contract — see POINTER_DOC above for why it is not held to enumeration, and
 // REQUIRED_POINTERS for why its two pointers are checked as separate one-token queries.
 const lostPointers = lostPointersIn(readFileSync(POINTER_DOC.path, 'utf8').split('\n'));
@@ -530,6 +654,31 @@ console.log(
     `${realDocs.length} declared gate region(s) + ${POINTER_DOC.label} (pointers only).`
 );
 for (const d of realDocs) console.log(`    region: ${d.label} — ${d.lines.length} line(s)`);
+console.log(
+  `    runner: verify.ts — ${GATES.length} gate(s) vs ${runnableCiSteps(realSteps).length} runnable ci.yml step(s), both directions`
+);
+console.log(`    orphans: ${gateFiles.length} tracked gate file(s) checked against ci.yml`);
+
+if (runnerDiff.unrun.length || runnerDiff.extra.length) {
+  console.error('\n❌ `verify.ts` and `ci.yml` disagree about what the gates are:\n');
+  for (const n of runnerDiff.unrun) console.error(`    ci.yml runs "${n}" — \`verify.ts\` does NOT. A contributor running \`npm run verify\` would ship this unverified.`);
+  for (const n of runnerDiff.extra) console.error(`    \`verify.ts\` runs "${n}" — ci.yml does NOT. Either CI is missing a gate, or the runner invented one.`);
+  console.error('\n  Joined on the `- name:` string VERBATIM: the runner is code, not prose, so a renamed CI step');
+  console.error('  fails here on purpose. Fix the name in whichever file is wrong.');
+  console.error('  This is the arm that makes ci.yml checkable at all (#789) — until it existed, a gate missing');
+  console.error('  from ci.yml left four artifacts in perfect agreement and fired nothing.');
+  process.exit(1);
+}
+
+if (orphans.length) {
+  console.error(`\n❌ ${orphans.length} gate file(s) exist in the repo and are named in NOTHING:\n`);
+  for (const o of orphans) console.error(`    ${o}`);
+  console.error('\n  Not in ci.yml directly, and not via any workspace script ci.yml runs — so it runs nowhere,');
+  console.error('  and no comparison of the five gate lists can see it: they all agree by being silent.');
+  console.error('  Add it to ci.yml (and to verify.ts + the three checklists, which this gate will then demand),');
+  console.error('  or delete it. A gate nobody runs is worse than no gate — it reads as coverage.');
+  process.exit(1);
+}
 if (lostPointers.length) {
   console.error(`\n❌ ${POINTER_DOC.label} summarizes the gates without naming ${lostPointers.length} of the ${REQUIRED_POINTERS.length} place(s) that hold the real list:\n`);
   for (const p of lostPointers) console.error(`    ${p}`);

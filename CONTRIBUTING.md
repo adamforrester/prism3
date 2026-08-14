@@ -39,8 +39,57 @@ not ticks.
 
 ## 3. The gates
 
+**Start here: `npm run verify`.** It runs every gate below and prints one PASS/FAIL row
+each, so the two hand transcriptions this section otherwise requires (prose → a shell command per gate,
+and every result → a PR table) stop being unverified copies. It prints its own total; this section
+deliberately does not restate it, because a count written here is one nothing checks — and #786 had
+exactly that go stale twice in a week. Everything after it in this section is the
+per-gate *rationale*, which is why the section stays long: the runner tells you **whether**, this
+prose tells you **why**, and a red gate is unfixable without the second.
+
+```bash
+npm run verify              # every gate, in a declared and checked order, with a table
+npx tsx verify.ts --list    # the list and the exact commands, running nothing
+npx tsx verify.ts lint-paint lint-voice   # a named subset, labelled as a subset in the summary
+```
+
+Four properties, each of them a defect that has actually shipped in this repo, and all four are
+stated in `verify.ts`'s header:
+
+1. **The exit status is captured with nothing between it and the command.** `npx tsx gate.ts 2>&1 |
+   tail -2; echo $?` reports **`tail`'s** status — `tail` succeeds at tailing a failure — which is how
+   a `lint-us-english.ts` that exited 1 got reported as a pass. The runner uses one `spawnSync` with
+   `shell: false`, so there is no pipeline for a status to get lost in.
+2. **Output is buffered per gate.** Thirty-odd gates interleaving thousands of lines is how a real failure gets
+   read past. A clean run is a table; a red run is a table plus exactly the failing output. `--verbose`
+   prints everything.
+3. **Ordering is declared per gate and checked before anything runs.** Three orderings are
+   load-bearing and each one, violated, yields a *pass* rather than an error: the prose gates scan the
+   built bundle (run early they scan a stale one — #302, #310), the exporter gate executes TokenPress's
+   real exporter, and the `node:`-builtin check reads the plugin's `dist/main.js`.
+4. **A gate that did not run is never printed as a pass** — SKIP is its own outcome, a skipped gate
+   makes the whole run non-green, and a table shorter than the list is itself a failure. Represented,
+   not counted, the same discipline `lint-us-english.ts` applies to its own surfaces.
+
+Two things it deliberately does *not* do. It does not run bare `regen.ts` before `regen.ts --check`:
+that is the **authoring** sequence (regenerate → review the diff → commit), and doing it here would
+leave `--check` comparing the fresh output against itself, passing unconditionally with the drift
+still in `HEAD`. And it does not treat a dirty `out/` as a pass — `--check` reports **SKIP** with the
+reason, because with uncommitted artifacts that gate is a statement about your working tree rather
+than about `HEAD`.
+
+Its `GATES` array is the **fifth** authored statement of what the gates are, beside this section,
+`CLAUDE.md` §4, the PR template and `ci.yml` — and `lint-doc-gates.ts` compares it against `ci.yml` in
+**both** directions, joined on each step's `- name:` verbatim. That is what makes `ci.yml` checkable
+at all: this file's other three comparisons take `ci.yml` as ground truth, so before #789 a gate
+*missing* from `ci.yml` left four artifacts in perfect agreement and fired nothing. Measured, not
+assumed — deleting the `lint-paint.ts` step from `ci.yml` left the previous gate exiting 0. Its
+sibling arm covers the last case no list can see: a `lint-*` file that exists in the repo and is named
+in **nothing**. Adding a gate is therefore a five-file edit, which is the `payload-manifest` reasoning
+— the friction is the feature.
+
 No build, no `npm install` for the engine — it's self-contained TypeScript run via `tsx`
-(Node ≥ 20). Run these from the repo root:
+(Node ≥ 20). To run them individually, from the repo root:
 
 ```bash
 npx tsx packages/engine/test.ts                     # unit tests — report the N/N
