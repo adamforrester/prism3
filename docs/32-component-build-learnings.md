@@ -84,10 +84,10 @@ one line on `origin/main` — a copy with a size axis **added** and `tone` left 
 **1 plan / 0 paints**, so no rename is required to produce the symptom. The correct account is #820's
 and duller: two functions were confused. Recorded in the #795 section below as *"a wrong diagnosis
 that names a mechanism outcompetes a right one that names a mix-up"*; recorded **here** for the other
-half of it — the wrong mechanism did not originate in the lane that acted on it. *(The written record
-calls it "this branch's own first explanation"; the owner's characterization is that it was relayed
-into that lane. The finding does not turn on which: it arrived as an account rather than as a
-measurement, and the one-line counterfactual that kills it was run by neither side.)*
+half of it — **the sequence, agreed rather than contested**: the explanation originated in the
+reporting lane's own account, was restated into a prompt with no counterfactual asked for, came back
+amplified, and reached six places from there. The finding does not turn on provenance — who said it
+first was never the gap. What nobody did, at any hop, was run the one-line test that kills it.
 
 **Why this is one finding and not two coincidences.** Both crossed **the same node** — the
 coordinating lane — in opposite directions. In one, the number was correct and its referent changed
@@ -118,9 +118,15 @@ byte-identical to a correctly-understood one at the point of quotation. The miss
 question nobody asked in a conversation, which leaves no residue in the tree. The nearest mechanical
 idea — require every relayed figure to travel with its definition — is a review convention, not a
 check, and it fails the same way #808's does further down this file: nothing distinguishes the good case
-from the bad case structurally. It is also **not** a fourth member of #820's family, which is *a claim
-believed because the prose asserting it was read, when the code was available to ask.* Here the code
-**was** asked, and answered correctly, on both sides.
+from the bad case structurally.
+
+**Its own family, and the split is a test rather than a taxonomy call.** #820's remedy is *run the
+code*, and every member of that family fails to survive it — asking the code is what exposes the
+belief as wrong. This instance survives that remedy: `17/17` was asked of the code, and the code
+answered correctly. The number was never in question; only its label was. No code run surfaces a
+mislabelled true number, because the defect is not in the value — it is in what the value is offered
+as an answer to. **A value travels across a hand-off and its definition does not, which is why the
+remedy sits on the receiving side.**
 
 ---
 
