@@ -395,6 +395,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-shape-index.ts'),
   },
   {
+    id: 'lint-schema-classification',
+    ciStep: 'Every packages/engine/schema file has a decided place in the prose gates',
+    cmd: engine('lint-schema-classification.ts'),
+  },
+  {
     id: 'smoke',
     ciStep: `Studio headless smoke suite (advisory until ${SMOKE_ADVISORY_UNTIL} — #775)`,
     cmd: ws('@prism3/studio', 'test:smoke'),
