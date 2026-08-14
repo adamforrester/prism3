@@ -87,6 +87,14 @@ measurement); it arrived a fourth and fifth time on a new axis. Engine assertion
 one place as a result — **a count going up there is the fix**, since 27 slot coordinates now have a
 cell that previously reported position 0.
 
+**THE PAINT CENSUS MOVED, AND THE DELTA IS THE PROOF.** `schema/paint-census.json`'s `set` arm went
+**1926 → 1899**, and the arithmetic is checked rather than accepted: exactly **27** pending members sit at
+`leading=false, trailing=true`, each of which previously built a `trailingVisual` node beside the spinner
+and no longer builds one at all — 1926 − 27 = 1899. The `grid` arm is untouched, and that asymmetry is
+expected, not a discrepancy: it enumerates declared coordinates, and no coordinate was added or removed.
+The census is an **authored** baseline, so this needed an explicit `--accept`; that friction is what made
+measuring the delta per-shape the cheap path instead of the diligent one.
+
 **One thing left open, deliberately.** `#848`'s issue number is not `#841`; the code comments were
 first written citing 841 and renumbered once the issue was filed, because 841 was already an unrelated
 closed issue. Nothing in the repo binds a comment's issue citation to a real issue — `docs/34`'s shape
