@@ -301,7 +301,22 @@ export type AnatomyDef = {
 export type FigmaProperties = {
   /** Which `variants` axes become VARIANT properties, in the order Figma should show them. An axis
    *  present in `variants` but absent here is deliberately NOT a Figma variant, and the reason must
-   *  appear in `anatomy.codeOnly` — validated, so the omission is an admission rather than a gap. */
+   *  appear in `anatomy.codeOnly` — validated, so the omission is an admission rather than a gap.
+   *
+   *  THIS LIST IS NOW EXHAUSTIVE, INCLUDING `size` (#795). It always read as "the axes this def
+   *  projects into the Figma grid" — `icon` declares `['size']` while painting along `tone` — but
+   *  `size` was the one axis the projector supplied for itself: `figmaAnatomyPlan` required a declared
+   *  size axis and `planComponentName` wrote `size=` unconditionally, so a def with genuinely ONE type
+   *  scale (a caption, a focus ring) had no projectable coordinate at all. Now the coordinate carries
+   *  `size=` because the def LISTED `size`, and omits it because the def did not.
+   *
+   *  Not a `sizeAxis: false` boolean, deliberately: this field already means exactly this, and a
+   *  boolean special-casing one axis invites the next one. The cost of making it authoritative is that
+   *  a def omitting `size` gets a projection with no size coordinate — which is the point — so
+   *  `figmaAnatomySet`'s no-coordinate gate is what stops that becoming a silent nothing: a def that
+   *  declares axes here and projects a member named for NONE of them throws, rather than returning an
+   *  empty answer nobody reads. Read that gate's own comment before trusting this one — its first
+   *  version was unreachable and the suite stayed green (#802's class). */
   variantAxes: string[];
   /** `states` projects as one MORE variant axis, under this name, over these values. Separate from
    *  `variantAxes` because `states` is its own top-level field, not a member of `variants`. */
@@ -1194,10 +1209,15 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
   // the one above and neither implies the other — that one asks whether a template reaches any key,
   // this asks whether a key is reached by the chain.
   //
-  // WHY IT IS A SCHEMA RULE AND NOT A PROJECTION TEST. It was found by mutation, and the paint census
-  // is structurally blind to it: `focus-ring` declares no `size` axis, so `figmaAnatomyPlan` refuses
-  // it and no census covers that def at all. Shadowing is decidable from the def alone, so it belongs
-  // where all seven defs are checked rather than where three are.
+  // WHY IT IS A SCHEMA RULE AND NOT A PROJECTION TEST. It was found by mutation, and the reason first
+  // given was that the paint census could not see the def at all: `focus-ring` declared no `size` axis,
+  // so `figmaAnatomyPlan` refused it. **#795 removed that refusal** — the ring plans, projects and is
+  // censused now — so the original argument has expired and the rule stays for the half that does not
+  // depend on any def's shape: shadowing is decidable from the def ALONE, so it belongs where all seven
+  // defs are checked rather than where the projectable ones are. Which is the more durable form of the
+  // same instinct, and worth noting as a shape: a check justified by a *current* gap in another gate's
+  // reach inherits that gap's lifetime, and this one outlived its stated reason by being right for a
+  // second one nobody had written down.
   const withAxis = keys.filter(
     (t): t is string => typeof t === 'string' && paintKeyPlaceholders(t).some((p) => p !== 'slot'),
   );

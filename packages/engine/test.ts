@@ -8391,17 +8391,51 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(JSON.stringify(handRolled) === JSON.stringify(set648),
       `figmaAnatomySet: byte-identical to the hand-written six loops, in order (${handRolled.length} vs ${set648.length})`);
 
-    // It REFUSES an axis it cannot project rather than iterating around it. Silently omitting an axis is
-    // the 189-vs-756 defect in a new place: the set builds, every member is named, and one axis of the
-    // component is simply absent with nothing saying so. `figmaAnatomyPlan` takes intent/appearance/size
-    // and nothing else, so a fourth declared axis has to fail loudly here.
+    // WHAT PROTECTS THE 189-VS-756 RULE NOW (#795). Until #795 this pair asserted that a fifth declared
+    // variant axis THREW, because `figmaAnatomySet` enumerated `intent` and `appearance` from two
+    // hardcoded loops (`PROJECTABLE_VARIANT_AXES`) and refused any other name. The rule behind the throw
+    // is still right and is not negotiable — iterating AROUND an axis emits a set that is internally
+    // consistent, combines cleanly, and is silently missing a whole axis. What changed is that the
+    // enumeration now reads `variantAxes`, so the axis is CARRIED instead of refused, and the rule is held
+    // by two things that do not hardcode a vocabulary: the axis appears in every member name (asserted
+    // here), and a declaration that projects nothing throws (asserted below).
     const setThrows = (label: string, f: () => unknown) => {
       let threw = false;
       try { f(); } catch { threw = true; }
       ok(threw, label);
     };
-    setThrows('figmaAnatomySet: a declared variant axis it cannot project THROWS rather than being skipped',
-      () => figmaAnatomySet({ ...button, variants: { ...button.variants, tone: ['a', 'b'] }, figmaProperties: { ...fp, variantAxes: [...fp.variantAxes, 'tone'] } } as ComponentDef));
+    const fifthAxis = figmaAnatomySet({ ...button, variants: { ...button.variants, tone: ['a', 'b'] }, figmaProperties: { ...fp, variantAxes: [...fp.variantAxes, 'tone'] } } as ComponentDef, { swapTarget: 'FPO-default-icon' });
+    ok(fifthAxis.length === 648 * 2,
+      `figmaAnatomySet: a FIFTH declared variant axis is enumerated, not refused — 648 × 2 tone values (got ${fifthAxis.length})`);
+    // AND IT REACHES THE NAME, which is the half that matters. A set of 1296 whose members carry no
+    // `tone=` segment is precisely the silent omission the old throw prevented: the count doubles, every
+    // plan is distinct on some other axis, and the axis the def declared is nowhere. Asserted on the
+    // NAMES rather than on the coords, because the name is the wire format `nestVariantMatch` and
+    // `planSetLayout` both read — a coord entry nothing writes into the name is invisible downstream.
+    ok(fifthAxis.every((p) => /(^|, )tone=(a|b)(,|$)/.test(planComponentName(p))),
+      'figmaAnatomySet: every member of that set is NAMED for the fifth axis — the count alone would pass while the axis vanished, which is the 189-vs-756 shape');
+    ok(new Set(fifthAxis.map(planComponentName)).size === 648 * 2,
+      `figmaAnatomySet: all 1296 names are distinct, so the new axis widens the grid rather than duplicating a coordinate (got ${new Set(fifthAxis.map(planComponentName)).size})`);
+    // THE NO-COORDINATE GATE (#795, and #802's class exactly: every layer accepted and nothing read the
+    // count). Both shapes are covered because they are different authoring mistakes: an EMPTY axis list,
+    // and a declared axis whose `variants` entry is empty. The second is the one no other check can see.
+    //
+    // ASSERTED BY MESSAGE, and that is not stylistic here — it is the correction to the first version of
+    // this pair. Both were written as bare `setThrows` against a Button copy, and both PASSED against a
+    // gate that did not exist: `figmaAnatomySet` reached Button's *size* guard first ("no size was given,
+    // but the def declares sizes"), an unrelated throw satisfying a check that asked only "did it throw".
+    // The gate itself was unreachable — it tested `plans.length === 0`, and the fold produces ONE plan
+    // named `""` rather than none. Neutering it left the suite fully green, which is how this was found.
+    // So: a def with NO size axis, so no other guard can fire, and the message is matched.
+    const noCoord = (label: string, patch: Partial<ComponentDef>) => {
+      let msg = '';
+      try { figmaAnatomySet({ ...focusRing, ...patch } as ComponentDef); } catch (e) { msg = (e as Error).message; }
+      ok(/member\(s\) with NO variant coordinate at all/.test(msg), `figmaAnatomySet: ${label}${/member\(s\) with NO variant coordinate/.test(msg) ? '' : ` — got '${msg.slice(0, 110)}'`}`);
+    };
+    noCoord('an EMPTY variantAxes list throws — the fold yields one member named `""`, which pastes a component that LOOKS built and carries no coordinate (#795)',
+      { figmaProperties: { ...focusRing.figmaProperties!, variantAxes: [] } });
+    noCoord('a declared axis with NO values in `variants` throws too — the declaration read fine and the enumeration produced a blank coordinate',
+      { variants: { ...focusRing.variants, color: [] } });
     setThrows('figmaAnatomySet: an unprojectable SLOT axis throws too (the same hole from the other side)',
       () => figmaAnatomySet({ ...button, figmaProperties: { ...fp, slotAxes: [...fp.slotAxes!, { name: 'badge', part: 'leadingVisual' }] } } as ComponentDef));
     setThrows('figmaAnatomySet: a def with no figmaProperties block throws — nothing declares what to project',
@@ -9518,16 +9552,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // `{intent}.{appearance}.{slot}`, and `icon`'s `tone.{tone}` resolves all eight inks perfectly when
     // called at a coordinate that HAS a tone (measured: 8/8 over the full grid).
     //
-    // The live ceiling is one axis further out: `figmaAnatomySet` does not enumerate `tone` at all —
-    // `PROJECTABLE_VARIANT_AXES` is intent/appearance/size, so every member of this set has `coord: {}`,
-    // `paintOf` is handed `tone: undefined`, and the template is unfillable at every one of the four
-    // coordinates that exist. The paint grammar is fixed; the SET is what cannot carry the axis.
+    // The live ceiling is one axis further out, and #795 CHANGED ITS NATURE without changing the number.
+    // It read: `figmaAnatomySet` does not enumerate `tone` at all, because `PROJECTABLE_VARIANT_AXES` is
+    // intent/appearance/size. That list is deleted, so the set would carry `tone` today — and this def
+    // does not list it, for the `inherit` reason in its own codeOnly (Figma has no `currentColor`, so the
+    // DEFAULT tone has no coordinate). Every member still has `coord: {}` and `paintOf` is still handed
+    // `tone: undefined`, so the template is still unfillable at all four coordinates. What moved is who
+    // owns the zero: it was the projector's refusal, it is now the def's declaration.
     //
     // A test that passes for a reason its own message denies is worse than a missing test, because the
-    // message is what the next reader believes. Still asserted at zero, now against the true ceiling:
-    // this fails the day `figmaAnatomySet` learns a fourth axis, which is when it should.
+    // message is what the next reader believes — this line was that test once already (it was written
+    // expecting to fail when #758 landed, #758 landed, and it passed for a reason that had gone false).
+    // So it is asserted at zero against the CURRENT cause, and it fails the day this def lists `tone`.
     ok(planPaintVars(mdPlan.root).length === 0,
-      'icon: the projected glyph carries NO paint — not because the grammar cannot key it (it resolves 8/8 given a tone), but because figmaAnatomySet refuses the `tone` axis, so every member has coord {} and the template is unfillable. Fails when the set learns a fourth axis, by design');
+      'icon: the projected glyph carries NO paint — not because the grammar cannot key it (it resolves 8/8 given a tone), and since #795 not because the projector refuses the axis either: this def does not DECLARE `tone` in variantAxes, so every member has coord {} and the template is unfillable. Fails the day the def lists it, by design');
+    // The declaration is now the cause, so the declaration is what gets pinned — otherwise the zero above
+    // is a fact with no stated owner, which is exactly the state it spent two tickets in.
+    ok(!(icon.figmaProperties?.variantAxes ?? []).includes('tone'),
+      'icon: `tone` is absent from variantAxes by choice (#795 removed the projector-side list) — the def paints along an axis it does not project, which is what the field has always meant');
     // The other half of that claim, and the reason the line above is not just pinned silence: given a
     // tone, the grammar DOES resolve. Without this, "0 paints" reads as "paint is broken" forever.
     ok(planPaintVars(figmaAnatomyPlan(icon, 'md', { tone: 'danger' } as never).root).join(',') === 'color/icon/danger',
@@ -9551,47 +9593,46 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(focusRing.states.length === 0,
     'focus-ring: no states of its own — the ring is the VISUAL EXPRESSION of its host\'s focus-visible, so a state here would model a focusable focus ring');
 
-  // ---- focus-ring: NOT materializable, and each wall asserted where it actually lives ----
-  // `figmaProperties` absent is a DECISION (a block declaring `variantAxes: ['color']` would validate
-  // clean and throw at projection), so it is pinned rather than left to read as an oversight.
-  ok(!focusRing.figmaProperties,
-    'focus-ring: declares no figmaProperties — a `variantAxes: [color]` block would pass figmaPropertyErrors and THROW inside figmaAnatomySet, claiming a projection it does not have');
-  // Wall 1 — the projector refuses any axis outside intent/appearance/size, rather than enumerating
-  // around it. Probed live: a def is CONSTRUCTED with the block focus-ring deliberately omits, and the
-  // throw is asserted by message. This is the independent check — it interrogates the projector, not
-  // the def's own comment about the projector.
-  const ringProjected = { ...focusRing, figmaProperties: { variantAxes: ['color'], booleans: {} } } as ComponentDef;
-  let ringThrow = '';
-  try { figmaAnatomySet(ringProjected); } catch (err: any) { ringThrow = err.message; }
-  ok(/cannot project variant axes \[color\]/.test(ringThrow),
-    `focus-ring wall 1: figmaAnatomySet REFUSES a 'color' axis rather than enumerating around it (got '${ringThrow.slice(0, 80)}')`);
-  // Wall 2 — `planComponentName` always writes `size=`, and this def has no size axis, so a projected
-  // member could never carry the coordinate Button nests by. Asserted through `nestVariantMatch`, which
-  // is the function the executors actually use: a coordinate must account for EVERY axis in the member
-  // name, so `{color:'default'}` matches a hand-built set and matches nothing in a projected one.
+  // ---- focus-ring: PROJECTED as of #795, and the ONE wall that is left ----
+  // This whole block used to assert the opposite, and every assertion in it passed. That is the point
+  // worth carrying forward: three of the four walls it pinned were OURS, and pinning them by measurement
+  // is what made lifting them a mechanical change rather than an argument. The numbering below now
+  // follows the DEF HEADER's (1 = PartDef, 2 = the axis vocabulary, 3 = the `size=` name), which the old
+  // block had in the reverse order — a small thing that cost a re-read every time the two were compared.
   //
-  // THE PROJECTED NAME IS TAKEN FROM `planComponentName` ITSELF, not typed here, and that is the whole
-  // gate — mutation M18 is why. The first version compared Button's coordinate against a literal
-  // `['size=md']` that I had written, so making `size=` conditional in `planComponentName` (which
-  // LIFTS this wall) left the suite fully green: the gate was asserting a fact about my own string.
-  // Reading the name from the projector means the day the projector stops writing `size=`
-  // unconditionally, this fails and the ceiling has to be re-read. Docs/34's rule, and the third time
-  // this shape appeared in one afternoon's mutation battery.
+  // `figmaProperties` is PRESENT now, and the shape is the claim: `color` listed, `size` deliberately
+  // absent, which since #795 is what suppresses the `size=` segment rather than a projector default.
+  ok(focusRing.figmaProperties?.variantAxes.join(',') === 'color',
+    `focus-ring: declares variantAxes ['color'] — this block was absent until #795 because it would have validated clean and thrown at projection (got [${focusRing.figmaProperties?.variantAxes.join(', ')}])`);
+  ok(!focusRing.figmaProperties!.variantAxes.includes('size') && !('size' in (focusRing.variants ?? {})),
+    'focus-ring: declares NO size axis and does not list one — under #795 the omission is what makes the member name carry no `size=`, so it is the load-bearing half of the declaration');
+  ok(figmaPropertyErrors(focusRing).length === 0,
+    `focus-ring: figmaPropertyErrors runs for real now that the block exists, and passes — every unprojected axis is admitted in codeOnly (got [${figmaPropertyErrors(focusRing).join(' | ')}])`);
+  // Wall 2 — DOWN. The projector used to refuse any axis outside intent/appearance/size rather than
+  // enumerating around it; `PROJECTABLE_VARIANT_AXES` is deleted, so the set builds. Asserted on the
+  // RESULT of the real def, not on a constructed stand-in: the old version had to fabricate the block
+  // this def now ships, and the fabrication was the only reason the throw could be observed.
+  const ringSet = figmaAnatomySet(focusRing);
+  const ringNames = ringSet.map(planComponentName);
+  ok(ringNames.join(' | ') === 'color=default | color=inverse',
+    `focus-ring wall 2: figmaAnatomySet ENUMERATES the 'color' axis — two members, named for the only axis this def projects (got '${ringNames.join(' | ')}')`);
+  ok(ringSet.every((p) => p.size === undefined),
+    'focus-ring wall 3: every projected plan carries NO size — `figmaAnatomyPlan` no longer requires one, so `AnatomyPlan.size` is genuinely absent rather than an invented rung');
+  // Wall 3 — DOWN, and this is the assertion whose PREVIOUS version is the reason the wall was liftable
+  // with confidence. It read the member name from `planComponentName` itself rather than from a literal
+  // I had typed (mutation M18: a literal `['size=md']` made the gate assert a fact about my own string,
+  // and lifting the wall left it green). Same discipline, opposite expectation: the name still comes
+  // from the projector, and Button's coordinate is still read off Button's own `nesting`.
   const buttonNest = button.anatomy!.parts.focusRing.nesting;
   const wanted = buttonNest?.kind === 'nest-fixed' ? buttonNest.variant : {};
   ok(nestVariantMatch(wanted, ['color=default', 'color=inverse']) === 'color=default',
-    'focus-ring wall 2a: Button\'s nest coordinate matches a HAND-BUILT color set — which is what #734\'s live run resolved against (#749)');
-  // A stand-in plan for a def with no intent/appearance/state/slot axes AND NO SIZE — exactly what a
-  // projected ring would be. `size` has to be genuinely absent for this to measure anything: the first
-  // version spread `iconSet[0]` and kept its `size: 'xs'`, so M18 (making the `size=` write conditional,
-  // which LIFTS this wall) still produced a `size=` and the gate stayed green. Whatever
-  // `planComponentName` writes for a sizeless plan IS the member name a projected ring would carry.
-  const ringMemberName = planComponentName({ ...iconSet[0], coord: {}, slotAxes: [], size: undefined } as unknown as AnatomyPlan);
-  ok(/(^|, )size=/.test(ringMemberName),
-    `focus-ring wall 2b: planComponentName writes a 'size=' coordinate even for a plan with NO size — this def has no size axis, so a projected member is named for an axis it does not have (got '${ringMemberName}')`);
-  ok(nestVariantMatch(wanted, [ringMemberName]) === null,
-    `focus-ring wall 2c: Button's coordinate matches NOTHING in a set named the way the projector names one ('${ringMemberName}') — so the declared nest is unsatisfiable by any engine-projected ring today`);
-  // Wall 3 — `PartDef` has no stroke field, so the ring's entire visual substance has nowhere to be
+    'focus-ring wall 3a: Button\'s nest coordinate matches a HAND-BUILT color set — which is what #734\'s live run resolved against (#749)');
+  ok(!ringNames.some((n) => /(^|, )size=/.test(n)),
+    `focus-ring wall 3b: planComponentName writes NO 'size=' coordinate for this def's plans, because the def did not list the axis (got '${ringNames.join(' | ')}')`);
+  ok(nestVariantMatch(wanted, ringNames) === 'color=default',
+    `focus-ring wall 3c: Button's declared coordinate now resolves against the ENGINE-PROJECTED set ('${ringNames.join(' | ')}') — the nest is satisfiable by our own members, not only by a hand-built ring`);
+  // Wall 1 — STILL STANDING, and it is the reason those two members are not yet rings. `PartDef` has no
+  // stroke field, so the ring's entire visual substance has nowhere to be
   // declared. Read from the SCHEMA DECLARATION, not from this def, and not via a runtime validation
   // probe either. Two dead ends worth recording so nobody re-walks them: asserting the absence on
   // `focusRing.parts.ring` proves only that I did not type one (the M18 shape — a def omitting a field
@@ -9603,18 +9644,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const partDefBlock = (() => { const i = partDefSrc.indexOf('export type PartDef = {'); return partDefSrc.slice(i, partDefSrc.indexOf('\n};', i)); })();
   const partDefFields = [...partDefBlock.matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
   ok(partDefFields.includes('kind') && partDefFields.includes('radius') && partDefFields.length > 10,
-    `focus-ring wall 3: PartDef's field list parsed from the declaration (${partDefFields.length} fields) — the parse is asserted before the absence, so a parse that silently found nothing cannot read as a pass`);
+    `focus-ring wall 1: PartDef's field list parsed from the declaration (${partDefFields.length} fields) — the parse is asserted before the absence, so a parse that silently found nothing cannot read as a pass`);
   ok(!partDefFields.some((f) => /stroke|border|outline/i.test(f)),
-    `focus-ring wall 3b: PartDef declares NO stroke/border/outline field — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'type', 'inset', 'padding'].includes(f)).join(', ')}]. Fails when #740 adds one, by design`);
+    `focus-ring wall 1b: PartDef declares NO stroke/border/outline field — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'type', 'inset', 'padding'].includes(f)).join(', ')}]. Fails when #740 adds one, by design`);
+  // AND THE CONSEQUENCE, measured rather than inferred from the absence above: the def projects and its
+  // members are STROKELESS. Two independent readings — the schema has no field (above), and the plans
+  // bind no stroke variable (here) — because "no field" would still permit a projector that wrote one
+  // from somewhere else, and #795's whole finding is that a claim about what a def WOULD do untested is
+  // worth nothing. The ring's colour DOES bind (asserted further down via `fillPaintKey`), so this is
+  // specifically about weight and style having no node to land on.
+  ok(ringSet.every((p) => !planBoundVars(p.root).some((v) => /focus\/ring\/(width|style)/.test(v))),
+    'focus-ring wall 1c: the two projected members bind NO ring width or style variable — `tokens` resolves both against every brand and no PART can carry them, so what pastes is a correctly-inked box with no stroke. Fails when #740 adds the field, by design');
 
   // ---- the codeOnly contract on both defs, and the correction to Button's ----
   // Every unprojected variant axis must be ADMITTED by a codeOnly entry that LEADS with the axis name
   // (a passing mention inside an entry about something else is a gate satisfied by unrelated prose).
-  // `focus-ring` has no figmaProperties, so that check does not run against it today — which is exactly
-  // why it is asserted here: adding the block later must not be able to ship an unadmitted axis.
-  for (const axis of Object.keys(focusRing.variants))
+  // This used to cover BOTH of the ring's axes as a forward guard, because `figmaProperties` was absent
+  // and `figmaPropertyErrors` therefore never ran — "adding the block later must not ship an unadmitted
+  // axis". #795 added the block, so the real check now runs (asserted above) and the axis that PROJECTS
+  // must no longer be admitted here: an entry leading with `color` would be a def claiming Figma cannot
+  // carry something it demonstrably carries. So the loop narrows to the UNPROJECTED axes, and the
+  // projected one is asserted absent.
+  const ringUnprojected = Object.keys(focusRing.variants).filter((a) => !focusRing.figmaProperties!.variantAxes.includes(a));
+  ok(ringUnprojected.join(',') === 'offset',
+    `focus-ring: exactly one axis goes unprojected, and it is 'offset' (got [${ringUnprojected.join(', ')}]) — #801 measured why: Figma's x/y bind no variable, so the two members would differ by a number frozen at paste`);
+  for (const axis of ringUnprojected)
     ok(focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith(axis)),
-      `focus-ring: the '${axis}' axis is ADMITTED by a codeOnly entry leading with its name, so adding figmaProperties later cannot ship it unadmitted`);
+      `focus-ring: the '${axis}' axis is ADMITTED by a codeOnly entry leading with its name — the omission is a decision on the record, not a gap`);
+  ok(!focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith('color')),
+    'focus-ring: `color` has NO codeOnly entry — it projects, so admitting it as a Figma ceiling would be the false-claim defect #795 exists to correct');
   ok(icon.anatomy!.codeOnly.some((c) => c.trim().startsWith('tone')),
     'icon: the `tone` axis is admitted in codeOnly, leading with the axis name (figmaPropertyErrors requires the lead, not a mention)');
   // THE REAL DELIVERABLE OF #741. Button's entry used to close "Accepted deliberately, because the
@@ -9647,13 +9705,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `focus-ring: the ring's stroke COLOUR resolves at every color coordinate through the dispatched 'border' slot (${ringPaintResolves.map((r) => `${r.color}→${r.key}`).join(', ')}) — so paint is no longer one of this ceiling's causes`);
   ok(/#758/.test(ringCeiling) && /#784/.test(ringCeiling) && /CLOSED/.test(ringCeiling),
     'button: the ring ceiling records the paint gap as CLOSED (#758 → #784) rather than naming it a live cause — the measurement above is what makes that true');
-  // And the causes that ARE live have to be the ones still measured above: wall 1 (figmaAnatomySet
-  // refuses the axis) and wall 2 (planComponentName always writes `size=`). Without this, "CLOSED" could
-  // be satisfied by an entry that closed the paint gap and named no remaining cause at all.
-  ok(/figmaAnatomySet/.test(ringCeiling) && /planComponentName/.test(ringCeiling),
-    'button: the ring ceiling names the STRUCTURAL walls that remain (figmaAnatomySet refuses the axis; planComponentName always writes size=) — the two this file measures directly above');
-  ok(/#740/.test(ringCeiling) && /PartDef/.test(ringCeiling),
-    'button: the ring ceiling also names the second wall — PartDef has no stroke field, a schema decision under #740');
+  // And the cause that IS live has to be the one still measured above. This assertion used to require
+  // the entry to name `figmaAnatomySet` and `planComponentName` as REMAINING walls; #795 took both down,
+  // so requiring their names would now pin a false claim — which is the same defect this pair of
+  // assertions was written to catch, arriving from the other direction. Both directions again: the two
+  // lifted walls must be recorded as lifted with their ticket, and the surviving wall named with its own.
+  ok(/#795/.test(ringCeiling) && /nestVariantMatch/.test(ringCeiling),
+    'button: the ring ceiling records the STRUCTURAL walls as closed by #795, citing the check that proves it (nestVariantMatch) — the same measurement this file makes directly above');
+  ok(/#740/.test(ringCeiling) && /PartDef/.test(ringCeiling) && /stroke/.test(ringCeiling),
+    'button: the ring ceiling names the ONE wall that survives — PartDef has no stroke field, a schema decision under #740');
   // Sharing the ring IS still the right call, and the correction must not have thrown that away with
   // the false acceptance. Pinned because the tempting over-correction is to delete the whole rationale.
   ok(/one shared thing/.test(ringCeiling),
@@ -9677,6 +9737,102 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   for (const cite of ['button.md:34', 'docs/32', ':592', ':731'])
     ok(ringHeader.includes(cite),
       `focus-ring: the HEADER cites '${cite}' — there is no focus-ring.md, so the grounding is stated where a reader meets the def, not merely mentioned somewhere in the file`);
+
+  // ---- field-message: PROJECTED as of #795, and the measurement that corrects its own header (#825) ----
+  // The header claimed this def *"projects with no further work the day the size requirement is
+  // relaxed"*, offered as verified. It was false, and the numbers below are what say so — which is why
+  // they are assertions and not a comment. With `tone` intact and only the size wall down: 1 plan, 0
+  // paint variables. With the axis wall down too: 4 and 8. The claim's evidence was sound and its SCOPE
+  // was not: the probe called `figmaAnatomyPlan` by hand, supplying the `tone` coordinate that makes all
+  // eight bindings resolve, while the claim is about `figmaAnatomySet`, which refused `tone` outright and
+  // enumerated one plan at `coord={}`.
+  //
+  // So the paint count is asserted, not just the plan count. `field-message` is the def where those two
+  // come apart: a set of four members with zero paints is structurally perfect and entirely grey, and
+  // "4 plans" alone reads as success. 8 = four tones × (caption ink + glyph ink).
+  const fmSet = figmaAnatomySet(fieldMessage, { swapTarget: 'FPO' });
+  ok(fmSet.length === 4 && fmSet.map(planComponentName).join(' | ') === 'tone=default | tone=error | tone=warning | tone=success',
+    `field-message: projects FOUR members, one per tone, named for the only axis it declares (got '${fmSet.map(planComponentName).join(' | ')}')`);
+  ok(fmSet.reduce((n, p) => n + planPaintVars(p.root).length, 0) === 8,
+    `field-message: all EIGHT colour bindings reach a node — four tones × (caption ink + glyph ink). The plan count alone would pass for a set of four grey members (got ${fmSet.reduce((n, p) => n + planPaintVars(p.root).length, 0)})`);
+  ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
+    'field-message: no plan carries a size and no member name carries `size=` — a caption has ONE scale, and #795 is what lets the def say so instead of fabricating `size: [md, lg]`');
+  // THE HEADER'S CORRECTION IS ITSELF PINNED, because the false claim is the deliverable of this ticket
+  // and a header that quietly reverts would take the finding with it. Read from the source, scoped to the
+  // header block for the same reason the ring's citations are (a whole-file scan is satisfied by prose
+  // elsewhere), and asserted in BOTH directions: the false sentence is gone, and the measurement that
+  // replaced it is stated with the number.
+  const fmSrc = readFileSync(resolve(HERE, './components/field-message.ts'), 'utf8');
+  const fmHeader = fmSrc.slice(0, fmSrc.indexOf('*/') + 2);
+  ok(!/no further work on it the day the size requirement is relaxed/.test(fmHeader),
+    'field-message: the header no longer claims the def projects with no further work once the size wall falls — measured false (1 plan, 0 paints), and the axis wall was the binding constraint');
+  // Asserting the DIAGNOSIS, not just the number, because the number alone was compatible with the wrong
+  // explanation this branch was first written with (that the original probe renamed `tone`). Measured on
+  // `main`: a copy with a size axis ADDED and `tone` intact returns the same 1 plan / 0 paints, so no
+  // rename is required to produce the symptom. The distinction the header must carry is the one that
+  // survives — plan path probed by hand versus set path claimed.
+  ok(/1 plan and 0 paint variables/.test(fmHeader) && /figmaAnatomyPlan/.test(fmHeader) && /figmaAnatomySet/.test(fmHeader),
+    'field-message: the header states the MEASUREMENT that replaced the claim AND names both functions, so the diagnosis (a probe of the plan path answering for the set path, #825) cannot decay back into the number alone');
+
+  // ---- the two `figmaAnatomyPlan` size guards (#795) ----
+  // Making `size` optional opened two ways to be wrong, and they are opposite: a def with sizes planned
+  // WITHOUT one, and a size that is not declared. The second existed before; the first is new and is the
+  // dangerous one — a sizeless Button plan would stand in for a grid of three, project cleanly, and
+  // paste one member where the def enumerates 648. Asserted by MESSAGE, so a throw for an unrelated
+  // reason cannot satisfy them.
+  const planThrow = (f: () => unknown): string => { try { f(); return ''; } catch (e) { return (e as Error).message; } };
+  ok(/declares sizes \[small, medium, large\]/.test(planThrow(() => figmaAnatomyPlan(button, undefined, { intent: 'primary', appearance: 'filled', state: 'rest' }))),
+    `field: a def that DECLARES sizes refuses a sizeless plan, naming them — the sizeless path is for defs with no size axis, not a way to skip one (got '${planThrow(() => figmaAnatomyPlan(button, undefined, { intent: 'primary', appearance: 'filled', state: 'rest' })).slice(0, 90)}')`);
+  ok(/'nope' is not a declared size/.test(planThrow(() => figmaAnatomyPlan(button, 'nope', { intent: 'primary', appearance: 'filled', state: 'rest' }))),
+    'field: an undeclared size is still refused — the relaxation is "no size", not "any size"');
+  ok(planThrow(() => figmaAnatomyPlan(focusRing, undefined, {})) === '',
+    `focus-ring: a def with NO size axis plans sizelessly without a throw — the other half of the guard, and the half that makes it a relaxation rather than a rename (got '${planThrow(() => figmaAnatomyPlan(focusRing, undefined, {}))}')`);
+
+  // ---- the cohort key: engine and PAYLOAD must agree byte for byte on a SIZELESS def (#795) ----
+  // `planSetLayout` builds the footprint-cohort key from `plan.size`; the payload's `cellOf` rebuilds it
+  // by parsing the member NAME. Two derivations, no shared code — the payload has none of this module —
+  // so they are kept in step only by both encoding "absent means omit". Get it wrong and every member
+  // lands in its own cohort named `size=undefined`, which compares nothing and REPORTS nothing: the
+  // footprint read-back goes silent rather than red.
+  //
+  // Asserted on a sizeless def rather than on Button, which is the point: Button has a size at every
+  // coordinate, so the two rules agree there whatever the absent case does. Nothing before #795 could
+  // produce a sizeless plan at all, so this case had no coverage because it had no existence.
+  const ringLayout = planSetLayout(ringSet, 'test');
+  ok(ringLayout.cells.every((c) => c.group === ''),
+    `focus-ring: the engine's cohort key is EMPTY — no size axis and no slot axes, so nothing legitimately changes this def's footprint and all members share one cohort. Not 'size=undefined, leading=false, trailing=false' (got '${ringLayout.cells[0]?.group}')`);
+  ok(planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group === 'size=small, leading=true, trailing=true',
+    `field: a def that DOES declare all three still writes all three — the omission rule must not have emptied the key for the def the cohort was designed for (got '${planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), 'test').cells[0].group}')`);
+  // The payload side, evaluated rather than grepped. `cellOf` is a string inside the generated JS, so it
+  // is extracted and run — a regex over the payload text would assert that the ternary is spelled a
+  // certain way, which is the "gate tests the words" shape this file has hit three times.
+  //
+  // From the CHUNKED payload, which is where `cellOf` lives: the single-shot `planSetToPluginJs` ships
+  // the name→cell map inline (`PLANS`), so it has no parser to compare against and slicing it yields an
+  // empty string. That empty string is exactly what the length assertion exists to catch — it is how this
+  // block failed on its first run, and a vacuous pass is what it would have been without it.
+  //
+  // THE LENGTH ASSERTION RUNS BEFORE THE `new Function`, AND THE ORDER IS THE GATE. Written the other way
+  // round — extract, compile, then assert the length — it reported nothing at all: mutation-tested by
+  // pointing the slice back at `planSetToPluginJs`, the empty source made `new Function` compile a body
+  // that just returns an undeclared `cellOf`, and the whole suite died with `ReferenceError` at exit 1
+  // before a single ❌ printed. A harness crash is not this assertion failing; it is this assertion never
+  // being reached, and the next reader has no line number for the thing that actually broke. So the guard
+  // is checked while it can still be reported, and the compile is what happens once it holds.
+  const ringJs = planSetChunks(ringSet)[0].js;
+  const cellOfSrc = ringJs.slice(ringJs.indexOf('const cellOf='), ringJs.indexOf('const cells=members.map'));
+  const cellOfExtracted = cellOfSrc.includes('group:') && cellOfSrc.length > 200;
+  ok(cellOfExtracted,
+    `focus-ring: the payload's own cellOf was extracted before being run — an empty slice would make every comparison below vacuously true (got ${cellOfSrc.length} chars)`);
+  const payloadCellOf = cellOfExtracted
+    ? (new Function('ROW_KEYS', 'ROW_LABELS', 'COL_KEY', 'COL_VALS', `${cellOfSrc}return cellOf;`)(
+      ringLayout.rowKeys, ringLayout.rowLabels, ringLayout.colKey, ringLayout.colVals,
+    ) as (name: string) => { row: number; col: number; group: string })
+    : null;
+  ok(payloadCellOf !== null && ringLayout.cells.every((c) => payloadCellOf(c.name).group === c.group),
+    'focus-ring: the PAYLOAD reaches the byte-identical cohort key from the member name alone — two independent derivations of "absent means omit", which is the only thing keeping them in step');
+  ok(payloadCellOf !== null && ringLayout.cells.every((c) => { const p = payloadCellOf(c.name); return p.row === c.row && p.col === c.col; }),
+    'focus-ring: and the same row/col, so a sizeless set lays out rather than piling every member into cell (-1, 0)');
 }
 
 // ------------------------------------------------------------------- report

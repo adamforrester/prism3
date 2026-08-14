@@ -7,6 +7,123 @@
 
 ---
 
+## (2026-08-14) — The projector reads a declaration, and the def nearest to projecting was not the one the docs named (#795)
+
+**STATUS: shipped.** `figmaProperties.variantAxes` is now the **exhaustive** statement of which axes a def
+projects into the Figma grid. `focus-ring` and `field-message` project — 2 plans / 2 paint variables and
+4 / 8 — so **six of seven defs project**, `text-field` being the one with no `anatomy` block at all. Every
+gate passes; the suite is at 2220 assertions. Closes **#825**.
+
+**Two walls, both ours, and they had to fall together.** `figmaAnatomyPlan` required a declared `size` axis
+and `planComponentName` always wrote a `size=` coordinate — one wall seen from two sides, so a def with one
+type scale (a caption, a ring) was unprojectable at *any* coordinate by code we wrote rather than by
+anything Figma requires. Separately, `PROJECTABLE_VARIANT_AXES = ['intent','appearance','size']` made
+`figmaAnatomySet` **throw** on any other axis name, which is what refused `focus-ring`'s `color` and
+`field-message`'s `tone`. The axis wall binds **first** on both blocked defs.
+
+They are one PR because **either alone is worse than neither.** Relaxing the size requirement by itself
+creates a silent-failure mode that did not previously exist: a def could project with an axis it declares
+simply missing from the grid — #487 §5's 189-vs-756 through the front door. Closing the axis vocabulary by
+itself still leaves a one-scale def unnameable. The declaration is what makes the pair safe: `variantAxes`
+is exhaustive, so **not listing** an axis is how a def says it has none, and `planComponentName` writes a
+`size=` segment only where the def listed it. A boolean (`sizeAxis: false`) would have special-cased the
+one axis we happened to hit and invited another for the next.
+
+**The nest fix is the direction the record did not consider.** `nestVariantMatch` requires a coordinate to
+account for **every** axis in the member name, so Button's declared `{color:'default'}` nest could never
+match a set whose members are named `color=default, size=…`. The record read that as *the ring needs a
+size*; the fix is **the name losing `size=`**. Two members named `color=default` / `color=inverse` are what
+Button already asks for, so the nest is satisfiable by a projected set rather than only by a hand-built
+component. `#740` — `PartDef` has no stroke field — survives: read the remaining gap as *"the ring pastes
+without its stroke"*, a materialization ceiling, not *"the ring cannot be projected"*.
+
+**THE FINDING, and the diagnosis is #820's rather than the one this branch was written with.**
+`field-message`'s header said, offered as verified, that *"this def projects with no further work on it the
+day the size requirement is relaxed."* Measured on the branch that relaxed the size wall alone: **1 plan, 0
+paint variables.** The branch's own first account of *why* was that the original probe had substituted a
+size axis into a throwaway copy and thereby **renamed** the `tone` axis its `paintKeys: ['{tone}.{slot}']`
+depend on. **That explanation is wrong, and measuring it is what showed it:** on `origin/main`, a copy with
+a size axis *added* and `tone` left intact returns the same 1 plan / 0 paints, so no renaming is required to
+produce the symptom. The entry #820 landed hours earlier has the correct diagnosis — the probe measured
+`figmaAnatomyPlan` **by hand**, where a `tone` coordinate is supplied and all eight bindings do resolve,
+while the claim is about `figmaAnatomySet`, which refused `tone` outright and enumerated one plan carrying
+`coord={}`. Recorded rather than quietly fixed because the wrong explanation is the more satisfying one: it
+names a mechanism, and the correct one is the duller observation that two functions were confused. What
+#795 adds on top of #820 is the measurement with **both** walls down (4 plans / 8 paints — so the header's
+*conclusion* was right and its *reason* was not, the least useful combination to inherit) and the rule that
+paint count is asserted separately from plan count. Both in `docs/32`.
+
+The record was also wrong about **which** def was nearest. `docs/38` §2/§3 and this file both had
+`focus-ring` as the near miss and `field-message` as the further one; `field-message` was nearer, because
+`focus-ring` additionally needs #740. The direction of that error is the tell: the def with the **longer
+written record** read as the better-understood one. Both files are corrected, and the stale
+`PROJECTABLE_VARIANT_AXES` claims in `docs/28` §5 and the two superseded entries here are annotated rather
+than rewritten.
+
+**AND MY OWN GATE WAS UNREACHABLE, at 2220 passed.** #795 needed the check the ticket asked for: a def that
+declares axes and projects nothing must throw rather than return an empty answer nobody reads (#802's
+class). I wrote `if (plans.length === 0) throw` on a real measurement — under the old nested loops,
+`figmaAnatomySet(fieldMessage, { variantAxes: [] })` did return OK with 0 plans. But the same PR rewrote
+that function into a cartesian fold, and `one<T>()` maps an absent or empty axis to `[undefined]`: the
+product of nothing is **one empty coordinate**, so the set returns 1 plan named `""`. Zero stopped being
+reachable in the diff that motivated the check. **And both of its tests passed** — on Button's *size* guard
+throwing first, an unrelated throw satisfying an assertion that asked only "did it throw". Found by
+mutation and by nothing else: neutering the throw left the suite fully green. The rule now asks for what
+genuinely cannot be true (a member with **no coordinate at all**) and asks it of `planComponentName`'s
+*output* rather than re-reading `variantAxes`, so the two sides stay independent; the tests match by
+message and run against a `focus-ring` copy that has no size axis, so no other guard can stand in.
+
+**A PRE-EXISTING ENGINE↔PAYLOAD DIVERGENCE, surfaced by this PR's test.** `planSetLayout` builds the
+footprint-cohort key in the engine; the payload's `cellOf` rebuilds it by parsing the member **name**, with
+no shared code. The engine wrote `leading=${p.slots.leading}` unconditionally — `leading=false` for a def
+with no slot axes — while `planComponentName` writes that segment only where the axis is declared. Measured
+across the corpus: **Button agreed 648/648** (it has both slot axes at every coordinate), and `icon`,
+`field-label` and `icon-button` **diverged at every member**, engine `leading=false` against payload
+`leading=undefined`. It never bit because the disagreement is *uniform within a set*, so every member
+landed in the same wrong cohort and the comparison still compared like with like. Both sides now encode
+"absent means omit", and the test evaluates the payload's own extracted `cellOf` rather than grepping it.
+
+**TRAPS FOR WHOEVER IS NEXT.**
+- **A `throws` test must match the MESSAGE.** Two of mine passed against a guard for an unrelated axis. An
+  assertion that asks only *did it throw* is a test that something, somewhere, is broken.
+- **The order of an anti-vacuity guard is part of the guard.** The `cellOf` extraction is length-checked so
+  an empty slice cannot make every later comparison vacuously true — written as extract → compile → assert,
+  that guard reported *nothing*: the empty source compiled to a body returning an undeclared name and the
+  suite died with `ReferenceError` at exit 1 before one `❌` printed. A harness crash is the assertion never
+  being **reached**. Assert while it can still be reported.
+- **`cellOf` lives only in the CHUNKED payload.** `planSetToPluginJs` ships the name→cell map inline as
+  `PLANS` and contains no parser, so slicing it yields an empty string — which is how the block above
+  failed on its first run.
+- **`one<T>(xs, on)` returns `[undefined]` for an absent axis**, so the cartesian fold over nothing yields
+  **one empty coordinate, not zero plans**. Any gate phrased as "0 plans" is unreachable by construction.
+- **`expandKey` has TWO call sites** (`anatomy-figma.ts` ~393 and ~640) and only the first is in `varOf`.
+  The second — the text-style lookup — was missed on the first pass and typechecks fine under the engine's
+  own buildless tsx run; only `apps/studio`'s `tsc --noEmit` caught it. The expansion list is hoisted to one
+  `const` now so the two cannot diverge again.
+- **`present()` (`anatomy-figma.ts:534`) returns `!p?.optional` for every part except the two hardcoded
+  slot names**, so `optional: true` on any other part builds at **no** coordinate. This is why
+  `field-label`'s `indicator=none` cannot be a real coordinate, and the entry now says so as a **def
+  decision** rather than a projector refusal — the refusal is gone, the reason under it is not.
+- **`figmaProperties.texts` / `swaps` / `booleans` keys must be declared PROP names**, checked by `checkMap`
+  against `props`. Figma-facing labels (`Message`, `Icon`) are validation errors, not nicer names.
+- **`offset` is not an axis and should stop being proposed as one.** #801 measured that this value travels
+  as a name frozen to a literal at paste, because Figma's `x`/`y` bind no variable. Members differing only
+  by a number nothing can rebind are frozen snapshots, not a coordinate. `text-field`'s field-specific
+  offset comes from the parent at paste, now stated in the def.
+
+**NEXT, and deliberately after this rather than before it:** close the component *semantic* vocabularies —
+`states` to a `const STATES = [...] as const` with named exceptions in the `PAINT_SLOTS` shape, the same for
+variant **axis names** (values stay open, said explicitly), and drop `content`'s
+`[k: string]: string | undefined` index signature, which makes every misspelled key valid and the field
+ungateable. Closing the semantic vocabulary while the projector's view of it was moving would have frozen
+the wrong thing first. The argument is `docs/39-component-projection.md` §7 (`:256`) — *"closing the state
+vocabulary is the single highest-value schema change available before the catalogue grows"* — which landed
+on `main` as `af814ac` while this branch was open, so read it there. Field context for that work, from the
+research pass: **no design system anywhere enforces that two components' shared axis names mean the same
+thing.**
+
+---
+
 ## (2026-08-14) — The component tier's output contract, decided before the catalogue rather than after
 
 **STATUS: docs only.** New `39-component-projection.md`. No engine change, no emitted artifact, no
@@ -1918,6 +2035,9 @@ cannot be filled by a `{slot}` the projector fills with `label` (Arc 2 step 3).
 **WHAT THIS DELIBERATELY DOES NOT DO.** `PROJECTABLE_VARIANT_AXES` is unchanged at
 `['intent', 'appearance', 'size']`. `focus-ring`'s stroke colour is now resolvable, but its three
 *structural* walls stand and `figmaProperties` stays absent. #758 was wall 4 — paint — and only that.
+⚠️ **SUPERSEDED 2026-08-14 by #795:** `PROJECTABLE_VARIANT_AXES` is **deleted** — `figmaAnatomySet` now
+enumerates whatever `figmaProperties.variantAxes` declares — and `focus-ring` ships that block and
+projects. One structural wall survives (#740, `PartDef` has no stroke field).
 
 **TRAPS FOR WHOEVER IS NEXT.**
 - **`PRIMARY_PAINT_SLOTS` exists because of a measurement, not a prediction.** A slot-free template
@@ -2390,6 +2510,13 @@ which the tempting over-correction would have deleted along with the false claim
 
 **Four walls, not one, and three of them were discovered while authoring rather than predicted.** Only the
 paint wall was known going in. Measured on this branch:
+
+⚠️ **SUPERSEDED 2026-08-14 by #795** for walls 2 and 3, and read the correction rather than the list:
+both were **ours, not Figma's**, and they came down together because either alone was worse than neither.
+Wall 2's `PROJECTABLE_VARIANT_AXES` is deleted; wall 3's `size=` is written only where the def declares
+the axis. The record below also names the wrong def as the nearest to projecting: **`field-message` was
+nearer than `focus-ring`**, and its own header's claim that it would project once the size wall fell was
+measured **false** (1 plan, 0 paint variables — wall 2 was its binding constraint). Wall 4 (#740) stands.
 
 1. **Paint** — `paintOf`'s keying, above. #758.
 2. **Axis refusal** — `PROJECTABLE_VARIANT_AXES` is `['intent','appearance','size']` and `figmaAnatomySet`

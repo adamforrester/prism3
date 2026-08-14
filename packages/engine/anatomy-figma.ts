@@ -219,7 +219,11 @@ export type FigmaPropertyPlan =
 
 export type AnatomyPlan = {
   component: string;
-  size: string;
+  /** ABSENT where the def declares no `size` axis (#795) — a caption or a focus ring has one type
+   *  scale, so there is no size coordinate to carry and `planComponentName` writes none. Optional
+   *  rather than `''`: an empty string is a value that reads as a size everywhere it is interpolated,
+   *  which is how `size=` would have come back as a real-looking empty coordinate. */
+  size?: string;
   slots: { leading: boolean; trailing: boolean };
   /** WHICH of the two slots are real Figma AXES — `figmaProperties.slotAxes` names, carried onto the
    *  plan for the same reason `gridAxis` is (`planComponentName` and `planSetLayout` receive plans,
@@ -242,6 +246,16 @@ export type AnatomyPlan = {
    *  payload can name the component after its own coordinate, and so a gate can tell a plan that
    *  legitimately has no paints from one that dropped them. */
   coord: VariantCoord;
+  /** The def's `variantAxes`, in DECLARATION order, minus `size` — the order `planComponentName` writes
+   *  the coordinate in (#795).
+   *
+   *  Carried onto the plan for exactly the reason `slotAxes` and `gridAxis` are: `planComponentName`
+   *  receives PLANS, never the def, and it used to write `intent` then `appearance` from two hardcoded
+   *  lines. That was Button's declaration order transcribed into the writer, so a def whose axis was
+   *  named anything else — `field-message`'s `tone` — projected a coordinate the NAME did not carry, and
+   *  four members came back named `""`. Byte-identical output for every existing def, because all four
+   *  declare `['intent', 'appearance', 'size']` and this preserves declaration order. */
+  gridAxisOrder: string[];
   root: FigmaNodePlan;
   /** Carried onto the plan rather than dropped, so the ceilings travel WITH the artifact that
    *  fails to honor them. A plan whose `codeOnly` is empty is claiming Figma holds everything. */
@@ -294,12 +308,29 @@ const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED'
  */
 export const figmaAnatomyPlan = (
   def: ComponentDef,
-  size: string,
+  size: string | undefined,
   slots: PlanSlots = {},
 ): AnatomyPlan => {
   const a = def.anatomy;
   if (!a) throw new Error(`${def.id}: no anatomy block to project`);
-  if (!(def.variants?.size ?? []).includes(size)) throw new Error(`${def.id}: '${size}' is not a declared size`);
+  // A DEF WITH ONE TYPE SCALE HAS NO SIZE COORDINATE (#795), and `undefined` is how it says so.
+  //
+  // This used to require a declared size unconditionally, which made a one-scale def — a caption, a
+  // focus ring — unprojectable at ANY coordinate by our own construction rather than by anything Figma
+  // requires. But "no size" cannot mean "any size is fine": a def that DECLARES sizes and is handed
+  // `undefined` would project one member standing for a grid it never enumerated, so the two cases are
+  // asked separately and the wrong pairing throws either way.
+  //
+  // `{size}`-templated binding keys are safe here for a reason that is checked elsewhere rather than
+  // assumed: `anatomyErrors` rejects a `{size}` placeholder when `variants.size` is empty
+  // (`component-schema.ts:1282`), so a sizeless def cannot carry a template that needs expanding. The
+  // guard below is what makes THAT guard load-bearing instead of incidental.
+  if (size === undefined) {
+    if ((def.variants?.size ?? []).length)
+      throw new Error(`${def.id}: no size was given, but the def declares sizes [${(def.variants?.size ?? []).join(', ')}] — a sizeless plan would stand in for a grid this def enumerates, so pass one of them`);
+  } else if (!(def.variants?.size ?? []).includes(size)) {
+    throw new Error(`${def.id}: '${size}' is not a declared size`);
+  }
   const leading = slots.leading ?? false;
   const trailing = slots.trailing ?? false;
   const { state } = slots;
@@ -331,7 +362,11 @@ export const figmaAnatomyPlan = (
   // The coordinate paint keys are FILLED from, which is the grid coordinate plus `size`. Separate from
   // `coord` for the reason above, and it carries `size` because a `paintKeys` template naming `{size}`
   // would otherwise validate, pass reachability, and silently never fill.
-  const paintCoord: VariantCoord = { ...coord, size };
+  //
+  // A sizeless def contributes no `size` key at all rather than `size: undefined` (#795): `fillPaintKey`
+  // reads this map, and a present-but-undefined entry fills `{size}` with the string "undefined" — a key
+  // that resolves nothing while looking like a real lookup.
+  const paintCoord: VariantCoord = { ...coord, ...(size === undefined ? {} : { size }) };
 
   // A PARTIAL COORDINATE IS AN ERROR, and generalizing this was the second half of #758. The old rule
   // was `intent and appearance must be given together`, which is this rule with Button's axes baked
@@ -347,9 +382,24 @@ export const figmaAnatomyPlan = (
       throw new Error(`${def.id}: a partial paint coordinate — '${template}' needs [${axes.join(', ')}] and [${missing.join(', ')}] was not given, so every key in that grammar goes unresolved and the plan projects unpainted`);
   }
 
+  // THE EXPANSION LIST, ONE PLACE, because there are TWO `expandKey` call sites and only one of them is
+  // in `varOf` (#795). The other is the TEXT-STYLE lookup below, and it was missed on the first pass —
+  // `expandKey(p.type, [size])` typechecks under the engine's own config, where the engine is buildless
+  // and run via tsx, and fails only under `apps/studio`'s `tsc --noEmit`, which is what caught it. The
+  // same trap as `VariantCoord`'s index signature (see `00-progress`, #758's traps): a sizeless def
+  // would have expanded against `[undefined]` and filled `{size}` with the string "undefined".
+  //
+  // `[size]` where there is a size, `[]` where there is not. Measured rather than assumed, because the
+  // two cases differ: against an empty list `expandKey` returns `[]` for a `{size}`-templated key (so
+  // `resolved` is `undefined` and the throws below report `'undefined'`), and `[key]` for a plain one.
+  // Only the plain case is reachable — `anatomyErrors` refuses a `{size}` placeholder when
+  // `variants.size` is empty (`component-schema.ts:1282`), which is what keeps a sizeless def from ever
+  // carrying a template that needs expanding.
+  const sizesForExpansion = size === undefined ? [] : [size];
+
   // binding key (possibly `{size}`-templated) → Figma variable name, via def.tokens.
   const varOf = (key: string): string => {
-    const [resolved] = expandKey(key, [size]);
+    const [resolved] = expandKey(key, sizesForExpansion);
     const ref = def.tokens[resolved];
     if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}', which tokens does not bind`);
     return figmaVarName(ref);
@@ -596,7 +646,7 @@ export const figmaAnatomyPlan = (
 
     let textStyle: string | undefined;
     if (p.type) {
-      const [resolved] = expandKey(p.type, [size]);
+      const [resolved] = expandKey(p.type, sizesForExpansion);
       const ref = def.tokens[resolved];
       if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}', which tokens does not bind`);
       textStyle = figmaTextStyleName(ref);
@@ -701,12 +751,16 @@ export const figmaAnatomyPlan = (
 
   return {
     component: def.id,
-    size,
+    // Omitted rather than set to `undefined`, so `JSON.stringify` (the payload's wire format) carries
+    // no `size` key at all for a sizeless def rather than a key the paste path has to interpret.
+    ...(size === undefined ? {} : { size }),
     slots: { leading, trailing },
     // Read off the DEF, which is the only thing that knows the difference between a slot that is
     // absent on this member and a slot the component does not have. See `AnatomyPlan.slotAxes`.
     slotAxes: (def.figmaProperties?.slotAxes ?? []).map((s) => s.name),
     coord,
+    // Declaration order, `size` removed — it has its own fixed position in the name. See the field's note.
+    gridAxisOrder: (def.figmaProperties?.variantAxes ?? []).filter((a) => a !== 'size'),
     root: node(a.root, a.parts[a.root]),
     codeOnly: [...a.codeOnly],
     derived: { ...(a.derived ?? {}) },
@@ -714,9 +768,20 @@ export const figmaAnatomyPlan = (
   };
 };
 
-/** The three `variants` axes `figmaAnatomyPlan` can be handed, and the two slot axes. Named here
- *  because `figmaAnatomySet` REFUSES anything else rather than iterating around it — see below. */
-const PROJECTABLE_VARIANT_AXES = ['intent', 'appearance', 'size'];
+/** The two SLOT axes `figmaAnatomyPlan` can be handed. Still a closed list, and unlike the variant axes
+ *  it is closed for a reason that is not going to move: these two are `PlanSlots` BOOLEANS wired to
+ *  named parts, so a third would need a plan field and a projector branch rather than a value.
+ *
+ *  THERE IS NO `PROJECTABLE_VARIANT_AXES` ANY MORE (#795). It listed `intent`, `appearance` and `size`
+ *  — Button's vocabulary — and `figmaAnatomySet` threw on anything else, which is what made `tone`
+ *  (`field-message`) and `color` (`focus-ring`) unprojectable independently of the size wall. The throw
+ *  was RIGHT about its rule: enumerating around an unknown axis emits a set silently missing it (#487
+ *  §5's 189-vs-756). It was wrong about the vocabulary being the projector's to fix, because
+ *  `figmaAnatomyPlan` has accepted arbitrary axis names since #758 — `VariantCoord`'s index signature is
+ *  exactly that — so the enumeration was the only thing that still hardcoded three names. Now it
+ *  enumerates whatever `variantAxes` declares, and the safety the throw provided is kept by the
+ *  empty-set check at the end of `figmaAnatomySet`: the failure it guarded against was a set that
+ *  quietly omits an axis, and a set with no members is the same defect with the count at zero. */
 const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
 
 /**
@@ -728,19 +793,25 @@ const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
  * `figma.showUI` at module scope and is therefore unreachable from any test. So the enumeration lives
  * here, where it is pure and gated, and the trigger is the thin thing it should be.
  *
- * IT REFUSES AN AXIS IT CANNOT PASS THROUGH, and that is the load-bearing half. `figmaAnatomyPlan`'s
- * signature names `intent`, `appearance`, `size`, `state`, `leading` and `trailing` and nothing else, so a
- * def declaring some fourth `variants` axis cannot be projected. Iterating around it — the obvious
- * implementation — emits a set that is internally consistent, combines cleanly, and is silently missing a
- * whole axis: exactly the failure `figmaAxisNames` was written for (#487 §5's 189-vs-756). A throw here
- * is the def's author being told the projection does not reach their axis yet.
+ * THE DECLARATION IS THE VOCABULARY (#795). `variantAxes` names the axes this def projects, and this
+ * function enumerates exactly those — by name, off the def. It used to enumerate `intent` and
+ * `appearance` from two hardcoded loops and refuse everything else, which was Button's vocabulary
+ * standing in for the projector's: `field-message`'s `tone` and `focus-ring`'s `color` were refused not
+ * because a plan could not carry them (it has been able to since #758) but because the enumeration had
+ * no loop for them.
  *
- * SIZE AND SLOT FILL ARE ALWAYS ENUMERATED, whether or not they are declared axes, because
- * `planComponentName` ALWAYS emits `size=`, `leading=` and `trailing=` coordinates. Pinning one value
- * for an undeclared axis would give every member an identical coordinate on it, which is fine — but
- * pinning `size` while the def declares three would give N members one name, and `planSetLayout` refuses
- * a duplicate coordinate. The name is the wire format, so the enumeration has to cover what the name
- * carries rather than what the declaration lists.
+ * WHAT THE OLD REFUSAL WAS RIGHT ABOUT, kept: iterating around an axis emits a set that is internally
+ * consistent, combines cleanly, and is silently missing a whole axis (#487 §5's 189-vs-756). That
+ * property is now held by the empty-set throw at the bottom plus `figmaAxisNames`' parity gate, rather
+ * than by a closed list — a list that also refused the honest cases.
+ *
+ * SLOT FILL IS ALWAYS ENUMERATED and SIZE NO LONGER IS. Both follow from the name being a wire format:
+ * `planComponentName` writes `leading=`/`trailing=` for a def that declares them, and writes `size=`
+ * only where `size` is declared (#795). Pinning one value for an undeclared axis gives every member an
+ * identical coordinate on it, which is harmless — but pinning `size` while the def declares three would
+ * give N members one name, and `planSetLayout` refuses a duplicate coordinate. So the enumeration covers
+ * what the name carries, and since #795 the name carries what the DECLARATION lists. Those are now the
+ * same sentence, which is the whole of this change.
  *
  * `swapTarget` is an option and not a def field for the reason #513 recorded live: which component fills
  * a slot is a fact about the FILE, not about the component. The same def builds in a file whose
@@ -750,9 +821,9 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   const fp = def.figmaProperties;
   if (!fp) throw new Error(`${def.id}: no figmaProperties block — nothing declares which axes become a Figma set`);
   const declared = fp.variantAxes ?? [];
-  const unprojectable = declared.filter((a) => !PROJECTABLE_VARIANT_AXES.includes(a));
-  if (unprojectable.length)
-    throw new Error(`${def.id}: figmaAnatomySet cannot project variant axes [${unprojectable.join(', ')}] — figmaAnatomyPlan takes ${PROJECTABLE_VARIANT_AXES.join('/')} and nothing else, and enumerating around an axis emits a set that is silently missing it`);
+  // No variant-axis vocabulary check any more (#795) — see `PROJECTABLE_SLOT_AXES` for why the list is
+  // gone rather than widened. `validateComponentDef` still requires every name here to be a real
+  // `variants` axis, so an axis this loop cannot fill is caught by the schema rather than admitted.
   const slotAxes = (fp.slotAxes ?? []).map((s) => s.name);
   const unprojectableSlots = slotAxes.filter((s) => !PROJECTABLE_SLOT_AXES.includes(s));
   if (unprojectableSlots.length)
@@ -761,30 +832,69 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   // `[undefined]` rather than `[]` for an axis the def does not declare: one pass through the loop with
   // no coordinate on it, which is what `figmaAnatomyPlan` reads as "structure only on that axis".
   const one = <T>(xs: T[] | undefined, on: boolean): (T | undefined)[] => (on && xs?.length ? xs : [undefined]);
-  const intents = one(def.variants?.intent, declared.includes('intent'));
-  const appearances = one(def.variants?.appearance, declared.includes('appearance'));
   const states = one(fp.stateAxis?.values, !!fp.stateAxis);
-  // Not gated on `declared.includes('size')` — see the header note on why the NAME decides this.
-  const sizes = def.variants?.size ?? [];
+  // SIZE IS NOW GATED ON THE DECLARATION (#795), where it used to be enumerated unconditionally because
+  // the NAME always carried it. `[undefined]` is the sizeless pass — one plan on that axis, no `size=`
+  // in the name — and it is the same `one()` every other axis uses rather than a special case.
+  const sizes = one(def.variants?.size, declared.includes('size'));
+  // EVERY OTHER DECLARED AXIS, BY NAME OFF THE DEF (#795). This used to be two hardcoded loops over
+  // `intent` and `appearance`, which is why `tone` and `color` were refused: the vocabulary was the
+  // projector's, so a def could declare an axis the enumeration had no loop for. Now the def's own
+  // `variantAxes` drives it and `figmaAnatomyPlan` puts each value on the coord under its own name —
+  // which it has done since #758, via the `VariantCoord` index signature. `size` is excluded because it
+  // is a positional argument rather than a coord entry, and the two slot axes because their values are
+  // booleans from `anatomy.parts` rather than strings from `variants`.
+  const gridAxes = declared.filter((a) => a !== 'size');
+  const gridValues = gridAxes.map((a) => one(def.variants?.[a], true));
   const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [true, false] : [false]);
 
-  // NESTED IN THE ORDER `planComponentName` WRITES, so the grid `planSetLayout` derives reads the way the
-  // coordinate does — intent down to trailing, with the last varying axis becoming the columns.
+  // The cartesian product of the declared axes, in DECLARATION order — `variantAxes` is the order Figma
+  // shows the properties in, and `planSetLayout` derives its grid from the resulting names, so the two
+  // have to walk the same way round. Written as a fold rather than nested `for`s because the number of
+  // axes is now the def's to choose; the previous six-deep nest is what fixed the vocabulary in place.
+  const coords = gridValues.reduce<(string | undefined)[][]>(
+    (acc, values) => acc.flatMap((prefix) => values.map((v) => [...prefix, v])),
+    [[]],
+  );
+
   const plans: AnatomyPlan[] = [];
-  for (const intent of intents)
-    for (const appearance of appearances)
-      for (const size of sizes)
-        for (const state of states)
-          for (const leading of bools('leading'))
-            for (const trailing of bools('trailing'))
-              plans.push(figmaAnatomyPlan(def, size, {
-                leading,
-                trailing,
-                ...(opts.swapTarget ? { swapTarget: opts.swapTarget } : {}),
-                ...(intent ? { intent } : {}),
-                ...(appearance ? { appearance } : {}),
-                ...(state ? { state } : {}),
-              }));
+  for (const combo of coords)
+    for (const size of sizes)
+      for (const state of states)
+        for (const leading of bools('leading'))
+          for (const trailing of bools('trailing'))
+            plans.push(figmaAnatomyPlan(def, size, {
+              leading,
+              trailing,
+              ...(opts.swapTarget ? { swapTarget: opts.swapTarget } : {}),
+              ...Object.fromEntries(gridAxes.flatMap((a, i) => (combo[i] === undefined ? [] : [[a, combo[i]]]))),
+              ...(state ? { state } : {}),
+            }));
+
+  // A DEF THAT DECLARES AXES AND PROJECTS NO COORDINATE IS A FAILURE, NOT AN EMPTY ANSWER (#795, #802's
+  // class: every layer accepted and nothing read the count).
+  //
+  // This is the gate the size relaxation made necessary, and the FIRST VERSION OF IT WAS UNREACHABLE —
+  // worth recording, because the shape is the one docs/34 is about and it survived a full green suite.
+  // It read `if (plans.length === 0) throw`, on a measurement taken before this function was rewritten:
+  // `figmaAnatomySet(fieldMessage, { variantAxes: [] })` did return OK → 0 plans under the old nested
+  // loops. Under the fold it cannot: `one()` maps an absent or empty axis to `[undefined]`, so the
+  // product of nothing is one empty coordinate and the set comes back with **1 plan named `""`**. Zero
+  // was never the reachable failure. And the two tests I wrote for it both PASSED — on Button's *size*
+  // guard throwing first, an unrelated throw satisfying a gate that asked only "did it throw".
+  //
+  // So the rule is stated as what actually goes wrong: a set whose members carry NO COORDINATE. One
+  // unnamed member is the 189-vs-756 failure through the front door — declaration and emitter disagreeing
+  // while both look internally consistent — and it is worse than zero, because zero is at least visibly
+  // nothing while one blank member pastes a component that looks built.
+  //
+  // Asked of the RESULT (the names the projector produced) rather than of the declaration: a check that
+  // re-read `variantAxes` would assert the input against itself. `planComponentName` is the oracle here
+  // because it is the wire format — an axis on the coord that never reaches the name is invisible to
+  // `nestVariantMatch` and `planSetLayout` alike, so the name is the thing whose emptiness matters.
+  const unnamed = plans.filter((p) => planComponentName(p) === '');
+  if (unnamed.length)
+    throw new Error(`${def.id}: figmaAnatomySet projected ${unnamed.length} member(s) with NO variant coordinate at all — the def declares variantAxes [${declared.join(', ')}], so an unnamed member means an axis has no values in \`variants\` (or the list is empty). A member with no coordinate is not a projection; declare the values, or admit the axis in anatomy.codeOnly`);
   return plans;
 };
 
@@ -932,9 +1042,19 @@ export const planBindingErrors = (
  */
 export const planComponentName = (plan: AnatomyPlan): string =>
   [
-    ...(plan.coord.intent ? [`intent=${plan.coord.intent}`] : []),
-    ...(plan.coord.appearance ? [`appearance=${plan.coord.appearance}`] : []),
-    `size=${plan.size}`,
+    // EVERY DECLARED AXIS, IN THE DEF'S OWN ORDER (#795). These two lines used to be `intent` then
+    // `appearance` by name — Button's declaration order transcribed into the writer — which is why a def
+    // whose axis is called `tone` or `color` projected a coordinate the name did not carry: the plan held
+    // `{tone:'error'}` and the name came back `""`, four members sharing it, `planSetLayout` refusing the
+    // duplicate. Byte-identical for the four defs that already project (all declare intent/appearance/size).
+    ...plan.gridAxisOrder.flatMap((a) => (plan.coord[a] ? [`${a}=${plan.coord[a]}`] : [])),
+    // CONDITIONAL SINCE #795, and this half is what the issue's "both halves" meant. It used to be
+    // unconditional, which is the writer's side of the same wall: even had the plan admitted a sizeless
+    // def, every member would still have been named `size=undefined`. The def's `variantAxes` decides —
+    // no `size` listed, no `size=` written. See `nestVariantMatch` for why this is not cosmetic: a
+    // coordinate must account for EVERY axis in the member's name, so a stray `size=` is the difference
+    // between Button's `{color:'default'}` resolving against a projected ring and matching nothing.
+    ...(plan.size === undefined ? [] : [`size=${plan.size}`]),
     ...(plan.coord.state ? [`state=${plan.coord.state}`] : []),
     ...(plan.slotAxes.includes('leading') ? [`leading=${plan.slots.leading}`] : []),
     ...(plan.slotAxes.includes('trailing') ? [`trailing=${plan.slots.trailing}`] : []),
@@ -1655,7 +1775,28 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     // The FOOTPRINT COHORT — the variants that must measure the same. `size` and slot fill legitimately
     // change a button's box; `state` and `appearance` must not, so those share a group and the payload
     // compares measured sizes within it.
-    group: `size=${p.size}, leading=${p.slots.leading}, trailing=${p.slots.trailing}`,
+    //
+    // ABSENT MEANS OMIT, on every segment, and the PAYLOAD's `cellOf` must reach the byte-identical
+    // string — it rebuilds this key by parsing the member NAME, so a segment the name does not carry is
+    // one it cannot recover. The two derivations are deliberately separate (the chunked payload has none
+    // of this module), so they are kept in step only by both encoding the same rule.
+    //
+    // `size` is #795's case: a def with no size axis writes no `size=` into the name, so the segment goes.
+    //
+    // THE SLOT SEGMENTS HAD THE SAME BUG ALREADY, and #795's test is what surfaced it. This wrote
+    // `leading=${p.slots.leading}` unconditionally, which for a def with no slot axes is `leading=false`
+    // — while `planComponentName` writes `leading=` only where the axis is DECLARED. Measured across the
+    // corpus: Button (2 slot axes) agreed at 648/648, and `icon`, `field-label` and `icon-button` diverged
+    // at every member, engine `leading=false` against payload `leading=undefined`. It never bit because
+    // the disagreement is UNIFORM within a set — every member lands in one cohort under each rule, so the
+    // footprint comparison still compares the right things. That is the whole hazard: a mismatch that
+    // costs nothing until the day one side changes, and the sizeless case is that day. Gated in `test.ts`
+    // against the payload's own extracted `cellOf`, run rather than grepped.
+    group: [
+      ...(p.size === undefined ? [] : [`size=${p.size}`]),
+      ...(p.slotAxes.includes('leading') ? [`leading=${p.slots.leading}`] : []),
+      ...(p.slotAxes.includes('trailing') ? [`trailing=${p.slots.trailing}`] : []),
+    ].join(', '),
   }));
 
   // The properties to declare, derived from the nodes the plans BUILD (see `planSetProperties`), and
@@ -1816,7 +1957,13 @@ const cellOf=(name)=>{
   for(const kv of name.split(', ')){const i=kv.indexOf('=');if(i>0)v[kv.slice(0,i)]=kv.slice(i+1);}
   const row=ROW_LABELS.indexOf(ROW_KEYS.map(k=>v[k]).join(' '));
   const col=COL_KEY?COL_VALS.indexOf(v[COL_KEY]):0;
-  return {row,col,group:'size='+v.size+', leading='+v.leading+', trailing='+v.trailing};
+  // Same "absent means omit" rule as \`planSetLayout\`'s \`group\` (#795), on EVERY segment — a def that
+  // declares no size axis and no slot axes writes neither into the name, so there is nothing to parse
+  // back out here. This side was always right; the engine side wrote \`leading=false\` unconditionally and
+  // the two disagreed for every def but Button. Must produce the byte-identical string that side does or
+  // the cohorts do not line up, and a per-member cohort compares nothing and reports nothing.
+  const seg=(k)=>v[k]===undefined?[]:[k+'='+v[k]];
+  return {row,col,group:seg('size').concat(seg('leading'),seg('trailing')).join(', ')};
 };
 const cells=members.map(c=>cellOf(c.name));
 const colW=[],rowH=[];
