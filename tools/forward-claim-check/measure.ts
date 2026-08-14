@@ -34,12 +34,17 @@
  * lines out of 6,151 citations. Nobody knows how many forward claims those 6,151 citations contain,
  * because the only way to find out is to read them all, and that has not been done.
  *
- * That is not a hypothetical worry. **A confirmed false negative was found by accident** and is
- * registered in `KNOWN_FALSE_NEGATIVES` below: `packages/engine/theme.ts` writes
- * `issue #101 — still open` with an em-dash, and the `still-open` pattern misses it because the
- * pattern wants `stays|remains|is still` and the em-dash construction supplies bare `still`. #101 is
- * CLOSED. That is a stale claim, in engine source, that this tool does not see — found because a
- * human happened to grep for `#101`, not because anything reported it.
+ * That is not a hypothetical worry. **A confirmed false negative was found by accident**:
+ * `packages/engine/theme.ts` wrote `issue #101 — still open` with an em-dash, and the `still-open`
+ * pattern missed it because the pattern wants `stays|remains|is still` and the em-dash construction
+ * supplies bare `still`. #101 was CLOSED. That was a stale claim, in engine source, that this tool
+ * did not see — found because a human happened to grep for `#101`, not because anything reported it.
+ * It is no longer live: a concurrently-developed PR fixed that exact sentence before this one reached
+ * `main`, so `KNOWN_FALSE_NEGATIVES` below is empty on this tree. That is not the recall argument
+ * getting weaker — the argument never depended on a specimen staying put. A live example happened to
+ * exist when this was written and happened to be gone by the time it merged, which is itself a small
+ * demonstration of the same point: nothing here is watching for these except a human who trips over
+ * one. The register stays wired up so the *next* accidental find has somewhere to go.
  *
  * So a gate built on this would **report clean over everything it cannot see**. That is `docs/34`
  * shape 9 exactly — the detector matches nothing and nothing compares its count to anything — and it
@@ -106,9 +111,9 @@
  * rather than being quietly counted as fine. An unresolved citation is not evidence of a healthy
  * claim; it is evidence of an unfinished measurement, and the two must not look alike.
  *
- * ── THREE THINGS THAT ARE NOT CHECKABLE, NAMED RATHER THAN DROPPED ──────────────────────────────
+ * ── FIVE THINGS THAT ARE NOT CHECKABLE, NAMED RATHER THAN DROPPED ───────────────────────────────
  *
- * All three were measured on this tree. They are in `NON_CHECKABLE` — which carries the exact site,
+ * All five were measured on this tree. They are in `NON_CHECKABLE` — which carries the exact site,
  * the issue number and the reason, so the numbers are one screen down rather than repeated here in a
  * form the scan would pick up. They are reported in their own section and excluded from the stale
  * count, because reporting any of them as stale would be **confidently wrong**, which is worse than
@@ -127,6 +132,18 @@
  *     unrelated closed PR about `.ai.json` consumption eval. A resolver pointed
  *     at one repo cannot tell a foreign namespace from a local one, and would report STALE with full
  *     confidence. This is the general hazard of a corpus containing a vendored sub-project.
+ *  4–5. **TWO PAST-TENSE NARRATIONS OF A RESOLVED BLOCKER** (`docs/12-token-press-monorepo-eval.md`,
+ *     `docs/38-arcs.md`), found by an independent reviewer rebasing this PR across a concurrent one
+ *     that fixed exactly these two sentences from live claims into past-tense history: one now opens
+ *     with "was blocked on … and that blocker is gone", the other narrates "then blocked by" inside an
+ *     already-past-tense sentence. (Written here without the digits both originally cited — see the
+ *     SAMPLE convention below; the register entries carry the real fingerprints.) `blocked-on` matches
+ *     the bare stem with no tense check, so a sentence correctly narrating a closed blocker as history
+ *     reads identically to one asserting a live one. Unlike `depends-on` (deliberately matched on the
+ *     assertive inflection `depends`, not the stem `depend`, so a negated present-tense claim doesn't
+ *     fire), `blocked-on` has no equivalent guard, and a general fix is real NLP, not a regex tweak —
+ *     narrowing it further risks the same trap as narrowing the two document-level exclusions above.
+ *     Named here rather than silently reworded away, for the same reason the other three are.
  */
 import { execSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
@@ -257,16 +274,27 @@ const NON_CHECKABLE: Register[] = [
     issue: 72,
     why: "foreign issue namespace — Token Press was absorbed with its history and cites its OWN tracker; prism3#72 is an unrelated closed PR, so a local resolver would report STALE with full confidence",
   },
-];
-
-const KNOWN_FALSE_NEGATIVES: Register[] = [
   {
-    file: 'packages/engine/theme.ts',
-    fingerprint: 'interpolation (issue',
-    issue: 101,
-    why: "the em-dash construction supplies bare `still`, and `still-open` wants `stays|remains|is still` — #101 is CLOSED, so this is a stale claim in engine source that the pattern set does not see. Found by grep, not by this tool. It is the evidence that recall is unknown; if a future run reports it CAUGHT, the recall claim in this file's header needs re-measuring rather than quietly inheriting.",
+    file: 'docs/12-token-press-monorepo-eval.md',
+    fingerprint: 'and that blocker is gone',
+    issue: 609,
+    why: "the sentence is past tense and says outright that the blocker is resolved — 'blocked-on' has no tense awareness and cannot tell 'is blocked' from 'was blocked, and that blocker is gone'. Reporting it STALE would be confidently wrong about a sentence that already says the correct thing.",
+  },
+  {
+    file: 'docs/38-arcs.md',
+    fingerprint: 'then blocked by',
+    issue: 767,
+    why: "'then blocked by' narrates a historical sequencing inside an already-past-tense sentence ('the owner called...') — 'blocked-on' matches the bare stem regardless of tense. Reporting it STALE would be confidently wrong about a since-resolved blocker being narrated as history.",
   },
 ];
+
+/**
+ * Empty on this tree. The one confirmed instance (`packages/engine/theme.ts`'s em-dash `issue #101 —
+ * still open`) was fixed by a concurrently-developed PR before this one reached `main` — see the file
+ * header. An empty register is not evidence recall is fine; it means the last accidental find has
+ * been resolved and no new one has been tripped over yet. Add the next one here when it turns up.
+ */
+const KNOWN_FALSE_NEGATIVES: Register[] = [];
 
 // ── scan ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -509,6 +537,10 @@ say();
 say('-'.repeat(100));
 say('KNOWN FALSE NEGATIVES — the reason this is not a gate');
 say('-'.repeat(100));
+if (!KNOWN_FALSE_NEGATIVES.length) {
+  say('  none registered right now — the one confirmed instance (theme.ts, #101) was fixed out from under');
+  say('  this file before it reached main. Empty is not evidence recall is fine; see the file header.');
+}
 for (const r of KNOWN_FALSE_NEGATIVES) {
   const caught = judged.some((h) => h.file === r.file && h.issue === r.issue);
   const at = locate(r);
