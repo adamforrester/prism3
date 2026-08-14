@@ -233,6 +233,70 @@ would have been the tell.
 
 ---
 
+## (2026-08-14) — A number that crossed a lane boundary and arrived meaning something else
+
+**STATUS: shipped, docs only.** One entry in `docs/32` — *"A number keeps its value across a hand-off
+and loses its referent"* — plus this record. No code, no artifact change, no issue: the finding is the
+hand-off itself, so there is nothing to fix and nothing to file. 33/33 gates at base and at head.
+
+**THE FINDING.** `tools/forward-claim-check/measure.ts` reported *"precision is 17/17."* That is its
+`selfCheck()` on the **reported-vs-asserted filter** — how reliably it separates a claim being *made*
+from one being *quoted* — and the coordinating lane relayed it onward as the **detector's** precision
+at finding forward claims. A later measurement put that at **10/12 ≈ 83%** on the tree it ran against,
+because two of those twelve reportable sites are past-tense narrations of a resolved blocker that the
+tool's own `NON_CHECKABLE` register already names as not-live-claims. Nobody measured anything wrong; the harness measured its
+filter correctly and said so, and the relay quoted it correctly. **The meaning was lost in transit**,
+and a decision about whether the tool could gate was taken partly on a number answering a different
+question.
+
+**And both absolutes had already drifted, which is #568 arriving uninvited and twice over.** Run live
+on `63efb29`, `selfCheck()` printed **13/16 → 16/16** over **12** reportable sites. Rebased twice as
+the queue moved: **12/15 → 15/15** over **11** on both `de77d0b` and `dd99ad3`, because #851 excluded a
+vendored guest by genre and took a `NON_CHECKABLE` entry with it. **So the denominator of the 10/12 moved between the
+measurement and the entry recording it** — the numerator's two sites are still there and still
+registered, but the population is not the one they were counted against. Every figure in the entry is
+therefore marked with the commit it was taken on. Two independent drifts, not one: the referent (this
+finding) and the landmark (the older finding walking past).
+
+**THE SECOND INSTANCE IS THE REASON IT IS AN ENTRY AND NOT AN ANECDOTE.** Earlier the same week, the
+false `tone`-rename mechanism reached the emitter lane (#826, closing #795) as an established account
+of why `field-message`'s header claim failed — falsified in one line on `origin/main`, where a size
+axis **added** with `tone` intact returns the same 1 plan / 0 paints. Both crossed the same node in
+opposite directions: once a correct number whose referent changed, once a wrong mechanism carried as
+settled. **The common factor is the hand-off, not the measurement**, which is exactly why neither
+lane's own verification discipline was positioned to catch it — each side was internally consistent.
+
+**THE REMEDY BELONGS TO THE RECEIVER**, and it is one question: *precision of what, against which
+definition, over which population.* A number arriving from another lane carries its referent only if
+someone asks for it.
+
+**WHY NO GATE, STATED PLAINLY SO IT IS NOT PROPOSED LATER.** This is a **coordination** failure, not a
+measurement one. A correctly-quoted number is byte-identical to a correctly-understood one at the
+point of quotation, so there is no artifact to scan — the missing thing is a question nobody asked in
+a conversation, and it leaves no residue in the tree. `docs/32` already carries entries that say "no
+gate, and here is why" (#807's, #808's, and finding 3's); this follows that pattern rather than
+inventing a check nobody could trust.
+
+**ADJACENT TO #786, AND DELIBERATELY NOT MERGED WITH IT.** #786's laundered precedent is **provenance**
+degrading across a hand-off — *"I was told X"* recorded as *"X, measured"*. This is **referent**
+degrading across one — X measured, X quoted, X now about something else. Same family, different
+mechanism, and the remedies do not substitute: provenance needs a label, referent needs a question.
+Filing them as one entry would have made both less useful.
+
+**NOT A FOURTH MEMBER OF #820's FAMILY**, which is the trap this entry was one paragraph from walking
+into. That family is *a claim believed because the prose asserting it was read, when the code was
+available to ask*. Here the code was asked, on both sides, and answered correctly.
+
+**TRAP FOR WHOEVER RE-VERIFIES THIS.** The 10/12 figure comes from a measurement running in a separate
+lane and is not on `main` at the time of writing; the 17/17 is in `measure.ts`'s header and is correct
+about what it claims. Re-running the tool today will reproduce neither, and that is expected rather
+than a discrepancy — see the drift note above before treating a different pair of numbers as a
+correction. Re-deriving either by reading only the tool will reproduce the original mistake,
+because the tool's sentence is accurate — the discrepancy lives between two definitions of
+"precision", not inside either one.
+
+---
+
 ## (2026-08-14) — `icon.name`'s promise becomes true, and one import made 53 invisible spellings visible (#833)
 
 **STATUS: shipped.** `components/icon.ts` imports `ICON_NAMES` from the generated `icon-glyphs.ts`
