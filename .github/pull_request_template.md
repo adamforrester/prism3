@@ -19,9 +19,9 @@
      green. CI (.github/workflows/ci.yml) runs every one of these on every PR regardless
      of which files changed — there is no "skip web/plugin, I only touched the engine"
      exemption, so don't skip any locally either. A checklist shorter than CI's is a
-     checklist a diligent contributor can follow exactly and still ship broken — see the
-     lint:classes line below, which is the specific gate two PRs (#601, #602) missed by
-     stopping their Gates table at an older, shorter version of this template. -->
+     checklist a diligent contributor can follow exactly and still ship broken: two PRs
+     (#601, #602) each shipped a gate broken because they stopped their Gates table at an
+     older, shorter version of this template. -->
 
 - [ ] `npx tsx packages/engine/test.ts` → _N/N passed_
 - [ ] `npx tsx packages/engine/mcp-test.ts` → _N/N passed_
@@ -43,7 +43,6 @@
 - [ ] `npm run -w @prism3/studio test:smoke` → _N/N passed_ — the headless DOM/interaction suite (#767, deciding #333). Run it **after** `build`: it drives the built `dist/main.js` in Chromium over every page × mode × corpus brand, plus the mode switch, an override picker and an export. A **separate** script from `test` above on purpose — those are pure modules with no browser, and a flake here must not be able to take them down. **Advisory in CI until 2026-08-20, then gating (#775).** Needs `npx playwright install chromium` once; `playwright` is an `apps/studio` devDependency and the engine core stays dependency-free
 - [ ] `npm run -w @prism3/studio check:ignore` → clean
 - [ ] `npm run -w @prism3/studio lint:contrast` → clean
-- [ ] `npm run -w @prism3/studio lint:classes` → clean — a NEW class-name combination fails here until it's added to `ALLOWED` in `apps/studio/lint-classes.mjs`
 - [ ] `npm run -w @prism3/plugin typecheck` → clean
 - [ ] `npm run -w @prism3/plugin test` → _N/N passed_
 - [ ] `npm run -w @prism3/plugin build` → succeeds, 0 `node:` builtins in `dist/main.js`

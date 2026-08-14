@@ -310,12 +310,136 @@ const apply = (): void => { rebuild(); syncChrome(); paintVolatile(); };
 // the only list; the ordering is declared in it rather than restored by a hand-listed call here.
 const applyFull = (): void => { rebuild(); renderWorkspace(); };
 
+// ---- scoped styles: the class-name law (#770) --------------------------------
+//
+// THE DEFECT THIS REPLACES A GATE FOR. Four defects in one session shared one shape — a class token
+// minted for one surface silently matching a rule authored for another, invisible at the mint site
+// and findable only by looking at a render. `.pfield.slider` picked up a standalone
+// `.slider{margin-top:16px}` 70 lines away, and that 16px WAS the palette row's label misalignment
+// in full; three alignment fixes could not touch it because it was never an alignment problem
+// (#464). `.psl-range` lost to `.range{margin-top:10px}` on source order at equal specificity,
+// inflating a grid row 33px → 44px. `.seg` added chrome the `select` beside it had no equivalent of
+// (#484). The repo's answer was `lint-classes.mjs`: scan the source for elements carrying two classes
+// that each own a top-level rule, and fail until a human allowlists the pairing. It worked, and #544
+// found three blind spots in it — but a gate that polices a collision is a workaround for an
+// architecture that permits one. This is the architecture that does not.
+//
+// THE LAW, in one sentence: EVERY CLASS NAME BELONGS TO EXACTLY ONE SCOPE — the text before its first
+// dash, or the whole name — AND AN ELEMENT'S CLASS LIST LIVES IN ONE SCOPE, plus a small shared
+// vocabulary that provably cannot carry a rule on its own.
+//
+// It is enforced in two independent places, neither of which is a lint step that can be dropped from
+// CI (which is exactly what this change did to `lint-classes.mjs`, so the distinction is the point):
+//
+//   1. MINT SIDE — the type of `el`'s class argument. `Scoped<T>` resolves to `never` when T's tokens
+//      do not share one scope, so `el('div', 'pfield slider')` is a COMPILE error, caught by
+//      `npm run -w @prism3/studio typecheck`. Deliberate cross-scope composition is spelled `mix(...)`
+//      at the mint site — the review `ALLOWED` used to force from 8,000 lines away, now written where
+//      the composition happens and required by the compiler rather than by a reviewer's diligence.
+//      `checkScope` repeats the check at runtime for class strings the type system sees only as
+//      `string` (template literals, values threaded through helpers) — the hole a type-level rule
+//      always has, closed rather than documented.
+//   2. STYLESHEET SIDE — `installStyles` below, which is the only path by which `styles.css` becomes
+//      CSS. It refuses a stylesheet where a SHARED token (a STATE or a UTILITY) keys a top-level rule
+//      on its own.
+//
+// WHY THOSE TWO TOGETHER CLOSE IT. A rule can only reach an element through a class the element
+// carries. By (1) an element's tokens are one scope's members plus shared tokens. A scope member
+// `s-x` is spelled with its scope, so the rule it matches is that scope's, by name. A shared token
+// cannot match a single-class rule at all, because by (2) no such rule may exist for one — it can
+// only appear in a COMPOUND selector (`.pfield.slider`), which requires the anchor to be present and
+// therefore can never act on an element of another scope. So there is no spelling of "this token
+// silently picked up someone else's rule". The two shared lists cannot be abused to reopen it either:
+// putting a scope head into STATES makes its own rule illegal under (2), and leaving it out makes the
+// mint a type error under (1). Both doors, not one.
+//
+// WHAT REMAINS REPRESENTABLE, stated plainly rather than left for the next reader to discover:
+// `mix('pfield', 'slider')` reproduces the original bug exactly. That is deliberate — genuine
+// composition exists (the export dialog reusing `.seg`, a token pill flagged by the style guide) and
+// pretending otherwise would just push it into a template literal. What is closed is the SILENCE: the
+// composition is now named at the point of use, in the same expression that creates the element, and
+// there is no way to not name it.
+
+/** A class name's scope: everything before its first dash, or the whole name. */
+type Stem<T extends string> = T extends `${infer A}-${string}` ? A : T;
+
+/** Composable utilities — classes meant to be worn by anything, so they are exempt from the one-scope
+ *  rule. Both carry TYPE treatment only; `installStyles` re-derives that invariant from the shipped
+ *  stylesheet rather than trusting this comment (the #544 lesson, kept). Keep this list at two. */
+const UTILITIES = ['mono', 'faint'] as const;
+/** State and modifier classes — the other half of the shared vocabulary. Every one of these owns NO
+ *  top-level rule of its own; each appears only in a compound (`.select.sm`, `.panchor.dia`), which
+ *  is what makes them safe to wear alongside any scope: a compound cannot fire without its anchor.
+ *  `installStyles` enforces exactly that, so this list cannot silently grow a name that carries a
+ *  declaration. Adding a name here whose rule keys on it alone fails at boot. */
+const STATES = [
+  'active', 'arow-lead', 'authored', 'bad', 'cap', 'cs-nudge', 'cur', 'dark', 'derived', 'dia', 'disabled',
+  'fill', 'fixed', 'inline', 'is-anchor', 'is-pressed', 'mtbl-spec', 'no', 'none', 'note', 'ok',
+  'on', 'open', 'pin', 'primary', 'r', 'ro', 'set', 'sg-inv', 'sg-l', 'sg-r', 'sg-t', 'show-hex',
+  'slider', 'sm', 'stuck', 'unbound', 'unknown', 'warn', 'yes', 'zero',
+] as const;
+type Utility = (typeof UTILITIES)[number];
+type State = (typeof STATES)[number];
+/** The shared vocabulary — wearable with any scope. */
+type Free = Utility | State;
+
+/** True when every token of T is in scope S or is a shared token; false at the first that is neither. */
+type AllInScope<S extends string, T extends string> =
+  T extends `${infer A} ${infer R}`
+    ? (A extends S | `${S}-${string}` | Free ? AllInScope<S, R> : false)
+    : (T extends S | `${S}-${string}` | Free ? true : false);
+/** The scope a class list is anchored to: the scope of its first token that is NOT a shared one.
+ *  Mirrors `checkScope`'s runtime choice of anchor exactly, so `'mtbl-name mono'` and `'mono mtbl-name'`
+ *  are the same statement to both halves of the law. */
+type Anchor<T extends string> =
+  T extends `${infer A} ${infer R}`
+    ? (A extends Free ? Anchor<R> : Stem<A>)
+    : (T extends Free ? T : Stem<T>);
+/** A class list anchored to one scope — T itself when the law holds, `never` when it does not, which
+ *  is what makes a cross-scope mint a compile error at the call site rather than a lint finding. */
+type Scoped<T extends string> = AllInScope<Anchor<T>, T> extends true ? T : never;
+
+/** A deliberately cross-scope class list. Distinct from `string` so it is visible in the source and
+ *  at every site that accepts one; `el` takes it in place of a `Scoped<T>` literal. */
+type Mix = { readonly cls: string };
+/** Declare a cross-scope composition. Every argument names a scope this element deliberately joins —
+ *  the reviewed-pairing decision `lint-classes.mjs`'s `ALLOWED` used to hold, moved to the one place
+ *  that can see the surrounding layout. Write the reason beside the call, not in a list elsewhere. */
+const mix = (...parts: string[]): Mix => ({ cls: parts.filter(Boolean).join(' ') });
+
+const FREE: ReadonlySet<string> = new Set<string>([...UTILITIES, ...STATES]);
+const scopeOf = (token: string): string => (token.includes('-') ? token.slice(0, token.indexOf('-')) : token);
+/** The runtime half of the mint law — same rule as `Scoped<T>`, applied to class strings the type
+ *  system only ever sees as `string`. Throws rather than warns: a cross-scope mint is the defect this
+ *  whole section exists to make unreachable, and a warning is a thing a render can survive. */
+const checkScope = (cls: string): string => {
+  const toks = cls.split(/\s+/).filter(Boolean);
+  const anchor = toks.find((t) => !FREE.has(t));
+  if (anchor) {
+    const s = scopeOf(anchor);
+    const off = toks.filter((t) => !FREE.has(t) && t !== s && !t.startsWith(`${s}-`));
+    if (off.length) {
+      throw new Error(
+        `apps/studio: class list "${cls}" spans scopes — '${anchor}' is scope '${s}', but ${off.map((t) => `'${t}'`).join(', ')} ` +
+          'is not. One element, one scope (#770). If the composition is intended, say so with mix().',
+      );
+    }
+  }
+  return cls;
+};
+
 // ---- DOM helpers -----------------------------------------------------------
-const el = (tag: string, cls?: string, text?: string): HTMLElement => {
+const el = <T extends string = string>(tag: string, cls?: (T & Scoped<T>) | Mix, text?: string): HTMLElement => {
   const n = document.createElement(tag);
-  if (cls) n.className = cls;
+  if (cls) n.className = typeof cls === 'string' ? checkScope(cls) : cls.cls;
   if (text !== undefined) n.textContent = text;
   return n;
+};
+/** `classList.add` under the same law — for the two places a class is added to an already-built
+ *  element rather than at its mint. Pass `mix(...)` when the addition crosses a scope. */
+const addClass = (n: HTMLElement, cls: string | Mix): void => {
+  const next = `${n.className} ${typeof cls === 'string' ? cls : cls.cls}`.trim();
+  n.className = typeof cls === 'string' ? checkScope(next) : next;
 };
 const chunk = <T>(a: T[], n: number): T[][] => { const o: T[][] = []; for (let i = 0; i < a.length; i += n) o.push(a.slice(i, i + n)); return o; };
 
@@ -334,11 +458,19 @@ const optionEl = (value: string, text: string, selected = false): HTMLOptionElem
  *  radius, background, and the shared chevron — so a styling tweak lands in one place. Size / context are
  *  additive modifiers: `sm` (compact inline) · `fill` (flex to its row) · `cap` (max-width, for cards).
  *  Callers append their own `<option>`s (option-building varies too much to generalise). */
-const selectEl = (mods = ''): HTMLSelectElement => el('select', mods ? `select ${mods}` : 'select') as HTMLSelectElement;
+const selectEl = (mods: string | Mix = ''): HTMLSelectElement => el(
+  'select',
+  // A plain string is `select`'s own modifier vocabulary (`sm`/`fill`/`cap`) and goes through the
+  // scope check like any mint; a caller wanting to size the control from ITS scope says so with
+  // mix(), which is the one shape that legitimately crosses (#770).
+  typeof mods === 'string' ? (mods ? `select ${mods}` : 'select') : mix('select', mods.cls),
+) as HTMLSelectElement;
 /** A number `<input>` (doc 24 C2). The `.num` base owns the shared field cosmetics (border, radius,
- *  background, padding); the caller passes a context class for width/size and wires its own `onchange`. */
+ *  background, padding); the caller passes a context class for width/size and wires its own `onchange`.
+ *  That context class comes from the CALLER's scope by design, so the pairing is a mix() — the base
+ *  owns cosmetics, the context class owns width, and neither overrides the other (#770). */
 const numberField = (o: { value: string | number; min?: number | string; max?: number | string; step?: number | string; className?: string; title?: string }): HTMLInputElement => {
-  const inp = el('input', o.className ? `num ${o.className}` : 'num') as HTMLInputElement;
+  const inp = el('input', o.className ? mix('num', o.className) : 'num') as HTMLInputElement;
   inp.type = 'number';
   if (o.min != null) inp.min = String(o.min);
   if (o.max != null) inp.max = String(o.max);
@@ -365,7 +497,9 @@ const rangeInput = (o: { value: string | number; min?: number | string; max?: nu
  *  runs its own `apply()` / `applyFull()`. */
 const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HTMLElement => {
   const input = el('input') as HTMLInputElement;
-  input.type = 'checkbox'; input.className = 'toggle hit-min'; input.checked = checked;
+  // #559 — hit-min's ::before widens the hit box; `.toggle`'s own 38px width is already past the
+  // floor, so the pseudo overlays that axis rather than narrowing it. A declared cross-scope pairing.
+  input.type = 'checkbox'; input.className = mix('toggle', 'hit-min').cls; input.checked = checked;
   const val = el('span', 'knob-val', checked ? 'On' : 'Off');
   input.onchange = () => { val.textContent = input.checked ? 'On' : 'Off'; onToggle(input.checked); };
   return knobBody(input, val);
@@ -417,15 +551,17 @@ const tokenPillWrapping = (path: string): HTMLElement => {
   return p;
 };
 /** A dashed "+ add" button (doc 24 C4). `.addbtn` owns the styling; pass context classes (width/margin)
- *  via `cls`. */
+ *  via `cls`. That context class comes from the CALLER's scope, so the pairing is a declared mix()
+ *  — the base owns cosmetics, the context class owns placement, and neither overrides the other (#770). */
 const addButton = (label: string, onClick: () => void, cls = ''): HTMLButtonElement => {
-  const btn = el('button', cls ? `addbtn ${cls}` : 'addbtn', label) as HTMLButtonElement;
+  const btn = el('button', cls ? mix('addbtn', cls) : 'addbtn', label) as HTMLButtonElement;
   btn.onclick = onClick;
   return btn;
 };
-/** A round "×" remove button (doc 24 C4). */
+/** A round "×" remove button (doc 24 C4). `cls` is a placement class from the caller's own scope, so
+ *  it is a declared mix() for the same reason `addButton`/`numberField` are (#770). */
 const removeButton = (onClick: () => void, title = 'Remove', cls = ''): HTMLButtonElement => {
-  const btn = el('button', cls ? `rx ${cls}` : 'rx', '×') as HTMLButtonElement;
+  const btn = el('button', cls ? mix('rx', cls) : 'rx', '×') as HTMLButtonElement;
   btn.title = title; btn.onclick = onClick;
   return btn;
 };
@@ -919,11 +1055,17 @@ const neutralRow = (): { row: HTMLElement; refresh: () => void } => {
   origin.append(pfield('Source', src));
   const a = brandState.neutral.anchor;
   const nSlider = (key: string, label: string, max: number, step: number, value: number, fmt: (v: number) => string): HTMLElement => {
-    const f = el('div', 'pfield slider' + (editable ? '' : ' ro'));
+    // Spelled as two literals rather than a concatenation so THIS site — the one #464 was found
+    // on — is checked by the type of `el` and not only by `checkScope` at render (#770).
+    const f = el('div', editable ? 'pfield slider' : 'pfield slider ro');
     const top = el('div', 'psl-top');
     const val = el('span', 'psl-val mono', fmt(value));
     top.append(el('span', 'pfk', label), val);
-    const input = rangeInput({ className: 'range psl-range', min: 0, max, step, value });
+    // `psl-range` alone. It used to be minted as `range psl-range`, and `.range{margin-top:10px}` —
+    // an unrelated knob-slider rule — reached it and inflated this field's control row 33px → 44px
+    // (#464). The scope law is what makes that unspellable now; the class it needed is simply gone,
+    // and the neutralizing `margin:0` in the stylesheet has nothing left to neutralize.
+    const input = rangeInput({ className: 'psl-range', min: 0, max, step, value });
     if (!editable) input.disabled = true;
     else input.oninput = () => { setPath(brandState, key, Number(input.value)); val.textContent = fmt(Number(input.value)); apply(); };
     f.append(top, input);
@@ -1201,7 +1343,8 @@ const renderPreviewContracts = (host: HTMLElement): void => {
 const tokenTableEl = (rows: Array<{ name: string; cells: Array<HTMLElement | string> }>, cols: string[]): HTMLElement => {
   // `toktable` left-aligns the value columns (a swatch+hex / px value reads best flush-left) — the
   // shared `.ctable .mcol` centring is right for the contrast table's dot+ratio, wrong here.
-  const table = el('table', 'ctable toktable');
+  // the token list IS a contract table; toktable adds only column sizing
+  const table = el('table', mix('ctable', 'toktable'));
   const thead = el('tr'); thead.append(el('th', undefined, 'Token'));
   for (const c of cols) thead.append(el('th', 'mcol', c));
   table.append(thead);
@@ -1460,7 +1603,8 @@ const renderPreviewTokens = (host: HTMLElement): void => {
   }
 
   // ---- controls: a header ABOVE the content (doc 26), every field labelled via `pfield`. ----
-  const seg = el('div', 'pvseg tok-seg');
+  // #466 — tok-seg is the L3 (nested) modifier of the shared view segment
+  const seg = el('div', mix('pvseg', 'tok-seg'));
   for (const [k, label] of [['primitive', 'Primitives'], ['semantic', 'Semantics']] as Array<[TokTier, string]>) {
     const b = el('button', 'pvseg-b' + (tokTier === k ? ' on' : ''), label) as HTMLButtonElement;
     b.onclick = () => { if (tokTier !== k) { tokTier = k; tokCat = ''; paintVolatile(); } };
@@ -1565,7 +1709,8 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // preserved here — is the full PATH, which matters now that a long path can be elided (#289).
     // Previously `title` was overwritten with the resolution too, making it redundant.
     p.setAttribute('data-sgtip', tipOf(m, k));
-    if (fails(m, k)) { p.classList.add('sg-failpill'); p.append(el('b', 'sg-fx', '!')); }
+    // a shared token pill flagged by the style guide's own contrast verdict
+    if (fails(m, k)) { addClass(p, mix('sg-failpill')); p.append(el('b', 'sg-fx', '!')); }
     return p;
   };
   const pills = (...nodes: HTMLElement[]): HTMLElement => { const w = el('div', 'sg-pills'); nodes.forEach((n) => w.append(n)); return w; };
@@ -2175,7 +2320,8 @@ const contrastMark = (roleKey: string, palette: string): ((step: string) => stri
  *  pressed color, so a click toggles a HELD `.is-pressed` state instead (click again to release). Only
  *  wired when a pressed color was actually resolved (`exBtn`/`exLink`/`exOutline` call this conditionally). */
 const wirePress = (n: HTMLElement): void => {
-  n.classList.add('pinnable');
+  // the held-pressed affordance, worn by the example button/link/outline atoms
+  addClass(n, mix('pinnable'));
   n.title = 'Click to hold the pressed state';
   n.onclick = (e) => { e.preventDefault(); n.classList.toggle('is-pressed'); };
 };
@@ -2237,7 +2383,7 @@ const iExample = (inner: HTMLElement, badge?: HTMLElement): HTMLElement => {
  *  it was before it could take a badge. `.aex` is the column that stacks a specimen over its receipt
  *  (`iExample` relies on exactly that), so a two-up that also wants a receipt needs the row and the
  *  column to be two boxes. Nesting unconditionally, rather than only when a badge is passed, keeps one
- *  layout to reason about — and retires an entry from `lint:classes`'s allowlist instead of moving it
+ *  layout to reason about — and retired a reviewed class pairing instead of moving it
  *  somewhere the scanner can't see. */
 type TwoUpSpec = [string, HTMLElement] | [string, HTMLElement, HTMLElement | undefined];
 const twoUp = (a: TwoUpSpec, b: TwoUpSpec): HTMLElement => {
@@ -3198,7 +3344,8 @@ const renderBreakpointsControls = (): HTMLElement => {
       const cell = el('div', 'adv-bp');
       const inp = numberField({ className: 'adv-num', value: String(px) });
       inp.onchange = () => { const next = [...bps]; next[i] = Number(inp.value); commit(next); };
-      const rm = el('button', 'adv-x hit-min', '×') as HTMLButtonElement;
+      // #559 — hit-min adds an out-of-flow ::before hit box only; adv-x's painted box is untouched
+      const rm = el('button', mix('adv-x', 'hit-min'), '×') as HTMLButtonElement;
       rm.onclick = () => commit(bps.filter((_, j) => j !== i));
       cell.append(inp, rm); listEl.append(cell);
     });
@@ -3280,7 +3427,8 @@ const renderDurationRamp = (): HTMLElement => {
   const tempoLabel = byMode?.tempo ?? mo.tempo;
   const wrap = palSection('Duration ramp',
     `The six semantic durations at tempo '${tempoLabel}', each aliasing a literal ms primitive, beside the reduce-motion ramp the engine derives from it. Read-only — Tempo above scales the whole ladder.`);
-  const table = el('table', 'ctable mo-ramp');
+  // the motion ramp IS a contract table; mo-ramp adds the ms column
+  const table = el('table', mix('ctable', 'mo-ramp'));
   const head = el('tr');
   // Four columns, each header true of its cell. The first cut had two columns both headed "Aliases",
   // and the second of them held `motion.duration-reduced.<name>` — which is the reduced token's OWN
@@ -3526,7 +3674,8 @@ const renderTypePreview = (): HTMLElement => {
       // `Ag 123` rather than a sentence — the same specimen the Primitives typeface library already
       // uses, so the two agree, and short enough that a fixed column shows it whole. A weight
       // difference is legible in four glyphs; a sentence only bought width.
-      const samp = el('span', 'mtbl-spec-t tpw-samp', 'Ag 123');
+      // type-pairing sample inside a mode-table specimen cell
+      const samp = el('span', mix('mtbl-spec-t', 'tpw-samp'), 'Ag 123');
       samp.style.fontWeight = String(w.value);
       samp.style.fontFamily = f.stack;
       td.append(samp);
@@ -3690,7 +3839,8 @@ const renderAlphaAndOpacity = (): HTMLElement => {
     const ident = el('div', 'pident');
     // The identity chip is the same checkerboard-plus-inner-fill construction as the band swatches, so
     // it reads as a sample of the ramp rather than a differently-built approximation of one.
-    const chip = el('div', `pswatch ro ao-chk${dark ? ' dark' : ''}`);
+    // read-only palette swatch on the alpha-checker ground
+    const chip = el('div', mix('pswatch', 'ro', 'ao-chk', dark ? 'dark' : ''));
     const chipFill = el('div', 'ao-fill'); chipFill.style.background = fill(chipPct);
     chip.append(chipFill);
     const idcol = el('div', 'pidcol');
@@ -3711,7 +3861,8 @@ const renderAlphaAndOpacity = (): HTMLElement => {
       // dark base as `background-color`, the inline `backgroundColor` overwrote it, and all ten white
       // steps rendered identically because the only thing left behind them was the white panel. The
       // shadow tint read-out already solved this the same way; this now matches it.
-      const sw = el('div', `sw ao-chk${dark ? ' dark' : ''}`);
+      // shade swatch on the alpha-checker ground
+      const sw = el('div', mix('sw', 'ao-chk', dark ? 'dark' : ''));
       const inner = el('div', 'ao-fill'); inner.style.background = fill(pct);
       sw.append(inner);
       strip.append(sw);
@@ -3792,7 +3943,7 @@ const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => Spl
     const preview = el('div', 'cs-preview');
     if (!b.controls || b.stack) {
       if (b.controls) sec.append(b.controls);
-      preview.classList.add('cs-preview-full');
+      addClass(preview, 'cs-preview-full');
       sec.append(preview);
     } else {
       const split = el('div', 'cs-split');
@@ -4250,7 +4401,8 @@ const renderTypefaceLibrary = (): HTMLElement => {
   const libScroll = el('div', 'mtbl-scroll');
   // `.tf-libtbl` widens THIS table's Face column (see the CSS) — the token path moved into it, and a
   // `font.typeface.<slug>` pill does not fit the shared 112px.
-  const libTbl = el('table', 'mtbl-tbl tf-libtbl');
+  // the typeface library rendered as a mode table; tf-libtbl sets its column widths
+  const libTbl = el('table', mix('mtbl-tbl', 'tf-libtbl'));
   const libHead = el('thead'), libHtr = el('tr');
   // The heading names the SOURCE of the verdict, because the two hosts answer from different ones:
   // Figma's own font list where there is one, this machine's installed fonts otherwise. "On this
@@ -4295,7 +4447,8 @@ const renderTypefaceLibrary = (): HTMLElement => {
       bc.title = `In the library and bound — re-point ${bind.label} to something else to make this removable.`;
     tr.append(bc);
     const pc = el('td', 'mtbl-fill mtbl-spec');
-    const prev = el('span', 'mtbl-spec-t tf-prev', 'Ag 123');
+    // typeface preview inside a mode-table specimen cell
+    const prev = el('span', mix('mtbl-spec-t', 'tf-prev'), 'Ag 123');
     prev.style.fontFamily = `"${tf.name}", ${tf.slug.includes('mono') ? 'monospace' : 'sans-serif'}`;
     pc.append(prev);
     // The second fact, on the cell it is actually about. Once the status column reports FIGMA's verdict,
@@ -4665,7 +4818,8 @@ const renderTypefaceBindings = (): HTMLElement => {
     if (unbound) {
       pc.append(el('span', 'tf-unbound', 'No code face — the code category is not generated.'));
     } else {
-      const prev = el('span', 'mtbl-spec-t tf-prev', 'The quick brown fox jumps');
+      // same specimen cell, longer sample
+      const prev = el('span', mix('mtbl-spec-t', 'tf-prev'), 'The quick brown fox jumps');
       prev.style.fontFamily = base ? `"${base}", ${cat === 'code' ? 'monospace' : 'sans-serif'}` : 'inherit';
       pc.append(prev);
     }
@@ -4711,7 +4865,8 @@ const renderSizeLadder = (): HTMLElement => {
   // only to explain the dimming. The blue `head` dot went too — it was the levered-rung marker those
   // keys explained, and an unexplained colour-coded dot is worse than no dot.
   const box = el('div', 'mtbl');
-  const scroll = el('div', 'mtbl-scroll sl-tall');
+  // sl-tall raises the scroll cap for the taller mode table
+  const scroll = el('div', mix('mtbl-scroll', 'sl-tall'));
   const tbl = el('table', 'mtbl-tbl');
   const thead = el('thead'), htr = el('tr');
   htr.append(el('th', 'mtbl-stick', 'Step'), el('th', 'mtbl-mode', 'rem'),
@@ -4857,7 +5012,8 @@ const renderLeadingTracking = (): HTMLElement => {
       // a real constraint, and showing it grayed teaches it, where hiding it would look like the ladder
       // is shorter than it is.
       const vc = el('td', 'mtbl-mode');
-      const sel = selectEl('sm ltbl-sel');
+      // ltbl-sel sets the width from the library table's own scope
+      const sel = selectEl(mix('sm', 'ltbl-sel'));
       sel.setAttribute('aria-label', `${caption} ${s.key}`);
       const lo = idx > 0 ? steps[idx - 1].val : -Infinity;
       const hi = idx < steps.length - 1 ? steps[idx + 1].val : Infinity;
@@ -4992,7 +5148,8 @@ const renderWeightTable = (): HTMLElement => {
       // The specimen: same "Ag 123" glyph sample the by-face table uses, at THIS column's resolved
       // weight — never `w.value`, the row's baseline, which is exactly the bug #422 reported.
       const spec = () => {
-        const samp = el('span', 'mtbl-spec-t tpw-samp wt-spec', 'Ag 123');
+        // #422 — weight-roles specimen; wt-spec adds margin-top:4px to stack it under the stepper
+        const samp = el('span', mix('mtbl-spec-t', 'tpw-samp', 'wt-spec'), 'Ag 123');
         samp.style.fontWeight = String(value);
         samp.style.fontFamily = textStack;
         return samp;
@@ -6115,7 +6272,7 @@ const paintSpacingPreview = (into: HTMLElement): void => {
     // in the ramp was to scale. The whole ladder tops out at 96px and this section is now full width,
     // so the honest rendering fits: 8px is 8px, and 0 is nothing.
     const bar = el('div', 'sp-bar'); bar.style.width = `${px}px`;
-    if (px === 0) bar.classList.add('zero');
+    if (px === 0) addClass(bar, 'zero');
     // `tokenPill`, not mono text. The path was already visible here — but Corner radius and
     // Density & size, on this same page, name theirs with the shared pill, so one of three specimens
     // was saying the same kind of thing in a different component (doc 26: reuse the kit).
@@ -7557,7 +7714,8 @@ const renderExportDialog = (): HTMLElement => {
   // ---- level 1: which artifact ------------------------------------------------------------
   // A segmented control, not a select: two mutually-exclusive options is doc 26's binary case, and
   // both labels are short enough to sit side by side at this width.
-  const seg = el('div', 'seg exdlg-seg');
+  // #723 — the export dialog reuses the shared segmented control; exdlg-seg adds align-self only
+  const seg = el('div', mix('seg', 'exdlg-seg'));
   for (const a of ARTIFACTS) {
     const b = el('button', 'seg-b' + (a.id === exportArtifact ? ' on' : ''), a.label) as HTMLButtonElement;
     b.setAttribute('aria-pressed', String(a.id === exportArtifact));
@@ -7577,7 +7735,8 @@ const renderExportDialog = (): HTMLElement => {
     for (const s of settings) {
       const row = el('div', 'exdlg-set');
       row.append(el('div', 'exdlg-lab', s.label));
-      const sseg = el('div', 'seg exdlg-oseg');
+      // same control; exdlg-oseg adds max-width + flex-wrap so a long option pair wraps inside the panel
+      const sseg = el('div', mix('seg', 'exdlg-oseg'));
       for (const o of s.options) {
         const on = exportSettings[s.key] === o.value;
         const b = el('button', 'seg-b' + (on ? ' on' : ''), o.label) as HTMLButtonElement;
@@ -7726,7 +7885,7 @@ let componentPendingEl: HTMLElement | null = null;
  * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedInfo`
  * rendered — this ticket lands the model, and where the three outcomes are properly surfaced is
  * #533's decision (#721 is its fifth client, and its first whose status is not the result of an
- * action the user took). No new class, no new slot, nothing for `lint:classes` to admit.
+ * action the user took). No new class, no new slot, no new scope.
  *
  * What DOES change is the copy, because state 2 previously had none. "Contract holds ✓" over knobs
  * that are the boot demo is the defect: it is true about the file and false about what the user is
@@ -7764,7 +7923,7 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
   const btn = el('button', cls) as HTMLButtonElement;
   // The headline is a bare text node, not a span: it needs no styling of its own (the pill sets the
   // type and color), and an element with a class but no rule is a name reserved against nothing — the
-  // shape `lint:classes` exists to discourage.
+  // shape the scope law (#770) exists to make unspellable.
   btn.append(document.createTextNode(state.headline), el('span', 'caret', open ? '▴' : '▾'));
   // The accessible name has to carry the headline, because the caret glyph is the only other content and
   // a screen reader would otherwise announce a bare triangle. `aria-expanded` states the disclosure, and
@@ -7852,7 +8011,7 @@ function renderBar(): void {
   // beside it rather than a drawer — one overlay behaviour in this bar, not two. Hidden above 900,
   // where the real sidebar is back.
   const nWrap = el('div', 'barmenu-wrap');
-  const nav = el('button', 'barbtn navbtn' + (navMenuOpen ? ' open' : '')) as HTMLButtonElement;
+  const nav = el('button', mix('barbtn', 'navbtn', navMenuOpen ? 'open' : '')) as HTMLButtonElement;
   const curPage = NAV.find((s) => s.key === page);
   // Same nested-span shape as Export: the space lives INSIDE the label span, so hiding the label
   // leaves a bare glyph with no orphaned whitespace and no extra flex gap.
@@ -7950,7 +8109,8 @@ function renderBar(): void {
  *  the `view` destinations and the ordering note both come across too, so nothing the sidebar shows
  *  is silently lost on the way into the menu. */
 const renderNavMenu = (): HTMLElement => {
-  const menu = el('div', 'brandmenu navmenu');
+  // menu variant — navmenu re-skins the shared popover
+  const menu = el('div', mix('brandmenu', 'navmenu'));
   menu.append(el('div', 'bm-cap', 'Pages'));
   const nav = railNav();
   nav.forEach((s, i) => {
@@ -8137,9 +8297,69 @@ if (typeof STYLE !== 'string' || STYLE.length < 1000) {
       'missing `--loader:.css=text` (or `loader: { ".css": "text" }`), so the stylesheet is absent.',
   );
 }
-const styleEl = document.createElement('style');
-styleEl.textContent = STYLE;
-document.head.append(styleEl);
+
+/** Properties a UTILITY may declare (#544's invariant, unchanged): type treatment and ink, nothing
+ *  that could size, position or space the element it is worn by. */
+const NON_BOX_PROP = /^(font(-[a-z-]+)?|color|letter-spacing)$/;
+
+/**
+ * The stylesheet half of the class-name law (#770) — see the `scoped styles` section near the top of
+ * this file for the whole argument. Two checks, both about the SHARED vocabulary, because that is the
+ * only part of the namespace an element can wear without naming it:
+ *
+ *   1. No STATE or UTILITY may key a top-level rule on its own. A shared token that carries a
+ *      declaration is precisely `.slider{margin-top:16px}` — a rule that reaches every element wearing
+ *      the token, from any surface. Barred, a shared token can only appear in a COMPOUND (`.pfield.slider`),
+ *      which cannot fire without its anchor and so cannot cross a surface. The one exception is a
+ *      UTILITY's own single declaration, which is the whole reason it exists — held to (2).
+ *   2. A UTILITY's declaration is layout-free, re-derived from the shipped text rather than trusted
+ *      from the comment beside `UTILITIES`. A listed utility with no rule at all fails too, rather
+ *      than passing by default (the #502 lesson: prove you looked).
+ *
+ * This is not a lint step. It is the only path by which `styles.css` becomes CSS, so there is no
+ * build of this app in which it did not run — the property that made it worth retiring a gate for.
+ * It reads the SHIPPED stylesheet string, not the source file, so the thing checked is the thing that
+ * renders.
+ */
+const installStyles = (css: string): void => {
+  const decls = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // Top-level rules only: anchored at line start, a run of whole `.class` selectors separated by
+  // top-level commas and immediately followed by `{`. A compound (`.pfield.slider`) or a descendant
+  // (`.sg-pills .tpill`) breaks the match entirely rather than matching a prefix — which is the
+  // point, since those are the shapes that are safe by construction.
+  const owns = new Map<string, string>();
+  for (const m of decls.matchAll(/^((?:\.[a-z][a-z0-9-]*\s*,\s*)*\.[a-z][a-z0-9-]*)\s*\{([^}]*)\}/gm)) {
+    for (const sel of m[1].split(',')) owns.set(sel.trim().slice(1), m[2]);
+  }
+  if (owns.size === 0) {
+    throw new Error('apps/studio: the stylesheet declares no top-level class rules — it moved or changed shape (#770).');
+  }
+  const shared = [...owns.keys()].filter((c) => FREE.has(c) && !(UTILITIES as readonly string[]).includes(c));
+  if (shared.length) {
+    throw new Error(
+      `apps/studio: ${shared.map((c) => `'.${c}'`).join(', ')} key a top-level rule while listed as a shared ` +
+        'state. A shared token that carries a declaration reaches every element wearing it, from any ' +
+        'surface — that is the #464 defect. Give the rule a scope, or drop the name from STATES (#770).',
+    );
+  }
+  for (const u of UTILITIES) {
+    const body = owns.get(u);
+    if (body === undefined) {
+      throw new Error(`apps/studio: UTILITIES lists '.${u}', which has no top-level rule to verify (#770).`);
+    }
+    const boxy = body.split(';').map((d) => d.split(':')[0].trim()).filter(Boolean).filter((p) => !NON_BOX_PROP.test(p));
+    if (boxy.length) {
+      throw new Error(
+        `apps/studio: UTILITIES class '.${u}' declares ${boxy.join(', ')}. A utility is worn by any scope, so ` +
+          'it must carry no layout its host could fight. Remove the property, or make it a scope of its own (#770).',
+      );
+    }
+  }
+  const styleEl = document.createElement('style');
+  styleEl.textContent = css;
+  document.head.append(styleEl);
+};
+installStyles(STYLE);
 
 /** Distance from the pointer to the window's edge while the grip is held. The grip sits flush in
  *  the corner, so the dragged size is the pointer position plus this — the same small offset

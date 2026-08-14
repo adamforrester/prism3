@@ -163,8 +163,8 @@ npx tsx packages/engine/lint-shape-index.ts         # a published docs/34 shape 
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,
 unconditionally** — there is no "I only touched the engine" exemption, so don't skip them
-locally just because your diff looks engine-only. (Two PRs shipped with `lint:classes`
-silently broken because their Gates table stopped before reaching it — see `00-progress.md`.)
+locally just because your diff looks engine-only. (Two PRs shipped with a gate silently
+broken because their Gates table stopped before reaching it — see `00-progress.md`.)
 
 ```bash
 npm run typecheck    -w @prism3/studio      # tsc --noEmit — esbuild does NOT typecheck
@@ -196,9 +196,6 @@ npm run lint:contrast -w @prism3/studio     # studio chrome clears its own contr
                                             #   legal token faded through opacity is invisible to this
                                             #   one, and a token used in a state no sweep visits is
                                             #   invisible to that one)
-npm run lint:classes  -w @prism3/studio     # no unreviewed class-name collision — a NEW
-                                          # combination fails here until you add it to
-                                          # ALLOWED in apps/studio/lint-classes.mjs
 npm run typecheck -w @prism3/plugin      # BOTH contexts — main (no DOM) and ui (no figma.*)
 npm run test      -w @prism3/plugin      # write / readback / persist / float / styles shims
 npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` builtins — asserted by

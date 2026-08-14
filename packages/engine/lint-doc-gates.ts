@@ -6,7 +6,7 @@
  * #610 fixed a concrete instance of the defect this gate exists to prevent from recurring:
  * `CLAUDE.md` principle 4, `CONTRIBUTING.md` §3, and `.github/pull_request_template.md` each
  * documented a "gates to run before pushing" checklist shorter than what `ci.yml` actually runs —
- * the PR template listed 4 checks against CI's 17, with no `lint:classes`, `lint:contrast`,
+ * the PR template listed 4 checks against CI's 17, with no `lint:classes` (retired in #770), `lint:contrast`,
  * `check:ignore`, or `lint-us-english.ts` anywhere in any of the three documents. Two independently
  * authored PRs (#601, #602) each followed the documented checklist faithfully and both shipped
  * `lint:classes` silently broken — not carelessness, a gap in what they were told to check. #610

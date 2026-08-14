@@ -180,8 +180,13 @@ ordered, and step 3 is the one that decides whether the findings are real.
   enclosing literal left to terminate and a backtick in a CSS comment is now an ordinary character.
   Struck rather than deleted, because the rule was live for four separate build breaks and the reflex
   outlives the constraint: the cost was never the backtick, it was that `tsc` reported `TS1005`
-  hundreds of lines from the edit. Edit CSS in the `.css` file — two gates read it there
-  (`lint-classes.mjs`, `lint-contrast.mjs`) and both fail closed if it moves again.
+  hundreds of lines from the edit. Edit CSS in the `.css` file — `lint-contrast.mjs` reads it there
+  by path and fails closed if it moves again, and `main.ts`'s own `installStyles` refuses a stylesheet
+  that breaks the scope law (#770).
+- **One element, one scope (#770).** A class name belongs to the scope named before its first dash;
+  an element's class list stays inside one, plus the two utilities (`mono`, `faint`) and the declared
+  state vocabulary. Crossing scopes is spelled `mix(...)` at the mint, which is required by `el`'s
+  type rather than by review. This replaced `lint-classes.mjs` and its allowlist.
 - **`.tpill` is `direction: rtl`** (left-ellipsis for long paths), so a trailing glyph reorders to the
   front — `type.display.*` renders as `*.type.display`. Name a node, not a glob.
 - **A scoped `display` rule outranks the UA `[hidden]` rule.** If you write
