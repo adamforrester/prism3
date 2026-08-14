@@ -7,6 +7,24 @@
 
 ---
 
+## (2026-08-14) — Filing a found-but-unfixed defect is not optional, stated where a lane reads it before starting
+
+**STATUS: shipped.** `CLAUDE.md` principle 3 (Surgical changes) now says explicitly: *"'One concern per
+PR' stops you fixing a defect you found but weren't asked to fix — it does not stop you filing it."*
+
+**Why now.** A sweep of the last two weeks of `docs/00-progress.md` and PR bodies for defects that were
+described but never filed found seven live ones (#808–#814), including a defect explicitly marked *"Happy
+to file both"* in a merged PR body that never got filed. "One concern per PR" was correctly stopping lanes
+from fixing an out-of-scope defect, and that correct instinct was getting translated into "mention it in
+the write-up" — which strands it. Prose in a PR body or a progress entry is not discoverable as work: it
+gets no label, no lane, and no owner, and the next reader has to rediscover it from scratch rather than
+pick it up.
+
+**Placed in `CLAUDE.md`, not only here**, because the rule has to reach a lane *before* it starts work, not
+only after the fact in a retrospective log a lane may never read.
+
+---
+
 ## (2026-08-13) — The focus ring shipped flush, and both diagnoses in the issue were wrong (#801, first instance of #802)
 
 **STATUS: shipped.** `packages/engine/lint-absolute-inset.ts` asserts that an absolutely-positioned part
