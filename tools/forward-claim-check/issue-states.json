@@ -1,0 +1,21 @@
+{
+  "//": "Issue states cited by forward claims, resolved through the GitHub MCP tools. A tsx script has no MCP client, so this is a committed SNAPSHOT and the report prints resolvedAt at the top. Re-resolve before quoting a verdict. Add an entry with `--issues` for the numbers needed; a cited issue with no entry is reported UNRESOLVED by name rather than being counted as fine.",
+  "resolvedAt": "2026-08-14",
+  "repo": "adamforrester/prism3 (formerly prism3-tokens; both names redirect)",
+  "method": "mcp__github__issue_read, method=get",
+  "states": {
+    "50": { "state": "closed", "kind": "pull request", "title": "engine: emit-figma — generalise across aurora + wendys (queue item 6)" },
+    "72": { "state": "closed", "kind": "pull request", "title": "Consumption eval: the .ai.json guidance differential — 95% → 100%", "caution": "NOT the issue the citing line means — see NON_CHECKABLE: apps/tokenpress cites Token Press's own tracker" },
+    "101": { "state": "closed", "kind": "issue", "title": "[web] Regroup the Semantic tab into sub-sections + fix stale hero copy" },
+    "113": { "state": "open", "kind": "issue", "title": "[research] Font availability + name resolution across web / Figma / MCP" },
+    "252": { "state": "open", "kind": "issue", "title": "[decision] Headless primitives — author our own vs. wrap React-Aria / Radix / Ark" },
+    "377": { "state": "open", "kind": "issue", "title": "[engine] Leading & tracking are missing their semantic tier" },
+    "609": { "state": "closed", "kind": "issue", "title": "[decision] How should Prism3 represent modes in emitted DTCG?" },
+    "677": { "state": "open", "kind": "issue", "title": "[engine] Every surface accepts the upstream input; none accepts its own output" },
+    "740": { "state": "open", "kind": "issue", "title": "Arc 1 — Teach the schema to say what dependency A needs" },
+    "745": { "state": "open", "kind": "issue", "title": "Rewrite 19 §3's output target, and re-scope 27 Idea 2 Phase 1" },
+    "767": { "state": "closed", "kind": "issue", "title": "[studio] Headless smoke suite — DOM/interaction coverage main.ts cannot currently have" },
+    "768": { "state": "closed", "kind": "issue", "title": "[studio] Cleanup tracking — four seams the defects named" },
+    "802": { "state": "open", "kind": "issue", "title": "[decision] No gate asserts that a rendered value matches the intent behind it" }
+  }
+}

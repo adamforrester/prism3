@@ -7,6 +7,90 @@
 
 ---
 
+## (2026-08-14) — Forward claims about issue state, measured — and deliberately not gated
+
+**STATUS: shipped.** `tools/forward-claim-check/measure.ts` finds present-tense claims about *mutable*
+issue state in tracked prose — "blocked on #609", "#101 is still open", "parked pending #745" — and
+reports each against the state the cited issue is actually in. No issue; no `Closes`. It is **not** in
+`ci.yml`, not in `verify.ts`, not in `lint-doc-gates`'s region, and the gate count is unchanged at
+**32 at base and 32 at head**. Nothing under `packages/engine/components/` was touched.
+
+**THE RUN.** 6,151 citations across 268 scanned files, 168 of them carrying at least one, 555 distinct
+issues. 41 raw pattern hits → 23 excluded by genre → 17 deduped claim sites → 4 excluded as reported →
+**13 reportable: 3 STALE, 7 HOLDS, 3 NON-CHECKABLE.** The stale three are `docs/12:552` (#609 closed),
+`docs/38:309` (#767 closed, and #768 with it), and `packages/engine/README.md:330` (#101 closed).
+
+**WHY IT IS A TOOL AND NOT A GATE, which is the whole design decision and belongs in the header where
+it is.** Precision is not the problem — it is 17/17 on this tree. **Recall is, and the denominator is
+unknown.** 13 sites out of 6,151 citations, with no measurement of how many forward claims those
+citations actually contain. That is not hypothetical: a **confirmed false negative** was found by
+accident and is now registered — `packages/engine/theme.ts:1503` writes `issue #101 — still open` with
+an em-dash, so it supplies bare `still` where the pattern wants `stays|remains|is still`, and #101 is
+closed. A stale claim in engine source, invisible to the tool, found by a human grepping for `#101`.
+A gate built on this would **report clean over everything it cannot see** — `docs/34` shape 9, the
+`vercel-ignore-check.mjs` failure exactly: a true statement about the subset the regex happens to
+match, dressed as a statement about the repo. `tools/nest-exposed-cost/` is the precedent followed:
+a measurement with no gate sibling, on purpose.
+
+**THE ONE THING IT ASSERTS IS ABOUT ITSELF.** It exits non-zero when the *instrument* is broken — zero
+citations, a corpus materially below the recorded baseline, a pattern that stopped firing on its own
+sample, a declared journal that lost the journal shape, a register whose fingerprint no longer appears.
+That is shape 9's floor (*if a tool can say "I examined N things", something should care what N is*),
+and it is deliberately **not** a gate on the prose: no claim being stale ever fails the run. All six
+paths were mutation-tested — kill a pattern's sample, repoint the journal declaration at `docs/34`,
+corrupt a register fingerprint, blind the corpus to `.mdx`, shrink it to `mjs|yml` only — each exits 1
+naming the defect, and the restore exits 0.
+
+**THE TWO EXCLUSIONS ARE PROPERTIES OF THE DOCUMENT, NOT OF THE PATTERN, and that framing IS the
+finding.** Someone will otherwise "improve" them into a tuned filter. (1) **Append-only dated journals**:
+`docs/00-progress.md` alone held **23 of 41** raw hits — 56%, well over half the noise in one file — and a forward
+claim under a dated heading is *correct as history*; rewriting it when the issue closes would falsify
+the log. (2) **Reported rather than asserted**: `This arc read *"blocked on #252"* until…` quotes a
+former claim in order to say it changed. Narrowing the pattern instead would score better and know
+less, because forward claims are *supposed* to appear in a journal and *supposed* to appear in
+quotation — a detector for them has to know what kind of document it is reading. The journal list is
+declared, then verified both ways: each declared file must still have the shape (374 dated headings of
+547), and any undeclared file that has the shape is reported as a candidate, so the list cannot go
+stale in either direction.
+
+**THE REGEX BUG, worth carrying past this PR.** The reported-claim filter was written `…\s+["'*]\b`.
+It could never match. In `read *"blocked` the class consumes the `*` and the trailing `\b` then demands
+a boundary between `*` and `"` — both non-word, so no boundary, and the match dies one character from
+succeeding. It looked right and excluded nothing. **14/17 correctly classified with the `\b`, 17/17
+without**, measured live by the self-check rather than asserted. Generalizable: **a `\b` is an anchor
+only when at least one side of it can be a word character; after a class of punctuation it is a
+guarantee of failure.**
+
+**THREE THINGS ARE NOT CHECKABLE AND ARE NAMED RATHER THAN DROPPED**, because reporting any of them as
+stale would be *confidently wrong*, which is worse than not reporting it. (1) `#802's Figma half stays
+open` — #802 is open, but **half-open is not a state the API has**; the sentence can go false while
+nothing in the API moves. (2) `follow-up from #50 remains open` — the subject is an **unfiled**
+follow-up with no number; #50 itself is closed, and is a *pull request*, since GitHub shares one number
+space with issues. (3) **A third, found by this run and not anticipated:**
+`apps/tokenpress/docs/CHANGELOG.md:260` says `remains open under #72`, citing **Token Press's own
+tracker** — absorbed with its history. prism3#72 is an unrelated closed PR. A resolver pointed at one
+repo cannot tell a foreign namespace from a local one and would report STALE at full confidence. Any
+corpus containing a vendored sub-project carries this hazard.
+
+**TWO THINGS DELIBERATELY NOT DONE, with the measurement behind each.** Widening `still open` to accept
+bare `still` *does* catch the theme.ts false negative and correctly calls it stale — measured: 13 → 16
+reportable sites, +23%. Not taken, because the register **is** the argument for why this is not a gate,
+and one word in one pattern moving the yield by a quarter is itself the recall evidence. And the prior
+pass's corpus baseline records "5,964 citations, 219 files, 542 distinct issues"; citations and distinct
+issues reproduce within 3%, but **the file count reproduces under no corpus definition tried** — 167 for
+md/ts/mjs/yml, 179 adding `.json`, 186 over every text extension. Rather than widen the corpus until a
+number matched — fitting the instrument to its own baseline — the definition is stated plainly, the
+floor keys on the citation count that *did* reproduce, and the file count is carried as informational.
+
+**The trap for whoever re-verifies this.** Issue states arrive from a committed `issue-states.json`,
+resolved through the GitHub MCP tools, because a `tsx` script has no MCP client. So **the verdicts are
+as fresh as that file** — the report prints `resolvedAt` and lists any cited issue with no entry as
+UNRESOLVED by name rather than counting it as fine. Re-resolve before quoting a verdict. And the four
+stale claims are being fixed concurrently on `fix/stale-forward-claims`; if that lands first, a re-run
+shows fewer STALE sites. **That is the tool working, not a regression.**
+
+---
+
 ## (2026-08-14) — Four stale forward-looking claims, and the one that was arguing from nothing
 
 **STATUS: PR open.** Prose only — `docs/12 §11d`, `docs/38 §7`, `packages/engine/README.md` and one
