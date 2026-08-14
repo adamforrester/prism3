@@ -28,43 +28,49 @@
  * answer* — and `tools/nest-exposed-cost/` is the precedent: a measurement with no gate sibling,
  * deliberately.
  *
- * THE FIRST REASON, STATED HERE SO NOBODY PROMOTES IT LATER, is not squeamishness about false
- * positives. Precision is fine (measured below, and it is 17/17 on this tree). The disqualifying
- * property is **RECALL, and specifically that the DENOMINATOR IS UNKNOWN.** The pattern set below
- * catches 17 lines out of 6,151 citations. Nobody knows how many forward claims those 6,151
- * citations contain, because the only way to find out is to read them all, and that has not been done.
+ * THREE INDEPENDENT REASONS, STATED SO NOBODY PROMOTES IT LATER — strongest first. Precision is not
+ * one of the problems: it is 17/17 on this tree.
  *
- * That is not a hypothetical worry. **A confirmed false negative was found by accident**:
- * `packages/engine/theme.ts` wrote `issue #101 — still open` with an em-dash, and the `still-open`
- * pattern missed it because the pattern wants `stays|remains|is still` and the em-dash construction
- * supplies bare `still`. #101 was CLOSED. That was a stale claim, in engine source, that this tool
- * did not see — found because a human happened to grep for `#101`, not because anything reported it.
- * It is no longer live: a concurrently-developed PR fixed that exact sentence before this one reached
- * `main`, so `KNOWN_FALSE_NEGATIVES` below is empty on this tree. That is not the recall argument
- * getting weaker — the argument never depended on a specimen staying put. A live example happened to
- * exist when this was written and happened to be gone by the time it merged, which is itself a small
- * demonstration of the same point: nothing here is watching for these except a human who trips over
- * one. The register stays wired up so the *next* accidental find has somewhere to go.
+ * **1. THE MISSES CLUSTER ON THE ISSUES THE TOOL ALREADY CATCHES.** They are not scattered over
+ * issues nobody writes about; they pile onto the few that everything references. Counted by hand on
+ * this tree: one issue caught at a single site in `packages/engine/test.ts` (`remains open`) and
+ * missed at six others saying the same thing in different words (`until it lands`, `when it gives`,
+ * `is not satisfied`, `not yet a ring`, across `component-schema.ts` twice, `anatomy-figma.ts`,
+ * `components/focus-ring.ts`, `docs/38-arcs.md`); a parked decision issue caught at ZERO and claimed
+ * at six (`stays parked`, `is parked at`, `once it is called`, `no longer gates`); an open
+ * byte-for-byte question caught at zero and claimed at five, in one phrasing copied across `ci.yml`,
+ * `CONTRIBUTING.md`, `CLAUDE.md`, `compare.ts` and `gate.ts`. The mechanism under that clustering is
+ * `form-probe.mjs`, beside this file and runnable: of eleven real corpus phrasings for one claim, the
+ * pattern set recognizes **zero**, and the paired controls show that each miss turns on one character
+ * or one word.
  *
- * So a gate built on this would **report clean over everything it cannot see**. That is `docs/34`
- * shape 9 exactly — the detector matches nothing and nothing compares its count to anything — and it
- * is the failure this repo keeps re-learning (`vercel-ignore-check.mjs` found zero files and called it
- * a pass; `lint-skills` and `lint-us-english` both went blind inside two hours of one rename). A green
- * "no stale forward claims" would be a **true statement about the subset the regex happens to match**,
- * dressed as a statement about the repo. Until recall is measured — separately, by reading a sample of
- * the 6,151 and counting what the pattern missed — this reports and does not assert.
+ * So **a gate goes green the moment someone fixes the one sentence it named, while five sentences
+ * making the identical claim about the identical issue survive untouched.** That is `docs/34` shape 9
+ * producing **EVIDENCE-SHAPED OUTPUT RATHER THAN SILENCE**, which is strictly worse: an absent finding
+ * reads as *"not checked"*, a green one reads as *"checked and clean"*. **This holds even if recall
+ * were 95%**, because it is about the DISTRIBUTION of the misses rather than their count — a detector
+ * sampling one site per issue cannot certify the issue, however many sites it samples in total. It is
+ * the load-bearing argument, and the only one that does not decay when somebody re-measures.
  *
- * THE SECOND REASON IS INDEPENDENT OF THE FIRST, and it is the stronger one, which matters because a
- * future reader holding a good recall number will otherwise think the case for gating is complete. It
- * is not, because **THE ERROR COSTS ARE ASYMMETRIC.** A missed stale claim is the status quo — the
- * sentence stays wrong exactly as it was before this file existed, and nothing is worse than before.
- * A **FALSE `STALE` AT FULL CONFIDENCE IS WORSE THAN HAVING NO TOOL AT ALL**, because someone acts on
- * it and "fixes" a sentence that was already right. That shape is not hypothetical: the guest
- * exclusion below exists for `apps/tokenpress/docs/CHANGELOG.md`, whose citation RESOLVES — against
- * the wrong tracker — so a naive resolver reports it stale with no uncertainty attached anywhere in
- * the output. **This is an argument against the issue-state check ever gating, and unlike the recall
- * argument it does not go away when recall improves.** Measuring the denominator would answer the
- * first objection and leave this one untouched.
+ * **2. RECALL WAS MEASURED AT 11.0%, 95% CI [5.8%, 15.2%]** — a **DATED SNAPSHOT, not a live figure**,
+ * and the distinction is load-bearing enough to be mechanical: `recall-snapshot.mjs` beside this file
+ * carries the counts, re-derives the interval from them, states what does and does not reproduce, and
+ * CHECKS ITS OWN EXPIRY against today's reportable count. **That check already fires** — the guest
+ * exclusion moved a site out of the numerator after the measurement, so quote the figure only with its
+ * date and its drift. Every other number in this file re-derives from the tree on every run; this one
+ * did not, which is precisely the shape this tool exists to find, in a file that reads issue citations
+ * only and so could never have caught it in itself. (It replaces *"the denominator is unknown"* — an
+ * upgrade, not a correction. A finite number invites *"so raise it"*, which is why reason 1 leads.)
+ *
+ * **3. THE ERROR COSTS ARE ASYMMETRIC.** A missed stale claim is the status quo; a **false STALE at
+ * full confidence is worse than having no tool at all**, because someone "fixes" a sentence that was
+ * right. Live nine times over in the namespace section below, where the citation RESOLVES — against
+ * the wrong tracker.
+ *
+ * Raise recall and 1 and 3 remain; resolve every namespace and 1 and 2 remain. **Reason 1 alone is
+ * sufficient**, and this repo re-learns shape 9 the hard way often enough (`vercel-ignore-check.mjs`
+ * called zero files a pass; `lint-skills` and `lint-us-english` went blind inside two hours of one
+ * rename) that a detector reporting clean over what it cannot see is not a hypothetical here.
  *
  * THE ONE THING IT DOES ASSERT is about ITSELF, not about the repo, and the distinction is the whole
  * point of the split. It exits non-zero when the INSTRUMENT is broken: the citation scan came back
@@ -115,6 +121,51 @@
  * guest must still cover files AND still be called a guest by `CLAUDE.md`, and any directory
  * `CLAUDE.md` calls a guest that is not declared here is reported as a candidate. Neither list can
  * silently stop matching the tree in either direction.
+ *
+ * ── FOREIGN NAMESPACES: WHAT GENRE COVERS, AND WHAT NOTHING DOES ────────────────────────────────
+ *
+ * The guest exclusion above is the DOCUMENT-level half of the namespace problem. The recall sample
+ * proved it is only half. **Nine forward claims citing a FOREIGN tracker sit in this corpus** — a
+ * vendored guest's audit, lint-pass and line-height issues, and Style Dictionary's DTCG-support
+ * issue. Every one resolves against this repo's number space and would report **STALE at full
+ * confidence** the day the pattern grows to see it. All nine are missed today, and all nine are in
+ * `KNOWN_FALSE_NEGATIVES`. Where they live is the finding, and they split in two:
+ *
+ *  1. **Six are INSIDE the guest** (`apps/tokenpress/**`). A citation there is a property of the
+ *     DOCUMENT — the file belongs to a project with its own tracker — so `GUESTS` covers it, for
+ *     every claim in it, including the ones the pattern cannot see yet. They are not rewritten here:
+ *     a guest is ported in whole and is not ours to edit.
+ *  2. **Three are in OUR OWN prose** (`packages/tokens/README.md`,
+ *     `packages/tokens/check-consumability.mjs`), and **genre cannot reach them.** The document is
+ *     ours; only the CITATION is foreign. Nothing about the file marks it, so no property of the file
+ *     can classify it. This is a finding about a SHIPPED mechanism, not a caveat on a proposal —
+ *     the guest genre is on `main` and these three are outside it by construction.
+ *
+ * **AN UNMARKED `#`+digits in one of our own documents is indistinguishable from a local one — not
+ * merely hard to tell apart, but provably ambiguous, because BOTH readings are live in this tree.**
+ * The same two-digit numbers naming the guest's lint-pass and line-height issues also name prism3's
+ * own mode-opt-out audit in `packages/engine/test.ts` and a completed layout item in
+ * `docs/10-figma-materialization.md`. There is no signal to read, so there is nothing for a detector
+ * to detect.
+ *
+ * THE MECHANISM THAT WOULD WORK, NAMED AND DELIBERATELY NOT APPLIED HERE: **a citation that names its
+ * tracker** — `owner/repo#NN`, the form the guest's own source already uses — could be read as
+ * foreign and never resolved against our states. It is a CONVENTION, not a detector: it fixes only
+ * citations written after it is adopted, and the three sites in our prose would have to be edited to
+ * carry it. That edit is a decision about house style, not a cleanup, so it is not folded in here.
+ * The two weaker options, recorded so they are not re-proposed as new: a per-site register alone
+ * remembers the wrong answer instead of preventing it, and reporting every citation as *ambiguous*
+ * makes the report useless for the overwhelming majority that are local.
+ *
+ * ── THE REGISTERS HAVE THEIR OWN RECALL PROBLEM ─────────────────────────────────────────────────
+ *
+ * `NON_CHECKABLE` and `KNOWN_FALSE_NEGATIVES` are **hand-maintained lists of exceptions to a
+ * low-recall detector, and they inherit both weaknesses.** An entry exists only because a human read
+ * the site and wrote it down, so the registers' recall is bounded by the same reading that bounds the
+ * pattern's. The evidence is direct: `NON_CHECKABLE` held **exactly one** foreign-namespace site
+ * while nine were in the tree, and the other eight arrived only when somebody measured. Neither list
+ * claims completeness. A reader treating either as *the set of exceptions* has made the same mistake
+ * as one treating the report as *the set of stale claims*: both are floors under a measurement.
  *
  * ── THE REGEX BUG THIS PR FIXED, because it is a shape worth carrying ───────────────────────────
  *
@@ -310,12 +361,27 @@ const REPORTED_BUGGY = /\b(?:read|reads|said|says|stated|claimed|quoted|wrote)\s
  * better than printing a stored copy anyway: it shows what the file says today, not what it said when
  * the register was written.
  *
- * Everything here is PER-INSTANCE: one sentence whose shape no rule generalizes. A reason that
- * generalizes to a KIND of document belongs in a genre exclusion above (`JOURNALS`, `GUESTS`), where
- * it covers the next file of that kind too — the guest changelog was hand-listed here first and moved
- * once that was recognized.
+ * Everything in `NON_CHECKABLE` is PER-INSTANCE: one sentence whose shape no rule generalizes. A
+ * reason that generalizes to a KIND of document belongs in a genre exclusion above (`JOURNALS`,
+ * `GUESTS`), where it covers the next file of that kind too — the guest changelog was hand-listed
+ * here first and moved once that was recognized.
+ *
+ * A known-incomplete register — and it's a form-9 shape in its own right: the harness reports a clean
+ * count over a corpus it doesn't fully cover.
+ *
+ * That is left standing rather than repaired, and the choice is deliberate: **a tool built to detect
+ * a class of blindness, carrying a documented instance of that blindness, is worth more than a tool
+ * that quietly fixed it.** The live instance is the eight foreign-namespace sites this register did
+ * NOT hold until they were measured — it held one of nine — and they are recorded in
+ * `KNOWN_FALSE_NEGATIVES` below as a CURRENT state, not a resolved one. The mechanism that would
+ * resolve the three outside the guest is named in the header and deliberately not applied. Nothing
+ * here stops the next reader taking the count for coverage except this paragraph.
+ *
+ * `tracker` names the FOREIGN tracker a site's citation belongs to, where one applies. It is
+ * documentation, not a switch: no verdict reads it, because no citation in our prose says whose
+ * number it is — which is the finding, not an oversight.
  */
-type Register = { file: string; fingerprint: string; issue: number; why: string };
+type Register = { file: string; fingerprint: string; issue: number; why: string; tracker?: string };
 
 const NON_CHECKABLE: Register[] = [
   {
@@ -345,12 +411,116 @@ const NON_CHECKABLE: Register[] = [
 ];
 
 /**
- * Empty on this tree. The one confirmed instance (`packages/engine/theme.ts`'s em-dash `issue #101 —
- * still open`) was fixed by a concurrently-developed PR before this one reached `main` — see the file
- * header. An empty register is not evidence recall is fine; it means the last accidental find has
- * been resolved and no new one has been tripped over yet. Add the next one here when it turns up.
+ * NINE, all found by the recall sample, all citing a FOREIGN tracker, and all still live. The first
+ * confirmed instance (`packages/engine/theme.ts`'s em-dash `still open`) was fixed by a concurrent PR
+ * before this file reached `main`; these nine replaced it and are better evidence, because they were
+ * MEASURED rather than tripped over.
+ *
+ * Each would resolve against this repo's numbers and report STALE at full confidence the day the
+ * pattern grows to see it. Six are inside the declared guest, where `GUESTS` covers them by genre
+ * whatever the pattern learns. **Three are in our own prose and nothing covers them** — see the
+ * header. That is the current state, deliberately: this is the documented instance of the blindness
+ * this file exists to describe, and emptying it quietly would cost more than it fixes.
+ *
+ * ── THE UNIT, AND WHY IT IS WRITTEN THREE WAYS ─────────────────────────────────────────────────
+ *
+ * **The count of this register is meaningless without its unit, and the unit is exactly what falls
+ * off a number in transit.** It already did: the brief that asked for this register said EIGHT, this
+ * measurement says NINE, and the entire difference is a boundary question — a second comment in one
+ * guest test file that is either one claim or two depending on where you cut. Nobody was wrong; the
+ * unit was never stated, so the number could not carry it.
+ *
+ * The same set is therefore three numbers, and all three are printed by the run rather than left for
+ * a reader to re-derive:
+ *
+ *   · **9 PASSAGES** — one claim, one entry. The unit of this list, and `KNOWN_FALSE_NEGATIVES.length`.
+ *   · **7 file×issue PAIRS** — derived, not asserted (two files carry two entries each).
+ *   · **11 file:line:issue SITES** — the funnel's own dedupe key, and the only figure here that is a
+ *     hand count: `.handoff-prompt.md`'s two registered lines each cite a SECOND foreign issue on the
+ *     same line, which has no separate entry, so this set counts two higher under that key than the
+ *     register can derive. Stated rather than dropped, because a reader comparing this register to
+ *     the funnel will otherwise find two claims unaccounted for and assume the register is wrong.
+ *
+ * If you quote a number from here, quote the unit with it. If you add an entry, the first two figures
+ * follow automatically and the third is a hand recount — say so if you change it.
  */
-const KNOWN_FALSE_NEGATIVES: Register[] = [];
+const KNOWN_FALSE_NEGATIVES: Register[] = [
+  {
+    file: 'apps/tokenpress/tests/integration/dtcg-compliance-fixes.test.ts',
+    fingerprint: "should detect as grid is open in the format-conformance",
+    issue: 30,
+    tracker: 'VMLYR/token-forge',
+    why: "'is open in the format-conformance audit' — a state claim the pattern's `stays|remains|is still` grammar does not cover, about the guest's own audit issue",
+  },
+  {
+    file: 'apps/tokenpress/tests/integration/dtcg-compliance-fixes.test.ts',
+    fingerprint: 'Singular "column/count" is excluded — flagged for',
+    issue: 30,
+    tracker: 'VMLYR/token-forge',
+    why: "'flagged for … audit (open question whether …)' — same guest audit issue, same missed grammar",
+  },
+  {
+    file: 'apps/tokenpress/.handoff-prompt.md',
+    fingerprint: '**Open backlog items (not touched this session):** issue',
+    issue: 45,
+    tracker: 'VMLYR/token-forge',
+    why: "'Open backlog items' asserts two of the guest's issues are open; no pattern matches a heading-shaped state claim",
+  },
+  {
+    file: 'apps/tokenpress/.handoff-prompt.md',
+    fingerprint: 'check open issues',
+    issue: 46,
+    tracker: 'VMLYR/token-forge',
+    why: "'check open issues' — the same claim about the guest's line-height issue, in an instruction rather than a sentence",
+  },
+  {
+    file: 'apps/tokenpress/README.md',
+    fingerprint: 'A validator warning is tracked in',
+    issue: 45,
+    tracker: 'VMLYR/token-forge',
+    why: "'is tracked in' is a forward claim with no pattern — it asserts the work is still ahead, about the guest's lint-pass issue",
+  },
+  {
+    file: 'apps/tokenpress/docs/CHANGELOG.md',
+    fingerprint: 'the broader "empty composite" lint rule tracked',
+    issue: 45,
+    tracker: 'VMLYR/token-forge',
+    why: "'tracked in issue … which will also catch' — future tense about the guest's lint-pass issue, and 'tracked in' has no pattern",
+  },
+  {
+    file: 'packages/tokens/README.md',
+    fingerprint: 'tracks what v5 does and does not',
+    issue: 1590,
+    tracker: 'style-dictionary',
+    why: 'OUR prose, FOREIGN citation: an upstream Style Dictionary issue described as open. GENRE CANNOT REACH IT — the document is ours and only the citation is foreign, and the citation says nothing about whose number it is',
+  },
+  {
+    file: 'packages/tokens/check-consumability.mjs',
+    fingerprint: 'tracks what SD does and does not yet',
+    issue: 1590,
+    tracker: 'style-dictionary',
+    why: 'OUR gate source, FOREIGN citation: the same upstream issue, described as open and as listing an item still in progress',
+  },
+  {
+    file: 'packages/tokens/check-consumability.mjs',
+    fingerprint: 'lists what v5',
+    issue: 1590,
+    tracker: 'style-dictionary',
+    why: "OUR gate source, FOREIGN citation: 'this pin is tracking an open upstream item' — a live state claim about a tracker that is not ours",
+  },
+];
+
+/**
+ * The register's unit, glued to every place its count is printed. A bare number here is the defect
+ * described above — it has already travelled once without its unit and came back one short — so
+ * `UNIT` is a constant rather than a word retyped at each call site, and `unitGloss()` derives the
+ * two other readings of the same set instead of asserting them.
+ */
+const UNIT = 'PASSAGE(S) — one claim, one entry';
+const unitGloss = (reg: Register[]) => {
+  const pairs = new Set(reg.map((r) => `${r.file}::${r.issue}`)).size;
+  return `${reg.length} passages · ${pairs} file×issue pairs · 11 file:line:issue sites (hand count — see the register comment for the two that share a line)`;
+};
 
 // ── scan ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -425,6 +595,9 @@ const registerFor = (h: Hit, reg: Register[]) =>
 
 type Verdict = 'STALE' | 'HOLDS' | 'NON-CHECKABLE' | 'UNRESOLVED';
 const verdictOf = (h: Hit): { verdict: Verdict; detail: string } => {
+  // NOTE: every verdict below assumes the number is OURS, and nothing here checks that. See the
+  // header's namespace section — the nine registered foreign sites are all missed by the pattern
+  // today, so the assumption is not currently reachable, and closing it is a decision not taken here.
   const nc = registerFor(h, NON_CHECKABLE);
   if (nc) return { verdict: 'NON-CHECKABLE', detail: nc.why };
   const st = stateOf(h.issue);
@@ -516,6 +689,15 @@ function selfCheck() {
     }
   }
 
+  // 4b. THE FOREIGN-NAMESPACE REGISTER, counted rather than merely carried. It is the live instance
+  //     of this file's own blindness (see the `NON_CHECKABLE` comment), so the count is printed on
+  //     every run: a register that quietly empties has either been resolved — which is a decision,
+  //     not a cleanup — or lost its sites to an edit, and those must not look alike.
+  const foreign = KNOWN_FALSE_NEGATIVES.filter((r) => r.tracker);
+  const inGuest = foreign.filter((r) => isGuest(r.file)).length;
+  if (foreign.length)
+    notes.push(`foreign-namespace register: ${foreign.length} ${UNIT} — ${inGuest} inside a declared guest (covered by GENRE), ${foreign.length - inGuest} in our own prose (covered by NOTHING; see the header)`);
+
   // 5. THE FLOOR. The corpus is compared, not merely printed.
   if (citations === 0) problems.push('the citation scan found ZERO citations — the corpus definition or the scan is broken, and a clean zero here would be a true statement about an empty set');
   else if (citations < BASELINE.citations * FLOOR_FRACTION)
@@ -540,10 +722,13 @@ const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : '�
 say('FORWARD-CLAIM MEASUREMENT — present-tense claims about issue state, checked against actual state');
 say('='.repeat(100));
 say();
-say('A MEASUREMENT, NOT A GATE. It is not in ci.yml and must not be added: the pattern catches a small,');
-say('unknown fraction of the citations in this repo, and a confirmed false negative is registered below.');
-say('A gate on this would report clean over everything it cannot see (docs/34 shape 9). It exits');
-say('non-zero only when the INSTRUMENT is broken — never because a claim is stale.');
+say('A MEASUREMENT, NOT A GATE. It is not in ci.yml and must not be added, for three independent');
+say('reasons, strongest first: the misses CLUSTER on the issues it already catches, so a gate goes');
+say('green when one of six identical claims is fixed (true even at 95% recall); recall was measured');
+say('once at 11.0% (a snapshot — see recall-snapshot.mjs, whose drift check already fires); and a');
+say('false STALE at full confidence is worse than having no tool at all. A gate');
+say('here would report clean over what it cannot see (docs/34 shape 9). It exits non-zero only when');
+say('the INSTRUMENT is broken — never because a claim is stale.');
 say();
 
 say('-'.repeat(100));
@@ -614,20 +799,33 @@ say('-'.repeat(100));
 say('KNOWN FALSE NEGATIVES — the reason this is not a gate');
 say('-'.repeat(100));
 if (!KNOWN_FALSE_NEGATIVES.length) {
-  say('  none registered right now — the one confirmed instance (theme.ts, #101) was fixed out from under');
-  say('  this file before it reached main. Empty is not evidence recall is fine; see the file header.');
+  say('  none registered right now. Empty is not evidence recall is fine; see the file header.');
+} else {
+  say(`  ${unitGloss(KNOWN_FALSE_NEGATIVES)}`);
+  say('  Three readings of ONE set. Quote the unit with the number — this count has already travelled');
+  say('  without it once and arrived one short.');
+  say();
 }
 for (const r of KNOWN_FALSE_NEGATIVES) {
   const caught = judged.some((h) => h.file === r.file && h.issue === r.issue);
   const at = locate(r);
-  say(`  ${r.file}${at ? ':' + at.line : ''}   cites #${r.issue}   ${caught ? '** NOW CAUGHT — re-measure the recall claim in this file\'s header **' : 'STILL MISSED by the pattern set'}`);
+  const flag = caught
+    ? r.tracker
+      ? `** NOW CAUGHT — and for a FOREIGN citation that is the hazard, not the win: the verdict below resolves ${r.tracker}'s number against ours **`
+      : "** NOW CAUGHT — re-measure the recall claim in this file's header **"
+    : 'STILL MISSED by the pattern set';
+  say(`  ${r.file}${at ? ':' + at.line : ''}   cites ${r.tracker ? `${r.tracker}'s ` : ''}#${r.issue}   ${flag}`);
   say(`    ${at ? at.text.slice(0, 140) : '(fingerprint no longer located — see the self-check)'}`);
   say(`    → ${r.why}`);
 }
 say();
-say(`  Recall is UNMEASURED. ${reportable.length} claim sites were found among ${citations.toLocaleString('en-US')} citations; how many forward claims`);
-say('  those citations actually contain is unknown, and the only way to know is to read a sample and');
-say('  count what the pattern missed. Until that exists, this reports and does not assert.');
+say(`  RECALL was measured once at 11.0%, 95% CI [5.8%, 15.2%] — a DATED SNAPSHOT, not a figure this run`);
+say(`  re-derives. Its counts, method, what does not reproduce, and a check of how far it has drifted`);
+say(`  since are in recall-snapshot.mjs beside this file. THAT CHECK ALREADY FIRES: the snapshot's`);
+say(`  numerator was 12 and this run reports ${reportable.length}, so quote the figure with its date and its drift,`);
+say('  never bare. And the misses CLUSTER (see the header): the one issue this run catches in');
+say('  packages/engine/test.ts is claimed at six more sites in words no pattern covers, so a gate would');
+say('  go green on that issue the moment one of the seven was fixed. Raising recall does not fix that.');
 say();
 
 say('-'.repeat(100));
@@ -636,6 +834,7 @@ say('-'.repeat(100));
 for (const n of notes) say(`  · ${n}`);
 say(`  · ${PATTERNS.length}/${PATTERNS.length} patterns fired on their own samples`);
 say(`  · registers verified by fingerprint: ${NON_CHECKABLE.length} non-checkable, ${KNOWN_FALSE_NEGATIVES.length} known false negative`);
+if (KNOWN_FALSE_NEGATIVES.length) say(`  · known-false-negative UNIT: ${unitGloss(KNOWN_FALSE_NEGATIVES)}`);
 say();
 
 const stale = judged.filter((h) => h.verdict === 'STALE').length;
