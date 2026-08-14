@@ -1500,8 +1500,11 @@ const buildLayout = (input: BrandInput['layout'] = {}): LayoutAxis => {
 //  - DTCG `gradient` composite is the spine: $value = stops [{color, position}],
 //    and stop COLOURS ALIAS the colour ramp (the Fluent/Carbon model; themeable),
 //    never raw hex (the deprecated Polaris/SLDS trap).
-//  - DTCG omits kind/angle/interpolation (issue #101 — still open); we carry them
-//    in $extensions, the way the spec's own proposals would: kind (linear/radial),
+//  - DTCG omits kind/angle/interpolation (an open design-tokens CG gap, the same
+//    shape as the missing `spring` type above). NOT prism3 #101 — that number is a
+//    closed web-tab regrouping issue this citation collided with, and it was never
+//    the tracker for this gap; do not re-add a bare `#101` here. We carry them in
+//    $extensions, the way the spec's own proposals would: kind (linear/radial),
 //    angle | center+shape, interpolation (OKLCH default).
 //  - OKLCH interpolation avoids the sRGB "grey dead zone". Figma interpolates in
 //    sRGB ONLY, so we PRE-SAMPLE the OKLCH curve into N baked sRGB stops for the

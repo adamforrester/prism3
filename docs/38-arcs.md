@@ -304,12 +304,21 @@ was asking which platforms consume what, which nobody had written down.
 
 ## 7. The studio cleanup, and the boundary it does not cross
 
-**Current as of 2026-08-13.** §6 covers dependencies; this section covers scope boundaries. Different
-questions, so different sections. After an external review of the repo the owner called the
-`apps/studio/` cleanup (#768, blocked by #767) the priority, and accepted pausing other work for it if
-that is what it takes. The measured scope of that pause is much narrower than the sentence sounds, and
-the boundary belongs here rather than only in the issue, because this is the file a lane reads before
-picking up an arc.
+**Written 2026-08-13; the cleanup it scopes completed 2026-08-14.** §6 covers dependencies; this section
+covers scope boundaries. Different questions, so different sections. After an external review of the
+repo the owner called the `apps/studio/` cleanup (#768, then blocked by #767) the priority, and accepted
+pausing other work for it if that is what it takes. The measured scope of that pause was much narrower
+than the sentence sounded, and the boundary belongs here rather than only in the issue, because this is
+the file a lane reads before picking up an arc.
+
+**That pause has been served, and both issues are closed.** #767 landed the headless smoke suite that
+made refactoring `main.ts` safe, and #768 closed once all four seams landed — #769 (stylesheet extracted
+to `apps/studio/src/styles.css`), #770 (scoped class names), #771 (the workspace as the update unit) and
+#772 (declared page chrome). `apps/studio/lint-classes.mjs` is deleted, which was the done condition
+#768 set for itself: the gate existed only because the flat namespace made collisions possible, so
+retiring it is the proof that scoping made them impossible. The boundary below is kept rather than
+deleted — it is the record of how the scope of a priority call was measured, and the next such call
+will be posed the same way.
 
 **Arcs 1 through 4 do not pause.** They are engine-side — `packages/engine/`, and the defs under
 `packages/engine/components/`. The cleanup is `apps/studio/`: four seams inside one file
