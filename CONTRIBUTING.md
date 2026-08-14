@@ -132,6 +132,33 @@ npx tsx packages/engine/lint-paint.ts               # the component tier's colou
                                                     # stroke.inverse (#656's invisible ring), and no census
                                                     # can see it — focus-ring has no `size` axis, so it
                                                     # cannot be projected at all
+npx tsx packages/engine/lint-shape-index.ts         # a published docs/34 shape NUMBER never means
+                                                    # something else (#786). Citations across the repo
+                                                    # reference these numbers as stable ids and nothing
+                                                    # enforced the binding. The live citation count is
+                                                    # what the run prints, never a figure written here. Know what it protects: a
+                                                    # hazard with ZERO INCIDENTS — shapes 1-9
+                                                    # byte-identical since 2026-08-08, 10-15 each
+                                                    # APPENDED, same-number-different-title across the
+                                                    # doc's whole history ZERO, and the "12 -> 13
+                                                    # renumber" that motivated the issue happened at
+                                                    # FILING time, so no citation was ever invalidated.
+                                                    # Hence the cheap version, not the stable-slug
+                                                    # migration that would rewrite every citation to fix
+                                                    # damage that has not occurred. ARM A, the binding:
+                                                    # EXPECTED is authored schema/shape-index.json,
+                                                    # ACTUAL is the doc's headings. The naive gate reads
+                                                    # the CURRENT doc to decide what to expect — docs/34
+                                                    # shape 1, in the file that defines shape 1. Git
+                                                    # history is independent but dies under a shallow
+                                                    # checkout, so the memory is a committed file:
+                                                    # AUTHORED, not a regen artifact, and --accept
+                                                    # APPENDS ONLY, refusing a retitle. ARM B is
+                                                    # existence: every cited number resolves, with the
+                                                    # citing files asserted REPRESENTED so a regex that
+                                                    # stops matching fails instead of reporting 0.
+                                                    # It CANNOT check a citation names the RIGHT shape —
+                                                    # that is prose, and review is its only guard
 ```
 
 CI (`.github/workflows/ci.yml`) also runs the web and plugin gates below **on every PR,

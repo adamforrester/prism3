@@ -187,6 +187,11 @@ const gated: string[] = [
   // listed by hand for the identical reason: it carries prose (`note`) and inherits none of the regen
   // list's coverage. This is the line the comment above predicted would be needed.
   join(repo, 'packages/engine/schema/paint-census.json'),
+  // The docs/34 shape-index baseline (#786) — the third baseline kept out of `regen` for the same
+  // reason, hand-named for the same reason. It carries prose in `$comment` and in every shape title,
+  // and those titles are quoted verbatim in this gate's own failure messages, so an en-GB spelling in
+  // one would reach a contributor's terminal.
+  join(repo, 'packages/engine/schema/shape-index.json'),
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.

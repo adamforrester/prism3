@@ -209,6 +209,9 @@ const gated: string[] = [
   join(repo, 'packages/engine/schema/token-contract.json'),
   // The paint census (#758) — the second baseline kept out of `regen`, named by hand for the same reason.
   join(repo, 'packages/engine/schema/paint-census.json'),
+  // The docs/34 shape-index baseline (#786) — the third, same reason. Its shape titles are quoted
+  // verbatim in that gate's failure messages, so they are contributor-facing prose.
+  join(repo, 'packages/engine/schema/shape-index.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];

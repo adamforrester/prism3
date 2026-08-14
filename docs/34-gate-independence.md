@@ -80,6 +80,27 @@ the sections below are the list. This line read "Six shapes" while eight were do
 landmark-goes-stale defect occurring inside the file that records it; the register below already applies
 this policy and the prose now matches it.
 
+**These numbers are APPEND-ONLY, and that is now a gate rather than a convention (#786).** They are cited
+as stable identifiers from gate headers, `test.ts` comments, `docs/35`, `docs/00-progress.md` and the
+gate lists — the live count is what `lint-shape-index.ts` prints, deliberately not a number written here
+(#568 again, and this paragraph's first draft carried a figure that its own PR made stale). A renumber
+breaks none of those citations visibly: nothing fails, no diff appears in the citing file, the citation
+simply points at a different shape than its author meant. So: **add a shape at the end, and never change
+what an existing number means.** If a shape is superseded, retire it
+in place rather than renumbering around it. `packages/engine/lint-shape-index.ts` enforces the binding
+against an authored baseline (`schema/shape-index.json`), and checks that every cited number resolves —
+run `--accept` to append a new shape, which appends only and refuses a retitle.
+
+Worth knowing what that gate protects, because the honest version of the claim is smaller than it looks:
+this hazard has **never once fired**. Measured across every commit that has touched this file, shapes
+1–9 are byte-identical since 2026-08-08, 10–15 were each appended, and same-number-different-title is
+**zero**. The renumber that motivated #786 happened at *filing* time, before publication, so no citation
+was ever invalidated. **A hazard with zero incidents is a different thing from a recurring defect** —
+which is why the fix is one authored file and two arms, not the stable-slug migration that would have
+rewritten every citation to repair damage that has not occurred. And the gate's own limit is stated in
+its header rather than implied: it proves a cited section **exists**, never that the citation names the
+**right** shape. That judgment is prose, and review is its only guard.
+
 ### 1. The gate reads the declaration it is checking
 
 A count derived from a declaration cannot detect that the declaration is **incomplete**. It can only
@@ -767,6 +788,13 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 Two further near-relatives are recorded in `00-progress.md` but not counted here, because in both the
 vacuous assertion was caught *before* it shipped: `#464`'s plural hole in the US-English self-check
 (shape 3) and `#557`'s "forward and increasing" assertion where the real claim was adjacency.
+
+And a third kind, deliberately not a row: **this file's own shape numbers** (#786), a shape-9 hazard —
+citations anchored on an identifier the subject can move — that has **never fired**. It gets a gate
+(`lint-shape-index.ts`, described above) and no register row, because every row here answers *"what
+passed green"* and nothing did. Counting a hazard as an incident would inflate the one number this file
+asks you to trust. Recording it *somewhere* still matters: a zero-incident hazard is what justifies a
+cheap fix over an expensive one, and that is the reasoning most likely to be lost.
 
 ## In practice
 

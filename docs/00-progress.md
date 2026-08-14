@@ -7,6 +7,93 @@
 
 ---
 
+## (2026-08-13) — `docs/34`'s shape numbers get a gate, and the precedent that justified it turns out never to have happened (#786)
+
+**STATUS: shipped.** `docs/34`'s sub-shape numbers are cited as stable identifiers from gate headers,
+`test.ts` comments, `docs/35` and this log, and nothing enforced that a published number keeps its
+meaning. `packages/engine/lint-shape-index.ts` now does, in two arms, against an authored baseline
+(`schema/shape-index.json`).
+
+**THE MEASUREMENT CAME FIRST, AND IT CONTRADICTED THE ISSUE.** #786 was filed on a stated precedent:
+*"the probe-reads-its-own-instrument shape was filed as 12 and renumbered to 13 on merge"*, offered as
+proof that append-only is a convention that has already failed once. Checked before building anything, by
+diffing every commit that has ever touched the document and comparing each number's title against the
+previous commit's:
+
+| | |
+|---|---|
+| shapes 1–9 | **byte-identical since 2026-08-08** |
+| shapes 10–15 | each **appended**, never inserted |
+| same-number-different-title, whole history | **zero** |
+| cited numbers resolving to a heading | **all of them** (1,2,3,4,5,8,9,10,12,13,14,15) |
+
+The 12→13 renumber is real but happened at **filing** time: `c1812eb` shipped 12 and `b3bc865` appended
+13. Nothing published as 12 later became 13, so **no citation was ever invalidated**, and the issue's own
+"verify rather than assume" item — *whether any existing citation is already stale from that renumber* —
+resolves clean.
+
+**WHAT THAT CHANGED ABOUT THE FIX, which is the reusable part.** The issue's option 2 was stable slugs,
+with every citation rewritten to use them. That is the most robust option and it was **not justified**: it
+pays a real cost across every citing file to repair damage that has not occurred. **A hazard with zero
+incidents is a different thing from a recurring defect**, and conflating them is how a cheap correct fix
+gets talked up into an expensive one. So: option 1 (append-only, stated *and* enforced) plus the citation
+check, and the reasoning is written into the gate's header so the next person weighing an upgrade
+re-checks the incident count first rather than inheriting the ambition.
+
+**THE DESIGN POINT, and it is the sharp one.** The naive version of this gate reads the **current
+document** to decide what to expect — which is `docs/34` **shape 1**, in the file that defines shape 1: an
+expected value computed from the subject, confirming the document is self-consistent, which it always is.
+A renumber would move the expectation with it and the gate would report a pass. So the memory is a
+committed authored file, `schema/shape-index.json`, and `--accept` **appends only** and refuses a retitle
+— *a gate allowed to rewrite what it reads has no memory* (shape 6), the same posture as
+`token-contract.json`, `payload-manifest.json` and `paint-census.json`.
+
+**The alternative that was rejected, named so it is not re-proposed as an improvement:** derive the
+previous binding from git history (`git show HEAD~1:docs/34-…`). Genuinely independent — a document cannot
+edit its own past — but it makes the gate depend on a ref being fetched, and CI checks out shallow. *"The
+history is not there"* would be indistinguishable from *"nothing changed"* at exactly the moment it
+matters.
+
+**THE STATED LIMIT, in the gate's header rather than implied.** Arm B proves a cited section **exists**.
+It cannot check the citation names the **right** shape — `docs/34 shape 4` beside a gate that is actually
+an instance of shape 9 passes, and always will. Any second opinion would have to be derived from the
+citing comment or from the document, both of which are the thing under test. So review is the only guard,
+and it is written down because *"citations checked, clean"* reads like a correctness claim and is only an
+existence claim. Arm A is what makes the existence claim worth having: without it, a renumber leaves every
+citation resolving — to the wrong shape — and arm B stays green through the whole defect.
+
+**MUTATIONS — 9 by name, plus a negative control and two refusals.** Retitle shape 4 → `SHAPE 4 CHANGED
+MEANING` · swap 4↔5's titles → both fire · delete shape 11 → `SHAPE 11 IS GONE` · append a 16th heading
+with no baseline entry → fires · point an existing citation at an undefined number → `DANGLING CITATION
+packages/engine/nb-regression.ts:48` · duplicate `n: 15` in the baseline → fires *before* the baseline is
+used as an oracle · **narrow the citation regex → `SCOPE NOT REPRESENTED`**, which is the one that matters
+most (a dead detector otherwise reports a clean zero, shape 9's cheap tell, so the citing files are
+asserted **represented** rather than counted). Negative control: append a 16th heading *and* its baseline
+entry → passes. And `--accept` refuses both a retitle and a deletion, with the baseline verified
+byte-unchanged after the refusal.
+
+**AND THE GATE'S FIRST REAL CATCH WAS THIS ENTRY.** The paragraph above originally wrote its mutations in
+citation form — *"add shape N"*, *"cite shape N"*, with real numbers — and arm B failed on all three,
+correctly: prose describing a mutation is indistinguishable from prose citing a shape. The fix was to
+**describe** the
+mutation rather than spell it as a citation, *not* to add an exemption or narrow the pattern — same
+posture as `lint-us-english.ts`'s *"a false positive is fixed by adding to `NOT_EN_GB`, never by narrowing
+a scan"*, except that here even an exemption was avoidable. It is noted in the gate's header so the next
+person who writes a mutation register reaches for rewording rather than for a hole.
+
+**A trap I walked into while writing the prose, worth one line.** My first draft of the `docs/34`
+paragraph said *"about 58 places in 11 files"* — a count in prose, which is #568's landmark-goes-stale, in
+the document that records that defect. My own PR made it stale immediately, and then rebasing onto a newer
+`main` made the corrected figure stale a second time, which is the argument better than any reasoning:
+every count is now printed by the run, and no number of citations is written down anywhere.
+
+**Scope note:** `schema/shape-index.json` is the **third** baseline kept out of `regen` and therefore
+hand-named in `lint-us-english.ts` and `lint-voice.ts` — exactly the line `lint-us-english.ts`'s own
+comment predicts would be needed. Verified by mutation rather than assumed: a planted `colour` in a shape
+title fails that gate by name (schema surface 6 → 7 files).
+
+---
+
 ## (2026-08-13) — Render granularity: the workspace REGION is the update unit, and #485's scroll workaround is gone (#771)
 
 **STATUS: shipped.** `renderWorkspace()` no longer empties the workspace. It builds the next page

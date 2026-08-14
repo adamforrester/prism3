@@ -295,6 +295,23 @@ jobs:
       - name: Component paint is where the defs say it is
         run: npx --yes tsx@4 packages/engine/lint-paint.ts
 
+      # #786: `docs/34`'s sub-shape numbers are cited as stable ids from across the repo, and
+      # nothing enforced that a published number keeps its meaning. Note what this is: a hazard with
+      # ZERO incidents — measured over every commit that has touched the doc, shapes 1-9 are
+      # byte-identical since 2026-08-08, 10-15 were each appended, and same-number-different-title
+      # across the whole history is zero. The "12 -> 13 renumber" that motivated the issue happened at
+      # FILING time, so no citation was ever invalidated. That is why this is the cheap version and
+      # not the stable-slug migration, which would have rewritten every citation to fix damage that has
+      # not occurred. ARM A is the binding: EXPECTED is the authored `schema/shape-index.json`, ACTUAL
+      # is the doc's headings — the naive gate reads the CURRENT doc to decide what to expect, which is
+      # shape 1 in the file that defines shape 1. Deriving the previous binding from git history is
+      # independent but fails under a shallow checkout, so the memory is a committed file, AUTHORED and
+      # not a regen artifact (`--accept` appends only and refuses a retitle). ARM B is existence: every
+      # cited number resolves. It CANNOT check a citation names the right shape — stated in the gate's
+      # header, because "citations clean" reads like a correctness claim and is only an existence one.
+      - name: A published docs/34 shape number still means what it meant
+        run: npx --yes tsx@4 packages/engine/lint-shape-index.ts
+
       # The studio's DOM/interaction coverage (#767, deciding #333) — and the ONLY step in this
       # workflow that runs a browser. It loads every page in every mode across both corpus brands
       # (72 states), drives the mode switch, an override picker and an export, and asserts zero
