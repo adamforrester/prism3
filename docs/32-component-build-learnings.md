@@ -130,6 +130,58 @@ remedy sits on the receiving side.**
 
 ---
 
+## 2026-08-14 — from stating the rung-name rule and gating it (#756)
+
+### `[SKILL]` When a naming decision has a value consequence, ask what COMPOSES with the thing
+
+#756's open bullet looked like a taste question with two defensible readings, which is the shape that
+normally goes to the owner: `icon`'s default moved from the brief's 20 to 24 *purely because the rung
+names shifted one*, so either preserve the brief's **value** (default `sm`) or preserve its **position**
+(default `md` = 24). Framed that way it is unanswerable from the code, and I was about to ask.
+
+It was answerable, and the evidence was one query away: **`button` and `icon-button` at their own default
+`medium` both bind `icon.size.md` = 24.** Preserving the brief's value would render a standalone `<Icon>`
+at 20 while the same icon inside a default-size button renders 24 — and would break the 1:1 pairing
+`scale.ts` deliberately built between the icon ladder and `componentSizes`. The composition constraint is
+a **fact**; the naming preference is not. One dominates the other, so there was no choice to make.
+
+The transferable move, for a repo where most defs will be authored from briefs: **before escalating a
+naming call, enumerate what else binds the thing being named.** A token consumed by three other defs has
+its answer written in their bindings. The corpus check that settled it also produced the *rule* — "a
+default resolves to the tier's `md` rung", holding 5/5 — which is stronger than a per-def judgment
+precisely because it was found rather than chosen, and therefore applies to defs nobody has authored yet.
+
+### `[SKILL]` A gate arm that is *necessary and not sufficient* should say so in its own output
+
+#756 asked for two arms and was explicit that the obvious one is not enough: asserting every enum value
+resolves to a real rung passes **trivially** for a def declaring `['sm','md','lg','xl']` against a
+five-rung tier — all four are real paths, just the wrong four. The risk is not that the weak arm exists;
+it is that a later reader sees `✓ every size enum resolves` and stops, reading a necessary condition as
+the whole claim. So the insufficiency is written into the gate's header **and** its passing output names
+what each arm covers.
+
+This generalizes past this gate. A pass line is prose that will be read by someone who did not write the
+gate, usually while deciding whether to trust a green run. `lint-absolute-inset.ts` states its limit (no
+browser, no Figma file) in its own success output for the same reason. **If an arm cannot see a defect
+class, the success message is the cheapest place to say so** — a comment is read by whoever edits the
+gate; the output is read by whoever relies on it.
+
+### `[SKILL]` Prefer a predicate that admits the benign case over one that needs an exception list
+
+`button` binds `size.large.type → type.label.md.emphasis`, sharing `md` with `medium`, because
+`type.label` emits only two rungs in all four brands and a three-size control legitimately clamps its
+label at the top. Under **strictly** increasing rungs that is a failure, and the reflex fix is an
+exception entry keyed `button.type.label`.
+
+Monotonic-but-not-strict admits it with **no exception list at all**, and the reason it is the right
+predicate rather than the lenient one is worth stating: **a repeat is a clamp against a shorter tier and
+is always benign; a reversal is never benign.** The two cases are genuinely different, so a predicate
+that separates them needs no per-def carve-outs — which matters most for the eighteen defs `docs/40`
+queues, none of which can be enumerated in an exception list today. An exception list is the right tool
+when the exceptions are *facts about specific components* (`lint-paint.ts`'s four tone→role mappings);
+it is the wrong tool when it is standing in for a predicate that was one degree too tight.
+>>>>>>> c48a2f9 (Let a def's size enum be checked against the engine's rungs (#756))
+
 ## 2026-08-14 — from closing the states and variants vocabularies (#821)
 
 ### `[SKILL]` "Which compilers read this type?" is not answerable from one gate's `include`

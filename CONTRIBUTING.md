@@ -181,6 +181,39 @@ npx tsx packages/engine/lint-paint.ts               # the component tier's colou
                                                     # stroke.inverse (#656's invisible ring), and no census
                                                     # can see it — focus-ring has no `size` axis, so it
                                                     # cannot be projected at all
+npx tsx packages/engine/lint-rung-names.ts          # a def's size enum names the ENGINE's rungs, not a
+                                                    # brief's (#756). The KB briefs and the emitted tier
+                                                    # use the SAME rung names for DIFFERENT values, offset
+                                                    # by one and agreeing on every value over the overlap,
+                                                    # so a def adopting the brief's names makes
+                                                    # icon.size.md mean 24 in the token layer and 20 in the
+                                                    # component API — both halves valid, every other gate
+                                                    # green, visible only by reading two files side by
+                                                    # side. #708's shape: a wrong value that RESOLVES.
+                                                    # ARM 1 (every enum value resolves to an emitted rung,
+                                                    # per brand) is NECESSARY AND NOT SUFFICIENT and says
+                                                    # so in its own output: ['sm','md','lg','xl'] against a
+                                                    # five-rung tier passes it trivially — all real paths,
+                                                    # the wrong four. ARM 2 is the arm that SEES the
+                                                    # divergence, in lint-paint.ts arm 1's shape: a def
+                                                    # states its ladder TWICE, in props/variants (`small`)
+                                                    # and in tokens (`sm`), so EXPECTED and ACTUAL are two
+                                                    # independently-authored halves of one line. Both
+                                                    # directions of enum<->binding, plus order-preservation
+                                                    # per tier family. MONOTONIC, not strict, and measured:
+                                                    # type.label emits two rungs so button's `large`
+                                                    # legitimately clamps to md — a repeat is a clamp
+                                                    # against a shorter tier, a reversal never is, and
+                                                    # strictness would have forced an exception list.
+                                                    # ARM 3 is the DEFAULT RULE (#756's third bullet): a
+                                                    # default resolves to `md`. Found in the corpus (5/5),
+                                                    # not invented, and settled by composition —
+                                                    # button/icon-button at their own default bind
+                                                    # icon.size.md = 24, so preserving the brief's VALUE
+                                                    # would render a standalone icon 20 and the same icon
+                                                    # inside a default-size button 24. Do NOT widen an enum
+                                                    # to go green: that turns a missing binding into a size
+                                                    # that resolves to nothing
 npx tsx packages/engine/lint-shape-index.ts         # a published docs/34 shape NUMBER never means
                                                     # something else (#786). Citations across the repo
                                                     # reference these numbers as stable ids and nothing

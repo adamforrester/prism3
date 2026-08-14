@@ -390,6 +390,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-paint.ts'),
   },
   {
+    id: 'lint-rung-names',
+    ciStep: "A def's size enum names the engine's rungs, not a brief's",
+    cmd: engine('lint-rung-names.ts'),
+  },
+  {
     id: 'lint-shape-index',
     ciStep: 'A published docs/34 shape number still means what it meant',
     cmd: engine('lint-shape-index.ts'),
