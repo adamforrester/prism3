@@ -46,6 +46,16 @@ ask what shipped, and it caught this on the first run after the import. That is 
 and it is the second time this week a gate caught a claim of mine within ninety seconds of the
 wiring landing, after four that only humans caught.
 
+**Review found the "3 → 0" count was itself off by two, in a spelling `lint-us-english.ts` cannot
+see.** The `-our`/`-ise` patterns and the `grey`/`gray` check catch neither `centre` nor `centres` —
+that spelling isn't a suffix variant, it's a different letter order (`re` vs `er`), so the gate's
+pattern set structurally cannot match it. `icon.ts`'s own "optical baseline shift" entry — the same
+string this PR had already opened to fix `centre of mass` — still read `the glyph centre to the
+x-height` and `Figma centres a node` two clauses later. Fixed here, in the same file this PR already
+touches. Filed **#853** for the gate's blind spot itself: `packages/engine/components/button.ts` and
+`apps/studio/src/main.ts` (in scope for US English per CLAUDE.md's own carve-out) carry the identical
+spelling today, invisible to `lint-us-english.ts` for the same structural reason.
+
 ---
 
 ## (2026-08-14) — Closing the component vocabularies: names close, values stay open (#821)
