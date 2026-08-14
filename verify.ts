@@ -278,11 +278,6 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/studio', 'lint:contrast'),
   },
   {
-    id: 'lint-classes',
-    ciStep: 'No unreviewed class-name collisions',
-    cmd: ws('@prism3/studio', 'lint:classes'),
-  },
-  {
     id: 'typecheck-plugin',
     ciStep: 'Typecheck plugin',
     cmd: ws('@prism3/plugin', 'typecheck'),

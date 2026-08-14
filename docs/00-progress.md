@@ -127,6 +127,17 @@ in both `ci.yml` and `verify.ts`, and nothing compares the two. Arm 3 joins on t
 the date, so a date changed in one file and not the other fails as a name mismatch — accidental coverage,
 worth knowing about before someone "tidies" the date out of the name.
 
+**REBASE NOTE: arm 3 caught the exact cross-PR hazard it exists for, on review rather than in CI.** This
+branch's `GATES` array still carried a `lint-classes` entry — `ciStep: 'No unreviewed class-name
+collisions'` — because it was authored before #770/#806 retired that gate and deleted the step from
+`ci.yml`. #806 merged first. Rebasing onto the result made `lint-doc-gates.ts` fail immediately: *"`verify.ts`
+runs 'No unreviewed class-name collisions' — `ci.yml` does NOT."* Removed the stale entry (nothing else
+referenced it outside two self-check fixture strings that test `gateFilePattern`'s shape, not the file's
+existence, so those were left alone); `lint-doc-gates.ts` and a full `npx tsx verify.ts` run both went
+clean afterward — 30/30, 29 PASS + smoke ADVISORY. Worth recording because this is precisely the failure
+mode arm 3 was built to convert from a silent merge-order accident into a named, fixable diff line, and it
+did exactly that on the first PR positioned to test it.
+
 ---
 
 ## (2026-08-14) — Scoped class names, and `lint-classes.mjs` retired as the proof (#770)
