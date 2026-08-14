@@ -595,6 +595,134 @@ for (const brand of BRANDS) {
 }
 
 // =============================================================================================
+// 3. Displayed values against the resolved theme — #800, the first instance of #802
+// =============================================================================================
+/**
+ * WHAT THIS ASSERTS, AND THE LIMIT ON IT — read the limit first (#802, #799's posture on
+ * `lint-shape-index`'s arm B: a gate whose limits are undocumented gets trusted past them).
+ *
+ * It covers values rendered AS TEXT. A spacing token rendered as a swatch's *width* is geometry
+ * wearing a value's clothes, and a text comparison passes it — as does a radius shown as a corner,
+ * an elevation as a shadow, a duration as an animation. A green run establishes *"every value
+ * displayed as text matches the resolved theme"*, not *"every displayed value is correct."*
+ *
+ * WHY IT EXISTS. Every other gate in this repo checks that a thing EXISTS, a reference RESOLVES, a
+ * count MATCHES, nothing THREW, or contrast CLEARS. None of them asserts that a number a human can
+ * read equals the number the engine computed. #800 lived in that gap for as long as the page has
+ * existed: legible, silent, structurally complete, contrast-clean, and showing the previous tempo's
+ * six durations.
+ *
+ * THE ORACLE, WHICH IS THE WHOLE DESIGN. EXPECTED is derived from the engine's INPUT by this file's
+ * own walk — `DURATION_BASE` and `TEMPO_FACTOR`, read out of `packages/engine/theme.ts`, multiplied
+ * and rounded here. It is NOT obtained by asking the studio what it resolved. Reading EXPECTED from
+ * the renderer's own resolution and ACTUAL from the renderer's output is `docs/34` shape 1 with
+ * extra steps: both sides come from the subject, so it would have passed on #800 with the defect
+ * fully present and reported that as coverage. This is exactly what `lint-overlay-completeness.ts`
+ * gets right by deriving from the projector's input rather than re-running it, and the two walks
+ * below are DELIBERATELY DUPLICATED — the duplication is the gate, not redundancy to DRY away.
+ *
+ * Parsed from the source rather than hand-copied here so the duplication cannot go stale silently:
+ * rename or retype either constant and this fails by name instead of asserting yesterday's ladder.
+ *
+ * WHERE ACTUAL COMES FROM, AND WHY NOT THE STAGED TREE. #802's decision names #791's staged detached
+ * tree as the studio's pre-layout artifact. That was reasoned from the hypothesis that #800 was a
+ * painter holding a stale theme reference — and measurement falsified it. The staged tree is built
+ * inside `renderWorkspace` and is CORRECT every time; the defect was that a tempo edit never reached
+ * `renderWorkspace` at all, so nothing replaced the live section. A staged-tree read would have
+ * reported green with the defect fully present. So ACTUAL is read from the LIVE DOM, which costs
+ * nothing the decision was trying to avoid: text needs no layout either way.
+ *
+ * READ WITHOUT TAGGING (#817). Nothing here writes to the subject. `outerHTML` IS #791's region
+ * signature, so a marker added to correlate a row with a token path would change the keep decision —
+ * altering the behavior being checked, silently and in the direction of looking fine. The rows are
+ * correlated by the `motion.duration.<step>` token pill the renderer ALREADY prints in them.
+ *
+ * NARROW ON PURPOSE. One page, one section, one lever. The general cross-tier gate is #802's
+ * decision 2 and its own piece of work; this is built in that shape so it seeds it.
+ */
+console.log(`\nDisplayed values vs the resolved theme (#800)\n${'='.repeat(78)}`);
+
+const ENGINE_THEME = join(ROOT, '..', '..', 'packages', 'engine', 'theme.ts');
+/** The gate's own read of the engine's authored input. Throws rather than degrading: an oracle that
+ *  quietly falls back to a default is an oracle that agrees with anything. */
+const constFromEngine = (src, name) => {
+  const m = new RegExp(`const ${name}[^=]*=\\s*\\{([^}]*)\\}`).exec(src);
+  if (!m) throw new Error(`${name} not found in packages/engine/theme.ts — this suite's oracle reads it from there`);
+  const out = {};
+  for (const part of m[1].split(',')) {
+    const kv = /^\s*([A-Za-z_][\w]*)\s*:\s*([0-9.]+)\s*$/.exec(part.replace(/\/\/.*$/, ''));
+    if (kv) out[kv[1]] = Number(kv[2]);
+  }
+  if (!Object.keys(out).length) throw new Error(`${name} parsed to an empty object — the oracle would assert nothing`);
+  return out;
+};
+const engineSrc = await readFile(ENGINE_THEME, 'utf8');
+const DURATION_BASE = constFromEngine(engineSrc, 'DURATION_BASE');
+const TEMPO_FACTOR = constFromEngine(engineSrc, 'TEMPO_FACTOR');
+ok(Object.keys(DURATION_BASE).length >= 6, `the oracle read ${Object.keys(DURATION_BASE).length} base durations from packages/engine/theme.ts`);
+ok(Object.keys(TEMPO_FACTOR).length >= 3, `the oracle read ${Object.keys(TEMPO_FACTOR).length} tempo factors from packages/engine/theme.ts`);
+// The engine's own rounding rule, restated here — the second of the two duplicated walks.
+const expectedRamp = (tempo) => Object.fromEntries(
+  Object.entries(DURATION_BASE).map(([k, v]) => [k, `${Math.round((v * TEMPO_FACTOR[tempo]) / 5) * 5}ms`]));
+
+/** ACTUAL — the Duration ramp as a reader sees it. Rows keyed by the token path already printed in
+ *  them, so nothing is added to the DOM to identify them. */
+const READ_DURATION_RAMP = () => {
+  const sec = [...document.querySelectorAll('.psec')]
+    .find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Duration ramp');
+  if (!sec) return null;
+  const label = /at tempo '([a-z]+)'/.exec(sec.querySelector('.psec-d')?.textContent ?? '')?.[1] ?? null;
+  const rows = {};
+  for (const tr of sec.querySelectorAll('table tr')) {
+    const cells = [...tr.children];
+    if (cells.length < 2) continue;
+    const pill = [...cells[0].querySelectorAll('*')]
+      .find((n) => /^motion\.duration\.[a-z]+$/.test(n.textContent.trim()));
+    if (!pill) continue;
+    rows[pill.textContent.trim().split('.').pop()] = cells[1].textContent.trim();
+  }
+  return { label, rows };
+};
+
+let rampChecks = 0;
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoPage(page, 'Motion');
+  const tempoSel = page.locator('.psec')
+    .filter({ has: page.locator('.psec-t', { hasText: /^Tempo$/ }) }).locator('select').first();
+  const options = await tempoSel.locator('option').evaluateAll((os) => os.map((o) => o.value));
+  ok(options.length >= 2, `${brand}: the Tempo control offers ${options.length} tempi`);
+
+  // NO NAVIGATION INSIDE THIS LOOP. Leaving the page and coming back re-renders it and would cure
+  // the very staleness being asserted — the defect is only visible between commits.
+  for (const tempo of options) {
+    await tempoSel.selectOption(tempo);
+    await page.waitForFunction((t) => {
+      const sec = [...document.querySelectorAll('.psec')]
+        .find((s) => s.querySelector('.psec-t')?.textContent?.trim() === 'Tempo');
+      return sec?.querySelector('select')?.value === t;
+    }, tempo);
+    const shown = await page.evaluate(READ_DURATION_RAMP);
+    if (!shown) { ok(false, `${brand}/${tempo}: the Duration ramp section is on the page`); continue; }
+    const want = expectedRamp(tempo);
+    ok(shown.label === tempo, `${brand}: the ramp says tempo '${shown.label}' and the control says '${tempo}'`);
+    const wrong = Object.entries(want).filter(([k, v]) => shown.rows[k] !== v);
+    ok(Object.keys(shown.rows).length === Object.keys(want).length,
+      `${brand}/${tempo}: the ramp shows ${Object.keys(shown.rows).length} of ${Object.keys(want).length} semantic durations`);
+    ok(wrong.length === 0, `${brand}/${tempo}: every displayed duration equals the resolved theme's${
+      wrong.length ? ` — ${wrong.map(([k, v]) => `${k} shows ${shown.rows[k] ?? '(absent)'}, resolves to ${v}`).join('; ')}` : ''}`);
+    rampChecks += Object.keys(want).length;
+  }
+
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: driving the tempo raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+// The "did it look?" floor, same discipline as SWEEP_NODE_FLOOR above: a comparison over an empty
+// set is true, and would print as coverage.
+ok(rampChecks >= 2 * 3 * 6, `${rampChecks} displayed durations compared against the resolved theme`);
+
+// =============================================================================================
 await browser.close();
 server.close();
 
