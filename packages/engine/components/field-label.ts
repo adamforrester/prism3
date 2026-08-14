@@ -157,10 +157,33 @@ export const fieldLabel: ComponentDef = {
   // exactly what a variant coordinate carries. `booleans` is stated-empty rather than omitted — the
   // established way this schema says "considered, and none survive" — and the indicator's note records
   // why the one candidate is unbuildable.
+  // TWO TEXT PROPERTIES, ONE PER TEXT PART, and the second one is a defect fix (#798) for a blank node
+  // that #796 above shipped — found by projecting the def and reading the node tree, not by reading the
+  // def. `characters` lands on a text node ONLY where a TEXT property names that part
+  // (`anatomy-figma.ts:650`), so with `children` alone the `indicator` projected as a TEXT node with
+  // correct ink, correct type style and **no content at all** — an empty, zero-width node in Figma. The
+  // whole point of `paintSlot: 'indicator'` is that the marker reads as de-emphasised beside the name, and
+  // an invisible node reads as nothing: #796's paint fix was true and pointless at the same time.
+  //
+  // This is #510's defect at one-node scale, and that precedent is why it is worth a comment rather than
+  // a quiet line: #510 pasted 21 buttons that were all BLANK, every binding resolved and every check
+  // green, because *"nothing wrote `characters` and nothing declared a TEXT property"*
+  // (`anatomy-figma.ts`'s `pasteComponentSet` header). The gate that existed could not see this case — it
+  // asserts a declared property's default is non-empty, and the failure here is a text part with **no**
+  // property, which nothing asked about. #798 adds the complementary rule, so the next def to grow a
+  // second text part fails validation instead of projecting a blank node.
+  //
+  // The default is `(optional)` rather than `*` because it is the marker this def's own prop docs
+  // recommend (mark the MINORITY, and "(optional)" is the shape that carries meaning without a legend),
+  // and because a one-glyph placeholder in a de-emphasised ink is exactly the projection a designer
+  // mistakes for an empty node — the thing this fix is for.
   figmaProperties: {
     variantAxes: ['size'],
     stateAxis: { name: 'state', values: ['rest', 'disabled'] },
-    texts: { children: { part: 'text', default: 'Email address' } },
+    texts: {
+      children: { part: 'text', default: 'Email address' },
+      indicator: { part: 'indicator', default: '(optional)' },
+    },
     booleans: {},
   },
 
