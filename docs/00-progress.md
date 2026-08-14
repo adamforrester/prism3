@@ -7,6 +7,84 @@
 
 ---
 
+## (2026-08-14) — A guest's issue numbers are a foreign namespace, and two conventions written down
+
+**STATUS: PR open.** Three files, prose and one exclusion: `tools/forward-claim-check/measure.ts`
+moves `apps/tokenpress/` out of the hand-listed `NON_CHECKABLE` register and into the **genre**
+exclusion beside `docs/00-progress.md`; `packages/engine/lint-advisory-expiry.ts` gains a two-sentence
+pointer at the harness; `CLAUDE.md`'s `tools/` row follows both. No issue, no `Closes`. **Gate count
+unchanged — 33 at base, 33 at head**, `npm run verify` **33/33 PASS** (0 FAIL, 0 SKIP, 0 ADVISORY,
+smoke included). Nothing under `packages/engine/components/` or `out/` was touched.
+
+**THE FUNNEL, BEFORE → AFTER.** Raw hits **43 → 43** (the pattern is untouched, which is the point);
+genre exclusions **26 journal → 26 journal + 1 guest**; after genre **17 → 16**; deduped claim sites
+**16 → 15**; reported-not-asserted **4 → 4**; **reportable 12 → 11**, and the verdict line goes
+`0 STALE · 7 HOLDS · 5 NON-CHECKABLE` → `0 STALE · 7 HOLDS · 4 NON-CHECKABLE`. One site moved, and it
+moved sideways: it was already excluded from the stale count, so the change is not what the tool
+reports but **what the tool knows** — a reason that generalizes now covers the next file of its kind.
+
+**THE DIAGNOSIS: this was a genre all along, hand-listed as a case.** `apps/tokenpress/docs/CHANGELOG.md`
+says a thing remains open under a number belonging to **Token Press's own tracker**; the same number
+here is an unrelated closed PR, so a naive resolver reports STALE at full confidence. The register
+entry describing that was correct and did not generalize. `CLAUDE.md` already says what the file is —
+*treat it as a guest*, ported in whole, its own README and its own `agents.md` — so the exclusion had
+a genre available to it and was not using it. The general form, now in the header: **a corpus spanning
+more than one issue namespace must resolve namespace before state.** A vendored sub-project is that
+case by construction. The file's existing framing survives intact and is in fact strengthened —
+**the exclusions are properties of the DOCUMENT, not of the pattern** — because the repair was to
+recognize a second document genre, never to narrow the pattern.
+
+**THE DECLARATION IS VERIFIED, BOTH DIRECTIONS, because a declared scope nothing checks is `docs/34`
+shape 9 waiting to happen** — and this is the half that took the thought. A journal is verified by its
+own *shape* (dated headings). A guest has no in-file shape; what makes it a guest is that the repo
+**says so**. So the check reads `CLAUDE.md`: a declared prefix must still cover scanned files **and**
+still be called a guest there, and any directory `CLAUDE.md` calls a guest that is not declared here
+is reported as a candidate. Two filters, each load-bearing, each found by a failure rather than by
+taste: the declaration idiom is matched narrowly (`as a guest`) because a first pass keyed on the bare
+word `guest` and the very edit that describes this work in `CLAUDE.md`'s `tools/` row nominated four
+`tools/*` directories as candidates; and prefixes are kept only if they prefix a real file, which is
+what drops the generic `src/` sharing the real declaration's line. **Mutation-tested, five ways**:
+repoint the prefix at a moved directory (exit 1, and the real one surfaces as an undeclared
+candidate), make `CLAUDE.md` call it a peer instead (exit 1, "the exclusion has outlived its stated
+justification"), and the three the file already carried — kill a pattern's sample (exit 1), repoint
+`JOURNALS` at `docs/34` (exit 1, 0 dated of 24 headings), shrink the corpus to `mjs|yml` (exit 1, 215
+citations against a 5,368 floor). Restores clean each time.
+
+**`NON_CHECKABLE` did NOT reduce to two, and the reason is worth recording.** The brief expected the
+two genuine per-instance cases to be left — the half-open decision issue and the unfiled follow-up.
+It is **five → four**, because #839's own review added two more after that expectation was formed:
+the past-tense narrations in `docs/12` and `docs/38`, where `blocked-on` matches a bare stem with no
+tense awareness and a sentence that already tells the reader the blocker is gone reads identically to
+one asserting a live blocker. Those two are per-instance in exactly the way the original two are —
+one sentence each, no rule generalizes them — so they stay hand-listed. The register's own comment now
+states the sorting rule so the next entry lands in the right place: **a reason that generalizes to a
+KIND of document is a genre exclusion; a reason that does not is a register entry.**
+
+**CONVENTION 1, recorded in the harness header: the case against gating has TWO independent legs.**
+The header argued only from unmeasured recall, which invites a future reader with a good recall number
+to conclude the case is complete. It is not. **The error costs are asymmetric**: a missed stale claim
+is the status quo — nothing is worse than before this file existed — while a **false STALE at full
+confidence is worse than having no tool at all**, because someone acts on it and "fixes" a sentence
+that was right. The guest changelog is exactly that shape, and it is the shape that *resolves*, so no
+uncertainty attaches to the wrong answer anywhere in the output. Measuring the denominator answers the
+recall objection and leaves this one untouched.
+
+**CONVENTION 2, recorded in `lint-advisory-expiry.ts`: a detector whose own source falls inside its
+corpus must write no matchable instance — never exempt itself.** A gate that excuses itself leaves the
+file most likely to grow the defect unchecked. #839 and #840 reached this **independently** — one
+interpolates its issue numbers, the other assembles its fixture dates from a placeholder — and two
+arrivals at one solution is the best evidence available that it is right. Per the note on #839 the
+pointer goes in whichever merged second, which was #840, stated once there rather than twice.
+
+**The trap for whoever edits that file next**, and it is live: `lint-advisory-expiry.ts` detects its
+own forms, so writing a literal `YYYY-MM-DD` within 400 characters *after* the words `advisory … until`
+anywhere in it authors a real claim and trips the gate. The pointer added here carries no date for
+that reason, and the gate was re-run in both directions to prove it — clean today at 8 claims / 0
+expired, and exit 1 with all 8 sites named under `PRISM3_TODAY=2026-08-20`. A count that moved off 8
+would have been the tell.
+
+---
+
 ## (2026-08-14) — `icon.name`'s promise becomes true, and one import made 53 invisible spellings visible (#833)
 
 **STATUS: shipped.** `components/icon.ts` imports `ICON_NAMES` from the generated `icon-glyphs.ts`

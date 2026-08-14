@@ -79,6 +79,12 @@
  * example at the top, and it is not a claim because no marker and no `until` precede it, which is
  * the classifier working rather than an escape from it.
  *
+ * THAT IS A HOUSE RULE, NOT A LOCAL TRICK: **a detector whose own source falls inside its corpus must
+ * write no matchable instance — never exempt itself. A gate that excuses itself leaves the file most
+ * likely to grow the defect unchecked.** `tools/forward-claim-check/measure.ts` reached it
+ * independently, interpolating its issue numbers for the same reason this file assembles its dates;
+ * two arrivals, one rule.
+ *
  * ── THE ONE EXEMPTION, AND WHY IT IS A PROPERTY OF THE DOCUMENT ─────────────────────────────────
  *
  * `docs/00-progress.md` is out of scope — see `EXEMPT_PREFIXES`. Its genre is an append-only log of

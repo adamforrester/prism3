@@ -28,11 +28,11 @@
  * answer* — and `tools/nest-exposed-cost/` is the precedent: a measurement with no gate sibling,
  * deliberately.
  *
- * THE REASON, STATED HERE SO NOBODY PROMOTES IT LATER, is not squeamishness about false positives.
- * Precision is fine (measured below, and it is 17/17 on this tree). The disqualifying property is
- * **RECALL, and specifically that the DENOMINATOR IS UNKNOWN.** The pattern set below catches 17
- * lines out of 6,151 citations. Nobody knows how many forward claims those 6,151 citations contain,
- * because the only way to find out is to read them all, and that has not been done.
+ * THE FIRST REASON, STATED HERE SO NOBODY PROMOTES IT LATER, is not squeamishness about false
+ * positives. Precision is fine (measured below, and it is 17/17 on this tree). The disqualifying
+ * property is **RECALL, and specifically that the DENOMINATOR IS UNKNOWN.** The pattern set below
+ * catches 17 lines out of 6,151 citations. Nobody knows how many forward claims those 6,151
+ * citations contain, because the only way to find out is to read them all, and that has not been done.
  *
  * That is not a hypothetical worry. **A confirmed false negative was found by accident**:
  * `packages/engine/theme.ts` wrote `issue #101 — still open` with an em-dash, and the `still-open`
@@ -54,6 +54,18 @@
  * dressed as a statement about the repo. Until recall is measured — separately, by reading a sample of
  * the 6,151 and counting what the pattern missed — this reports and does not assert.
  *
+ * THE SECOND REASON IS INDEPENDENT OF THE FIRST, and it is the stronger one, which matters because a
+ * future reader holding a good recall number will otherwise think the case for gating is complete. It
+ * is not, because **THE ERROR COSTS ARE ASYMMETRIC.** A missed stale claim is the status quo — the
+ * sentence stays wrong exactly as it was before this file existed, and nothing is worse than before.
+ * A **FALSE `STALE` AT FULL CONFIDENCE IS WORSE THAN HAVING NO TOOL AT ALL**, because someone acts on
+ * it and "fixes" a sentence that was already right. That shape is not hypothetical: the guest
+ * exclusion below exists for `apps/tokenpress/docs/CHANGELOG.md`, whose citation RESOLVES — against
+ * the wrong tracker — so a naive resolver reports it stale with no uncertainty attached anywhere in
+ * the output. **This is an argument against the issue-state check ever gating, and unlike the recall
+ * argument it does not go away when recall improves.** Measuring the denominator would answer the
+ * first objection and leave this one untouched.
+ *
  * THE ONE THING IT DOES ASSERT is about ITSELF, not about the repo, and the distinction is the whole
  * point of the split. It exits non-zero when the INSTRUMENT is broken: the citation scan came back
  * empty, the corpus came back materially smaller than the recorded baseline, a pattern stopped firing
@@ -61,34 +73,48 @@
  * demands of anything that prints a count — *if a tool can say "I examined N things", something should
  * care what N is* — and it is not a gate on the prose. Nothing here fails because a claim is stale.
  *
- * ── THE TWO EXCLUSIONS, AND THEIR FRAMING IS ITSELF THE FINDING ─────────────────────────────────
+ * ── THE EXCLUSIONS, AND THEIR FRAMING IS ITSELF THE FINDING ─────────────────────────────────────
  *
- * Read this before "improving" either one into a tuned filter, because the obvious repair is the
+ * Read this before "improving" any of them into a tuned filter, because the obvious repair is the
  * wrong one:
  *
  * **These are properties of the DOCUMENT, not of the pattern.** The pattern's precision was never the
- * problem. The noise lives in two document kinds:
+ * problem. The noise lives in three document kinds, and the first two are excluded by the same GENRE
+ * mechanism:
  *
  *  1. **Append-only dated journals.** `docs/00-progress.md` alone held **23 of 41** raw hits — 56%.
  *     A forward claim inside a dated entry is scoped to that date and is *correct as history*: an
  *     entry that says "blocked on #252" under a 2026-08-04 heading is a true record of what was true
  *     on 2026-08-04, and rewriting it when #252 closes would be falsifying the log. Excluding the file
  *     by **genre** removes well over half the noise and removes none of the signal.
- *  2. **Reported rather than asserted claims.** `This arc read *"blocked on #252"* until…`,
+ *  2. **Vendored guest sub-projects.** `apps/tokenpress/` was ported in whole, with its history, and
+ *     `CLAUDE.md` says to treat it as a guest; its changelog cites **its own** tracker. The general
+ *     form, which is why this is a genre and not a special case: **a corpus spanning more than one
+ *     issue namespace must resolve namespace before state.** A vendored sub-project is that case by
+ *     construction — its `#N` belongs to its own tracker, and resolving it against ours produces a
+ *     confident wrong answer rather than a miss. `apps/tokenpress/docs/CHANGELOG.md` is the live
+ *     instance: its number resolves here to an unrelated closed PR about `.ai.json` consumption eval,
+ *     so a resolver pointed at one repo reports STALE at full confidence. The exclusion is a property
+ *     of the guest, exactly as the journal exclusion is a property of the log — see `GUESTS`, and the
+ *     asymmetry argument above for why this class in particular disqualifies gating.
+ *  3. **Reported rather than asserted claims.** `This arc read *"blocked on #252"* until…`,
  *     `authored while they were still open` — the text QUOTES a former claim in order to say it
  *     changed. The sentence is about the claim, not an instance of it. Two of these are on this tree
  *     and both are in `docs/38-arcs.md`'s re-cut notes.
  *
- * Neither exclusion is a heuristic tuned to raise a score. **Narrowing the pattern instead would be
+ * No exclusion here is a heuristic tuned to raise a score. **Narrowing the pattern instead would be
  * the wrong repair, and would hide the finding** — the finding being that forward claims are
- * *supposed* to appear in a journal and *supposed* to appear in quotation, so a detector for them has
- * to know what kind of document it is reading. A narrowed pattern would score better and know less.
+ * *supposed* to appear in a journal, *supposed* to appear in a guest's own changelog, and *supposed*
+ * to appear in quotation, so a detector for them has to know what kind of document it is reading. A
+ * narrowed pattern would score better and know less.
  *
- * The journal exclusion is DECLARED (`JOURNALS`) rather than inferred, and then the declaration is
- * verified two ways, because a declared scope that nothing checks is shape 9 waiting to happen:
- * every declared journal must still HAVE the journal shape (a supermajority of dated entry headings),
- * and any UNDECLARED file that has that shape is reported as a candidate. The list cannot silently
- * stop matching the tree in either direction.
+ * Both genre exclusions are DECLARED (`JOURNALS`, `GUESTS`) rather than inferred, and then each
+ * declaration is verified two ways, because a declared scope that nothing checks is shape 9 waiting
+ * to happen: every declared journal must still HAVE the journal shape (a supermajority of dated entry
+ * headings), and any UNDECLARED file that has that shape is reported as a candidate; every declared
+ * guest must still cover files AND still be called a guest by `CLAUDE.md`, and any directory
+ * `CLAUDE.md` calls a guest that is not declared here is reported as a candidate. Neither list can
+ * silently stop matching the tree in either direction.
  *
  * ── THE REGEX BUG THIS PR FIXED, because it is a shape worth carrying ───────────────────────────
  *
@@ -111,13 +137,16 @@
  * rather than being quietly counted as fine. An unresolved citation is not evidence of a healthy
  * claim; it is evidence of an unfinished measurement, and the two must not look alike.
  *
- * ── FIVE THINGS THAT ARE NOT CHECKABLE, NAMED RATHER THAN DROPPED ───────────────────────────────
+ * ── FOUR THINGS THAT ARE NOT CHECKABLE, NAMED RATHER THAN DROPPED ───────────────────────────────
  *
- * All five were measured on this tree. They are in `NON_CHECKABLE` — which carries the exact site,
+ * All four were measured on this tree. They are in `NON_CHECKABLE` — which carries the exact site,
  * the issue number and the reason, so the numbers are one screen down rather than repeated here in a
- * form the scan would pick up. They are reported in their own section and excluded from the stale
- * count, because reporting any of them as stale would be **confidently wrong**, which is worse than
- * not reporting it:
+ * form the scan would pick up. These are PER-INSTANCE by construction: each is one sentence whose
+ * shape no rule generalizes, which is what separates them from the genre exclusions above — a fifth
+ * entry (the guest changelog) started here and moved to `GUESTS` once it was recognized as a genre
+ * rather than a case. They are reported in their own section and excluded from the stale count,
+ * because reporting any of them as stale would be **confidently wrong**, which is worse than not
+ * reporting it:
  *
  *  1. **A claim about one HALF of an issue** (`lint-absolute-inset.ts`, on the decision issue about
  *     rendered-vs-intended values). The issue is open. But an issue is open or closed — **half-open
@@ -127,12 +156,7 @@
  *     closed, and is a *pull request* rather than an issue — GitHub shares one number space, so some
  *     citations here resolve to PRs. The claim's subject is a follow-up that PR's own text defers, and
  *     it has no number at all. Reporting it stale because the PR merged answers a question nobody asked.
- *  3. **A FOREIGN issue namespace** (`apps/tokenpress/docs/CHANGELOG.md`). Token Press was absorbed
- *     with its history, and its changelog cites **its own** tracker. The same number in this repo is an
- *     unrelated closed PR about `.ai.json` consumption eval. A resolver pointed
- *     at one repo cannot tell a foreign namespace from a local one, and would report STALE with full
- *     confidence. This is the general hazard of a corpus containing a vendored sub-project.
- *  4–5. **TWO PAST-TENSE NARRATIONS OF A RESOLVED BLOCKER** (`docs/12-token-press-monorepo-eval.md`,
+ *  3–4. **TWO PAST-TENSE NARRATIONS OF A RESOLVED BLOCKER** (`docs/12-token-press-monorepo-eval.md`,
  *     `docs/38-arcs.md`), found by an independent reviewer rebasing this PR across a concurrent one
  *     that fixed exactly these two sentences from live claims into past-tense history: one now opens
  *     with "was blocked on … and that blocker is gone", the other narrates "then blocked by" inside an
@@ -226,7 +250,40 @@ const JOURNAL_MIN_RATIO = 0.5;
 const HEADING = /^#{1,4} /;
 const DATED = /20\d{2}-\d{2}-\d{2}/;
 
-// ── exclusion 2: REPORTED rather than asserted ──────────────────────────────────────────────────
+/**
+ * Declared vendored GUESTS: sub-projects ported in whole, carrying their own issue tracker. A `#N`
+ * inside one of these is a citation in a FOREIGN namespace, so resolving it here answers a different
+ * repo's question — confidently, and wrongly. Same genre mechanism as `JOURNALS` above, for the same
+ * kind of reason: a property of the document, never a narrowing of the pattern.
+ */
+const GUESTS: { prefix: string; why: string }[] = [
+  {
+    prefix: 'apps/tokenpress/',
+    why: 'ported in whole with its history and its own tracker — its citations name that tracker, and the same numbers here name unrelated work',
+  },
+];
+const isGuest = (f: string) => GUESTS.some((g) => f.startsWith(g.prefix));
+
+/** Where a guest is DECLARED to be one, so the exclusion can be checked against the repo's own
+ *  statement rather than against itself. */
+const GUEST_DECLARED_IN = 'CLAUDE.md';
+/** Directory prefixes that `GUEST_DECLARED_IN` calls a guest — a backticked path on a line using the
+ *  DECLARATION IDIOM ("treat it as a guest"), kept only if it actually prefixes a scanned file. Both
+ *  filters earn their place: the idiom is narrow on purpose, because a line that merely *mentions*
+ *  guests would nominate every backticked directory sharing it, and the corpus filter is what drops
+ *  the generic `src/` that sits on the real declaration's own line. Used in both directions — to
+ *  verify each declaration here, and to surface a guest the repo declares that this file does not
+ *  know about. */
+const declaredGuests = (src: string, corpus: string[]): Set<string> =>
+  new Set(
+    src
+      .split('\n')
+      .filter((l) => /\bas a guest\b/i.test(l))
+      .flatMap((l) => [...l.matchAll(/`([^`\s]+\/)`/g)].map((m) => m[1]))
+      .filter((p) => corpus.some((f) => f.startsWith(p))),
+  );
+
+// ── exclusion 3: REPORTED rather than asserted ──────────────────────────────────────────────────
 
 /**
  * A quoted or narrated former claim. The trailing `\b` that used to close the first pattern is the
@@ -252,6 +309,11 @@ const REPORTED_BUGGY = /\b(?:read|reads|said|says|stated|claimed|quoted|wrote)\s
  * each register to the LINE IT MATCHES IN THE TREE (`locate()`) and prints that instead — which is
  * better than printing a stored copy anyway: it shows what the file says today, not what it said when
  * the register was written.
+ *
+ * Everything here is PER-INSTANCE: one sentence whose shape no rule generalizes. A reason that
+ * generalizes to a KIND of document belongs in a genre exclusion above (`JOURNALS`, `GUESTS`), where
+ * it covers the next file of that kind too — the guest changelog was hand-listed here first and moved
+ * once that was recognized.
  */
 type Register = { file: string; fingerprint: string; issue: number; why: string };
 
@@ -267,12 +329,6 @@ const NON_CHECKABLE: Register[] = [
     fingerprint: 'full-materialise** follow-up from',
     issue: 50,
     why: 'the claim is about an UNFILED follow-up, not about #50 (closed, and a PR rather than an issue) — reporting it stale would answer a question nobody asked',
-  },
-  {
-    file: 'apps/tokenpress/docs/CHANGELOG.md',
-    fingerprint: 'directories — remains open under',
-    issue: 72,
-    why: "foreign issue namespace — Token Press was absorbed with its history and cites its OWN tracker; prism3#72 is an unrelated closed PR, so a local resolver would report STALE with full confidence",
   },
   {
     file: 'docs/12-token-press-monorepo-eval.md',
@@ -342,7 +398,8 @@ const dedupe = (hits: Hit[]): Hit[] => {
 const isReported = (text: string) => REPORTED.some((r) => r.re.test(text));
 
 const journalHits = rawHits.filter((h) => JOURNALS.has(h.file));
-const afterGenre = rawHits.filter((h) => !JOURNALS.has(h.file));
+const guestHits = rawHits.filter((h) => !JOURNALS.has(h.file) && isGuest(h.file));
+const afterGenre = rawHits.filter((h) => !JOURNALS.has(h.file) && !isGuest(h.file));
 const candidates = dedupe(afterGenre);
 const reportedOut = candidates.filter((h) => isReported(h.text));
 const reportable = candidates.filter((h) => !isReported(h.text));
@@ -432,6 +489,23 @@ function selfCheck() {
       notes.push(`UNDECLARED journal candidate: '${f}' (${s.dated} dated of ${s.headings} headings) — decide whether the genre exclusion should cover it`);
   }
 
+  // 3b. THE GUEST DECLARATION, both directions, for the same reason. A guest is excluded because the
+  //     repo calls it one, so the check reads the repo's statement rather than this file's: a prefix
+  //     that covers nothing has been moved out from under the exclusion, and a prefix the repo no
+  //     longer calls a guest is an exclusion that has outlived its justification.
+  const declSrc = read(GUEST_DECLARED_IN);
+  if (declSrc === null && GUESTS.length) problems.push(`'${GUEST_DECLARED_IN}' is unreadable, so no declared guest can be verified against the repo's own statement`);
+  const declared = declSrc === null ? new Set<string>() : declaredGuests(declSrc, files);
+  for (const g of GUESTS) {
+    const covers = files.filter((f) => f.startsWith(g.prefix)).length;
+    if (!covers) problems.push(`declared guest '${g.prefix}' covers no scanned file — the genre exclusion is addressed to a directory that moved`);
+    else if (declSrc !== null && !declared.has(g.prefix)) problems.push(`'${g.prefix}' is excluded as a guest but ${GUEST_DECLARED_IN} no longer calls it one — the exclusion has outlived its stated justification`);
+    else notes.push(`guest '${g.prefix}' verified: ${covers} scanned file(s), declared a guest in ${GUEST_DECLARED_IN}`);
+  }
+  for (const p of declared)
+    if (!GUESTS.some((g) => g.prefix === p))
+      notes.push(`UNDECLARED guest candidate: '${p}' — ${GUEST_DECLARED_IN} calls it a guest; decide whether its citations are a foreign namespace too`);
+
   // 4. THE REGISTERS. Both are pinned by fingerprint; a fingerprint that no longer appears means the
   //    prose moved and the register is now a comment asserting something the tree does not say.
   for (const [label, reg] of [['non-checkable', NON_CHECKABLE], ['known-false-negative', KNOWN_FALSE_NEGATIVES]] as const) {
@@ -485,15 +559,17 @@ say('-'.repeat(100));
 say('FUNNEL');
 say('-'.repeat(100));
 say(`  raw pattern hits                            ${rawHits.length}   (${pct(rawHits.length, citations)} of citations)`);
-say(`  - excluded by GENRE (append-only journals)  ${journalHits.length}   ${pct(journalHits.length, rawHits.length)} of raw, all in ${[...JOURNALS].join(', ')}`);
+say(`  - excluded by GENRE: append-only journals   ${journalHits.length}   ${pct(journalHits.length, rawHits.length)} of raw, all in ${[...JOURNALS].join(', ')}`);
+say(`  - excluded by GENRE: vendored guests        ${guestHits.length}   ${pct(guestHits.length, rawHits.length)} of raw, in ${GUESTS.map((g) => g.prefix).join(', ')} — a FOREIGN issue namespace`);
 say(`  = after genre exclusion                     ${afterGenre.length}`);
 say(`  deduped to claim sites (file:line:issue)    ${candidates.length}`);
 say(`  - excluded as REPORTED not asserted         ${reportedOut.length}`);
 say(`  = REPORTABLE claim sites                    ${reportable.length}`);
 say();
-say('  Both exclusions are properties of the DOCUMENT, not of the pattern — see the file header before');
-say('  narrowing anything. A journal entry\'s forward claim is correct as history; a quoted former claim');
-say('  is about a claim, not an instance of one.');
+say('  Every exclusion is a property of the DOCUMENT, not of the pattern — see the file header before');
+say('  narrowing anything. A journal entry\'s forward claim is correct as history; a guest\'s citation');
+say('  names its own tracker, so namespace has to be resolved before state; a quoted former claim is');
+say('  about a claim, not an instance of one.');
 say();
 
 if (reportedOut.length) {
@@ -574,7 +650,8 @@ console.log(out.join('\n'));
 if (args.includes('--json'))
   console.log('\n' + JSON.stringify({
     corpus: { files: files.length, citations, filesWithCitations: citedIn.size, distinctIssues: distinct.size, baseline: BASELINE },
-    funnel: { raw: rawHits.length, journalExcluded: journalHits.length, afterGenre: afterGenre.length, candidates: candidates.length, reportedExcluded: reportedOut.length, reportable: reportable.length },
+    funnel: { raw: rawHits.length, journalExcluded: journalHits.length, guestExcluded: guestHits.length, afterGenre: afterGenre.length, candidates: candidates.length, reportedExcluded: reportedOut.length, reportable: reportable.length },
+    genreExclusions: { journals: [...JOURNALS], guests: GUESTS },
     sites: judged.map((h) => ({ file: h.file, line: h.line, issue: h.issue, patterns: h.patterns, verdict: h.verdict, detail: h.detail, text: h.text })),
     nonCheckable: NON_CHECKABLE,
     knownFalseNegatives: KNOWN_FALSE_NEGATIVES,
