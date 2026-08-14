@@ -664,6 +664,9 @@ export const applyComponentPlan = async (
     // `node.width` mid-append and make the result depend on the part's ORDER in the def.
     const absolutes: [FigmaNodePlan, Wr][] = [];
     const centered: [FigmaNodePlan, Wr][] = [];
+    // This parent's DIRECT children by part name (#848) — the sibling boxes `absoluteCenterOn` measures
+    // against. Sibling-scoped on purpose; see the centering loop for why the wider `parts` map is wrong.
+    const byPart = new Map<string, Wr>();
     for (const c of n.children) {
       const kid = await build(c, parts);
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
@@ -683,19 +686,41 @@ export const applyComponentPlan = async (
       // matter and this loop does not, and filtering here would mean importing that knowledge into the
       // executor to save a few dozen map entries per member.
       parts?.set(c.name, kid);
+      byPart.set(c.name, kid);
       if (c.absoluteInset) absolutes.push([c, kid]);
       if (c.absoluteCenter) centered.push([c, kid]);
       // Written straight rather than bound: a brand does not get to theme a label under a spinner to
       // half-visible. `visible:false` would yield the cell and collapse the button.
       if (c.zeroOpacity) kid.opacity = 0;
     }
-    // A CENTERED absolute child (#612's pending spinner with no leading cell to take). NOT resized:
+    // A CENTERED absolute child (#612's pending spinner with no visual cell to take). NOT resized:
     // unlike the ring it keeps its own square size, and its `size` binding is already on it — `resize`
     // would clear that binding.
     for (const [c, kid] of centered) {
       kid.layoutPositioning = 'ABSOLUTE';
-      kid.x = ((node.width ?? 0) - (kid.width ?? 0)) / 2;
-      kid.y = ((node.height ?? 0) - (kid.height ?? 0)) / 2;
+      // THE BOX THE CENTERING IS MEASURED ON (#848) — the named sibling, or the parent when the plan
+      // names none. Centering on the PARENT is right only if the overlaid part is itself centered in it,
+      // and at `leading=false, trailing=true` the label is not: the trailing cell holds the right side,
+      // so the label sits left of center and a spinner centered on the container landed 12px right of the
+      // text it stands in for. Read from the LIVE node, because the label's width is the designer's text.
+      //
+      // `byPart` is the map this loop's own flow pass filled — a sibling of `kid`, so its `x`/`y` are in
+      // the same parent-relative space and carry into the arithmetic with no conversion. Deliberately NOT
+      // the shared `parts` map threaded through `build`: that one spans the WHOLE member tree, so a
+      // same-named part in a different branch could answer, and centering would follow a box from another
+      // subtree. Sibling scope is the correct scope, and it is narrower than what is already at hand.
+      const on = c.absoluteCenterOn ? byPart.get(c.absoluteCenterOn) : undefined;
+      // A named box that is not in the tree is REPORTED, not silently swapped for the parent — the
+      // fallback would reproduce the exact off-center spinner this field exists to fix, and do it quietly.
+      if (c.absoluteCenterOn && !on)
+        misses.push(`${c.name}.absoluteCenterOn -> ${c.absoluteCenterOn} (not built; centered on the parent instead, so it will sit off-center wherever that part is not itself centered — #848)`);
+      if (on) {
+        kid.x = (on.x ?? 0) + ((on.width ?? 0) - (kid.width ?? 0)) / 2;
+        kid.y = (on.y ?? 0) + ((on.height ?? 0) - (kid.height ?? 0)) / 2;
+      } else {
+        kid.x = ((node.width ?? 0) - (kid.width ?? 0)) / 2;
+        kid.y = ((node.height ?? 0) - (kid.height ?? 0)) / 2;
+      }
       kid.constraints = { horizontal: 'CENTER', vertical: 'CENTER' };
       // READ BACK: a centered child that quietly stayed in the flow ADDS a cell, which is the precise
       // defect this mechanism exists to prevent.

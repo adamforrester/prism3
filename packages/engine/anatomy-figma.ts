@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, statesOf, variantsOf } from './component-schema';
+import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -172,7 +172,7 @@ export type FigmaNodePlan = {
    *  sibling is — a name this projection references without binding, and an unresolvable one silently
    *  returns the ring to flush. */
   absoluteStrokeInset?: string;
-  /** Taken out of the auto-layout flow and CENTERED on its parent, rather than inset from its bounds.
+  /** Taken out of the auto-layout flow and CENTERED, rather than inset from its parent's bounds.
    *
    *  A separate field from `absoluteInset` even though both end in `layoutPositioning='ABSOLUTE'`,
    *  because the geometry is not the same shape and neither is the reason. An inset ring is sized
@@ -185,6 +185,19 @@ export type FigmaNodePlan = {
    *  centered. That also keeps it out of `planBindingErrors`' scope honestly — it names no variable,
    *  so there is no name to verify, which is the opposite of `absoluteInset`'s situation. */
   absoluteCenter?: boolean;
+  /** WHICH sibling's box the centering is measured on — the name of the part being overlaid (#848).
+   *
+   *  Absent means the PARENT, which is what both executors did unconditionally before #848 and is
+   *  correct only when the overlaid part is itself centered in the parent. It was not: at
+   *  `leading=false, trailing=true` the label sits left of center because the trailing cell occupies
+   *  the right, so a spinner centered on the container landed 12px right of the text it stood in for
+   *  (measured at `small`: label spans 16→60, center 38; container center 50).
+   *
+   *  A NAME rather than a number because the box is not knowable at emit — the label's width is the
+   *  designer's text, resolved by Figma's auto-layout at paste. So this field says which node to
+   *  measure and the executor does the arithmetic against the LIVE box, the same division of labor
+   *  `absoluteInset` uses for a value Figma will not let us bind. */
+  absoluteCenterOn?: string;
   /** Rendered at zero opacity — in the flow and in the accessibility tree, but not visible.
    *
    *  The only node property here that exists to preserve GEOMETRY rather than to express a design
@@ -555,22 +568,31 @@ export const figmaAnatomyPlan = (
     return !a.parts[name]?.optional;
   };
 
-  /* Which part the active overlay actually lands on AT THIS COORDINATE — `replaces` when that part is
-   * present, `overlaysWhenAbsent` when it is not (#612).
+  /* Which part the active overlay actually lands on AT THIS COORDINATE — the FIRST present `replaces`
+   * candidate, or `overlaysWhenAbsent` when none of them is present (#612, generalized by #848).
    *
-   * The distinction the two branches encode is IN-FLOW vs OUT-OF-FLOW, and it is the whole fix. When
-   * the leading visual is there, the spinner TAKES its cell: one node in one position, width identical
-   * because the cell was already the icon's size. When there is no leading visual there is no cell to
-   * take, and the pre-#612 code fell through to giving the spinner a cell of its own — which grew a
-   * label-only button by 28px at medium (a 32px cell, less the 4px the left padding tightens by once
-   * the cell reads as filled) and reflowed the form mid-submit. So in that case the spinner goes
-   * ABSOLUTE, centered, and the label stays in flow at zero opacity holding the width open.
+   * The distinction the two branches encode is IN-FLOW vs OUT-OF-FLOW, and it is the whole fix. When a
+   * visual cell is there, the spinner TAKES it: one node in one position, width identical because the
+   * cell was already the icon's size. When there is NO visual cell there is nothing to take, and the
+   * pre-#612 code fell through to giving the spinner a cell of its own — which grew a label-only button
+   * by 28px at medium (a 32px cell, less the 4px the left padding tightens by once the cell reads as
+   * filled) and reflowed the form mid-submit. So in that case only, the spinner goes ABSOLUTE over the
+   * label, which stays in flow at zero opacity holding the width open.
    *
-   * Keyed off presence rather than off the part's name, like every other rule in this builder, so a
-   * second def declaring an overlay over an optional slot gets the same behavior with no change here. */
-  const replacesPresent = !!activeOverlay?.[1].replaces && slotPresent(activeOverlay[1].replaces!);
-  const replacedByOverlay = replacesPresent ? activeOverlay?.[1].replaces : undefined;
-  const overlaidPart = activeOverlay && !replacesPresent ? activeOverlay[1].overlaysWhenAbsent : undefined;
+   * #848 IS WHERE "a visual cell" REPLACED "the leading visual". `replaces` was one name, so
+   * `leading=false, trailing=true` — which HAS a visual cell — took the out-of-flow branch anyway and
+   * hid the label. What rendered was spinner + trailingVisual and no text: two icons, no label, in a
+   * live paste. Now the candidates are walked in the def's order and the first present one wins, so
+   * that coordinate lands in the trailing cell with the label fully visible. The fallback is reached
+   * only when there is genuinely no visual cell — the label-only button it was written for.
+   *
+   * Keyed off presence rather than off any part's name, like every other rule in this builder, so a
+   * second def declaring an overlay over its own optional slots gets the same behavior with no change
+   * here. `find` rather than `filter`: FIRST present is the rule, and the def's order is the ranking. */
+  const replacedByOverlay = activeOverlay
+    ? replacesCandidates(activeOverlay[1]).find((r) => slotPresent(r))
+    : undefined;
+  const overlaidPart = activeOverlay && !replacedByOverlay ? activeOverlay[1].overlaysWhenAbsent : undefined;
 
   const present = (name: string): boolean => {
     // The replaced part yields its cell — one node in one position, not two fighting for it. Figma
@@ -735,13 +757,19 @@ export const figmaAnatomyPlan = (
     // INSTANCE_SWAP property, contents varying by state. Without this the spinner builds as an
     // instance nothing nominates: the stub host reported it as a placeholder frame with no VECTOR
     // inside to paint, which is a spinner that is present, unswappable and invisible.
-    // Only when the overlay actually TOOK that cell. Out of flow it owns no cell, so it inherits no
-    // property — and `replaces` is still the right lookup even then rather than `overlaidPart`, because
-    // inheriting the OVERLAID part's property would hand the spinner the label's `characters` property
-    // and try to write text into an INSTANCE_SWAP. `drivenBy` returns undefined for the absent leading
-    // cell, which is the correct answer: nothing is nominating a swap the designer can repoint, since
-    // there is no leading slot at this coordinate to repoint.
-    const cellName = p.kind === 'overlay' && p.replaces && replacedByOverlay ? p.replaces : name;
+    // Only when the overlay actually TOOK a cell. Out of flow it owns no cell, so it inherits no
+    // property — and the RESOLVED candidate is the right lookup even then rather than `overlaidPart`,
+    // because inheriting the OVERLAID part's property would hand the spinner the label's `characters`
+    // property and try to write text into an INSTANCE_SWAP. `drivenBy` returns undefined when no cell
+    // was taken, which is the correct answer: nothing is nominating a swap the designer can repoint,
+    // since there is no visual slot at this coordinate to repoint.
+    //
+    // `replacedByOverlay` rather than `p.replaces` since #848 — the field is now a LIST, and the cell
+    // the overlay took is whichever candidate resolved, not the first one declared. Reading `p.replaces`
+    // here would hand the spinner the LEADING cell's swap property at a coordinate where it actually
+    // took the TRAILING one, so a designer repointing the trailing visual would find the spinner
+    // following it and vice versa — with both properties existing, so nothing would look broken.
+    const cellName = p.kind === 'overlay' && replacedByOverlay ? replacedByOverlay : name;
     const propertyRef = drivenBy.get(cellName);
 
     return {
@@ -762,7 +790,7 @@ export const figmaAnatomyPlan = (
       // `overlaidPart`, so when the overlay lands on a real cell (`replaces` present) neither appears
       // and the projection is byte-identical to before — which is what keeps this change to the 108
       // rows that were actually wrong.
-      ...(overlaidPart && name === activeOverlay?.[0] ? { absoluteCenter: true } : {}),
+      ...(overlaidPart && name === activeOverlay?.[0] ? { absoluteCenter: true, absoluteCenterOn: overlaidPart } : {}),
       ...(overlaidPart && name === overlaidPart ? { zeroOpacity: true } : {}),
       ...(chars !== undefined ? { characters: chars } : {}),
       ...(propertyRef ? { propertyRef } : {}),
@@ -1525,21 +1553,25 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
   // would read \`node.width\` mid-append and silently make the result depend on the part's ORDER in the
   // def: correct while the ring is declared last, and quietly wrong the day someone reorders \`children\`.
   const absolutes=[],centered=[];
+  // The BOX each centered child is measured on, by part name (#848). Collected in the flow pass because
+  // that is where the sibling nodes exist; read in the centering pass after the parent has settled.
+  const boxes=new Map();
   for(const c of n.children){
     const kid=await build(c);
     // A NESTED_INSTANCE whose shared component is missing returns null — the child is skipped and the
     // rest of the tree still builds, so the paste reports one precise miss instead of failing whole.
     if(!kid)continue;
     node.appendChild(kid);
+    boxes.set(c.name,kid);
     if(c.absoluteInset)absolutes.push([c,kid]);
     if(c.absoluteCenter)centered.push([c,kid]);
     // Zero opacity, written straight rather than bound: a brand does not get to theme a label under a
     // spinner to half-visible. See the plan field's note.
     if(c.zeroOpacity)kid.opacity=0;
   }
-  // A CENTERED absolute child (#612's pending spinner with no leading cell to take). Applied by the
+  // A CENTERED absolute child (#612's pending spinner with no visual cell to take). Applied by the
   // parent for the same reason the inset ones are — \`layoutPositioning\` only means anything inside an
-  // auto-layout parent, and the centering is measured off the parent's box.
+  // auto-layout parent, and the centering is measured off a box the parent owns.
   for(const [c,kid] of centered){
     // Written via a variable so this statement is not BYTE-IDENTICAL to the ring's lift above. A test
     // mutates that one by string-replacing \`kid.layoutPositioning='ABSOLUTE';\` — and \`String.replace\`
@@ -1547,10 +1579,23 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // stole the mutation and the ring's own gate went green while unmutated. Caught by that gate failing
     // when this loop was added; keep them textually distinct.
     const lift='ABSOLUTE';kid.layoutPositioning=lift;
+    // THE BOX THE CENTERING IS MEASURED ON (#848). The part named in \`absoluteCenterOn\` when it is
+    // there, the parent otherwise. Centering on the PARENT is right only if the overlaid part is itself
+    // centered in it, and at \`leading=false, trailing=true\` the label is not: the trailing cell holds the
+    // right side, so the label sits left of center and a spinner centered on the container landed 12px
+    // right of the text it stands in for. Read LIVE, after the flow pass, because the label's width is
+    // the designer's text and only Figma knows it.
+    const on=c.absoluteCenterOn?boxes.get(c.absoluteCenterOn):undefined;
+    // A named box that is not in the tree is REPORTED, not silently swapped for the parent — falling
+    // back would reproduce the exact off-center spinner this field exists to fix, and do it quietly.
+    if(c.absoluteCenterOn&&!on)misses.push(c.name+'.absoluteCenterOn -> '+c.absoluteCenterOn+' (not built; centered on the parent instead, so it will sit off-center wherever that part is not itself centered — #848)');
     // NOT resized: unlike the ring, a centered overlay keeps its own square size — the \`size\` binding
     // is already on it, and \`resize\` would CLEAR that binding (the comment on the ring's resize says
     // so, and there it is safe only because an absolute part binds no dimensions).
-    kid.x=(node.width-kid.width)/2;kid.y=(node.height-kid.height)/2;
+    // \`x\`/\`y\` are PARENT-relative, and so is a sibling's \`x\`/\`y\` — so the sibling's offset carries
+    // straight into the arithmetic with no coordinate conversion.
+    if(on){kid.x=on.x+(on.width-kid.width)/2;kid.y=on.y+(on.height-kid.height)/2;}
+    else{kid.x=(node.width-kid.width)/2;kid.y=(node.height-kid.height)/2;}
     // Centered on both axes so the spinner stays over the label's middle when a designer resizes the
     // variant. STRETCH would distort it; CENTER is the constraint that matches the geometry.
     kid.constraints={horizontal:'CENTER',vertical:'CENTER'};

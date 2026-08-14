@@ -40,7 +40,7 @@ import { aliasRows, floatCollections, fontCollections, passJs, passOrder, pruneR
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -5998,8 +5998,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // width; overlaying it at zero opacity does not. That conflation is what left `leading: false`
     // with no rule at all, so the spinner took a cell that did not exist at rest and the most common
     // button shape in the system grew 28px mid-submit (#612).
-    ok(a.parts.spinner.kind === 'overlay' && a.parts.spinner.replaces === 'leadingVisual', 'anatomy: the pending spinner replaces the leading visual (width-preserving), not the label');
-    ok(a.parts.spinner.overlaysWhenAbsent === 'label', 'anatomy: and it declares the label as its fallback for the coordinate where there is no leading visual to replace — every optional `replaces` needs one or the part grows on that state (#612)');
+    // ORDERED CANDIDATES since #848, and the ORDER is asserted rather than the membership: leading must
+    // come first, because a spinner on the left reads as "loading" and one on the right reads as a
+    // trailing indicator. A set-equality check would pass a def that had them the wrong way round.
+    ok(a.parts.spinner.kind === 'overlay' && JSON.stringify(replacesCandidates(a.parts.spinner)) === JSON.stringify(['leadingVisual', 'trailingVisual']),
+      'anatomy: the pending spinner replaces a VISUAL CELL (width-preserving), not the label — leading preferred, trailing next (#848)');
+    ok(a.parts.spinner.overlaysWhenAbsent === 'label', 'anatomy: and it declares the label as its fallback for the coordinate where there is no visual cell at all to replace — every all-optional `replaces` needs one or the part grows on that state (#612)');
 
     // ---- the projection ----------------------------------------------------------------------
     // #326's asymmetry is the reason a plan is built per slot-fill rather than per size alone. Two
@@ -6729,7 +6733,45 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // be deleted with a green suite, which is the mistake this file has now made twice (#500's
           // `misses[]` blind spot, and #503's constant-width set). `parent` is set by `appendChild` below,
           // so the check reads the same fact the live API does.
-          x: 0, y: 0,
+          // THE FOURTH TIME THIS STUB HAS HAD TO STOP MEASURING A CONSTANT (#848) — see the `width`,
+          // `height` and TEXT notes above for the first three, all the same finding from a different
+          // direction. `x`/`y` were plain `0` fields, so EVERY flow child reported the same position and
+          // the arithmetic in the payload's centering pass was unfalsifiable: centering a spinner on its
+          // PARENT and centering it on a SIBLING produce identical coordinates when every sibling sits at
+          // 0, which is precisely the defect #848 fixes. The gate for it could not have been written
+          // against this stub.
+          //
+          // So a flow child's `x` is now DERIVED: its parent's left padding plus the widths and gaps of
+          // the flow siblings ahead of it, which is what a HORIZONTAL auto-layout does. An ABSOLUTE child
+          // keeps whatever the payload wrote — that is the position under test — and so does any node
+          // whose payload assigned `x` before being lifted. `_x` holds the written value; the getter
+          // prefers it whenever the node is absolute.
+          _x: 0, _y: 0,
+          get x() {
+            const p = node.parent as Record<string, unknown> | null;
+            if (node._absolute || !p || !p.layoutMode) return node._x as number;
+            const bv = p.boundVariables as Record<string, { value?: number }>;
+            const gap = bv.itemSpacing?.value ?? 0;
+            let at = bv.paddingLeft?.value ?? 0;
+            for (const c of ((p.children as Record<string, unknown>[]) ?? [])) {
+              if (c === node) return at;
+              if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
+              at += ((c.width as number) || 0) + gap;
+            }
+            return at;
+          },
+          set x(v: number) { node._x = v; },
+          // The cross axis, modeled for the same reason and with the same shape. `counterAxisAlignItems`
+          // is CENTER on every row this projects, so a flow child is vertically centered in the parent
+          // rather than stacked — asserting a spinner's `y` against a top-aligned model would demand the
+          // wrong number and make the gate wrong in the other direction.
+          get y() {
+            const p = node.parent as Record<string, unknown> | null;
+            if (node._absolute || !p || !p.layoutMode) return node._y as number;
+            if (p.counterAxisAlignItems !== 'CENTER') return (p.boundVariables as Record<string, { value?: number }>).paddingTop?.value ?? 0;
+            return (((p.height as number) || 0) - ((node.height as number) || 0)) / 2;
+          },
+          set y(v: number) { node._y = v; },
           constraints: null as unknown,
           parent: null as Record<string, unknown> | null,
           _absolute: false,
@@ -7346,6 +7388,61 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ogLabel = ((opacityGutted.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).find((c) => c.name === 'label');
       ok(ogLabel?.opacity !== 0,
         'anatomy/pending: the opacity mutation actually reaches the built label — proving the assertion above reads the payload\'s write and not a stub default');
+
+      // ---- WHICH BOX the centering is measured on (#848) ------------------------------------------
+      // Everything above measures the spinner against the BUTTON'S box, and at this coordinate that is
+      // also the label's box — the label is the only flow child, so the two centers coincide to the
+      // pixel. Which means those assertions cannot tell `absoluteCenterOn` from the old unconditional
+      // parent-centering, and deleting the field would leave them green. Doc 34 shape 4: an assertion
+      // whose expected value two different implementations both satisfy.
+      //
+      // Button no longer REACHES an asymmetric case, because that is exactly what #848 fixed — wherever a
+      // visual cell exists the spinner now takes it in the flow and centers nothing. So the geometry is
+      // exercised on a HAND-BUILT plan: the label-only pending tree with a trailing visual spliced into
+      // the flow beside it, which pushes the label left of the container's center while the spinner still
+      // overlays it. That is the shape the live defect rendered, held here as the only coordinate where
+      // the parent's box and the overlaid part's box give different answers.
+      const trailingKid = (figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state: 'rest', leading: false, trailing: true, swapTarget: 'FPO-default-icon' })
+        .root.children ?? []).find((c) => c.name === 'trailingVisual')!;
+      const spinKid = (pend.root.children ?? []).find((c) => c.name === 'spinner')!;
+      const labelKid = (pend.root.children ?? []).find((c) => c.name === 'label')!;
+      // The absolute child stays LAST, for the z-order reason the plan gate above states.
+      const askew: AnatomyPlan = { ...pend, root: { ...pend.root, children: [labelKid, trailingKid, spinKid] } };
+      const askewPage: StubPage = { children: [] };
+      const askewRun = await runPayload(planToPluginJs(askew), {
+        vars: [...planBoundVars(askew.root), ...planPaintVars(askew.root)], styles: planTextStyles(askew.root),
+        comps: ['FPO-default-icon'], page: askewPage,
+      });
+      ok(askewRun.misses.length === 0, `anatomy/pending: the asymmetric tree pastes CLEAN${askewRun.misses.length ? ` — ${JSON.stringify(askewRun.misses)}` : ''}`);
+      const aRoot = askewPage.children[0] as Record<string, unknown>;
+      const aKids = (aRoot.children as Record<string, unknown>[]);
+      const aSpin = aKids.find((c) => c.name === 'spinner')!, aLabel = aKids.find((c) => c.name === 'label')!;
+      const onLabel = (aLabel.x as number) + ((aLabel.width as number) - (aSpin.width as number)) / 2;
+      const onParent = ((aRoot.width as number) - (aSpin.width as number)) / 2;
+      // THE GUARD FIRST: if the two answers agree, the assertion below is vacuous and would pass against
+      // either implementation — which is precisely the state the original block was in.
+      ok(Math.abs(onLabel - onParent) > 1,
+        `anatomy/pending: the two candidate boxes give DIFFERENT answers here (${onLabel} vs ${onParent}) — without that gap the assertion below cannot tell them apart`);
+      ok(aSpin.x === onLabel,
+        `anatomy/pending: the spinner is centered on the LABEL it stands in for, not on the button — a trailing cell holds the right side, so the container's center is ${onParent - onLabel}px off the text (${aSpin.x})`);
+      // ...and the read on the named sibling is what produces that. Mutated to the old unconditional
+      // parent-centering, this must fail — otherwise the field is decoration.
+      const parentCentered: StubPage = { children: [] };
+      await runPayload(planToPluginJs(askew).replace('c.absoluteCenterOn?boxes.get(c.absoluteCenterOn):undefined', 'undefined'), {
+        vars: [...planBoundVars(askew.root), ...planPaintVars(askew.root)], styles: planTextStyles(askew.root),
+        comps: ['FPO-default-icon'], page: parentCentered,
+      });
+      const pcSpin = ((parentCentered.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).find((c) => c.name === 'spinner');
+      ok(pcSpin?.x === onParent,
+        `anatomy/pending: gutting the sibling lookup DOES move the spinner to the container's center — proving the assertion above reads the payload's arithmetic and not the stub's layout (${pcSpin?.x})`);
+      // A NAMED BOX THAT IS NOT THERE is reported rather than silently swapped for the parent, because the
+      // silent swap is the defect. Drop the label from the tree and keep the reference.
+      const orphan: AnatomyPlan = { ...pend, root: { ...pend.root, children: [trailingKid, spinKid] } };
+      const orphanRun = await runPayload(planToPluginJs(orphan), {
+        vars: [...planBoundVars(orphan.root), ...planPaintVars(orphan.root)], styles: planTextStyles(orphan.root), comps: ['FPO-default-icon'],
+      });
+      ok(orphanRun.misses.some((m) => /spinner\.absoluteCenterOn -> label/.test(m)),
+        `anatomy/pending: an absoluteCenterOn naming a part that was not built is REPORTED — a quiet fallback to the parent is the off-center spinner this field exists to prevent (${JSON.stringify(orphanRun.misses)})`);
     }
 
     // ---- COMPONENT PROPERTIES on the assembled set (#487 step 6) --------------------------------
@@ -8284,7 +8381,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // it wrong by keying on the wrong thing. TWO figures, both true, and the difference is the lesson:
     //
     //   paint + node names → 0    (none)
-    //   paint only         → 54   (pending 54, leading=true only)
+    //   paint only         → 81   (pending 81, every coordinate with a visual cell — #848, was 54)
     //
     // Both were 36 higher until #536 item 1 closed: `.text` keyed `overlay.hover` but no
     // `overlay.pressed` while `.outline` keyed both, so all 36 `appearance=text, state=pressed` rows
@@ -8299,11 +8396,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // the single largest duplicate class in the set, and it is worth noting it moved both counts by the
     // same number: the ring is a real node carrying real geometry, not a rename.
     //
-    // The 54 are exactly the `leading=true` half of `pending`: the spinner REPLACES the leading visual,
-    // so it inherits the same square size binding, the same icon paint and the same position, and the
-    // only difference left is that the node is called `spinner` instead of `leadingVisual`. With
-    // `leading=false` there is nothing to replace, so the spinner adds a node — since #612 an
-    // OUT-OF-FLOW one, centered over a label held at zero opacity, so the row genuinely differs on the
+    // The 81 are every `pending` coordinate that HAS a visual cell (#848 — 54 before, when only the
+    // leading cell counted): the spinner TAKES that cell, so it inherits the same square size binding,
+    // the same icon paint and the same position, and the only difference left is that the node is called
+    // `spinner` instead of `leadingVisual`/`trailingVisual`. Only with NO visual cell at all is there
+    // nothing to take, so the spinner adds a node — since #612 an OUT-OF-FLOW one, centered over a label
+    // held at zero opacity, so that row genuinely differs on the
     // canvas without differing in width. A layer rename is invisible on the canvas — both are FPO icons of identical size and
     // color — so the honest count for "looks the same" is 54, not 0. The
     // structural count is what a diff sees; the paint count is what a human sees. Assert BOTH, because
@@ -8334,8 +8432,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const total = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
       ok(total(struct) === 0,
         `figmaProperties: NO row of 648 is structurally identical to its rest sibling (${JSON.stringify([...struct])})`);
-      ok(total(painted) === 54 && painted.get('pending') === 54,
-        `figmaProperties: 54 rows are VISUALLY identical to their rest sibling — all of them pending with leading=TRUE, where the spinner replaces the leading visual and inherits its size, paint and position (${JSON.stringify([...painted])})`);
+      // 54 → 81 AT #848, and the direction is the point: the fix makes MORE rows look like their rest
+      // sibling, because taking a cell that already exists is width-preserving and a layer rename is
+      // invisible on the canvas. Three of the four slot coordinates now take a real cell (leading+trailing,
+      // leading only, trailing only) where two did before — 27 × 3 = 81. The fourth, `leading=false,
+      // trailing=false`, is the only genuinely label-only button left, and it still differs: spinner
+      // out of flow over a label at zero opacity. A count going UP here is a fix, not a regression, which
+      // is exactly why it is asserted as a number with its arithmetic written down rather than as `<= 54`.
+      ok(total(painted) === 81 && painted.get('pending') === 81,
+        `figmaProperties: 81 rows are VISUALLY identical to their rest sibling — all pending, the three slot coordinates that HAVE a visual cell for the spinner to take (27 × 3), where it inherits that cell's size, paint and position and only the layer name differs (${JSON.stringify([...painted])})`);
       // A ZERO-EXPECTING ASSERTION CANNOT DISTINGUISH "clean" FROM "not looking", so prove the counter
       // still counts rather than trusting the 0. Re-runs the same `count` against a def with the
       // `.text` pressed overlays stripped back out — the pre-#536-item-1 state — and requires the 36
@@ -9278,21 +9383,86 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(noLead.find((c) => c.name === 'label')?.propertyRef?.field === 'characters',
     '#612: the overlaid label keeps its OWN text property — being covered does not surrender it');
 
+  // ---- #848: WHAT WOULD A PERSON SEE? -----------------------------------------------------------
+  // The two gates above are the ones that were green while a live paste produced a button with no label
+  // and two icons. Both were true. `replaces: 'leadingVisual'` named ONE slot, so `leading=false,
+  // trailing=true` — which HAS a visual cell — fell through to the label-overlay branch: spinner plus
+  // trailingVisual, label at 0%. The width gate passed because the in-flow cell count was unchanged. The
+  // mechanism gate passed because it only ever sampled `trailing: false`, so it never reached the
+  // coordinate where the two branches disagree.
+  //
+  // Doc 34 shape 16, second instance in two days — a fully independent gate measuring the wrong
+  // quantity. The durable half is the question, not the shape: IF THIS GATE IS GREEN, WHAT WOULD A
+  // PERSON SEE? The honest answer here was "a button with no label and two icons", and nothing above
+  // could have said otherwise, because nothing above asked about anything a person looks at.
+  //
+  // And the reason both gates stopped short is worth its own line, because it predicts where the next
+  // one hides: THE WIDTH INVARIANT BECAME LOAD-BEARING AFTER #612 AND CROWDED OUT EVERYTHING AROUND IT.
+  // Width was the hard-won thing — the #612 comment above spends nine lines on how the previous pair of
+  // assertions pinned the defect — so width is what every later assertion in this block reached for. A
+  // hard-won invariant becomes the only one anyone checks. When you find one, ask what it is NOT
+  // measuring, because that is where the next defect lands.
+  //
+  // So: the readable claims, across ALL FOUR slot combinations rather than the two `kids()` samples.
+  const pendingAt = (leading: boolean, trailing: boolean) =>
+    figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state: 'pending', leading, trailing, swapTarget: 'FPO-default-icon' });
+  for (const [ld, tr] of [[false, false], [true, false], [false, true], [true, true]] as [boolean, boolean][]) {
+    const plan = pendingAt(ld, tr);
+    const at = `leading=${ld} trailing=${tr}`;
+    // ONE SPINNER. The user's third assertion, and the one neither of the others can make: `replaces` is
+    // now a LIST resolved to its first present candidate, so a resolution bug that took BOTH cells would
+    // pass the width check (both cells already existed and stay filled) and pass the mechanism check
+    // (a spinner is in the flow, nothing is hidden) while rendering two spinners. Counted over the WHOLE
+    // subtree via planPartNames, not the root's children, so a spinner nested one level down still counts.
+    const spinners = planPartNames(plan.root).filter((n) => n === 'spinner');
+    ok(spinners.length === 1, `#848: exactly ONE spinner at ${at} — got ${spinners.length} (${planPartNames(plan.root).join(',')})`);
+    // AND SOMETHING READABLE SURVIVES. Every pending coordinate carries exactly one node bearing the
+    // label's characters, and it is either visible or covered by the spinner standing in its place.
+    // Stated as an implication rather than "the label is visible", because the no-visual-cell coordinate
+    // legitimately hides it — that is React Aria's rule and #612's whole design. What is NOT legitimate,
+    // and what shipped, is hiding it while the spinner sits somewhere else entirely.
+    const kidsAt = plan.root.children ?? [];
+    const texts = kidsAt.filter((c) => c.characters !== undefined);
+    const spin = kidsAt.find((c) => c.name === 'spinner');
+    ok(texts.length === 1 && !!texts[0].characters,
+      `#848: exactly one node carries the button's copy at ${at} — ${JSON.stringify(texts.map((t) => [t.name, t.characters]))}`);
+    ok(!texts[0].zeroOpacity || spin?.absoluteCenterOn === texts[0].name,
+      `#848: at ${at} the copy is either VISIBLE or covered by the spinner standing in its place — a hidden label with the spinner elsewhere is a button with no text and two icons, which is what shipped (copy hidden=${!!texts[0].zeroOpacity}, spinner centered on ${JSON.stringify(spin?.absoluteCenterOn)})`);
+    // The corollary that names the defect exactly: wherever a visual CELL exists, the spinner took it and
+    // nothing is hidden at all. Only the cell-less coordinate may hide anything.
+    ok((ld || tr) ? !kidsAt.some((c) => c.zeroOpacity) : true,
+      `#848: at ${at} a visual cell exists, so the spinner takes it and NOTHING is hidden — the overlay fallback is for the coordinate with no cell to take (${JSON.stringify(kidsAt.filter((c) => c.zeroOpacity).map((c) => c.name))} hidden)`);
+  }
+  // AND THE SPINNER TAKES THE CELL THE DEF DECLARES FIRST. `replaces` is ordered and the order IS the
+  // declaration — leading first, because "loading" reads left-to-right before the label. A resolution
+  // that scanned the parts map instead of the list would hand `leading=true, trailing=true` the trailing
+  // cell, which every assertion above passes: one spinner, label visible, nothing hidden, width stable.
+  const both = pendingAt(true, true).root.children ?? [];
+  ok(both.findIndex((c) => c.name === 'spinner') === 0 && both.some((c) => c.name === 'trailingVisual') && !both.some((c) => c.name === 'leadingVisual'),
+    `#848: with BOTH cells filled the spinner takes the LEADING one — first present candidate wins, and the def's order is the declaration (${both.map((c) => c.name).join(',')})`);
+
   // The fallback is REQUIRED when the replaced part is optional, and the gate is what makes that true
   // for the next def rather than only for this one. Both directions: removing the declaration must
   // fail, and naming a part that cannot serve as a floor must fail too.
   const noFallback = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
     spinner: { ...button.anatomy!.parts.spinner, overlaysWhenAbsent: undefined } } } } as ComponentDef;
-  ok(validateComponentDef(noFallback).errors.some((x) => /which is OPTIONAL — declare 'overlaysWhenAbsent'/.test(x)),
-    '#612 gate: an overlay over an OPTIONAL part with no fallback fails validation — that is the coordinate where it takes a cell of its own and the button grows');
+  ok(validateComponentDef(noFallback).errors.some((x) => /is OPTIONAL — declare 'overlaysWhenAbsent'/.test(x)),
+    '#612 gate: an overlay whose every candidate is OPTIONAL and has no fallback fails validation — that is the coordinate where it takes a cell of its own and the button grows');
   const optionalFallback = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
     spinner: { ...button.anatomy!.parts.spinner, overlaysWhenAbsent: 'trailingVisual' } } } } as ComponentDef;
   ok(validateComponentDef(optionalFallback).errors.some((x) => /is optional — the fallback must be a part that is always present/.test(x)),
     '#612 gate: a fallback that is itself optional fails — it reintroduces the defect one level down');
   const selfFallback = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,
     spinner: { ...button.anatomy!.parts.spinner, overlaysWhenAbsent: 'leadingVisual' } } } } as ComponentDef;
-  ok(validateComponentDef(selfFallback).errors.some((x) => /duplicates 'replaces'/.test(x)),
-    '#612 gate: naming `replaces` as the fallback fails — the fallback exists for the case that part is absent');
+  ok(validateComponentDef(selfFallback).errors.some((x) => /duplicates a 'replaces' candidate/.test(x)),
+    '#612 gate: naming a `replaces` candidate as the fallback fails — the fallback exists for the case they are ALL absent');
+  // AND THE SAME REFUSAL REACHES THE SECOND CANDIDATE, not only the head of the list (#848). This is the
+  // same `optionalFallback` def: since `replaces` became a list, `trailingVisual` is now BOTH optional and
+  // a candidate, so it must draw both errors. A duplicate check written as `p.replaces[0] === fallback`
+  // would report only the first, and the def would then declare `trailingVisual` as the cell to take AND
+  // the thing to overlay when there is no cell — two contradictory roles for one part.
+  ok(validateComponentDef(optionalFallback).errors.some((x) => /duplicates a 'replaces' candidate/.test(x)),
+    '#848 gate: the duplicate rule reaches the SECOND `replaces` candidate too — it is over the whole list, not its head');
 
   // The overlay is found by kind+when, not by name, so a second def projects with no emitter change.
   const noWhen = { ...button, anatomy: { ...button.anatomy!, parts: { ...button.anatomy!.parts,

@@ -235,9 +235,46 @@ const makeShim = (opts: ShimOpts = {}) => {
       characters: '',
       opacity: 1,
       componentPropertyReferences: null as Record<string, string> | null,
-      x: 0, y: 0, constraints: null as unknown,
+      constraints: null as unknown,
       parent: null as Node | null,
       _absolute: false,
+      // THE FIFTH TIME A SHIM HERE HAS HAD TO STOP MEASURING A CONSTANT (#848) — see the `width`, `height`
+      // and eviction notes above for the earlier ones, all the same finding from a different direction.
+      // `x`/`y` were plain `0` fields, so EVERY flow child reported the same position and the executor's
+      // centering arithmetic was unfalsifiable: centering a spinner on its PARENT and centering it on a
+      // SIBLING give identical coordinates when every sibling sits at 0, which is exactly the defect #848
+      // fixes. The gate for it could not have been written against this shim.
+      //
+      // So a flow child's `x` is DERIVED — the parent's left padding plus the widths and gaps of the flow
+      // siblings ahead of it, which is what a HORIZONTAL auto-layout does. An ABSOLUTE child keeps what the
+      // executor wrote, since that is the position under test. Mirrors the engine stub deliberately: the
+      // parity gate compares the two executors, so a shim modelling a different Figma would make that
+      // comparison meaningless.
+      _x: 0, _y: 0,
+      get x() {
+        const p = node.parent as Node | null;
+        if (node._absolute || !p || !p.layoutMode) return node._x as number;
+        const bv = p.boundVariables as Record<string, { value?: number }>;
+        const gap = bv.itemSpacing?.value ?? 0;
+        let at = bv.paddingLeft?.value ?? 0;
+        for (const c of ((p.children as Node[]) ?? [])) {
+          if (c === node) return at;
+          if (c.layoutPositioning === 'ABSOLUTE') continue;   // takes no cell, contributes no offset
+          at += ((c.width as number) || 0) + gap;
+        }
+        return at;
+      },
+      set x(v: number) { node._x = v; },
+      // The cross axis, same shape. `counterAxisAlignItems` is CENTER on every row this projects, so a
+      // flow child is vertically centered rather than top-stacked — asserting a spinner's `y` against a
+      // top-aligned model would demand the wrong number and make the gate wrong the other way.
+      get y() {
+        const p = node.parent as Node | null;
+        if (node._absolute || !p || !p.layoutMode) return node._y as number;
+        if (p.counterAxisAlignItems !== 'CENTER') return (p.boundVariables as Record<string, { value?: number }>).paddingTop?.value ?? 0;
+        return (((p.height as number) || 0) - ((node.height as number) || 0)) / 2;
+      },
+      set y(v: number) { node._y = v; },
       // FIXED-OR-HUG. A bound axis is FIXED at its variable's value; everything else hugs its FLOW
       // children plus its own padding, with the border term on the hug axis only (a fixed axis absorbs
       // a stroke silently — the #503 finding restated as a model). ABSOLUTE children are excluded from
@@ -809,6 +846,43 @@ ok((spin!.boundVariables as Record<string, unknown>).width !== undefined && (spi
 ok(lbl!.opacity === 0 && (lbl!.width as number) > 0,
   `the label is built at zero opacity and still MEASURES — hidden or dropped, it yields its cell and the button collapses (${JSON.stringify([lbl!.opacity, lbl!.width])})`);
 ok(spin!.opacity !== 0, `the spinner itself is fully opaque — the zero applies to the part being covered, not the coverer (${spin!.opacity})`);
+
+// ---- WHICH BOX the centering is measured on (#848) -------------------------------------------
+// Everything above measures the spinner against the BUTTON'S box, and at this coordinate that is also the
+// label's box — the label is the only flow child, so the two centers coincide to the pixel. Which means
+// none of it can tell `absoluteCenterOn` from the old unconditional parent-centering, and deleting the
+// field would leave every assertion above green (doc 34 shape 4).
+//
+// Button no longer REACHES an asymmetric case, because that is what #848 fixed: wherever a visual cell
+// exists the spinner takes it in the flow and centers nothing. So the geometry runs on a HAND-BUILT plan —
+// the label-only pending tree with a trailing visual spliced in beside the label, pushing it left of the
+// container's center while the spinner still overlays it. That is the shape the live defect rendered.
+const pendPlan = labelOnly.find((p) => p.coord.state === 'pending')!;
+const trailingKid = (figmaAnatomyPlan(button, 'medium', { leading: false, trailing: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })
+  .root.children ?? []).find((c) => c.name === 'trailingVisual')!;
+const pendLabel = (pendPlan.root.children ?? []).find((c) => c.name === 'label')!;
+const pendSpin = (pendPlan.root.children ?? []).find((c) => c.name === 'spinner')!;
+// The absolute child stays LAST, for the z-order reason the engine's plan gate states.
+const askew = { ...pendPlan, root: { ...pendPlan.root, children: [pendLabel, trailingKid, pendSpin] } };
+const askewPage: Page = { children: [] };
+const askewRun = await run([askew], { ...fullFor([askew]), page: askewPage });
+ok(askewRun.misses.length === 0, `the asymmetric pending tree writes CLEAN${askewRun.misses.length ? ` — ${askewRun.misses.join('; ')}` : ''}`);
+const askewMember = (askewPage.children[0].children as Node[])[0];
+const aSpin = partOf(askewMember, 'spinner')!, aLabel = partOf(askewMember, 'label')!;
+const onLabel = (aLabel.x as number) + ((aLabel.width as number) - (aSpin.width as number)) / 2;
+const onParent = ((askewMember.width as number) - (aSpin.width as number)) / 2;
+// THE GUARD FIRST: if the two candidate boxes agree, the assertion below is vacuous and passes against
+// either implementation — which is the state the block above is in, and why this one exists.
+ok(Math.abs(onLabel - onParent) > 1,
+  `the two candidate boxes give DIFFERENT answers here (${onLabel} vs ${onParent}) — without that gap the assertion below cannot tell them apart`);
+ok(aSpin.x === onLabel,
+  `the spinner is centered on the LABEL it stands in for, not on the button — a trailing cell holds the right side, so the container's center is ${onParent - onLabel}px off the text (${aSpin.x})`);
+// A NAMED BOX THAT IS NOT THERE is reported rather than silently swapped for the parent, because the
+// silent swap IS the defect. Drop the label from the tree and keep the reference.
+const orphan = { ...pendPlan, root: { ...pendPlan.root, children: [trailingKid, pendSpin] } };
+const orphanRun = await run([orphan], fullFor([orphan]));
+ok(orphanRun.misses.some((m) => /spinner\.absoluteCenterOn -> label/.test(m)),
+  `an absoluteCenterOn naming a part that was not built is REPORTED — a quiet fallback to the parent is the off-center spinner this field prevents (${orphanRun.misses.join('; ')})`);
 
 // ---- the footprint: `state` and `appearance` must NOT move the box --------------------------
 // Reported as a miss by the executor, so a zero-miss run above already covers it — but assert the
