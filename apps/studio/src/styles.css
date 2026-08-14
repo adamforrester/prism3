@@ -14,10 +14,12 @@
  * those build with no output path configured, so a missing loader is a hard esbuild error there;
  * `main.ts` carries a boot-time guard for the rest.
  *
- * TWO GATES READ THIS FILE BY PATH, and both fail closed when they find nothing to scan:
- *   - `lint-classes.mjs` — top-level single-class rules, for the collision check (#515)
+ * ONE GATE READS THIS FILE BY PATH, and it fails closed when it finds nothing to scan:
  *   - `lint-contrast.mjs` — the `:root` token values, for the chrome contrast floors (#514)
- * Moving or restructuring the CSS means repointing them in the same change.
+ * Moving or restructuring the CSS means repointing it in the same change. `lint-classes.mjs` used to
+ * read it too, for the class-collision check (#515); #770 retired that gate, and `main.ts`'s
+ * `installStyles` now checks the SHIPPED text instead — see the `scoped styles` section there for the
+ * law this file is held to, and what a violation refuses to do.
  *
  * The prose in here is GATED. It ships verbatim in `apps/studio/dist/main.js`, which is the surface
  * `lint-us-english.ts` and `lint-voice.ts` scan, so comments below are held to US English and to
@@ -354,17 +356,15 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
    height-independent. Row 2 is minmax(33px,auto) -- at least as tall as the tallest control
    (select 33, range 32) so the controls share a band, and free to grow so a taller control on any
    other surface using pfield is never clipped.
-   Trap, and the reason two earlier passes at this "failed" while looking correct in the stylesheet:
-   the slider field's range input carries the generic class name .range (paired with psl-range), and
-   .range is also a standalone rule further down (.range{margin-top:10px}). That 10px inflated grid
-   row 2 to 44px, which is what made the field 66px and sent the control mid-line 25.6px off. Not
-   visible from that rule alone, so it is neutralized here at a specificity that beats the
-   single-class original (.pfield.slider .psl-range{margin:0}). Do not "simplify" it back out.
-   #516 removed the equivalent .slider{margin-top:16px} rule and its .pfield.slider{margin-top:0}
-   neutralizer outright: that pairing had exactly one consumer and fully cancelled out, so
-   lint:classes flagged it as dead code once it started checking for exactly this collision. .range
-   is exempted from that same check (range/psl-range share a stem), so it was left in place, still
-   doing real work. */
+   HISTORY, because the trap it names is closed rather than still lurking: this field's range input
+   used to be minted as `range psl-range`, and .range -- an unrelated knob-slider rule further down --
+   reached it with margin-top:10px, inflating grid row 2 to 44px, making the field 66px and sending
+   the control mid-line 25.6px off. Two passes at the alignment "failed" while looking correct in the
+   stylesheet, because it was never an alignment problem. It was neutralized here by out-specifying
+   the single-class original, and #516 removed the equivalent .slider{margin-top:16px} outright.
+   #770 removed the cause instead: the input is minted `psl-range` and nothing else, and the scope
+   law makes a bare .range unable to reach it at all. The margin:0 below is now inert and kept only
+   so the rule states this element's full box in one place. */
 /* gap:20 not 22 (#394 follow-up): under Pinned color the ident column grows about 61px wider (the hex
    readout only Pinned shows, .show-hex), and at that width ident+origin+anchor's natural sizes summed
    to 800.45px against an 800px row -- 0.45px over. flex-wrap is all-or-nothing, so that sub-pixel
@@ -434,7 +434,11 @@ input[type=color]::-moz-color-swatch{border:none;border-radius:inherit}
 
 .slider-top{display:flex;align-items:baseline;justify-content:space-between;font-size:13px;color:var(--ink2)}
 .slider-top .val{color:var(--muted);font-size:12.5px}
-.range{width:100%;margin-top:10px;accent-color:var(--ink)}
+/* `.range` stood here — the knob-slider rule whose margin-top:10px reached the palette row's
+   `psl-range` and cost three passes at the wrong problem (#464, see .pfield above). #770 removed its
+   last consumer, so the rule has no elements left; deleted rather than left as an unreferenced name
+   the scope law would then hand to whoever wanted a component called `range`. The knob-context
+   sliders are styled by `.knob input[type=range]`, which is where they always actually came from. */
 .np-note{color:var(--faint);font-size:12px;line-height:1.55;margin:16px 0 0}
 
 

@@ -111,12 +111,6 @@ jobs:
       - name: Studio chrome clears its own contrast floors
         run: npm run -w @prism3/studio lint:contrast
 
-      # Four defects in one session were the same shape: a class name meaning one thing here and
-      # another there, invisible at the definition site. This makes a NEW multi-rule pairing fail
-      # until someone looks at it — a forcing function, not a proof. See the file header.
-      - name: No unreviewed class-name collisions
-        run: npm run -w @prism3/studio lint:classes
-
       # Two contexts, checked separately: the main thread (figma.*, no DOM) and the UI iframe (DOM,
       # no figma.*). CONTRIBUTING §3 documents both as a plugin gate; missing from this workflow's
       # initial cut (#298) — only Build plugin ran.
@@ -220,10 +214,11 @@ jobs:
           esac
 
       # #610 fixed CLAUDE.md/CONTRIBUTING.md/the PR template being out of sync with the gates above —
-      # the PR template listed 4 checks against this workflow's 17, and #601/#602 each shipped
-      # `lint:classes` silently broken by following that shorter, stale checklist faithfully. This is
-      # what stops it drifting again: every `npm run`/`npx tsx` gate above must stay represented in
-      # all three documents, checked against the real file rather than a restated list.
+      # the PR template listed 4 checks against this workflow's 17, and #601/#602 each shipped a gate
+      # (`lint:classes`, retired in #770) silently broken by following that shorter, stale checklist
+      # faithfully. This is what stops it drifting again: every `npm run`/`npx tsx` gate above must
+      # stay represented in all three documents, checked against the real file rather than a restated
+      # list — which is also what made #770's own deletion a four-document edit rather than a one-line one.
       - name: Docs stay in sync with this workflow's gates
         run: npx --yes tsx@4 packages/engine/lint-doc-gates.ts
 

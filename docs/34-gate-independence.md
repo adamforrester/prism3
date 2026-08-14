@@ -315,7 +315,8 @@ the presence of a floor**; they are separate properties and a gate can have eith
 
 What the audit actually found, by measurement rather than by reading: four gates whose printed count
 nothing compared — `vercel-ignore-check.mjs` (the instance above), both `nb-regression.ts` populations,
-and the two suites' `N passed` headline. Both prose gates, `lint-doc-gates.ts`, `lint-classes.mjs`,
+and the two suites' `N passed` headline. Both prose gates, `lint-doc-gates.ts`, `lint-classes.mjs`
+(retired in #770, when scoped class names left it nothing to police),
 `lint-contrast.mjs`, `token-contract.ts` and `check-consumability.mjs` were already able to fail — several
 because an earlier instance in this register had already taught them to.
 

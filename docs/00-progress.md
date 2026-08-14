@@ -7,6 +7,140 @@
 
 ---
 
+## (2026-08-14) — Scoped class names, and `lint-classes.mjs` retired as the proof (#770)
+
+**STATUS: shipped.** Piece 2 of 4 under #768, held to last because it ends in a **gate deletion** and the
+"this defect class is now unrepresentable" argument has to be made against the final shape of the code.
+`apps/studio/lint-classes.mjs` is deleted, with its CI step and its four documents.
+
+**WHAT THE DEFECT ACTUALLY WAS, stated tightly, because the fix is only as good as the statement.** Not
+"two classes on one element" — that is the *symptom* the gate could see. It was: **a class token minted
+for one surface silently matching a rule authored for another, invisible at the mint site and findable
+only by looking at a render.** `.pfield.slider` picked up a standalone `.slider{margin-top:16px}` 70 lines
+away, and that 16px *was* the palette row's misalignment in full; three alignment fixes could not touch it
+because it was never an alignment problem (#464). `.psl-range` lost to `.range{margin-top:10px}` on source
+order at equal specificity, 33px → 44px. `.seg` added chrome the `select` beside it had no equivalent of
+(#484). The **silence** is the defect; the pairing is just where it shows up.
+
+**THE MECHANISM, and why this one rather than the obvious ones.** No hashing, no CSS-in-JS, no build step,
+no dependency — three things this repo could not afford and one it does not want:
+
+> **A class name belongs to the scope named before its first dash, or is the whole name. An element's
+> class list stays in one scope, plus a declared shared vocabulary that provably cannot carry a rule
+> on its own.**
+
+Measured before choosing it: the studio's 563 top-level rules already sit in **140 de-facto scopes**
+(`sg-`, `mo-`, `exdlg-`, …), and **836 of 836 mints** conform after 19 sites are corrected. So the naming
+convention was already there and only the *enforcement* was missing — which is why this lands as ~300
+lines rather than a rewrite of 1,500 lines of CSS. A hash-per-build or CSS-modules scheme would have
+worked too and was rejected on two grounds: it needs a build step in five esbuild entries that
+deliberately have none, and **it would have silently undone #791** — see the determinism check below.
+
+**ENFORCED IN TWO PLACES, NEITHER OF THEM A LINT STEP** — which is the whole reason it was worth trading a
+gate for:
+
+1. **`el`'s type.** `Scoped<T>` resolves to `never` when T's tokens do not share a scope, so
+   `el('div', 'pfield slider')` is a **compile error** under `typecheck`, already a CI gate. Deliberate
+   composition is spelled `mix(...)` **at the mint site** — the review `ALLOWED` forced from 8,000 lines
+   away, moved to the one place that can see the surrounding layout. All 13 live allowlist entries became
+   `mix()` calls with their reason beside them.
+2. **`installStyles`.** The only path by which `styles.css` becomes CSS. It refuses a stylesheet in which
+   a shared token keys a top-level rule on its own, and re-derives the utility invariant (#544's
+   `NON_BOX_PROP`) from the **shipped** text. There is no build of this app in which it did not run.
+
+`checkScope` repeats (1) at runtime for class strings the type system only ever sees as `string` —
+template literals and values threaded through helpers. That is the hole a type-level rule always has, and
+it is closed rather than documented. **It earned its keep immediately**: it found two cross-scope mints
+the static analysis had missed entirely (`rx prm` and `mctx-b derived`), both built by concatenation.
+
+**WHY THE TWO TOGETHER CLOSE IT.** A rule reaches an element only through a class the element carries. By
+(1) an element's tokens are one scope's members plus shared tokens. A scope member is spelled with its
+scope, so the rule it matches is that scope's, *by name*. A shared token cannot match a single-class rule
+at all, because by (2) no such rule may exist for one — it can only appear in a **compound**
+(`.pfield.slider`), which requires the anchor and therefore cannot act on an element of another scope. The
+two lists cannot be abused to reopen it either: **putting a scope head into `STATES` makes its own rule
+illegal under (2); leaving it out makes the mint a type error under (1).** Both doors, not one — driven,
+both ways, below.
+
+**WHAT REMAINS REPRESENTABLE, written down rather than left for the next reader to find.**
+`mix('pfield', 'slider')` reproduces #464 exactly. Deliberate: genuine composition exists (the export
+dialog reusing `.seg`, a token pill flagged by the style guide) and pretending otherwise would push it into
+a template literal, where nothing checks it. What is closed is the *silence* — the composition is named in
+the same expression that creates the element, and there is no way to not name it. That is the honest
+claim, and it is the one the PR body makes.
+
+**THE `.pfield.slider` RECONSTRUCTION — both doors, driven.** Worth more than the gate's absence:
+
+| reconstruction | result |
+|---|---|
+| re-add `.slider{margin-top:16px}`, `slider` still a shared state | **boot refused**, page renders nothing: *"'.slider' key a top-level rule while listed as a shared state"* |
+| …then promote `slider` to a scope so the rule is legal | **mint refused at render**: *"class list \"pfield slider\" spans scopes"*; `document.querySelector('.pfield.slider')` → no such element |
+| `el('div', 'seg exdlg-seg')` written as a literal | **compile error** — `Argument of type '"seg exdlg-seg"' is not assignable to parameter of type 'Mix'` |
+
+The canonical site was rewritten from `'pfield slider' + (editable ? '' : ' ro')` to two literals *so that
+it is covered by the type and not only by the runtime check* — a concatenation is `string` to TypeScript,
+and the site #464 was found on should be the one the compiler reads.
+
+**THE #791 TRAP, and it is the reason ordering mattered.** #791's reconciler keeps a workspace region when
+its **signature** — serialized markup plus every control's live value — is unchanged. A scoping mechanism
+that generates non-stable class names makes every signature differ on every render: every region swaps,
+#791 is silently undone, everything stays green. Checked directly rather than argued from the design:
+
+- The exact signature (`JSON.stringify(controlValues) + outerHTML`) reproduced and taken **three times per
+  state** across four pages — **STABLE**, byte-identical, every time. Class lists across a full workspace
+  rebuild: **IDENTICAL**.
+- Region keeps driven on `origin/main` and on this branch, same clicks, same brands, identity by held node
+  reference: **identical, region for region.** aurora/Surfaces 6 of 10 kept — the exact number #791's PR
+  reports for that repro. aurora/Palettes 3 of 6, Size & radius and Layout 6 of 6, both brands.
+
+**A methodology trap worth recording, because it cost a full re-run.** The first "baseline" comparisons
+were taken with `git stash` — which is a **no-op once your work is a commit rather than a working-tree
+change**, so they compared the branch against itself and reported a reassuring zero. Both "baselines" were
+retaken with a detached `origin/main` checkout. *After a rebase, `stash` is not how you get a baseline.*
+The second trap, in the same probe: tagging `.ws` children with a marker attribute to measure identity
+**changes `outerHTML`, which is the signature**, so every region swapped and the probe read 1-of-10 kept.
+An instrument that writes into the thing it measures (`docs/34` shape 8, through a new door). Hold node
+references instead.
+
+**Evidence that no pixel moved.** 72-state sweep (9 pages × 4 modes × 2 brands) against `origin/main`:
+**68 of 72 byte-identical**. The four are three `Motion` and one `Preview` — and a control run of the sweep
+against *itself* differs on the same kind of set (Motion ×3, Preview ×2), because both animate. `Preview`
+was then captured in isolation four times per build: **identical md5 on both**, so the sweep difference is
+sweep-order, not a change. Markup across all 72 states differs on exactly **8 states, all Palettes** —
+the one intended change, below — and nothing else.
+
+**`.range` is deleted, not scoped.** Removing the `range` token from the palette slider's mint left the
+rule with no consumer at all, so it goes. Two things fall out: the `.pfield.slider .psl-range{margin:0}`
+neutralizer has nothing left to neutralize (kept, inert, with the comment rewritten — a comment asserting
+a protection the code no longer provides is itself the defect, #646), and `range` stops being a scope
+shared by two unrelated components (`.range` the slider, `.range-row/-f/-tg` the responsive-type editor) —
+the one genuine stem conflation in the file, which the law would otherwise have blessed.
+
+**THE FIVE-FILE DELETION, budgeted rather than discovered.** `lint-doc-gates.ts` enforces that
+`CLAUDE.md` §4, `CONTRIBUTING.md` §3 and `.github/pull_request_template.md` §Gates match `ci.yml`, so the
+deletion fails that gate until all four move together. **29 gate steps on `origin/main` → 28 on this
+branch**, and the diff of `ci.yml`'s `- name:` lines is exactly the one removed step — nothing else moved.
+Plus `apps/studio/package.json`'s script, and the stale pointers in `docs/26`, `docs/34`, `styles.css`'s
+header and three `main.ts` comments. **`lint-doc-gates` going green proves only that the documents agree
+with CI about a gate that no longer exists** — it is not evidence for the argument above, and this entry
+does not offer it as such.
+
+**The gate's own last words, which are the cleanest statement that it was done:** run on the scoped tree
+before deletion it reports **0 unreviewed pairings** and *"13 allowlist entries no longer minted
+anywhere"* — every reviewed pairing it existed to hold had become a `mix()` at its call site.
+
+**Gates: 28 of 28 in `ci.yml` order, plus `build:site` and `audit:modes --check-badges`.** Engine 2197/2197
+· MCP 49/49 · NB regression PASS · `regen --check` 104 artifacts · token contract unchanged · aliases
+982/982, mode contracts 536/536 · studio typecheck/test 150/build/`check:ignore` 16 engine files/`lint:contrast`
+· **smoke 819/819, 15,638 text nodes across 72 states — the baseline exactly**, read from the command's own
+output · plugin typecheck/test/build (0 `node:` builtins) · TokenPress 274/build · exporter comparison ·
+consumability · lint-skills/us-english/voice/doc-gates/layout-claims/payload-manifest/overlay-completeness/
+paint/shape-index/typecheck-components · `build:site` (not a CI step) · `audit:modes --check-badges` 46
+badged sections. **#784's Node-24 action bump is deliberately not here** — a runner change inside a cleanup
+PR makes a cleanup regression and a runner regression indistinguishable.
+
+---
+
 ## (2026-08-13) — The build action takes a def id, and two bundle gates turned out to be about the same mistake (#804)
 
 **STATUS: shipped.** `build-components` carries an optional `def` field, the studio offers a picker over the defs
