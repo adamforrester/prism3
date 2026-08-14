@@ -59,7 +59,7 @@
  *     gates — uses "just"/"simply" constantly as ordinary connective prose. A structural exemption is
  *     what makes this gate usable at all, not a convenience.
  *
- *     **THIS PARAGRAPH USED TO CLAIM esbuild STRIPS SOURCE COMMENTS, AND THAT WAS WRONG (#800).** It
+ *     **THIS PARAGRAPH USED TO CLAIM esbuild STRIPS SOURCE COMMENTS, AND THAT WAS WRONG (#804).** It
  *     read: *"real TypeScript `//` and `/* *\/` comments never reach `apps/studio/dist/main.js` in the
  *     first place — esbuild strips them (confirmed by grepping the built bundle for known
  *     source-comment text and finding none)"*. Measured: `apps/studio/dist/main.js` carries **300**
@@ -70,7 +70,7 @@
  *     not read). So the exemption below was resting on a property the shipped surface never had.
  *
  *     It only ever went unnoticed because a `//` comment reaching this scan had to carry a §2 word,
- *     and for 299 of the 300 none did. #800 imported `anatomy-figma.ts` into the studio and the 300th
+ *     and for 299 of the 300 none did. #804 imported `anatomy-figma.ts` into the studio and the 300th
  *     arrived — a `//` line inside `PAYLOAD_PREAMBLE`, a template literal, which `stripPayloadComments`
  *     removes before any payload reaches Figma. A comment that ships nowhere, flagged as shipped prose.
  *
@@ -150,7 +150,7 @@ const EXCLAIM = /(?<=[A-Za-z0-9])!(?!=)(?![A-Za-z])/g;
 // and Markdown surfaces get no such stripping.
 const stripBlockComments = (txt: string): string => txt.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
 
-// ---- The `//` half of the same exemption (#800 — see header point 4 for why this was missing and what
+// ---- The `//` half of the same exemption (#804 — see header point 4 for why this was missing and what
 // it cost). WHOLE-LINE ONLY: the line's first non-space characters must be `//`. A mid-line `//` is left
 // untouched on purpose, and the reason is `stripPayloadComments`'s own header two files over — a greedier
 // `l.includes('//')` pass eats `if(!id)continue; // ...`, a real guard, and every downstream assertion
@@ -197,7 +197,7 @@ const scan = (abs: string): Hit[] => {
   // Code comments are exempt (header point 4). The built bundle is the only surface stripped, and it
   // carries BOTH shapes: `/* ... */` spans (a CSS-in-template-literal stylesheet) and 300 whole-line
   // `//` source comments — esbuild does not strip the latter, contrary to what this gate assumed until
-  // #800. Block spans go first: a `//` inside a block comment is part of that comment, not a line
+  // #804. Block spans go first: a `//` inside a block comment is part of that comment, not a line
   // comment, and blanking the span makes the line-pass a no-op over it either way.
   const txt = abs.endsWith('.js') ? stripLineComments(stripBlockComments(raw)) : raw;
   return voiceHits(txt).map(({ rule, match, index }) => ({
@@ -291,7 +291,7 @@ const commentSelfFails: string[] = [];
 }
 selfFails.push(...commentSelfFails);
 
-// ---- Fourth self-check: the `//` half of the exemption (#800). Same forward+converse discipline as the
+// ---- Fourth self-check: the `//` half of the exemption (#804). Same forward+converse discipline as the
 // block-comment pass above, plus the one property that makes it SAFE rather than greedy — a mid-line
 // `//` must be left alone, so a violation in the code half of such a line is still caught. Without that
 // converse this pass would be the `!l.includes('//')` mistake `stripPayloadComments` documents, and it

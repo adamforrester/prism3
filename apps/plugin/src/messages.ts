@@ -19,7 +19,7 @@
  *
  * The component tier (#483) rides the same bridge as its own action pair — `build-components` /
  * `component-result` — because materialising a component set is a designer ACTION with its own trigger,
- * not part of applying a theme (#652). Since #800 that action names which def to build; absent still
+ * not part of applying a theme (#652). Since #804 that action names which def to build; absent still
  * means Button.
  */
 import type { BrandInput } from '@prism3/engine/theme';
@@ -47,7 +47,7 @@ export type UiToMain =
    *  sending one would put a large structure on the wire that the receiver already has, and the receiver
    *  must look it up anyway to reject an id it cannot build.
    *
-   *  WHY THIS IS THE FIELD AND AN AXIS FILTER IS STILL NOT (#800). The distinction is which QUESTION the
+   *  WHY THIS IS THE FIELD AND AN AXIS FILTER IS STILL NOT (#804). The distinction is which QUESTION the
    *  field answers. *Which def* has an answer the def list already contains — `componentDefs` is a real
    *  set, `typecheck-components.ts` asserts it holds exactly the defs git tracks, and an id either is in
    *  it or is not. *Which variants of that def* has no such answer: `figmaProperties` declares the axes

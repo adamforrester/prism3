@@ -7,6 +7,89 @@
 
 ---
 
+## (2026-08-13) — The build action takes a def id, and two bundle gates turned out to be about the same mistake (#804)
+
+**STATUS: shipped.** `build-components` carries an optional `def` field, the studio offers a picker over the defs
+that actually project, and two rotted "Button is the only one" counts are now derived. Stacked on #798, whose
+second TEXT property one of the new assertions reads.
+
+**AND THIS STILL DOES NOT CLOSE ARC 2 STEP 2.** `focus-ring` cannot project: `planComponentName` always writes a
+`size=` coordinate the ring has no axis for, and `PartDef` has no stroke field (#740). Nothing here touched
+either. Step 2 stays incomplete on purpose — read step 3's progress as step 3's.
+
+**THE FIELD WAS THE SMALL PART. `main.ts` NAMED THREE REASONS THE ACTION WAS BUTTON-SHAPED** — *"this action's
+contract is Button's 648-member set: SWAP_TARGET, the progress calibration below, and #483's whole scope"* — and
+they do not travel for free. Each was settled by measuring rather than reasoning, which is what removed the
+per-def branching the wording anticipated:
+
+- **`swapTarget` generalizes unchanged, because it is INERT where a def declares no swap parts.** Settled by
+  comparing two projections, not by reading the option's docs: `figmaAnatomySet(fieldLabel, { swapTarget })` and
+  `figmaAnatomySet(fieldLabel, {})` produce identical plans and identical set properties, because the option is
+  only read where a part declares `nesting: { kind: 'swap' }` (`anatomy-figma.ts:685`). Button's 648 plans carry
+  702 swap nodes, IconButton's 162 carry 162, `icon` and `field-label` carry none. So the caller never has to
+  know whether a def wants one, and there is no conditional.
+- **The calibration generalizes because it was already DERIVED, not declared.** `CHUNK = 4` is members-per-chunk
+  and `build-telemetry.ts` computes everything it prints from the reports (`p.total`, `totalMs / s.members`).
+  Verified by feeding 4-member reports through `summaryLines` and reading the output: per-phase rows, per-member
+  cost, worst-chunk frame count and the "UNREACHABLE by CHUNK alone" warning all still read correctly. What does
+  **not** transfer is the *prose* quoting 105s and 1m10s — a measurement OF Button stated as a property of the
+  action, off by two orders of magnitude for a 4-member def. That moves to the UI as a per-member rate with the
+  variant count beside each def, so the multiplication is the designer's and stays true for the next def.
+- **#483's scope is unchanged.** Checked what else assumed the 648; nothing did.
+
+**TWO ROTTED COUNTS, ONE DEFECT.** `apps/studio/src/main.ts` carried *"Button is the only def of the five that has
+one"* and the plugin's `main.ts:250` carried its twin. Both were true when written and false since #734, #741 and
+#796 — **four** defs project today (`icon` 4 plans, `button` 648, `icon-button` 162, `field-label` 4), and three
+throw. Both are now derived by asking `figmaAnatomySet` which defs it accepts, because the throw IS the signal:
+it throws precisely when a def has no `anatomy` or no `figmaProperties`. A predicate restating those
+preconditions from outside would rot more slowly and still rot.
+
+**THE TWO GATES THAT FIRED WERE THE INSTRUCTIVE PART, AND NEITHER WAS NOISE.** Importing the projector into the
+studio is what surfaced both, and in both cases the tempting fix was the wrong one.
+
+**`check:ignore` — dead-code elimination is a size optimization, not a dependency boundary.** It reported
+`anatomy-figma.ts`, `component-schema.ts` and `eval.ts` as *both bundled and excluded*, meaning a change to them
+would skip the Vercel deploy and ship nothing. Gating the derivation on `PRISM3_HOST` recovers most of the size —
+measured, 176KB gzip → **147KB** against a 140KB baseline, a 35KB/20% regression avoided — and both fields come
+from one gated expression, because a second ungated `componentDefs` reference would defeat it. But ~**18KB** of
+`anatomy-figma.ts` survives into the web output regardless: that module's top-level template constants are not
+provably side-effect-free, so esbuild keeps them. So the three come **off** the exclusion list. Leaving them on it
+because "the feature is Figma-only" would have been #474's stale deploy with a rationale attached. Verified in
+both directions afterwards: the three now trigger a build, the still-excluded ones do not, and `theme.ts` does.
+
+**`lint-voice.ts` — the gate's exemption rested on a property the shipped surface never had.** It flagged a `//`
+comment inside `PAYLOAD_PREAMBLE`, which `stripPayloadComments` removes before any payload reaches Figma — a
+comment that ships nowhere, reported as shipped prose. The header explained why that could not happen: *"real
+TypeScript `//` and `/* */` comments never reach `dist/main.js` — esbuild strips them (confirmed by grepping…)."*
+Measured: the bundle carries **300** whole-line `//` source comments, including this repo's own *"// Citation
+deliberately TRUNCATED rather than reworded"*. The grep that "confirmed" it must have probed text that had since
+changed, and nothing re-ran it — `dist/` is `build`'s output, and `build` does not minify (`build:site` does, and
+writes somewhere this gate does not read). It went unnoticed for 299 of the 300 because a `//` comment reaching
+this scan had to carry a §2 word, and none did until this import brought the 300th.
+
+So the exemption grew its `//` half, **whole-line only**, and the restraint is the point: the greedier
+`l.includes('//')` pass is exactly the mistake `stripPayloadComments`'s own header records against — it eats
+`if(!id)continue; // …`, a real guard, and every downstream assertion stays green because output sampling cannot
+see a line that is no longer there. Here the same greed would blank the prose half of `const msg = "Applied!"; //
+note`. Three self-check properties pin it, and all three were mutation-tested by name (docs/34): a banned word
+inside a whole-line comment is blanked (**no-op stripper → fails**), a violation on a line whose `//` starts
+mid-line is still caught and a URL's `//` leaves its line alone (**greedy stripper → fails on both**), and the
+line count is preserved so later line numbers stay accurate (**line-deleting stripper → fails**). Control: clean.
+
+Worth separating from the fix: the reword this first prompted was **reverted**. Once the exemption covered the
+case, changing `anatomy-figma.ts` was no longer needed, and a gate fix plus an unnecessary source edit would have
+read as though the source were at fault. `anatomy-figma.ts` is untouched in this PR.
+
+**THE GENERALIZATION.** Both gates went stale in the same way, and it is not the way a rotted count does. Neither
+was wrong about its rule; each was resting on an unstated fact about the bundle — *"these files are not imported"*
+and *"esbuild strips comments"* — that was true when written, that nothing re-checked, and that a change in a
+different workspace falsified. A gate whose correctness depends on a property of its subject it does not itself
+assert is one import away from being wrong, and it reports that as a pass. `check:ignore` is the healthy shape
+here: it re-derives bundle membership from esbuild's metafile every run, which is why it *caught* its change
+instead of being invalidated by it.
+
+---
+
 ## (2026-08-13) — The indicator painted correctly and was blank; #510's defect at one-node scale (#798)
 
 **STATUS: shipped.** `field-label` declares a second TEXT property, and `figmaPropertyErrors` gains the rule that

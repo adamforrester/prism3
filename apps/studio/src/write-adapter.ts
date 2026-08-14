@@ -103,7 +103,7 @@ export interface HostCommit {
   /** Ask the host to materialise one component set onto the canvas (#483; Figma only, no-op on web,
    *  which has no canvas to build onto).
    *
-   *  ONE ARGUMENT, AND IT IS AN ID RATHER THAN A DEF (#800). What travels is the def's `id` — the defs
+   *  ONE ARGUMENT, AND IT IS AN ID RATHER THAN A DEF (#804). What travels is the def's `id` — the defs
    *  are compiled into the plugin's own bundle, so sending one would put a large structure on the wire
    *  that the receiver already has and must look up anyway. Optional, so absent still means Button.
    *

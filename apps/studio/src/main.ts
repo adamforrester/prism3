@@ -3904,7 +3904,7 @@ const renderPreviewPage = (host: PageHost): void => {
 };
 
 /**
- * Which defs can actually be materialized, ASKED rather than listed (#800).
+ * Which defs can actually be materialized, ASKED rather than listed (#804).
  *
  * It projects each def and keeps the ones that do not throw, so the answer is the projector's and not a
  * second copy of it. The alternative — a literal array, or a `!!def.anatomy && !!def.figmaProperties`

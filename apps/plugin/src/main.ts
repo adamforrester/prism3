@@ -249,11 +249,11 @@ const measureSettle = async (): Promise<number | null> => {
  * axis filter would be a curation taxonomy nobody has chosen. If a smaller default is wanted, this line
  * is where it goes — nothing downstream needs to change.
  *
- * ONE DEF PER CALL, NAMED BY THE CALLER — and still not a catalogue loop (#800). The reason a loop was
+ * ONE DEF PER CALL, NAMED BY THE CALLER — and still not a catalogue loop (#804). The reason a loop was
  * refused stands unchanged and is worth restating, because this change could be mistaken for it: a loop
  * would throw on whichever defs are missing either half of what materialising takes, and it would make
  * the cheap 4-member run cost every member in the catalogue, so nobody could build one def to look at
- * it. What #800 adds is a caller naming WHICH def, which is the opposite of building all of them.
+ * it. What #804 adds is a caller naming WHICH def, which is the opposite of building all of them.
  *
  * Materialising a def takes two things, which `docs/38` §2 names in the vocabulary this comment
  * borrows so a reader moving between the design record and here is not translating: an `anatomy` block
@@ -305,7 +305,7 @@ const measureSettle = async (): Promise<number | null> => {
 const buildComponents = async (defId?: string): Promise<void> => {
   try {
     // ABSENT MEANS BUTTON, which is #483's contract preserved rather than a default chosen here: a UI
-    // older than #800 posts no `def`, and it must keep building the thing its own control names.
+    // older than #804 posts no `def`, and it must keep building the thing its own control names.
     const def = defId === undefined ? button : componentDefs.find((d) => d.id === defId);
     if (!def) {
       // A FAILED RESULT, NOT A THROW. The UI offers only ids it derived from `componentDefs`, so an id

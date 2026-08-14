@@ -1427,7 +1427,7 @@ ok(!built.some((n) => 'constrainProportions' in n),
 ok(unlockRun.misses.length === 0 && unlockRun.variants === 21,
   `#682 ...and the migrated build is still clean (${unlockRun.variants} members, ${unlockRun.misses.length} misses)`);
 
-// ---- #800: the action builds a def the CALLER names, and a small one executes ---------------------
+// ---- #804: the action builds a def the CALLER names, and a small one executes ---------------------
 //
 // WHAT THIS CANNOT COVER, STATED FIRST. `buildComponents` reads the `figma` global, so the dispatch
 // itself (`msg.def` → def → plans) is not reachable from this harness. What IS reachable is the pair of
@@ -1441,49 +1441,49 @@ ok(unlockRun.misses.length === 0 && unlockRun.variants === 21,
 // (`CHUNK = 4`) would pass every assertion above.
 const byId = (id: string): ComponentDef | undefined => componentDefs.find((d) => d.id === id);
 ok(byId('field-label') === fieldLabel && byId('button') === button,
-  '#800 a def resolves from its id through `componentDefs` — the same lookup the main thread does');
+  '#804 a def resolves from its id through `componentDefs` — the same lookup the main thread does');
 ok(byId('feild-label') === undefined,
-  '#800 ...and a misspelled id resolves to nothing rather than to a neighbouring def, which is what makes the failed result reachable');
+  '#804 ...and a misspelled id resolves to nothing rather than to a neighbouring def, which is what makes the failed result reachable');
 // EVERY def the picker offers, not just the one being materialized: the UI derives its list by calling
 // `figmaAnatomySet` and keeping what does not throw, so an id it offers that this cannot project would be
 // a disagreement between the two sides that the designer sees as a build that fails.
 const offerable = componentDefs.filter((d) => { try { figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }); return true; } catch { return false; } });
 ok(offerable.length >= 4 && offerable.some((d) => d.id === 'field-label') && offerable.some((d) => d.id === 'button'),
-  `#800 every def the UI can offer projects here too (${offerable.map((d) => d.id).join(', ')})`);
+  `#804 every def the UI can offer projects here too (${offerable.map((d) => d.id).join(', ')})`);
 
 const labelPlans = figmaAnatomySet(fieldLabel, { swapTarget: 'FPO-default-icon' });
 // SWAP TARGET PASSED AND INERT, which is what lets the main thread pass it unconditionally rather than
 // branching per def. Asserted by comparing the two projections, not by reading the def: a def that gains a
 // swap part later makes this fail, which is the correct outcome — the branch would then be needed.
 ok(JSON.stringify(labelPlans) === JSON.stringify(figmaAnatomySet(fieldLabel, {})),
-  '#800 `swapTarget` is inert for a def with no swap parts, so the caller need not know whether to pass it');
+  '#804 `swapTarget` is inert for a def with no swap parts, so the caller need not know whether to pass it');
 
 // `fullFor(labelPlans)` rather than `full()`, and the distinction matters: `full()` seeds Button's names,
 // so a `field-label` run against it would report every binding as a miss and the assertion below would be
 // measuring the seed rather than the executor. Derived from these plans for the reason `fullFor` exists.
 const labelRun = await run(labelPlans, fullFor(labelPlans));
 ok(labelRun.set === 'field-label' && labelRun.variants === 4 && labelRun.added === 4,
-  `#800 a 4-member set assembles under one set of its own name (set=${labelRun.set}, variants=${labelRun.variants}, added=${labelRun.added})`);
-ok(labelRun.misses.length === 0, `#800 ...with no misses (${labelRun.misses.join('; ') || 'none'})`);
+  `#804 a 4-member set assembles under one set of its own name (set=${labelRun.set}, variants=${labelRun.variants}, added=${labelRun.added})`);
+ok(labelRun.misses.length === 0, `#804 ...with no misses (${labelRun.misses.join('; ') || 'none'})`);
 // REACHABILITY, so the line above cannot pass vacuously: a plan set that binds nothing has nothing to
 // miss. Same guard the Button block opens with, for the same reason.
 const labelSeed = fullFor(labelPlans);
 ok((labelSeed.vars ?? []).length >= 4 && (labelSeed.styles ?? []).length >= 2,
-  `#800 reachable: these plans DO reach for variables and text styles (${(labelSeed.vars ?? []).length} vars, ${(labelSeed.styles ?? []).length} styles)`);
+  `#804 reachable: these plans DO reach for variables and text styles (${(labelSeed.vars ?? []).length} vars, ${(labelSeed.styles ?? []).length} styles)`);
 // THE TWO TEXT PROPERTIES, which is the #798 fix reaching the canvas rather than only the plan. A set with
 // one TEXT property here is the blank-indicator defect back, and it would otherwise be invisible: the node
 // exists, is painted, is the right size, and holds no characters.
 ok(labelRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 2,
-  `#798/#800 both text parts are declared as TEXT properties on the set, so neither projects blank (${labelRun.properties.join('/')})`);
+  `#798/#804 both text parts are declared as TEXT properties on the set, so neither projects blank (${labelRun.properties.join('/')})`);
 // A SET NO LARGER THAN ONE CHUNK still yields and still ends at its total — the edge Button's 648 never
 // exercised, since every count in this file is a multiple of 21 and `CHUNK` is 4. Through `instrumented`
 // so the YIELD is witnessed separately from the REPORT: at this size the two could not be told apart by
 // counting reports alone, which is the substitution docs/34 §2 records.
 const labelInstr = await instrumented(labelPlans, fullFor(labelPlans));
 ok(labelInstr.progress.length > 0 && labelInstr.yieldCalls > 0,
-  `#800 a set no larger than one chunk still yields and still reports (${labelInstr.yieldCalls} yields, ${labelInstr.progress.length} reports)`);
+  `#804 a set no larger than one chunk still yields and still reports (${labelInstr.yieldCalls} yields, ${labelInstr.progress.length} reports)`);
 ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.some((p) => p.done === p.total),
-  `#800 ...and the fractions are bounded and end at the total (${labelInstr.yields.join(', ')})`);
+  `#804 ...and the fractions are bounded and end at the total (${labelInstr.yields.join(', ')})`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

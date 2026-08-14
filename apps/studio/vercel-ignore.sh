@@ -26,7 +26,7 @@
 # the bug we are fixing. `apps/studio/vercel-ignore-check.mjs` gates the list against the real metafile so an
 # excluded file that later gets imported is caught in CI rather than in production.
 #
-# THREE FILES CAME OFF THIS LIST IN #800, and the reason is worth stating because the obvious reading
+# THREE FILES CAME OFF THIS LIST IN #804, and the reason is worth stating because the obvious reading
 # of it is wrong. `apps/studio/src/main.ts` now imports `figmaAnatomySet` to derive which component defs
 # can be materialized, which pulls in `anatomy-figma.ts` → `component-schema.ts` → `eval.ts`. The
 # derivation is gated on `PRISM3_HOST === 'figma'`, so the *web* build eliminates the defs and almost
